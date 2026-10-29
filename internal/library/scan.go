@@ -322,7 +322,10 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		}
 	}
 	for _, t := range o.Disc.Titles() {
-		dt := DiscTitle{Number: t.Number, DurationSec: t.Duration, Chapters: t.Chapters, Angles: t.Angles, Wide: t.Video.Wide, Standard: t.Video.Standard}
+		dt := DiscTitle{Number: t.Number, DurationSec: t.Duration, Chapters: t.Chapters, Angles: t.Angles, Wide: t.Video.Wide, Standard: t.Video.Standard, Audio: []string{}, Subtitles: []string{}}
+		if dt.Chapters == nil {
+			dt.Chapters = []float64{}
+		}
 		for _, a := range t.Audio {
 			dt.Audio = append(dt.Audio, fmt.Sprintf("%s %s %dch", orUnd(a.Language), strings.ToUpper(a.Codec), a.Channels))
 		}

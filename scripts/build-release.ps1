@@ -10,7 +10,8 @@ param(
   [string[]]$Targets = @("windows/amd64", "windows/arm64", "linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "freebsd/amd64"),
   [switch]$SkipWeb,
   [switch]$SkipFFmpeg,
-  [string]$FFmpegFreeBSDDir = $env:FFMPEG_FREEBSD_DIR
+  [string]$FFmpegFreeBSDDir = $env:FFMPEG_FREEBSD_DIR,
+  [string]$TrayDarwinDir = $env:TRAY_DARWIN_DIR
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
@@ -66,9 +67,20 @@ foreach ($t in $Targets) {
   $env:CGO_ENABLED = "0"; $env:GOOS = $os; $env:GOARCH = $arch
   & go build -trimpath -ldflags "-s -w -X main.version=$Version" -o (Join-Path $out "wms$ext") ./cmd/wms
   if ($LASTEXITCODE -ne 0) { throw "go build failed for $t" }
+  # Tray launcher: pure Go on Windows/Linux/FreeBSD; macOS needs CGO (built on a Mac -> -TrayDarwinDir).
+  switch ($os) {
+    "windows" { & go build -trimpath -ldflags "-s -w -H=windowsgui -X main.version=$Version" -o (Join-Path $out "WittyMediaServer.exe") ./cmd/wms-tray; if ($LASTEXITCODE -ne 0) { throw "tray build failed for $t" } }
+    "darwin"  { if ($TrayDarwinDir -and (Test-Path "$TrayDarwinDir\$arch\WittyMediaServer")) { Copy-Item "$TrayDarwinDir\$arch\WittyMediaServer" $out } else { Write-Warning "macOS tray launcher skipped (needs CGO on a Mac; see TRAY_DARWIN_DIR)" } }
+    default   { & go build -trimpath -ldflags "-s -w -X main.version=$Version" -o (Join-Path $out "WittyMediaServer") ./cmd/wms-tray; if ($LASTEXITCODE -ne 0) { throw "tray build failed for $t" } }
+  }
   if (-not $SkipFFmpeg) { Bundle-FFmpeg $out $os $arch }
-  foreach ($f in @("README.md", "LICENSE", "THIRD_PARTY_LICENSES.md")) { if (Test-Path $f) { Copy-Item $f $out } }
-  if ($os -eq "windows") { Copy-Item scripts\install.ps1, scripts\uninstall.ps1, scripts\start-wms.cmd $out } else { Copy-Item scripts\install.sh $out }
+  foreach ($f in @("README.md", "LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md")) { if (Test-Path $f) { Copy-Item $f $out } }
+  Remove-Item Env:GOOS, Env:GOARCH -ErrorAction SilentlyContinue
+  if ($os -eq "windows") { Copy-Item scripts\install.ps1, scripts\uninstall.ps1, scripts\start-wms.cmd $out; & go run ./scripts/genicon (Join-Path $out "icon.ico") }
+  else {
+    Copy-Item scripts\install.sh $out
+    if ($os -ne "darwin") { & go run ./scripts/genicon (Join-Path $out "icon.png") 256; (Get-Content scripts\wittymediaserver.desktop -Raw).Replace("@PREFIX@", "/opt/wittymediaserver") | Set-Content (Join-Path $out "wittymediaserver.desktop") -NoNewline }
+  }
   if ($os -eq "windows") { Compress-Archive -Path $out -DestinationPath "$out.zip" -Force; Write-Host "   -> $out.zip" }
   else { & tar -czf "$out.tar.gz" -C $dist $name; Write-Host "   -> $out.tar.gz" }
 }

@@ -148,7 +148,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt }: Props) 
         case 'm': act({ type: 'menu', menu: 'root' }); break
         case 't': act({ type: 'menu', menu: 'title' }); break
         case 'f': toggleFullscreen(root.current); break
-        case 'Escape': if (!document.fullscreenElement) nav(-1); break
+        case 'Escape': if (!document.fullscreenElement) nav(`/item/${item.id}`); break
         case 'PageDown': case 'n': act({ type: 'chapter', chapter: 1 }); break
         case 'PageUp': case 'p': act({ type: 'chapter', chapter: -1 }); break
       }
@@ -202,17 +202,17 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt }: Props) 
       </div>
       {(st.waiting || busy) && !needClick && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
-      {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => nav(-1)}>Back</button></div></div>}
+      {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => nav(`/item/${item.id}`)}>Back</button></div></div>}
       {pres?.kind === 'stop' && !err && (
         <div className="overlay-msg"><div className="box">
           <div style={{ marginBottom: 10 }}>{pres.scrambled ? 'This disc is CSS-scrambled and cannot be played.' : pres.reason || 'Playback stopped.'}</div>
           <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'menu', menu: 'title' }) }}>Title menu</button>{' '}
           <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: item.disc?.mainTitle || 1 }) }}>Play movie</button>{' '}
-          <button className="btn ghost" onClick={() => nav(-1)}>Back</button>
+          <button className="btn ghost" onClick={() => nav(`/item/${item.id}`)}>Back</button>
         </div></div>
       )}
       <div className="top">
-        <button className="ibtn" onClick={(e) => { e.stopPropagation(); nav(-1) }}><IconBack /></button>
+        <button className="ibtn" onClick={(e) => { e.stopPropagation(); nav(`/item/${item.id}`) }}><IconBack /></button>
         <div>
           <h2>{item.title}</h2>
           <div className="sub">{pres?.kind === 'title' ? `Title ${pres.title?.ttn} · ${chapters.length} chapters` : pres?.kind === 'menu' ? 'DVD menu' : ''}</div>

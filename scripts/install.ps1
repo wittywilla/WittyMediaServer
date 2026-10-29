@@ -22,6 +22,15 @@ Copy-Item -Force "$here\wms.exe" $Prefix
 if (Test-Path "$here\bin") { Copy-Item -Recurse -Force "$here\bin" $Prefix }
 Get-ChildItem "$here\*.md" -ErrorAction SilentlyContinue | Copy-Item -Force -Destination $Prefix
 Copy-Item -Force "$here\start-wms.cmd", "$here\uninstall.ps1" $Prefix
+foreach ($f in @("WittyMediaServer.exe", "icon.ico", "LICENSE", "NOTICE")) { if (Test-Path "$here\$f") { Copy-Item -Force "$here\$f" $Prefix } }
+# Start-menu shortcut for the tray launcher.
+if (Test-Path "$Prefix\WittyMediaServer.exe") {
+  $ws = New-Object -ComObject WScript.Shell
+  $lnk = $ws.CreateShortcut("$env:ProgramData\Microsoft\Windows\Start Menu\Programs\WittyMediaServer.lnk")
+  $lnk.TargetPath = "$Prefix\WittyMediaServer.exe"; $lnk.WorkingDirectory = $Prefix; $lnk.Description = "WittyMediaServer tray launcher"
+  if (Test-Path "$Prefix\icon.ico") { $lnk.IconLocation = "$Prefix\icon.ico" }
+  $lnk.Save()
+}
 
 # Firewall rule for LAN access
 netsh advfirewall firewall delete rule name="WittyMediaServer" | Out-Null
@@ -38,3 +47,4 @@ Start-ScheduledTask -TaskName "WittyMediaServer"
 Start-Sleep 2
 Write-Host "==> running. Open http://localhost:$Port/ to finish setup."
 Write-Host "    Manage with Task Scheduler (task 'WittyMediaServer') or run uninstall.ps1 to remove."
+Write-Host "    Prefer a tray icon instead of a background task? Run uninstall.ps1 -KeepData, then start WittyMediaServer.exe."

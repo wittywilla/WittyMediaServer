@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, backdropUrl, fmtRuntime, fmtTime, isDisc, langName, posterUrl, type Item } from '../api'
-import { Spinner } from '../components/common'
+import { Spinner, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconPlay, IconRefresh } from '../icons'
 import { toast, useApp } from '../state'
 
@@ -31,7 +31,7 @@ export default function ItemPage() {
       </div>
       <div className="detail">
         <div>
-          <div className="poster">{it.poster && <img src={posterUrl(it)} alt="" />}</div>
+          <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')}>{it.poster && <img src={posterUrl(it)} alt="" />}</div>
         </div>
         <div>
           <h1>{it.title}</h1>
@@ -41,7 +41,7 @@ export default function ItemPage() {
             {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
             {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
-            {it.genres.length > 0 && <span>{it.genres.join(', ')}</span>}
+            {(it.genres || []).length > 0 && <span>{it.genres.join(', ')}</span>}
             {it.studio && <span>{it.studio}</span>}
           </div>
           <div className="actions">
@@ -57,8 +57,8 @@ export default function ItemPage() {
           {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is CSS-scrambled and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
-            {it.audioLangs.length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
-            {it.subLangs.length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
+            {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
+            {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
             <div className="fact"><div className="k">Source</div><div className="v">{disc ? (it.kind === 'dvd-iso' ? 'DVD image' : 'DVD folder') : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
             {disc && it.disc && <div className="fact"><div className="k">Disc</div><div className="v">{it.disc.label} · {it.disc.titles.length} titles{it.disc.hasMenus ? ' · menus' : ''}</div></div>}
             <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>
@@ -74,15 +74,15 @@ export default function ItemPage() {
                     <tr key={t.number} className={t.number === it.disc!.mainTitle ? 'main-row' : ''}>
                       <td>{t.number}{t.number === it.disc!.mainTitle && ' · Main feature'}</td>
                       <td>{fmtTime(t.durationSec)}</td>
-                      <td>{t.chapters.length}</td>
-                      <td style={{ fontSize: 13 }}>{t.audio.slice(0, 3).join(', ')}</td>
-                      <td style={{ fontSize: 13 }}>{[...new Set(t.subtitles.map(langName))].join(', ')}</td>
+                      <td>{(t.chapters || []).length}</td>
+                      <td style={{ fontSize: 13 }}>{(t.audio || []).slice(0, 3).join(', ')}</td>
+                      <td style={{ fontSize: 13 }}>{[...new Set((t.subtitles || []).map(langName))].join(', ')}</td>
                       <td><button className="btn sm" onClick={() => nav(`/play/${it.id}?mode=title&ttn=${t.number}`)}><IconPlay /> Play</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {main && main.chapters.length > 1 && (
+              {main && (main.chapters || []).length > 1 && (
                 <>
                   <h3 className="section-title">Chapters</h3>
                   <div className="chapters">

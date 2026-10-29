@@ -28,8 +28,28 @@ jobs:
           name: ffmpeg-freebsd-amd64
           path: ffmpeg-freebsd
 
+  # The macOS tray launcher needs CGO (Cocoa), so build it natively for both
+  # architectures and hand it to the packaging job.
+  tray-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build tray launcher (arm64 + amd64)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          mkdir -p tray/arm64 tray/amd64
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/arm64/WittyMediaServer ./cmd/wms-tray
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/amd64/WittyMediaServer ./cmd/wms-tray
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tray-darwin
+          path: tray
+
   archives:
-    needs: ffmpeg-freebsd
+    needs: [ffmpeg-freebsd, tray-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,11 +65,16 @@ jobs:
         with:
           name: ffmpeg-freebsd-amd64
           path: .tools/ffmpeg-freebsd
+      - uses: actions/download-artifact@v4
+        with:
+          name: tray-darwin
+          path: .tools/tray-darwin
       - name: Build release archives
         env:
           FFMPEG_FREEBSD_DIR: ${{ github.workspace }}/.tools/ffmpeg-freebsd
+          TRAY_DARWIN_DIR: ${{ github.workspace }}/.tools/tray-darwin
         run: |
-          chmod +x .tools/ffmpeg-freebsd/* || true
+          chmod +x .tools/ffmpeg-freebsd/* .tools/tray-darwin/*/WittyMediaServer || true
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           scripts/build-release.sh "$VERSION"
       - uses: actions/upload-artifact@v4

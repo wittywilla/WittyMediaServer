@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -94,8 +95,20 @@ func cmdServe(args []string) int {
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	ctx, cancel := context.WithCancel(sigCtx)
+	defer cancel()
+	if cfg.WatchStdin {
+		// The tray launcher holds our stdin open; when it closes the pipe we
+		// shut down gracefully (Windows has no SIGTERM to deliver).
+		go func() {
+			_, _ = io.Copy(io.Discard, os.Stdin)
+			cancel()
+			time.Sleep(10 * time.Second)
+			os.Exit(0)
+		}()
+	}
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down")

@@ -23,6 +23,17 @@ export default function App() {
 function Shell() {
   const { user, loading, setupRequired } = useApp()
   const loc = useLocation()
+  const [navOpen, setNavOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches)
+  const isMobile = () => !window.matchMedia('(min-width: 901px)').matches
+  // Close the drawer on navigation (mobile only).
+  useEffect(() => { if (isMobile()) setNavOpen(false) }, [loc.pathname])
+  // Follow viewport changes: open by default on desktop, closed on mobile.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 901px)')
+    const onChange = (e: MediaQueryListEvent) => setNavOpen(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (!user) return <AuthPage setup={setupRequired} />
   const isPlayer = loc.pathname.startsWith('/play/')
@@ -34,10 +45,10 @@ function Shell() {
     )
   }
   return (
-    <div className="app">
-      <Sidebar />
+    <div className={'app' + (navOpen ? ' nav-open' : '')}>
+      <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="main">
-        <TopBar />
+        <TopBar onMenu={() => setNavOpen((o) => !o)} />
         <div className="content">
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -53,20 +64,14 @@ function Shell() {
   )
 }
 
-let sidebarToggle: (() => void) | null = null
-
-function Sidebar() {
+function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, user, version, setUser } = useApp()
-  const [open, setOpen] = useState(false)
-  const loc = useLocation()
-  useEffect(() => { sidebarToggle = () => setOpen((o) => !o); return () => { sidebarToggle = null } }, [])
-  useEffect(() => setOpen(false), [loc.pathname])
   const logout = async () => { try { await api.post('/logout') } catch { /* ignore */ } setUser(null) }
   return (
     <>
-      {open && <div className="backdrop-dim" onClick={() => setOpen(false)} />}
-      <aside className={'sidebar' + (open ? ' open' : '')}>
-        <Link to="/" className="brand"><img src="/icon.svg" alt="" /><span>Witty<b>Media</b></span></Link>
+      {open && <div className="backdrop-dim" onClick={onClose} />}
+      <aside className="sidebar" aria-hidden={!open}>
+        <Link to="/" className="brand"><img src="/icon.svg" alt="" /><span>Witty<b>Media</b>Server</span></Link>
         <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
         <div className="nav-section">Libraries</div>
         {libraries.map((l) => (
@@ -84,7 +89,7 @@ function Sidebar() {
   )
 }
 
-function TopBar() {
+function TopBar({ onMenu }: { onMenu: () => void }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [q, setQ] = useState('')
@@ -92,7 +97,7 @@ function TopBar() {
   const { user } = useApp()
   return (
     <header className="topbar">
-      <button className="btn icon menu-toggle" onClick={() => sidebarToggle?.()} aria-label="Menu"><IconMenu /></button>
+      <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Toggle navigation" title="Toggle navigation"><IconMenu /></button>
       <form className="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
         <input placeholder="Search movies…" value={q} onChange={(e) => setQ(e.target.value)} />

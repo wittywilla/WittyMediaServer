@@ -1,6 +1,6 @@
 # Third-party notices
 
-WittyMediaServer (MIT) bundles or depends on the following open-source components.
+WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the following open-source components.
 
 ## Bundled in release archives / the Docker image
 

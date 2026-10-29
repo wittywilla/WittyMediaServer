@@ -24,7 +24,20 @@ OS="$(uname -s)"
 echo "==> installing to $PREFIX (data: $DATA, port: $PORT)"
 mkdir -p "$PREFIX" "$DATA"
 cp -R "$HERE"/wms "$HERE"/bin "$PREFIX"/ 2>/dev/null || cp "$HERE"/wms "$PREFIX"/
-cp "$HERE"/*.md "$PREFIX"/ 2>/dev/null || true
+cp "$HERE"/*.md "$HERE"/LICENSE "$HERE"/NOTICE "$PREFIX"/ 2>/dev/null || true
+# Tray launcher + desktop entry (optional; headless servers simply skip it).
+if [ -f "$HERE/WittyMediaServer" ]; then
+  cp "$HERE/WittyMediaServer" "$PREFIX/" && chmod +x "$PREFIX/WittyMediaServer"
+  [ -f "$HERE/icon.png" ] && cp "$HERE/icon.png" "$PREFIX/"
+  if [ -f "$HERE/wittymediaserver.desktop" ] && [ "$OS" != Darwin ]; then
+    sed "s|/opt/wittymediaserver|$PREFIX|g" "$HERE/wittymediaserver.desktop" > /usr/local/share/applications/wittymediaserver.desktop 2>/dev/null \
+      || { mkdir -p /usr/share/applications && sed "s|/opt/wittymediaserver|$PREFIX|g" "$HERE/wittymediaserver.desktop" > /usr/share/applications/wittymediaserver.desktop; }
+  fi
+fi
+if [ -d "$HERE/WittyMediaServer.app" ] && [ "$OS" = Darwin ]; then
+  rm -rf /Applications/WittyMediaServer.app && cp -R "$HERE/WittyMediaServer.app" /Applications/
+  xattr -dr com.apple.quarantine /Applications/WittyMediaServer.app 2>/dev/null || true
+fi
 chmod +x "$PREFIX"/wms "$PREFIX"/bin/* 2>/dev/null || true
 
 # Service user
@@ -116,3 +129,4 @@ EOF
   *) echo "unsupported OS $OS: run $PREFIX/wms serve manually"; exit 1 ;;
 esac
 echo "Open http://$(hostname):$PORT/ to finish setup."
+echo "Desktop users: launch \"WittyMediaServer\" from the app menu for a tray icon (do not run the service and the tray at the same time on the same port)."

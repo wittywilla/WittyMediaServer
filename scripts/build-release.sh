@@ -9,6 +9,7 @@
 #   SKIP_WEB=1            reuse web/dist
 #   SKIP_FFMPEG=1         do not download ffmpeg (archives will need WMS_FFMPEG)
 #   FFMPEG_FREEBSD_DIR=   directory with static freebsd ffmpeg/ffprobe (see build-ffmpeg-static.sh)
+#   TRAY_DARWIN_DIR=      directory with <arch>/WittyMediaServer tray binaries built on macOS (CGO)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -65,6 +66,51 @@ bundle_ffmpeg() {
   chmod +x "$bin"/* 2>/dev/null || true
 }
 
+# Tray launcher (WittyMediaServer / WittyMediaServer.exe). Pure Go on Windows,
+# Linux and FreeBSD; macOS needs CGO so it is built on a Mac (TRAY_DARWIN_DIR)
+# or natively when this script runs on macOS.
+build_tray() {
+  local out="$1" os="$2" arch="$3"
+  case "$os" in
+    windows) CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/WittyMediaServer.exe" ./cmd/wms-tray ;;
+    darwin)
+      if [ -n "${TRAY_DARWIN_DIR:-}" ] && [ -x "$TRAY_DARWIN_DIR/$arch/WittyMediaServer" ]; then
+        cp "$TRAY_DARWIN_DIR/$arch/WittyMediaServer" "$out/WittyMediaServer"
+      elif [ "$(uname -s)" = Darwin ]; then
+        CGO_ENABLED=1 GOOS=darwin GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wms-tray
+      else
+        echo "   (macOS tray launcher skipped: build it on a Mac or provide TRAY_DARWIN_DIR)" >&2
+      fi ;;
+    *) CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wms-tray ;;
+  esac
+}
+
+# Wraps the macOS files in a menu-bar .app (LSUIElement) next to the plain binaries.
+make_app_bundle() {
+  local out="$1" app="$1/WittyMediaServer.app/Contents"
+  [ -x "$out/WittyMediaServer" ] || return 0
+  mkdir -p "$app/MacOS" "$app/Resources"
+  cp "$out/WittyMediaServer" "$out/wms" "$app/MacOS/"
+  [ -d "$out/bin" ] && cp -R "$out/bin" "$app/MacOS/"
+  go run ./scripts/genicon "$app/Resources/icon.png" 512
+  cat > "$app/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>WittyMediaServer</string>
+  <key>CFBundleDisplayName</key><string>WittyMediaServer</string>
+  <key>CFBundleIdentifier</key><string>com.wittywilla.wittymediaserver</string>
+  <key>CFBundleVersion</key><string>${VERSION}</string>
+  <key>CFBundleShortVersionString</key><string>${VERSION}</string>
+  <key>CFBundleExecutable</key><string>WittyMediaServer</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>LSUIElement</key><true/>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict></plist>
+EOF
+}
+
 for t in "${TARGETS[@]}"; do
   os="${t%/*}"; arch="${t#*/}"
   name="wittymediaserver-${VERSION}-${os}-${arch}"
@@ -73,11 +119,14 @@ for t in "${TARGETS[@]}"; do
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/wms$ext" ./cmd/wms
+  build_tray "$out" "$os" "$arch"
   [ "${SKIP_FFMPEG:-}" = "1" ] || bundle_ffmpeg "$out" "$os" "$arch"
-  cp README.md LICENSE THIRD_PARTY_LICENSES.md "$out/" 2>/dev/null || true
+  cp README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md "$out/" 2>/dev/null || true
   case "$os" in
-    windows) cp scripts/install.ps1 scripts/uninstall.ps1 "$out/"; cp scripts/start-wms.cmd "$out/" ;;
-    *)       cp scripts/install.sh "$out/"; chmod +x "$out/install.sh" ;;
+    windows) cp scripts/install.ps1 scripts/uninstall.ps1 "$out/"; cp scripts/start-wms.cmd "$out/"; go run ./scripts/genicon "$out/icon.ico" ;;
+    darwin)  cp scripts/install.sh "$out/"; chmod +x "$out/install.sh"; make_app_bundle "$out" ;;
+    *)       cp scripts/install.sh "$out/"; chmod +x "$out/install.sh"; go run ./scripts/genicon "$out/icon.png" 256
+             sed "s|@PREFIX@|/opt/wittymediaserver|g" scripts/wittymediaserver.desktop > "$out/wittymediaserver.desktop" ;;
   esac
   (cd "$DIST" && if [ "$os" = windows ]; then rm -f "$name.zip"; zip -qr "$name.zip" "$name"; else rm -f "$name.tar.gz"; tar -czf "$name.tar.gz" "$name"; fi)
   echo "   -> $DIST/$name.$([ "$os" = windows ] && echo zip || echo tar.gz)"

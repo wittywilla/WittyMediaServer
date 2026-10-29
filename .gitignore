@@ -4,7 +4,7 @@
 dist/
 web/node_modules/
 web/dist/*
-!web/dist/index.html
+!web/dist/.gitkeep
 *.log
 *.db
 *.db-wal

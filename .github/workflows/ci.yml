@@ -21,4 +21,5 @@ jobs:
         run: |
           for t in windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64; do
             GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/wms || exit 1
+            case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/wms-tray || exit 1 ;; esac
           done

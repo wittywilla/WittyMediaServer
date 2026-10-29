@@ -62,7 +62,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'ArrowDown': v.volume = Math.max(0, v.volume - 0.1); break
         case 'f': toggleFullscreen(root.current); break
         case 'm': v.muted = !v.muted; break
-        case 'Escape': if (!document.fullscreenElement) nav(-1); break
+        case 'Escape': if (!document.fullscreenElement) nav(`/item/${item.id}`); break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -82,9 +82,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       </div>
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
-      {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => nav(-1)}>Back</button></div></div>}
+      {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => nav(`/item/${item.id}`)}>Back</button></div></div>}
       <div className="top">
-        <button className="ibtn" onClick={(e) => { e.stopPropagation(); nav(-1) }}><IconBack /></button>
+        <button className="ibtn" onClick={(e) => { e.stopPropagation(); nav(`/item/${item.id}`) }}><IconBack /></button>
         <div><h2>{item.title}</h2><div className="sub">{[item.year, info?.type === 'direct' ? 'Direct play' : 'Transcoding'].filter(Boolean).join(' · ')}</div></div>
       </div>
       <Controls video={video} duration={duration} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}

@@ -13,7 +13,7 @@ export default function SettingsPage() {
         {user?.isAdmin && <NavLink to="/settings/libraries" className={({ isActive }) => (isActive ? 'active' : '')}>Libraries</NavLink>}
         {user?.isAdmin && <NavLink to="/settings/server" className={({ isActive }) => (isActive ? 'active' : '')}>Server</NavLink>}
         <NavLink to="/settings/users" className={({ isActive }) => (isActive ? 'active' : '')}>Users</NavLink>
-        {user?.isAdmin && <NavLink to="/settings/about" className={({ isActive }) => (isActive ? 'active' : '')}>About</NavLink>}
+        <NavLink to="/settings/about" className={({ isActive }) => (isActive ? 'active' : '')}>About &amp; legal</NavLink>
       </div>
       <Routes>
         <Route path="libraries" element={<Libraries />} />
@@ -217,23 +217,57 @@ function Users() {
 function About() {
   const [sys, setSys] = useState<any>(null)
   useEffect(() => { api.get('/system').then(setSys).catch(() => {}) }, [])
-  if (!sys) return null
   return (
-    <div className="panel">
-      <h2>About</h2>
-      <div className="facts" style={{ marginTop: 0 }}>
-        <div className="fact"><div className="k">Version</div><div className="v">{sys.version}</div></div>
-        <div className="fact"><div className="k">Platform</div><div className="v">{sys.os}/{sys.arch} · {sys.go}</div></div>
-        <div className="fact"><div className="k">Host</div><div className="v">{sys.hostname}</div></div>
-        <div className="fact"><div className="k">Data directory</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.dataDir}</div></div>
-        <div className="fact"><div className="k">FFmpeg</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.ffmpegInfo}<br /><span className="muted">{sys.ffmpeg}</span></div></div>
-        <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}</div></div>
-        <div className="fact"><div className="k">Open DVD sessions</div><div className="v">{sys.dvdSessions}</div></div>
+    <>
+      {sys && (
+        <div className="panel">
+          <h2>About</h2>
+          <div className="facts" style={{ marginTop: 0 }}>
+            <div className="fact"><div className="k">Version</div><div className="v">{sys.version}</div></div>
+            <div className="fact"><div className="k">Platform</div><div className="v">{sys.os}/{sys.arch} · {sys.go}</div></div>
+            <div className="fact"><div className="k">Host</div><div className="v">{sys.hostname}</div></div>
+            <div className="fact"><div className="k">Data directory</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.dataDir}</div></div>
+            <div className="fact"><div className="k">FFmpeg</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.ffmpegInfo}<br /><span className="muted">{sys.ffmpeg}</span></div></div>
+            <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}</div></div>
+            <div className="fact"><div className="k">Open DVD sessions</div><div className="v">{sys.dvdSessions}</div></div>
+          </div>
+        </div>
+      )}
+      <div className="panel legal">
+        <h2>Licence &amp; legal</h2>
+        <p>
+          <b>WittyMediaServer</b> is open-source software released under the <b>Apache License, Version 2.0</b>. You may use, modify and
+          redistribute it, provided you keep the licence and the accompanying <code>NOTICE</code> attribution (“This product includes
+          WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/wittymediaserver" target="_blank" rel="noreferrer">github.com/wittywilla/wittymediaserver</a>.
+        </p>
+        <h3>Your media, your responsibility</h3>
+        <p>
+          WittyMediaServer is a tool for organising and streaming media <b>you already own and have the right to use</b>. It does not
+          supply, index, or search for any content. The operators and users of a server are solely responsible for the files they add to
+          it and for complying with the copyright, licensing and other laws that apply where they live and where their viewers are.
+          The authors and contributors of WittyMediaServer accept no responsibility or liability for any media stored on, played from,
+          or shared through a server, nor for how a server is used.
+        </p>
+        <h3>No circumvention</h3>
+        <p>
+          WittyMediaServer does <b>not</b> decrypt or bypass copy protection. CSS-scrambled DVD images are refused. Only unprotected
+          content can be played. Where backing up a disc you own requires removing protection, it is up to you to determine whether that
+          is lawful in your jurisdiction; WittyMediaServer provides no such capability.
+        </p>
+        <h3>Third-party components and services</h3>
+        <p>
+          Transcoding is performed by <b>FFmpeg</b>, run as a separate process; the bundled builds are licensed under the GPL and their
+          source is available from the links in <code>THIRD_PARTY_LICENSES.md</code>. Optional metadata and artwork come from
+          <b> The Movie Database (TMDB)</b> when you supply your own API key — this product uses the TMDB API but is not endorsed or
+          certified by TMDB, and TMDB's terms apply to that data. DVD menus are rendered by WittyMediaServer's own DVD-Video navigator.
+        </p>
+        <h3>No warranty</h3>
+        <p>
+          The software is provided “as is”, without warranty of any kind, express or implied, including fitness for a particular purpose.
+          Use it at your own risk. WittyMediaServer is not affiliated with Plex, Jellyfin, Emby, Ampchor, DreamWorks, or any studio or
+          rights holder; all trademarks belong to their owners.
+        </p>
       </div>
-      <p className="muted" style={{ marginTop: 20, fontSize: 13 }}>
-        WittyMediaServer bundles FFmpeg (LGPL/GPL, see THIRD_PARTY_LICENSES.md). DVD menus are rendered by WittyMediaServer's own DVD-Video navigator; no
-        disc is ever decrypted — only unprotected images play.
-      </p>
-    </div>
+    </>
   )
 }

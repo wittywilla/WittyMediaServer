@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=WittyMediaServer
+GenericName=Media Server
+Comment=Start, stop and open your media server from the system tray
+Exec=@PREFIX@/WittyMediaServer
+Icon=@PREFIX@/icon.png
+Terminal=false
+Categories=AudioVideo;Video;Network;
+Keywords=media;server;dvd;plex;

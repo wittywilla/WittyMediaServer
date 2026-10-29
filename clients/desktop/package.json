@@ -19,7 +19,7 @@
   "build": {
     "appId": "com.wittywilla.wittymedia",
     "productName": "WittyMedia",
-    "files": ["main.js", "preload.js", "connect.html", "icon.png"],
+    "files": ["main.js", "preload.js", "connect.html"],
     "win": { "target": ["nsis", "portable"] },
     "mac": { "target": ["dmg"], "category": "public.app-category.entertainment" },
     "linux": { "target": ["AppImage", "deb", "rpm"], "category": "AudioVideo" }

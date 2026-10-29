@@ -27,7 +27,7 @@ export default function AuthPage({ setup }: { setup: boolean }) {
   return (
     <div className="center">
       <form className="auth-card" onSubmit={submit}>
-        <div className="brand"><img src="/icon.svg" alt="" /><span>Witty<b>Media</b></span></div>
+        <div className="brand"><img src="/icon.svg" alt="" /><span>Witty<b>Media</b>Server</span></div>
         <p>{setup ? 'Welcome! Create the administrator account to get started.' : 'Sign in to your media server.'}</p>
         <div className="form">
           <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>

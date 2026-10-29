@@ -22,9 +22,13 @@ type Config struct {
 	PublicURL    string // optional external URL used in generated links
 	Dev          bool   // serve the web UI from web/dist on disk instead of the embedded copy
 	MaxTranscode int
+	WatchStdin   bool // exit when stdin closes (used by the tray launcher)
 }
 
 const DefaultPort = 9797
+
+// DefaultDataDir is the per-platform data directory used when WMS_DATA_DIR is unset.
+func DefaultDataDir() string { return defaultDataDir() }
 
 func defaultDataDir() string {
 	if v := os.Getenv("WMS_DATA_DIR"); v != "" {
@@ -72,6 +76,7 @@ func Parse(args []string) (*Config, error) {
 	fs.StringVar(&c.LogLevel, "log", env("WMS_LOG", "info"), "log level: debug|info|warn|error")
 	fs.StringVar(&c.PublicURL, "public-url", env("WMS_PUBLIC_URL", ""), "external base URL")
 	fs.BoolVar(&c.Dev, "dev", os.Getenv("WMS_DEV") == "1", "serve web UI from ./web/dist on disk")
+	fs.BoolVar(&c.WatchStdin, "watch-stdin", os.Getenv("WMS_WATCH_STDIN") == "1", "shut down when stdin closes (parent process control)")
 	maxT, _ := strconv.Atoi(env("WMS_MAX_TRANSCODES", "4"))
 	fs.IntVar(&c.MaxTranscode, "max-transcodes", maxT, "maximum concurrent transcodes")
 	if err := fs.Parse(args); err != nil {

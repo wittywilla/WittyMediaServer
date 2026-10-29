@@ -2,13 +2,10 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
-import { api, mediaUrl, type Item } from '../api'
-import { IconBack, IconBook, IconSearch, IconSettings } from '../icons'
-import { centerline, hits, InkBar, InkDefs, InkStroke, loadInk, outline, pointPressure, saveInk, type DrawTool, type InkPrefs, type Stroke } from '../ink'
-import { cite, colorName, Define, exportNotes, fill, HighlightEditor, NotesPanel, SelectionBar, useAnnotations, useColorLabels, type Ann } from '../readerTools'
-import { toast } from '../state'
+import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '../wittyink'
+import './pdf.css'
 
-// The PDF reader, for papers, textbooks and scans: pages drawn by pdf.js
+// WittyPDF: the PDF reader, for papers, textbooks and scans: pages drawn by pdf.js
 // (loaded only when a PDF is opened) with selectable text, zoom, one or two
 // pages across, outline and page thumbnails, search, and the same study
 // tools as the EPUB reader: highlights with notes, handwriting with pen
@@ -114,7 +111,7 @@ const Page = memo(function Page({ doc, index, size, scale, draw, theme, boxes, s
       <svg className="pdf-ink" viewBox={`0 0 ${size.w} ${size.h}`} preserveAspectRatio="none" aria-hidden="true">
         {strokes.map(({ a, s }) => <InkStroke key={a.id} s={s} color={a.color} blend={!dark} grain="ink-grain-pdf" />)}
       </svg>
-      {bookmarked && <div className="epub-ribbon" aria-label="Bookmarked page" />}
+      {bookmarked && <div className="rd-ribbon" aria-label="Bookmarked page" />}
     </div>
   )
 })
@@ -150,7 +147,9 @@ type OutlineItem = { title: string; dest: any; depth: number }
 
 // ---------------------------------------------------------------- reader
 
-export default function PdfReader({ it, close }: { it: Item; close: () => void }) {
+export default function PdfReader() {
+  const host = useHost()
+  const { book: it, close, toast } = host
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [err, setErr] = useState('')
   const [sizes, setSizes] = useState<Size[]>([])
@@ -171,7 +170,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
   const [speaking, setSpeaking] = useState(false)
   const [ink, setInkState] = useState(loadInk)
   const [inkMode, setInkMode] = useState(false)
-  const A = useAnnotations(it.id)
+  const A = useAnnotations()
   const anns = A.anns
   const [labels, setLabel] = useColorLabels()
   const scroller = useRef<HTMLDivElement | null>(null)
@@ -193,16 +192,16 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
   // Open the document. Scripts in PDFs never run (pdf.js has no scripting
   // here) and fonts are not compiled with eval.
   useEffect(() => {
-    const task = pdfjs.getDocument({ url: mediaUrl(`/api/items/${it.id}/file`), isEvalSupported: false, enableXfa: false, disableAutoFetch: true, rangeChunkSize: 1 << 18 })
+    const task = pdfjs.getDocument({ ...host.pdf, isEvalSupported: false, enableXfa: false, disableAutoFetch: true, rangeChunkSize: 1 << 18 })
     task.promise.then(async (d) => {
       const first = (await d.getPage(1)).getViewport({ scale: 1 })
       setSizes(Array.from({ length: d.numPages }, () => ({ w: first.width, h: first.height })))
-      const start = it.progress && !it.progress.watched ? it.progress.positionSec : 0
+      const start = host.start
       keep.current = { page: Math.min(d.numPages - 1, Math.floor(start)), frac: start % 1 }
       setDoc(d)
     }).catch((e) => setErr(e?.message || 'This PDF cannot be opened'))
     return () => { task.destroy() }
-  }, [it.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [host.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // A new width changes the fitted zoom: keep the place across it.
@@ -274,7 +273,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
     if (Math.abs(pos - saved.current) > 0.05) {
       saved.current = pos
       clearTimeout((onScroll as any).t)
-      ;(onScroll as any).t = setTimeout(() => api.post(`/items/${it.id}/progress`, { positionSec: pos, durationSec: n }).catch(() => {}), 800)
+      ;(onScroll as any).t = setTimeout(() => host.saveProgress(pos, n), 800)
     }
   }
   const onSize = useCallback((i: number, s: Size) => setSizes((cur) => { const c = [...cur]; c[i] = s; return c }), [])
@@ -568,7 +567,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
 
       <div className={'reader-bar' + (bar || panel || inkMode ? '' : ' hidden')}>
         <button className="ibtn" onClick={close} aria-label="Close the document"><IconBack /></button>
-        <div className="grow epub-titles"><b>{it.title}</b>{it.artist && <span className="muted">{it.artist}</span>}</div>
+        <div className="grow rd-titles"><b>{it.title}</b>{it.author && <span className="muted">{it.author}</span>}</div>
         <div className="pdf-zoom" role="group" aria-label="Zoom">
           <button className="ibtn sm" onClick={() => zoomBy(-1)} aria-label="Zoom out" title="Zoom out (−)">−</button>
           <button className="btn sm ghost" onClick={() => setZoom(p.zoom === 'width' ? 'page' : 'width')} title="Fit width or whole page">{p.zoom === 'width' ? 'Fit width' : p.zoom === 'page' ? 'Fit page' : `${Math.round(scale * 100)}%`}</button>
@@ -586,7 +585,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
       {inkMode ? (
         <InkBar p={ink} set={setInk} undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo} done={() => setInkMode(false)} />
       ) : (
-        <div className={'reader-foot epub-foot' + (bar || panel ? '' : ' hidden')}>
+        <div className={'reader-foot rd-foot' + (bar || panel ? '' : ' hidden')}>
           <button className="ibtn sm" onClick={() => goTo(current - cols)} aria-label="Previous page">‹</button>
           <input type="range" min={0} max={Math.max(0, n - 1)} value={current} aria-label="Page" aria-valuetext={`Page ${current + 1} of ${n}`} onChange={(e) => goTo(Number(e.target.value))} />
           <button className="ibtn sm" onClick={() => goTo(current + cols)} aria-label="Next page">›</button>
@@ -597,7 +596,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
       )}
 
       {panel && (
-        <aside className="epub-panel" role="dialog" aria-label={panel}>
+        <aside className="rd-panel" role="dialog" aria-label={panel}>
           {panel === 'contents' && (
             <>
               <div className="seg">{(['outline', 'pages'] as const).map((v) => <button key={v} className={tab === v ? 'active' : ''} onClick={() => setTab(v)}>{v === 'outline' ? 'Contents' : 'Pages'}</button>)}</div>
@@ -654,7 +653,7 @@ export default function PdfReader({ it, close }: { it: Item; close: () => void }
       {sel && (
         <SelectionBar x={sel.x} y={sel.y} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
           onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}
-          onDefine={setDefine} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, `p. ${sel.boxes[0][0] + 1}`))} onSearch={search}
+          onDefine={host.define ? setDefine : undefined} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, `p. ${sel.boxes[0][0] + 1}`))} onSearch={search}
           onRead={() => readAloud(sel.quote.trim())} />
       )}
       {edit && (

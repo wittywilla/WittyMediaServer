@@ -16,3 +16,6 @@ stuff-to-reverse-engineer/
 clients/desktop/node_modules/
 clients/desktop/out/
 clients/mobile/node_modules/
+
+# TypeScript build cache
+*.tsbuildinfo

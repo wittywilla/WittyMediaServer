@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api, mediaUrl, type Item } from '../api'
-import { IconBack, IconBook, IconSearch, IconSettings } from '../icons'
-import { centerline, hits, InkBar, InkDefs, InkStroke, loadInk, outline, pointPressure, saveInk, type DrawTool, type InkPrefs, type Stroke } from '../ink'
-import { cite, colorName, Define, exportNotes, fill, HighlightEditor, NotesPanel, SelectionBar, useAnnotations, useColorLabels, type Ann } from '../readerTools'
-import { toast } from '../state'
+import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '../wittyink'
+import './ebook.css'
 
-// The EPUB reader. Book view (two pages side by side), one page or
+// WittyEbook: the EPUB reader. Book view (two pages side by side), one page or
 // scrolling; the reader's own typography and page colours; brightness and
 // warmth; highlights in any colour with notes and named colour meanings;
 // handwriting with pen pressure (pen, pencil, highlighter, eraser); bookmarks;
@@ -14,11 +11,10 @@ import { toast } from '../state'
 // Annotations and the place in the book are kept per account on the server,
 // so every device continues where you were.
 //
-// Book pages come from the server with scripts blocked (CSP) and are shown
+// Book pages come from the host with scripts blocked (CSP) and are shown
 // in a sandboxed frame without scripts; this component styles and reads the
 // frame's document from the outside.
 
-export type BookInfo = { format: string; reading: string; title: string; spine?: string[]; toc?: { title: string; href: string }[]; words?: number[] }
 type Prefs = {
   layout: 'auto' | 'single' | 'book' | 'scroll'; font: number; family: 'publisher' | 'serif' | 'sans' | 'readable' | 'mono'
   line: number; margin: number; justify: boolean; theme: 'light' | 'sepia' | 'dark' | 'black'; brightness: number; warmth: number
@@ -32,8 +28,6 @@ const FAMILIES: Record<Prefs['family'], string> = {
   publisher: '', serif: "Georgia, 'Iowan Old Style', 'Palatino Linotype', serif", sans: "system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   readable: "Verdana, Tahoma, 'Trebuchet MS', sans-serif", mono: "ui-monospace, Consolas, 'Courier New', monospace",
 }
-// Bumped when the server's book headers change, so cached chapters refresh.
-const READER_V = 2
 
 function loadPrefs(): Prefs {
   try { return { ...DEF, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') } } catch { return DEF }
@@ -121,17 +115,20 @@ const unwrap = (m: Element) => m.replaceWith(...Array.from(m.childNodes))
 // ---------------------------------------------------------------- reader
 
 
-export default function EpubReader({ it, info, close }: { it: Item; info: BookInfo; close: () => void }) {
-  const spine = info.spine || []
-  const words = info.words || spine.map(() => 0)
+export default function EpubReader() {
+  const host = useHost()
+  const { book: it, close, toast } = host
+  const info = host.epub!.info
+  const spine = info.spine
+  const words = info.words.length === spine.length ? info.words : spine.map(() => 0)
   const totalWords = words.reduce((a, b) => a + b, 0) || 1
   const [p, setP] = useState(loadPrefs)
-  const start = it.progress && !it.progress.watched ? it.progress.positionSec : 0
+  const start = host.start
   const [chapter, setChapter] = useState(Math.min(Math.floor(start), Math.max(0, spine.length - 1)))
   const [page, setPage] = useState(0)
   const [pages, setPages] = useState(1)
   const pending = useRef<{ frac?: number; quote?: { quote: string; prefix: string }; anchor?: string } | null>({ frac: start % 1 })
-  const A = useAnnotations(it.id)
+  const A = useAnnotations()
   const anns = A.anns
   const [labels, setLabel] = useColorLabels()
   const [panel, setPanel] = useState<null | 'contents' | 'notes' | 'search' | 'display'>(null)
@@ -167,8 +164,8 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const save = useCallback((pos: number) => {
     if (Math.abs(pos - savePos.current) < 0.002) return
     savePos.current = pos
-    api.post(`/items/${it.id}/progress`, { positionSec: pos, durationSec: spine.length }).catch(() => {})
-  }, [it.id, spine.length])
+    host.saveProgress(pos, spine.length)
+  }, [host, spine.length])
 
   // ---------------------------------------------------------- layout
   const geometry = () => {
@@ -402,7 +399,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
     }
     const showNote = (text: string) => { if (text) setFoot({ text: text.slice(0, 2000), chapter: c, anchor }); else goChapter(c, { anchor }) }
     if (c === chapter) { showNote(pick(doc()!)); return }
-    fetch(mediaUrl(`/api/items/${it.id}/epub/${spine[c]}?v=${READER_V}`)).then((r) => r.text()).then((t) => {
+    fetch(host.epub!.chapterUrl(spine[c])).then((r) => r.text()).then((t) => {
       let d = new DOMParser().parseFromString(t, 'application/xhtml+xml')
       if (d.querySelector('parsererror')) d = new DOMParser().parseFromString(t, 'text/html')
       showNote(pick(d))
@@ -589,7 +586,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const search = async (q: string) => {
     setQuery(q); setPanel('search'); setHits(null)
     if (q.trim().length < 2) { setHits([]); return }
-    try { setHits(await api.get(`/items/${it.id}/search?q=${encodeURIComponent(q.trim())}`)) } catch { setHits([]) }
+    try { setHits(await host.epub!.search(q.trim())) } catch { setHits([]) }
   }
 
   // Read aloud: paragraph by paragraph from the current page, turning pages
@@ -682,7 +679,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
     <div className={'reader epub2 theme-' + p.theme + (inkMode ? ' inking' : '')} style={{ background: bg, color: fg }} onMouseMove={(e) => { if (e.clientY < 70 || e.clientY > window.innerHeight - 70) pokeBar() }}>
       <div className="epub-page" style={{ left: margin, right: margin }}>
         <iframe ref={frame} key={chapter + p.layout} className="epub-frame" title={it.title} sandbox="allow-same-origin"
-          src={mediaUrl(`/api/items/${it.id}/epub/${spine[chapter]}?v=${READER_V}`)} onLoad={onLoad} />
+          src={host.epub!.chapterUrl(spine[chapter])} onLoad={onLoad} />
         <svg className="ink-layer" aria-hidden="true">
           <InkDefs />
           {placed.map(({ a, s, x, y, em: k }) => (
@@ -695,11 +692,11 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       {/* Brightness and warmth are layers over the page (nothing in the book changes). */}
       <div className="epub-light" style={{ background: `rgba(0,0,0,${1 - p.brightness})` }} aria-hidden="true" />
       <div className="epub-light warm" style={{ background: `rgba(255,140,0,${p.warmth})` }} aria-hidden="true" />
-      {bookmarkHere && <div className="epub-ribbon" aria-label="This page is bookmarked" />}
+      {bookmarkHere && <div className="rd-ribbon" aria-label="This page is bookmarked" />}
 
       <div className={'reader-bar' + (bar || panel || inkMode ? '' : ' hidden')}>
         <button className="ibtn" onClick={close} aria-label="Close the book"><IconBack /></button>
-        <div className="grow epub-titles"><b>{it.title}</b>{chapterTitle && <span className="muted">{chapterTitle}</span>}</div>
+        <div className="grow rd-titles"><b>{it.title}</b>{chapterTitle && <span className="muted">{chapterTitle}</span>}</div>
         <button className="ibtn" onClick={() => setPanel(panel === 'contents' ? null : 'contents')} aria-label="Contents" title="Contents"><IconBook /></button>
         <button className="ibtn" onClick={() => setPanel(panel === 'search' ? null : 'search')} aria-label="Search in the book" title="Search (/)"><IconSearch /></button>
         <button className="ibtn" onClick={() => setPanel(panel === 'notes' ? null : 'notes')} aria-label="Notes and highlights" title="Notes and highlights">☰</button>
@@ -713,7 +710,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
         <InkBar p={ink} set={setInk} undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo} done={() => setInkMode(false)}
           extra={<><button className="ink-tool" onClick={() => turn(-1)} aria-label="Previous page">‹</button><button className="ink-tool" onClick={() => turn(1)} aria-label="Next page">›</button></>} />
       ) : (
-        <div className={'reader-foot epub-foot' + (bar || panel ? '' : ' hidden')}>
+        <div className={'reader-foot rd-foot' + (bar || panel ? '' : ' hidden')}>
           <button className="ibtn sm" onClick={() => turn(-1)} aria-label="Previous page">‹</button>
           <input type="range" min={0} max={1000} value={Math.round((doneWords / totalWords) * 1000)} aria-label="Position in the book" aria-valuetext={`${pct}%`} onChange={(e) => seekBook(Number(e.target.value))} />
           <button className="ibtn sm" onClick={() => turn(1)} aria-label="Next page">›</button>
@@ -723,7 +720,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       {!bar && !panel && !inkMode && paged && <div className="epub-mini-progress" aria-hidden="true">{pct}%</div>}
 
       {panel && (
-        <aside className="epub-panel" role="dialog" aria-label={panel}>
+        <aside className="rd-panel" role="dialog" aria-label={panel}>
           {panel === 'contents' && (
             <>
               <h3>Contents</h3>
@@ -789,7 +786,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       {sel && (
         <SelectionBar x={sel.x} y={sel.y} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
           onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}
-          onDefine={setDefine} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, chapterName(chapter)))} onSearch={search}
+          onDefine={host.define ? setDefine : undefined} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, chapterName(chapter)))} onSearch={search}
           onRead={() => readAloud(sel.quote.trim().slice(0, 40))} />
       )}
 

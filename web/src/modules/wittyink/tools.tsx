@@ -1,17 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type Item } from './api'
+import { useHost, type Ann, type BookMeta } from './host'
 import { MARKER_COLORS } from './ink'
-import { toast } from './state'
+
+export type { Ann } from './host'
 
 // What the EPUB and PDF readers share: the account's annotations with undo,
 // highlight colours and their meanings, the notes panel, definitions,
 // citations and Markdown export. "Chapter" is a chapter in an EPUB and a
 // page in a PDF.
-
-export type Ann = {
-  id: number; kind: 'bookmark' | 'highlight' | 'ink'; chapter: number; pos: number
-  quote: string; prefix: string; suffix: string; color: string; note: string; data?: string; created: number
-}
 
 export const NAMED: Record<string, string> = { yellow: '#ffd60a', green: '#34c759', blue: '#0a84ff', pink: '#ff375f' }
 export const QUICK = ['yellow', 'green', 'blue', 'pink']
@@ -29,29 +25,31 @@ export function fill(c: string, a = 0.38) {
 type Op = { kind: 'add' | 'del'; ann: Ann }
 const byPos = (a: Ann, b: Ann) => a.pos - b.pos || a.id - b.id
 
-// The account's annotations in a book, with undo and redo. Deletes show at
-// once and come back if the server refuses.
-export function useAnnotations(itemId: number) {
+// The book's annotations (from the host), with undo and redo. Deletes show
+// at once and come back if saving fails.
+export function useAnnotations() {
+  const host = useHost()
+  const toast = host.toast
   const [anns, setAnns] = useState<Ann[]>([])
   const [, setHistory] = useState(0)
   const undoStack = useRef<Op[]>([])
   const redoStack = useRef<Op[]>([])
-  useEffect(() => { api.get<Ann[]>(`/items/${itemId}/annotations`).then(setAnns).catch(() => {}) }, [itemId])
+  useEffect(() => { host.annotations.list().then(setAnns).catch(() => {}) }, [host.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const create = async (a: Partial<Ann>): Promise<Ann | null> => {
     try {
-      const n = await api.post<Ann>(`/items/${itemId}/annotations`, { prefix: '', suffix: '', note: '', ...a, id: 0 })
+      const n = await host.annotations.add({ prefix: '', suffix: '', note: '', ...a, id: 0 })
       setAnns((x) => [...x, n].sort(byPos))
       return n
     } catch (e: any) { toast(e.message); return null }
   }
   const update = async (a: Ann, patch: Partial<Ann>) => {
-    try { await api.put(`/annotations/${a.id}`, { ...a, ...patch }); setAnns((x) => x.map((y) => (y.id === a.id ? { ...y, ...patch } : y))) } catch (e: any) { toast(e.message) }
+    try { await host.annotations.update(a, patch); setAnns((x) => x.map((y) => (y.id === a.id ? { ...y, ...patch } : y))) } catch (e: any) { toast(e.message) }
   }
   const record = (op: Op) => { undoStack.current = [...undoStack.current.slice(-199), op]; redoStack.current = []; setHistory((h) => h + 1) }
   const remove = async (a: Ann, undoable = true) => {
     setAnns((x) => x.filter((y) => y.id !== a.id))
-    try { await api.del(`/annotations/${a.id}`); if (undoable) record({ kind: 'del', ann: a }) } catch (e: any) { toast(e.message); setAnns((x) => [...x, a].sort(byPos)) }
+    try { await host.annotations.remove(a); if (undoable) record({ kind: 'del', ann: a }) } catch (e: any) { toast(e.message); setAnns((x) => [...x, a].sort(byPos)) }
   }
   const add = async (a: Partial<Ann>) => { const n = await create(a); if (n) record({ kind: 'add', ann: n }); return n }
   // A re-created annotation gets a new id; the op keeps the object, so
@@ -100,13 +98,15 @@ export function Palette({ current, labels, onPick }: { current: string; labels: 
   )
 }
 
-// A word's definitions, fetched by the server (so devices stay private).
+// A word's definitions, from the host's dictionary.
 export function Define({ word, onClose }: { word: string; onClose: () => void }) {
+  const host = useHost()
   const [res, setRes] = useState<{ list: any[] | null; error?: string }>({ list: null })
   useEffect(() => {
     setRes({ list: null })
-    api.get<any[]>(`/dictionary?word=${encodeURIComponent(word)}`).then((list) => setRes({ list })).catch((e) => setRes({ list: [], error: e.message }))
-  }, [word])
+    if (!host.define) { setRes({ list: [], error: 'No dictionary is available here.' }); return }
+    host.define(word).then((list) => setRes({ list })).catch((e) => setRes({ list: [], error: e.message }))
+  }, [word]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="ep-define" role="dialog" aria-label={`Definition of ${word}`}>
       <div className="ep-head"><h3>{word}</h3><button className="ibtn" onClick={onClose} aria-label="Close">✕</button></div>
@@ -128,13 +128,13 @@ export function Define({ word, onClose }: { word: string; onClose: () => void })
 }
 
 // "Quote" (Author, Title (Year), place) — place is a chapter or "p. 12".
-export function cite(it: Item, quote: string, place: string) {
-  return `“${quote.trim().replace(/\s+/g, ' ')}” (${[it.artist, `${it.title}${it.year ? ` (${it.year})` : ''}`, place].filter(Boolean).join(', ')})`
+export function cite(it: BookMeta, quote: string, place: string) {
+  return `“${quote.trim().replace(/\s+/g, ' ')}” (${[it.author, `${it.title}${it.year ? ` (${it.year})` : ''}`, place].filter(Boolean).join(', ')})`
 }
 
 // Notes as Markdown, grouped by chapter or page.
-export function exportNotes(it: Item, anns: Ann[], labels: Record<string, string>, heading: (c: number) => string) {
-  const lines = [`# ${it.title}`, it.artist ? `*${it.artist}*` : '', '']
+export function exportNotes(it: BookMeta, anns: Ann[], labels: Record<string, string>, heading: (c: number) => string) {
+  const lines = [`# ${it.title}`, it.author ? `*${it.author}*` : '', '']
   let last = -1
   for (const a of anns.filter((x) => x.kind !== 'ink')) {
     if (a.chapter !== last) { lines.push(`## ${heading(a.chapter)}`, ''); last = a.chapter }
@@ -215,8 +215,9 @@ export function NotesPanel({ anns, labels, setLabel, place, open, remove, onExpo
 // The toolbar over selected text.
 export function SelectionBar({ x, y, quote, labels, onHighlight, onNote, onDefine, onCite, onSearch, onRead, onClose }: {
   x: number; y: number; quote: string; labels: Record<string, string>; onHighlight: (c: string) => void; onNote: () => void
-  onDefine: (w: string) => void; onCite: () => void; onSearch: (q: string) => void; onRead?: () => void; onClose: () => void
+  onDefine?: (w: string) => void; onCite: () => void; onSearch: (q: string) => void; onRead?: () => void; onClose: () => void
 }) {
+  const { toast } = useHost()
   const [more, setMore] = useState(false)
   const then = (f: () => void) => () => { f(); onClose() }
   return (
@@ -224,7 +225,7 @@ export function SelectionBar({ x, y, quote, labels, onHighlight, onNote, onDefin
       {QUICK.map((c) => <button key={c} className="ep-dot" style={{ background: fill(c, 0.9) }} onClick={() => onHighlight(c)} title={labels[c] || c} aria-label={`Highlight ${labels[c] || c}`} />)}
       <button className="ep-dot more" onClick={() => setMore(!more)} aria-expanded={more} aria-label="More colours">+</button>
       <button onClick={onNote}>Note</button>
-      {quote.trim().split(/\s+/).length <= 3 && <button onClick={then(() => onDefine(quote.trim()))}>Define</button>}
+      {onDefine && quote.trim().split(/\s+/).length <= 3 && <button onClick={then(() => onDefine(quote.trim()))}>Define</button>}
       <button onClick={then(() => { navigator.clipboard?.writeText(quote); toast('Copied') })}>Copy</button>
       <button onClick={then(() => { onCite(); toast('Copied with citation') })} title="Copy with author, title and place">Cite</button>
       <button onClick={then(() => onSearch(quote.trim().slice(0, 80)))}>Search</button>
@@ -239,6 +240,7 @@ export function HighlightEditor({ ann, x, y, labels, onColor, onNote, onCite, on
   ann: Ann; x: number; y: number; labels: Record<string, string>; onColor: (c: string) => void; onNote: (n: string) => void
   onCite: () => void; onRemove: () => void; onDone: () => void
 }) {
+  const { toast } = useHost()
   return (
     <div className="ep-pop ep-edit" style={{ left: Math.min(Math.max(180, x), window.innerWidth - 180), top: Math.max(60, Math.min(y + 8, window.innerHeight - 320)) }} role="dialog" aria-label="Highlight">
       <Palette current={ann.color} labels={labels} onPick={onColor} />

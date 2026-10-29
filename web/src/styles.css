@@ -337,3 +337,11 @@ button { cursor: pointer; }
   .switch.on, .seg button.active, .picker-tile.active { outline: 2px solid CanvasText; }
 }
 main.content:focus { outline: none; }
+
+/* Books libraries: covers, format badges and progress. */
+.book-card .album-cover { position: relative; }
+.book-badge { position: absolute; top: 6px; left: 6px; background: #e5484d; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+.book-prog { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); }
+.album-cover svg { width: 40%; height: 40%; fill: var(--fg-3); }
+.book-progress { height: 6px; border-radius: 3px; background: var(--bg-3); overflow: hidden; max-width: 320px; }
+.book-progress span { display: block; height: 100%; background: var(--accent); }

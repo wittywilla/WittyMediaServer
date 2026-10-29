@@ -1,11 +1,6 @@
-/* Books: library cards and the full-screen reader. */
-.book-card .album-cover { position: relative; }
-.book-badge { position: absolute; top: 6px; left: 6px; background: #e5484d; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-.book-prog { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); }
-.album-cover svg { width: 40%; height: 40%; fill: var(--fg-3); }
-.book-progress { height: 6px; border-radius: 3px; background: var(--bg-3); overflow: hidden; max-width: 320px; }
-.book-progress span { display: block; height: 100%; background: var(--accent); }
-
+/* WittyInk: what every reader shares (the full-screen frame, top bar and
+   footer, side panels, pop-ups and the ink toolbar). Relies only on the
+   shared UI kit (buttons, inputs, colour variables). */
 .reader { position: fixed; inset: 0; z-index: 80; background: #111; color: #eee; overflow: hidden; }
 .reader.center { display: grid; place-items: center; }
 .reader-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -18,43 +13,23 @@
 .reader-foot { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 3; display: flex; align-items: center; gap: 12px;
   padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.78); font-size: 13px; font-variant-numeric: tabular-nums; width: min(560px, calc(100% - 24px)); transition: opacity .2s; }
 .reader-foot input { flex: 1; accent-color: var(--accent); }
-.reader-pdf { position: absolute; inset: 52px 0 0; width: 100%; height: calc(100% - 52px); border: 0; background: #333; }
 
-.comic-stage { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; gap: 0; user-select: none; touch-action: pan-y; }
-.comic-stage img { max-height: 100%; max-width: 100%; object-fit: contain; }
-.fit-width .comic-stage { align-items: flex-start; overflow-y: auto; }
-.fit-width .comic-stage img { max-height: none; width: 100%; height: auto; }
-.comic-stage img + img { max-width: 50%; }
-.comic-stage:has(img + img) img { max-width: 50%; }
-.comic-strip { position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
-.comic-strip img { width: min(100%, 900px); height: auto; display: block; }
-
-/* EPUB reader: the page area, book-view spine, light layers and panels. */
-.epub2 { transition: background .25s; }
-.epub-page { position: absolute; top: 18px; bottom: 26px; }
-.epub-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
-.epub-spine { position: absolute; top: 4%; bottom: 4%; left: 50%; width: 40px; transform: translateX(-50%); pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(0,0,0,.07) 45%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.07) 55%, transparent); }
-.theme-dark .epub-spine, .theme-black .epub-spine { background: linear-gradient(90deg, transparent, rgba(255,255,255,.04) 50%, transparent); }
-.epub-light { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.epub-light.warm { mix-blend-mode: multiply; }
-.epub-ribbon { position: absolute; top: 0; right: 28px; z-index: 2; width: 18px; height: 34px; background: #e5484d; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%); }
-.epub-titles { display: flex; flex-direction: column; line-height: 1.2; }
-.epub-titles span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.rd-ribbon { position: absolute; top: 0; right: 28px; z-index: 2; width: 18px; height: 34px; background: #e5484d; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%); }
+.rd-titles { display: flex; flex-direction: column; line-height: 1.2; }
+.rd-titles span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
 .reader-bar .ibtn.on { background: rgba(255,255,255,.18); }
-.epub-foot { flex-wrap: wrap; justify-content: center; border-radius: 16px; width: min(720px, calc(100% - 24px)); }
-.epub-foot input { min-width: 200px; }
-.epub-mini-progress { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 11px; opacity: .45; pointer-events: none; font-variant-numeric: tabular-nums; }
+.rd-foot { flex-wrap: wrap; justify-content: center; border-radius: 16px; width: min(720px, calc(100% - 24px)); }
+.rd-foot input { min-width: 200px; }
 
-.epub-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 5; width: min(400px, 100%); overflow: auto; display: flex; flex-direction: column; gap: 4px;
+.rd-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 5; width: min(400px, 100%); overflow: auto; display: flex; flex-direction: column; gap: 4px;
   background: var(--bg-2); color: var(--fg); box-shadow: var(--shadow); padding: max(14px, env(safe-area-inset-top)) 14px 14px; animation: ep-in .18s ease-out; }
 @keyframes ep-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .epub-panel { animation: none; } }
-.epub-panel h3 { margin: 4px 0 8px; }
-.epub-panel > button:not(.btn), .ep-hit, .ep-ann > button:first-child { text-align: left; background: none; border: 0; color: inherit; padding: 8px 10px; border-radius: 8px; font: inherit; cursor: pointer; }
-.epub-panel > button:not(.btn) { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
-.epub-panel button:not(.btn):hover, .epub-panel button:not(.btn):focus-visible, .epub-panel button.on { background: var(--bg-3); }
-.epub-panel button:disabled { opacity: .5; }
+@media (prefers-reduced-motion: reduce) { .rd-panel { animation: none; } }
+.rd-panel h3 { margin: 4px 0 8px; }
+.rd-panel > button:not(.btn), .ep-hit, .ep-ann > button:first-child { text-align: left; background: none; border: 0; color: inherit; padding: 8px 10px; border-radius: 8px; font: inherit; cursor: pointer; }
+.rd-panel > button:not(.btn) { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.rd-panel button:not(.btn):hover, .rd-panel button:not(.btn):focus-visible, .rd-panel button.on { background: var(--bg-3); }
+.rd-panel button:disabled { opacity: .5; }
 .ep-close { margin-top: auto; }
 .ep-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ep-ann { display: flex; align-items: flex-start; gap: 4px; }
@@ -127,43 +102,3 @@
 .ink-more .check-row { display: flex; gap: 8px; align-items: center; }
 .inking .epub-frame { cursor: crosshair; }
 @media (forced-colors: active) { .ink-swatch, .ep-dot { forced-color-adjust: none; } }
-
-/* PDF reader: a scrolling column (or two) of pages, each a canvas with the
-   highlight boxes, the selectable text and the ink stacked over it. */
-.pdf2 { background: #3a3b3f; color: #eee; }
-.pdf-scroll { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; }
-.pdf-scroll > .spinner { margin: 40vh auto; }
-.pdf-pages { display: flex; flex-direction: column; align-items: center; padding: 64px 16px 96px; width: max-content; min-width: 100%; box-sizing: border-box; }
-.pdf-pages.spread { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; }
-.pdf-page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.35); flex: none; }
-.theme-dark .pdf-page { background: #1a1a1a; }
-.pdf-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.pdf-marks { position: absolute; inset: 0; pointer-events: none; }
-.pdf-marks div { position: absolute; border-radius: 2px; mix-blend-mode: multiply; }
-.theme-dark .pdf-marks div { mix-blend-mode: screen; }
-.pdf-marks div.noted { box-shadow: inset 0 -2px 0 rgba(0,0,0,.45); }
-.pdf-ink { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
-.pdf-live { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
-.pdf-inking { touch-action: none; cursor: crosshair; }
-.pdf-inking .textLayer { pointer-events: none; user-select: none; }
-.pdf-flash { background: rgba(255,159,10,.55); border-radius: 2px; }
-.pdf-zoom { display: flex; align-items: center; gap: 2px; }
-.pdf-pg { width: 4.2em; text-align: center; padding: 2px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: inherit; font: inherit; }
-.pdf-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; padding: 8px 0; }
-.pdf-thumb { display: grid; justify-items: center; gap: 4px; background: none; border: 2px solid transparent; border-radius: 8px; padding: 4px; color: inherit; cursor: pointer; }
-.pdf-thumb canvas { width: 100%; height: auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-.pdf-thumb.on { border-color: var(--accent); }
-.epub-panel .seg { margin-bottom: 8px; }
-@media (max-width: 700px) { .pdf-zoom .btn { display: none; } .pdf-pages { padding: 56px 4px 96px; } }
-
-/* Selectable text over each page. Adapted from pdf.js's viewer styles
-   (Apache-2.0, Mozilla Foundation). */
-.textLayer { position: absolute; text-align: initial; inset: 0; overflow: clip; opacity: 1; line-height: 1; -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; caret-color: CanvasText; z-index: 1; }
-.textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
-.textLayer > :not(.markedContent), .textLayer .markedContent span:not(.markedContent) { z-index: 1; }
-.textLayer span.markedContent { top: 0; height: 0; }
-.textLayer span[role="img"] { user-select: none; cursor: default; }
-.textLayer ::selection { background: rgba(0, 90, 255, .28); }
-.textLayer br::selection { background: transparent; }
-.textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
-.textLayer.selecting .endOfContent { top: 0; }

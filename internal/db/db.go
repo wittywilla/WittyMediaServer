@@ -123,6 +123,15 @@ var migrations = []string{
 	   UNIQUE(library_id, url));`,
 	// 8: books: reading direction (ltr | rtl | webtoon).
 	`ALTER TABLE items ADD COLUMN reading TEXT;`,
+	// 9: e-reader bookmarks, highlights, notes and ink (per account).
+	`CREATE TABLE IF NOT EXISTS annotations (
+	   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   kind TEXT NOT NULL, chapter INTEGER NOT NULL, pos REAL NOT NULL,
+	   quote TEXT NOT NULL DEFAULT '', prefix TEXT NOT NULL DEFAULT '', suffix TEXT NOT NULL DEFAULT '',
+	   color TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '',
+	   created_at INTEGER NOT NULL);
+	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

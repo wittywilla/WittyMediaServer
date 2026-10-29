@@ -2,15 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import { IconBack } from '../icons'
+import EpubReader, { type BookInfo as EpubInfo } from './EpubReader'
 
 // The reader: comics and manga page by page (single, two-page spread or a
-// vertical strip; left-to-right or right-to-left), EPUB books paged or
-// scrolling with font and theme choices, PDFs in the browser's viewer.
+// vertical strip; left-to-right or right-to-left), EPUB books in
+// the full e-reader (EpubReader.tsx), PDFs in the browser's viewer.
 // Progress is saved to the server, so reading continues on any device.
 
-type BookInfo = { format: string; reading: string; title: string; pages?: number; spine?: string[]; toc?: { title: string; href: string }[] }
-type Prefs = { mode: 'single' | 'double' | 'strip'; dir: 'ltr' | 'rtl'; fit: 'height' | 'width'; font: number; theme: 'light' | 'sepia' | 'dark'; flow: 'paged' | 'scroll' }
-const DEF: Prefs = { mode: 'single', dir: 'ltr', fit: 'height', font: 100, theme: 'light', flow: 'paged' }
+type BookInfo = EpubInfo & { pages?: number }
+type Prefs = { mode: 'single' | 'double' | 'strip'; dir: 'ltr' | 'rtl'; fit: 'height' | 'width' }
+const DEF: Prefs = { mode: 'single', dir: 'ltr', fit: 'height' }
 const key = (id: number) => `wms.reader.${id}`
 const load = (id: number, reading: string): Prefs => {
   try {
@@ -141,146 +142,6 @@ function ComicReader({ it, pages, close }: { it: Item; pages: number; close: () 
           <span>{page + 1} / {pages}</span>
         </div>
       )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------- EPUB
-
-// Bumped when the server's book headers change, so cached chapters refresh.
-const READER_V = 2
-
-const THEMES = { light: ['#ffffff', '#1d1d1f'], sepia: ['#f4ecd8', '#3b2f1e'], dark: ['#121212', '#e6e6e6'] }
-
-function EpubReader({ it, info, close }: { it: Item; info: BookInfo; close: () => void }) {
-  const spine = info.spine || []
-  const [p, setP] = useState(() => load(it.id, ''))
-  const startPos = it.progress && !it.progress.watched ? it.progress.positionSec : 0
-  const [chapter, setChapter] = useState(Math.min(Math.floor(startPos), Math.max(0, spine.length - 1)))
-  const [frac, setFrac] = useState(startPos % 1)
-  const [toc, setToc] = useState(false)
-  const frame = useRef<HTMLIFrameElement | null>(null)
-  const pageRef = useRef({ page: 0, pages: 1 })
-  const save = useSave(it, spine.length)
-  const ui = useBarAutoHide()
-  const setPrefs = (v: Partial<Prefs>) => { const n = { ...p, ...v }; setP(n); try { localStorage.setItem(key(it.id), JSON.stringify(n)) } catch { /* ignore */ } }
-
-  // Style the chapter (the frame is same-origin but script-free: sandbox
-  // without allow-scripts, and the server's CSP forbids scripts too).
-  const layout = useCallback((restoreFrac?: number) => {
-    const doc = frame.current?.contentDocument
-    const win = frame.current?.contentWindow
-    if (!doc || !win || !doc.documentElement) return
-    const [bg, fg] = THEMES[p.theme]
-    let st = doc.getElementById('wms-style') as HTMLStyleElement | null
-    if (!st) { st = doc.createElement('style'); st.id = 'wms-style'; (doc.head || doc.documentElement).appendChild(st) }
-    const w = frame.current!.clientWidth, h = frame.current!.clientHeight
-    const paged = p.flow === 'paged'
-    st.textContent = `html{background:${bg}!important;color:${fg}!important;font-size:${p.font}%!important}
-      body{margin:0!important;padding:${paged ? '24px 0' : '24px 6vw 80px'}!important;background:transparent!important;color:inherit!important;line-height:1.6;font-family:Georgia,'Iowan Old Style',serif}
-      a{color:inherit} img,svg{max-width:100%!important;height:auto!important;max-height:${h - 60}px} p{text-align:justify;hyphens:auto}
-      ${paged ? `html{height:${h}px;column-width:${w}px;column-gap:0;column-fill:auto;overflow:hidden}
-      body{padding:24px ${Math.round(w * 0.06)}px!important;box-sizing:border-box;height:${h}px}` : ''}`
-    if (paged) {
-      const pages = Math.max(1, Math.round(doc.documentElement.scrollWidth / w))
-      pageRef.current.pages = pages
-      const pg = restoreFrac !== undefined ? Math.min(pages - 1, Math.round(restoreFrac * pages)) : Math.min(pageRef.current.page, pages - 1)
-      pageRef.current.page = pg
-      doc.documentElement.scrollLeft = pg * w
-    } else if (restoreFrac !== undefined) {
-      win.scrollTo(0, restoreFrac * doc.documentElement.scrollHeight)
-    }
-  }, [p.theme, p.font, p.flow])
-
-  useEffect(() => { layout() }, [layout])
-  useEffect(() => { const r = () => layout(); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [layout])
-
-  const turn = (d: number) => {
-    const doc = frame.current?.contentDocument
-    if (!doc) return
-    const w = frame.current!.clientWidth
-    if (p.flow === 'paged') {
-      const { page, pages } = pageRef.current
-      if (page + d >= 0 && page + d < pages) {
-        pageRef.current.page = page + d
-        doc.documentElement.scrollLeft = (page + d) * w
-        const f = (page + d) / pages
-        setFrac(f); save(chapter + f)
-        return
-      }
-    } else {
-      const win = frame.current!.contentWindow!
-      const atEnd = win.scrollY + win.innerHeight >= doc.documentElement.scrollHeight - 4
-      if (!(d > 0 && atEnd) && !(d < 0 && win.scrollY <= 0)) { win.scrollBy(0, d * win.innerHeight * 0.9); return }
-    }
-    const next = chapter + d
-    if (next < 0 || next >= spine.length) return
-    setFrac(d < 0 ? 0.999 : 0)
-    setChapter(next)
-    save(next + (d < 0 ? 0.99 : 0))
-  }
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === 'GoBack') close()
-      else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); turn(1) }
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); turn(-1) }
-    }
-    window.addEventListener('keydown', onKey)
-    // Keys pressed while the chapter has focus.
-    const doc = frame.current?.contentDocument
-    doc?.addEventListener('keydown', onKey)
-    return () => { window.removeEventListener('keydown', onKey); doc?.removeEventListener('keydown', onKey) }
-  })
-
-  const onLoad = () => {
-    pageRef.current.page = 0
-    layout(frac)
-    const doc = frame.current?.contentDocument
-    // Taps on the chapter: outer thirds turn pages, the middle shows the bar.
-    doc?.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('a')) return
-      const x = e.clientX / (frame.current?.clientWidth || 1)
-      if (x < 0.3) turn(-1); else if (x > 0.7) turn(1); else ui.toggle()
-    })
-    if (p.flow === 'scroll') {
-      frame.current?.contentWindow?.addEventListener('scroll', () => {
-        const d = frame.current!.contentDocument!.documentElement
-        const f = d.scrollTop / Math.max(1, d.scrollHeight - d.clientHeight)
-        save(chapter + Math.min(0.99, f))
-      }, { passive: true })
-    }
-  }
-  const [bg] = THEMES[p.theme]
-  const pct = Math.round(((chapter + frac) / Math.max(1, spine.length)) * 100)
-  return (
-    <div className={'reader epub theme-' + p.theme} style={{ background: bg }} onMouseMove={ui.poke}>
-      <iframe ref={frame} key={chapter + p.flow} className="epub-frame" title={it.title} sandbox="allow-same-origin"
-        src={mediaUrl(`/api/items/${it.id}/epub/${spine[chapter]}?v=${READER_V}`)} onLoad={onLoad} />
-      <div className={'reader-bar' + (ui.bar ? '' : ' hidden')}>
-        <button className="ibtn" onClick={close} aria-label="Close the book"><IconBack /></button>
-        <b className="grow">{it.title}</b>
-        {(info.toc?.length || 0) > 0 && <button className="btn sm" onClick={() => setToc(!toc)} aria-expanded={toc}>Contents</button>}
-        <button className="btn sm" onClick={() => setPrefs({ font: Math.max(70, p.font - 10) })} aria-label="Smaller text">A−</button>
-        <button className="btn sm" onClick={() => setPrefs({ font: Math.min(200, p.font + 10) })} aria-label="Larger text">A+</button>
-        <div className="seg" role="radiogroup" aria-label="Page colour">
-          {(['light', 'sepia', 'dark'] as const).map((t) => <button key={t} role="radio" aria-checked={p.theme === t} className={p.theme === t ? 'active' : ''} onClick={() => setPrefs({ theme: t })}>{t[0].toUpperCase() + t.slice(1)}</button>)}
-        </div>
-        <button className="btn sm ghost" onClick={() => setPrefs({ flow: p.flow === 'paged' ? 'scroll' : 'paged' })}>{p.flow === 'paged' ? 'Scroll' : 'Pages'}</button>
-      </div>
-      {toc && (
-        <nav className="epub-toc" aria-label="Contents">
-          {info.toc!.map((t, i) => {
-            const target = spine.findIndex((s) => s === t.href.split('#')[0])
-            return <button key={i} disabled={target < 0} className={target === chapter ? 'on' : ''} onClick={() => { setChapter(target); setFrac(0); save(target); setToc(false) }}>{t.title}</button>
-          })}
-        </nav>
-      )}
-      <div className={'reader-foot' + (ui.bar ? '' : ' hidden')}>
-        <button className="btn sm ghost" onClick={() => turn(-1)} aria-label="Previous page">‹</button>
-        <span>Chapter {chapter + 1} of {spine.length} · {pct}%</span>
-        <button className="btn sm ghost" onClick={() => turn(1)} aria-label="Next page">›</button>
-      </div>
     </div>
   )
 }

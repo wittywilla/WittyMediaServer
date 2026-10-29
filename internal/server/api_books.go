@@ -43,6 +43,7 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		out["spine"], out["toc"] = info.Spine, info.TOC
+		out["words"] = library.WordCounts(zr, info.Spine) // for "time left" in the chapter and the book
 	}
 	writeJSON(w, 200, out)
 }

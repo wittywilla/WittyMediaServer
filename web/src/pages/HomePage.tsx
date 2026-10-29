@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, backdropUrl, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
 import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
-import { IconAnime, IconDisc, IconFilm, IconInfo, IconPlay, IconRefresh, IconTv } from '../icons'
+import { IconAnime, IconDisc, IconFilm, IconInfo, IconRefresh, IconTv } from '../icons'
 import { toast, useApp } from '../state'
+import { useOpenItem } from '../openItem'
 
 // The home page is a column of widgets. Everyone can reorder and hide them
 // ("Customize"); the layout is saved to the account, so it follows the
@@ -32,7 +33,7 @@ export default function HomePage() {
     const list: Widget[] = [
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
     ]
-    for (const k of ['continue', 'nextup']) { const h = byKey(k); if (h) list.push(hub(h)) }
+    for (const k of ['continue', 'continue-reading', 'continue-listening', 'nextup']) { const h = byKey(k); if (h) list.push(hub(h)) }
     list.push({ id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> })
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
     list.push({ id: 'shuffle', title: 'Shuffle', render: () => <Shuffle /> })
@@ -137,9 +138,9 @@ function LibraryTiles() {
 
 // Shuffle: a random movie or disc, for when nobody can decide.
 function Shuffle() {
-  const nav = useNavigate()
+  const opener = useOpenItem()
   const [it, setIt] = useState<Item | null>(null)
-  const roll = () => api.get<{ items: Item[] }>('/items?sort=random&limit=1&noEpisodes=1').then((r) => setIt(r.items[0] || null)).catch(() => {})
+  const roll = () => api.get<{ items: Item[] }>('/items?sort=random&limit=1&noEpisodes=1&watchable=1').then((r) => setIt(r.items[0] || null)).catch(() => {})
   useEffect(() => { roll() }, [])
   if (!it) return null
   return (
@@ -152,7 +153,7 @@ function Shuffle() {
           <h3>{it.title}</h3>
           <div className="muted">{[it.year, fmtRuntime(it.runtimeSec), it.genres.slice(0, 2).join(', ')].filter(Boolean).join(' · ')}</div>
           <div className="actions">
-            <button className="btn primary" onClick={() => nav(`/play/${it.id}`)}><IconPlay /> Play</button>
+            <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
             <Link className="btn" to={`/item/${it.id}`}><IconInfo /> Details</Link>
             <button className="btn ghost" onClick={roll}><IconRefresh /> Another</button>
           </div>
@@ -165,6 +166,7 @@ function Shuffle() {
 function Hero({ items }: { items: Home['featured'] }) {
   const [i, setI] = useState(0)
   const nav = useNavigate()
+  const opener = useOpenItem()
   useEffect(() => {
     if (items.length < 2) return
     const t = setInterval(() => setI((x) => (x + 1) % items.length), 9000)
@@ -188,7 +190,7 @@ function Hero({ items }: { items: Home['featured'] }) {
         </div>
         {it.overview && <p>{it.overview}</p>}
         <div className="actions">
-          <button className="btn primary" onClick={() => nav(`/play/${it.id}`)}><IconPlay /> {it.progress && !it.progress.watched && it.progress.positionSec > 60 ? 'Resume' : 'Play'}</button>
+          <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
           {isDisc(it) && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}>DVD menu</button>}
           <Link className="btn ghost" to={`/item/${it.id}`}><IconInfo /> Details</Link>
         </div>

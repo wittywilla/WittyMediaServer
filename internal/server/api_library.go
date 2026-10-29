@@ -163,6 +163,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Access:    s.access(r),
 		// noEpisodes=1: movies and discs only (the Shuffle widget)
 		NoEpisodes: qBool(r, "noEpisodes"),
+		Watchable:  qBool(r, "watchable"),
 	}
 	items, total, err := s.Store.Items(r.Context(), q)
 	if err != nil {
@@ -336,7 +337,26 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	hubs := []hub{}
 	if len(cont) > 0 {
-		hubs = append(hubs, hub{Key: "continue", Title: "Continue Watching", Items: cont})
+		// One row per kind of media, each worded for what you do with it.
+		var watch, read, listen []*library.Item
+		for _, it := range cont {
+			switch it.Kind {
+			case "book":
+				read = append(read, it)
+			case "audio":
+				listen = append(listen, it)
+			default:
+				watch = append(watch, it)
+			}
+		}
+		for _, h := range []struct {
+			key, title string
+			items      []*library.Item
+		}{{"continue", "Continue Watching", watch}, {"continue-reading", "Continue Reading", read}, {"continue-listening", "Continue Listening", listen}} {
+			if len(h.items) > 0 {
+				hubs = append(hubs, hub{Key: h.key, Title: h.title, Items: h.items})
+			}
+		}
 	}
 	if next := s.nextUp(r, libs); len(next) > 0 {
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next Up", Items: next})

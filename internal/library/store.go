@@ -330,6 +330,8 @@ type ItemQuery struct {
 	NoEpisodes bool
 	// Access limits the result to what a Kids/Guest profile may see.
 	Access *Access
+	// Watchable: movies, videos and discs only (no music, books or podcasts).
+	Watchable bool
 	// Audio: one album (by album artist and album title).
 	Album       *string
 	AlbumArtist *string
@@ -397,6 +399,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.NoEpisodes {
 		where = append(where, "i.show_id IS NULL")
+	}
+	if q.Watchable {
+		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder')")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")
@@ -681,7 +686,9 @@ func (s *Store) AttachProgress(ctx context.Context, userID int64, items []*Item)
 // ContinueWatching lists in-progress items for a user.
 func (s *Store) ContinueWatching(ctx context.Context, userID int64, limit int) ([]*Item, error) {
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+itemCols+` FROM items i JOIN progress p ON p.item_id = i.id
-		WHERE p.user_id = ? AND p.watched = 0 AND p.position_sec > 60 AND i.missing = 0 ORDER BY p.updated_at DESC LIMIT ?`, userID, limit)
+		WHERE p.user_id = ? AND p.watched = 0 AND i.missing = 0
+		  AND (p.position_sec > 60 OR (i.kind = 'book' AND p.position_sec > 0)) -- books count pages/chapters, not seconds
+		ORDER BY p.updated_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err
 	}

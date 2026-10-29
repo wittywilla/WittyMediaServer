@@ -1,6 +1,6 @@
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
@@ -25,6 +25,8 @@ export default function ItemPage() {
   if (err) return <div className="error">{err}</div>
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />
+  // Songs, chapters and episodes live on their album, book or podcast page.
+  if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)
   const resume = it.progress && !it.progress.watched && it.progress.positionSec > 60 ? it.progress : null
   const main = it.disc?.titles.find((t) => t.number === it.disc?.mainTitle)

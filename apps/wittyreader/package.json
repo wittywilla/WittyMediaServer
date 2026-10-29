@@ -12,6 +12,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@wittywilla/wittycomics": "github:wittywilla/WittyComics",
+    "@wittywilla/wittyebook": "github:wittywilla/WittyEbook",
+    "@wittywilla/wittyink": "github:wittywilla/WittyInk",
+    "@wittywilla/wittypdf": "github:wittywilla/WittyPDF",
     "fflate": "0.8.3",
     "pdfjs-dist": "4.10.38",
     "react": "^19.1.0",

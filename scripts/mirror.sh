@@ -20,9 +20,19 @@ MIRRORS=(
   "apps/wittyreader            WittyReader"
 )
 
+# Publishes a folder's history to a branch without ever rewriting it: if the
+# branch already holds commits that aren't in the folder's history (GitHub's
+# first README, a wiki's first page, an earlier publish), a merge commit on
+# top of them makes the folder's current files the branch's files.
 publish() { # <prefix> <remote url> <branch>
-  local sha
+  local sha tip
   sha=$(git subtree split --prefix="$1" HEAD 2>/dev/null)
+  tip=""
+  if git fetch -q "$2" "$3" 2>/dev/null; then tip=$(git rev-parse FETCH_HEAD); fi
+  if [ -n "$tip" ] && [ "$tip" != "$sha" ] && ! git merge-base --is-ancestor "$tip" "$sha"; then
+    sha=$(git -c user.name="${GIT_AUTHOR_NAME:-WittyWilla}" -c user.email="${GIT_AUTHOR_EMAIL:-wittywilla@users.noreply.github.com}" \
+      commit-tree "$sha^{tree}" -p "$tip" -p "$sha" -m "Publish $(basename "$1") from WittyMediaServer $(git rev-parse --short HEAD)")
+  fi
   echo "   $1 -> $2 ($3): $sha"
   if [ -z "${DRY_RUN:-}" ]; then git push "$2" "$sha:refs/heads/$3"; fi
 }

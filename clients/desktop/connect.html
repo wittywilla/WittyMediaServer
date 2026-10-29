@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Connect to WittyMediaServer</title>
+<style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0f1115;color:#e8eaf0;font-family:system-ui}
+.card{background:#171a21;padding:30px;border-radius:14px;width:360px;box-shadow:0 10px 30px rgba(0,0,0,.5)}h1{margin:0 0 6px;font-size:22px}
+p{color:#a9afbd;margin:0 0 18px}input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid #2a2f3a;background:#1f232c;color:#fff;font-size:15px}
+button{margin-top:12px;width:100%;padding:11px;border:0;border-radius:8px;background:#8b6cff;color:#fff;font-weight:600;font-size:15px;cursor:pointer}</style></head>
+<body><form class="card" onsubmit="event.preventDefault();wittyDesktop.connect(url.value)">
+<h1>Witty<span style="color:#8b6cff">Media</span></h1><p>Enter your server address.</p>
+<input id="url" placeholder="http://192.168.1.10:9797" value="http://localhost:9797" autofocus>
+<button>Connect</button></form></body></html>

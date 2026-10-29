@@ -1,0 +1,405 @@
+// Package hls runs FFmpeg transcodes that produce HLS segments on demand.
+//
+// The server writes the playlist itself from the known duration, forces
+// keyframes on segment boundaries and (re)starts FFmpeg at whichever segment a
+// client asks for. That gives instant seeking anywhere without transcoding
+// the whole file first.
+package hls
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+)
+
+// Spec describes one transcode.
+type Spec struct {
+	ID            string
+	InputArgs     []string // input options and -i
+	Duration      float64  // total seconds (required)
+	VideoFilter   string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
+	AudioIndex    int      // ffmpeg audio stream index (a:N), -1 = no audio
+	AudioChannels int      // 0 = keep (max 6)
+	SubtitleIndex int      // s:N to burn in, -1 = none
+	AudioCodec    string   // aac (default) | mp3
+	SegmentSec    float64
+	MaxHeight     int    // 0 = source
+	VideoBitrate  string // e.g. "8M"; empty = quality mode
+	HW            bool
+	LowLatency    bool // menus: tiny segments, zerolatency
+	CopyVideo     bool // remux (h264 sources); keyframe alignment is approximate
+}
+
+type job struct {
+	startSeg int
+	cmd      *exec.Cmd
+	done     chan struct{}
+	err      error
+	stderr   bytes.Buffer
+	lastSeg  int
+}
+
+// Session is a running or idle transcode.
+type Session struct {
+	Spec     Spec
+	Dir      string
+	mu       sync.Mutex
+	job      *job
+	lastUsed time.Time
+	tools    *ffmpeg.Tools
+	log      *slog.Logger
+}
+
+// Manager owns sessions and the temp directory.
+type Manager struct {
+	tools   *ffmpeg.Tools
+	root    string
+	log     *slog.Logger
+	mu      sync.Mutex
+	session map[string]*Session
+	max     int
+}
+
+func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {
+	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max}
+	_ = os.RemoveAll(root)
+	_ = os.MkdirAll(root, 0o755)
+	go m.sweep()
+	return m
+}
+
+func (m *Manager) sweep() {
+	for range time.Tick(30 * time.Second) {
+		m.mu.Lock()
+		for id, s := range m.session {
+			s.mu.Lock()
+			idle := time.Since(s.lastUsed)
+			s.mu.Unlock()
+			if idle > 10*time.Minute {
+				s.stop()
+				_ = os.RemoveAll(s.Dir)
+				delete(m.session, id)
+			} else if idle > 90*time.Second {
+				s.pause()
+			}
+		}
+		m.mu.Unlock()
+	}
+}
+
+// Get returns a session by id.
+func (m *Manager) Get(id string) *Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.session[id]
+}
+
+// Ensure returns the session with this spec id, creating it if needed.
+func (m *Manager) Ensure(spec Spec) *Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s, ok := m.session[spec.ID]; ok {
+		return s
+	}
+	if spec.SegmentSec <= 0 {
+		spec.SegmentSec = 4
+		if spec.LowLatency {
+			spec.SegmentSec = 2
+		}
+	}
+	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID)}
+	_ = os.MkdirAll(s.Dir, 0o755)
+	m.session[spec.ID] = s
+	return s
+}
+
+// Stop ends and deletes a session.
+func (m *Manager) Stop(id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s, ok := m.session[id]; ok {
+		s.stop()
+		_ = os.RemoveAll(s.Dir)
+		delete(m.session, id)
+	}
+}
+
+// StopAll ends every session (shutdown).
+func (m *Manager) StopAll() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, s := range m.session {
+		s.stop()
+		_ = os.RemoveAll(s.Dir)
+		delete(m.session, id)
+	}
+}
+
+// SegmentCount is the number of segments for the duration.
+func (s *Session) SegmentCount() int {
+	n := int(s.Spec.Duration / s.Spec.SegmentSec)
+	if float64(n)*s.Spec.SegmentSec < s.Spec.Duration-0.05 {
+		n++
+	}
+	if n < 1 {
+		n = 1
+	}
+	return n
+}
+
+// Playlist renders the VOD playlist.
+func (s *Session) Playlist(segURL func(n int) string) []byte {
+	s.touch()
+	var b strings.Builder
+	n := s.SegmentCount()
+	fmt.Fprintf(&b, "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-INDEPENDENT-SEGMENTS\n", int(s.Spec.SegmentSec+0.999))
+	for i := 0; i < n; i++ {
+		d := s.Spec.SegmentSec
+		if i == n-1 {
+			d = s.Spec.Duration - float64(i)*s.Spec.SegmentSec
+			if d <= 0 {
+				d = s.Spec.SegmentSec
+			}
+		}
+		fmt.Fprintf(&b, "#EXTINF:%.3f,\n%s\n", d, segURL(i))
+	}
+	b.WriteString("#EXT-X-ENDLIST\n")
+	return []byte(b.String())
+}
+
+func (s *Session) touch() {
+	s.mu.Lock()
+	s.lastUsed = time.Now()
+	s.mu.Unlock()
+}
+
+func (s *Session) segPath(n int) string { return filepath.Join(s.Dir, fmt.Sprintf("seg%05d.ts", n)) }
+
+// Segment returns the path of segment n, starting or restarting FFmpeg as
+// needed and waiting until the file is complete.
+func (s *Session) Segment(ctx context.Context, n int) (string, error) {
+	s.touch()
+	if n < 0 || n >= s.SegmentCount() {
+		return "", errors.New("segment out of range")
+	}
+	p := s.segPath(n)
+	if fileReady(p) {
+		return p, nil
+	}
+	s.mu.Lock()
+	j := s.job
+	needStart := j == nil || j.finished() || n < j.startSeg || n > j.lastProduced()+6
+	if needStart {
+		if j != nil {
+			s.stopLocked()
+		}
+		var err error
+		j, err = s.startLocked(n)
+		if err != nil {
+			s.mu.Unlock()
+			return "", err
+		}
+	}
+	s.mu.Unlock()
+
+	deadline := time.Now().Add(60 * time.Second)
+	for time.Now().Before(deadline) {
+		if fileReady(p) {
+			return p, nil
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-j.done:
+			if fileReady(p) {
+				return p, nil
+			}
+			msg := strings.TrimSpace(j.stderr.String())
+			if len(msg) > 2000 {
+				msg = msg[len(msg)-2000:]
+			}
+			return "", fmt.Errorf("transcode ended before segment %d: %s", n, msg)
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	return "", errors.New("timed out waiting for segment")
+}
+
+func fileReady(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && st.Size() > 0
+}
+
+func (j *job) finished() bool {
+	select {
+	case <-j.done:
+		return true
+	default:
+		return false
+	}
+}
+
+func (j *job) lastProduced() int { return j.lastSeg }
+
+func (s *Session) startLocked(fromSeg int) (*job, error) {
+	sp := s.Spec
+	start := float64(fromSeg) * sp.SegmentSec
+	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y"}
+	if sp.HW && s.tools.Encoders["h264_nvenc"] && !sp.CopyVideo {
+		args = append(args, "-hwaccel", "auto")
+	}
+	if start > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+	}
+	args = append(args, sp.InputArgs...)
+	args = append(args, "-map", "0:v:0")
+	if sp.AudioIndex >= 0 {
+		args = append(args, "-map", fmt.Sprintf("0:a:%d?", sp.AudioIndex))
+	}
+	args = append(args, "-map_metadata", "-1", "-map_chapters", "-1")
+
+	// Video
+	if sp.CopyVideo {
+		args = append(args, "-c:v", "copy")
+	} else {
+		var vf []string
+		if sp.VideoFilter != "" {
+			vf = append(vf, sp.VideoFilter)
+		}
+		vf = append(vf, "scale=iw*sar:ih")
+		if sp.MaxHeight > 0 {
+			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
+		}
+		vf = append(vf, "setsar=1", "format=yuv420p")
+		if sp.SubtitleIndex >= 0 {
+			// Burn bitmap/text subtitles in via a filter graph.
+			graph := fmt.Sprintf("[0:v:0]%s[v0];[0:s:%d]scale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", strings.Join(vf, ","), sp.SubtitleIndex)
+			args = append(args, "-filter_complex", graph, "-map", "-0:v:0", "-map", "[vout]")
+		} else {
+			args = append(args, "-vf", strings.Join(vf, ","))
+		}
+		enc, encArgs := s.tools.H264Encoder(sp.HW)
+		args = append(args, "-c:v", enc)
+		args = append(args, encArgs...)
+		if sp.VideoBitrate != "" {
+			args = append(args, "-maxrate", sp.VideoBitrate, "-bufsize", sp.VideoBitrate)
+		}
+		if sp.LowLatency && enc == "libx264" {
+			args = append(args, "-tune", "zerolatency")
+		}
+		args = append(args, "-force_key_frames", fmt.Sprintf("expr:gte(t,n_forced*%g)", sp.SegmentSec), "-g", strconv.Itoa(int(sp.SegmentSec*30)), "-sc_threshold", "0")
+	}
+	// Audio
+	if sp.AudioIndex >= 0 {
+		ch := sp.AudioChannels
+		codec := "aac"
+		if sp.AudioCodec == "mp3" {
+			codec = "libmp3lame"
+			ch = 2
+		}
+		args = append(args, "-c:a", codec)
+		switch {
+		case ch == 2 || ch == 0:
+			args = append(args, "-ac", "2", "-b:a", "192k", "-af", "aresample=async=1:first_pts=0")
+		default:
+			args = append(args, "-ac", strconv.Itoa(ch), "-b:a", "384k", "-af", "aresample=async=1:first_pts=0")
+		}
+	} else {
+		args = append(args, "-an")
+	}
+	args = append(args,
+		"-sn",
+		"-output_ts_offset", strconv.FormatFloat(start, 'f', 3, 64),
+		"-f", "hls",
+		"-hls_time", strconv.FormatFloat(sp.SegmentSec, 'f', 3, 64),
+		"-hls_segment_type", "mpegts",
+		"-hls_list_size", "0",
+		"-hls_flags", "temp_file+independent_segments",
+		"-start_number", strconv.Itoa(fromSeg),
+		"-hls_segment_filename", filepath.Join(s.Dir, "seg%05d.ts"),
+		filepath.Join(s.Dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
+	)
+	cmd := exec.Command(s.tools.FFmpeg, args...)
+	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), lastSeg: fromSeg - 1}
+	cmd.Stderr = &j.stderr
+	hideWindow(cmd)
+	s.log.Debug("ffmpeg start", "from", fromSeg, "args", strings.Join(args, " "))
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	s.job = j
+	go func() {
+		j.err = cmd.Wait()
+		close(j.done)
+		if j.err != nil && !strings.Contains(j.err.Error(), "killed") && !strings.Contains(j.err.Error(), "exit status 255") {
+			s.log.Warn("ffmpeg exited", "err", j.err, "stderr", tail(j.stderr.String(), 800))
+		}
+	}()
+	go s.watch(j)
+	return j, nil
+}
+
+// watch tracks the newest finished segment so Segment() can decide whether a
+// request is "coming soon" or needs a restart.
+func (s *Session) watch(j *job) {
+	for {
+		select {
+		case <-j.done:
+			return
+		case <-time.After(250 * time.Millisecond):
+		}
+		for n := j.lastSeg + 1; n < s.SegmentCount(); n++ {
+			if fileReady(s.segPath(n)) {
+				j.lastSeg = n
+			} else {
+				break
+			}
+		}
+	}
+}
+
+func tail(s string, n int) string {
+	s = strings.TrimSpace(s)
+	if len(s) > n {
+		return s[len(s)-n:]
+	}
+	return s
+}
+
+func (s *Session) stopLocked() {
+	if s.job == nil {
+		return
+	}
+	j := s.job
+	s.job = nil
+	if !j.finished() && j.cmd.Process != nil {
+		_ = j.cmd.Process.Kill()
+	}
+}
+
+func (s *Session) stop() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stopLocked()
+}
+
+// pause stops FFmpeg but keeps produced segments so playback can resume.
+func (s *Session) pause() { s.stop() }
+
+// Active reports whether FFmpeg is currently running for this session.
+func (s *Session) Active() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.job != nil && !s.job.finished()
+}

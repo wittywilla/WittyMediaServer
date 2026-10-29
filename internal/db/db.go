@@ -1,0 +1,108 @@
+// Package db wraps the SQLite store (pure Go driver, no CGO) and migrations.
+package db
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"path/filepath"
+	"time"
+
+	_ "modernc.org/sqlite"
+)
+
+type DB struct {
+	*sql.DB
+}
+
+func Open(dataDir string) (*DB, error) {
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", filepath.ToSlash(filepath.Join(dataDir, "wms.db")))
+	sdb, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, err
+	}
+	// WAL mode lets readers run alongside the single writer; busy_timeout
+	// serialises writers. Keep the pool small but never 1: nested queries
+	// (a row cursor plus a lookup) would deadlock on a single connection.
+	sdb.SetMaxOpenConns(6)
+	sdb.SetConnMaxLifetime(0)
+	d := &DB{sdb}
+	if err := d.migrate(context.Background()); err != nil {
+		sdb.Close()
+		return nil, err
+	}
+	return d, nil
+}
+
+var migrations = []string{
+	`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+	 CREATE TABLE IF NOT EXISTS users (
+	   id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
+	   is_admin INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+	 CREATE TABLE IF NOT EXISTS sessions (
+	   token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, device TEXT);
+	 CREATE TABLE IF NOT EXISTS libraries (
+	   id INTEGER PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, created_at INTEGER NOT NULL,
+	   last_scan_at INTEGER, scanning INTEGER NOT NULL DEFAULT 0);
+	 CREATE TABLE IF NOT EXISTS library_paths (
+	   id INTEGER PRIMARY KEY, library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE, path TEXT NOT NULL);
+	 CREATE TABLE IF NOT EXISTS items (
+	   id INTEGER PRIMARY KEY,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   kind TEXT NOT NULL,             -- video | dvd-iso | dvd-folder
+	   path TEXT NOT NULL,
+	   title TEXT NOT NULL, sort_title TEXT NOT NULL, year INTEGER, overview TEXT,
+	   tagline TEXT, genres TEXT, rating REAL, content_rating TEXT, studio TEXT, runtime_sec REAL,
+	   poster TEXT, backdrop TEXT,
+	   container TEXT, video_codec TEXT, width INTEGER, height INTEGER, audio_langs TEXT, sub_langs TEXT,
+	   disc_json TEXT,                 -- cached DVD structure summary
+	   provider TEXT, provider_id TEXT,
+	   size_bytes INTEGER, mtime INTEGER,
+	   added_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+	   missing INTEGER NOT NULL DEFAULT 0,
+	   UNIQUE(library_id, path));
+	 CREATE INDEX IF NOT EXISTS items_lib ON items(library_id, sort_title);
+	 CREATE TABLE IF NOT EXISTS progress (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   position_sec REAL NOT NULL, duration_sec REAL NOT NULL, watched INTEGER NOT NULL DEFAULT 0,
+	   disc_title INTEGER, updated_at INTEGER NOT NULL, PRIMARY KEY(user_id, item_id));
+	 CREATE TABLE IF NOT EXISTS schema (version INTEGER NOT NULL);`,
+}
+
+func (d *DB) migrate(ctx context.Context) error {
+	var version int
+	_ = d.QueryRowContext(ctx, `SELECT version FROM schema LIMIT 1`).Scan(&version)
+	for i := version; i < len(migrations); i++ {
+		if _, err := d.ExecContext(ctx, migrations[i]); err != nil {
+			return fmt.Errorf("migration %d: %w", i+1, err)
+		}
+	}
+	if version == 0 {
+		if _, err := d.ExecContext(ctx, `INSERT INTO schema(version) VALUES (?)`, len(migrations)); err != nil {
+			return err
+		}
+	} else if version < len(migrations) {
+		if _, err := d.ExecContext(ctx, `UPDATE schema SET version = ?`, len(migrations)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Now() int64 { return time.Now().Unix() }
+
+// Setting helpers.
+func (d *DB) GetSetting(ctx context.Context, key, def string) string {
+	var v string
+	if err := d.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = ?`, key).Scan(&v); err != nil {
+		return def
+	}
+	return v
+}
+
+func (d *DB) SetSetting(ctx context.Context, key, value string) error {
+	_, err := d.ExecContext(ctx, `INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
+	return err
+}

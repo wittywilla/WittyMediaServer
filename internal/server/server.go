@@ -1,0 +1,222 @@
+// Package server wires the HTTP API, streaming endpoints and the web UI.
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/library"
+)
+
+type Server struct {
+	Cfg     *config.Config
+	DB      *db.DB
+	Log     *slog.Logger
+	Tools   *ffmpeg.Tools
+	Store   *library.Store
+	Scanner *library.Scanner
+	Auth    *auth.Service
+	HLS     *hls.Manager
+	DVD     *dvdsession.Manager
+	Web     fs.FS
+	Version string
+
+	mux *http.ServeMux
+}
+
+type ctxKey int
+
+const userKey ctxKey = 1
+
+func userFrom(r *http.Request) *auth.User {
+	u, _ := r.Context().Value(userKey).(*auth.User)
+	return u
+}
+
+// Handler builds the root handler.
+func (s *Server) Handler() http.Handler {
+	s.mux = http.NewServeMux()
+	m := s.mux
+
+	// Public
+	m.HandleFunc("GET /api/status", s.handleStatus)
+	m.HandleFunc("POST /api/setup", s.handleSetup)
+	m.HandleFunc("POST /api/login", s.handleLogin)
+	m.HandleFunc("POST /api/logout", s.handleLogout)
+	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
+
+	// Authenticated
+	a := s.requireUser
+	m.Handle("GET /api/me", a(s.handleMe))
+	m.Handle("GET /api/home", a(s.handleHome))
+	m.Handle("GET /api/libraries", a(s.handleLibraries))
+	m.Handle("POST /api/libraries", s.requireAdmin(s.handleCreateLibrary))
+	m.Handle("PUT /api/libraries/{id}", s.requireAdmin(s.handleUpdateLibrary))
+	m.Handle("DELETE /api/libraries/{id}", s.requireAdmin(s.handleDeleteLibrary))
+	m.Handle("POST /api/libraries/{id}/scan", s.requireAdmin(s.handleScan))
+	m.Handle("GET /api/libraries/{id}/scan", a(s.handleScanProgress))
+	m.Handle("GET /api/genres", a(s.handleGenres))
+	m.Handle("GET /api/items", a(s.handleItems))
+	m.Handle("GET /api/items/{id}", a(s.handleItem))
+	m.Handle("PUT /api/items/{id}", s.requireAdmin(s.handleUpdateItem))
+	m.Handle("GET /api/items/{id}/poster", a(s.handlePoster))
+	m.Handle("GET /api/items/{id}/backdrop", a(s.handleBackdrop))
+	m.Handle("POST /api/items/{id}/progress", a(s.handleProgress))
+	m.Handle("DELETE /api/items/{id}/progress", a(s.handleClearProgress))
+	m.Handle("GET /api/items/{id}/play", a(s.handlePlayInfo))
+	m.Handle("GET /api/items/{id}/file", a(s.handleFile))
+	m.Handle("POST /api/items/{id}/dvd", a(s.handleDVDOpen))
+	m.Handle("GET /api/dvd/{sid}", a(s.handleDVDGet))
+	m.Handle("POST /api/dvd/{sid}/action", a(s.handleDVDAction))
+	m.Handle("DELETE /api/dvd/{sid}", a(s.handleDVDClose))
+	m.Handle("GET /api/dvd/{sid}/menu/{serial}/overlay.png", a(s.handleDVDOverlay))
+	m.Handle("GET /api/dvd/{sid}/menu/{serial}/highlight/{n}", a(s.handleDVDHighlight))
+	m.Handle("GET /api/dvd/{sid}/still/{name}", a(s.handleDVDStill))
+	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
+	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
+	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))
+	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
+	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
+	m.Handle("GET /api/system", s.requireAdmin(s.handleSystem))
+	m.Handle("GET /api/users", s.requireAdmin(s.handleUsers))
+	m.Handle("POST /api/users", s.requireAdmin(s.handleCreateUser))
+	m.Handle("DELETE /api/users/{id}", s.requireAdmin(s.handleDeleteUser))
+	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
+	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
+
+	// Web UI (SPA)
+	m.Handle("/", s.spa())
+
+	return s.logging(s.cors(m))
+}
+
+// ---------------------------------------------------------------------------
+// Middleware
+// ---------------------------------------------------------------------------
+
+func (s *Server) logging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w, code: 200}
+		next.ServeHTTP(sw, r)
+		if strings.HasPrefix(r.URL.Path, "/api/hls/") || strings.HasPrefix(r.URL.Path, "/assets/") {
+			return
+		}
+		s.Log.Debug("http", "m", r.Method, "p", r.URL.Path, "s", sw.code, "ms", time.Since(start).Milliseconds())
+	})
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	code int
+}
+
+func (w *statusWriter) WriteHeader(c int) { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (w *statusWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (s *Server) cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if o := r.Header.Get("Origin"); o != "" {
+			w.Header().Set("Access-Control-Allow-Origin", o)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Vary", "Origin")
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(204)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) resolveUser(r *http.Request) *auth.User {
+	u, err := s.Auth.Resolve(r.Context(), auth.TokenFrom(r))
+	if err != nil {
+		return nil
+	}
+	return u
+}
+
+func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := s.resolveUser(r)
+		if u == nil {
+			writeErr(w, 401, "authentication required")
+			return
+		}
+		h(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
+	})
+}
+
+func (s *Server) requireAdmin(h http.HandlerFunc) http.Handler {
+	return s.requireUser(func(w http.ResponseWriter, r *http.Request) {
+		if !userFrom(r).IsAdmin {
+			writeErr(w, 403, "admin only")
+			return
+		}
+		h(w, r)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeErr(w http.ResponseWriter, code int, msg string) {
+	writeJSON(w, code, map[string]any{"error": msg})
+}
+
+func readJSON(r *http.Request, v any) error {
+	defer r.Body.Close()
+	dec := json.NewDecoder(io.LimitReader(r.Body, 4<<20))
+	if err := dec.Decode(v); err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+	return nil
+}
+
+func pathInt(r *http.Request, name string) (int64, bool) {
+	n, err := strconv.ParseInt(r.PathValue(name), 10, 64)
+	return n, err == nil
+}
+
+func qInt(r *http.Request, name string, def int) int {
+	if v := r.URL.Query().Get(name); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return def
+}
+
+func qBool(r *http.Request, name string) bool {
+	v := strings.ToLower(r.URL.Query().Get(name))
+	return v == "1" || v == "true" || v == "yes"
+}

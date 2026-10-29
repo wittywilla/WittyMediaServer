@@ -1,0 +1,112 @@
+// Thin API client. The server sets an HttpOnly cookie on login; we also keep
+// the token in localStorage for native wrappers / cross-origin use.
+
+export type User = { id: number; name: string; isAdmin: boolean; createdAt: number }
+export type Library = {
+  id: number; name: string; type: string; paths: string[]; createdAt: number
+  lastScanAt: number | null; scanning: boolean; itemCount: number
+}
+export type DiscTitle = {
+  number: number; durationSec: number; chapters: number[]; angles: number
+  audio: string[]; subtitles: string[]; wide: boolean; standard: string
+}
+export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean }
+export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number }
+export type Item = {
+  id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | string; path: string
+  title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
+  rating: number | null; contentRating: string; studio: string; runtimeSec: number
+  poster: string; backdrop: string; container: string; videoCodec: string; width: number; height: number
+  audioLangs: string[]; subLangs: string[]; disc?: DiscInfo; provider: string; providerId: string
+  sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
+}
+export type Hub = { key: string; title: string; libraryId?: number; items: Item[] }
+export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }
+export type Track = { index: number; language: string; title?: string; codec: string; channels?: number }
+export type PlayInfo = {
+  type: 'direct' | 'hls'; url: string; durationSec: number; audio: Track[]; subtitles: Track[]
+  audioIndex: number; subtitleIndex: number; container: string
+}
+export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string }
+export type DvdMenu = {
+  width: number; height: number; aspect: '4:3' | '16:9'; buttons: DvdButton[]; selected: number
+  overlayUrl?: string; highlightUrl?: string; buttonsFromSec?: number; hasHighlights: boolean
+}
+export type DvdTrack = { n: number; language: string; codec?: string; channels?: number }
+export type DvdTitle = {
+  ttn: number; chapter: number; durationSec: number; startSec: number; chapters: number[]
+  audio: DvdTrack[]; subtitles: DvdTrack[]; audioStream: number; subtitleStream: number; wide: boolean
+}
+export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean }
+export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string }
+
+const TOKEN_KEY = 'wms.token'
+const SERVER_KEY = 'wms.server'
+export const getToken = () => localStorage.getItem(TOKEN_KEY) || ''
+export const setToken = (t: string) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY))
+
+// Native shells (Capacitor/Electron loading the UI from local files) point the
+// client at a server with window.WMS_SERVER or the stored server URL.
+export const serverBase = (): string =>
+  ((window as any).WMS_SERVER as string | undefined) || localStorage.getItem(SERVER_KEY) || ''
+export const setServerBase = (url: string) => (url ? localStorage.setItem(SERVER_KEY, url.replace(/\/+$/, '')) : localStorage.removeItem(SERVER_KEY))
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message) }
+}
+
+async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {}
+  const tok = getToken()
+  if (tok) headers['Authorization'] = 'Bearer ' + tok
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'include' })
+  const text = await res.text()
+  let data: any = null
+  try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
+  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText)
+  return data as T
+}
+
+export const api = {
+  get: <T>(p: string) => req<T>('GET', p),
+  post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
+  put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
+  del: <T>(p: string) => req<T>('DELETE', p),
+}
+
+// Media URLs that go through <img>/<video>: append the token so native
+// wrappers without cookies still work.
+export function mediaUrl(path: string): string {
+  const full = path.startsWith('http') ? path : serverBase() + path
+  const tok = getToken()
+  if (!tok) return full
+  return full + (full.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok)
+}
+
+export const posterUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/poster`) + `&v=${it.updatedAt}`
+export const backdropUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/backdrop`) + `&v=${it.updatedAt}`
+
+export function fmtTime(sec: number): string {
+  if (!isFinite(sec) || sec < 0) sec = 0
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60)
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`
+}
+
+export function fmtRuntime(sec: number): string {
+  if (!sec) return ''
+  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
+}
+
+export const isDisc = (it: Item) => it.kind === 'dvd-iso' || it.kind === 'dvd-folder'
+
+const LANGS: Record<string, string> = {
+  en: 'English', nl: 'Dutch', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ja: 'Japanese',
+  zh: 'Chinese', ko: 'Korean', ru: 'Russian', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', pl: 'Polish',
+  cs: 'Czech', hu: 'Hungarian', el: 'Greek', tr: 'Turkish', he: 'Hebrew', ar: 'Arabic', hi: 'Hindi', th: 'Thai',
+  eng: 'English', dut: 'Dutch', nld: 'Dutch', fre: 'French', fra: 'French', ger: 'German', deu: 'German', spa: 'Spanish',
+  ita: 'Italian', por: 'Portuguese', jpn: 'Japanese', chi: 'Chinese', zho: 'Chinese', kor: 'Korean', rus: 'Russian', und: 'Unknown',
+}
+export const langName = (code?: string) => (code ? LANGS[code.toLowerCase()] || code.toUpperCase() : 'Unknown')

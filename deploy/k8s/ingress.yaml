@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wms
+  namespace: wittymedia
+  annotations:
+    # Large HLS segments & long-lived requests:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: media.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wms
+                port: { name: http }
+  # tls:
+  #   - hosts: [media.example.com]
+  #     secretName: wms-tls

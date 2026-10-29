@@ -1,0 +1,27 @@
+{
+  "name": "wittymedia-desktop",
+  "productName": "WittyMedia",
+  "version": "0.1.0",
+  "description": "WittyMediaServer desktop client (Windows, macOS, Linux, FreeBSD)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --win --mac --linux",
+    "package:win": "electron-builder --win",
+    "package:mac": "electron-builder --mac",
+    "package:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.wittywilla.wittymedia",
+    "productName": "WittyMedia",
+    "files": ["main.js", "preload.js", "connect.html", "icon.png"],
+    "win": { "target": ["nsis", "portable"] },
+    "mac": { "target": ["dmg"], "category": "public.app-category.entertainment" },
+    "linux": { "target": ["AppImage", "deb", "rpm"], "category": "AudioVideo" }
+  }
+}

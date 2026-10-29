@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wms
+  namespace: wittymedia
+  labels: { app: wms }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # single SQLite writer + transcode cache
+  selector:
+    matchLabels: { app: wms }
+  template:
+    metadata:
+      labels: { app: wms }
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: wms
+          image: ghcr.io/wittywilla/wittymediaserver:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9797
+          envFrom:
+            - configMapRef: { name: wms-env }
+          env:
+            - name: WMS_TRANSCODE_DIR
+              value: /transcode
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: transcode, mountPath: /transcode }
+            - { name: media, mountPath: /media, readOnly: true }
+          readinessProbe:
+            httpGet: { path: /api/health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: "500m", memory: "256Mi" }
+            limits: { cpu: "4", memory: "2Gi" }
+          # For Intel/AMD VAAPI add:
+          # securityContext: { privileged: false }
+          # resources.limits: { gpu.intel.com/i915: 1 }
+          # For NVIDIA: resources.limits: { nvidia.com/gpu: 1 }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: wms-config }
+        - name: transcode
+          emptyDir: { medium: Memory, sizeLimit: 2Gi }
+        - name: media
+          # Replace with your NFS / hostPath / CSI volume holding movies and DVD images.
+          nfs:
+            server: nas.local
+            path: /volume1/media
+            readOnly: true

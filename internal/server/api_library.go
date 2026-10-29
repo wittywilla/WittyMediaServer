@@ -1,0 +1,458 @@
+package server
+
+import (
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/library"
+)
+
+func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
+	libs, err := s.Store.Libraries(r.Context())
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, libs)
+}
+
+type libraryBody struct {
+	Name  string   `json:"name"`
+	Type  string   `json:"type"`
+	Paths []string `json:"paths"`
+}
+
+func (b *libraryBody) validate() error {
+	b.Name = strings.TrimSpace(b.Name)
+	if b.Name == "" {
+		return errors.New("name is required")
+	}
+	switch b.Type {
+	case "movies", "shows", "videos":
+	case "":
+		b.Type = "movies"
+	default:
+		return errors.New("type must be movies, shows or videos")
+	}
+	var clean []string
+	for _, p := range b.Paths {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		st, err := os.Stat(p)
+		if err != nil || !st.IsDir() {
+			return errors.New("folder not found: " + p)
+		}
+		clean = append(clean, filepath.Clean(p))
+	}
+	if len(clean) == 0 {
+		return errors.New("at least one folder is required")
+	}
+	b.Paths = clean
+	return nil
+}
+
+func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
+	var b libraryBody
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := b.validate(); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	lib, err := s.Store.CreateLibrary(r.Context(), b.Name, b.Type, b.Paths)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Scanner.Start(lib.ID)
+	writeJSON(w, 201, lib)
+}
+
+func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b libraryBody
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := b.validate(); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	lib, err := s.Store.UpdateLibrary(r.Context(), id, b.Name, b.Type, b.Paths)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, lib)
+}
+
+func (s *Server) handleDeleteLibrary(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	s.Scanner.Cancel(id)
+	if err := s.Store.DeleteLibrary(r.Context(), id); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	if _, err := s.Store.Library(r.Context(), id); err != nil {
+		writeErr(w, 404, "library not found")
+		return
+	}
+	started := s.Scanner.Start(id)
+	writeJSON(w, 202, map[string]any{"started": started})
+}
+
+func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
+	id, _ := pathInt(r, "id")
+	out := s.Scanner.Snapshot(id)
+	writeJSON(w, 200, map[string]any{"scanning": out != nil, "progress": out})
+}
+
+func (s *Server) handleGenres(w http.ResponseWriter, r *http.Request) {
+	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)))
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, g)
+}
+
+func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
+	q := library.ItemQuery{
+		LibraryID: int64(qInt(r, "library", 0)),
+		Search:    r.URL.Query().Get("search"),
+		Sort:      r.URL.Query().Get("sort"),
+		Desc:      qBool(r, "desc"),
+		Limit:     qInt(r, "limit", 0),
+		Offset:    qInt(r, "offset", 0),
+		Genre:     r.URL.Query().Get("genre"),
+		Kind:      r.URL.Query().Get("kind"),
+	}
+	items, total, err := s.Store.Items(r.Context(), q)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
+	writeJSON(w, 200, map[string]any{"items": items, "total": total})
+}
+
+func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	it, err := s.Store.Item(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "item not found")
+		return
+	}
+	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, []*library.Item{it})
+	writeJSON(w, 200, it)
+}
+
+func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	it, err := s.Store.Item(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "item not found")
+		return
+	}
+	var b struct {
+		Title    *string   `json:"title"`
+		Year     *int      `json:"year"`
+		Overview *string   `json:"overview"`
+		Tagline  *string   `json:"tagline"`
+		Genres   *[]string `json:"genres"`
+		Poster   *string   `json:"poster"`
+		Backdrop *string   `json:"backdrop"`
+		Refresh  bool      `json:"refresh"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if b.Title != nil && strings.TrimSpace(*b.Title) != "" {
+		it.Title = strings.TrimSpace(*b.Title)
+		it.SortTitle = library.SortTitle(it.Title)
+	}
+	if b.Year != nil {
+		it.Year = b.Year
+	}
+	if b.Overview != nil {
+		it.Overview = *b.Overview
+	}
+	if b.Tagline != nil {
+		it.Tagline = *b.Tagline
+	}
+	if b.Genres != nil {
+		it.Genres = *b.Genres
+	}
+	if b.Poster != nil {
+		it.Poster = *b.Poster
+	}
+	if b.Backdrop != nil {
+		it.Backdrop = *b.Backdrop
+	}
+	if b.Refresh {
+		if key := s.DB.GetSetting(r.Context(), "tmdbKey", ""); key != "" {
+			t := &library.TMDB{Key: key}
+			it.Provider, it.ProviderID = "", ""
+			it.Overview, it.Poster, it.Backdrop = "", "", ""
+			it.Genres = nil
+			if err := t.Enrich(r.Context(), it); err != nil {
+				writeErr(w, 502, "TMDB: "+err.Error())
+				return
+			}
+		}
+	}
+	if err := s.Store.UpdateItem(r.Context(), it); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, it)
+}
+
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	u := userFrom(r)
+	cont, _ := s.Store.ContinueWatching(ctx, u.ID, 20)
+	libs, err := s.Store.Libraries(ctx)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	type hub struct {
+		Key     string          `json:"key"`
+		Title   string          `json:"title"`
+		Library *int64          `json:"libraryId,omitempty"`
+		Items   []*library.Item `json:"items"`
+	}
+	hubs := []hub{}
+	if len(cont) > 0 {
+		hubs = append(hubs, hub{Key: "continue", Title: "Continue Watching", Items: cont})
+	}
+	for _, l := range libs {
+		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20})
+		if err != nil || len(items) == 0 {
+			continue
+		}
+		_ = s.Store.AttachProgress(ctx, u.ID, items)
+		id := l.ID
+		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently Added in " + l.Name, Library: &id, Items: items})
+	}
+	// A "featured" pick for the hero: a random highly rated / recent item.
+	var featured []*library.Item
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40})
+	for _, it := range all {
+		if it.Backdrop != "" {
+			featured = append(featured, it)
+		}
+		if len(featured) >= 8 {
+			break
+		}
+	}
+	if featured == nil {
+		featured = all
+		if len(featured) > 8 {
+			featured = featured[:8]
+		}
+	}
+	_ = s.Store.AttachProgress(ctx, u.ID, featured)
+	writeJSON(w, 200, map[string]any{"hubs": hubs, "featured": featured, "libraries": libs})
+}
+
+func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// ---------------------------------------------------------------------------
+// Artwork
+// ---------------------------------------------------------------------------
+
+func (s *Server) handlePoster(w http.ResponseWriter, r *http.Request)   { s.serveArt(w, r, false) }
+func (s *Server) handleBackdrop(w http.ResponseWriter, r *http.Request) { s.serveArt(w, r, true) }
+
+func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	it, err := s.Store.Item(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "item not found")
+		return
+	}
+	src := it.Poster
+	if backdrop {
+		src = it.Backdrop
+		if src == "" {
+			src = it.Poster
+		}
+	}
+	if src == "" {
+		writeErr(w, 404, "no artwork")
+		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	switch {
+	case strings.HasPrefix(src, "cache:"):
+		http.ServeFile(w, r, filepath.Join(s.Cfg.CacheDir, "images", strings.TrimPrefix(src, "cache:")))
+	case strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://"):
+		p, err := s.cachedRemote(src)
+		if err != nil {
+			writeErr(w, 502, err.Error())
+			return
+		}
+		http.ServeFile(w, r, p)
+	default:
+		http.ServeFile(w, r, src)
+	}
+}
+
+// cachedRemote downloads a remote image once into the cache.
+func (s *Server) cachedRemote(u string) (string, error) {
+	h := sha1.Sum([]byte(u))
+	p := filepath.Join(s.Cfg.CacheDir, "images", "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
+	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+		return p, nil
+	}
+	c := &http.Client{Timeout: 20 * time.Second}
+	res, err := c.Get(u)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return "", errors.New("artwork fetch failed: " + res.Status)
+	}
+	tmp := p + ".tmp"
+	f, err := os.Create(tmp)
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(f, io.LimitReader(res.Body, 20<<20)); err != nil {
+		f.Close()
+		return "", err
+	}
+	f.Close()
+	return p, os.Rename(tmp, p)
+}
+
+// ---------------------------------------------------------------------------
+// Progress
+// ---------------------------------------------------------------------------
+
+func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var p library.Progress
+	if err := readJSON(r, &p); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.Store.SetProgress(r.Context(), userFrom(r).ID, id, p); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+func (s *Server) handleClearProgress(w http.ResponseWriter, r *http.Request) {
+	id, _ := pathInt(r, "id")
+	_ = s.Store.ClearProgress(r.Context(), userFrom(r).ID, id)
+	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+// ---------------------------------------------------------------------------
+// Filesystem browsing for the library editor
+// ---------------------------------------------------------------------------
+
+func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Query().Get("path")
+	type entry struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	}
+	var out []entry
+	if p == "" {
+		if runtime.GOOS == "windows" {
+			for c := 'A'; c <= 'Z'; c++ {
+				d := string(c) + `:\`
+				if _, err := os.Stat(d); err == nil {
+					out = append(out, entry{Name: d, Path: d})
+				}
+			}
+		} else {
+			out = append(out, entry{Name: "/", Path: "/"})
+			if h, err := os.UserHomeDir(); err == nil {
+				out = append(out, entry{Name: "Home", Path: h})
+			}
+			for _, d := range []string{"/media", "/mnt", "/data", "/movies", "/srv", "/Volumes"} {
+				if st, err := os.Stat(d); err == nil && st.IsDir() {
+					out = append(out, entry{Name: d, Path: d})
+				}
+			}
+		}
+		writeJSON(w, 200, map[string]any{"path": "", "parent": nil, "entries": out})
+		return
+	}
+	entries, err := os.ReadDir(p)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") && !strings.HasPrefix(e.Name(), "$") {
+			out = append(out, entry{Name: e.Name(), Path: filepath.Join(p, e.Name())})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
+	if out == nil {
+		out = []entry{}
+	}
+	parent := filepath.Dir(p)
+	var parentPtr *string
+	if parent != p {
+		parentPtr = &parent
+	}
+	writeJSON(w, 200, map[string]any{"path": p, "parent": parentPtr, "entries": out})
+}

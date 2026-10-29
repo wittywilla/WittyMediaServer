@@ -1,0 +1,29 @@
+services:
+  wms:
+    image: ghcr.io/wittywilla/wittymediaserver:latest
+    build: .
+    container_name: wittymediaserver
+    restart: unless-stopped
+    ports:
+      - "9797:9797"
+    environment:
+      - WMS_LOG=info
+      # - WMS_MAX_TRANSCODES=4
+      # - WMS_PUBLIC_URL=https://media.example.com
+    volumes:
+      - wms-config:/config
+      # Mount your media read-only wherever you like; add them as library folders in the UI.
+      - /path/to/movies:/media/movies:ro
+      - /path/to/dvds:/media/dvds:ro
+    # Optional hardware transcoding:
+    # devices:
+    #   - /dev/dri:/dev/dri          # Intel/AMD VAAPI
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+volumes:
+  wms-config:

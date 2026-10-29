@@ -1,0 +1,239 @@
+import { useEffect, useState } from 'react'
+import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { api, type Library, type User } from '../api'
+import { IconFolder, IconRefresh, IconTrash } from '../icons'
+import { toast, useApp } from '../state'
+
+export default function SettingsPage() {
+  const { user } = useApp()
+  return (
+    <>
+      <div className="toolbar"><h1>Settings</h1></div>
+      <div className="tabs">
+        {user?.isAdmin && <NavLink to="/settings/libraries" className={({ isActive }) => (isActive ? 'active' : '')}>Libraries</NavLink>}
+        {user?.isAdmin && <NavLink to="/settings/server" className={({ isActive }) => (isActive ? 'active' : '')}>Server</NavLink>}
+        <NavLink to="/settings/users" className={({ isActive }) => (isActive ? 'active' : '')}>Users</NavLink>
+        {user?.isAdmin && <NavLink to="/settings/about" className={({ isActive }) => (isActive ? 'active' : '')}>About</NavLink>}
+      </div>
+      <Routes>
+        <Route path="libraries" element={<Libraries />} />
+        <Route path="server" element={<ServerSettings />} />
+        <Route path="users" element={<Users />} />
+        <Route path="about" element={<About />} />
+        <Route path="*" element={<Navigate to={user?.isAdmin ? 'libraries' : 'users'} replace />} />
+      </Routes>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- libraries
+
+function Libraries() {
+  const { libraries, refreshLibraries } = useApp()
+  const [editing, setEditing] = useState<Partial<Library> | null>(null)
+  const remove = async (l: Library) => {
+    if (!confirm(`Delete library “${l.name}”? Files on disk are not touched.`)) return
+    await api.del(`/libraries/${l.id}`)
+    await refreshLibraries()
+  }
+  const scan = async (l: Library) => { await api.post(`/libraries/${l.id}/scan`); toast('Scan started'); setTimeout(refreshLibraries, 1000) }
+  return (
+    <>
+      <div className="panel">
+        <h2>Libraries</h2>
+        <div className="list">
+          {libraries.map((l) => (
+            <div className="list-item" key={l.id}>
+              <IconFolder />
+              <div className="grow">
+                <div><b>{l.name}</b> <span className="muted">· {l.type} · {l.itemCount} items{l.scanning ? ' · scanning…' : ''}</span></div>
+                <div className="sub">{l.paths.join(' · ')}</div>
+              </div>
+              <button className="btn sm ghost" onClick={() => scan(l)} title="Scan"><IconRefresh /></button>
+              <button className="btn sm ghost" onClick={() => setEditing(l)}>Edit</button>
+              <button className="btn sm danger" onClick={() => remove(l)}><IconTrash /></button>
+            </div>
+          ))}
+          {libraries.length === 0 && <div className="muted">No libraries yet.</div>}
+        </div>
+        <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setEditing({ name: '', type: 'movies', paths: [] })}>Add library</button></div>
+      </div>
+      {editing && <LibraryEditor lib={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshLibraries() }} />}
+    </>
+  )
+}
+
+function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(lib.name || '')
+  const [type, setType] = useState(lib.type || 'movies')
+  const [paths, setPaths] = useState<string[]>(lib.paths || [])
+  const [manual, setManual] = useState('')
+  const [err, setErr] = useState('')
+  const [browse, setBrowse] = useState(false)
+  const save = async () => {
+    try {
+      const body = { name, type, paths }
+      if (lib.id) await api.put(`/libraries/${lib.id}`, body); else await api.post('/libraries', body)
+      onSaved()
+    } catch (e: any) { setErr(e.message) }
+  }
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{lib.id ? 'Edit library' : 'Add library'}</h2>
+        <div className="form" style={{ maxWidth: 'none' }}>
+          <div className="row2">
+            <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>
+            <label>Type<select className="select" value={type} onChange={(e) => setType(e.target.value)}>
+              <option value="movies">Movies (with online metadata)</option><option value="videos">Other videos (no online lookup)</option>
+            </select></label>
+          </div>
+          <label>Folders
+            <div className="list">
+              {paths.map((p) => <div className="list-item" key={p}><IconFolder /><div className="grow sub" style={{ color: 'var(--fg)' }}>{p}</div><button className="btn sm ghost" onClick={() => setPaths(paths.filter((x) => x !== p))}>Remove</button></div>)}
+            </div>
+          </label>
+          <div className="field-row">
+            <input className="input" placeholder="Type a folder path…" value={manual} onChange={(e) => setManual(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && manual) { setPaths([...paths, manual]); setManual('') } }} />
+            <button className="btn" onClick={() => { if (manual) { setPaths([...paths, manual]); setManual('') } }}>Add</button>
+            <button className="btn ghost" onClick={() => setBrowse(!browse)}>Browse…</button>
+          </div>
+          {browse && <FolderBrowser onPick={(p) => { setPaths([...new Set([...paths, p])]); setBrowse(false) }} />}
+          {err && <div className="error">{err}</div>}
+        </div>
+        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save} disabled={!name || paths.length === 0}>Save &amp; scan</button></div>
+      </div>
+    </div>
+  )
+}
+
+function FolderBrowser({ onPick }: { onPick: (p: string) => void }) {
+  const [cur, setCur] = useState('')
+  const [data, setData] = useState<{ path: string; parent: string | null; entries: { name: string; path: string }[] } | null>(null)
+  useEffect(() => { api.get<any>(`/fs?path=${encodeURIComponent(cur)}`).then(setData).catch(() => setData(null)) }, [cur])
+  return (
+    <div>
+      <div className="field-row" style={{ marginBottom: 6 }}>
+        <span className="muted" style={{ flex: 1, fontSize: 13, wordBreak: 'break-all' }}>{data?.path || 'Locations'}</span>
+        {data?.parent !== null && data?.path && <button className="btn sm ghost" onClick={() => setCur(data.parent || '')}>Up</button>}
+        {data?.path && <button className="btn sm primary" onClick={() => onPick(data.path)}>Use this folder</button>}
+      </div>
+      <div className="fs-browser">
+        {data?.entries.map((e) => <button key={e.path} onClick={() => setCur(e.path)}>📁 {e.name}</button>)}
+        {data && data.entries.length === 0 && <div className="muted" style={{ padding: 10 }}>No subfolders</div>}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- server
+
+function ServerSettings() {
+  const [s, setS] = useState<Record<string, string> | null>(null)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then(setS) }, [])
+  if (!s) return null
+  const up = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setS({ ...s, [k]: e.target.type === 'checkbox' ? ((e.target as HTMLInputElement).checked ? '1' : '0') : e.target.value })
+  const save = async () => { setS(await api.put('/settings', s)); setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  return (
+    <div className="panel">
+      <h2>Server</h2>
+      <div className="form">
+        <label>TMDB API key <span className="muted">(optional — enables posters, overviews and ratings; this product uses the TMDB API but is not endorsed by TMDB)</span>
+          <input className="input" value={s.tmdbKey || ''} onChange={up('tmdbKey')} placeholder="Paste your API key (v3)" />
+        </label>
+        <label>Maximum transcode height
+          <select className="select" value={s.maxHeight || '0'} onChange={up('maxHeight')}>
+            <option value="0">Source</option><option value="480">480p</option><option value="720">720p</option><option value="1080">1080p</option>
+          </select>
+        </label>
+        <label>Stream audio codec <span className="muted">(AAC is standard; MP3 helps Chromium builds without AAC support)</span>
+          <select className="select" value={s.audioCodec || 'aac'} onChange={up('audioCodec')}>
+            <option value="aac">AAC</option><option value="mp3">MP3</option>
+          </select>
+        </label>
+        <label style={{ flexDirection: 'row', alignItems: 'center', display: 'flex', gap: 10 }}>
+          <input type="checkbox" checked={s.hwAccel === '1'} onChange={up('hwAccel')} /> Use hardware H.264 encoder when available (NVENC / QSV / AMF / VideoToolbox / VAAPI)
+        </label>
+        <div className="row2">
+          <label>Preferred DVD menu language<input className="input" value={s.menuLanguage || ''} onChange={up('menuLanguage')} placeholder="en" /></label>
+          <label>Preferred audio language<input className="input" value={s.audioLanguage || ''} onChange={up('audioLanguage')} placeholder="en" /></label>
+        </div>
+        <label>Preferred subtitle language<input className="input" value={s.subtitleLanguage || ''} onChange={up('subtitleLanguage')} placeholder="leave empty for none" /></label>
+        <div><button className="btn primary" onClick={save}>Save</button> {saved && <span className="ok" style={{ marginLeft: 10 }}>Saved</span>}</div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- users
+
+function Users() {
+  const { user } = useApp()
+  const [users, setUsers] = useState<User[]>([])
+  const [name, setName] = useState('')
+  const [pw, setPw] = useState('')
+  const [admin, setAdmin] = useState(false)
+  const [mypw, setMypw] = useState('')
+  const [err, setErr] = useState('')
+  const load = () => { if (user?.isAdmin) api.get<User[]>('/users').then(setUsers) }
+  useEffect(load, [user?.isAdmin])
+  const add = async () => { try { await api.post('/users', { name, password: pw, isAdmin: admin }); setName(''); setPw(''); load() } catch (e: any) { setErr(e.message) } }
+  const del = async (u: User) => { if (confirm(`Remove ${u.name}?`)) { await api.del(`/users/${u.id}`); load() } }
+  const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw }); setMypw(''); toast('Password changed') } catch (e: any) { setErr(e.message) } }
+  return (
+    <>
+      <div className="panel">
+        <h2>Your account</h2>
+        <div className="form">
+          <div>Signed in as <b>{user?.name}</b>{user?.isAdmin ? ' (administrator)' : ''}</div>
+          <div className="field-row"><input className="input" type="password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} /><button className="btn" onClick={changePw} disabled={mypw.length < 4}>Change password</button></div>
+        </div>
+      </div>
+      {user?.isAdmin && (
+        <div className="panel">
+          <h2>Users</h2>
+          <div className="list">
+            {users.map((u) => <div className="list-item" key={u.id}><div className="grow"><b>{u.name}</b> <span className="muted">{u.isAdmin ? '· admin' : ''}</span></div>{u.id !== user.id && <button className="btn sm danger" onClick={() => del(u)}><IconTrash /></button>}</div>)}
+          </div>
+          <h3 style={{ marginTop: 20 }}>Add user</h3>
+          <div className="form">
+            <div className="row2">
+              <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="input" type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} />
+            </div>
+            <label style={{ flexDirection: 'row', display: 'flex', gap: 10, alignItems: 'center' }}><input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> Administrator</label>
+            {err && <div className="error">{err}</div>}
+            <div><button className="btn primary" onClick={add} disabled={!name || pw.length < 4}>Add user</button></div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- about
+
+function About() {
+  const [sys, setSys] = useState<any>(null)
+  useEffect(() => { api.get('/system').then(setSys).catch(() => {}) }, [])
+  if (!sys) return null
+  return (
+    <div className="panel">
+      <h2>About</h2>
+      <div className="facts" style={{ marginTop: 0 }}>
+        <div className="fact"><div className="k">Version</div><div className="v">{sys.version}</div></div>
+        <div className="fact"><div className="k">Platform</div><div className="v">{sys.os}/{sys.arch} · {sys.go}</div></div>
+        <div className="fact"><div className="k">Host</div><div className="v">{sys.hostname}</div></div>
+        <div className="fact"><div className="k">Data directory</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.dataDir}</div></div>
+        <div className="fact"><div className="k">FFmpeg</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.ffmpegInfo}<br /><span className="muted">{sys.ffmpeg}</span></div></div>
+        <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}</div></div>
+        <div className="fact"><div className="k">Open DVD sessions</div><div className="v">{sys.dvdSessions}</div></div>
+      </div>
+      <p className="muted" style={{ marginTop: 20, fontSize: 13 }}>
+        WittyMediaServer bundles FFmpeg (LGPL/GPL, see THIRD_PARTY_LICENSES.md). DVD menus are rendered by WittyMediaServer's own DVD-Video navigator; no
+        disc is ever decrypted — only unprotected images play.
+      </p>
+    </div>
+  )
+}

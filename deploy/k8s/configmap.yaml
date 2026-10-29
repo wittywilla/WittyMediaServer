@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wms-env
+  namespace: wittymedia
+data:
+  WMS_LOG: "info"
+  WMS_MAX_TRANSCODES: "4"
+  # WMS_PUBLIC_URL: "https://media.example.com"

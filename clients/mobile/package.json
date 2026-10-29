@@ -1,0 +1,24 @@
+{
+  "name": "wittymedia-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WittyMediaServer iOS/Android client (Capacitor shell around the web UI)",
+  "scripts": {
+    "sync": "node sync-web.js && npx cap sync",
+    "ios": "npx cap open ios",
+    "android": "npx cap open android",
+    "add:ios": "npx cap add ios",
+    "add:android": "npx cap add android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/preferences": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  }
+}

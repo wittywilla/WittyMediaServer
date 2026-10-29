@@ -145,6 +145,8 @@ function ServerSettings() {
             <input className="input" value={s.tvdbPin || ''} onChange={up('tvdbPin')} placeholder="optional" />
           </label>
         </div>
+        {check('tvmaze', <>Use <b>TVmaze</b> for TV shows when there is no TheTVDB key <span className="muted">(free, no key; data shared under CC BY-SA 4.0)</span></>)}
+        {check('wikidata', <>Use <b>Wikidata</b> and Wikipedia for movie facts and ratings when there is no TMDB key <span className="muted">(free, no key; no posters)</span></>)}
         {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(standard NFO + poster.jpg/fanart.jpg that other media servers read too; existing NFOs are backed up as .nfo.bak)</span></>)}
         <div className="muted" style={{ fontSize: 13 }}>Encoders, direct play, resolution and quality are under <NavLink to="/settings/transcoding">Transcoding</NavLink>.</div>
         <label>TV episode layout <span className="muted">(default for every show; each show can override it with the toggle on its page)</span>
@@ -279,7 +281,9 @@ function About() {
           Transcoding is performed by <b>FFmpeg</b>, run as a separate process; the bundled builds are licensed under the GPL and their
           source is available from the links in <code>THIRD_PARTY_LICENSES.md</code>. Optional metadata and artwork come from
           <b> The Movie Database (TMDB)</b> when you supply your own API key — this product uses the TMDB API but is not endorsed or
-          certified by TMDB, and TMDB's terms apply to that data. DVD menus are rendered by WittyMediaServer's own DVD-Video navigator.
+          certified by TMDB, and TMDB's terms apply to that data. Without keys, TV information comes from <b>TVmaze</b>
+          (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0); each title
+          links to its source. DVD menus are rendered by WittyMediaServer's own DVD-Video navigator.
         </p>
         <h3>No warranty</h3>
         <p>

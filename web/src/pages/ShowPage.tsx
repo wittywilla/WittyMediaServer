@@ -1,3 +1,4 @@
+import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, episodeLabel, fmtRuntime, fmtTime, getPrefs, posterUrl, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
@@ -93,6 +94,7 @@ export default function ShowPage() {
           )}
           <p style={{ marginTop: 30 }}><Link to={`/library/${show.libraryId}`} className="muted">‹ Back to library</Link></p>
           {show.provider === 'tvdb' && <p className="muted" style={{ fontSize: 12 }}>Metadata provided by TheTVDB. Please consider adding missing information or subscribing.</p>}
+          {show.provider === 'tvmaze' && <p className="muted" style={{ fontSize: 12 }}>TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
         </div>
       </div>
       {edit && <ShowEditor show={show} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load() }} />}
@@ -151,7 +153,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
 
 function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onClose: () => void; onSaved: () => void }) {
   const mmss = (v?: number) => (v != null ? fmtTime(v) : '')
-  const [f, setF] = useState({ title: show.title, year: show.year ? String(show.year) : '', overview: show.overview, genres: (show.genres || []).join(', '), tvdbId: '',
+  const [f, setF] = useState({ title: show.title, year: show.year ? String(show.year) : '', overview: show.overview, genres: (show.genres || []).join(', '), tvdbId: '', contentRating: show.contentRating || '',
     introStart: mmss(show.introStart), introEnd: mmss(show.introEnd) })
   const secs = (s: string) => { if (!s.trim()) return -1; const p = s.trim().split(':').map(Number); return p.reduce((a, x) => a * 60 + (x || 0), 0) }
   const [err, setErr] = useState('')
@@ -160,7 +162,7 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
     setBusy(true)
     try {
       await api.put(`/shows/${show.id}`, f.tvdbId ? { tvdbId: f.tvdbId } : {
-        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean),
+        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean), contentRating: f.contentRating,
         introStart: Math.max(0, secs(f.introStart)), introEnd: secs(f.introEnd),
       })
       onSaved()
@@ -178,12 +180,13 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
           </div>
           <label>Overview<textarea className="input" rows={5} value={f.overview} onChange={up('overview')} /></label>
           <label>Genres (comma separated)<input className="input" value={f.genres} onChange={up('genres')} /></label>
+          <RatingField tv value={f.contentRating} onChange={(v) => setF({ ...f, contentRating: v })} />
           <div className="row2">
             <label>Intro starts at <span className="muted">(m:ss)</span><input className="input" value={f.introStart} onChange={up('introStart')} placeholder="0:00" /></label>
             <label>Intro ends at <span className="muted">(m:ss — empty: no Skip intro)</span><input className="input" value={f.introEnd} onChange={up('introEnd')} placeholder="1:05" /></label>
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: -6 }}>Used for episodes without an “Intro”/“Opening” chapter; files with such a chapter are detected automatically.</div>
-          <label>Match to TheTVDB series id <span className="muted">(optional — fixes a wrong match; current: {show.provider === 'tvdb' ? show.providerId : 'none'})</span>
+          <label>Match by {show.provider === 'tvmaze' ? 'TVmaze' : 'TheTVDB'} series id <span className="muted">(optional — fixes a wrong match; current: {show.providerId || 'none'})</span>
             <input className="input" value={f.tvdbId} onChange={up('tvdbId')} placeholder="e.g. 76163" />
           </label>
           {err && <div className="error">{err}</div>}

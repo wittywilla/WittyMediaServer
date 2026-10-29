@@ -222,16 +222,18 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Title    *string   `json:"title"`
-		Year     *int      `json:"year"`
-		Overview *string   `json:"overview"`
-		Tagline  *string   `json:"tagline"`
-		Genres   *[]string `json:"genres"`
-		Poster   *string   `json:"poster"`
-		Backdrop *string   `json:"backdrop"`
-		Refresh  bool      `json:"refresh"`
-		PlayMode *string   `json:"playMode"` // DVDs: menu | title | ""
-		InsertFX *string   `json:"insertFx"` // DVDs: on | off | ""
+		Title    *string `json:"title"`
+		Year     *int    `json:"year"`
+		Overview *string `json:"overview"`
+		Tagline  *string `json:"tagline"`
+		// ContentRating, e.g. "PG-13" or "TV-Y7"; sets what Kids profiles see.
+		ContentRating *string   `json:"contentRating"`
+		Genres        *[]string `json:"genres"`
+		Poster        *string   `json:"poster"`
+		Backdrop      *string   `json:"backdrop"`
+		Refresh       bool      `json:"refresh"`
+		PlayMode      *string   `json:"playMode"` // DVDs: menu | title | ""
+		InsertFX      *string   `json:"insertFx"` // DVDs: on | off | ""
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -249,6 +251,9 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Tagline != nil {
 		it.Tagline = *b.Tagline
+	}
+	if b.ContentRating != nil {
+		it.ContentRating = strings.TrimSpace(*b.ContentRating)
 	}
 	if b.Genres != nil {
 		it.Genres = *b.Genres
@@ -269,6 +274,15 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 				writeErr(w, 502, "TMDB: "+err.Error())
 				return
 			}
+		} else if it.ShowID == nil && s.DB.GetSetting(r.Context(), "wikidata", "1") == "1" {
+			// No TMDB key: facts and the rating from Wikidata (posters stay).
+			if it.Provider == "wikidata" || it.Provider == "" {
+				it.Provider, it.ProviderID, it.Overview, it.Genres, it.ContentRating = "", "", "", nil, ""
+			}
+			if err := (&library.Wikidata{}).Enrich(r.Context(), it); err != nil {
+				writeErr(w, 502, "No match on Wikidata: "+err.Error())
+				return
+			}
 		}
 	}
 	if b.PlayMode != nil || b.InsertFX != nil {
@@ -285,7 +299,7 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 		it.PlayMode, it.InsertFX = pm, fx
 	}
-	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Tagline != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh
+	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Tagline != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh || b.ContentRating != nil
 	if metaEdit && s.saveMeta(r) {
 		if err := s.Scanner.SaveItemMetadata(r.Context(), it); err != nil {
 			s.Log.Warn("save metadata", "path", it.Path, "err", err)

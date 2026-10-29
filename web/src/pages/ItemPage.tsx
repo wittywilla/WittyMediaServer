@@ -1,3 +1,4 @@
+import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs } from '../api'
@@ -89,6 +90,12 @@ export default function ItemPage() {
             </div>
           )}
           {it.overview && <p className="overview">{it.overview}</p>}
+          {it.provider === 'wikidata' && (
+            <p className="muted" style={{ fontSize: 12 }}>
+              Facts from <a href={`https://www.wikidata.org/wiki/${it.providerId}`} target="_blank" rel="noreferrer">Wikidata</a>; plot summary from Wikipedia,
+              shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
+            </p>
+          )}
           {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is CSS-scrambled and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
@@ -149,12 +156,12 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
 }
 
 function EditModal({ item, onClose, onSaved }: { item: Item; onClose: () => void; onSaved: (it: Item) => void }) {
-  const [f, setF] = useState({ title: item.title, year: item.year ? String(item.year) : '', overview: item.overview, tagline: item.tagline, genres: item.genres.join(', '), poster: item.poster, backdrop: item.backdrop })
+  const [f, setF] = useState({ title: item.title, year: item.year ? String(item.year) : '', overview: item.overview, tagline: item.tagline, genres: item.genres.join(', '), poster: item.poster, backdrop: item.backdrop, contentRating: item.contentRating || '' })
   const [err, setErr] = useState('')
   const save = async () => {
     try {
       const r = await api.put<Item>(`/items/${item.id}`, {
-        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, tagline: f.tagline,
+        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, tagline: f.tagline, contentRating: f.contentRating,
         genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean), poster: f.poster, backdrop: f.backdrop,
       })
       onSaved(r)
@@ -173,6 +180,7 @@ function EditModal({ item, onClose, onSaved }: { item: Item; onClose: () => void
           <label>Tagline<input className="input" value={f.tagline} onChange={up('tagline')} /></label>
           <label>Overview<textarea className="input" rows={5} value={f.overview} onChange={up('overview')} /></label>
           <label>Genres (comma separated)<input className="input" value={f.genres} onChange={up('genres')} /></label>
+          <RatingField value={f.contentRating} onChange={(v) => setF({ ...f, contentRating: v })} />
           <label>Poster (URL or file path)<input className="input" value={f.poster} onChange={up('poster')} /></label>
           <label>Backdrop (URL or file path)<input className="input" value={f.backdrop} onChange={up('backdrop')} /></label>
           {err && <div className="error">{err}</div>}

@@ -35,6 +35,10 @@ type Scanner struct {
 	TMDBKey   func() string
 	// TVDBKey returns TheTVDB API key and optional subscriber PIN.
 	TVDBKey func() (key, pin string)
+	// TVMazeOn reports whether TVmaze may be used when there is no TheTVDB key.
+	TVMazeOn func() bool
+	// WikidataOn: Wikidata may fill in movies when there is no TMDB key.
+	WikidataOn func() bool
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -269,6 +273,11 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {
 			s.Log.Info("tmdb lookup failed", "cat", "library", "title", it.Title, "err", err)
+		}
+	} else if key == "" && lib.Type == "movies" && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) {
+		// No TMDB key: basic facts and the rating from Wikidata (no key needed).
+		if err := (&Wikidata{}).Enrich(ctx, it); err != nil {
+			s.Log.Info("wikidata lookup failed", "cat", "library", "title", it.Title, "err", err)
 		}
 	}
 	// Generated thumbnail as the last resort.

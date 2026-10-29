@@ -56,6 +56,17 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Metadata without keys
+
+- **TV shows work out of the box** with **TVmaze** (no key): titles, summaries, networks,
+  status, posters, backdrops, season posters and episode names. TheTVDB is used instead when a
+  key is set; shows switch over on their next scan.
+- **Movies get facts without a key** from **Wikidata** and Wikipedia: year, genres, US rating
+  and a plot summary (posters still need TMDB). *Refresh* re-reads a title.
+- Each title credits its source; both can be switched off in *Settings → Server*.
+- **Content rating** can be set by hand on movies and shows (for parental controls).
+- The setup wizard shows what is built in before asking for optional keys.
+
 ### Profiles and parental controls
 
 - **Kids** and **Guest** profiles next to adult accounts. Kids and Guest profiles may have no

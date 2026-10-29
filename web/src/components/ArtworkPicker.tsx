@@ -17,7 +17,7 @@ export default function ArtworkPicker({ base, onPick, onClose }: { base: string;
       .catch((e) => { setList([]); setWarn(e.message) })
   }, [base, kind])
   const pick = async (u: string) => { setSaving(true); try { await onPick(kind, u) } finally { setSaving(false) } }
-  const label = { local: 'In folder', tmdb: 'TMDB', tvdb: 'TheTVDB', current: 'Current' }
+  const label = { local: 'In folder', tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', current: 'Current' }
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal wide" onClick={(e) => e.stopPropagation()}>

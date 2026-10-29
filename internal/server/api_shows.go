@@ -11,12 +11,10 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-func (s *Server) tvdbClient(r *http.Request) *library.TVDB {
-	key := s.DB.GetSetting(r.Context(), "tvdbKey", "")
-	if key == "" {
-		return nil
-	}
-	return &library.TVDB{Key: key, PIN: s.DB.GetSetting(r.Context(), "tvdbPin", "")}
+// tvSource is the active TV metadata service (TheTVDB with a key, else TVmaze).
+func (s *Server) tvSource(r *http.Request) library.SeriesSource {
+	ctx := r.Context()
+	return library.TVSource(s.DB.GetSetting(ctx, "tvdbKey", ""), s.DB.GetSetting(ctx, "tvdbPin", ""), s.DB.GetSetting(ctx, "tvmaze", "1") == "1")
 }
 
 func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +101,9 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 		Poster   *string   `json:"poster"`
 		Backdrop *string   `json:"backdrop"`
 		TVDBID   string    `json:"tvdbId"`
-		Refresh  bool      `json:"refresh"`
+		// ContentRating applies to every episode without its own rating.
+		ContentRating *string `json:"contentRating"`
+		Refresh       bool    `json:"refresh"`
 		// Intro range in seconds; a negative end clears it.
 		IntroStart *float64 `json:"introStart"`
 		IntroEnd   *float64 `json:"introEnd"`
@@ -114,7 +114,7 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Refresh || b.TVDBID != "" {
 		if _, err := s.Scanner.RefreshShow(ctx, id, strings.TrimSpace(b.TVDBID)); err != nil {
-			writeErr(w, 502, "TheTVDB: "+err.Error())
+			writeErr(w, 502, err.Error())
 			return
 		}
 	}
@@ -129,6 +129,9 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Year != nil {
 		sh.Year = b.Year
+	}
+	if b.ContentRating != nil {
+		sh.ContentRating = strings.TrimSpace(*b.ContentRating)
 	}
 	if b.Overview != nil {
 		sh.Overview = *b.Overview
@@ -261,10 +264,10 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 		}
 		add(artCandidate{URL: cur, Source: "current"})
 		add(localImages(sh.Path)...)
-		if t := s.tvdbClient(r); t != nil {
+		if t := s.tvSource(r); t != nil {
 			var meta *library.SeriesMeta
 			var err error
-			if sh.Provider == "tvdb" && sh.ProviderID != "" {
+			if sh.Provider == t.Name() && sh.ProviderID != "" {
 				meta, err = t.Series(ctx, sh.ProviderID)
 			} else {
 				meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
@@ -277,11 +280,11 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 					list = meta.Backdrops
 				}
 				for _, u := range list {
-					add(artCandidate{URL: u, Source: "tvdb"})
+					add(artCandidate{URL: u, Source: t.Name()})
 				}
 			}
 		} else {
-			warn = "Add a TheTVDB API key in Settings for online artwork."
+			warn = "Online TV artwork is off. Add a TheTVDB key or turn on TVmaze in Settings."
 		}
 	} else {
 		it, err := s.Store.Item(ctx, id)

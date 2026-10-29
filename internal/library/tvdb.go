@@ -77,6 +77,9 @@ type EpisodeMeta struct {
 	Image      string
 }
 
+// Name identifies the source in saved metadata.
+func (t *TVDB) Name() string { return "tvdb" }
+
 func (t *TVDB) base() string {
 	if t.BaseURL != "" {
 		return strings.TrimRight(t.BaseURL, "/")

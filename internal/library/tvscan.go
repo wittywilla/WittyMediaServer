@@ -32,6 +32,34 @@ func (s *Scanner) tvdb() *TVDB {
 	return &TVDB{Key: key, PIN: pin}
 }
 
+// SeriesSource is an online TV metadata service.
+type SeriesSource interface {
+	Name() string // stored as the show's provider: "tvdb", "tvmaze"
+	Series(ctx context.Context, id string) (*SeriesMeta, error)
+	FindSeries(ctx context.Context, name string, year *int) (*SeriesMeta, error)
+	Episodes(ctx context.Context, id string) (map[[2]int]EpisodeMeta, error)
+}
+
+// TVSource picks the TV metadata service: TheTVDB when a key is set,
+// otherwise TVmaze (no key needed) unless it was switched off.
+func TVSource(tvdbKey, tvdbPin string, tvmazeOn bool) SeriesSource {
+	if tvdbKey != "" {
+		return &TVDB{Key: tvdbKey, PIN: tvdbPin}
+	}
+	if tvmazeOn {
+		return &TVMaze{}
+	}
+	return nil
+}
+
+func (s *Scanner) tvSource() SeriesSource {
+	key, pin := "", ""
+	if s.TVDBKey != nil {
+		key, pin = s.TVDBKey()
+	}
+	return TVSource(key, pin, s.TVMazeOn == nil || s.TVMazeOn())
+}
+
 // rootFor is the library folder that contains p (longest match).
 func rootFor(roots []string, p string) string {
 	best := ""
@@ -72,7 +100,7 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Poster != "" && !existing.Missing &&
-		existing.ShowID != nil && *existing.ShowID == sh.ID && (s.tvdb() == nil || existing.Provider == "tvdb" || sh.Provider != "tvdb") {
+		existing.ShowID != nil && *existing.ShowID == sh.ID && (sh.Provider == "" || existing.Provider == sh.Provider) {
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime, ShowID: &sh.ID}
@@ -126,10 +154,10 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 			_ = s.Store.SetSeasonPoster(ctx, sh.ID, n, local, true)
 		}
 	}
-	// TheTVDB episode data.
-	if it.Season != nil && sh.Provider == "tvdb" {
+	// Episode data from the show's metadata service.
+	if it.Season != nil && sh.Provider != "" {
 		if eps := s.tvEpisodes(ctx, sh, tv); eps != nil {
-			applyEpisodeMeta(it, eps, fromNFO)
+			applyEpisodeMeta(it, sh.Provider, eps, fromNFO)
 		}
 	}
 	if it.Title == "" && it.Episode != nil {
@@ -153,12 +181,12 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 
 // applyEpisodeMeta fills an episode from TheTVDB. Titles parsed from file
 // names are replaced (they are approximations); NFO/sidecar values are kept.
-func applyEpisodeMeta(it *Item, eps map[[2]int]EpisodeMeta, keepText bool) {
+func applyEpisodeMeta(it *Item, provider string, eps map[[2]int]EpisodeMeta, keepText bool) {
 	e, ok := eps[[2]int{*it.Season, *it.Episode}]
 	if !ok {
 		return
 	}
-	it.Provider, it.ProviderID = "tvdb", e.ID
+	it.Provider, it.ProviderID = provider, e.ID
 	if !keepText || it.Title == "" {
 		it.Title = e.Title
 		if it.EpisodeEnd != nil {
@@ -217,18 +245,18 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		sh.Backdrop = b
 	}
 	fromNFO := applyShowNFO(sh, filepath.Join(ref.ShowDir, "tvshow.nfo"))
-	if t := s.tvdb(); t != nil && (sh.Provider != "tvdb" || sh.Overview == "") {
+	if t := s.tvSource(); t != nil && (sh.Provider != t.Name() || sh.Overview == "") {
 		var meta *SeriesMeta
 		var err error
-		if sh.Provider == "tvdb" && sh.ProviderID != "" {
+		if sh.Provider == t.Name() && sh.ProviderID != "" {
 			meta, err = t.Series(ctx, sh.ProviderID)
 		} else {
 			meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
 		}
 		if err != nil {
-			s.Log.Info("tvdb lookup failed", "show", sh.Title, "err", err)
+			s.Log.Info("show lookup failed", "cat", "library", "source", t.Name(), "show", sh.Title, "err", err)
 		} else {
-			applySeriesMeta(sh, meta, fromNFO, false)
+			applySeriesMeta(sh, t.Name(), meta, fromNFO, false)
 		}
 		if err := s.Store.UpsertShow(ctx, sh); err != nil {
 			return nil, err
@@ -251,20 +279,20 @@ func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]i
 		return eps
 	}
 	var eps map[[2]int]EpisodeMeta
-	if t := s.tvdb(); t != nil && sh.ProviderID != "" {
+	if t := s.tvSource(); t != nil && sh.ProviderID != "" && sh.Provider == t.Name() {
 		var err error
 		if eps, err = t.Episodes(ctx, sh.ProviderID); err != nil {
-			s.Log.Info("tvdb episodes failed", "show", sh.Title, "err", err)
+			s.Log.Info("episode lookup failed", "cat", "library", "source", t.Name(), "show", sh.Title, "err", err)
 		}
 	}
 	tv.episodes[sh.ID] = eps
 	return eps
 }
 
-// applySeriesMeta merges TheTVDB data into a show. force replaces text and
+// applySeriesMeta merges online data into a show. force replaces text and
 // remote artwork (a manual refresh); local files are never replaced.
-func applySeriesMeta(sh *Show, m *SeriesMeta, keepText, force bool) {
-	sh.Provider, sh.ProviderID = "tvdb", m.ID
+func applySeriesMeta(sh *Show, provider string, m *SeriesMeta, keepText, force bool) {
+	sh.Provider, sh.ProviderID = provider, m.ID
 	if (!keepText || force) && m.Title != "" {
 		sh.Title, sh.SortTitle = m.Title, SortTitle(m.Title)
 	}
@@ -294,12 +322,12 @@ func applySeriesMeta(sh *Show, m *SeriesMeta, keepText, force bool) {
 	}
 }
 
-// RefreshShow re-reads a show from TheTVDB (optionally forcing a series id)
-// and re-applies episode data to all of its episodes.
+// RefreshShow re-reads a show from its metadata service (optionally with a
+// series id of that service) and re-applies episode data to its episodes.
 func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) (*Show, error) {
-	t := s.tvdb()
+	t := s.tvSource()
 	if t == nil {
-		return nil, fmt.Errorf("add a TheTVDB API key in Settings first")
+		return nil, fmt.Errorf("online TV information is switched off; add a TheTVDB key or turn TVmaze back on in Settings")
 	}
 	sh, err := s.Store.Show(ctx, showID, 0)
 	if err != nil {
@@ -309,7 +337,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	switch {
 	case tvdbID != "":
 		meta, err = t.Series(ctx, tvdbID)
-	case sh.Provider == "tvdb" && sh.ProviderID != "":
+	case sh.Provider == t.Name() && sh.ProviderID != "":
 		meta, err = t.Series(ctx, sh.ProviderID)
 	default:
 		meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
@@ -317,7 +345,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	if err != nil {
 		return nil, err
 	}
-	applySeriesMeta(sh, meta, false, true)
+	applySeriesMeta(sh, t.Name(), meta, false, true)
 	if err := s.Store.UpsertShow(ctx, sh); err != nil {
 		return nil, err
 	}
@@ -336,7 +364,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 		if it.Season == nil || it.Episode == nil {
 			continue
 		}
-		applyEpisodeMeta(it, eps, false)
+		applyEpisodeMeta(it, t.Name(), eps, false)
 		if it.Year == nil {
 			it.Year = yearOf(it.Aired)
 		}

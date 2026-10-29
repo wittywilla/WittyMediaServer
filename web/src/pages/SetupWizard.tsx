@@ -250,7 +250,11 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
   return (
     <section>
       <h1>Posters, plots and cast</h1>
-      <p className="lead">Your server can fetch artwork and descriptions from free online services. Each needs a free key from its website; it takes about two minutes. Your files never leave this computer, only their names are looked up.</p>
+      <p className="lead">Your server already looks up <b>TV shows on TVmaze</b> and <b>movie facts on Wikidata</b>, no setup needed. For movie posters and the best matches, add a free key from the services below; each takes about two minutes. Your files never leave this computer, only their names are looked up.</p>
+      <div className="oobe-builtin" role="note">
+        <span><IconCheck size={16} /> TV: TVmaze, built in</span>
+        <span><IconCheck size={16} /> Movies: Wikidata facts and ratings, built in</span>
+      </div>
       <div className="oobe-providers">
         {PROVIDERS.map((p) => {
           const st = state[p.id] || {}

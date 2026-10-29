@@ -135,3 +135,6 @@
 .chip button:hover { background: var(--bg-4); color: var(--fg); }
 .oobe-kids { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 18px auto 0; padding: 12px 16px; border-radius: 12px; background: var(--bg-3); max-width: 560px; }
 .oobe-kids svg { fill: var(--accent); vertical-align: -3px; }
+.oobe-builtin { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: -8px 0 18px; font-size: 14px; color: var(--fg-2); }
+.oobe-builtin span { display: inline-flex; align-items: center; gap: 6px; background: rgb(var(--accent-rgb) / .1); padding: 6px 10px; border-radius: 999px; }
+.oobe-builtin svg { fill: #2fa35a; }

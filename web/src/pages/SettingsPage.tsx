@@ -95,7 +95,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
           <div className="row2">
             <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>
             <label>Type<select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="movies">Movies and discs</option><option value="shows">TV shows</option><option value="anime">Anime (AniList information)</option><option value="music">Music</option><option value="audiobooks">Audiobooks</option><option value="podcasts">Podcasts (folder optional, for downloads)</option><option value="videos">Home and other videos (no online lookup)</option>
+              <option value="movies">Movies and discs</option><option value="shows">TV shows</option><option value="anime">Anime (AniList information)</option><option value="music">Music</option><option value="audiobooks">Audiobooks</option><option value="podcasts">Podcasts (folder optional, for downloads)</option><option value="books">Books, comics and manga</option><option value="videos">Home and other videos (no online lookup)</option>
             </select></label>
           </div>
           <label>Folders

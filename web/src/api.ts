@@ -31,6 +31,8 @@ export type Item = {
   introStart?: number; introEnd?: number
   // Audio (music, audiobooks, podcasts). videoCodec holds the audio codec for these.
   artist?: string; album?: string; albumArtist?: string; track?: number; discNo?: number
+  // Books: reading direction; runtimeSec is the length in pages (comics) or chapters (EPUB).
+  reading?: '' | 'ltr' | 'rtl' | 'webtoon'
 }
 export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }
 export type Artist = { name: string; albums: number; tracks: number; coverItem: number }

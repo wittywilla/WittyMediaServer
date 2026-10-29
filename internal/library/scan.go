@@ -179,8 +179,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	for _, root := range lib.Paths {
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
 		find := discover
-		if IsAudioLibrary(lib.Type) {
+		switch {
+		case IsAudioLibrary(lib.Type):
 			find = discoverAudio
+		case lib.Type == "books":
+			find = discoverBooks
 		}
 		c, err := find(root)
 		if err != nil {
@@ -204,6 +207,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			err = s.indexEpisode(ctx, lib, c, tv)
 		case IsAudioLibrary(lib.Type):
 			err = s.indexAudio(ctx, lib, c, covers)
+		case lib.Type == "books":
+			err = s.indexBook(ctx, lib, c)
 		default:
 			err = s.index(ctx, lib, c)
 		}

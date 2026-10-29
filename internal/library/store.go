@@ -74,6 +74,9 @@ type Item struct {
 	AlbumArtist string `json:"albumArtist,omitempty"` // or the author
 	Track       *int   `json:"track,omitempty"`
 	DiscNo      *int   `json:"discNo,omitempty"`
+	// Books: "" / ltr, rtl (manga) or webtoon (vertical strip). For books
+	// RuntimeSec is the length in pages (comics) or chapters (EPUB).
+	Reading string `json:"reading,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
 }
@@ -232,7 +235,7 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing,
 	i.show_id, (SELECT s.title FROM shows s WHERE s.id = i.show_id), i.season, i.episode, i.episode_end, i.aired,
 	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end,
-	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no`
+	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, '')`
 
 func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var it Item
@@ -249,7 +252,7 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
 		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
 		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd,
-		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo)
+		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading)
 	if err != nil {
 		return nil, err
 	}
@@ -485,13 +488,13 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, year, overview, tagline, genres, rating,
 			content_rating, studio, runtime_sec, poster, backdrop, container, video_codec, width, height, audio_langs, sub_langs, disc_json,
 			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end, min_age,
-			artist, album, album_artist, track, disc_no)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			artist, album, album_artist, track, disc_no, reading)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			it.LibraryID, it.Kind, it.Path, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 			it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now,
 			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
-			it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo)
+			it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading)
 		if err != nil {
 			return err
 		}
@@ -503,12 +506,12 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
 		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0,
 		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=?, min_age=?,
-		artist=?, album=?, album_artist=?, track=?, disc_no=? WHERE id=?`,
+		artist=?, album=?, album_artist=?, track=?, disc_no=?, reading=? WHERE id=?`,
 		it.Kind, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 		it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now,
 		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
-		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.ID)
+		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.ID)
 	it.UpdatedAt = now
 	return err
 }

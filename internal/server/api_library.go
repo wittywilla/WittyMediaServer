@@ -38,7 +38,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "shows", "anime", "videos", "music", "audiobooks", "podcasts":
+	case "movies", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books":
 	case "":
 		b.Type = "movies"
 	default:

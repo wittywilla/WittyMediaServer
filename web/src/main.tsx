@@ -7,6 +7,7 @@ import './player.css'
 import './oobe.css'
 import './shell.css'
 import './audio.css'
+import './reader.css'
 import { installTVInput } from './tv'
 import { installErrorReporter } from './errorReport'
 

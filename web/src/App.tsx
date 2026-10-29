@@ -12,6 +12,7 @@ import ItemPage from './pages/ItemPage'
 import ShowPage from './pages/ShowPage'
 import { AlbumPage } from './pages/AudioLibrary'
 import { AudioProvider } from './audio/player'
+import ReaderPage from './pages/Reader'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
@@ -47,9 +48,10 @@ function Shell() {
   // The player lives outside the page routes (see PlayerDock) so it can keep
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
+  const isReader = loc.pathname.startsWith('/read/')
   return (
     <AudioProvider>
-      {isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+      {isReader ? <Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )
@@ -82,7 +84,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
   )
 }
 
-const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' ? <IconBook /> : <IconDisc />)
+const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' || type === 'books' ? <IconBook /> : <IconDisc />)
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, version, brandName } = useApp()

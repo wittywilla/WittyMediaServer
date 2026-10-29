@@ -22,6 +22,7 @@ const LIB_TYPES = [
   { type: 'shows', name: 'TV Shows', icon: <IconTv />, hint: 'One folder per show, with season folders inside' },
   { type: 'music', name: 'Music', icon: <IconAudio />, hint: 'Albums by artist; tags and covers are read from the files' },
   { type: 'audiobooks', name: 'Audiobooks', icon: <IconBook />, hint: 'One folder per book; resumes where you stopped' },
+  { type: 'books', name: 'Books & manga', icon: <IconBook />, hint: 'EPUB, PDF and CBZ comics; manga reads right to left' },
   { type: 'anime', name: 'Anime', icon: <IconAnime />, hint: 'Series with AniList information; also collects anime found in your TV shows' },
   { type: 'videos', name: 'Home videos', icon: <IconDisc />, hint: 'Your own recordings and other videos, no online lookup' },
 ]

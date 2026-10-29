@@ -179,7 +179,7 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != "video" {
+	if err != nil || (it.Kind != "video" && it.Kind != "book") {
 		writeErr(w, 404, "item not found")
 		return
 	}

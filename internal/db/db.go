@@ -121,6 +121,8 @@ var migrations = []string{
 	   url TEXT NOT NULL, title TEXT NOT NULL, author TEXT, image TEXT, description TEXT,
 	   last_checked INTEGER, auto_download INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL,
 	   UNIQUE(library_id, url));`,
+	// 8: books: reading direction (ltr | rtl | webtoon).
+	`ALTER TABLE items ADD COLUMN reading TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

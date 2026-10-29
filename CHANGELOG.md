@@ -56,6 +56,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Books, comics and manga
+
+- New **Books** library type for EPUB, PDF and CBZ (CBR/CB7/MOBI/AZW3 are listed and can be
+  downloaded). Files sharing a name are one book read from the best format; digital-library
+  extras (OCR text, scans, DRM-locked copies, metadata databases) are ignored, while their
+  `_meta.xml` and thumbnail are used.
+- Metadata from the EPUB package (title, author, series, description, cover), `ComicInfo.xml`
+  (series, number, writer, summary, manga reading direction, age rating) or the file name
+  (`Series 145 (2023) (Digital)` → series, number, year). Folders named "Manga" read right to left.
+- **Reader**: comics page by page, as two-page spreads or a vertical strip, left-to-right or
+  right-to-left, with tap zones, swipes, keys and preloading; EPUBs paged or scrolling with
+  font size and light/sepia/dark pages and the contents; PDFs in the browser's viewer.
+  Progress is saved per account.
+- Security: book HTML is served with a policy that blocks scripts, forms and outside requests,
+  and is shown in a sandboxed frame.
+
 ### Podcasts
 
 - New **Podcasts** library type: follow shows by searching the Apple Podcasts directory or by

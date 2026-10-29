@@ -118,6 +118,25 @@ type AudioAttr struct {
 
 var audioCodecs = []string{"ac3", "", "mp1", "mp2", "lpcm", "", "dts", "sdds"}
 
+// VideoStreamID is the MPEG-PS stream id of a DVD's video, as ffmpeg reports it.
+const VideoStreamID = 0x1e0
+
+// StreamID is the MPEG-PS stream id ffmpeg gives physical audio stream n of
+// this format (0 when the format has no fixed id).
+func (a AudioAttr) StreamID(n int) int {
+	switch a.Codec {
+	case "ac3":
+		return 0x80 + n
+	case "dts":
+		return 0x88 + n
+	case "lpcm":
+		return 0xa0 + n
+	case "mp1", "mp2":
+		return 0x1c0 + n
+	}
+	return 0
+}
+
 func parseAudioAttr(b []byte) AudioAttr {
 	a := AudioAttr{Codec: audioCodecs[b[0]>>5], Channels: int(b[1]&7) + 1, Extension: int(b[5]), AppMode: int(b[0] & 3)}
 	if a.Codec == "" {

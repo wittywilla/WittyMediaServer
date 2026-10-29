@@ -3,8 +3,11 @@ import { useEffect, useRef } from 'react'
 import { getToken, mediaUrl, serverBase } from '../api'
 
 // Attaches an HLS (or direct) source to a <video>. Uses hls.js where MSE is
-// available and falls back to native HLS (Safari/iOS).
-export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null, opts: { onReady?: () => void; onError?: (msg: string) => void } = {}) {
+// available and falls back to native HLS (Safari/iOS). startAt makes the
+// stream begin at that position, so the first frame shown is the right one
+// (seeking after the start would briefly show the beginning).
+export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
+  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
@@ -14,12 +17,13 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
     let destroyed = false
     const isHls = url.includes('.m3u8')
     const abs = url.startsWith('http') ? url : serverBase() + url
+    const start = optsRef.current.startAt?.()
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = true },
         maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
         fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
-        startPosition: -1, lowLatencyMode: false,
+        startPosition: start != null && start > 0.5 ? start : -1, lowLatencyMode: false,
       })
       hlsRef.current = hls
       hls.loadSource(abs)
@@ -41,21 +45,26 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
   return hlsRef
 }
 
-// Auto-hide controls after inactivity.
+// Auto-hide controls after inactivity (ms <= 0: never hide). Pointer, touch,
+// keyboard and controller input all count as activity.
 export function useIdle(ms = 3000, deps: unknown[] = []) {
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     let t: any
-    const show = () => { el.classList.remove('controls-hidden', 'hide-cursor'); clearTimeout(t); t = setTimeout(() => el.classList.add('controls-hidden', 'hide-cursor'), ms) }
+    const show = () => {
+      el.classList.remove('controls-hidden', 'hide-cursor')
+      clearTimeout(t)
+      if (ms > 0) t = setTimeout(() => el.classList.add('controls-hidden', 'hide-cursor'), ms)
+    }
     show()
     el.addEventListener('mousemove', show)
     el.addEventListener('touchstart', show, { passive: true })
-    el.addEventListener('keydown', show)
-    return () => { clearTimeout(t); el.removeEventListener('mousemove', show); el.removeEventListener('touchstart', show); el.removeEventListener('keydown', show) }
+    window.addEventListener('keydown', show)
+    return () => { clearTimeout(t); el.removeEventListener('mousemove', show); el.removeEventListener('touchstart', show); window.removeEventListener('keydown', show) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [ms, ...deps])
   return ref
 }
 

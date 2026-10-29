@@ -23,7 +23,8 @@ const maxCachedSubCells = 96
 // CellSubpictures reads a cell once and returns its sub-picture units
 // (cached per disc). The read is sequential in 1 MiB chunks; the cost is a
 // single pass over the cell's bytes.
-func (o *Opened) CellSubpictures(sp Space, first, last uint32) (*CellSubs, error) {
+func (o *Opened) CellSubpictures(sp Space, cell Cell) (*CellSubs, error) {
+	first, last := cell.FirstSector, cell.LastSector
 	k := subsKey{sp, first, last}
 	o.mu.Lock()
 	if o.subs == nil {
@@ -38,24 +39,32 @@ func (o *Opened) CellSubpictures(sp Space, first, last uint32) (*CellSubs, error
 	if err != nil {
 		return nil, err
 	}
+	// Interleaved cells (angle blocks) are read VOBU run by VOBU run so the
+	// other angles' subtitles are not mixed in.
+	ranges, err := o.CellRanges(sp, cell)
+	if err != nil {
+		return nil, err
+	}
 	ps := NewPackScanner()
 	ps.NoNav = true
 	const chunk = 512
-	for at := first; at <= last; at += chunk {
-		n := chunk
-		if at+uint32(n)-1 > last {
-			n = int(last - at + 1)
-		}
-		buf, err := rd.ReadSectors(at, n)
-		if err != nil {
-			return nil, err
-		}
-		if len(buf) < Sector {
-			break
-		}
-		ps.Feed(buf, at)
-		if ps.Out.Scrambled {
-			break
+	for _, r := range ranges {
+		for at := r.First; at <= r.Last; at += chunk {
+			n := chunk
+			if at+uint32(n)-1 > r.Last {
+				n = int(r.Last - at + 1)
+			}
+			buf, err := rd.ReadSectors(at, n)
+			if err != nil {
+				return nil, err
+			}
+			if len(buf) < Sector {
+				break
+			}
+			ps.Feed(buf, at)
+			if ps.Out.Scrambled {
+				break
+			}
 		}
 	}
 	c := &CellSubs{Units: ps.Out.SPUs}

@@ -54,6 +54,7 @@ type RegisterOptions struct {
 	AudioLanguage    string
 	SubtitleLanguage string
 	Region           int // 1-8
+	Angle            int // initial camera angle (0 = 1)
 	Rand             func() float64
 }
 
@@ -67,6 +68,9 @@ func NewRegisters(o RegisterOptions) *Registers {
 	r.SPRM[SprmAudio] = 15
 	r.SPRM[SprmSubp] = 62
 	r.SPRM[SprmAngle] = 1
+	if o.Angle > 1 && o.Angle <= 9 {
+		r.SPRM[SprmAngle] = uint16(o.Angle)
+	}
 	r.SPRM[SprmTTN] = 1
 	r.SPRM[SprmVTSTTN] = 1
 	r.SPRM[SprmPTTN] = 1
@@ -990,16 +994,15 @@ func (r *Registers) Run(cmds []Command, o RunOptions) Result {
 	}
 }
 
-// SetsHighlight reports whether any of the PGC's commands select a button
-// (SetHL_BTNN, or a link that carries a button number). Such program chains
-// drive buttons even when they sit in the title domain.
+// SetsHighlight reports whether the PGC's pre-commands select a button
+// (SetHL_BTNN) before its cells play, the mark of an interactive screen
+// inside a title (voting, games). Links that merely carry a button number
+// for the menu the title returns to (common at the end of features) don't
+// count.
 func (p *PGC) SetsHighlight() bool {
-	for _, list := range [][]Command{p.Pre, p.Post, p.CellCmds} {
-		for _, c := range list {
-			in := decodeCached(c)
-			if in.sys == sysSetHLBTNN || (in.link != nil && in.link.Button != 0) {
-				return true
-			}
+	for _, c := range p.Pre {
+		if decodeCached(c).sys == sysSetHLBTNN {
+			return true
 		}
 	}
 	return false

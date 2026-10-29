@@ -13,18 +13,37 @@ const KEY = 'wms.theme'
 export const deviceTheme = (): string => { try { return localStorage.getItem(KEY) || '' } catch { return '' } }
 export const setDeviceTheme = (id: string) => { try { id ? localStorage.setItem(KEY, id) : localStorage.removeItem(KEY) } catch { /* ignore */ } }
 
-// applyTheme loads a theme's CSS after the built-in stylesheet.
+let wanted = ''
+
+// applyTheme loads a theme's CSS after the built-in stylesheet. The new sheet
+// is added next to the current one and replaces it only once it has loaded,
+// so switching never flashes an unstyled page, and a sheet that failed to
+// load is fetched again the next time the theme is picked (instead of the
+// click silently doing nothing because the link already pointed at it).
 export function applyTheme(id: string, version = '') {
-  let link = document.getElementById('wms-theme') as HTMLLinkElement | null
-  if (!link) {
-    link = document.createElement('link')
-    link.id = 'wms-theme'
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
-  }
   const href = `${serverBase()}/api/themes/${encodeURIComponent(id || 'default')}/theme.css${version ? '?v=' + version : ''}`
-  if (link.getAttribute('href') !== href) link.setAttribute('href', href)
+  wanted = href
   document.documentElement.dataset.theme = id || 'default'
+  const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[data-wms-theme]'))
+  const cur = links.find((l) => l.getAttribute('href') === href)
+  if (cur && (cur.sheet || cur.dataset.state === 'loading')) {
+    if (cur.sheet) links.forEach((l) => { if (l !== cur) l.remove() })
+    return
+  }
+  cur?.remove()
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.dataset.wmsTheme = '1'
+  link.dataset.state = 'loading'
+  link.onload = () => {
+    link.dataset.state = 'ok'
+    if (wanted !== href) { link.remove(); return } // a newer pick won
+    link.id = 'wms-theme'
+    document.querySelectorAll<HTMLLinkElement>('link[data-wms-theme]').forEach((l) => { if (l !== link) l.remove() })
+  }
+  link.onerror = () => link.remove()
+  link.href = href
+  document.head.appendChild(link)
 }
 
 export function applyBrand(name: string) {

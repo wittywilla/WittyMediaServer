@@ -26,7 +26,7 @@ ten minutes, no command line needed.
 | [Getting started](docs/GETTING_STARTED.md) | install, first account, folder layout, adding libraries, watching on other devices |
 | [DVDs & WittyDVD](docs/DVD.md) | Insert DVD, menus, the remote, audio/subtitles, interactive extras, diagnosing discs |
 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, Skip intro / Watch next, networks & genres for future TV channels |
-| [Metadata & artwork](docs/METADATA.md) | NFO files, the artwork picker, moving from Plex / Jellyfin / Emby / Kodi |
+| [Metadata & artwork](docs/METADATA.md) | NFO files, the artwork picker, moving from another media server |
 | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality modes, GPU/CPU capability tables |
 | [Themes](docs/THEMES.md) | built-in themes, the custom name, writing your own theme ZIP |
 | [Contributing](CONTRIBUTING.md) | building from source, tests, code layout, sending changes |
@@ -101,7 +101,7 @@ clean dark UI in the style of the big commercial servers.
 | **TV shows** | Show → season → episode library from `Show/Season 01/Show - S01E01 - Title.mkv` (and `2x01`, `S01E01E02`, multi-episode files…), [TheTVDB](https://thetvdb.com) metadata (overview, network, genres, status, rating, posters, season posters, episode titles/stills), Next Up, Skip intro, Watch next, cards or compact playlist layout |
 | **Video files** | MKV, MP4, AVI, TS/M2TS, WebM, MOV, WMV, … Direct play when the browser can handle it, otherwise H.264/AAC HLS |
 | **Instant seeking** | Server-generated playlists with keyframes forced on segment boundaries; seeking anywhere restarts FFmpeg at that segment (≈0.5 s) — no waiting for a full transcode |
-| **Metadata** | Sidecar `.metadata.json`, Kodi/Jellyfin `.nfo` (read **and written**), local artwork, an artwork picker (local files, TMDB, TheTVDB), smart filename parsing, optional TMDB (movies) and TheTVDB (TV) enrichment, generated thumbnails. Saved the way Plex, Jellyfin, Emby and Kodi expect, so a library moves between servers |
+| **Metadata** | Sidecar `.metadata.json`, Kodi-style `.nfo` (read **and written**), local artwork, an artwork picker (local files, TMDB, TheTVDB), smart filename parsing, optional TMDB (movies) and TheTVDB (TV) enrichment, generated thumbnails. Saved in the standard NFO/artwork layout, so a library moves between servers |
 | **Library UI** | Home with hero + hubs, Continue Watching, per-library grids with sort/genre filters, search, rich detail pages with disc title tables and chapter lists, inline metadata editing |
 | **Users** | Admin + viewer accounts, per-user resume/watched state, 90-day sessions, bearer tokens for apps |
 | **Deployment** | Single static binary per OS with FFmpeg bundled; tray launcher for desktops; systemd / launchd / rc.d / Scheduled-Task installers; Docker image (amd64 + arm64); Kubernetes kustomize |
@@ -265,7 +265,7 @@ Metadata is resolved in this order (later sources only fill gaps):
 Edit anything afterwards with **Edit** on the detail page, pick a different poster or backdrop
 with **Artwork**, or **Refresh** to re-pull from TMDB / TheTVDB.
 
-Metadata and artwork are **saved next to your media** in the layout Plex, Jellyfin, Emby and
+Metadata and artwork are **saved next to your media** in the standard layout other media servers and
 Kodi read (`.nfo`, `poster.jpg`, `fanart.jpg`, …). ➡ Details: **[docs/METADATA.md](docs/METADATA.md)**.
 
 ## TV shows
@@ -579,7 +579,7 @@ written from the publicly documented DVD-Video structure; no libdvdnav/libdvdrea
 proprietary player code is included.
 
 **No warranty.** The software is provided “as is”, without warranty of any kind. Use it at
-your own risk. WittyMediaServer is not affiliated with Plex, Jellyfin, Emby, Ampchor,
+your own risk. WittyMediaServer is not affiliated with any other media software project,
 DreamWorks or any studio or rights holder; all trademarks belong to their respective owners.
 
 ---

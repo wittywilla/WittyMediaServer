@@ -3,6 +3,47 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### WittyDVD
+
+- **Angles work**: interleaved multi-angle blocks are read per angle, so intros no longer flicker
+  between language versions (Shrek). Pick a *Video version* while watching; playback continues
+  from the same moment.
+- **Disc memory**: the audio language, subtitles and angle you pick are remembered per disc and
+  put back next time, like a DVD player's last-memory feature.
+- Fixed features that were treated as menus (no seek bar, no audio/subtitle choice).
+- Fixed playback stalling a few seconds into some titles: streams are now matched by their DVD
+  stream id, so cells that list their streams in a different order keep their sound.
+- Damaged audio frames no longer stop a transcode (which used to leave the player stuck on a
+  warning screen); a watchdog also moves on when a clip stalls right before its end.
+- No black flash after pressing a menu button.
+
+### Disc page
+
+- **Feature Presentation** first, with a thumbnail for every scene, then **Bonus Features** and
+  shortcuts straight into the **Disc Menus**; the full title list is folded away underneath.
+- Admins can name the feature, scenes and bonus features; the names show in the player too.
+- Thumbnails that cannot be made show "Preview not available" after a few attempts.
+
+### Player
+
+- Big TV-style tile pickers for **Audio**, **Subtitles** and **Video version** (angles).
+- **Viewing settings** (gear): seek bar, chapter marks, remote, remote style, hide delay,
+  fit/fill picture, subtitle size — for this disc/video or for everything.
+- **Playback speed** from 0.5× to 4× on every kind of media with the pitch of voices kept;
+  admins can allow up to 16× in *Settings → Server* (with a hardware warning).
+- **Mini player**: *Back* keeps the video playing in a corner window (a bottom bar on phones)
+  with play/pause, chapter skip, disc Menu/Title buttons, expand and stop.
+- The remote: labelled **Remote** button in the control bar, resizable from every edge and
+  corner, see-through tooltips (*Eject the DVD*, *Close the Remote*), and an *In control bar*
+  style that puts its buttons in a strip above the seek bar.
+
+### Interface
+
+- Theme cards: the whole card is clickable and switching themes is reliable (the new theme
+  replaces the old one only once it has loaded).
+
 ## 0.2.0-alpha
 
 ### WittyDVD (the DVD engine, formerly `internal/disc/dvd`)
@@ -39,7 +80,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ### Library and metadata
 
-- Metadata and artwork are **saved next to media** in Kodi/Jellyfin/Emby/Plex layouts
+- Metadata and artwork are **saved next to media** in the standard NFO + artwork layout other media servers and Kodi read
   (`.nfo`, `poster.jpg`, `fanart.jpg`, …), with backups of hand-written NFOs.
 - **Artwork picker** (local files, TMDB, TheTVDB) for movies, discs, episodes and shows.
 - Movie recommendations at the end of a film (sequels first).

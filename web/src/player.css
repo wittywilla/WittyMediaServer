@@ -17,8 +17,25 @@
 .remote-head { display: flex; align-items: center; gap: 6px; cursor: grab; }
 .remote-head:active { cursor: grabbing; }
 .remote-head .remote-brand { flex: 1; text-align: center; }
-.remote-grip { position: absolute; right: 6px; bottom: 6px; width: 18px; height: 18px; cursor: nwse-resize; touch-action: none;
+.remote-grip { position: absolute; right: 8px; bottom: 8px; width: 14px; height: 14px; pointer-events: none;
   background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.35) 50% 58%, transparent 58% 70%, rgba(255,255,255,.35) 70% 78%, transparent 78%); }
+/* Resize handles on every edge and corner (double-click one to reset). */
+.remote-rs { position: absolute; z-index: 2; touch-action: none; }
+.remote-rs.rs-n, .remote-rs.rs-s { left: 18px; right: 18px; height: 10px; cursor: ns-resize; }
+.remote-rs.rs-n { top: -4px; } .remote-rs.rs-s { bottom: -4px; }
+.remote-rs.rs-e, .remote-rs.rs-w { top: 18px; bottom: 18px; width: 10px; cursor: ew-resize; }
+.remote-rs.rs-e { right: -4px; } .remote-rs.rs-w { left: -4px; }
+.remote-rs.rs-ne, .remote-rs.rs-nw, .remote-rs.rs-se, .remote-rs.rs-sw { width: 22px; height: 22px; }
+.remote-rs.rs-ne { top: -4px; right: -4px; cursor: nesw-resize; } .remote-rs.rs-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+.remote-rs.rs-nw { top: -4px; left: -4px; cursor: nwse-resize; } .remote-rs.rs-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+/* See-through tooltips on the header buttons. */
+.remote [data-tip] { position: relative; }
+.remote [data-tip]::after {
+  content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; transform: translate(-50%, -4px); white-space: nowrap;
+  background: rgba(10,11,14,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #fff; font-size: 11px; font-weight: 600;
+  letter-spacing: .2px; padding: 5px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,.12); pointer-events: none; opacity: 0; transition: opacity .15s, transform .15s; z-index: 5;
+}
+.remote [data-tip]:hover::after, .remote [data-tip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
 .remote-brand { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--fg-3); font-weight: 700; }
 .remote .rk {
   border: 0; color: #e8e9ee; background: linear-gradient(180deg, #3a3e48, #2a2d35); border-radius: 8px; height: 30px;
@@ -33,7 +50,7 @@
 .remote .rk.red { background: linear-gradient(180deg, #c0392b, #8e2a20); }
 .remote .rk.ghost { background: transparent; box-shadow: none; }
 .remote .rk.pill { border-radius: 15px; }
-.remote .rk.accent { background: linear-gradient(180deg, #9c82ff, #6f52e8); }
+.remote .rk.accent { background: var(--accent); }
 .remote-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .remote-row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .remote-row4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -50,7 +67,7 @@
 .remote-dpad .right { right: 6px; top: 54px; }
 .remote-dpad .rk.enter {
   left: 43px; top: 43px; width: 64px; height: 64px; border-radius: 50%;
-  background: linear-gradient(180deg, #9c82ff, #6f52e8); box-shadow: 0 3px 0 #2e2266, inset 0 1px 0 rgba(255,255,255,.25); font-size: 10px;
+  background: var(--accent); box-shadow: 0 3px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); font-size: 10px;
 }
 .remote-dpad .rk.enter:disabled { background: linear-gradient(180deg, #4a4f5c, #343844); }
 .remote-digits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -212,7 +229,9 @@
 .theme-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 14px; }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.theme-card { background: var(--bg-3); border-radius: 12px; overflow: hidden; border: 2px solid transparent; display: grid; }
+.theme-card { background: var(--bg-3); border-radius: 12px; overflow: hidden; border: 2px solid transparent; display: grid; cursor: pointer; }
+.theme-card:hover { border-color: rgb(var(--accent-rgb) / .45); }
+.theme-card .swatch:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .theme-card.active { border-color: var(--accent); }
 .theme-card .swatch { position: relative; height: 92px; border: 0; padding: 0; cursor: pointer; display: block; width: 100%; }
 .theme-card .sw-side { position: absolute; left: 0; top: 0; bottom: 0; width: 26%; opacity: .9; }
@@ -240,3 +259,99 @@
 .dvd-layer img.hl { opacity: 0; }
 .dvd-layer img.hl.on { opacity: 1; }
 .player .still { z-index: 0; }
+
+/* ------------------------------------------------ track picker (TV-style tiles) */
+.picker-backdrop { position: absolute; inset: 0; z-index: 20; background: rgba(0,0,0,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: grid; place-items: center; padding: 24px; animation: fade-in .15s ease-out; }
+.picker { width: min(900px, 100%); max-height: 100%; overflow: auto; text-align: center; }
+.picker h2 { margin: 0 0 6px; font-size: clamp(20px, 3vw, 30px); font-weight: 700; }
+.picker-hint { color: var(--fg-2); max-width: 620px; margin: 0 auto 18px; font-size: 14px; line-height: 1.45; }
+.picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 180px)); justify-content: center; gap: 16px; margin: 18px 0 22px; }
+.picker-tile { position: relative; aspect-ratio: 1; border-radius: 14px; border: 2px solid rgba(255,255,255,.08); background: rgba(255,255,255,.07);
+  color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px; transition: transform .12s, background .12s, border-color .12s; }
+.picker-tile:hover, .picker-tile:focus-visible { background: rgba(255,255,255,.16); transform: scale(1.05); outline: none; border-color: #fff; }
+.picker-tile.active { border-color: var(--accent); background: rgb(var(--accent-rgb) / .22); }
+.picker-tile .pt-title { font-size: 19px; font-weight: 700; line-height: 1.2; }
+.picker-tile .pt-sub { font-size: 13px; color: var(--fg-2); }
+.picker-tile .pt-detail { font-size: 12px; color: var(--fg-3); }
+.picker-tile .pt-check { position: absolute; top: 10px; right: 12px; color: var(--accent); font-weight: 800; }
+.picker-close { min-width: 140px; }
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@media (max-width: 520px) { .picker-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .picker-tile .pt-title { font-size: 16px; } }
+
+/* ------------------------------------------------ viewing settings (gear) */
+.view-settings { position: absolute; right: 16px; bottom: 78px; z-index: 12; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 150px); overflow: auto;
+  background: rgba(20,22,28,.97); border-radius: 14px; padding: 12px 16px 14px; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
+.view-settings .vs-head { display: flex; align-items: center; justify-content: space-between; }
+.view-settings h4 { margin: 4px 0; font-size: 15px; }
+.vs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 14px; }
+.vs-row .vs-ctl { display: flex; justify-content: flex-end; }
+.vs-row .seg button { padding: 5px 9px; }
+.vs-note { color: var(--fg-3); font-size: 12px; margin: 10px 0 0; }
+.switch { width: 44px; height: 24px; border-radius: 12px; border: 0; background: var(--bg-4); position: relative; padding: 0; transition: background .15s; flex: none; }
+.switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.switch.on { background: var(--accent); }
+.switch.on i { transform: translateX(20px); }
+
+.remote-toggle svg { width: 16px; height: 16px; }
+@media (max-width: 700px) { .hide-narrow { display: none !important; } .remote-toggle span { display: none; } .player .ctl .time { min-width: 0; } }
+
+/* Controller / keyboard focus: always visible on the player and on TV. */
+.player button:focus-visible, .player .seek:focus-visible, .player [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ------------------------------------------------ mini player */
+.player.mini { inset: auto 20px 20px auto; width: min(400px, calc(100vw - 40px)); height: auto; aspect-ratio: 16 / 9; border-radius: 12px; z-index: 60;
+  box-shadow: 0 20px 50px rgba(0,0,0,.6); }
+.player.mini .stage { bottom: 0; }
+.player.mini .big-play button { width: 54px; height: 54px; }
+.player.mini .big-play svg { width: 26px; height: 26px; }
+.player.mini .overlay-msg .box { padding: 10px 12px; font-size: 13px; }
+.mini-bar { position: absolute; inset: auto 0 0 0; z-index: 8; padding: 26px 8px 6px; background: linear-gradient(transparent, rgba(0,0,0,.85));
+  display: flex; flex-direction: column; gap: 2px; transition: opacity .2s; }
+.player.mini.controls-hidden .mini-bar { opacity: 0; }
+.player.mini:hover .mini-bar, .player.mini:focus-within .mini-bar { opacity: 1; }
+.mini-info { padding: 0 6px; cursor: pointer; min-width: 0; }
+.mini-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-sub { font-size: 12px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-btns { display: flex; align-items: center; gap: 2px; }
+.mini-btns .ibtn { width: 34px; height: 34px; }
+.mini-btns .ibtn svg { width: 20px; height: 20px; }
+.mini-btns .ibtn.big svg { width: 26px; height: 26px; }
+.mini-btns .mini-disc { padding: 4px 9px; font-size: 12px; }
+.mini-btns .ibtn:last-child { margin-left: auto; }
+
+/* Phones: a bar along the bottom (thumbnail video, title, buttons), above
+   the page like a music app's now-playing bar. */
+@media (max-width: 700px) {
+  .player.mini { inset: auto 8px 8px 8px; width: auto; aspect-ratio: auto; height: 64px; border-radius: 10px; }
+  .player.mini .stage { right: auto; width: 114px; }
+  .player.mini .dvd-layer, .player.mini .sub-layer { display: none; }
+  .player.mini .big-play, .player.mini .center-spinner { right: auto; width: 114px; }
+  .mini-bar { inset: 0 0 0 114px; padding: 4px 4px 4px 8px; background: var(--bg-2); flex-direction: row; align-items: center; opacity: 1 !important; }
+  .mini-info { flex: 1; padding: 0; }
+  .mini-btns .ibtn:not(.big):not(:last-child):not(:nth-last-child(2)) { display: none; }
+  .mini-btns .ibtn:last-child { margin-left: 0; }
+}
+
+/* ------------------------------------------------ remote docked in the control bar */
+.remote-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 6; display: flex; align-items: center; gap: 4px;
+  max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: 12px; background: rgba(16,18,23,.72);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity .25s; scrollbar-width: none; }
+.player.controls-hidden .remote-bar { opacity: 0; pointer-events: none; }
+.player.menu-mode .remote-bar { bottom: 70px; }
+.remote-bar .rb { flex: none; height: 30px; min-width: 30px; padding: 0 9px; border-radius: 8px; border: 0; background: rgba(255,255,255,.1); color: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .5px; display: grid; place-items: center; }
+.remote-bar .rb svg { fill: currentColor; }
+.remote-bar .rb:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.remote-bar .rb:disabled { opacity: .3; }
+.remote-bar .rb.accent { background: var(--accent); }
+.remote-bar .rb.red { background: #b03a2e; }
+.remote-bar .rb-sep { width: 1px; height: 20px; background: rgba(255,255,255,.15); margin: 0 4px; flex: none; }
+.remote-bar .rb-digits { display: flex; gap: 3px; }
+.remote-bar .rb-digits .rb { min-width: 26px; padding: 0 6px; }
+
+.speed-btn { min-width: 46px; font-variant-numeric: tabular-nums; background: rgba(255,255,255,.1); }
+.speed-pop { max-height: 60vh; overflow: auto; }
+/* Leave room under the page for the mini player. */
+.app:has(~ .player.mini) .content { padding-bottom: 260px; }
+@media (max-width: 700px) { .app:has(~ .player.mini) .content { padding-bottom: 84px; } }

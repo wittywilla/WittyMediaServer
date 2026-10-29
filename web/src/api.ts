@@ -32,7 +32,7 @@ export type Show = {
 }
 export type Season = { number: number; title: string; overview: string; poster: string; episodeCount: number; unwatched: number }
 export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
-export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list' }
+export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number }
 export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'current' }
 export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }
@@ -52,7 +52,14 @@ export type DvdTitle = {
   ttn: number; chapter: number; durationSec: number; startSec: number; chapters: number[]
   audio: DvdTrack[]; subtitles: DvdTrack[]; audioStream: number; subtitleStream: number; wide: boolean
   frameW: number; frameH: number; aspect: '4:3' | '16:9'; subtitlesUrl: string; forcedStream: number
+  angle: number; angles: number
 }
+// The disc page: feature first, then bonus titles and shortcuts into menus.
+export type DiscChapterView = { n: number; start: number; label: string }
+export type DiscTitleView = { ttn: number; label: string; durationSec: number; chapters: DiscChapterView[]; audio: string[]; subtitles: string[]; angles: number; wide: boolean }
+export type DiscMenuView = { kind: string; vts: number; label: string }
+export type DiscView = { main: DiscTitleView | null; extras: DiscTitleView[]; menus: DiscMenuView[] }
+export type DiscLabels = { titles: Record<string, string>; chapters: Record<string, Record<string, string>> }
 export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
 export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number }

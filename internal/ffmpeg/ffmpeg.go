@@ -163,11 +163,6 @@ func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
 	return t.probe(ctx, []string{path})
 }
 
-// ProbeInput runs ffprobe on arbitrary input args (e.g. a concat list).
-func (t *Tools) ProbeInput(ctx context.Context, inputArgs []string) (*Probe, error) {
-	return t.probe(ctx, inputArgs)
-}
-
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	args := []string{"-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"}
 	args = append(args, input...)
@@ -206,12 +201,21 @@ func quoteConcat(s string) string {
 
 // WriteConcat writes an ffconcat list for the segments into dir and returns
 // the list path. Multi-extent segments get a concatf side file.
-func WriteConcat(dir, name string, segs []Segment) (string, error) {
+//
+// streamIDs, when given, pin the output streams to these MPEG-PS stream ids
+// (in this order). Without them the concat demuxer pairs streams by position,
+// and DVD VOBs do not list their streams in a stable order: an interleaved
+// cell may announce subtitles before audio, which then silently swaps the
+// audio track for a subtitle stream for the length of that cell.
+func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
 	var b strings.Builder
 	b.WriteString("ffconcat version 1.0\n")
+	for _, id := range streamIDs {
+		fmt.Fprintf(&b, "stream\nexact_stream_id 0x%x\n", id)
+	}
 	for i, s := range segs {
 		var url string
 		if len(s.Extents) == 1 {
@@ -261,6 +265,12 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 	vf := "scale=iw*sar:ih,setsar=1"
 	if width > 0 {
 		vf = fmt.Sprintf("scale=iw*sar:ih,scale=%d:-2,setsar=1", width)
+	}
+	if strings.HasSuffix(strings.ToLower(out), ".jpg") {
+		// The JPEG encoder only takes full-range YUV; convert explicitly
+		// instead of relying on format negotiation (which fails on some
+		// discs with recent ffmpeg builds).
+		vf += ",format=yuvj420p"
 	}
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "3", out)
 	cmd := exec.CommandContext(ctx, t.FFmpeg, args...)

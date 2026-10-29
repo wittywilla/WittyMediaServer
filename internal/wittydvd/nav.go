@@ -910,6 +910,35 @@ func (n *Nav) GoUp() *Step {
 	return n.Resume()
 }
 
+// OpenMenu starts the disc directly in one of its menus ("title" for the
+// disc's title menu, or root/chapter/audio/subpicture/angle of title set
+// vts). Discs that insist on running first-play before their menus fall
+// back to a normal start.
+func (n *Nav) OpenMenu(kind string, vts int) *Step {
+	n.st = n.fresh()
+	typ, ok := MenuTypes[kind]
+	if !ok {
+		return n.Start()
+	}
+	j := &Jump{Op: JumpSS, Domain: DomainVTSM, Menu: typ, VTS: vts}
+	if kind == "title" || vts == 0 {
+		j = &Jump{Op: JumpSS, Domain: DomainVMGM, Menu: typ}
+	} else {
+		// The title set's menus belong to one of its titles: use the first.
+		for _, t := range n.Disc.VMG.Titles {
+			if t.VTS == vts {
+				j.TTN = t.VTSTitle
+				break
+			}
+		}
+	}
+	st := n.settle(n.st, n.enterSS(n.st, j), false)
+	if st.Kind == StepStop {
+		return n.Start()
+	}
+	return st
+}
+
 // Resume returns to the title that called the menu.
 func (n *Nav) Resume() *Step { return n.settle(n.st, action{t: actResume}, false) }
 

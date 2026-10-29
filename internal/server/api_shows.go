@@ -1,6 +1,7 @@
 package server
 
 import (
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -383,7 +384,18 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"episodeView": s.DB.GetSetting(ctx, "episodeView", "cards"),
 		"tvdb":        s.DB.GetSetting(ctx, "tvdbKey", "") != "",
 		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",
+		"maxSpeed":    maxSpeed(s.DB.GetSetting(ctx, "maxSpeed", "4")),
 	})
+}
+
+// maxSpeed is the fastest playback speed viewers may pick: 4x unless an
+// admin raised it (browsers top out at 16x).
+func maxSpeed(v string) float64 {
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil || f < 1 {
+		return 4
+	}
+	return math.Min(f, 16)
 }
 
 func (s *Server) saveMeta(r *http.Request) bool {

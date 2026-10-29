@@ -1,26 +1,41 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { api, dvdTrackLabel, getPrefs, insertFxOn, mediaUrl, posterUrl, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent } from '../api'
-import { IconBack, IconDisc, IconMenu, IconPlay } from '../icons'
+import { api, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent } from '../api'
+import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
+import { usePlayerChrome } from './chrome'
 import { Controls, useVideoState } from './Controls'
 import { toggleFullscreen, useIdle, useSource } from './hooks'
 import InsertDisc from './InsertDisc'
-import Remote, { useRemoteToggle, type RemoteKey } from './Remote'
+import Remote, { RemoteBar, type RemoteKey } from './Remote'
+import TrackPicker, { type Tile } from './TrackPicker'
+import ViewSettings from './ViewSettings'
+import { discMemory, rememberDisc, useViewPrefs } from './viewPrefs'
 
-type Props = { item: Item; mode: 'menu' | 'title'; ttn?: number; chapter?: number; startAt: number | null; insert?: boolean }
+type Props = {
+  item: Item; mode: 'menu' | 'title'; ttn?: number; chapter?: number; startAt: number | null; insert?: boolean
+  menu?: string; menuVts?: number // open this disc menu directly (from the disc page)
+}
 
 type Rect = { left: number; top: number; width: number; height: number }
+type PickKind = 'audio' | 'subtitle' | 'angle'
 
-export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }: Props) {
-  const nav = useNavigate()
-  const root = useIdle(3500, [])
+// Legacy setting from before the viewing-settings menu: whether the remote was
+// shown for discs.
+const legacyRemote = () => { try { return localStorage.getItem('wms.remote.dvd') === '1' } catch { return false } }
+
+export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, menu: openMenu, menuVts }: Props) {
+  const chrome = usePlayerChrome()
+  const mini = chrome.mini
+  const view = useViewPrefs(item.id, legacyRemote())
+  const prefs = view.prefs
+  const root = useIdle(prefs.hideAfter * 1000, [mini])
   const stage = useRef<HTMLDivElement | null>(null)
   const video = useRef<HTMLVideoElement | null>(null)
   const [sid, setSid] = useState<string | null>(null)
   // Timers and the first presentation run before React re-renders with the
-  // new session id, so actions read it from a ref.
+  // new session id (and presentation), so callbacks read them from refs.
   const sidRef = useRef<string | null>(null)
   const [pres, setPres] = useState<Presentation | null>(null)
+  const presRef = useRef<Presentation | null>(null)
   const [err, setErr] = useState('')
   const [needClick, setNeedClick] = useState(false)
   const [rect, setRect] = useState<Rect | null>(null)
@@ -29,7 +44,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
   const [busy, setBusy] = useState(false)
   const [stopped, setStopped] = useState(false)
   const [inserting, setInserting] = useState(false)
-  const [remoteOn, setRemoteOn] = useRemoteToggle('dvd')
+  const [picker, setPicker] = useState<PickKind | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  // The previous still image stays up until the next clip has a frame, so
+  // pressing a menu button never flashes black.
+  const [lingerStill, setLingerStill] = useState<string | null>(null)
+  const [disc, setDisc] = useState<DiscView | null>(null)
   const pendingSeek = useRef<number | null>(startAt ?? null)
   const stillTimer = useRef<any>(null)
   const navTimer = useRef<any>(null)
@@ -37,6 +57,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
   const urlRef = useRef<string | undefined>(undefined)
   const forcedDone = useRef(0)
   const holdPlay = useRef(false)
+  const endedFor = useRef(0) // serial whose clip end was already reported
+  const memoryApplied = useRef(false)
   const st = useVideoState(video)
   const resumeUsed = useRef(false)
 
@@ -53,25 +75,33 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
     video.current?.play().catch(() => setNeedClick(true))
   }, [])
 
-  // Open the session.
+  // Open the session. Remembered choices go along like a DVD player's
+  // memory; the disc's own defaults still apply where nothing was chosen.
   useEffect(() => {
     let cancelled = false
-    api.post<{ sessionId: string; presentation: Presentation }>(`/items/${item.id}/dvd`, { mode, ttn, chapter, wide: true })
+    const mem = discMemory(item.id)
+    api.post<{ sessionId: string; presentation: Presentation }>(`/items/${item.id}/dvd`, {
+      mode, ttn, chapter, wide: true, menu: mode === 'menu' ? openMenu : undefined, menuVts,
+      audioLanguage: mem.audioLanguage, subtitleLanguage: mem.subtitlesOff ? undefined : mem.subtitleLanguage, angle: mem.angle,
+    })
       .then((r) => { if (cancelled) return; sidRef.current = r.sessionId; setSid(r.sessionId); apply(r.presentation) })
       .catch((e) => setErr(e.message))
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id, mode, ttn, chapter])
+  }, [item.id, mode, ttn, chapter, openMenu, menuVts])
 
   useEffect(() => () => { if (sid) api.del(`/dvd/${sid}`).catch(() => {}) }, [sid])
 
-  // freeze keeps the last picture on screen while the next clip loads, so
-  // menu transitions never flash black: the current frame (or still image)
-  // becomes the video's poster until the new stream has a frame.
+  // Chapter and title names from the disc page.
+  useEffect(() => { api.get<DiscView>(`/items/${item.id}/disc`).then(setDisc).catch(() => {}) }, [item.id])
+
+  // freeze keeps the last picture on screen while the next clip loads: the
+  // current frame becomes the video's poster until the new stream has one.
   const freeze = () => {
     const v = video.current
     if (!v) return
-    if (urlRef.current && pres?.media?.type === 'still') { v.poster = mediaUrl(urlRef.current); return }
+    const cur = presRef.current
+    if (urlRef.current && cur?.media?.type === 'still') { v.poster = mediaUrl(urlRef.current); return }
     if (v.readyState < 2 || !v.videoWidth) return
     try {
       const c = document.createElement('canvas')
@@ -83,18 +113,27 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
   }
 
   const apply = (p: Presentation) => {
+    const prev = presRef.current
     // Same screen, same stream: only the highlight (or a message) changed.
     if (p.serial === serialRef.current && p.media?.url === urlRef.current) {
+      presRef.current = p
       setPres(p)
       if (p.menu) setSelected(p.menu.selected || 0)
       return
     }
-    if (p.media?.url !== urlRef.current) freeze()
+    if (p.media?.url !== urlRef.current) {
+      freeze()
+      if (prev?.media?.type === 'still' && p.media?.type === 'hls' && prev.media.url) {
+        // Preload-free hand-over: keep the old still until the clip shows a frame.
+        setLingerStill(prev.media.url)
+      }
+    }
     clearTimeout(stillTimer.current)
     clearTimeout(navTimer.current)
     serialRef.current = p.serial
     urlRef.current = p.media?.url
     forcedDone.current = 0
+    presRef.current = p
     setStopped(false)
     setPres(p)
     setSelected(p.menu?.selected || 0)
@@ -142,34 +181,50 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
 
   // Media source.
   const mediaUrlStr = pres?.media?.type === 'hls' ? pres.media.url! : null
-  useSource(video, mediaUrlStr, {
+  const hls = useSource(video, mediaUrlStr, {
+    startAt: () => (presRef.current?.kind === 'title' ? pendingSeek.current : null),
     onReady: () => {
       const v = video.current
       if (!v) return
-      if (pres?.kind === 'title' && pendingSeek.current != null && pendingSeek.current > 0.5) v.currentTime = pendingSeek.current
+      const p = presRef.current
+      if (p?.kind === 'title' && pendingSeek.current != null && pendingSeek.current > 0.5 && Math.abs(v.currentTime - pendingSeek.current) > 1) v.currentTime = pendingSeek.current
       pendingSeek.current = null
-      v.loop = !!pres?.media?.loop
+      v.loop = !!p?.media?.loop
       if (!holdPlay.current) v.play().catch(() => setNeedClick(true))
     },
     onError: (m) => setErr(m),
   })
 
+  // Drop the lingering still (and frozen poster) once the new clip has a frame.
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const shown = () => { setLingerStill(null); v.removeAttribute('poster') }
+    v.addEventListener('playing', shown)
+    v.addEventListener('seeked', shown)
+    return () => { v.removeEventListener('playing', shown); v.removeEventListener('seeked', shown) }
+  }, [])
+  useEffect(() => { if (pres?.media?.type !== 'hls') setLingerStill(null) }, [pres])
+
   const menu = pres?.menu
   const buttons = menu?.buttons || []
   const pressButton = useCallback((n: number) => act({ type: 'press', button: n }), [act])
 
-  // Clip ended -> tell the navigator (after any still time); forced actions.
+  // Clip ended -> tell the navigator (after any still time). Also used by the
+  // stall watchdog below, so it reports each clip at most once.
+  const clipEnded = useCallback(() => {
+    const p = presRef.current
+    if (!p || p.media?.type !== 'hls' || p.media.loop || endedFor.current === p.serial) return
+    const after = p.media.stillSec
+    if (after < 0) return // hold the last frame until the viewer acts
+    endedFor.current = p.serial
+    const serial = p.serial
+    stillTimer.current = setTimeout(() => { if (serialRef.current === serial) act({ type: 'ended' }) }, after * 1000)
+  }, [act])
+
   useEffect(() => {
     const v = video.current
     if (!v) return
-    const onEnded = () => {
-      const p = pres
-      if (!p || p.media?.type !== 'hls' || p.media.loop) return
-      const serial = p.serial
-      const after = p.media.stillSec
-      if (after < 0) return // hold the last frame until the viewer acts
-      stillTimer.current = setTimeout(() => { if (serialRef.current === serial) act({ type: 'ended' }) }, after * 1000)
-    }
     const onTime = () => {
       if (pres?.menu?.buttonsFromSec && !showButtons && v.currentTime >= pres.menu.buttonsFromSec) setShowButtons(true)
       const m = pres?.menu
@@ -178,10 +233,33 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
         pressButton(m.forcedAction)
       }
     }
-    v.addEventListener('ended', onEnded)
+    v.addEventListener('ended', clipEnded)
     v.addEventListener('timeupdate', onTime)
-    return () => { v.removeEventListener('ended', onEnded); v.removeEventListener('timeupdate', onTime) }
-  }, [pres, act, showButtons, pressButton])
+    return () => { v.removeEventListener('ended', clipEnded); v.removeEventListener('timeupdate', onTime) }
+  }, [pres, showButtons, pressButton, clipEnded])
+
+  // Stall watchdog. Browsers do not always fire "ended" for HLS streams whose
+  // last segment ends a little short of the announced length (the warning
+  // screens at the start of many discs), which used to leave the player
+  // stuck. Playback that stops moving near the end counts as ended; a stall
+  // in the middle gets nudged past the gap.
+  useEffect(() => {
+    if (pres?.media?.type !== 'hls' || pres.media.loop) return
+    let last = -1, still = 0
+    const t = setInterval(() => {
+      const v = video.current
+      if (!v || v.paused || v.ended || holdPlay.current) { still = 0; last = -1; return }
+      if (Math.abs(v.currentTime - last) > 0.05) { last = v.currentTime; still = 0; return }
+      still++
+      const end = pres.kind === 'title' ? (pres.title?.durationSec || v.duration) : (isFinite(v.duration) && v.duration > 0 ? v.duration : pres.media!.durationSec)
+      if (still >= 3 && end > 0 && v.currentTime >= end - 2.5) { still = 0; clipEnded() }
+      else if (still >= 8) {
+        still = 0
+        try { v.currentTime = v.currentTime + 0.5; hls.current?.startLoad() } catch { /* ignore */ }
+      }
+    }, 1000)
+    return () => clearInterval(t)
+  }, [pres, clipEnded, hls])
 
   // Forced action on still menus (no timeupdate there).
   useEffect(() => {
@@ -204,8 +282,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
     return () => { clearInterval(t); send() }
   }, [pres, item.id])
 
-  // Displayed video rectangle (letterboxed inside the stage) for the overlays.
+  // Displayed video rectangle inside the stage, for the overlays. "Fill"
+  // zooms features to cover the screen; menus always fit so no button is cut.
   const aspect = pres?.kind === 'title' ? pres.title?.aspect : pres?.menu?.aspect
+  const fill = prefs.picture === 'fill' && pres?.kind === 'title'
   useLayoutEffect(() => {
     const calc = () => {
       const s = stage.current
@@ -213,14 +293,14 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
       const W = s.clientWidth, H = s.clientHeight
       const ar = aspect === '4:3' ? 4 / 3 : 16 / 9
       let w = W, h = W / ar
-      if (h > H) { h = H; w = H * ar }
+      if (fill ? h < H : h > H) { h = H; w = H * ar }
       setRect({ left: (W - w) / 2, top: (H - h) / 2, width: w, height: h })
     }
     calc()
     const ro = new ResizeObserver(calc)
     if (stage.current) ro.observe(stage.current)
     return () => ro.disconnect()
-  }, [aspect, pres?.serial])
+  }, [aspect, pres?.serial, fill])
 
   const inMenu = pres?.kind === 'menu' && buttons.length > 0 && showButtons
 
@@ -245,7 +325,13 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
     selectQuiet(target.n)
   }, [inMenu, buttons, selected, pressButton, selectQuiet])
 
-  const chapters = pres?.title?.chapters || []
+  const title = pres?.title
+  const chapters = title?.chapters || []
+  const discTitle = title && disc ? [disc.main, ...disc.extras].find((t) => t?.ttn === title.ttn) : undefined
+  const chapterNames = discTitle?.chapters.map((c) => c.label)
+  const isFeature = !!title && (disc?.main?.ttn ?? item.disc?.mainTitle) === title.ttn
+  const titleName = discTitle?.label || (isFeature ? 'Feature presentation' : title ? `Title ${title.ttn}` : '')
+
   const seek = (t: number) => { const v = video.current; if (v) v.currentTime = Math.max(0, t) }
   const seekChapter = (dir: 1 | -1) => {
     const v = video.current
@@ -254,36 +340,55 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
     const next = Math.min(chapters.length - 1, Math.max(0, cur + dir))
     if (dir === -1 && v.currentTime - chapters[cur] > 3) seek(chapters[cur]); else seek(chapters[next])
   }
-  // Audio needs a new stream: the server restarts it exactly where we are.
-  const switchAudio = (n: number) => { const t = pos(); pendingSeek.current = t; act({ type: 'audio', stream: n, positionSec: t }) }
+  // Audio and angles need a new stream: the server restarts it exactly where we are.
+  const switchAudio = (n: number) => {
+    const t = pos(); pendingSeek.current = t
+    const lang = title?.audio.find((a) => a.n === n)?.language
+    if (lang) rememberDisc(item.id, { audioLanguage: lang })
+    act({ type: 'audio', stream: n, positionSec: t })
+  }
+  const switchAngle = (n: number) => {
+    const t = pos(); pendingSeek.current = t
+    rememberDisc(item.id, { angle: n })
+    act({ type: 'angle', stream: n, positionSec: t })
+  }
   // Subtitles are drawn here: switching is instant.
-  const switchSub = (n: number) => act({ type: 'subtitle', stream: Math.max(0, n), on: n >= 0 })
+  const switchSub = (n: number) => {
+    const lang = title?.subtitles.find((s) => s.n === n)?.language
+    rememberDisc(item.id, n < 0 ? { subtitlesOff: true } : { subtitlesOff: false, subtitleLanguage: lang })
+    act({ type: 'subtitle', stream: Math.max(0, n), on: n >= 0 })
+  }
 
-  const title = pres?.title
-  const cycleAudio = () => {
-    if (!title || title.audio.length < 2) return
-    const i = title.audio.findIndex((a) => a.n === title.audioStream)
-    switchAudio(title.audio[(i + 1) % title.audio.length].n)
-  }
-  const cycleSub = () => {
-    if (!title || !title.subtitles.length) return
-    const i = title.subtitles.findIndex((s) => s.n === title.subtitleStream)
-    switchSub(i + 1 >= title.subtitles.length ? -1 : title.subtitles[i + 1].n)
-  }
+  // Memory: the first time the feature starts in this session, put back the
+  // tracks the viewer picked last time (if the disc offers them).
+  useEffect(() => {
+    if (!title || memoryApplied.current) return
+    memoryApplied.current = true
+    const mem = discMemory(item.id)
+    if (mem.subtitlesOff && title.subtitleStream >= 0) act({ type: 'subtitle', stream: 0, on: false })
+    else if (!mem.subtitlesOff && mem.subtitleLanguage) {
+      const s = title.subtitles.find((x) => x.language === mem.subtitleLanguage && !x.purpose)
+      if (s && s.n !== title.subtitleStream) act({ type: 'subtitle', stream: s.n, on: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title])
 
   const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } v.paused ? v.play().catch(() => {}) : v.pause() }
+  const setRemote = (on: boolean) => view.update({ remote: on }, view.scope)
+  const back = () => chrome.minimize()
 
   const onRemote = (k: RemoteKey) => {
     const v = video.current
     switch (k) {
-      case 'eject': nav(`/item/${item.id}`); break
+      case 'eject': chrome.close(); break
       case 'topmenu': titleMenu(); break
       case 'menu': rootMenu(); break
       case 'return': act({ type: 'key', key: 'return', positionSec: pres?.kind === 'title' ? pos() : 0 }); break
       case 'up': case 'down': case 'left': case 'right': move(k); break
       case 'enter': if (inMenu && selected) pressButton(selected); break
-      case 'audio': cycleAudio(); break
-      case 'subtitle': cycleSub(); break
+      case 'audio': if ((title?.audio.length || 0) > 1) setPicker('audio'); break
+      case 'subtitle': if (title?.subtitles.length) setPicker('subtitle'); break
+      case 'angle': if ((title?.angles || 1) > 1) setPicker('angle'); break
       case 'prev': pres?.kind === 'title' ? seekChapter(-1) : act({ type: 'chapter', chapter: -1 }); break
       case 'next': pres?.kind === 'title' ? seekChapter(1) : act({ type: 'chapter', chapter: 1 }); break
       case 'rew': if (v) v.currentTime = Math.max(0, v.currentTime - 10); break
@@ -303,30 +408,41 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
       case 'up': case 'down': case 'left': case 'right': case 'enter': return inMenu
       case 'audio': return (title?.audio.length || 0) > 1
       case 'subtitle': return (title?.subtitles.length || 0) > 0
-      case 'angle': return false
+      case 'angle': return (title?.angles || 1) > 1
       case 'rew': case 'ff': case 'play': case 'pause': case 'stop': return pres?.media?.type === 'hls'
       default: return true
     }
   }
 
-  // Keyboard: remote-control style.
+  // Keyboard and TV remotes. Not while minimized: the app owns the keys then.
   useEffect(() => {
+    if (mini) return
     const onKey = (e: KeyboardEvent) => {
+      if (picker || settingsOpen) return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const v = video.current
       switch (e.key) {
         case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
           if (inMenu) { e.preventDefault(); move(e.key.replace('Arrow', '').toLowerCase() as any) }
-          else if (v && pres?.kind === 'title') { e.preventDefault(); if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10 }
+          else if (v && pres?.kind === 'title' && !(e.target as HTMLElement)?.closest?.('.bottom, .top, .remote')) {
+            e.preventDefault(); if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10
+          }
           break
         case 'Enter': if (inMenu) { e.preventDefault(); pressButton(selected) } break
-        case ' ': case 'k': e.preventDefault(); togglePlay(); break
-        case 'm': rootMenu(); break
+        case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); togglePlay(); break
+        case 'm': case 'ContextMenu': rootMenu(); break
         case 't': titleMenu(); break
-        case 'r': setRemoteOn(!remoteOn); break
+        case 'r': setRemote(!prefs.remote); break
         case 'f': toggleFullscreen(root.current); break
-        case 'Escape': if (!document.fullscreenElement) nav(`/item/${item.id}`); break
-        case 'PageDown': case 'n': onRemote('next'); break
-        case 'PageUp': case 'p': onRemote('prev'); break
+        case 'a': onRemote('audio'); break
+        case 's': onRemote('subtitle'); break
+        case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); back() } break
+        case 'PageDown': case 'n': case 'MediaTrackNext': onRemote('next'); break
+        case 'PageUp': case 'p': case 'MediaTrackPrevious': onRemote('prev'); break
+        case 'MediaStop': onRemote('stop'); break
+        case 'MediaRewind': onRemote('rew'); break
+        case 'MediaFastForward': onRemote('ff'); break
         default: if (/^[0-9]$/.test(e.key)) onRemote(('digit' + e.key) as RemoteKey)
       }
     }
@@ -339,17 +455,46 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
     return { x: rect.width / pres.menu.width, y: rect.height / pres.menu.height }
   }, [rect, pres])
 
+  // Tiles for the pickers.
+  const tiles = (k: PickKind): Tile[] => {
+    if (!title) return []
+    if (k === 'audio') return title.audio.map((a) => ({
+      id: a.n, title: langName(a.language), sub: a.purpose || undefined,
+      detail: [a.codec?.toUpperCase(), a.channels ? (a.channels > 2 ? `${a.channels - 1}.1` : a.channels === 2 ? 'Stereo' : 'Mono') : ''].filter(Boolean).join(' · '),
+      active: a.n === title.audioStream,
+    }))
+    if (k === 'subtitle') return [
+      { id: -1, title: 'Off', sub: title.forcedStream >= 0 ? 'Forced captions still show' : undefined, active: title.subtitleStream < 0 },
+      ...title.subtitles.map((s) => ({ id: s.n, title: langName(s.language), sub: s.purpose || undefined, active: s.n === title.subtitleStream })),
+    ]
+    return Array.from({ length: title.angles || 1 }, (_, i) => ({
+      id: i + 1, title: `Version ${i + 1}`, sub: `Camera angle ${i + 1}`, active: (title.angle || 1) === i + 1,
+    }))
+  }
+  const pickerText: Record<PickKind, { heading: string; hint?: string }> = {
+    audio: { heading: 'Audio & language', hint: 'Changes what you hear. Playback continues from the same moment.' },
+    subtitle: { heading: 'Subtitles' },
+    angle: {
+      heading: 'Video version',
+      hint: 'Angles switch the picture, not the sound. Discs use them for alternate camera views or for on-screen text in other languages (for example English or Dutch credits). Your choice is remembered for this disc.',
+    },
+  }
+  const pick = (k: PickKind, id: number) => (k === 'audio' ? switchAudio(id) : k === 'subtitle' ? switchSub(id) : switchAngle(id))
+
   const audioOpts = title?.audio.map((a) => ({ id: a.n, label: dvdTrackLabel(a), active: a.n === title.audioStream }))
   const subOpts = title?.subtitles.map((s) => ({ id: s.n, label: dvdTrackLabel(s), active: s.n === title.subtitleStream }))
+  const objectFit = fill ? 'cover' : 'contain'
 
   return (
-    <div className="player" ref={root} tabIndex={0} onDoubleClick={() => toggleFullscreen(root.current)}
+    <div className={'player dvd' + (mini ? ' mini' : '') + (pres?.kind !== 'title' ? ' menu-mode' : '')} ref={root} tabIndex={-1}
+      onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}
       onClick={() => { if (pres?.kind === 'title' && !needClick) togglePlay() }}>
       <div className="stage" ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
-        <video ref={video} playsInline preload="auto" />
+        <video ref={video} playsInline preload="auto" style={{ objectFit }} />
         {pres?.media?.type === 'still' && <img className="still" src={mediaUrl(pres.media.url!)} alt="" />}
+        {lingerStill && <img className="still" src={mediaUrl(lingerStill)} alt="" />}
         {menu && rect && scale && (
           <div className="dvd-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
             {menu.overlayUrl && <img src={mediaUrl(menu.overlayUrl)} alt="" />}
@@ -367,59 +512,109 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert }:
             ))}
           </div>
         )}
-        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} />}
+        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} />}
       </div>
-      {inserting && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} />}
+      {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} />}
       {spin && !needClick && !inserting && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && !inserting && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
-      {stopped && <div className="overlay-msg"><div className="box">Stopped · press Play to continue</div></div>}
-      {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => nav(`/item/${item.id}`)}>Back</button></div></div>}
-      {pres?.kind === 'stop' && !err && (
+      {stopped && !mini && <div className="overlay-msg"><div className="box">Stopped · press Play to continue</div></div>}
+      {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => chrome.close()}>Back</button></div></div>}
+      {pres?.kind === 'stop' && !err && !mini && (
         <div className="overlay-msg"><div className="box">
           <div style={{ marginBottom: 10 }}>{pres.scrambled ? 'This disc is CSS-scrambled and cannot be played.' : pres.reason || 'Playback stopped.'}</div>
           <button className="btn" onClick={(e) => { e.stopPropagation(); titleMenu() }}>Title menu</button>{' '}
           <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: item.disc?.mainTitle || 1 }) }}>Play movie</button>{' '}
-          <button className="btn ghost" onClick={() => nav(`/item/${item.id}`)}>Back</button>
+          <button className="btn ghost" onClick={() => chrome.close()}>Back</button>
         </div></div>
       )}
-      <div className="top" onClick={(e) => e.stopPropagation()}>
-        <button className="ibtn" onClick={() => nav(`/item/${item.id}`)} title="Back"><IconBack /></button>
-        <div className="grow">
-          <h2>{item.title}</h2>
-          <div className="sub">{pres?.kind === 'title' ? `Title ${title?.ttn} · ${chapters.length} chapters` : pres?.kind === 'menu' ? (menu?.inTitle ? 'Interactive feature' : 'DVD menu') : ''}</div>
-        </div>
-        <button className="btn sm" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
-        <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
-        <button className={'btn sm' + (remoteOn ? ' primary' : '')} onClick={() => setRemoteOn(!remoteOn)} title="Show the DVD remote (r)"><IconDisc /> Remote</button>
-      </div>
-      {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} />}
-      {pres?.kind === 'title' && (
-        <Controls video={video} duration={title?.durationSec || 0} chapters={chapters} onSeek={seek}
-          onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}
-          audio={audioOpts} subtitles={subOpts}
-          onAudio={switchAudio} onSubtitle={switchSub}
-          onFullscreen={() => toggleFullscreen(root.current)} />
-      )}
-      {pres?.kind === 'menu' && (
-        <div className="bottom" onClick={(e) => e.stopPropagation()}>
-          <div className="ctl">
-            <span className="muted" style={{ fontSize: 13 }}>{inMenu ? 'Arrows / mouse to choose · Enter to select' : menu?.buttonsFromSec ? 'Waiting for the menu…' : ''}</span>
-            <div className="spacer" />
-            <button className="btn sm" onClick={() => act({ type: 'resume' })}>Resume</button>
-            <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: item.disc?.mainTitle || 1 })}><IconPlay /> Play movie</button>
-            {pres.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
-            {pres.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
-            <button className="ibtn" onClick={() => toggleFullscreen(root.current)} title="Fullscreen">⛶</button>
+
+      {mini ? (
+        <MiniBar item={item} subtitle={pres?.kind === 'title' ? titleName : 'DVD menu'} playing={st.playing} isTitle={pres?.kind === 'title'}
+          onPlay={togglePlay} onPrev={() => onRemote('prev')} onNext={() => onRemote('next')}
+          onMenu={rootMenu} onTitleMenu={titleMenu} onExpand={chrome.expand} onClose={chrome.close} />
+      ) : (
+        <>
+          <div className="top" onClick={(e) => e.stopPropagation()}>
+            <button className="ibtn" onClick={back} title="Back (playback continues in the mini player)"><IconBack /></button>
+            <div className="grow">
+              <h2>{item.title}</h2>
+              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : 'DVD menu') : ''}</div>
+            </div>
+            <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
+            <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
+            <button className="ibtn" onClick={back} title="Mini player"><IconMini /></button>
           </div>
-        </div>
+          {prefs.remote && (prefs.remoteStyle === 'bar'
+            ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} />
+            : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} />)}
+          {pres?.kind === 'title' && (
+            <Controls video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
+              onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}
+              audio={audioOpts} subtitles={subOpts} onAudio={switchAudio} onSubtitle={switchSub}
+              onPick={setPicker} angles={title?.angles || 1}
+              showSeek={prefs.seekBar} showChapterMarks={prefs.chapterMarks}
+              remoteOn={prefs.remote} onRemote={() => setRemote(!prefs.remote)} onSettings={() => setSettingsOpen((o) => !o)}
+              onFullscreen={() => toggleFullscreen(root.current)} />
+          )}
+          {pres?.kind !== 'title' && (
+            <div className="bottom" onClick={(e) => e.stopPropagation()}>
+              <div className="ctl">
+                <span className="muted hide-narrow" style={{ fontSize: 13 }}>{inMenu ? 'Arrows / mouse to choose · Enter to select' : menu?.buttonsFromSec ? 'Waiting for the menu…' : ''}</span>
+                <div className="spacer" />
+                <button className="btn sm" onClick={() => act({ type: 'resume' })}>Resume</button>
+                <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: item.disc?.mainTitle || 1 })}><IconPlay /> Play movie</button>
+                {pres?.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
+                {pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
+                <button className={'btn sm remote-toggle' + (prefs.remote ? ' primary' : '')} onClick={() => setRemote(!prefs.remote)} aria-pressed={prefs.remote} title="Show or hide the on-screen remote (r)"><IconRemote /> <span>Remote</span></button>
+                <button className="ibtn" onClick={() => setSettingsOpen((o) => !o)} title="Viewing settings"><IconSettings /></button>
+                <button className="ibtn" onClick={() => toggleFullscreen(root.current)} title="Fullscreen (f)">⛶</button>
+              </div>
+            </div>
+          )}
+          {settingsOpen && (
+            <ViewSettings prefs={prefs} scope={view.scope} isDisc onClose={() => setSettingsOpen(false)}
+              onChange={(p) => view.update(p, view.scope)} onScope={view.setScope} />
+          )}
+          {picker && title && (
+            <TrackPicker heading={pickerText[picker].heading} hint={pickerText[picker].hint} tiles={tiles(picker)}
+              onPick={(id) => pick(picker, id)} onClose={() => setPicker(null)} />
+          )}
+        </>
       )}
     </div>
   )
 }
 
+// MiniBar is the control strip of the minimized player: the essentials of a
+// disc remote plus restore and stop.
+function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onMenu, onTitleMenu, onExpand, onClose }: {
+  item: Item; subtitle: string; playing: boolean; isTitle: boolean
+  onPlay: () => void; onPrev: () => void; onNext: () => void; onMenu: () => void; onTitleMenu: () => void; onExpand: () => void; onClose: () => void
+}) {
+  const stop = (f: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); f() }
+  return (
+    <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+      <div className="mini-info" onClick={onExpand}>
+        <div className="mini-title">{item.title}</div>
+        <div className="mini-sub">{subtitle}</div>
+      </div>
+      <div className="mini-btns">
+        <button className="ibtn" onClick={stop(onPrev)} title="Previous chapter"><IconPrev /></button>
+        <button className="ibtn big" onClick={stop(onPlay)} title={isTitle ? 'Play/Pause' : 'Play/Pause menu video'}>{playing ? <IconPause /> : <IconPlay />}</button>
+        <button className="ibtn" onClick={stop(onNext)} title="Next chapter"><IconNext /></button>
+        <button className="btn sm mini-disc" onClick={stop(onMenu)} title="Disc menu">Menu</button>
+        <button className="btn sm mini-disc hide-narrow" onClick={stop(onTitleMenu)} title="Title menu">Title</button>
+        <button className="ibtn" onClick={stop(onExpand)} title="Full player"><IconExpand /></button>
+        <button className="ibtn" onClick={stop(onClose)} title="Stop"><IconClose /></button>
+      </div>
+    </div>
+  )
+}
+
 // SubtitleLayer draws the disc's own sub-pictures over the video. Events are
-// fetched in two-minute windows around the playhead.
-function SubtitleLayer({ video, title, rect }: { video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect }) {
+// fetched in two-minute windows around the playhead. size scales them around
+// their bottom centre (bigger captions grow upwards, like a TV setting).
+function SubtitleLayer({ video, title, rect, size = 1 }: { video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect; size?: number }) {
   const stream = title.subtitleStream >= 0 ? title.subtitleStream : title.forcedStream
   const forcedOnly = title.subtitleStream < 0
   const cache = useRef(new Map<string, SubEvent[] | 'loading'>())
@@ -450,11 +645,15 @@ function SubtitleLayer({ video, title, rect }: { video: React.RefObject<HTMLVide
     v.addEventListener('seeked', upd)
     return () => { v.removeEventListener('timeupdate', upd); v.removeEventListener('seeked', upd) }
   }, [video, stream, forcedOnly, title.subtitlesUrl])
-  if (!active.length || !title.frameW) return null
+  if (!active.length || !title.frameW || stream < 0) return null
   const sx = rect.width / title.frameW, sy = rect.height / title.frameH
   return (
     <div className="sub-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
-      {active.map((e) => <img key={e.url} src={mediaUrl(e.url)} alt="" style={{ left: e.x * sx, top: e.y * sy, width: e.w * sx, height: e.h * sy }} />)}
+      {active.map((e) => {
+        const w = e.w * sx * size, h = e.h * sy * size
+        const cx = (e.x + e.w / 2) * sx, bottom = (e.y + e.h) * sy
+        return <img key={e.url} src={mediaUrl(e.url)} alt="" style={{ left: cx - w / 2, top: bottom - h, width: w, height: h }} />
+      })}
     </div>
   )
 }

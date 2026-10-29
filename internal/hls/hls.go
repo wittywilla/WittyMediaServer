@@ -277,7 +277,10 @@ func (j *job) lastProduced() int { return j.lastSeg }
 func (s *Session) startLocked(fromSeg int) (*job, error) {
 	sp := s.Spec
 	start := float64(fromSeg) * sp.SegmentSec
-	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y"}
+	// Damaged discs and rips often carry runs of broken audio frames; ffmpeg
+	// would abort once 2/3 of the frames failed to decode and leave the
+	// stream unfinished, so decode errors never end a transcode.
+	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
 	plan := s.tools.Plan(sp.Quality)
 	if sp.Preset != "" && plan.Name == "libx264" && len(sp.Quality.VideoArgs) == 0 {
 		q := sp.Quality

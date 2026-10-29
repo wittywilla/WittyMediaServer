@@ -25,6 +25,9 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	var b struct {
 		Mode             string `json:"mode"` // menu | title
+		Menu             string `json:"menu"` // with mode=menu: open this menu directly (root, chapter, audio, subpicture, angle, title)
+		MenuVTS          int    `json:"menuVts"`
+		Angle            int    `json:"angle"` // remembered camera angle
 		TTN              int    `json:"ttn"`
 		Chapter          int    `json:"chapter"`
 		Wide             *bool  `json:"wide"`
@@ -42,6 +45,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		MenuLanguage:     firstNonEmpty(b.MenuLanguage, s.DB.GetSetting(r.Context(), "menuLanguage", "en")),
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),
+		Angle:            b.Angle,
 	}
 	if b.Wide != nil {
 		prefs.Wide = *b.Wide
@@ -61,6 +65,8 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 			ttn = 1
 		}
 		p = sess.PlayTitle(r.Context(), ttn, b.Chapter)
+	} else if b.Menu != "" {
+		p = sess.OpenMenu(r.Context(), b.Menu, b.MenuVTS)
 	} else {
 		p = sess.Start(r.Context())
 	}

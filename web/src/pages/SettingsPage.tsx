@@ -161,13 +161,27 @@ function ServerSettings() {
             <input className="input" value={s.tvdbPin || ''} onChange={up('tvdbPin')} placeholder="optional" />
           </label>
         </div>
-        {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(Kodi/Jellyfin NFO + poster.jpg/fanart.jpg, also read by Plex and Emby; existing NFOs are backed up as .nfo.bak)</span></>)}
+        {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(standard NFO + poster.jpg/fanart.jpg that other media servers read too; existing NFOs are backed up as .nfo.bak)</span></>)}
         <div className="muted" style={{ fontSize: 13 }}>Encoders, direct play, resolution and quality are under <NavLink to="/settings/transcoding">Transcoding</NavLink>.</div>
         <label>TV episode layout <span className="muted">(default for every show; each show can override it with the toggle on its page)</span>
           <select className="select" value={s.episodeView || 'cards'} onChange={up('episodeView')}>
             <option value="cards">Cards with thumbnails and overviews</option><option value="list">Compact playlist</option>
           </select>
         </label>
+        <label>Fastest playback speed <span className="muted">(viewers pick a speed with the gauge button in the player; the pitch of voices is kept at every speed)</span>
+          <select className="select" value={s.maxSpeed || '4'} onChange={up('maxSpeed')}>
+            <option value="2">2×</option><option value="4">4× (recommended)</option><option value="6">6×</option><option value="8">8×</option><option value="16">16× (browser limit)</option>
+          </select>
+        </label>
+        {Number(s.maxSpeed || 4) > 4 && (
+          <div className="warn-box" role="note">
+            <strong>Above 4× needs a strong server and the right files.</strong> At 8× the server has to decode and re-encode eight
+            seconds of video every second for anything that is transcoded (DVDs, Blu-rays, and files the browser cannot play directly).
+            Plan on a recent 6-core CPU or a hardware encoder (NVENC, Quick Sync, AMF, VideoToolbox) for 1080p, and a fast disk.
+            Files in <b>H.264 or HEVC with AAC audio</b> in MP4/MKV direct-play and cost the server almost nothing at any speed.
+            Most browsers also mute sound above 4×.
+          </div>
+        )}
         <h3 className="section-title" style={{ margin: '8px 0 0' }}>WittyDVD</h3>
         <label>When a DVD is inserted
           <select className="select" value={s.dvdStart || 'menu'} onChange={up('dvdStart')}>
@@ -284,7 +298,7 @@ function About() {
         <h3>No warranty</h3>
         <p>
           The software is provided “as is”, without warranty of any kind, express or implied, including fitness for a particular purpose.
-          Use it at your own risk. WittyMediaServer is not affiliated with Plex, Jellyfin, Emby, Ampchor, DreamWorks, or any studio or
+          Use it at your own risk. WittyMediaServer is not affiliated with any other media software project, DreamWorks, or any studio or
           rights holder; all trademarks belong to their owners.
         </p>
       </div>

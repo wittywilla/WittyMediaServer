@@ -56,10 +56,12 @@ export default function AppearanceSettings() {
             {mine ? <>This device uses its own theme. <button className="linkish" onClick={() => useHere('')}>Follow the server default</button></> : 'This device follows the server default.'}
           </span>
         </div>
-        <div className="theme-grid">
+        <div className="theme-grid" role="radiogroup" aria-label="Themes">
           {shown.map((t) => (
-            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')}>
-              <button className="swatch" onClick={() => useHere(t.id)} title={`Use ${t.name} on this device`}
+            // The whole card picks the theme; its own buttons stop the click.
+            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')} onClick={() => useHere(t.id)}>
+              <button type="button" className="swatch" role="radio" aria-checked={t.id === active} aria-label={`${t.name} theme`} title={`Use ${t.name} on this device`}
+                onClick={(e) => { e.stopPropagation(); useHere(t.id) }}
                 style={{ background: t.preview.bg, color: t.preview.text }}>
                 <span className="sw-side" style={{ background: t.preview.surface }} />
                 <span className="sw-card" style={{ background: t.preview.surface }} />
@@ -70,8 +72,8 @@ export default function AppearanceSettings() {
               <div className="theme-info">
                 <div className="t">{t.name} {t.id === serverTheme && <span className="pill">default</span>}</div>
                 <div className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</div>
-                <div className="theme-actions">
-                  <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>Use here</button>
+                <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>{mine === t.id ? 'In use here' : 'Use here'}</button>
                   {user?.isAdmin && t.id !== serverTheme && <button className="btn sm ghost" onClick={() => makeDefault(t.id)}>Make default</button>}
                   <a className="btn sm ghost" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a starting point for your own">ZIP</a>
                   {user?.isAdmin && !t.builtin && <button className="btn sm danger" onClick={() => remove(t)}>Remove</button>}

@@ -440,6 +440,53 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	return err
 }
 
+// DiscLabels are names a user gave to a disc's titles and chapters, keyed by
+// title number and chapter number (as strings, for JSON).
+type DiscLabels struct {
+	Titles   map[string]string            `json:"titles"`
+	Chapters map[string]map[string]string `json:"chapters"`
+}
+
+// Clean drops empty names and trims the rest.
+func (d DiscLabels) Clean() DiscLabels {
+	out := DiscLabels{Titles: map[string]string{}, Chapters: map[string]map[string]string{}}
+	for k, v := range d.Titles {
+		if v = strings.TrimSpace(v); v != "" {
+			out.Titles[k] = v
+		}
+	}
+	for t, m := range d.Chapters {
+		for k, v := range m {
+			if v = strings.TrimSpace(v); v != "" {
+				if out.Chapters[t] == nil {
+					out.Chapters[t] = map[string]string{}
+				}
+				out.Chapters[t][k] = v
+			}
+		}
+	}
+	return out
+}
+
+// DiscLabels returns the stored names for a disc (never nil maps).
+func (s *Store) DiscLabels(ctx context.Context, id int64) DiscLabels {
+	var raw sql.NullString
+	_ = s.DB.QueryRowContext(ctx, `SELECT disc_labels FROM items WHERE id = ?`, id).Scan(&raw)
+	var d DiscLabels
+	_ = json.Unmarshal([]byte(raw.String), &d)
+	return d.Clean()
+}
+
+// SetDiscLabels replaces the names for a disc.
+func (s *Store) SetDiscLabels(ctx context.Context, id int64, d DiscLabels) error {
+	b, err := json.Marshal(d.Clean())
+	if err != nil {
+		return err
+	}
+	_, err = s.DB.ExecContext(ctx, `UPDATE items SET disc_labels = ? WHERE id = ?`, string(b), id)
+	return err
+}
+
 // SetItemPrefs stores per-item viewer preferences.
 func (s *Store) SetItemPrefs(ctx context.Context, id int64, playMode, insertFX string) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET play_mode = ?, insert_fx = ? WHERE id = ?`, playMode, insertFX, id)

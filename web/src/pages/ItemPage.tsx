@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
+import DiscSections from './DiscSections'
 import { Spinner, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
@@ -98,34 +99,7 @@ export default function ItemPage() {
             <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>
           </div>
 
-          {disc && it.disc && it.disc.titles.length > 0 && (
-            <>
-              <h3 className="section-title">Disc titles</h3>
-              <table className="titles-table">
-                <thead><tr><th>#</th><th>Length</th><th>Chapters</th><th>Audio</th><th>Subtitles</th><th></th></tr></thead>
-                <tbody>
-                  {it.disc.titles.filter((t) => t.durationSec >= 1).map((t) => (
-                    <tr key={t.number} className={t.number === it.disc!.mainTitle ? 'main-row' : ''}>
-                      <td>{t.number}{t.number === it.disc!.mainTitle && ' · Main feature'}</td>
-                      <td>{fmtTime(t.durationSec)}</td>
-                      <td>{(t.chapters || []).length}</td>
-                      <td style={{ fontSize: 13 }}>{(t.audio || []).slice(0, 3).join(', ')}</td>
-                      <td style={{ fontSize: 13 }}>{[...new Set((t.subtitles || []).map(langName))].join(', ')}</td>
-                      <td><button className="btn sm" onClick={() => nav(`/play/${it.id}?mode=title&ttn=${t.number}`)}><IconPlay /> Play</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {main && (main.chapters || []).length > 1 && (
-                <>
-                  <h3 className="section-title">Chapters</h3>
-                  <div className="chapters">
-                    {main.chapters.map((c, i) => <button key={i} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${main.number}&chapter=${i + 1}`)}>Chapter {i + 1} · {fmtTime(c)}</button>)}
-                  </div>
-                </>
-              )}
-            </>
-          )}
+          {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
           <p style={{ marginTop: 30 }}>{it.showId != null
             ? <Link to={`/show/${it.showId}?season=${it.season ?? -1}`} className="muted">‹ Back to {it.showTitle}</Link>
             : <Link to={`/library/${it.libraryId}`} className="muted">‹ Back to library</Link>}</p>

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// Metadata is saved next to the media the way Jellyfin, Emby, Kodi and Plex
+// Metadata is saved next to the media in the standard NFO/artwork layout that Kodi and other media servers
 // (local media assets) read it, so a library can move between servers:
 //
 //	Movie in its own folder:    movie folder/<name>.nfo, poster.jpg, fanart.jpg

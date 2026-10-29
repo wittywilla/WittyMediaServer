@@ -64,7 +64,7 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 				phys = sc.Narrow
 			}
 		}
-		cs, err := s.opened.CellSubpictures(sp, c.Cell.FirstSector, c.Cell.LastSector)
+		cs, err := s.opened.CellSubpictures(sp, c.Cell)
 		if err != nil {
 			return nil, err
 		}

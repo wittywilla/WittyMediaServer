@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { IconClose, IconDown, IconEject, IconFf, IconLeft, IconNext, IconPause, IconPlay, IconPrev, IconRew, IconRight, IconStop, IconUp } from '../icons'
 
 // Keys of a classic DVD remote. Disc-only keys are disabled for plain videos.
@@ -15,15 +15,6 @@ type Props = {
   enabled: (k: RemoteKey) => boolean
   onClose: () => void
   label?: string
-}
-
-// Remembers whether the remote is shown, separately for discs and videos.
-export function useRemoteToggle(kind: 'dvd' | 'video'): [boolean, (v: boolean) => void] {
-  const key = 'wms.remote.' + kind
-  const read = () => { try { const v = localStorage.getItem(key); return v == null ? kind === 'dvd' : v === '1' } catch { return kind === 'dvd' } }
-  const [on, setOn] = useState(read)
-  const set = (v: boolean) => { setOn(v); try { localStorage.setItem(key, v ? '1' : '0') } catch { /* ignore */ } }
-  return [on, set]
 }
 
 // Where the remote sits, how big and how see-through it is; remembered per
@@ -77,37 +68,40 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
-  // Resize from the bottom-right corner (double-click resets the size).
-  const startResize = (e: React.PointerEvent) => {
+  // Resize from any edge or corner. The remote keeps its shape, so the size
+  // follows the larger pointer movement, and the opposite edge stays put.
+  const startResize = (dx: -1 | 0 | 1, dy: -1 | 0 | 1) => (e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation()
-    const sx = e.clientX, g0 = clamp(geom), w0 = (el.current?.offsetWidth || 196) * g0.scale
-    const at = (ev: PointerEvent) => clamp({ ...g0, scale: Math.min(1.6, Math.max(0.6, g0.scale * (w0 + ev.clientX - sx) / w0)) })
+    const sx = e.clientX, sy = e.clientY, g0 = clamp(geom)
+    const bw = el.current?.offsetWidth || 196, bh = el.current?.offsetHeight || 640
+    const at = (ev: PointerEvent): Geom => {
+      const gx = dx ? (dx * (ev.clientX - sx)) / bw : 0
+      const gy = dy ? (dy * (ev.clientY - sy)) / bh : 0
+      const scale = Math.min(1.6, Math.max(0.6, g0.scale + (Math.abs(gx) > Math.abs(gy) ? gx : gy)))
+      const x = dx === -1 ? (g0.x || 0) + (g0.scale - scale) * bw : g0.x
+      const y = dy === -1 ? (g0.y || 0) + (g0.scale - scale) * bh : g0.y
+      return clamp({ ...g0, scale, x, y })
+    }
     const move = (ev: PointerEvent) => setGeom(at(ev), false)
     const up = (ev: PointerEvent) => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setGeom(at(ev)) }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
+  const handles: [string, -1 | 0 | 1, -1 | 0 | 1][] = [['n', 0, -1], ['s', 0, 1], ['e', 1, 0], ['w', -1, 0], ['ne', 1, -1], ['nw', -1, -1], ['se', 1, 1], ['sw', -1, 1]]
   const cycleAlpha = () => setGeom({ ...geom, alpha: ALPHAS[(ALPHAS.indexOf(geom.alpha) + 1) % ALPHAS.length] })
   const style = {
     left: geom.x ?? undefined, top: geom.y ?? undefined, right: geom.x == null ? 18 : 'auto', bottom: geom.y == null ? 96 : 'auto',
     transform: 'scale(' + geom.scale + ')', '--ra': geom.alpha,
   } as React.CSSProperties
-  const B = ({ k, children, cls = '', title }: { k: RemoteKey; children: React.ReactNode; cls?: string; title?: string }) => {
-    const on = enabled(k)
-    return (
-      <button type="button" className={'rk ' + cls + (pressed === k ? ' down' : '')} disabled={!on} title={title}
-        onClick={(e) => { e.stopPropagation(); setPressed(k); clearTimeout(t.current); t.current = setTimeout(() => setPressed(null), 140); onKey(k) }}>
-        {children}
-      </button>
-    )
-  }
+  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(t.current); t.current = setTimeout(() => setPressed(null), 140); onKey(k) }
   return (
-    <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label="DVD remote">
-      <div className="remote-head" onPointerDown={startDrag} title="Drag to move">
-        <B k="eject" cls="round red" title="Eject (leave the player)"><IconEject size={16} /></B>
+    <KeyCtx.Provider value={{ enabled, press, pressed }}>
+    <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label={label + ' remote'}>
+      <div className="remote-head" onPointerDown={startDrag}>
+        <B k="eject" cls="round red" tip={label === 'WittyDVD' ? 'Eject the DVD' : 'Stop and close'}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
-        <button type="button" className="rk round ghost" title="Transparency" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}>{'\u25d0'}</button>
-        <button type="button" className="rk round ghost" title="Hide remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
+        <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}>{'\u25d0'}</button>
+        <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
       </div>
       <div className="remote-row2">
         <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
@@ -122,11 +116,11 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
       </div>
       <div className="remote-row2">
         <B k="return" cls="pill" title="Return (go back)">RETURN</B>
-        <B k="angle" cls="pill" title="Angle">ANGLE</B>
+        <B k="angle" cls="pill" title="Video version (camera angle)">ANGLE</B>
       </div>
       <div className="remote-row2">
-        <B k="audio" cls="pill" title="Next audio track">AUDIO</B>
-        <B k="subtitle" cls="pill" title="Next subtitle track">SUBTITLE</B>
+        <B k="audio" cls="pill" title="Audio & language">AUDIO</B>
+        <B k="subtitle" cls="pill" title="Subtitles">SUBTITLE</B>
       </div>
       <div className="remote-row4">
         <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>
@@ -145,7 +139,61 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
         <B k="digit0" title="0">0</B>
         <span />
       </div>
-      <span className="remote-grip" onPointerDown={startResize} onDoubleClick={() => setGeom(clamp({ ...geom, scale: 1 }))} title="Drag to resize, double-click to reset" />
+      {handles.map(([n, dx, dy]) => (
+        <span key={n} className={'remote-rs rs-' + n} onPointerDown={startResize(dx, dy)} onDoubleClick={() => setGeom(clamp({ ...geom, scale: 1 }))} aria-hidden="true" />
+      ))}
+      <span className="remote-grip" aria-hidden="true" />
     </div>
+    </KeyCtx.Provider>
   )
+}
+
+// Buttons are module-level components (not defined inside Remote), so a
+// re-render keeps the same DOM buttons: focus, hover and keyboard/controller
+// navigation survive the player's frequent updates.
+const KeyCtx = createContext<{ enabled: (k: RemoteKey) => boolean; press: (k: RemoteKey) => void; pressed: RemoteKey | null }>({ enabled: () => true, press: () => {}, pressed: null })
+
+// tip: a see-through tooltip instead of the browser's (used in the header).
+function B({ k, children, cls = '', title, tip }: { k: RemoteKey; children: React.ReactNode; cls?: string; title?: string; tip?: string }) {
+  const { enabled, press, pressed } = useContext(KeyCtx)
+  return (
+    <button type="button" className={'rk ' + cls + (pressed === k ? ' down' : '')} disabled={!enabled(k)} title={tip ? undefined : title} data-tip={tip} aria-label={tip || title}
+      onClick={(e) => { e.stopPropagation(); press(k) }}>
+      {children}
+    </button>
+  )
+}
+
+// RemoteBar is the same remote laid out as one strip above the seek bar, for
+// viewers who prefer it out of the picture.
+export function RemoteBar({ onKey, enabled, disc = true }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean }) {
+  return (
+    <KeyCtx.Provider value={{ enabled, press: onKey, pressed: null }}>
+    <div className="remote-bar" role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
+      <BarKey k="topmenu" label="Top menu">TOP MENU</BarKey>
+      <BarKey k="menu" label="Menu">MENU</BarKey>
+      <BarKey k="return" label="Return">RETURN</BarKey>
+      <span className="rb-sep" />
+      <BarKey k="left" label="Left"><IconLeft size={16} /></BarKey>
+      <BarKey k="up" label="Up"><IconUp size={16} /></BarKey>
+      <BarKey k="enter" label="Enter" cls="accent">OK</BarKey>
+      <BarKey k="down" label="Down"><IconDown size={16} /></BarKey>
+      <BarKey k="right" label="Right"><IconRight size={16} /></BarKey>
+      <span className="rb-sep" />
+      <BarKey k="audio" label="Audio & language">AUDIO</BarKey>
+      <BarKey k="subtitle" label="Subtitles">SUBTITLE</BarKey>
+      <BarKey k="angle" label="Video version (camera angle)">ANGLE</BarKey>
+      <span className="rb-sep hide-narrow" />
+      <span className="rb-digits hide-narrow">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={`Button or chapter ${d}`}>{d}</BarKey>)}
+      </span>
+      <BarKey k="eject" label={disc ? 'Eject the DVD' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
+    </div>
+    </KeyCtx.Provider>
+  )
+}
+
+function BarKey({ k, children, label, cls = '' }: { k: RemoteKey; children: React.ReactNode; label: string; cls?: string }) {
+  const { enabled, press } = useContext(KeyCtx)
+  return <button type="button" className={'rb ' + cls} disabled={!enabled(k)} title={label} aria-label={label} onClick={(e) => { e.stopPropagation(); press(k) }}>{children}</button>
 }

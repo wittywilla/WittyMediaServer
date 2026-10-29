@@ -51,6 +51,7 @@ type Opened struct {
 	readers map[Space]*spaceReader
 	scans   map[scanKey]*MenuPicture
 	subs    map[subsKey]*CellSubs
+	ranges  map[rangesKey][]SectorRange
 }
 
 // scanKey identifies a menu scan whose result does not depend on viewer
@@ -442,7 +443,11 @@ func (d *Disc) Titles() []TitleSummary {
 }
 
 // Title flattens one title by number.
-func (d *Disc) Title(number int) *TitleSummary {
+func (d *Disc) Title(number int) *TitleSummary { return d.TitleAngle(number, 1) }
+
+// TitleAngle flattens a title for one camera angle (1-based); cells inside
+// angle blocks are replaced by that angle's cell.
+func (d *Disc) TitleAngle(number, angle int) *TitleSummary {
 	if number < 1 || number > len(d.VMG.Titles) {
 		return nil
 	}
@@ -467,12 +472,13 @@ func (d *Disc) Title(number int) *TitleSummary {
 		seen[pgcn] = true
 		p := v.PGCs[pgcn-1].PGC
 		for n := 1; n >= 1 && n <= len(p.Cells); n = nextCellN(p, n) {
-			c := p.Cells[n-1]
+			k := angleCell(p, n, angle)
+			c := p.Cells[k-1]
 			pg := programOf(p, n)
 			if chapterAt[[2]int{pgcn, pg}] && (len(p.Programs) == 0 || p.Programs[pg-1] == n) {
 				ts.Chapters = append(ts.Chapters, ts.Duration)
 			}
-			ts.Cells = append(ts.Cells, TitleCell{PGCN: pgcn, CellN: n, Cell: c, Start: ts.Duration})
+			ts.Cells = append(ts.Cells, TitleCell{PGCN: pgcn, CellN: k, Cell: c, Start: ts.Duration})
 			ts.Duration += c.Duration
 		}
 		if p.NextPGCN == 0 {

@@ -7,4 +7,4 @@ Exec=@PREFIX@/WittyMediaServer
 Icon=@PREFIX@/icon.png
 Terminal=false
 Categories=AudioVideo;Video;Network;
-Keywords=media;server;dvd;plex;
+Keywords=media;server;dvd;bluray;tv;

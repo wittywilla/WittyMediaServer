@@ -11,7 +11,7 @@ import ShowPage from './pages/ShowPage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
-import PlayerPage from './player/PlayerPage'
+import { PlayerDock } from './player/PlayerPage'
 
 export default function App() {
   return (
@@ -38,14 +38,18 @@ function Shell() {
   }, [])
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (!user) return <AuthPage setup={setupRequired} />
+  // The player lives outside the page routes (see PlayerDock) so it can keep
+  // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
-  if (isPlayer) {
-    return (
-      <Routes>
-        <Route path="/play/:id" element={<PlayerPage />} />
-      </Routes>
-    )
-  }
+  return (
+    <>
+      {isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+      <PlayerDock />
+    </>
+  )
+}
+
+function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '')}>
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />

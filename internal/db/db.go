@@ -98,6 +98,8 @@ var migrations = []string{
 	 ALTER TABLE shows ADD COLUMN intro_end REAL;
 	 ALTER TABLE shows ADD COLUMN view TEXT;        -- episode list: cards | list ('' = server default)
 	 CREATE INDEX IF NOT EXISTS items_show ON items(show_id, season, episode);`,
+	// 3: user names for disc titles and chapters (JSON, see library.DiscLabels).
+	`ALTER TABLE items ADD COLUMN disc_labels TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

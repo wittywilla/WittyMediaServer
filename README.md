@@ -137,9 +137,14 @@ wittymediaserver-<version>-<os>-<arch>/
 |---|---|---|
 | Windows 10/11 (x64, ARM64) | `…-windows-amd64.zip`, `…-windows-arm64.zip` | |
 | macOS 11+ (Apple Silicon, Intel) | `…-darwin-arm64.tar.gz`, `…-darwin-amd64.tar.gz` | includes `WittyMediaServer.app` (menu-bar app) |
-| Linux (x64, ARM64 incl. Raspberry Pi 4/5) | `…-linux-amd64.tar.gz`, `…-linux-arm64.tar.gz` | static, works on any distro |
-| FreeBSD 13+ (x64) | `…-freebsd-amd64.tar.gz` | static FFmpeg built in CI |
-| Docker | `ghcr.io/wittywilla/wittymediaserver` | amd64 + arm64 |
+| Linux x64 / ARM64 (incl. Raspberry Pi 4/5 with 64-bit OS) | `…-linux-amd64.tar.gz`, `…-linux-arm64.tar.gz` | static, works on any distro |
+| Linux ARMv7 (Raspberry Pi 2/3/4 with 32-bit Raspberry Pi OS) | `…-linux-armv7.tar.gz` | static |
+| Linux x86 32-bit | `…-linux-386.tar.gz` | static, for old PCs |
+| FreeBSD 14+ (x64) | `…-freebsd-amd64.tar.gz` | static FFmpeg built in CI |
+| FreeBSD 14+ (ARM64) | `…-freebsd-arm64.tar.gz` | uses FreeBSD's FFmpeg: `pkg install ffmpeg` |
+| Docker | `ghcr.io/wittywilla/wittymediaserver` | amd64, arm64, armv7 |
+
+Each release also has a `…-SHA256SUMS.txt` file to verify downloads.
 
 ### Desktop (tray app)
 

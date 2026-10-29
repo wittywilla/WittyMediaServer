@@ -51,11 +51,32 @@ git tag v0.2.0-alpha
 git push origin v0.2.0-alpha
 ```
 
-Then watch the *Actions* tab on GitHub; when the workflow finishes, the archives appear on the
-*Releases* page. Mark alpha releases as *pre-release* there. In GitHub Desktop you can create the
-tag via *History → right-click the commit → Create tag…*, then *Push origin*.
+Then watch the *Actions* tab on GitHub; when the workflow finishes, the archives for all ten
+platforms (plus a SHA256 checksum file) appear on the *Releases* page. Tags with a suffix such as
+`-alpha` or `-beta` are published as *pre-releases* automatically.
 
-Before tagging, update the version in `cmd/wms/main.go` and `cmd/wms-tray/main.go` (the default
+To retry a release after fixing something, delete the tag (GitHub Desktop: *History* →
+right-click the tag → *Delete Tag…*, which also offers to delete it on GitHub; or on the website:
+*Releases → Tags*), then create it again on the new commit and push.
+
+### Building the archives on your own computer
+
+The same script the workflow uses runs locally (Windows: from *Git Bash*, or
+`scripts\build-release.ps1` in PowerShell):
+
+```bash
+scripts/build-release.sh 0.2.0-alpha            # all ten platforms -> dist/
+scripts/build-release.sh 0.2.0-alpha windows/amd64 linux/arm64   # just some
+```
+
+On a non-Mac computer the macOS archives contain the server but not the menu-bar launcher (it
+needs a Mac to compile), and the FreeBSD archives use FreeBSD's own FFmpeg unless you provide a
+static build (`scripts/build-ffmpeg-static.sh`, run on FreeBSD).
+
+### Before tagging
+
+In GitHub Desktop you create the tag via *History → right-click the commit → Create Tag…*, then
+*Push origin*. Before tagging, update the version in `cmd/wms/main.go` and `cmd/wms-tray/main.go` (the default
 `version`), and add a section to `CHANGELOG.md`.
 
 ## Good habits

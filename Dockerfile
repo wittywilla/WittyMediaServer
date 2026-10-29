@@ -1,21 +1,24 @@
 # syntax=docker/dockerfile:1.7
 # Multi-stage build: web client -> Go binary -> tiny runtime with FFmpeg.
 
-FROM node:22-alpine AS web
+# Build stages run on the build machine's own architecture and cross-compile,
+# so multi-arch images (amd64, arm64, armv7) don't build under emulation.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 COPY web/ ./
 RUN npm run build
 
-FROM golang:1.27-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
 ARG VERSION=dev
+ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms
+RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms
 
 FROM alpine:3.21
 RUN apk add --no-cache ffmpeg ca-certificates tzdata tini \

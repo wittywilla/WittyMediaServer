@@ -60,6 +60,17 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Player controls auto-hide outside fullscreen too.
 - Version shown at the bottom of the sidebar and the sign-in page.
 
+### Builds and releases
+
+- Release archives for **10 platforms**: Windows x64/ARM64, macOS Intel/Apple Silicon, Linux
+  x64/ARM64/ARMv7/x86, FreeBSD x64/ARM64, plus a SHA256 checksum file; Docker images for
+  amd64, arm64 and armv7.
+- Fixed the FreeBSD FFmpeg build (x264's configure needs bash) and moved it to FreeBSD 14.4;
+  a failed FreeBSD FFmpeg build no longer blocks the release.
+- macOS FFmpeg downloads fall back to snapshot builds when release links are missing.
+- Archives built on Windows now keep the executable permission for Linux/macOS/FreeBSD files.
+- CI now runs on `master`; GitHub Actions updated to their Node 24 versions.
+
 ### Documentation
 
 - New guides: [Getting started](docs/GETTING_STARTED.md), [DVDs](docs/DVD.md),

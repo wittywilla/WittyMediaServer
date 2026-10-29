@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import { api, type Library, type User } from '../api'
+import { api, getPrefs, type Library, type User } from '../api'
 import { IconFolder, IconRefresh, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
+import TranscodeSettings from './TranscodeSettings'
+import AppearanceSettings from './AppearanceSettings'
 
 export default function SettingsPage() {
   const { user } = useApp()
@@ -12,12 +14,16 @@ export default function SettingsPage() {
       <div className="tabs">
         {user?.isAdmin && <NavLink to="/settings/libraries" className={({ isActive }) => (isActive ? 'active' : '')}>Libraries</NavLink>}
         {user?.isAdmin && <NavLink to="/settings/server" className={({ isActive }) => (isActive ? 'active' : '')}>Server</NavLink>}
+        {user?.isAdmin && <NavLink to="/settings/transcoding" className={({ isActive }) => (isActive ? 'active' : '')}>Transcoding</NavLink>}
+        <NavLink to="/settings/appearance" className={({ isActive }) => (isActive ? 'active' : '')}>Appearance</NavLink>
         <NavLink to="/settings/users" className={({ isActive }) => (isActive ? 'active' : '')}>Users</NavLink>
         <NavLink to="/settings/about" className={({ isActive }) => (isActive ? 'active' : '')}>About &amp; legal</NavLink>
       </div>
       <Routes>
         <Route path="libraries" element={<Libraries />} />
         <Route path="server" element={<ServerSettings />} />
+        <Route path="transcoding" element={<TranscodeSettings />} />
+        <Route path="appearance" element={<AppearanceSettings />} />
         <Route path="users" element={<Users />} />
         <Route path="about" element={<About />} />
         <Route path="*" element={<Navigate to={user?.isAdmin ? 'libraries' : 'users'} replace />} />
@@ -85,7 +91,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
           <div className="row2">
             <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>
             <label>Type<select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="movies">Movies (with online metadata)</option><option value="videos">Other videos (no online lookup)</option>
+              <option value="movies">Movies (TMDB metadata)</option><option value="shows">TV shows (TheTVDB metadata)</option><option value="videos">Other videos (no online lookup)</option>
             </select></label>
           </div>
           <label>Folders
@@ -134,7 +140,12 @@ function ServerSettings() {
   useEffect(() => { api.get<Record<string, string>>('/settings').then(setS) }, [])
   if (!s) return null
   const up = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setS({ ...s, [k]: e.target.type === 'checkbox' ? ((e.target as HTMLInputElement).checked ? '1' : '0') : e.target.value })
-  const save = async () => { setS(await api.put('/settings', s)); setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  const save = async () => { setS(await api.put('/settings', s)); getPrefs(true); setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  const check = (k: string, label: React.ReactNode) => (
+    <label style={{ flexDirection: 'row', alignItems: 'center', display: 'flex', gap: 10 }}>
+      <input type="checkbox" checked={s[k] === '1'} onChange={up(k)} /> {label}
+    </label>
+  )
   return (
     <div className="panel">
       <h2>Server</h2>
@@ -142,19 +153,28 @@ function ServerSettings() {
         <label>TMDB API key <span className="muted">(optional — enables posters, overviews and ratings; this product uses the TMDB API but is not endorsed by TMDB)</span>
           <input className="input" value={s.tmdbKey || ''} onChange={up('tmdbKey')} placeholder="Paste your API key (v3)" />
         </label>
-        <label>Maximum transcode height
-          <select className="select" value={s.maxHeight || '0'} onChange={up('maxHeight')}>
-            <option value="0">Source</option><option value="480">480p</option><option value="720">720p</option><option value="1080">1080p</option>
+        <div className="row2">
+          <label>TheTVDB API key <span className="muted">(TV libraries — free at thetvdb.com/api-information; metadata provided by TheTVDB)</span>
+            <input className="input" value={s.tvdbKey || ''} onChange={up('tvdbKey')} placeholder="Paste your v4 API key" />
+          </label>
+          <label>TheTVDB subscriber PIN <span className="muted">(only for user-supported keys)</span>
+            <input className="input" value={s.tvdbPin || ''} onChange={up('tvdbPin')} placeholder="optional" />
+          </label>
+        </div>
+        {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(Kodi/Jellyfin NFO + poster.jpg/fanart.jpg, also read by Plex and Emby; existing NFOs are backed up as .nfo.bak)</span></>)}
+        <div className="muted" style={{ fontSize: 13 }}>Encoders, direct play, resolution and quality are under <NavLink to="/settings/transcoding">Transcoding</NavLink>.</div>
+        <label>TV episode layout <span className="muted">(default for every show; each show can override it with the toggle on its page)</span>
+          <select className="select" value={s.episodeView || 'cards'} onChange={up('episodeView')}>
+            <option value="cards">Cards with thumbnails and overviews</option><option value="list">Compact playlist</option>
           </select>
         </label>
-        <label>Stream audio codec <span className="muted">(AAC is standard; MP3 helps Chromium builds without AAC support)</span>
-          <select className="select" value={s.audioCodec || 'aac'} onChange={up('audioCodec')}>
-            <option value="aac">AAC</option><option value="mp3">MP3</option>
+        <h3 className="section-title" style={{ margin: '8px 0 0' }}>WittyDVD</h3>
+        <label>When a DVD is inserted
+          <select className="select" value={s.dvdStart || 'menu'} onChange={up('dvdStart')}>
+            <option value="menu">Start with the disc menu (like a DVD player)</option><option value="title">Skip menus and play the main feature</option>
           </select>
         </label>
-        <label style={{ flexDirection: 'row', alignItems: 'center', display: 'flex', gap: 10 }}>
-          <input type="checkbox" checked={s.hwAccel === '1'} onChange={up('hwAccel')} /> Use hardware H.264 encoder when available (NVENC / QSV / AMF / VideoToolbox / VAAPI)
-        </label>
+        {check('insertFx', <>Insert DVD effect <span className="muted">(tray animation and drive sound; each disc can override this in its Disc settings)</span></>)}
         <div className="row2">
           <label>Preferred DVD menu language<input className="input" value={s.menuLanguage || ''} onChange={up('menuLanguage')} placeholder="en" /></label>
           <label>Preferred audio language<input className="input" value={s.audioLanguage || ''} onChange={up('audioLanguage')} placeholder="en" /></label>
@@ -228,7 +248,7 @@ function About() {
             <div className="fact"><div className="k">Host</div><div className="v">{sys.hostname}</div></div>
             <div className="fact"><div className="k">Data directory</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.dataDir}</div></div>
             <div className="fact"><div className="k">FFmpeg</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.ffmpegInfo}<br /><span className="muted">{sys.ffmpeg}</span></div></div>
-            <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}</div></div>
+            <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}{(sys.hardware || []).some((h: any) => h.working) && <><br /><span className="muted">Working hardware: {(sys.hardware || []).filter((h: any) => h.working).map((h: any) => h.label).join(', ')}</span></>}</div></div>
             <div className="fact"><div className="k">Open DVD sessions</div><div className="v">{sys.dvdSessions}</div></div>
           </div>
         </div>
@@ -238,7 +258,7 @@ function About() {
         <p>
           <b>WittyMediaServer</b> is open-source software released under the <b>Apache License, Version 2.0</b>. You may use, modify and
           redistribute it, provided you keep the licence and the accompanying <code>NOTICE</code> attribution (“This product includes
-          WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/wittymediaserver" target="_blank" rel="noreferrer">github.com/wittywilla/wittymediaserver</a>.
+          WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.
         </p>
         <h3>Your media, your responsibility</h3>
         <p>

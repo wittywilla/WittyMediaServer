@@ -348,6 +348,47 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 	return json.NewDecoder(res.Body).Decode(out)
 }
 
+// Images lists poster and backdrop URLs for an item's movie (best first),
+// searching by title when the item is not matched yet.
+func (t *TMDB) Images(ctx context.Context, it *Item) (posters, backdrops []string, err error) {
+	id := ""
+	if it.Provider == "tmdb" {
+		id = it.ProviderID
+	}
+	if id == "" {
+		q := url.Values{"query": {it.Title}, "include_adult": {"false"}}
+		if it.Year != nil {
+			q.Set("year", strconv.Itoa(*it.Year))
+		}
+		var s tmdbSearch
+		if err := t.get(ctx, "/search/movie", q, &s); err != nil {
+			return nil, nil, err
+		}
+		if len(s.Results) == 0 {
+			return nil, nil, errors.New("tmdb: no match")
+		}
+		id = strconv.Itoa(s.Results[0].ID)
+	}
+	var r struct {
+		Posters []struct {
+			FilePath string `json:"file_path"`
+		} `json:"posters"`
+		Backdrops []struct {
+			FilePath string `json:"file_path"`
+		} `json:"backdrops"`
+	}
+	if err := t.get(ctx, "/movie/"+id+"/images", url.Values{"include_image_language": {"en,null"}}, &r); err != nil {
+		return nil, nil, err
+	}
+	for _, p := range r.Posters {
+		posters = append(posters, tmdbImage+"w500"+p.FilePath)
+	}
+	for _, b := range r.Backdrops {
+		backdrops = append(backdrops, tmdbImage+"w1280"+b.FilePath)
+	}
+	return posters, backdrops, nil
+}
+
 // Enrich fills missing fields from TMDB. It never overwrites a title that a
 // sidecar supplied; it does fill overview, artwork, genres, rating.
 func (t *TMDB) Enrich(ctx context.Context, it *Item) error {

@@ -27,7 +27,9 @@ func main() {
 	os.Exit(cmdServe(os.Args[1:]))
 }
 
-var version = "dev"
+// version is stamped by the release scripts (-X main.version=...); this is
+// the default for source builds.
+var version = "0.2.0-alpha"
 
 func usage() {
 	fmt.Println(`WittyMediaServer
@@ -36,7 +38,10 @@ usage:
   wms [serve] [flags]        start the server (default)
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
-  wms dvd walk <image>       run first-play and print the menu the viewer would see
+  wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons
+  wms dvd crawl <image>      press every button of every menu and report dead ends
+  wms dvd pgc <image> fp|vmgm|vtsm|vts <vts> <pgcn>
+                             disassemble one program chain
   wms dvd render <image> <out-dir>
                              write menu overlay/highlight PNGs for the first menu
   wms version`)

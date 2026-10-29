@@ -33,3 +33,9 @@ export const IconFolder = (p: P) => <S {...p} d="M10 4H4a2 2 0 00-2 2v12a2 2 0 0
 export const IconUsers = (p: P) => <S {...p} d="M16 11a3 3 0 100-6 3 3 0 000 6zm-8 0a3 3 0 100-6 3 3 0 000 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0l-.9.1A4.4 4.4 0 0117 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z" />
 export const IconLogout = (p: P) => <S {...p} d="M17 7l-1.4 1.4 2.6 2.6H9v2h9.2l-2.6 2.6L17 17l5-5zM5 5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h7v-2H5z" />
 export const IconInfo = (p: P) => <S {...p} d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 100 20 10 10 0 000-20z" />
+export const IconTv = (p: P) => <S {...p} d="M21 3H3a2 2 0 00-2 2v12a2 2 0 002 2h5v2h8v-2h5a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H3V5h18z" />
+export const IconImage = (p: P) => <S {...p} d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z" />
+export const IconEject = (p: P) => <S {...p} d="M5 17h14v2H5zm7-12L5.3 15h13.4z" />
+export const IconRew = (p: P) => <S {...p} d="M11 18V6l-8.5 6zm.5-6l8.5 6V6z" />
+export const IconFf = (p: P) => <S {...p} d="M4 18l8.5-6L4 6zm9-12v12l8.5-6z" />
+export const IconStop = (p: P) => <S {...p} d="M6 6h12v12H6z" />

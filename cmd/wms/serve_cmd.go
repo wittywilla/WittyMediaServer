@@ -23,6 +23,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/server"
+	"github.com/wittywilla/wittymediaserver/internal/themes"
+	builtinthemes "github.com/wittywilla/wittymediaserver/themes"
 	"github.com/wittywilla/wittymediaserver/web"
 )
 
@@ -50,6 +52,8 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("ffmpeg", "path", tools.FFmpeg, "version", tools.Version)
+	// Find out which hardware encoders really work here (for Settings).
+	go tools.ProbeHardware(context.Background())
 
 	database, err := db.Open(cfg.DataDir)
 	if err != nil {
@@ -61,8 +65,18 @@ func cmdServe(args []string) int {
 	store := &library.Store{DB: database}
 	tmdbKey := func() string { return database.GetSetting(context.Background(), "tmdbKey", "") }
 	scanner := library.NewScanner(store, tools, cfg.CacheDir, tmdbKey, log)
+	scanner.TVDBKey = func() (string, string) {
+		ctx := context.Background()
+		return database.GetSetting(ctx, "tvdbKey", ""), database.GetSetting(ctx, "tvdbPin", "")
+	}
+	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
+
+	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}
+	if err := themeMgr.Install(builtinthemes.Builtin); err != nil {
+		log.Warn("themes", "err", err)
+	}
 
 	webFS := web.Dist()
 	if cfg.Dev {
@@ -70,7 +84,7 @@ func cmdServe(args []string) int {
 	}
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
-		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, Web: webFS, Version: version,
+		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, Themes: themeMgr, Web: webFS, Version: version,
 	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,

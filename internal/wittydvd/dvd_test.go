@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"os"
@@ -159,5 +159,19 @@ func TestRealDisc(t *testing.T) {
 	}
 	if !found {
 		t.Log("no menu with buttons reached from first play (disc may go straight to the feature)")
+	}
+}
+
+func BenchmarkRun(b *testing.B) {
+	prog := []Command{
+		cmd(0x71, 0x0a, 0, 2, 0, 0, 0, 0),       // g10 = 2
+		cmd(0x00, 0xa1, 0, 0x0a, 0, 3, 0, 4),    // if (g10 == 3) Goto 4
+		cmd(0x71, 0x0b, 0, 7, 0, 0, 0, 0),       // g11 = 7
+		cmd(0x20, 0xa4, 0, 0x0a, 0, 2, 0, 0x30), // if (g10 == 2) LinkPGCN 48
+	}
+	r := NewRegisters(RegisterOptions{})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		r.Run(prog, RunOptions{})
 	}
 }

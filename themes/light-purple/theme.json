@@ -1,0 +1,15 @@
+{
+  "id": "light-purple",
+  "name": "Light Purple",
+  "description": "Light surfaces with a purple accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f1f2f8",
+    "surface": "#e8eaf2",
+    "text": "#15171c",
+    "accent": "#6d4fe0"
+  }
+}

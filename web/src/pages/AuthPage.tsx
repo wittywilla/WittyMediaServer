@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { api, setToken, type User } from '../api'
 import { useApp } from '../state'
+import { Brand, VersionTag } from '../components/common'
 
 export default function AuthPage({ setup }: { setup: boolean }) {
-  const { setUser } = useApp()
+  const { setUser, brandName, version } = useApp()
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -27,7 +28,7 @@ export default function AuthPage({ setup }: { setup: boolean }) {
   return (
     <div className="center">
       <form className="auth-card" onSubmit={submit}>
-        <div className="brand"><img src="/icon.svg" alt="" /><span>Witty<b>Media</b>Server</span></div>
+        <div className="brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></div>
         <p>{setup ? 'Welcome! Create the administrator account to get started.' : 'Sign in to your media server.'}</p>
         <div className="form">
           <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>
@@ -37,6 +38,7 @@ export default function AuthPage({ setup }: { setup: boolean }) {
           <button className="btn primary" disabled={busy} style={{ justifyContent: 'center' }}>{setup ? 'Create account' : 'Sign in'}</button>
         </div>
       </form>
+      <div className="auth-version"><VersionTag version={version} /></div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, backdropUrl, fmtRuntime, isDisc, type Home } from '../api'
-import { EmptyState, ItemCard, Spinner } from '../components/common'
+import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconInfo, IconPlay } from '../icons'
 import { useApp } from '../state'
 
@@ -13,7 +13,7 @@ export default function HomePage() {
   if (err) return <div className="error">{err}</div>
   if (!home) return <Spinner />
   if (home.libraries.length === 0) {
-    return <EmptyState title="Welcome to WittyMediaServer" text="Add a library pointing at a folder of movies or DVD ISOs to get started."
+    return <EmptyState title="Welcome to WittyMediaServer" text="Add a library pointing at a folder of movies, TV shows or DVD ISOs to get started."
       action={<Link className="btn primary" to="/settings/libraries">Add a library</Link>} />
   }
   return (
@@ -25,7 +25,10 @@ export default function HomePage() {
             <h2>{h.title}</h2>
             {h.libraryId && <Link to={`/library/${h.libraryId}`}>See all ›</Link>}
           </div>
-          <div className="row">{h.items.map((it) => <ItemCard key={it.id} item={it} />)}</div>
+          <div className="row">
+            {h.items.map((it) => <ItemCard key={it.id} item={it} />)}
+            {(h.shows || []).map((s) => <ShowCard key={'s' + s.id} show={s} />)}
+          </div>
         </section>
       ))}
       {home.hubs.length === 0 && <EmptyState title="Nothing here yet" text="Your libraries are empty or still scanning." />}

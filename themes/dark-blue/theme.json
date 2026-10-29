@@ -1,0 +1,15 @@
+{
+  "id": "dark-blue",
+  "name": "Dark Blue",
+  "description": "Dark surfaces with a blue accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#12151c",
+    "surface": "#212631",
+    "text": "#ececf1",
+    "accent": "#3b82f6"
+  }
+}

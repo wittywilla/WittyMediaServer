@@ -15,6 +15,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"version":       s.Version,
 		"setupRequired": s.Auth.UserCount(r.Context()) == 0,
 		"user":          u,
+		"brandName":     s.DB.GetSetting(r.Context(), "brandName", ""),
+		"theme":         s.DB.GetSetting(r.Context(), "theme", "default"),
 	})
 }
 

@@ -53,6 +53,21 @@ type Item struct {
 	AddedAt       int64     `json:"addedAt"`
 	UpdatedAt     int64     `json:"updatedAt"`
 	Missing       bool      `json:"missing"`
+	// TV episodes (shows libraries):
+	ShowID     *int64 `json:"showId,omitempty"`
+	ShowTitle  string `json:"showTitle,omitempty"`
+	Season     *int   `json:"season,omitempty"`
+	Episode    *int   `json:"episode,omitempty"`
+	EpisodeEnd *int   `json:"episodeEnd,omitempty"` // multi-episode files (S02E15-E16)
+	Aired      string `json:"aired,omitempty"`
+	NextID     *int64 `json:"nextId,omitempty"` // next episode, filled by the item endpoint
+	// Per-item viewer preferences (set from the item's settings, never by scans):
+	PlayMode string `json:"playMode"` // DVDs: menu | title | "" (server default)
+	InsertFX string `json:"insertFx"` // DVDs: on | off | "" (server default)
+	// Intro range for "Skip intro" (seconds); the item endpoint falls back to
+	// the show's range.
+	IntroStart *float64 `json:"introStart,omitempty"`
+	IntroEnd   *float64 `json:"introEnd,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
 }
@@ -208,7 +223,9 @@ func (s *Store) setScanning(ctx context.Context, id int64, on bool) {
 
 const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.year, i.overview, i.tagline, i.genres, i.rating,
 	i.content_rating, i.studio, i.runtime_sec, i.poster, i.backdrop, i.container, i.video_codec, i.width, i.height,
-	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing`
+	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing,
+	i.show_id, (SELECT s.title FROM shows s WHERE s.id = i.show_id), i.season, i.episode, i.episode_end, i.aired,
+	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end`
 
 func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var it Item
@@ -217,12 +234,24 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var rating, runtime sql.NullFloat64
 	var width, height, size, mtime sql.NullInt64
 	var missing int
+	var showID, season, episode, episodeEnd sql.NullInt64
+	var showTitle, aired sql.NullString
+	var introStart, introEnd sql.NullFloat64
 	err := sc.Scan(&it.ID, &it.LibraryID, &it.Kind, &it.Path, &it.Title, &it.SortTitle, &year, &overview, &tagline, &genres, &rating,
 		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
-		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing)
+		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
+		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd)
 	if err != nil {
 		return nil, err
 	}
+	if introStart.Valid && introEnd.Valid {
+		it.IntroStart, it.IntroEnd = &introStart.Float64, &introEnd.Float64
+	}
+	if showID.Valid {
+		it.ShowID = &showID.Int64
+	}
+	it.ShowTitle, it.Aired = showTitle.String, aired.String
+	it.Season, it.Episode, it.EpisodeEnd = nullInt(season), nullInt(episode), nullInt(episodeEnd)
 	if year.Valid {
 		y := int(year.Int64)
 		it.Year = &y
@@ -247,6 +276,14 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 		}
 	}
 	return &it, nil
+}
+
+func nullInt(v sql.NullInt64) *int {
+	if !v.Valid {
+		return nil
+	}
+	n := int(v.Int64)
+	return &n
 }
 
 func splitList(s string) []string {
@@ -275,6 +312,9 @@ type ItemQuery struct {
 	Offset    int
 	Genre     string
 	Kind      string
+	ShowID    int64
+	// NoEpisodes leaves TV episodes out (home hero, movie views).
+	NoEpisodes bool
 }
 
 func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
@@ -297,6 +337,13 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "i.kind = ?")
 		args = append(args, q.Kind)
 	}
+	if q.NoEpisodes {
+		where = append(where, "i.show_id IS NULL")
+	}
+	if q.ShowID != 0 {
+		where = append(where, "i.show_id = ?")
+		args = append(args, q.ShowID)
+	}
 	order := "i.sort_title COLLATE NOCASE"
 	switch q.Sort {
 	case "added":
@@ -309,6 +356,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		order = "IFNULL(i.runtime_sec, 0)"
 	case "updated":
 		order = "i.updated_at"
+	case "episode":
+		order = "IFNULL(i.season, 0), IFNULL(i.episode, 0)"
 	}
 	if q.Desc {
 		order += " DESC"
@@ -366,11 +415,12 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	if it.ID == 0 {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, year, overview, tagline, genres, rating,
 			content_rating, studio, runtime_sec, poster, backdrop, container, video_codec, width, height, audio_langs, sub_langs, disc_json,
-			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)`,
+			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?)`,
 			it.LibraryID, it.Kind, it.Path, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 			it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
-			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now)
+			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now,
+			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd)
 		if err != nil {
 			return err
 		}
@@ -380,11 +430,19 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
-		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0 WHERE id=?`,
+		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0,
+		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=? WHERE id=?`,
 		it.Kind, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 		it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
-		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, it.ID)
+		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now,
+		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, it.ID)
 	it.UpdatedAt = now
+	return err
+}
+
+// SetItemPrefs stores per-item viewer preferences.
+func (s *Store) SetItemPrefs(ctx context.Context, id int64, playMode, insertFX string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE items SET play_mode = ?, insert_fx = ? WHERE id = ?`, playMode, insertFX, id)
 	return err
 }
 

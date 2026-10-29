@@ -36,9 +36,18 @@ type Spec struct {
 	SegmentSec    float64
 	MaxHeight     int    // 0 = source
 	VideoBitrate  string // e.g. "8M"; empty = quality mode
-	HW            bool
-	LowLatency    bool // menus: tiny segments, zerolatency
-	CopyVideo     bool // remux (h264 sources); keyframe alignment is approximate
+	// Quality is the encoder choice and quality profile from Settings.
+	Quality    ffmpeg.Quality
+	LowLatency bool // menus: tiny segments, zerolatency
+	CopyVideo  bool // remux (h264 sources); keyframe alignment is approximate
+	// Preset overrides the libx264 preset (e.g. "superfast" for DVD menus or
+	// low-power machines). Ignored by hardware encoders.
+	Preset string
+	// HoldLastFrame pads video (and audio) to Duration by repeating the last
+	// frame. DVD menus and transitions are often a single still picture
+	// shown for many seconds; without this the stream would be one frame
+	// long and players stall waiting for more.
+	HoldLastFrame bool
 }
 
 type job struct {
@@ -236,6 +245,19 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	return "", errors.New("timed out waiting for segment")
 }
 
+// Warm starts FFmpeg on the first segment in the background (if nothing has
+// been produced yet) so a stream the viewer is about to see is ready sooner.
+func (s *Session) Warm() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.job != nil || fileReady(s.segPath(0)) {
+		return
+	}
+	if _, err := s.startLocked(0); err != nil {
+		s.log.Debug("warm failed", "err", err)
+	}
+}
+
 func fileReady(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && st.Size() > 0
@@ -256,8 +278,17 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	sp := s.Spec
 	start := float64(fromSeg) * sp.SegmentSec
 	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y"}
-	if sp.HW && s.tools.Encoders["h264_nvenc"] && !sp.CopyVideo {
-		args = append(args, "-hwaccel", "auto")
+	plan := s.tools.Plan(sp.Quality)
+	if sp.Preset != "" && plan.Name == "libx264" && len(sp.Quality.VideoArgs) == 0 {
+		q := sp.Quality
+		q.Preset = sp.Preset
+		plan = s.tools.Plan(q)
+	}
+	if !sp.CopyVideo {
+		args = append(args, plan.InputArgs...)
+		if plan.Name == "h264_nvenc" {
+			args = append(args, "-hwaccel", "auto")
+		}
 	}
 	if start > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
@@ -281,7 +312,13 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.MaxHeight > 0 {
 			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
 		}
-		vf = append(vf, "setsar=1", "format=yuv420p")
+		if sp.HoldLastFrame {
+			vf = append(vf, fmt.Sprintf("tpad=stop_mode=clone:stop_duration=%.3f", sp.Duration))
+		}
+		vf = append(vf, "setsar=1", "format="+plan.PixFmt)
+		if plan.Upload != "" {
+			vf = append(vf, plan.Upload)
+		}
 		if sp.SubtitleIndex >= 0 {
 			// Burn bitmap/text subtitles in via a filter graph.
 			graph := fmt.Sprintf("[0:v:0]%s[v0];[0:s:%d]scale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", strings.Join(vf, ","), sp.SubtitleIndex)
@@ -289,11 +326,11 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		} else {
 			args = append(args, "-vf", strings.Join(vf, ","))
 		}
-		enc, encArgs := s.tools.H264Encoder(sp.HW)
+		enc := plan.Name
 		args = append(args, "-c:v", enc)
-		args = append(args, encArgs...)
-		if sp.VideoBitrate != "" {
-			args = append(args, "-maxrate", sp.VideoBitrate, "-bufsize", sp.VideoBitrate)
+		args = append(args, plan.Args...)
+		if rate := firstNonEmpty(sp.VideoBitrate, sp.Quality.MaxRate); rate != "" && len(sp.Quality.VideoArgs) == 0 {
+			args = append(args, "-maxrate", rate, "-bufsize", rate)
 		}
 		if sp.LowLatency && enc == "libx264" {
 			args = append(args, "-tune", "zerolatency")
@@ -309,15 +346,23 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			ch = 2
 		}
 		args = append(args, "-c:a", codec)
+		af := "aresample=async=1:first_pts=0"
+		if sp.HoldLastFrame {
+			af += ",apad"
+		}
 		switch {
 		case ch == 2 || ch == 0:
-			args = append(args, "-ac", "2", "-b:a", "192k", "-af", "aresample=async=1:first_pts=0")
+			args = append(args, "-ac", "2", "-b:a", firstNonEmpty(sp.Quality.AudioRate, "192k"), "-af", af)
 		default:
-			args = append(args, "-ac", strconv.Itoa(ch), "-b:a", "384k", "-af", "aresample=async=1:first_pts=0")
+			args = append(args, "-ac", strconv.Itoa(ch), "-b:a", "384k", "-af", af)
 		}
 	} else {
 		args = append(args, "-an")
 	}
+	if sp.HoldLastFrame && sp.Duration > start {
+		args = append(args, "-t", strconv.FormatFloat(sp.Duration-start, 'f', 3, 64))
+	}
+	args = append(args, sp.Quality.OutputArgs...)
 	args = append(args,
 		"-sn",
 		"-output_ts_offset", strconv.FormatFloat(start, 'f', 3, 64),
@@ -367,6 +412,15 @@ func (s *Session) watch(j *job) {
 			}
 		}
 	}
+}
+
+func firstNonEmpty(v ...string) string {
+	for _, s := range v {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 func tail(s string, n int) string {

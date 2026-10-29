@@ -1,0 +1,15 @@
+{
+  "id": "light-orange",
+  "name": "Light Orange",
+  "description": "Light surfaces with a orange accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f4f2f3",
+    "surface": "#eaeaed",
+    "text": "#15171c",
+    "accent": "#ea580c"
+  }
+}

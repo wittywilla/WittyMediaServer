@@ -1,0 +1,44 @@
+/*
+ * WittyMediaServer - a WittyMediaServer theme.
+ * The original look: deep slate with a violet accent.
+ *
+ * Every variable below is documented in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces, darkest/lightest first */
+  --bg: #0f1115;          /* page background */
+  --bg-2: #171a21;        /* sidebar, panels, modals */
+  --bg-3: #1f232c;        /* inputs, cards, hovered rows */
+  --bg-4: #2a2f3a;        /* borders, scrollbar, pressed buttons */
+  --bg-rgb: 15 17 21;   /* --bg as "R G B" for translucent shades */
+  --border: #0a0b0e;      /* hairlines between panels */
+
+  /* Text */
+  --fg: #e8eaf0;          /* primary text */
+  --fg-2: #a9afbd;        /* secondary text */
+  --fg-3: #6f7686;        /* hints, captions */
+
+  /* Accent (buttons, highlights, progress bars, selected items) */
+  --accent: #8b6cff;
+  --accent-2: #6a4df0;      /* hover / pressed accent */
+  --accent-fg: #ffffff;     /* text on accent backgrounds */
+  --accent-rgb: 139 108 255;
+  --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
+
+  /* Status colours */
+  --danger: #ff5c6c;
+  --ok: #3ad29f;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

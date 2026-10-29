@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/wittywilla/wittymediaserver/internal/disc/isofs"
 )
@@ -44,7 +45,25 @@ type Opened struct {
 	Source Source
 	Label  string
 	Format string
-	spaces map[Space][]FileExtent
+
+	mu      sync.Mutex
+	spaces  map[Space][]FileExtent
+	readers map[Space]*spaceReader
+	scans   map[scanKey]*MenuPicture
+	subs    map[subsKey]*CellSubs
+}
+
+// scanKey identifies a menu scan whose result does not depend on viewer
+// state (the default button is applied afterwards with WithDefault).
+type scanKey struct {
+	sp          Space
+	first, last uint32
+	palette     [16]uint32
+	video       VideoAttr
+	subp        SubpControl
+	hasSubp     bool
+	wide        bool
+	maxHops     int
 }
 
 // Open opens an ISO/IMG image or a VIDEO_TS directory.
@@ -103,13 +122,28 @@ func Open(p string) (*Opened, error) {
 		}
 		d.VTS[n] = v
 	}
-	return &Opened{Disc: d, Source: src, Label: label, Format: format, spaces: map[Space][]FileExtent{}}, nil
+	return &Opened{Disc: d, Source: src, Label: label, Format: format, spaces: map[Space][]FileExtent{}, readers: map[Space]*spaceReader{}, scans: map[scanKey]*MenuPicture{}}, nil
 }
 
-func (o *Opened) Close() error { return o.Source.Close() }
+// Close releases the reader file handles and the source.
+func (o *Opened) Close() error {
+	o.mu.Lock()
+	for _, r := range o.readers {
+		r.Close()
+	}
+	o.readers = map[Space]*spaceReader{}
+	o.mu.Unlock()
+	return o.Source.Close()
+}
 
 // Extents returns the VOB address space extents (cached).
 func (o *Opened) Extents(sp Space) ([]FileExtent, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.extentsLocked(sp)
+}
+
+func (o *Opened) extentsLocked(sp Space) ([]FileExtent, error) {
 	if e, ok := o.spaces[sp]; ok {
 		return e, nil
 	}
@@ -162,24 +196,64 @@ func sliceExtents(all []FileExtent, off, length int64) []FileExtent {
 	return out
 }
 
-// Reader returns a SectorReader over a space.
+// Reader returns a SectorReader over a space. Readers are shared and keep
+// their file handles open until the disc is closed.
 func (o *Opened) Reader(sp Space) (SectorReader, error) {
-	ext, err := o.Extents(sp)
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if r, ok := o.readers[sp]; ok {
+		return r, nil
+	}
+	ext, err := o.extentsLocked(sp)
 	if err != nil {
 		return nil, err
 	}
 	if len(ext) == 0 {
 		return nil, errors.New("dvd: VOB missing")
 	}
-	return &spaceReader{ext: ext, files: map[string]*os.File{}}, nil
+	r := &spaceReader{ext: ext, files: map[string]*os.File{}}
+	o.readers[sp] = r
+	return r, nil
+}
+
+// Menu scans a cell for its highlight information, caching the result per
+// disc so revisiting a menu (or moving the highlight) never touches the disk.
+func (o *Opened) Menu(sp Space, first, last uint32, opt MenuScanOptions) (*MenuPicture, error) {
+	k := scanKey{sp: sp, first: first, last: last, palette: opt.Palette, video: opt.Video, wide: opt.Wide, maxHops: opt.MaxHops}
+	if opt.SubpControl != nil {
+		k.subp, k.hasSubp = *opt.SubpControl, true
+	}
+	o.mu.Lock()
+	pic, ok := o.scans[k]
+	o.mu.Unlock()
+	if !ok {
+		rd, err := o.Reader(sp)
+		if err != nil {
+			return nil, err
+		}
+		pic, err = ScanMenu(rd, first, last, opt)
+		if err != nil {
+			return nil, err
+		}
+		o.mu.Lock()
+		if len(o.scans) > 512 {
+			o.scans = map[scanKey]*MenuPicture{}
+		}
+		o.scans[k] = pic
+		o.mu.Unlock()
+	}
+	return pic.WithDefault(opt.NavButton), nil
 }
 
 type spaceReader struct {
 	ext   []FileExtent
+	mu    sync.Mutex
 	files map[string]*os.File
 }
 
 func (r *spaceReader) file(name string) (*os.File, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if f, ok := r.files[name]; ok {
 		return f, nil
 	}
@@ -194,27 +268,34 @@ func (r *spaceReader) file(name string) (*os.File, error) {
 func (r *spaceReader) ReadSectors(first uint32, count int) ([]byte, error) {
 	want := int64(count) * Sector
 	parts := sliceExtents(r.ext, int64(first)*Sector, want)
-	out := make([]byte, 0, want)
+	out := make([]byte, want)
+	got := 0
 	for _, p := range parts {
 		f, err := r.file(p.File)
 		if err != nil {
 			return nil, err
 		}
-		buf := make([]byte, p.Length)
-		n, err := f.ReadAt(buf, p.Offset)
-		out = append(out, buf[:n]...)
+		// Read straight into the result: no intermediate copy per extent.
+		n, err := f.ReadAt(out[got:got+int(p.Length)], p.Offset)
+		got += n
 		if err != nil && !errors.Is(err, io.EOF) {
-			return out, err
+			return out[:got], err
+		}
+		if int64(n) < p.Length {
+			break
 		}
 	}
-	return out, nil
+	return out[:got], nil
 }
 
 // Close releases file handles held by the reader.
 func (r *spaceReader) Close() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	for _, f := range r.files {
 		f.Close()
 	}
+	r.files = map[string]*os.File{}
 }
 
 // ---------------------------------------------------------------------------

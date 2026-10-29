@@ -1,0 +1,15 @@
+{
+  "id": "dark-purple",
+  "name": "Dark Purple",
+  "description": "Dark surfaces with a purple accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#14141c",
+    "surface": "#242631",
+    "text": "#ececf1",
+    "accent": "#8b6cff"
+  }
+}

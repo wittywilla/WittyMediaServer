@@ -1,0 +1,15 @@
+{
+  "id": "dark-gold",
+  "name": "Dark Gold",
+  "description": "Dark surfaces with a gold accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#181714",
+    "surface": "#272829",
+    "text": "#ececf1",
+    "accent": "#eab308"
+  }
+}

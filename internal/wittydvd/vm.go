@@ -1,9 +1,10 @@
-package dvd
+package wittydvd
 
 import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 )
 
 // Register file of the DVD virtual machine.
@@ -721,8 +722,6 @@ type Result struct {
 	Jump   *Jump
 	Reason string
 	Steps  int
-	// Register writes, for callers that care which SPRMs changed.
-	Changed []int // SPRM indexes written (negative = GPRM: -(i+1))
 }
 
 type stepKind int
@@ -777,9 +776,7 @@ func (r *Registers) doSet(in *Instr, res *Result) {
 		r.GPRM[in.setD] = s
 		if in.setS.isReg && in.setS.reg < 16 {
 			r.GPRM[in.setS.reg] = d
-			res.Changed = append(res.Changed, -(in.setS.reg + 1))
 		}
-		res.Changed = append(res.Changed, -(in.setD + 1))
 		return
 	case setAdd:
 		v = clamp16(int(d) + int(s))
@@ -817,12 +814,10 @@ func (r *Registers) doSet(in *Instr, res *Result) {
 		v = d ^ s
 	}
 	r.GPRM[in.setD] = v
-	res.Changed = append(res.Changed, -(in.setD + 1))
 }
 
-func (r *Registers) setSPRM(i int, v uint16, res *Result) {
+func (r *Registers) setSPRM(i int, v uint16, _ *Result) {
 	r.SPRM[i] = v
-	res.Changed = append(res.Changed, i)
 }
 
 func (r *Registers) doSystem(in *Instr, res *Result) {
@@ -843,7 +838,6 @@ func (r *Registers) doSystem(in *Instr, res *Result) {
 	case sysSetGPRMMD:
 		r.GPRM[in.sysN] = r.read(in.sysA)
 		r.Counter[in.sysN] = in.sysCt
-		res.Changed = append(res.Changed, -(in.sysN + 1))
 	case sysSetAMXMD:
 		r.setSPRM(SprmAudioMix, r.read(in.sysA), res)
 	case sysSetHLBTNN:
@@ -916,6 +910,31 @@ func (r *Registers) exec(in *Instr, res *Result) (stepKind, int) {
 	return stLink, 0
 }
 
+// Decoded instructions are cached: a disc only has a few thousand distinct
+// commands but the navigator re-runs them constantly (every cell, button and
+// loop check), and decoding allocates. Decoded instructions are immutable.
+var decoded = struct {
+	sync.RWMutex
+	m map[Command]*Instr
+}{m: map[Command]*Instr{}}
+
+func decodeCached(c Command) *Instr {
+	decoded.RLock()
+	in := decoded.m[c]
+	decoded.RUnlock()
+	if in != nil {
+		return in
+	}
+	d := Decode(c)
+	decoded.Lock()
+	if len(decoded.m) >= 1<<14 {
+		decoded.m = map[Command]*Instr{}
+	}
+	decoded.m[c] = &d
+	decoded.Unlock()
+	return &d
+}
+
 const maxVMSteps = 10000
 
 // RunOptions tune Run.
@@ -940,12 +959,12 @@ func (r *Registers) Run(cmds []Command, o RunOptions) Result {
 			res.Steps = steps
 			return res
 		}
-		in := Decode(cmds[pc])
+		in := decodeCached(cmds[pc])
 		if in.Invalid != "" {
 			res.Kind, res.Reason = ResultStop, fmt.Sprintf("command %d: %s", pc+1, in.Invalid)
 			return res
 		}
-		k, arg := r.exec(&in, &res)
+		k, arg := r.exec(in, &res)
 		res.Steps = steps + 1
 		switch k {
 		case stNext:
@@ -969,4 +988,19 @@ func (r *Registers) Run(cmds []Command, o RunOptions) Result {
 			return res
 		}
 	}
+}
+
+// SetsHighlight reports whether any of the PGC's commands select a button
+// (SetHL_BTNN, or a link that carries a button number). Such program chains
+// drive buttons even when they sit in the title domain.
+func (p *PGC) SetsHighlight() bool {
+	for _, list := range [][]Command{p.Pre, p.Post, p.CellCmds} {
+		for _, c := range list {
+			in := decodeCached(c)
+			if in.sys == sysSetHLBTNN || (in.link != nil && in.link.Button != 0) {
+				return true
+			}
+		}
+	}
+	return false
 }

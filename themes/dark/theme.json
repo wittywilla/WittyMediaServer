@@ -1,0 +1,15 @@
+{
+  "id": "dark",
+  "name": "Dark",
+  "description": "Neutral graphite with a soft white accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#101114",
+    "surface": "#20232a",
+    "text": "#ececf1",
+    "accent": "#e4e6eb"
+  }
+}

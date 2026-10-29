@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"fmt"
@@ -144,6 +144,12 @@ func (n *Nav) fresh() *navState {
 		ro.Region = n.Disc.Region()
 	}
 	return &navState{regs: NewRegisters(ro)}
+}
+
+// Clone returns an independent navigator in the same state (for what-if
+// exploration such as `wms dvd crawl`).
+func (n *Nav) Clone() *Nav {
+	return &Nav{Disc: n.Disc, opts: n.opts, st: n.st.clone()}
 }
 
 // Registers exposes the live register file (read-only use recommended).
@@ -825,6 +831,33 @@ func (n *Nav) PressButton(btn int, cmd *Command) *Step {
 	return n.settle(s, action{t: actVM, r: r}, false)
 }
 
+// SyncTitleCell tells the navigator which cell of the current title the
+// viewer has reached. Clients play a whole title as one stream, so without
+// this the navigator would still think it is on the first cell when the
+// viewer calls a menu (and Resume would restart from there).
+func (n *Nav) SyncTitleCell(pgcn, cellN int) bool {
+	s := n.st
+	if s.domain != DomainVTS || s.current == nil || s.current.Kind != StepTitle {
+		return false
+	}
+	p := n.pgcOf(s, DomainVTS, s.vts, pgcn)
+	if p == nil || cellN < 1 || cellN > len(p.Cells) {
+		return false
+	}
+	if pgcn != s.pgcn {
+		s.pgcn = pgcn
+		s.regs.SPRM[SprmTTPGCN] = uint16(pgcn)
+	}
+	s.cellN = cellN
+	pgn := programOf(p, cellN)
+	for i, x := range n.pttList(s) {
+		if x.PGCN == pgcn && x.PGN <= pgn {
+			s.regs.SPRM[SprmPTTN] = uint16(i + 1)
+		}
+	}
+	return true
+}
+
 // SelectButton highlights button n without activating it.
 func (n *Nav) SelectButton(btn int) *Step {
 	if btn >= 1 && btn <= 36 {
@@ -862,6 +895,21 @@ func (n *Nav) MenuKey(kind string) *Step {
 	return n.settle(s, a, false)
 }
 
+// GoUp is the remote's RETURN key: follow the PGC's go-up link, or resume
+// the title when there is none.
+func (n *Nav) GoUp() *Step {
+	s := n.st
+	if s.current != nil && s.current.Kind != StepStop {
+		if p := n.curPGC(s); p != nil && p.GoUpPGCN != 0 && s.domain != DomainFP {
+			return n.settle(s, pgcA(s.domain, s.vts, p.GoUpPGCN), false)
+		}
+	}
+	if s.resume == nil {
+		return n.keep(s, "")
+	}
+	return n.Resume()
+}
+
 // Resume returns to the title that called the menu.
 func (n *Nav) Resume() *Step { return n.settle(n.st, action{t: actResume}, false) }
 
@@ -870,7 +918,21 @@ func (n *Nav) PlayTitle(ttn, pttn int) *Step {
 	if pttn < 1 {
 		pttn = 1
 	}
-	return n.settle(n.st, n.playTitle(n.st, ttn, pttn), false)
+	snap := n.st.clone()
+	st := n.settle(n.st, n.playTitle(n.st, ttn, pttn), false)
+	if st.Kind == StepTitle && st.Title != nil && st.Title.TTN == ttn {
+		return st
+	}
+	// Many discs guard their feature: its pre-commands bounce to a menu
+	// unless the disc's own "Play movie" button set a flag first. The viewer
+	// asked for this title explicitly, so enter it without the guard.
+	n.st = snap
+	a := n.playTitle(n.st, ttn, pttn)
+	if a.t != actPGC {
+		return n.settle(n.st, a, false)
+	}
+	a.noPre = true
+	return n.settle(n.st, a, false)
 }
 
 // NextChapter / PrevChapter move within the current title.
@@ -928,7 +990,9 @@ func (n *Nav) SetAngle(a int) { n.st.regs.SPRM[SprmAngle] = uint16(a) }
 
 // Tick advances timers; returns a new step if the nav timer fired.
 func (n *Nav) Tick(seconds float64) *Step {
-	if n.st.regs.Tick(seconds) {
+	// The navigation timer only runs during title playback; in menus discs
+	// use it as scratch state, so firing there would jump unexpectedly.
+	if n.st.regs.Tick(seconds) && n.st.domain == DomainVTS && n.st.current != nil && n.st.current.Kind != StepStop {
 		return n.NavTimerFired()
 	}
 	return nil

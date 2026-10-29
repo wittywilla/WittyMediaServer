@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/disc/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 func cmdDVD(args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: wms dvd info|walk|render <image> [out-dir]")
+		fmt.Fprintln(os.Stderr, "usage: wms dvd info|walk|crawl|pgc|render <image> [args]")
 		return 2
 	}
-	o, err := dvd.Open(args[1])
+	o, err := wittydvd.Open(args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -30,6 +30,12 @@ func cmdDVD(args []string) int {
 		return dvdInfo(o)
 	case "walk":
 		return dvdWalk(o, args[2:])
+	case "crawl":
+		limit := 300
+		if len(args) > 2 {
+			fmt.Sscan(args[2], &limit)
+		}
+		return dvdCrawl(o, limit)
 	case "render":
 		if len(args) < 3 {
 			fmt.Fprintln(os.Stderr, "usage: wms dvd render <image> <out-dir>")
@@ -55,13 +61,13 @@ func hms(sec float64) string {
 	return fmt.Sprintf("%d:%02d:%02d", int(d.Hours()), int(d.Minutes())%60, int(d.Seconds())%60)
 }
 
-func dvdInfo(o *dvd.Opened) int {
+func dvdInfo(o *wittydvd.Opened) int {
 	d := o.Disc
 	fmt.Printf("label=%q format=%s provider=%q region-mask=%08b titlesets=%d\n", o.Label, o.Format, d.VMG.Provider, d.VMG.RegionMask, d.VMG.NumTitleSets)
 	if d.VMG.FirstPlay != nil {
 		fmt.Printf("first-play: %d pre / %d cells / %d post commands\n", len(d.VMG.FirstPlay.Pre), len(d.VMG.FirstPlay.Cells), len(d.VMG.FirstPlay.Post))
 		for i, c := range d.VMG.FirstPlay.Pre {
-			fmt.Printf("   pre %2d: %s\n", i+1, dvd.Decode(c))
+			fmt.Printf("   pre %2d: %s\n", i+1, wittydvd.Decode(c))
 		}
 	}
 	fmt.Printf("VMGM menus: %d language units\n", len(d.VMG.Menus))
@@ -100,7 +106,7 @@ func dvdInfo(o *dvd.Opened) int {
 	return 0
 }
 
-func describeStep(s *dvd.Step) string {
+func describeStep(s *wittydvd.Step) string {
 	still := fmt.Sprint(s.StillSec)
 	if math.IsInf(s.StillSec, 1) {
 		still = "inf"
@@ -115,19 +121,19 @@ func describeStep(s *dvd.Step) string {
 	return out
 }
 
-func menuFor(o *dvd.Opened, nav *dvd.Nav, s *dvd.Step) (*dvd.MenuPicture, error) {
-	sp := dvd.SpaceFor(s.Domain, s.VTS)
+func menuFor(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) (*wittydvd.MenuPicture, error) {
+	sp := wittydvd.SpaceFor(s.Domain, s.VTS)
 	rd, err := o.Reader(sp)
 	if err != nil {
 		return nil, err
 	}
-	var video dvd.VideoAttr
-	var subc *dvd.SubpControl
+	var video wittydvd.VideoAttr
+	var subc *wittydvd.SubpControl
 	pgc := pgcOfStep(o, nav, s)
 	switch s.Domain {
-	case dvd.DomainVTSM:
+	case wittydvd.DomainVTSM:
 		video = o.Disc.VTS[s.VTS].MenuVideo
-	case dvd.DomainVTS:
+	case wittydvd.DomainVTS:
 		video = o.Disc.VTS[s.VTS].Video
 	default:
 		video = o.Disc.VMG.MenuVideo
@@ -135,12 +141,12 @@ func menuFor(o *dvd.Opened, nav *dvd.Nav, s *dvd.Step) (*dvd.MenuPicture, error)
 	if pgc != nil {
 		subc = pgc.SubpControl[0]
 	}
-	return dvd.ScanMenu(rd, s.FirstSector, s.LastSector, dvd.MenuScanOptions{Palette: s.Palette, Video: video, SubpControl: subc, NavButton: s.DefaultButton})
+	return wittydvd.ScanMenu(rd, s.FirstSector, s.LastSector, wittydvd.MenuScanOptions{Palette: s.Palette, Video: video, SubpControl: subc, NavButton: s.DefaultButton})
 }
 
-func pgcOfStep(o *dvd.Opened, nav *dvd.Nav, s *dvd.Step) *dvd.PGC {
-	lang := nav.Registers().SPRM[dvd.SprmMenuLang]
-	pick := func(units []dvd.LangUnit) []dvd.PGCEntry {
+func pgcOfStep(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) *wittydvd.PGC {
+	lang := nav.Registers().SPRM[wittydvd.SprmMenuLang]
+	pick := func(units []wittydvd.LangUnit) []wittydvd.PGCEntry {
 		if len(units) == 0 {
 			return nil
 		}
@@ -151,15 +157,15 @@ func pgcOfStep(o *dvd.Opened, nav *dvd.Nav, s *dvd.Step) *dvd.PGC {
 		}
 		return units[0].PGCs
 	}
-	var list []dvd.PGCEntry
+	var list []wittydvd.PGCEntry
 	switch s.Domain {
-	case dvd.DomainFP:
+	case wittydvd.DomainFP:
 		return o.Disc.VMG.FirstPlay
-	case dvd.DomainVMGM:
+	case wittydvd.DomainVMGM:
 		list = pick(o.Disc.VMG.Menus)
-	case dvd.DomainVTSM:
+	case wittydvd.DomainVTSM:
 		list = pick(o.Disc.VTS[s.VTS].Menus)
-	case dvd.DomainVTS:
+	case wittydvd.DomainVTS:
 		list = o.Disc.VTS[s.VTS].PGCs
 	}
 	if s.PGCN >= 1 && s.PGCN <= len(list) {
@@ -171,12 +177,12 @@ func pgcOfStep(o *dvd.Opened, nav *dvd.Nav, s *dvd.Step) *dvd.PGC {
 // dvdWalk runs first play, auto-advancing through cells until a menu with
 // buttons (or a title) appears, then optionally presses buttons given on the
 // command line, e.g. "walk SHREK.ISO 1 2".
-func dvdWalk(o *dvd.Opened, presses []string) int {
-	nav := dvd.NewNav(o.Disc, dvd.NavOptions{})
+func dvdWalk(o *wittydvd.Opened, presses []string) int {
+	nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
 	s := nav.Start()
 	for hop := 0; hop < 50; hop++ {
 		fmt.Println("step:", describeStep(s))
-		if s.Kind == dvd.StepStop {
+		if s.Kind == wittydvd.StepStop {
 			return 0
 		}
 		pic, err := menuFor(o, nav, s)
@@ -196,7 +202,7 @@ func dvdWalk(o *dvd.Opened, presses []string) int {
 			var n int
 			fmt.Sscan(presses[0], &n)
 			presses = presses[1:]
-			var cmd *dvd.Command
+			var cmd *wittydvd.Command
 			for _, b := range pic.Buttons {
 				if b.N == n {
 					c := b.Cmd
@@ -207,16 +213,16 @@ func dvdWalk(o *dvd.Opened, presses []string) int {
 			s = nav.PressButton(n, cmd)
 			continue
 		}
-		if s.Kind == dvd.StepTitle {
+		if s.Kind == wittydvd.StepTitle {
 			if s.Title != nil && s.Title.Duration > 120 {
 				fmt.Println("   playing the feature; stopping walk")
 				return 0
 			}
 			fmt.Println("   short title: watching it through")
 			// Let every remaining cell of this title finish.
-			for i := 0; i < 64 && s.Kind == dvd.StepTitle; i++ {
+			for i := 0; i < 64 && s.Kind == wittydvd.StepTitle; i++ {
 				s = nav.CellEnded()
-				if s.Kind != dvd.StepTitle {
+				if s.Kind != wittydvd.StepTitle {
 					break
 				}
 			}
@@ -231,7 +237,7 @@ func dvdWalk(o *dvd.Opened, presses []string) int {
 	return 0
 }
 
-func writePNG(path string, r *dvd.RGBA, w, h int) error {
+func writePNG(path string, r *wittydvd.RGBA, w, h int) error {
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	if r != nil {
 		for y := 0; y < r.Height; y++ {
@@ -249,14 +255,14 @@ func writePNG(path string, r *dvd.RGBA, w, h int) error {
 	return png.Encode(f, img)
 }
 
-func dvdRender(o *dvd.Opened, outDir string) int {
+func dvdRender(o *wittydvd.Opened, outDir string) int {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	nav := dvd.NewNav(o.Disc, dvd.NavOptions{})
+	nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
 	s := nav.Start()
-	for hop := 0; hop < 50 && s.Kind != dvd.StepStop; hop++ {
+	for hop := 0; hop < 50 && s.Kind != wittydvd.StepStop; hop++ {
 		pic, err := menuFor(o, nav, s)
 		if err == nil && len(pic.Buttons) > 0 {
 			name := fmt.Sprintf("%s-vts%d-pgc%d-cell%d", s.DomainName, s.VTS, s.PGCN, s.CellN)
@@ -270,7 +276,7 @@ func dvdRender(o *dvd.Opened, outDir string) int {
 			}
 			fmt.Println("wrote", name, "with", len(pic.Buttons), "buttons to", outDir)
 			// Also dump the first 2 MB of the cell as raw MPEG-PS so a frame can be grabbed with ffmpeg.
-			if rd, err := o.Reader(dvd.SpaceFor(s.Domain, s.VTS)); err == nil {
+			if rd, err := o.Reader(wittydvd.SpaceFor(s.Domain, s.VTS)); err == nil {
 				n := int(s.LastSector-s.FirstSector) + 1
 				if n > 1024 {
 					n = 1024
@@ -281,8 +287,8 @@ func dvdRender(o *dvd.Opened, outDir string) int {
 			}
 			return 0
 		}
-		if s.Kind == dvd.StepTitle {
-			for i := 0; i < 64 && s.Kind == dvd.StepTitle; i++ {
+		if s.Kind == wittydvd.StepTitle {
+			for i := 0; i < 64 && s.Kind == wittydvd.StepTitle; i++ {
 				s = nav.CellEnded()
 			}
 			continue

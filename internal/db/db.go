@@ -69,6 +69,35 @@ var migrations = []string{
 	   position_sec REAL NOT NULL, duration_sec REAL NOT NULL, watched INTEGER NOT NULL DEFAULT 0,
 	   disc_title INTEGER, updated_at INTEGER NOT NULL, PRIMARY KEY(user_id, item_id));
 	 CREATE TABLE IF NOT EXISTS schema (version INTEGER NOT NULL);`,
+	// 2: TV libraries. Episodes stay rows in items (so playback, progress and
+	// search keep working) and point at a show; seasons hold per-season art.
+	`CREATE TABLE IF NOT EXISTS shows (
+	   id INTEGER PRIMARY KEY,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   path TEXT NOT NULL,             -- show folder
+	   title TEXT NOT NULL, sort_title TEXT NOT NULL, year INTEGER, overview TEXT,
+	   genres TEXT, rating REAL, content_rating TEXT, network TEXT, status TEXT,
+	   poster TEXT, backdrop TEXT, provider TEXT, provider_id TEXT,
+	   added_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+	   missing INTEGER NOT NULL DEFAULT 0,
+	   UNIQUE(library_id, path));
+	 CREATE TABLE IF NOT EXISTS seasons (
+	   show_id INTEGER NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
+	   number INTEGER NOT NULL, title TEXT, overview TEXT, poster TEXT,
+	   PRIMARY KEY(show_id, number));
+	 ALTER TABLE items ADD COLUMN show_id INTEGER REFERENCES shows(id) ON DELETE SET NULL;
+	 ALTER TABLE items ADD COLUMN season INTEGER;
+	 ALTER TABLE items ADD COLUMN episode INTEGER;
+	 ALTER TABLE items ADD COLUMN episode_end INTEGER;
+	 ALTER TABLE items ADD COLUMN aired TEXT;
+	 ALTER TABLE items ADD COLUMN play_mode TEXT;  -- DVDs: menu | title ('' = server default)
+	 ALTER TABLE items ADD COLUMN insert_fx TEXT;  -- DVDs: on | off ('' = server default)
+	 ALTER TABLE items ADD COLUMN intro_start REAL; -- from an "Intro"/"Opening" chapter
+	 ALTER TABLE items ADD COLUMN intro_end REAL;
+	 ALTER TABLE shows ADD COLUMN intro_start REAL; -- show-wide fallback set by the user
+	 ALTER TABLE shows ADD COLUMN intro_end REAL;
+	 ALTER TABLE shows ADD COLUMN view TEXT;        -- episode list: cards | list ('' = server default)
+	 CREATE INDEX IF NOT EXISTS items_show ON items(show_id, season, episode);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

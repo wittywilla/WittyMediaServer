@@ -9,16 +9,28 @@ import (
 	"strings"
 )
 
-var settingKeys = []string{"tmdbKey", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "serverName", "audioCodec"}
+var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
+	"serverName", "audioCodec", "lowPower", "saveMetadata", "dvdStart", "insertFx", "episodeView",
+	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName"}
+
+// settingDefaults are returned when a key has never been saved.
+var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
+	"theme": "default", "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21"}
+
+// secretSettings are masked when read back.
+var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	out := map[string]string{}
 	for _, k := range settingKeys {
-		out[k] = s.DB.GetSetting(r.Context(), k, "")
+		out[k] = s.DB.GetSetting(r.Context(), k, settingDefaults[k])
 	}
-	if out["tmdbKey"] != "" {
-		out["tmdbKeySet"] = "1"
-		out["tmdbKey"] = strings.Repeat("•", 8)
+	for _, k := range secretSettings {
+		if out[k] != "" {
+			out[k+"Set"] = "1"
+			out[k] = strings.Repeat("•", 8)
+		}
 	}
 	writeJSON(w, 200, out)
 }
@@ -34,7 +46,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			continue
 		}
-		if k == "tmdbKey" && strings.Contains(v, "•") {
+		if strings.Contains(v, "•") { // masked secret sent back unchanged
 			continue
 		}
 		if err := s.DB.SetSetting(r.Context(), k, strings.TrimSpace(v)); err != nil {
@@ -47,6 +59,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 	host, _ := os.Hostname()
+	hwList, hwDone := s.Tools.HardwareStatus()
 	var encoders []string
 	for _, e := range []string{"libx264", "libopenh264", "h264_nvenc", "h264_qsv", "h264_amf", "h264_vaapi", "h264_videotoolbox"} {
 		if s.Tools.Encoders[e] {
@@ -63,6 +76,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"ffmpeg":      s.Tools.FFmpeg,
 		"ffmpegInfo":  s.Tools.Version,
 		"encoders":    encoders,
+		"hardware":    hwList,
+		"hwTested":    hwDone,
 		"dvdSessions": s.DVD.Count(),
 	})
 }

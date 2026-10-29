@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, backdropUrl, fmtRuntime, fmtTime, isDisc, langName, posterUrl, type Item } from '../api'
+import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs } from '../api'
+import ArtworkPicker from '../components/ArtworkPicker'
 import { Spinner, isGeneratedArt } from '../components/common'
-import { IconDisc, IconEdit, IconPlay, IconRefresh } from '../icons'
+import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 
 export default function ItemPage() {
@@ -12,8 +13,12 @@ export default function ItemPage() {
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState(false)
+  const [art, setArt] = useState(false)
+  const [discSettings, setDiscSettings] = useState(false)
+  const [prefs, setPrefs] = useState<Prefs | null>(null)
   const load = () => api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
   useEffect(() => { load() }, [id])
+  useEffect(() => { getPrefs().then(setPrefs) }, [])
   if (err) return <div className="error">{err}</div>
   if (!it) return <Spinner />
   const disc = isDisc(it)
@@ -23,6 +28,9 @@ export default function ItemPage() {
     try { setIt(await api.put<Item>(`/items/${it.id}`, { refresh: true })); toast('Metadata refreshed') } catch (e: any) { toast(e.message) }
   }
   const sizeGB = it.sizeBytes ? (it.sizeBytes / 1e9).toFixed(2) + ' GB' : ''
+  const start = dvdStartMode(it, prefs)
+  const fx = insertFxOn(it, prefs)
+  const playable = !(disc && it.disc?.scrambled)
   return (
     <>
       <div className="detail-hero">
@@ -34,25 +42,51 @@ export default function ItemPage() {
           <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')}>{it.poster && <img src={posterUrl(it)} alt="" />}</div>
         </div>
         <div>
+          {it.showId != null && (
+            <div className="crumbs">
+              <Link to={`/show/${it.showId}`}>{it.showTitle}</Link>
+              {it.season != null && <> › <Link to={`/show/${it.showId}?season=${it.season}`}>{it.season === 0 ? 'Specials' : `Season ${it.season}`}</Link></>}
+              {episodeLabel(it) && <> › {episodeLabel(it)}</>}
+            </div>
+          )}
           <h1>{it.title}</h1>
           {it.tagline && <div className="tagline">{it.tagline}</div>}
           <div className="meta">
-            {it.year && <span>{it.year}</span>}
+            {it.aired ? <span>{it.aired}</span> : it.year && <span>{it.year}</span>}
             {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
             {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
             {(it.genres || []).length > 0 && <span>{it.genres.join(', ')}</span>}
             {it.studio && <span>{it.studio}</span>}
           </div>
-          <div className="actions">
-            <button className="btn primary" onClick={() => nav(`/play/${it.id}`)}>
-              <IconPlay /> {resume ? `Resume from ${fmtTime(resume.positionSec)}` : 'Play'}
-            </button>
-            {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
-            {disc && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}><IconDisc /> Play with DVD menu</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
-          </div>
+          {disc ? (
+            <div className="actions disc-actions">
+              <button className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}
+                title={start === 'menu' ? 'Start the disc like a DVD player: first-play, intros, then the main menu' : 'Start the disc straight into the main feature'}>
+                <IconDisc /> Insert DVD
+              </button>
+              {resume
+                ? <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`)}><IconPlay /> Resume from {fmtTime(resume.positionSec)}</button>
+                : <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&start=0`)}><IconPlay /> Play movie</button>}
+              {it.disc?.hasMenus && <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=menu`)}><IconMenu /> Main menu</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setDiscSettings(true)} title="Disc settings"><IconSettings /> Disc settings</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
+              <div className="disc-hint muted">Insert DVD starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
+            </div>
+          ) : (
+            <div className="actions">
+              <button className="btn primary" onClick={() => nav(`/play/${it.id}`)}>
+                <IconPlay /> {resume ? `Resume from ${fmtTime(resume.positionSec)}` : 'Play'}
+              </button>
+              {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
+              {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
+              {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
+            </div>
+          )}
           {it.overview && <p className="overview">{it.overview}</p>}
           {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is CSS-scrambled and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
           <div className="facts">
@@ -92,11 +126,51 @@ export default function ItemPage() {
               )}
             </>
           )}
-          <p style={{ marginTop: 30 }}><Link to={`/library/${it.libraryId}`} className="muted">‹ Back to library</Link></p>
+          <p style={{ marginTop: 30 }}>{it.showId != null
+            ? <Link to={`/show/${it.showId}?season=${it.season ?? -1}`} className="muted">‹ Back to {it.showTitle}</Link>
+            : <Link to={`/library/${it.libraryId}`} className="muted">‹ Back to library</Link>}</p>
         </div>
       </div>
       {edit && <EditModal item={it} onClose={() => setEdit(false)} onSaved={(x) => { setIt(x); setEdit(false) }} />}
+      {art && <ArtworkPicker base={`/items/${it.id}`} onClose={() => setArt(false)}
+        onPick={async (kind, url) => { setIt(await api.put<Item>(`/items/${it.id}`, { [kind]: url })); toast(kind === 'poster' ? 'Poster updated' : 'Backdrop updated') }} />}
+      {discSettings && <DiscSettings item={it} prefs={prefs} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
     </>
+  )
+}
+
+function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Prefs | null; onClose: () => void; onSaved: (it: Item) => void }) {
+  const [playMode, setPlayMode] = useState(item.playMode)
+  const [insertFx, setInsertFx] = useState(item.insertFx)
+  const [err, setErr] = useState('')
+  const save = async () => {
+    try { onSaved(await api.put<Item>(`/items/${item.id}`, { playMode, insertFx })) } catch (e: any) { setErr(e.message) }
+  }
+  const def = prefs?.dvdStart === 'title' ? 'main feature' : 'disc menu'
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Disc settings</h2>
+        <div className="form" style={{ maxWidth: 'none' }}>
+          <label>When this disc is inserted
+            <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>
+              <option value="">Server default ({def})</option>
+              <option value="menu" disabled={!item.disc?.hasMenus}>Start with the disc menu (like a DVD player)</option>
+              <option value="title">Skip menus and play the main feature</option>
+            </select>
+          </label>
+          <label>Insert DVD effect (tray animation and sound)
+            <select className="select" value={insertFx} onChange={(e) => setInsertFx(e.target.value as Item['insertFx'])}>
+              <option value="">Server default ({prefs?.insertFx === false ? 'off' : 'on'})</option>
+              <option value="on">On for this disc</option>
+              <option value="off">Off for this disc</option>
+            </select>
+          </label>
+          {err && <div className="error">{err}</div>}
+        </div>
+        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>
+      </div>
+    </div>
   )
 }
 

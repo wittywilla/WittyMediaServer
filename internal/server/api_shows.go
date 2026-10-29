@@ -1,0 +1,427 @@
+package server
+
+import (
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/library"
+)
+
+func (s *Server) tvdbClient(r *http.Request) *library.TVDB {
+	key := s.DB.GetSetting(r.Context(), "tvdbKey", "")
+	if key == "" {
+		return nil
+	}
+	return &library.TVDB{Key: key, PIN: s.DB.GetSetting(r.Context(), "tvdbPin", "")}
+}
+
+func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
+	shows, err := s.Store.Shows(r.Context(), library.ShowQuery{
+		LibraryID: int64(qInt(r, "library", 0)),
+		Search:    r.URL.Query().Get("search"),
+		Genre:     r.URL.Query().Get("genre"),
+		Network:   r.URL.Query().Get("network"),
+		Sort:      r.URL.Query().Get("sort"),
+		Desc:      qBool(r, "desc"),
+		Limit:     qInt(r, "limit", 0),
+		UserID:    userFrom(r).ID,
+	})
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"shows": shows, "total": len(shows)})
+}
+
+// handleNetworks lists TV networks with their shows and genres:
+// GET /api/shows/networks?library=N
+func (s *Server) handleNetworks(w http.ResponseWriter, r *http.Request) {
+	n, err := s.Store.Networks(r.Context(), int64(qInt(r, "library", 0)))
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, n)
+}
+
+func (s *Server) handleShowGenres(w http.ResponseWriter, r *http.Request) {
+	g, err := s.Store.ShowGenres(r.Context(), int64(qInt(r, "library", 0)))
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, g)
+}
+
+func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	ctx, uid := r.Context(), userFrom(r).ID
+	sh, err := s.Store.Show(ctx, id, uid)
+	if err != nil {
+		writeErr(w, 404, "show not found")
+		return
+	}
+	seasons, err := s.Store.Seasons(ctx, id, uid)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	eps, err := s.Store.Episodes(ctx, id)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	_ = s.Store.AttachProgress(ctx, uid, eps)
+	var next *int64
+	if n := library.NextUp(eps); n != nil {
+		next = &n.ID
+	}
+	writeJSON(w, 200, map[string]any{"show": sh, "seasons": seasons, "episodes": eps, "nextUpId": next})
+}
+
+func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	ctx := r.Context()
+	var b struct {
+		Title    *string   `json:"title"`
+		Year     *int      `json:"year"`
+		Overview *string   `json:"overview"`
+		Genres   *[]string `json:"genres"`
+		Poster   *string   `json:"poster"`
+		Backdrop *string   `json:"backdrop"`
+		TVDBID   string    `json:"tvdbId"`
+		Refresh  bool      `json:"refresh"`
+		// Intro range in seconds; a negative end clears it.
+		IntroStart *float64 `json:"introStart"`
+		IntroEnd   *float64 `json:"introEnd"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if b.Refresh || b.TVDBID != "" {
+		if _, err := s.Scanner.RefreshShow(ctx, id, strings.TrimSpace(b.TVDBID)); err != nil {
+			writeErr(w, 502, "TheTVDB: "+err.Error())
+			return
+		}
+	}
+	sh, err := s.Store.Show(ctx, id, userFrom(r).ID)
+	if err != nil {
+		writeErr(w, 404, "show not found")
+		return
+	}
+	if b.Title != nil && strings.TrimSpace(*b.Title) != "" {
+		sh.Title = strings.TrimSpace(*b.Title)
+		sh.SortTitle = library.SortTitle(sh.Title)
+	}
+	if b.Year != nil {
+		sh.Year = b.Year
+	}
+	if b.Overview != nil {
+		sh.Overview = *b.Overview
+	}
+	if b.Genres != nil {
+		sh.Genres = *b.Genres
+	}
+	if b.Poster != nil {
+		sh.Poster = *b.Poster
+	}
+	if b.Backdrop != nil {
+		sh.Backdrop = *b.Backdrop
+	}
+	if b.IntroEnd != nil {
+		if *b.IntroEnd <= 0 {
+			sh.IntroStart, sh.IntroEnd = nil, nil
+		} else {
+			start := 0.0
+			if b.IntroStart != nil && *b.IntroStart >= 0 && *b.IntroStart < *b.IntroEnd {
+				start = *b.IntroStart
+			}
+			sh.IntroStart, sh.IntroEnd = &start, b.IntroEnd
+		}
+	}
+	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh || b.TVDBID != ""
+	if metaEdit && s.saveMeta(r) {
+		if err := s.Scanner.SaveShowMetadata(ctx, sh); err != nil {
+			s.Log.Warn("save show metadata", "show", sh.Title, "err", err)
+		}
+	}
+	if err := s.Store.UpsertShow(ctx, sh); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, sh)
+}
+
+func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	sh, err := s.Store.Show(r.Context(), id, 0)
+	if err != nil {
+		writeErr(w, 404, "show not found")
+		return
+	}
+	src := sh.Poster
+	switch r.PathValue("kind") {
+	case "backdrop":
+		if sh.Backdrop != "" {
+			src = sh.Backdrop
+		}
+	case "season":
+		n, _ := strconv.Atoi(r.URL.Query().Get("n"))
+		if p := s.Store.SeasonPoster(r.Context(), id, n); p != "" {
+			src = p
+		} else if r.URL.Query().Get("strict") == "1" {
+			src = ""
+		}
+	}
+	if src == "" {
+		// No artwork yet (no TheTVDB key, no local files): use an episode still.
+		if eps, err := s.Store.Episodes(r.Context(), id); err == nil {
+			for _, e := range eps {
+				if e.Poster != "" {
+					src = e.Poster
+					break
+				}
+			}
+		}
+	}
+	s.serveArtSrc(w, r, src)
+}
+
+// artCandidate is one choice in the artwork picker.
+type artCandidate struct {
+	URL    string `json:"url"`    // value to store
+	Source string `json:"source"` // local | tmdb | tvdb | current
+}
+
+// localImages lists image files in a folder.
+func localImages(dir string) []artCandidate {
+	var out []artCandidate
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if e.IsDir() || (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp") {
+			continue
+		}
+		out = append(out, artCandidate{URL: filepath.Join(dir, e.Name()), Source: "local"})
+	}
+	return out
+}
+
+// handleArtwork lists poster/backdrop candidates for an item or a show:
+// GET /api/items/{id}/artwork?kind=poster|backdrop, /api/shows/{id}/artwork?kind=...
+func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	ctx := r.Context()
+	backdrop := r.URL.Query().Get("kind") == "backdrop"
+	var out []artCandidate
+	seen := map[string]bool{}
+	add := func(c ...artCandidate) {
+		for _, x := range c {
+			if x.URL != "" && !seen[x.URL] {
+				seen[x.URL] = true
+				out = append(out, x)
+			}
+		}
+	}
+	var warn string
+	if strings.HasPrefix(r.URL.Path, "/api/shows/") {
+		sh, err := s.Store.Show(ctx, id, 0)
+		if err != nil {
+			writeErr(w, 404, "show not found")
+			return
+		}
+		cur := sh.Poster
+		if backdrop {
+			cur = sh.Backdrop
+		}
+		add(artCandidate{URL: cur, Source: "current"})
+		add(localImages(sh.Path)...)
+		if t := s.tvdbClient(r); t != nil {
+			var meta *library.SeriesMeta
+			var err error
+			if sh.Provider == "tvdb" && sh.ProviderID != "" {
+				meta, err = t.Series(ctx, sh.ProviderID)
+			} else {
+				meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
+			}
+			if err != nil {
+				warn = err.Error()
+			} else {
+				list := meta.Posters
+				if backdrop {
+					list = meta.Backdrops
+				}
+				for _, u := range list {
+					add(artCandidate{URL: u, Source: "tvdb"})
+				}
+			}
+		} else {
+			warn = "Add a TheTVDB API key in Settings for online artwork."
+		}
+	} else {
+		it, err := s.Store.Item(ctx, id)
+		if err != nil {
+			writeErr(w, 404, "item not found")
+			return
+		}
+		cur := it.Poster
+		if backdrop {
+			cur = it.Backdrop
+		}
+		add(artCandidate{URL: cur, Source: "current"})
+		dir := filepath.Dir(it.Path)
+		if it.Kind == "dvd-folder" {
+			dir = it.Path
+		}
+		add(localImages(dir)...)
+		if key := s.DB.GetSetting(ctx, "tmdbKey", ""); key != "" && it.ShowID == nil {
+			t := &library.TMDB{Key: key}
+			posters, backdrops, err := t.Images(ctx, it)
+			if err != nil {
+				warn = err.Error()
+			}
+			list := posters
+			if backdrop {
+				list = backdrops
+			}
+			for i, u := range list {
+				if i >= 40 {
+					break
+				}
+				add(artCandidate{URL: u, Source: "tmdb"})
+			}
+		} else if it.ShowID == nil {
+			warn = "Add a TMDB API key in Settings for online artwork."
+		}
+	}
+	if out == nil {
+		out = []artCandidate{}
+	}
+	writeJSON(w, 200, map[string]any{"candidates": out, "warning": warn})
+}
+
+// handleArtPreview serves a candidate image (local path or remote URL) for
+// the picker. Local paths must be images inside a library folder.
+func (s *Server) handleArtPreview(w http.ResponseWriter, r *http.Request) {
+	src := r.URL.Query().Get("src")
+	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "cache:") {
+		s.serveArtSrc(w, r, src)
+		return
+	}
+	ext := strings.ToLower(filepath.Ext(src))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".tbn" {
+		writeErr(w, 400, "not an image")
+		return
+	}
+	libs, err := s.Store.Libraries(r.Context())
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	clean := filepath.Clean(src)
+	for _, l := range libs {
+		for _, p := range l.Paths {
+			if rel, err := filepath.Rel(p, clean); err == nil && !strings.HasPrefix(rel, "..") {
+				s.serveArtSrc(w, r, clean)
+				return
+			}
+		}
+	}
+	writeErr(w, 403, "outside the libraries")
+}
+
+// handleShowView sets one show's episode layout (cards | list | "" = default).
+func (s *Server) handleShowView(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		View string `json:"view"`
+	}
+	if err := readJSON(r, &b); err != nil || (b.View != "" && b.View != "cards" && b.View != "list") {
+		writeErr(w, 400, "view must be cards, list or empty")
+		return
+	}
+	if err := s.Store.SetShowView(r.Context(), id, b.View); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"view": b.View})
+}
+
+// handlePrefs returns the server-wide playback defaults every viewer needs.
+func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	writeJSON(w, 200, map[string]any{
+		"dvdStart":    s.DB.GetSetting(ctx, "dvdStart", "menu"),
+		"insertFx":    s.DB.GetSetting(ctx, "insertFx", "1") == "1",
+		"episodeView": s.DB.GetSetting(ctx, "episodeView", "cards"),
+		"tvdb":        s.DB.GetSetting(ctx, "tvdbKey", "") != "",
+		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",
+	})
+}
+
+func (s *Server) saveMeta(r *http.Request) bool {
+	return s.DB.GetSetting(r.Context(), "saveMetadata", "1") == "1"
+}
+
+// DVD subtitles (client-side rendering).
+
+func (s *Server) handleDVDSubs(w http.ResponseWriter, r *http.Request) {
+	sess := s.dvdSession(w, r)
+	if sess == nil {
+		return
+	}
+	q := r.URL.Query()
+	from, _ := strconv.ParseFloat(q.Get("from"), 64)
+	to, err := strconv.ParseFloat(q.Get("to"), 64)
+	if err != nil || to <= from {
+		to = from + 120
+	}
+	evs, err := sess.Subtitles(qInt(r, "ttn", 0), qInt(r, "stream", 0), from, to)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"events": evs, "from": from, "to": to})
+}
+
+func (s *Server) handleDVDSub(w http.ResponseWriter, r *http.Request) {
+	sess := s.dvdSession(w, r)
+	if sess == nil {
+		return
+	}
+	png, ok := sess.SubPNG(r.PathValue("name"))
+	if !ok {
+		writeErr(w, 404, "no subtitle image")
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	_, _ = w.Write(png)
+}

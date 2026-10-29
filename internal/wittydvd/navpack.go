@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"encoding/binary"
@@ -207,7 +207,10 @@ func ParsePCI(b []byte) *PCI {
 	if p.ButtonCount > maxButtons {
 		p.ButtonCount = maxButtons
 	}
-	if p.HLStatus == 1 || p.HLStatus == 3 {
+	// Status 2 ("same as the previous VOBU") still carries a full copy of the
+	// button table, and a cell that loops or starts mid-menu may never see a
+	// status 1 pack, so parse the buttons whenever highlights are active.
+	if p.HLStatus != 0 {
 		perGroup := maxButtons
 		if groupCount > 1 {
 			perGroup = maxButtons / groupCount
@@ -286,52 +289,69 @@ type openUnit struct {
 	have   int
 }
 
-// ScanSectors walks MPEG-PS packs and pulls out NAV packs and SPU units.
-// firstSector is only used to label results.
-func ScanSectors(buf []byte, firstSector uint32) *StreamScan {
-	out := &StreamScan{}
-	open := map[int]*openUnit{}
-	var finish func(stream int, u *openUnit, data []byte, sector uint32)
-	begin := func(stream int, sector uint32, pts int64, data []byte) {
-		if len(data) < 2 {
-			return
-		}
-		size := int(binary.BigEndian.Uint16(data))
-		if size < 4 {
-			return
-		}
-		u := &openUnit{sector: sector, pts: pts, size: size}
-		open[stream] = u
-		finish(stream, u, data, sector)
+// PackScanner walks MPEG-PS packs incrementally and pulls out NAV packs and
+// complete SPU units. Units may span calls to Feed, so a long cell can be
+// read in chunks without holding it all in memory.
+type PackScanner struct {
+	Out *StreamScan
+	// Streams limits SPU collection to these sub-picture stream numbers
+	// (bit n = stream n); 0 collects every stream.
+	Streams uint32
+	// NoNav skips PCI/DSI parsing except for the first NAV pack.
+	NoNav bool
+	open  map[int]*openUnit
+}
+
+// NewPackScanner returns a scanner with an empty result.
+func NewPackScanner() *PackScanner {
+	return &PackScanner{Out: &StreamScan{}, open: map[int]*openUnit{}}
+}
+
+func (ps *PackScanner) begin(stream int, sector uint32, pts int64, data []byte) {
+	if len(data) < 2 {
+		return
 	}
-	finish = func(stream int, u *openUnit, data []byte, sector uint32) {
-		want := u.size - u.have
-		take := data
-		if len(take) > want {
-			take = data[:want]
-		}
-		u.parts = append(u.parts, take)
-		u.have += len(take)
-		if u.have < u.size {
-			return
-		}
-		all := make([]byte, 0, u.size)
-		for _, p := range u.parts {
-			all = append(all, p...)
-		}
-		out.SPUs = append(out.SPUs, SPUUnit{Stream: stream, Sector: u.sector, PTS: u.pts, Bytes: all})
-		delete(open, stream)
-		if rest := data[len(take):]; len(rest) > 0 {
-			begin(stream, sector, -1, rest)
-		}
+	size := int(binary.BigEndian.Uint16(data))
+	if size < 4 {
+		return
 	}
+	u := &openUnit{sector: sector, pts: pts, size: size}
+	ps.open[stream] = u
+	ps.finish(stream, u, data, sector)
+}
+
+func (ps *PackScanner) finish(stream int, u *openUnit, data []byte, sector uint32) {
+	want := u.size - u.have
+	take := data
+	if len(take) > want {
+		take = data[:want]
+	}
+	// Copy: the caller's buffer is reused between chunks.
+	u.parts = append(u.parts, append([]byte(nil), take...))
+	u.have += len(take)
+	if u.have < u.size {
+		return
+	}
+	all := make([]byte, 0, u.size)
+	for _, p := range u.parts {
+		all = append(all, p...)
+	}
+	ps.Out.SPUs = append(ps.Out.SPUs, SPUUnit{Stream: stream, Sector: u.sector, PTS: u.pts, Bytes: all})
+	delete(ps.open, stream)
+	if rest := data[len(take):]; len(rest) > 0 {
+		ps.begin(stream, sector, -1, rest)
+	}
+}
+
+// Feed scans whole sectors of buf; firstSector labels the results.
+func (ps *PackScanner) Feed(buf []byte, firstSector uint32) {
 	for s := 0; (s+1)*Sector <= len(buf); s++ {
 		pack := buf[s*Sector : (s+1)*Sector]
 		sector := firstSector + uint32(s)
 		if PackScrambled(pack) {
-			out.Scrambled = true
-			for k := range open {
-				delete(open, k)
+			ps.Out.Scrambled = true
+			for k := range ps.open {
+				delete(ps.open, k)
 			}
 			continue
 		}
@@ -340,26 +360,40 @@ func ScanSectors(buf []byte, firstSector uint32) *StreamScan {
 		for _, pk := range packPackets(pack) {
 			switch {
 			case pk.id == 0xbf && pk.sub == 0:
-				pci = ParsePCI(pk.data)
+				if !ps.NoNav || len(ps.Out.Navs) == 0 {
+					pci = ParsePCI(pk.data)
+				}
 			case pk.id == 0xbf && pk.sub == 1:
-				dsi = ParseDSI(pk.data)
+				if !ps.NoNav || len(ps.Out.Navs) == 0 {
+					dsi = ParseDSI(pk.data)
+				}
 			case pk.id == 0xbd && pk.sub >= 0x20 && pk.sub <= 0x3f:
 				stream := pk.sub & 0x1f
-				u := open[stream]
+				if ps.Streams != 0 && ps.Streams&(1<<uint(stream)) == 0 {
+					continue
+				}
+				u := ps.open[stream]
 				switch {
 				case u != nil && pk.pts >= 0:
-					delete(open, stream)
-					begin(stream, sector, pk.pts, pk.data)
+					delete(ps.open, stream)
+					ps.begin(stream, sector, pk.pts, pk.data)
 				case u != nil:
-					finish(stream, u, pk.data, sector)
+					ps.finish(stream, u, pk.data, sector)
 				case pk.pts >= 0:
-					begin(stream, sector, pk.pts, pk.data)
+					ps.begin(stream, sector, pk.pts, pk.data)
 				}
 			}
 		}
 		if pci != nil || dsi != nil {
-			out.Navs = append(out.Navs, NavPack{Sector: sector, PCI: pci, DSI: dsi})
+			ps.Out.Navs = append(ps.Out.Navs, NavPack{Sector: sector, PCI: pci, DSI: dsi})
 		}
 	}
-	return out
+}
+
+// ScanSectors walks MPEG-PS packs and pulls out NAV packs and SPU units.
+// firstSector is only used to label results.
+func ScanSectors(buf []byte, firstSector uint32) *StreamScan {
+	ps := NewPackScanner()
+	ps.Feed(buf, firstSector)
+	return ps.Out
 }

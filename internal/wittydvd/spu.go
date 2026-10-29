@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"encoding/binary"
@@ -302,6 +302,38 @@ func (s *SPU) RenderRect(palette [16]uint32, look *Look, x0, y0, x1, y1 int) *RG
 			i := (y*w + x) * 4
 			out.Pix[i], out.Pix[i+1], out.Pix[i+2], out.Pix[i+3] = c[0], c[1], c[2], c[3]
 		}
+	}
+	return out
+}
+
+// Crop returns the bitmap trimmed to its visible pixels (zero size when
+// nothing is visible). Subtitle units usually cover the whole frame.
+func (r *RGBA) Crop() *RGBA {
+	minX, minY, maxX, maxY := r.Width, r.Height, -1, -1
+	for y := 0; y < r.Height; y++ {
+		row := r.Pix[y*r.Width*4 : (y+1)*r.Width*4]
+		for x := 0; x < r.Width; x++ {
+			if row[x*4+3] != 0 {
+				if x < minX {
+					minX = x
+				}
+				if x > maxX {
+					maxX = x
+				}
+				if y < minY {
+					minY = y
+				}
+				maxY = y
+			}
+		}
+	}
+	if maxX < 0 {
+		return &RGBA{X: r.X, Y: r.Y}
+	}
+	w, h := maxX-minX+1, maxY-minY+1
+	out := &RGBA{X: r.X + minX, Y: r.Y + minY, Width: w, Height: h, Pix: make([]byte, w*h*4)}
+	for y := 0; y < h; y++ {
+		copy(out.Pix[y*w*4:(y+1)*w*4], r.Pix[((minY+y)*r.Width+minX)*4:((minY+y)*r.Width+maxX+1)*4])
 	}
 	return out
 }

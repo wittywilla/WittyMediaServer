@@ -1,0 +1,15 @@
+{
+  "id": "dark-green",
+  "name": "Dark Green",
+  "description": "Dark surfaces with a green accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#111717",
+    "surface": "#20292c",
+    "text": "#ececf1",
+    "accent": "#22c55e"
+  }
+}

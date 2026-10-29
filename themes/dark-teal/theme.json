@@ -1,0 +1,15 @@
+{
+  "id": "dark-teal",
+  "name": "Dark Teal",
+  "description": "Dark surfaces with a teal accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#101719",
+    "surface": "#20282e",
+    "text": "#ececf1",
+    "accent": "#14b8a6"
+  }
+}

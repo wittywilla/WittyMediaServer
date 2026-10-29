@@ -8,13 +8,15 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/disc/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/disc/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 var videoExts = map[string]bool{
@@ -28,6 +30,10 @@ type Scanner struct {
 	Tools    *ffmpeg.Tools
 	CacheDir string
 	TMDBKey  func() string
+	// TVDBKey returns TheTVDB API key and optional subscriber PIN.
+	TVDBKey func() (key, pin string)
+	// SaveMeta reports whether to write NFO/artwork beside the media.
+	SaveMeta func() bool
 	Log      *slog.Logger
 
 	mu      sync.Mutex
@@ -171,17 +177,27 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}
+	tv := newTVScan()
 	for i, c := range all {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 		keep[c.path] = true
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
-		if err := s.index(ctx, lib, c); err != nil {
+		var err error
+		if lib.Type == "shows" {
+			err = s.indexEpisode(ctx, lib, c, tv)
+		} else {
+			err = s.index(ctx, lib, c)
+		}
+		if err != nil {
 			s.Log.Warn("index failed", "path", c.path, "err", err)
 		}
 	}
 	if err := s.Store.markMissing(ctx, libraryID, keep); err != nil {
+		return err
+	}
+	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err
 	}
 	s.Log.Info("scan done", "library", lib.Name, "items", len(all))
@@ -258,6 +274,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 			s.Log.Debug("thumbnail", "path", c.path, "err", err)
 		}
 	}
+	s.saveOnScan(ctx, it)
 	return s.Store.upsertItem(ctx, it)
 }
 
@@ -280,9 +297,26 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	for _, st := range p.Subtitles() {
 		it.SubLangs = append(it.SubLangs, orUnd(st.Tags["language"]))
 	}
+	// "Skip intro": an Intro/Opening chapter marks the intro exactly.
+	for _, ch := range p.Chapters {
+		if introChapter(ch.Tags["title"]) {
+			a, _ := strconv.ParseFloat(ch.Start, 64)
+			b, _ := strconv.ParseFloat(ch.End, 64)
+			if b > a && b-a < 300 {
+				it.IntroStart, it.IntroEnd = &a, &b
+				break
+			}
+		}
+	}
 	if t := p.Format.Tags["title"]; t != "" && it.Title == "" {
 		it.Title = t
 	}
+}
+
+var introRe = regexp.MustCompile(`(?i)\b(intro|opening|op|theme|title sequence|opening credits)\b`)
+
+func introChapter(title string) bool {
+	return introRe.MatchString(title) && !strings.Contains(strings.ToLower(title), "outro")
 }
 
 func orUnd(s string) string {
@@ -293,7 +327,7 @@ func orUnd(s string) string {
 }
 
 func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
-	o, err := dvd.Open(it.Path)
+	o, err := wittydvd.Open(it.Path)
 	if err != nil {
 		// Not a DVD-Video image: fall back to probing it as a plain file.
 		if _, e2 := isofs.Open(it.Path); e2 == nil {
@@ -347,10 +381,10 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		}
 		// Quick CSS check on the first sectors of the feature.
 		if len(m.Cells) > 0 {
-			if rd, err := o.Reader(dvd.Space{Domain: dvd.DomainVTS, VTS: m.VTS}); err == nil {
+			if rd, err := o.Reader(wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: m.VTS}); err == nil {
 				if buf, err := rd.ReadSectors(m.Cells[0].Cell.FirstSector, 64); err == nil {
-					for off := 0; off+dvd.Sector <= len(buf); off += dvd.Sector {
-						if dvd.PackScrambled(buf[off : off+dvd.Sector]) {
+					for off := 0; off+wittydvd.Sector <= len(buf); off += wittydvd.Sector {
+						if wittydvd.PackScrambled(buf[off : off+wittydvd.Sector]) {
 							info.Scrambled = true
 							break
 						}
@@ -379,7 +413,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 	case "video":
 		input = []string{"-i", it.Path}
 	default:
-		o, err := dvd.Open(it.Path)
+		o, err := wittydvd.Open(it.Path)
 		if err != nil {
 			return "", err
 		}
@@ -396,7 +430,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 				cell = c
 			}
 		}
-		ext, err := o.RangeExtents(dvd.Space{Domain: dvd.DomainVTS, VTS: m.VTS}, cell.Cell.FirstSector, cell.Cell.LastSector)
+		ext, err := o.RangeExtents(wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: m.VTS}, cell.Cell.FirstSector, cell.Cell.LastSector)
 		if err != nil {
 			return "", err
 		}

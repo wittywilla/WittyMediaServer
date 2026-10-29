@@ -1,6 +1,6 @@
 WittyMediaServer
 Copyright 2026 WittyWilla and contributors
-https://github.com/wittywilla/wittymediaserver
+https://github.com/wittywilla/WittyMediaServer
 
 This product includes software developed by WittyWilla as part of the
 WittyMediaServer project ("WittyMediaServer, developed by WittyWilla").
@@ -16,3 +16,8 @@ FFmpeg is Copyright (c) the FFmpeg developers, https://ffmpeg.org.
 
 This product uses the TMDB API (optional, user-supplied key) but is not
 endorsed or certified by TMDB.
+
+TV metadata is provided by TheTVDB (optional, user-supplied key),
+https://thetvdb.com. Please consider adding missing information or subscribing.
+
+The DVD-Video engine is WittyDVD, part of WittyMediaServer.

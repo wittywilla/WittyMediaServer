@@ -5,7 +5,7 @@
 // It is written from the public DVD-Video structure (the same layout
 // documented by libdvdread/libdvdnav) and never requires a mounted disc: the
 // caller provides IFO bytes and sector-range readers.
-package dvd
+package wittydvd
 
 import (
 	"encoding/binary"

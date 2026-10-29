@@ -1,0 +1,48 @@
+/*
+ * Light Orange - a WittyMediaServer theme.
+ * Light surfaces with a orange accent.
+ *
+ * Every variable below is documented in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces, darkest/lightest first */
+  --bg: #f4f2f3;          /* page background */
+  --bg-2: #fffcfa;        /* sidebar, panels, modals */
+  --bg-3: #eaeaed;        /* inputs, cards, hovered rows */
+  --bg-4: #dadce3;        /* borders, scrollbar, pressed buttons */
+  --bg-rgb: 244 242 243;   /* --bg as "R G B" for translucent shades */
+  --border: #dfe3ea;      /* hairlines between panels */
+
+  /* Text */
+  --fg: #15171c;          /* primary text */
+  --fg-2: #4a5160;        /* secondary text */
+  --fg-3: #7c8494;        /* hints, captions */
+
+  /* Accent (buttons, highlights, progress bars, selected items) */
+  --accent: #ea580c;
+  --accent-2: #c2410c;      /* hover / pressed accent */
+  --accent-fg: #ffffff;     /* text on accent backgrounds */
+  --accent-rgb: 234 88 12;
+  --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
+
+  /* Status colours */
+  --danger: #d92d3f;
+  --ok: #14915f;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(20, 25, 40, 0.12);
+  --card-shadow: 0 10px 24px rgba(20, 25, 40, 0.18);
+  --overlay: rgba(20, 24, 32, 0.45);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Light themes: soften the text shadow used on artwork and keep chips readable. */
+.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.6); }
+.detail-hero .bg, .hero .bg { filter: saturate(1.05) brightness(1.02); }

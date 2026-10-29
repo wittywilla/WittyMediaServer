@@ -20,6 +20,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/themes"
 )
 
 type Server struct {
@@ -32,6 +33,7 @@ type Server struct {
 	Auth    *auth.Service
 	HLS     *hls.Manager
 	DVD     *dvdsession.Manager
+	Themes  *themes.Manager
 	Web     fs.FS
 	Version string
 
@@ -57,6 +59,9 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /api/setup", s.handleSetup)
 	m.HandleFunc("POST /api/login", s.handleLogin)
 	m.HandleFunc("POST /api/logout", s.handleLogout)
+	m.HandleFunc("GET /api/themes", s.handleThemes)
+	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
+	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
 
 	// Authenticated
@@ -74,6 +79,20 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}", a(s.handleItem))
 	m.Handle("PUT /api/items/{id}", s.requireAdmin(s.handleUpdateItem))
 	m.Handle("GET /api/items/{id}/poster", a(s.handlePoster))
+	m.Handle("GET /api/items/{id}/artwork", s.requireAdmin(s.handleArtwork))
+	m.Handle("GET /api/items/{id}/recommend", a(s.handleRecommend))
+	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
+	m.Handle("GET /api/prefs", a(s.handlePrefs))
+	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
+	m.Handle("DELETE /api/themes/{id}", s.requireAdmin(s.handleThemeDelete))
+	m.Handle("GET /api/shows", a(s.handleShows))
+	m.Handle("GET /api/shows/genres", a(s.handleShowGenres))
+	m.Handle("GET /api/shows/networks", a(s.handleNetworks))
+	m.Handle("GET /api/shows/{id}", a(s.handleShow))
+	m.Handle("PUT /api/shows/{id}", s.requireAdmin(s.handleUpdateShow))
+	m.Handle("PUT /api/shows/{id}/view", s.requireAdmin(s.handleShowView))
+	m.Handle("GET /api/shows/{id}/artwork", s.requireAdmin(s.handleArtwork))
+	m.Handle("GET /api/shows/{id}/art/{kind}", a(s.handleShowArt))
 	m.Handle("GET /api/items/{id}/backdrop", a(s.handleBackdrop))
 	m.Handle("POST /api/items/{id}/progress", a(s.handleProgress))
 	m.Handle("DELETE /api/items/{id}/progress", a(s.handleClearProgress))
@@ -86,6 +105,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/dvd/{sid}/menu/{serial}/overlay.png", a(s.handleDVDOverlay))
 	m.Handle("GET /api/dvd/{sid}/menu/{serial}/highlight/{n}", a(s.handleDVDHighlight))
 	m.Handle("GET /api/dvd/{sid}/still/{name}", a(s.handleDVDStill))
+	m.Handle("GET /api/dvd/{sid}/subs", a(s.handleDVDSubs))
+	m.Handle("GET /api/dvd/{sid}/sub/{name}", a(s.handleDVDSub))
 	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
 	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
 	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))

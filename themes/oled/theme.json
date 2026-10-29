@@ -1,0 +1,15 @@
+{
+  "id": "oled",
+  "name": "OLED Black",
+  "description": "True black surfaces for OLED screens and dark rooms.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#000000",
+    "surface": "#121317",
+    "text": "#f2f3f6",
+    "accent": "#8b6cff"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "dark-pink",
+  "name": "Dark Pink",
+  "description": "Dark surfaces with a pink accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#181319",
+    "surface": "#27242e",
+    "text": "#ececf1",
+    "accent": "#ec4899"
+  }
+}

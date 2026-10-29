@@ -19,8 +19,22 @@ export type Item = {
   poster: string; backdrop: string; container: string; videoCodec: string; width: number; height: number
   audioLangs: string[]; subLangs: string[]; disc?: DiscInfo; provider: string; providerId: string
   sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
+  showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
+  playMode: '' | 'menu' | 'title'; insertFx: '' | 'on' | 'off'
+  introStart?: number; introEnd?: number
 }
-export type Hub = { key: string; title: string; libraryId?: number; items: Item[] }
+export type Show = {
+  id: number; libraryId: number; path: string; title: string; sortTitle: string; year: number | null; overview: string
+  genres: string[]; rating: number | null; contentRating: string; network: string; status: string; poster: string; backdrop: string
+  provider: string; providerId: string; addedAt: number; updatedAt: number
+  episodeCount: number; seasonCount: number; unwatched: number; lastAddedAt: number
+  introStart?: number; introEnd?: number; view: '' | 'cards' | 'list'
+}
+export type Season = { number: number; title: string; overview: string; poster: string; episodeCount: number; unwatched: number }
+export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
+export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list' }
+export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'current' }
+export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }
 export type Track = { index: number; language: string; title?: string; codec: string; channels?: number }
 export type PlayInfo = {
@@ -31,15 +45,18 @@ export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: num
 export type DvdMenu = {
   width: number; height: number; aspect: '4:3' | '16:9'; buttons: DvdButton[]; selected: number
   overlayUrl?: string; highlightUrl?: string; buttonsFromSec?: number; hasHighlights: boolean
+  forcedAction?: number; actionAtSec?: number; inTitle?: boolean
 }
-export type DvdTrack = { n: number; language: string; codec?: string; channels?: number }
+export type DvdTrack = { n: number; language: string; codec?: string; channels?: number; purpose?: string }
 export type DvdTitle = {
   ttn: number; chapter: number; durationSec: number; startSec: number; chapters: number[]
   audio: DvdTrack[]; subtitles: DvdTrack[]; audioStream: number; subtitleStream: number; wide: boolean
+  frameW: number; frameH: number; aspect: '4:3' | '16:9'; subtitlesUrl: string; forcedStream: number
 }
+export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
-export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean }
-export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number }
+export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number }
 
 const TOKEN_KEY = 'wms.token'
 const SERVER_KEY = 'wms.server'
@@ -87,6 +104,31 @@ export function mediaUrl(path: string): string {
 
 export const posterUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/poster`) + `&v=${it.updatedAt}`
 export const backdropUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/backdrop`) + `&v=${it.updatedAt}`
+export const showPosterUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/poster`) + `&v=${s.updatedAt}`
+export const showBackdropUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/backdrop`) + `&v=${s.updatedAt}`
+export const seasonPosterUrl = (s: Show, n: number) => mediaUrl(`/api/shows/${s.id}/art/season`) + `&n=${n}&v=${s.updatedAt}`
+export const artPreviewUrl = (src: string) => mediaUrl(`/api/artwork/preview?src=${encodeURIComponent(src)}`)
+
+// Episode label, e.g. "S2 · E15–16".
+export function episodeLabel(it: Item): string {
+  if (it.season == null || it.episode == null || it.episode < 0) return ''
+  const ep = it.episodeEnd ? `E${it.episode}–${it.episodeEnd}` : `E${it.episode}`
+  return it.season === 0 ? `Special · ${ep}` : `S${it.season} · ${ep}`
+}
+
+let prefsCache: Promise<Prefs> | null = null
+export const getPrefs = (fresh = false): Promise<Prefs> => {
+  if (!prefsCache || fresh) prefsCache = api.get<Prefs>('/prefs').catch(() => ({ dvdStart: 'menu', insertFx: true, tvdb: false, tmdb: false, episodeView: 'cards' } as Prefs))
+  return prefsCache
+}
+// The DVD start mode for an item: its own setting, else the server default.
+export const dvdStartMode = (it: Item, p: Prefs | null): 'menu' | 'title' =>
+  it.playMode || (it.disc && !it.disc.hasMenus ? 'title' : p?.dvdStart === 'title' ? 'title' : 'menu')
+export const insertFxOn = (it: Item, p: Prefs | null) => (it.insertFx ? it.insertFx === 'on' : p?.insertFx !== false)
+
+// Track label with the disc's purpose, e.g. "English · Commentary · AC3 2ch".
+export const dvdTrackLabel = (t: DvdTrack) =>
+  [langName(t.language), t.purpose, t.codec?.toUpperCase(), t.channels ? t.channels + 'ch' : ''].filter(Boolean).join(' · ')
 
 export function fmtTime(sec: number): string {
   if (!isFinite(sec) || sec < 0) sec = 0

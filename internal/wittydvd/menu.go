@@ -1,4 +1,4 @@
-package dvd
+package wittydvd
 
 import (
 	"errors"
@@ -40,6 +40,46 @@ type MenuPicture struct {
 	HasHighlights  bool
 	Scrambled      bool
 	NoButtons      bool
+	// ForcedSelect is the button the disc highlights when the menu appears
+	// (FOSL_BTNN); it wins over SPRM8. 0 = none.
+	ForcedSelect int
+	// ForcedAction is the button the disc activates by itself when button
+	// selection ends (FOAC_BTNN) at ActionAtSec into the cell. 0 = none.
+	ForcedAction int
+	ActionAtSec  float64
+}
+
+// WithDefault returns a copy whose DefaultButton follows the DVD rules: a
+// forced selection first, then the navigator's SPRM8 highlight, then the
+// first usable button.
+func (p *MenuPicture) WithDefault(navButton int) *MenuPicture {
+	c := *p
+	has := func(n int) bool {
+		for _, b := range p.Buttons {
+			if b.N == n && !b.Inert {
+				return true
+			}
+		}
+		return false
+	}
+	switch {
+	case p.ForcedSelect != 0 && has(p.ForcedSelect):
+		c.DefaultButton = p.ForcedSelect
+	case has(navButton):
+		c.DefaultButton = navButton
+	default:
+		c.DefaultButton = 0
+		for _, b := range p.Buttons {
+			if !b.Inert {
+				c.DefaultButton = b.N
+				break
+			}
+		}
+		if c.DefaultButton == 0 && len(p.Buttons) > 0 {
+			c.DefaultButton = p.Buttons[0].N
+		}
+	}
+	return &c
 }
 
 // MenuScanOptions tune ScanMenu.
@@ -99,7 +139,7 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 		if nav.PCI != nil && !havePTM {
 			startPTM, havePTM = nav.PCI.VOBUStartPTM, true
 		}
-		if nav.PCI != nil && (nav.PCI.HLStatus == 1 || nav.PCI.HLStatus == 3) && len(nav.PCI.Buttons) > 0 {
+		if nav.PCI != nil && nav.PCI.HLStatus != 0 && len(nav.PCI.Buttons) > 0 {
 			hliSector, hliPCI = sector, nav.PCI
 			break
 		}
@@ -126,20 +166,10 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 	if len(prevVOBUs) > 0 {
 		readFrom = prevVOBUs[0]
 	}
-	count := int(hliSector-readFrom) + o.ReadAhead
-	if readFrom+uint32(count)-1 > last {
-		count = int(last - readFrom + 1)
+	limit := int(hliSector-readFrom) + o.ReadAhead
+	if readFrom+uint32(limit)-1 > last {
+		limit = int(last - readFrom + 1)
 	}
-	buf, err := rd.ReadSectors(readFrom, count)
-	if err != nil {
-		return nil, err
-	}
-	sc := ScanSectors(buf, readFrom)
-	if sc.Scrambled {
-		pic.Scrambled = true
-		return pic, nil
-	}
-
 	stream := 0
 	if o.SubpControl != nil {
 		if o.Wide && o.Video.Wide {
@@ -150,20 +180,61 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 			stream = o.SubpControl.Narrow
 		}
 	}
-	var spu *SPU
-	var best *SPUUnit
-	for i := range sc.SPUs {
-		u := &sc.SPUs[i]
-		if u.Stream != stream {
-			continue
+	// Read in chunks and stop as soon as the sub-picture unit is settled:
+	// most menus carry it right after the highlight NAV pack, so this avoids
+	// pulling megabytes off slow disks for every menu.
+	const chunk = 128
+	var (
+		buf  []byte
+		sc   *StreamScan
+		best *SPUUnit
+	)
+	for got := 0; got < limit; {
+		n := chunk
+		if got+n > limit {
+			n = limit - got
 		}
-		// Prefer the latest unit whose PTS is at or before the highlight start.
-		if u.PTS >= 0 && uint32(u.PTS) <= hliPCI.HLStartPTM {
-			best = u
-		} else if best == nil {
-			best = u
+		part, err := rd.ReadSectors(readFrom+uint32(got), n)
+		if err != nil {
+			return nil, err
+		}
+		if len(part) < Sector {
+			break
+		}
+		buf = append(buf, part...)
+		got += len(part) / Sector
+		sc = ScanSectors(buf, readFrom)
+		if sc.Scrambled {
+			pic.Scrambled = true
+			return pic, nil
+		}
+		best = nil
+		settled := false
+		for i := range sc.SPUs {
+			u := &sc.SPUs[i]
+			if u.Stream != stream {
+				continue
+			}
+			// Prefer the latest unit whose PTS is at or before the highlight start.
+			switch {
+			case u.PTS >= 0 && uint32(u.PTS) <= hliPCI.HLStartPTM:
+				best = u
+			case best == nil:
+				best = u
+				settled = true
+			default:
+				settled = true // a later unit: the earlier choice is final
+			}
+		}
+		past := int(readFrom) + got - int(hliSector)
+		if settled || (best != nil && (uint32(best.PTS) == hliPCI.HLStartPTM || past >= 1024)) {
+			break
 		}
 	}
+	if sc == nil {
+		sc = &StreamScan{}
+	}
+	var spu *SPU
 	if best == nil && len(sc.SPUs) > 0 {
 		best = &sc.SPUs[0]
 	}
@@ -173,12 +244,14 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 		}
 	}
 
-	pic.DefaultButton = hliPCI.ForcedSelect
-	if o.NavButton >= 1 && o.NavButton <= len(hliPCI.Buttons) {
-		pic.DefaultButton = o.NavButton
+	if hliPCI.HLStatus == 1 && hliPCI.ForcedSelect >= 1 && hliPCI.ForcedSelect <= maxButtons {
+		pic.ForcedSelect = hliPCI.ForcedSelect
 	}
-	if pic.DefaultButton == 0 && len(hliPCI.Buttons) > 0 {
-		pic.DefaultButton = hliPCI.Buttons[0].N
+	if fa := hliPCI.ForcedAction; fa >= 1 && fa <= maxButtons && havePTM {
+		if se := hliPCI.SelectEndPTM; se != 0 && se != 0xffffffff && se > startPTM {
+			pic.ForcedAction = fa
+			pic.ActionAtSec = float64(se-startPTM) / 90000
+		}
 	}
 	// Button group for the viewer's display mode.
 	group := 1
@@ -217,6 +290,7 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 		}
 		pic.Buttons = append(pic.Buttons, mb)
 	}
+	pic.DefaultButton = pic.WithDefault(o.NavButton).DefaultButton
 	if spu != nil {
 		normal := spu.Render(o.Palette, nil)
 		if normal.Opaque() {

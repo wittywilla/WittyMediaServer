@@ -1,0 +1,15 @@
+{
+  "id": "light-gold",
+  "name": "Light Gold",
+  "description": "Light surfaces with a gold accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f3f3f4",
+    "surface": "#e9ebee",
+    "text": "#15171c",
+    "accent": "#b7791f"
+  }
+}

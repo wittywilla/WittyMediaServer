@@ -1,0 +1,15 @@
+{
+  "id": "light-pink",
+  "name": "Light Pink",
+  "description": "Light surfaces with a pink accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f4f1f5",
+    "surface": "#eae9f0",
+    "text": "#15171c",
+    "accent": "#db2777"
+  }
+}

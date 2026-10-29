@@ -1,0 +1,15 @@
+{
+  "id": "light-red",
+  "name": "Light Red",
+  "description": "Light surfaces with a red accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f4f1f4",
+    "surface": "#eae9ee",
+    "text": "#15171c",
+    "accent": "#dc2626"
+  }
+}

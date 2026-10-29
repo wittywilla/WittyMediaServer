@@ -180,7 +180,33 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, []*library.Item{it})
+	it.NextID = s.Store.NextEpisode(r.Context(), it)
+	if it.IntroEnd == nil && it.ShowID != nil {
+		if sh, err := s.Store.Show(r.Context(), *it.ShowID, 0); err == nil {
+			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
+		}
+	}
 	writeJSON(w, 200, it)
+}
+
+// handleRecommend suggests what to watch next once a season or a movie ends.
+func (s *Server) handleRecommend(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	it, err := s.Store.Item(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "item not found")
+		return
+	}
+	rec, show, err := s.Store.Recommend(r.Context(), userFrom(r).ID, it)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"item": rec, "show": show})
 }
 
 func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -203,6 +229,8 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		Poster   *string   `json:"poster"`
 		Backdrop *string   `json:"backdrop"`
 		Refresh  bool      `json:"refresh"`
+		PlayMode *string   `json:"playMode"` // DVDs: menu | title | ""
+		InsertFX *string   `json:"insertFx"` // DVDs: on | off | ""
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -242,6 +270,26 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if b.PlayMode != nil || b.InsertFX != nil {
+		pm, fx := it.PlayMode, it.InsertFX
+		if b.PlayMode != nil && (*b.PlayMode == "" || *b.PlayMode == "menu" || *b.PlayMode == "title") {
+			pm = *b.PlayMode
+		}
+		if b.InsertFX != nil && (*b.InsertFX == "" || *b.InsertFX == "on" || *b.InsertFX == "off") {
+			fx = *b.InsertFX
+		}
+		if err := s.Store.SetItemPrefs(r.Context(), it.ID, pm, fx); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		it.PlayMode, it.InsertFX = pm, fx
+	}
+	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Tagline != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh
+	if metaEdit && s.saveMeta(r) {
+		if err := s.Scanner.SaveItemMetadata(r.Context(), it); err != nil {
+			s.Log.Warn("save metadata", "path", it.Path, "err", err)
+		}
+	}
 	if err := s.Store.UpdateItem(r.Context(), it); err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -263,12 +311,25 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		Title   string          `json:"title"`
 		Library *int64          `json:"libraryId,omitempty"`
 		Items   []*library.Item `json:"items"`
+		Shows   []*library.Show `json:"shows,omitempty"`
 	}
 	hubs := []hub{}
 	if len(cont) > 0 {
 		hubs = append(hubs, hub{Key: "continue", Title: "Continue Watching", Items: cont})
 	}
+	if next := s.nextUp(r, libs); len(next) > 0 {
+		hubs = append(hubs, hub{Key: "nextup", Title: "Next Up", Items: next})
+	}
 	for _, l := range libs {
+		if l.Type == "shows" {
+			shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID})
+			if err != nil || len(shows) == 0 {
+				continue
+			}
+			id := l.ID
+			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently Added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
+			continue
+		}
 		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20})
 		if err != nil || len(items) == 0 {
 			continue
@@ -279,7 +340,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -299,6 +360,38 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// nextUp offers the next episode of each show the user has started.
+func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item {
+	ctx, uid := r.Context(), userFrom(r).ID
+	var out []*library.Item
+	for _, l := range libs {
+		if l.Type != "shows" {
+			continue
+		}
+		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid})
+		if err != nil {
+			continue
+		}
+		for _, sh := range shows {
+			if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
+				continue // finished, or never started
+			}
+			eps, err := s.Store.Episodes(ctx, sh.ID)
+			if err != nil {
+				continue
+			}
+			_ = s.Store.AttachProgress(ctx, uid, eps)
+			if n := library.NextUp(eps); n != nil && (n.Progress == nil || n.Progress.PositionSec <= 60) {
+				out = append(out, n)
+			}
+			if len(out) >= 20 {
+				return out
+			}
+		}
+	}
+	return out
+}
 
 // ---------------------------------------------------------------------------
 // Artwork
@@ -325,6 +418,11 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 			src = it.Poster
 		}
 	}
+	s.serveArtSrc(w, r, src)
+}
+
+// serveArtSrc serves artwork from a cache name, a remote URL (cached) or a path.
+func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string) {
 	if src == "" {
 		writeErr(w, 404, "no artwork")
 		return

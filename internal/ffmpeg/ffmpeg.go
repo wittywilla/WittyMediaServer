@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/disc/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 // Tools holds resolved binary paths and encoder capabilities.
@@ -82,31 +82,6 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 		}
 	}
 	return t, nil
-}
-
-// H264Encoder picks the best available H.264 encoder.
-func (t *Tools) H264Encoder(preferHW bool) (name string, args []string) {
-	if preferHW {
-		switch {
-		case t.Encoders["h264_nvenc"]:
-			return "h264_nvenc", []string{"-preset", "p4", "-tune", "ll", "-rc", "vbr", "-cq", "23", "-b:v", "0"}
-		case t.Encoders["h264_qsv"]:
-			return "h264_qsv", []string{"-preset", "veryfast", "-global_quality", "23"}
-		case t.Encoders["h264_videotoolbox"]:
-			return "h264_videotoolbox", []string{"-q:v", "60", "-realtime", "1"}
-		case t.Encoders["h264_vaapi"]:
-			return "h264_vaapi", []string{"-qp", "23"}
-		case t.Encoders["h264_amf"]:
-			return "h264_amf", []string{"-quality", "speed", "-rc", "cqp", "-qp_i", "22", "-qp_p", "24"}
-		}
-	}
-	if t.Encoders["libx264"] {
-		return "libx264", []string{"-preset", "veryfast", "-crf", "21", "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p", "-x264-params", "scenecut=0:open_gop=0"}
-	}
-	if t.Encoders["libopenh264"] {
-		return "libopenh264", []string{"-b:v", "6M", "-pix_fmt", "yuv420p", "-profile:v", "high"}
-	}
-	return "mpeg4", []string{"-q:v", "4"}
 }
 
 // ---------------------------------------------------------------------------
@@ -216,12 +191,12 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 
 // Segment is one playable run of bytes with a known duration.
 type Segment struct {
-	Extents  []dvd.FileExtent
+	Extents  []wittydvd.FileExtent
 	Duration float64 // seconds, 0 = unknown
 }
 
 // SubfileURL builds a subfile protocol URL for one extent.
-func SubfileURL(e dvd.FileExtent) string {
+func SubfileURL(e wittydvd.FileExtent) string {
 	return fmt.Sprintf("subfile,,start,%d,end,%d,,:%s", e.Offset, e.Offset+e.Length, filepath.ToSlash(e.File))
 }
 

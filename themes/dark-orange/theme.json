@@ -1,0 +1,15 @@
+{
+  "id": "dark-orange",
+  "name": "Dark Orange",
+  "description": "Dark surfaces with a orange accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#181414",
+    "surface": "#282629",
+    "text": "#ececf1",
+    "accent": "#f97316"
+  }
+}

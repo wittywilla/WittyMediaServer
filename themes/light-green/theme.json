@@ -1,0 +1,15 @@
+{
+  "id": "light-green",
+  "name": "Light Green",
+  "description": "Light surfaces with a green accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f0f3f5",
+    "surface": "#e6ecef",
+    "text": "#15171c",
+    "accent": "#16a34a"
+  }
+}

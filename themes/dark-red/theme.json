@@ -1,0 +1,15 @@
+{
+  "id": "dark-red",
+  "name": "Dark Red",
+  "description": "Dark surfaces with a red accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#181316",
+    "surface": "#27242b",
+    "text": "#ececf1",
+    "accent": "#ef4444"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "light",
+  "name": "Light",
+  "description": "Clean light grey with a violet accent.",
+  "author": "WittyMediaServer",
+  "version": "1",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#f4f5f8",
+    "surface": "#eaedf2",
+    "text": "#15171c",
+    "accent": "#6d4fe0"
+  }
+}

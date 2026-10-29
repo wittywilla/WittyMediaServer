@@ -1,0 +1,44 @@
+/*
+ * Dark Green - a WittyMediaServer theme.
+ * Dark surfaces with a green accent.
+ *
+ * Every variable below is documented in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces, darkest/lightest first */
+  --bg: #111717;          /* page background */
+  --bg-2: #171f20;        /* sidebar, panels, modals */
+  --bg-3: #20292c;        /* inputs, cards, hovered rows */
+  --bg-4: #2b3439;        /* borders, scrollbar, pressed buttons */
+  --bg-rgb: 17 23 23;   /* --bg as "R G B" for translucent shades */
+  --border: #08090b;      /* hairlines between panels */
+
+  /* Text */
+  --fg: #ececf1;          /* primary text */
+  --fg-2: #a8adb9;        /* secondary text */
+  --fg-3: #6d7383;        /* hints, captions */
+
+  /* Accent (buttons, highlights, progress bars, selected items) */
+  --accent: #22c55e;
+  --accent-2: #16a34a;      /* hover / pressed accent */
+  --accent-fg: #ffffff;     /* text on accent backgrounds */
+  --accent-rgb: 34 197 94;
+  --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
+
+  /* Status colours */
+  --danger: #ff5c6c;
+  --ok: #3ad29f;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

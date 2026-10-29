@@ -24,7 +24,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
 )
 
-var version = "dev"
+// version is stamped by the release scripts (-X main.version=...); this is
+// the default for source builds.
+var version = "0.2.0-alpha"
 
 type launcher struct {
 	mu      sync.Mutex

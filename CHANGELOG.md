@@ -56,6 +56,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Profiles and parental controls
+
+- **Kids** and **Guest** profiles next to adult accounts. Kids and Guest profiles may have no
+  password: they then sign in with one tap, but only on the home network.
+- **Limits per account**: an age level (worked out from US, UK, German and TV ratings), titles
+  without a rating on or off, allowed libraries, hidden genres, and *always allow* / *never
+  allow* exceptions for single movies and shows. Live TV switches (all Live TV, channels made
+  from your libraries, tuner/IPTV channels) are stored for the coming Live TV feature.
+- Limits are enforced by the server everywhere (lists, home, search, show pages, playback,
+  artwork, recommendations); hidden titles answer "not found". Unrestricted accounts pay no
+  extra cost; unreadable limits fail closed.
+- Adults may add and manage Kids profiles unless the admin keeps that to themself; Guest and
+  adult accounts are admin-only. The setup wizard offers to add a Kids profile.
+- The Insert DVD sound can be switched off separately from the animation.
+
 ### Config file, portable mode and logs
 
 - **`wms.json` config file** for launch settings (port, folders, FFmpeg, transcode limit, log

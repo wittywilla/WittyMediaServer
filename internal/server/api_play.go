@@ -99,7 +99,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil {
 		writeErr(w, 404, "item not found")
 		return
@@ -178,7 +178,7 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil || it.Kind != "video" {
 		writeErr(w, 404, "item not found")
 		return

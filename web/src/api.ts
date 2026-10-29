@@ -1,7 +1,14 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 
-export type User = { id: number; name: string; isAdmin: boolean; createdAt: number }
+export type User = { id: number; name: string; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
+// What an account may see (null = no limits). maxAge -1 = no age limit.
+export type Access = {
+  maxAge: number; allowUnrated: boolean; libraries: number[]; blockGenres: string[]
+  allowItems: number[]; blockItems: number[]; allowShows: number[]; blockShows: number[]
+  liveTv: boolean; libraryChannels: boolean; tunerChannels: boolean
+}
+export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; paths: string[]; createdAt: number
   lastScanAt: number | null; scanning: boolean; itemCount: number
@@ -32,7 +39,7 @@ export type Show = {
 }
 export type Season = { number: number; title: string; overview: string; poster: string; episodeCount: number; unwatched: number }
 export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
-export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean }
+export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean; insertSound?: boolean }
 export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'current' }
 export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }

@@ -100,6 +100,12 @@ var migrations = []string{
 	 CREATE INDEX IF NOT EXISTS items_show ON items(show_id, season, episode);`,
 	// 3: user names for disc titles and chapters (JSON, see library.DiscLabels).
 	`ALTER TABLE items ADD COLUMN disc_labels TEXT;`,
+	// 4: profiles (adult | kids | guest) with limits, and the minimum age of
+	// every item and show (from its content rating) for those limits.
+	`ALTER TABLE users ADD COLUMN kind TEXT NOT NULL DEFAULT 'adult';
+	 ALTER TABLE users ADD COLUMN restrictions TEXT;
+	 ALTER TABLE items ADD COLUMN min_age INTEGER;
+	 ALTER TABLE shows ADD COLUMN min_age INTEGER;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

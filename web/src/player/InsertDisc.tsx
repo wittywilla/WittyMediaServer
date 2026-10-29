@@ -73,9 +73,9 @@ function playDriveSounds() {
   return () => { clearTimeout(end); ctx.close().catch(() => {}) }
 }
 
-export default function InsertDisc({ poster, title, onDone }: { poster?: string; title: string; onDone: () => void }) {
+export default function InsertDisc({ poster, title, onDone, sound = true }: { poster?: string; title: string; onDone: () => void; sound?: boolean }) {
   useEffect(() => {
-    const stop = playDriveSounds()
+    const stop = sound ? playDriveSounds() : () => {}
     const t = setTimeout(onDone, DURATION_MS)
     return () => { clearTimeout(t); stop() }
     // eslint-disable-next-line react-hooks/exhaustive-deps

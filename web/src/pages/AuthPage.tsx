@@ -4,13 +4,24 @@ import { Brand, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
 
-type Profile = { id: number; name: string }
+type Profile = { id: number; name: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
 
 // Sign-in. On the home network this is a "Who's watching?" screen with a
 // tile per profile; elsewhere (or when an admin chose it) the classic name
 // and password form. The server decides which, see GET /api/profiles.
 export default function AuthPage() {
-  const { brandName, version } = useApp()
+  const { brandName, version, setUser } = useApp()
+  const [tapErr, setTapErr] = useState('')
+  // Kids and Guest profiles without a password sign in with one tap.
+  const pick = async (p: Profile) => {
+    if (p.hasPassword) { setChosen(p); return }
+    setTapErr('')
+    try {
+      const r = await api.post<{ token: string; user: User }>('/login', { name: p.name, password: '', device: navigator.userAgent.slice(0, 80) })
+      setToken(r.token)
+      setUser(r.user)
+    } catch (e: any) { setTapErr(e.message) }
+  }
   const [profiles, setProfiles] = useState<Profile[] | null>(null)
   const [style, setStyle] = useState<'profiles' | 'classic' | null>(null)
   const [chosen, setChosen] = useState<Profile | null>(null)
@@ -30,13 +41,15 @@ export default function AuthPage() {
         <ul className="who-grid" role="list">
           {profiles!.map((p, i) => (
             <li key={p.id}>
-              <button type="button" className="who-tile" autoFocus={i === 0} onClick={() => setChosen(p)}>
+              <button type="button" className="who-tile" autoFocus={i === 0} onClick={() => pick(p)}>
                 <Avatar name={p.name} big />
                 <span className="who-name">{p.name}</span>
+                {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? 'Kids' : 'Guest'}</span>}
               </button>
             </li>
           ))}
         </ul>
+        {tapErr && <div className="error" role="alert">{tapErr}</div>}
         <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
         <div className="auth-version"><VersionTag version={version} /></div>
       </div>

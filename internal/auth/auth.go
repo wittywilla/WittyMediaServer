@@ -21,6 +21,33 @@ type User struct {
 	Name      string `json:"name"`
 	IsAdmin   bool   `json:"isAdmin"`
 	CreatedAt int64  `json:"createdAt"`
+	// Kind is "adult", "kids" or "guest". Kids and Guest profiles may have
+	// no password; they then sign in with a tap on the home network.
+	Kind        string `json:"kind"`
+	HasPassword bool   `json:"hasPassword"`
+	// Restrictions is the account's library.Access as JSON ("" = none).
+	Restrictions string `json:"-"`
+}
+
+// Kinds of accounts.
+const (
+	KindAdult = "adult"
+	KindKids  = "kids"
+	KindGuest = "guest"
+)
+
+const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, '')`
+
+type scanner interface{ Scan(...any) error }
+
+func scanUser(r scanner) (*User, error) {
+	var u User
+	var admin int
+	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions); err != nil {
+		return nil, err
+	}
+	u.IsAdmin = admin != 0
+	return &u, nil
 }
 
 type Service struct {
@@ -38,15 +65,40 @@ func (s *Service) UserCount(ctx context.Context) int {
 }
 
 func (s *Service) CreateUser(ctx context.Context, name, password string, admin bool) (*User, error) {
+	return s.CreateProfile(ctx, name, password, KindAdult, admin, "")
+}
+
+// CreateProfile adds an account of a kind. Kids and Guest profiles may
+// have no password; adults always need one.
+func (s *Service) CreateProfile(ctx context.Context, name, password, kind string, admin bool, restrictions string) (*User, error) {
 	name = strings.TrimSpace(name)
-	if name == "" || len(password) < 4 {
-		return nil, errors.New("name required and password must be at least 4 characters")
+	if name == "" || len(name) > 40 {
+		return nil, errors.New("a name of up to 40 characters is required")
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+	switch kind {
+	case KindAdult:
+	case KindKids, KindGuest:
+		admin = false
+	default:
+		return nil, errors.New("unknown profile kind")
 	}
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at) VALUES(?,?,?,?)`, name, string(hash), admin, db.Now())
+	hash := ""
+	if password != "" || kind == KindAdult {
+		if len(password) < 4 {
+			return nil, errors.New("the password must be at least 4 characters")
+		}
+		b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		hash = string(b)
+	}
+	var restr any
+	if restrictions != "" {
+		restr = restrictions
+	}
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at, kind, restrictions) VALUES(?,?,?,?,?,?)`,
+		name, hash, admin, db.Now(), kind, restr)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return nil, errors.New("that name is taken")
@@ -55,6 +107,28 @@ func (s *Service) CreateUser(ctx context.Context, name, password string, admin b
 	}
 	id, _ := res.LastInsertId()
 	return s.User(ctx, id)
+}
+
+// SetRestrictions stores an account's limits (JSON, "" = none).
+func (s *Service) SetRestrictions(ctx context.Context, id int64, restrictions string) error {
+	var v any
+	if restrictions != "" {
+		v = restrictions
+	}
+	_, err := s.DB.ExecContext(ctx, `UPDATE users SET restrictions = ? WHERE id = ?`, v, id)
+	return err
+}
+
+// ClearPassword lets a Kids or Guest profile sign in without one.
+func (s *Service) ClearPassword(ctx context.Context, id int64) error {
+	res, err := s.DB.ExecContext(ctx, `UPDATE users SET password_hash = '' WHERE id = ? AND kind <> 'adult'`, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return errors.New("only Kids and Guest profiles can be used without a password")
+	}
+	return nil
 }
 
 func (s *Service) SetPassword(ctx context.Context, id int64, password string) error {
@@ -75,45 +149,45 @@ func (s *Service) DeleteUser(ctx context.Context, id int64) error {
 }
 
 func (s *Service) User(ctx context.Context, id int64) (*User, error) {
-	var u User
-	var admin int
-	err := s.DB.QueryRowContext(ctx, `SELECT id, name, is_admin, created_at FROM users WHERE id = ?`, id).Scan(&u.ID, &u.Name, &admin, &u.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	u.IsAdmin = admin != 0
-	return &u, nil
+	return scanUser(s.DB.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
 }
 
 func (s *Service) Users(ctx context.Context) ([]User, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, name, is_admin, created_at FROM users ORDER BY id`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+userCols+` FROM users ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := []User{}
 	for rows.Next() {
-		var u User
-		var admin int
-		if err := rows.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt); err != nil {
+		u, err := scanUser(rows)
+		if err != nil {
 			return nil, err
 		}
-		u.IsAdmin = admin != 0
-		out = append(out, u)
+		out = append(out, *u)
 	}
 	return out, rows.Err()
 }
 
-// Login verifies credentials and issues a token.
-func (s *Service) Login(ctx context.Context, name, password, device string) (string, *User, error) {
+// Login verifies credentials and issues a token. allowNoPassword permits
+// password-free Kids/Guest profiles (the server only allows it on the home
+// network); adults always need their password.
+func (s *Service) Login(ctx context.Context, name, password, device string, allowNoPassword bool) (string, *User, error) {
 	var id int64
-	var hash string
-	err := s.DB.QueryRowContext(ctx, `SELECT id, password_hash FROM users WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name)).Scan(&id, &hash)
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil) {
+	var hash, kind string
+	err := s.DB.QueryRowContext(ctx, `SELECT id, password_hash, kind FROM users WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name)).Scan(&id, &hash, &kind)
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil, ErrInvalid
 	}
 	if err != nil {
 		return "", nil, err
+	}
+	if hash == "" {
+		if kind == KindAdult || !allowNoPassword {
+			return "", nil, ErrInvalid
+		}
+	} else if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		return "", nil, ErrInvalid
 	}
 	return s.issue(ctx, id, device)
 }

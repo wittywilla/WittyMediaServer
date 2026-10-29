@@ -92,6 +92,10 @@ func cmdServe(args []string) int {
 	}
 
 	store := &library.Store{DB: database}
+	// Parental controls need the minimum age of titles saved before they existed.
+	if err := store.BackfillAges(context.Background()); err != nil {
+		log.Warn("rating ages", "err", err)
+	}
 	tmdbKey := func() string { return database.GetSetting(context.Background(), "tmdbKey", "") }
 	scanner := library.NewScanner(store, tools, cfg.CacheDir, tmdbKey, log)
 	scanner.ImagesDir = cfg.ImagesDir

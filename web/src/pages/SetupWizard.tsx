@@ -4,6 +4,7 @@ import { Brand, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { IconCheck, IconDisc, IconFilm, IconFolder, IconTv } from '../icons'
 import { useApp } from '../state'
+import { AddProfile } from './Profiles'
 
 // The first-run setup: welcome → account → libraries → metadata → done.
 // Every step after the account can be skipped and changed later in Settings.
@@ -28,6 +29,8 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
   const idx = STEPS.findIndex((s) => s.id === step)
   const [serverName, setServerName] = useState(brandName)
   const [added, setAdded] = useState<Library[]>([])
+  const [addKids, setAddKids] = useState(false)
+  const [kidsAdded, setKidsAdded] = useState(false)
 
   const finish = async () => {
     try { await api.put('/settings', { setupDone: '1', ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* ignore */ }
@@ -92,6 +95,12 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
                   : 'You can add libraries any time in Settings → Libraries.'}
               </p>
               <p className="muted">Open this server from your TV, phone or another computer at the same address you're using now.</p>
+              <div className="oobe-kids">
+                {kidsAdded
+                  ? <span><IconCheck size={16} /> Kids profile added</span>
+                  : <><span>Do children watch too? A Kids profile only shows titles for their age.</span><button type="button" className="btn" onClick={() => setAddKids(true)}>Add a Kids profile</button></>}
+              </div>
+              {addKids && <AddProfile admin initialKind="kids" onClose={() => setAddKids(false)} onDone={() => { setAddKids(false); setKidsAdded(true) }} />}
               <div className="oobe-actions"><span /><button className="btn primary big" autoFocus onClick={finish}>Start watching</button></div>
             </section>
           )}

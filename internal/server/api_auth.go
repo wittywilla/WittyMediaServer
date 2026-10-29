@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +68,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device)
+	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, false)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -87,7 +89,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 429, fmt.Sprintf("Too many wrong passwords. Try again in %d seconds.", int(d.Seconds())+1))
 		return
 	}
-	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device)
+	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, s.profilesVisible(r))
 	if err != nil {
 		s.logins.fail(k)
 		writeErr(w, 401, err.Error())
@@ -108,25 +110,77 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, userFrom(r))
 }
 
+// userView is an account as the Users page sees it, with its limits.
+type userView struct {
+	auth.User
+	Access *library.Access `json:"access"` // nil = no limits
+}
+
+// canManage reports whether me may change account target: the admin
+// always; adults may manage Kids profiles unless the admin locked that.
+func (s *Server) canManage(r *http.Request, me *auth.User, targetKind string) bool {
+	if me.IsAdmin {
+		return true
+	}
+	return me.Kind == auth.KindAdult && targetKind == auth.KindKids && s.DB.GetSetting(r.Context(), "kidsManagedBy", "adults") == "adults"
+}
+
+// GET /api/users: everyone for the admin; the Kids profiles for adults who
+// may manage them.
 func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
+	me := userFrom(r)
 	users, err := s.Auth.Users(r.Context())
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, users)
+	out := []userView{}
+	for _, u := range users {
+		if !s.canManage(r, me, u.Kind) {
+			continue
+		}
+		v := userView{User: u, Access: accessFor(&u)}
+		if v.Access == nil && !u.IsAdmin {
+			a := library.DefaultAccess(u.Kind)
+			v.Access = &a
+		}
+		out = append(out, v)
+	}
+	writeJSON(w, 200, out)
 }
 
 func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		credentials
-		IsAdmin bool `json:"isAdmin"`
+		IsAdmin bool            `json:"isAdmin"`
+		Kind    string          `json:"kind"`
+		Access  *library.Access `json:"access"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	u, err := s.Auth.CreateUser(r.Context(), c.Name, c.Password, c.IsAdmin)
+	if c.Kind == "" {
+		c.Kind = auth.KindAdult
+	}
+	me := userFrom(r)
+	if !s.canManage(r, me, c.Kind) {
+		writeErr(w, 403, "only the administrator can add this kind of profile")
+		return
+	}
+	if !me.IsAdmin {
+		c.IsAdmin = false
+	}
+	restr := ""
+	if c.Access != nil || c.Kind != auth.KindAdult {
+		a := library.DefaultAccess(c.Kind)
+		if c.Access != nil {
+			a = *c.Access
+		}
+		b, _ := json.Marshal(a)
+		restr = string(b)
+	}
+	u, err := s.Auth.CreateProfile(r.Context(), c.Name, c.Password, c.Kind, c.IsAdmin, restr)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
@@ -134,10 +188,57 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, u)
 }
 
+// PUT /api/users/{id}/access {access, clearPassword}: an account's limits.
+// Kids profiles: the admin, or adults when allowed. Everyone else: admin.
+func (s *Server) handleUserAccess(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	target, err := s.Auth.User(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "no such account")
+		return
+	}
+	me := userFrom(r)
+	if target.ID == me.ID || target.IsAdmin || !s.canManage(r, me, target.Kind) {
+		writeErr(w, 403, "not allowed")
+		return
+	}
+	var b struct {
+		Access        *library.Access `json:"access"`
+		ClearPassword bool            `json:"clearPassword"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if b.Access != nil {
+		raw, _ := json.Marshal(b.Access)
+		if err := s.Auth.SetRestrictions(r.Context(), id, string(raw)); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+	}
+	if b.ClearPassword {
+		if err := s.Auth.ClearPassword(r.Context(), id); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+	}
+	u, _ := s.Auth.User(r.Context(), id)
+	writeJSON(w, 200, userView{User: *u, Access: accessFor(u)})
+}
+
 func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok || id == userFrom(r).ID {
 		writeErr(w, 400, "cannot delete that user")
+		return
+	}
+	if target, err := s.Auth.User(r.Context(), id); err != nil || !s.canManage(r, userFrom(r), target.Kind) {
+		writeErr(w, 403, "not allowed")
 		return
 	}
 	if err := s.Auth.DeleteUser(r.Context(), id); err != nil {
@@ -150,7 +251,19 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	u := userFrom(r)
-	if !ok || (id != u.ID && !u.IsAdmin) {
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	// Your own password (adults), or one you manage. Kids and Guest
+	// profiles cannot change theirs: the people who manage them do.
+	allowed := id == u.ID && u.Kind == auth.KindAdult
+	if id != u.ID {
+		if t, err := s.Auth.User(r.Context(), id); err == nil && !t.IsAdmin && s.canManage(r, u, t.Kind) {
+			allowed = true
+		}
+	}
+	if !allowed && !(u.IsAdmin && id != u.ID) {
 		writeErr(w, 403, "not allowed")
 		return
 	}

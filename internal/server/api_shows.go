@@ -29,6 +29,7 @@ func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
 		Desc:      qBool(r, "desc"),
 		Limit:     qInt(r, "limit", 0),
 		UserID:    userFrom(r).ID,
+		Access:    s.access(r),
 	})
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -64,7 +65,7 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx, uid := r.Context(), userFrom(r).ID
-	sh, err := s.Store.Show(ctx, id, uid)
+	sh, err := s.visibleShow(r, id)
 	if err != nil {
 		writeErr(w, 404, "show not found")
 		return
@@ -74,7 +75,7 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	eps, err := s.Store.Episodes(ctx, id)
+	eps, err := s.Store.Episodes(ctx, id, s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -192,7 +193,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 	}
 	if src == "" {
 		// No artwork yet (no TheTVDB key, no local files): use an episode still.
-		if eps, err := s.Store.Episodes(r.Context(), id); err == nil {
+		if eps, err := s.Store.Episodes(r.Context(), id, nil); err == nil {
 			for _, e := range eps {
 				if e.Poster != "" {
 					src = e.Poster
@@ -381,6 +382,7 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"dvdStart":    s.DB.GetSetting(ctx, "dvdStart", "menu"),
 		"insertFx":    s.DB.GetSetting(ctx, "insertFx", "1") == "1",
+		"insertSound": s.DB.GetSetting(ctx, "insertSound", "1") == "1",
 		"episodeView": s.DB.GetSetting(ctx, "episodeView", "cards"),
 		"tvdb":        s.DB.GetSetting(ctx, "tvdbKey", "") != "",
 		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",

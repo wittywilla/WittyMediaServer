@@ -48,8 +48,7 @@ func onThisMachine(r *http.Request) bool {
 // visitors get the classic name + password form unless an admin allows it.
 func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	style := s.DB.GetSetting(ctx, "loginStyle", "profiles")
-	if style != "profiles" || (!onLocalNetwork(r) && s.DB.GetSetting(ctx, "profilesRemote", "0") != "1") {
+	if !s.profilesVisible(r) {
 		writeJSON(w, 200, map[string]any{"style": "classic"})
 		return
 	}
@@ -59,14 +58,27 @@ func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type profile struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
+		ID          int64  `json:"id"`
+		Name        string `json:"name"`
+		Kind        string `json:"kind"`
+		HasPassword bool   `json:"hasPassword"`
 	}
 	out := make([]profile, 0, len(users))
 	for _, u := range users {
-		out = append(out, profile{ID: u.ID, Name: u.Name})
+		out = append(out, profile{ID: u.ID, Name: u.Name, Kind: u.Kind, HasPassword: u.HasPassword})
 	}
 	writeJSON(w, 200, map[string]any{"style": "profiles", "profiles": out})
+}
+
+// profilesVisible: the profile screen is on, and this device is on the home
+// network (or the admin allowed remote devices). Password-free Kids and
+// Guest profiles can only sign in where this is true.
+func (s *Server) profilesVisible(r *http.Request) bool {
+	ctx := r.Context()
+	if s.DB.GetSetting(ctx, "loginStyle", "profiles") != "profiles" {
+		return false
+	}
+	return onLocalNetwork(r) || s.DB.GetSetting(ctx, "profilesRemote", "0") == "1"
 }
 
 // POST /api/fs/pick (admin): opens the operating system's folder picker on

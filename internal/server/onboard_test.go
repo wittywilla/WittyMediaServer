@@ -3,6 +3,8 @@ package server
 import (
 	"net/http/httptest"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 )
 
 func TestLoginLimiter(t *testing.T) {
@@ -48,5 +50,20 @@ func TestLocalNetwork(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "8.8.8.8")
 	if onLocalNetwork(r) || onThisMachine(r) {
 		t.Error("a proxied request must count as remote")
+	}
+}
+
+func TestAccessFor(t *testing.T) {
+	if accessFor(&auth.User{Kind: "adult", IsAdmin: true, Restrictions: `{"maxAge":0}`}) != nil {
+		t.Error("administrators are never limited")
+	}
+	if accessFor(&auth.User{Kind: "adult"}) != nil {
+		t.Error("an adult nobody restricted has no limits")
+	}
+	if a := accessFor(&auth.User{Kind: "kids"}); a == nil || a.MaxAge != 7 {
+		t.Errorf("a Kids profile without saved limits gets the defaults, got %+v", a)
+	}
+	if a := accessFor(&auth.User{Kind: "adult", Restrictions: "{broken"}); a == nil || a.MaxAge != 0 {
+		t.Errorf("unreadable limits must fail closed, got %+v", a)
 	}
 }

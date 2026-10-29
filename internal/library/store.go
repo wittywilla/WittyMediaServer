@@ -315,11 +315,53 @@ type ItemQuery struct {
 	ShowID    int64
 	// NoEpisodes leaves TV episodes out (home hero, movie views).
 	NoEpisodes bool
+	// Access limits the result to what a Kids/Guest profile may see.
+	Access *Access
+}
+
+// BackfillAges fills min_age for items and shows saved before parental
+// controls existed. It runs once; later saves keep the column current.
+func (s *Store) BackfillAges(ctx context.Context) error {
+	if s.DB.GetSetting(ctx, "agesFilled", "") == "1" {
+		return nil
+	}
+	for _, table := range []string{"items", "shows"} {
+		rows, err := s.DB.QueryContext(ctx, `SELECT id, content_rating FROM `+table+` WHERE IFNULL(content_rating, '') <> ''`)
+		if err != nil {
+			return err
+		}
+		type row struct {
+			id  int64
+			age *int
+		}
+		var todo []row
+		for rows.Next() {
+			var r row
+			var rating string
+			if rows.Scan(&r.id, &rating) == nil {
+				if r.age = AgeFor(rating); r.age != nil {
+					todo = append(todo, r)
+				}
+			}
+		}
+		rows.Close()
+		for _, r := range todo {
+			if _, err := s.DB.ExecContext(ctx, `UPDATE `+table+` SET min_age = ? WHERE id = ?`, *r.age, r.id); err != nil {
+				return err
+			}
+		}
+	}
+	return s.DB.SetSetting(ctx, "agesFilled", "1")
 }
 
 func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	where := []string{"i.missing = 0"}
 	var args []any
+	if q.Access != nil {
+		c, a := q.Access.ItemClause()
+		where = append(where, c)
+		args = append(args, a...)
+	}
 	if q.LibraryID != 0 {
 		where = append(where, "i.library_id = ?")
 		args = append(args, q.LibraryID)
@@ -415,12 +457,12 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	if it.ID == 0 {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, year, overview, tagline, genres, rating,
 			content_rating, studio, runtime_sec, poster, backdrop, container, video_codec, width, height, audio_langs, sub_langs, disc_json,
-			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?)`,
+			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end, min_age)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?)`,
 			it.LibraryID, it.Kind, it.Path, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 			it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now,
-			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd)
+			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating))
 		if err != nil {
 			return err
 		}
@@ -431,11 +473,11 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
 		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0,
-		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=? WHERE id=?`,
+		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=?, min_age=? WHERE id=?`,
 		it.Kind, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 		it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now,
-		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, it.ID)
+		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating), it.ID)
 	it.UpdatedAt = now
 	return err
 }

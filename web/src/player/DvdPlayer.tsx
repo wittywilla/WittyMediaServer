@@ -44,6 +44,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const [busy, setBusy] = useState(false)
   const [stopped, setStopped] = useState(false)
   const [inserting, setInserting] = useState(false)
+  const [insertSound, setInsertSound] = useState(true)
   const [picker, setPicker] = useState<PickKind | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   // The previous still image stays up until the next clip has a frame, so
@@ -66,7 +67,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   useEffect(() => {
     if (!insert) return
     let cancelled = false
-    getPrefs().then((p) => { if (!cancelled && insertFxOn(item, p)) { holdPlay.current = true; setInserting(true) } })
+    getPrefs().then((p) => { if (!cancelled && insertFxOn(item, p)) { holdPlay.current = true; setInsertSound(p.insertSound !== false); setInserting(true) } })
     return () => { cancelled = true }
   }, [insert, item])
   const insertDone = useCallback(() => {
@@ -527,7 +528,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       <div className="sr-only" role="status" aria-live="polite">
         {pres?.kind === 'title' ? `Playing ${titleName}` : pres?.kind === 'menu' ? (inMenu ? `Disc menu, ${buttons.length} options. Use the arrow keys and Enter.` : 'Disc menu loading') : ''}
       </div>
-      {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} />}
+      {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} sound={insertSound} />}
       {spin && !needClick && !inserting && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && !inserting && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {stopped && !mini && <div className="overlay-msg"><div className="box">Stopped · press Play to continue</div></div>}

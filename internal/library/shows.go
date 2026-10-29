@@ -94,11 +94,17 @@ type ShowQuery struct {
 	Desc      bool
 	Limit     int
 	UserID    int64
+	Access    *Access // Kids/Guest limits
 }
 
 func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	where := []string{"s.missing = 0"}
 	args := []any{q.UserID}
+	if q.Access != nil {
+		c, a := q.Access.ShowClause()
+		where = append(where, c)
+		args = append(args, a...)
+	}
 	if q.LibraryID != 0 {
 		where = append(where, "s.library_id = ?")
 		args = append(args, q.LibraryID)
@@ -175,9 +181,9 @@ func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
 	}
 	if sh.ID == 0 {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO shows(library_id, path, title, sort_title, year, overview, genres, rating, content_rating,
-			network, status, poster, backdrop, provider, provider_id, added_at, updated_at, missing, intro_start, intro_end) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?)`,
+			network, status, poster, backdrop, provider, provider_id, added_at, updated_at, missing, intro_start, intro_end, min_age) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?)`,
 			sh.LibraryID, sh.Path, sh.Title, sh.SortTitle, sh.Year, sh.Overview, joinList(sh.Genres), sh.Rating, sh.ContentRating,
-			sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID, now, now, sh.IntroStart, sh.IntroEnd)
+			sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID, now, now, sh.IntroStart, sh.IntroEnd, AgeFor(sh.ContentRating))
 		if err != nil {
 			return err
 		}
@@ -186,9 +192,9 @@ func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
 		return nil
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE shows SET title=?, sort_title=?, year=?, overview=?, genres=?, rating=?, content_rating=?,
-		network=?, status=?, poster=?, backdrop=?, provider=?, provider_id=?, updated_at=?, missing=0, intro_start=?, intro_end=? WHERE id=?`,
+		network=?, status=?, poster=?, backdrop=?, provider=?, provider_id=?, updated_at=?, missing=0, intro_start=?, intro_end=?, min_age=? WHERE id=?`,
 		sh.Title, sh.SortTitle, sh.Year, sh.Overview, joinList(sh.Genres), sh.Rating, sh.ContentRating,
-		sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID, now, sh.IntroStart, sh.IntroEnd, sh.ID)
+		sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID, now, sh.IntroStart, sh.IntroEnd, AgeFor(sh.ContentRating), sh.ID)
 	sh.UpdatedAt = now
 	return err
 }
@@ -295,8 +301,8 @@ func (s *Store) SetSeasonPoster(ctx context.Context, showID int64, n int, poster
 }
 
 // Episodes lists a show's episodes in order.
-func (s *Store) Episodes(ctx context.Context, showID int64) ([]*Item, error) {
-	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode"})
+func (s *Store) Episodes(ctx context.Context, showID int64, access *Access) ([]*Item, error) {
+	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode", Access: access})
 	return items, err
 }
 
@@ -329,7 +335,7 @@ func (s *Store) NextEpisode(ctx context.Context, it *Item) *int64 {
 	if it.ShowID == nil {
 		return nil
 	}
-	eps, err := s.Episodes(ctx, *it.ShowID)
+	eps, err := s.Episodes(ctx, *it.ShowID, nil)
 	if err != nil {
 		return nil
 	}
@@ -359,7 +365,7 @@ func episodeKey(it *Item) int {
 // Recommend suggests what to watch after it: for an episode another show
 // (genre overlap first, shows already started before new ones), for a
 // movie a similar unwatched movie. Returns nil when nothing fits.
-func (s *Store) Recommend(ctx context.Context, userID int64, it *Item) (*Item, *Show, error) {
+func (s *Store) Recommend(ctx context.Context, userID int64, it *Item, access *Access) (*Item, *Show, error) {
 	genres := it.Genres
 	if it.ShowID != nil {
 		sh, err := s.Show(ctx, *it.ShowID, userID)
@@ -367,7 +373,7 @@ func (s *Store) Recommend(ctx context.Context, userID int64, it *Item) (*Item, *
 			return nil, nil, err
 		}
 		genres = sh.Genres
-		shows, err := s.Shows(ctx, ShowQuery{LibraryID: it.LibraryID, UserID: userID})
+		shows, err := s.Shows(ctx, ShowQuery{LibraryID: it.LibraryID, UserID: userID, Access: access})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -388,14 +394,14 @@ func (s *Store) Recommend(ctx context.Context, userID int64, it *Item) (*Item, *
 		if best == nil {
 			return nil, nil, nil
 		}
-		eps, err := s.Episodes(ctx, best.ID)
+		eps, err := s.Episodes(ctx, best.ID, access)
 		if err != nil {
 			return nil, nil, err
 		}
 		_ = s.AttachProgress(ctx, userID, eps)
 		return NextUp(eps), best, nil
 	}
-	items, _, err := s.Items(ctx, ItemQuery{LibraryID: it.LibraryID, NoEpisodes: true, Sort: "rating", Desc: true, Limit: 500})
+	items, _, err := s.Items(ctx, ItemQuery{LibraryID: it.LibraryID, NoEpisodes: true, Sort: "rating", Desc: true, Limit: 500, Access: access})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,8 +1,8 @@
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { Avatar } from './AuthPage'
+import Profiles from './Profiles'
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import { api, getPrefs, type Library, type User } from '../api'
+import { api, getPrefs, type Library } from '../api'
 import { IconFolder, IconRefresh, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import TranscodeSettings from './TranscodeSettings'
@@ -172,7 +172,8 @@ function ServerSettings() {
             <option value="menu">Start with the disc menu (like a DVD player)</option><option value="title">Skip menus and play the main feature</option>
           </select>
         </label>
-        {check('insertFx', <>Insert DVD effect <span className="muted">(tray animation and drive sound; each disc can override this in its Disc settings)</span></>)}
+        {check('insertFx', <>Insert DVD effect <span className="muted">(tray animation when a disc starts; each disc can override this in its Disc settings)</span></>)}
+        <div style={{ marginLeft: 28, opacity: s.insertFx === '0' ? 0.5 : 1 }}>{check('insertSound', <>Play the drive sounds with it <span className="muted">(tray motor and disc spin-up)</span></>)}</div>
         <div className="row2">
           <label>Preferred DVD menu language<input className="input" value={s.menuLanguage || ''} onChange={up('menuLanguage')} placeholder="en" /></label>
           <label>Preferred audio language<input className="input" value={s.audioLanguage || ''} onChange={up('audioLanguage')} placeholder="en" /></label>
@@ -188,44 +189,9 @@ function ServerSettings() {
 
 function Users() {
   const { user } = useApp()
-  const [users, setUsers] = useState<User[]>([])
-  const [name, setName] = useState('')
-  const [pw, setPw] = useState('')
-  const [admin, setAdmin] = useState(false)
-  const [mypw, setMypw] = useState('')
-  const [err, setErr] = useState('')
-  const load = () => { if (user?.isAdmin) api.get<User[]>('/users').then(setUsers) }
-  useEffect(load, [user?.isAdmin])
-  const add = async () => { try { await api.post('/users', { name, password: pw, isAdmin: admin }); setName(''); setPw(''); load() } catch (e: any) { setErr(e.message) } }
-  const del = async (u: User) => { if (confirm(`Remove ${u.name}?`)) { await api.del(`/users/${u.id}`); load() } }
-  const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw }); setMypw(''); toast('Password changed') } catch (e: any) { setErr(e.message) } }
   return (
     <>
-      <div className="panel">
-        <h2>Your account</h2>
-        <div className="form">
-          <div>Signed in as <b>{user?.name}</b>{user?.isAdmin ? ' (administrator)' : ''}</div>
-          <div className="field-row"><input className="input" type="password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} /><button className="btn" onClick={changePw} disabled={mypw.length < 4}>Change password</button></div>
-        </div>
-      </div>
-      {user?.isAdmin && (
-        <div className="panel">
-          <h2>Users</h2>
-          <div className="list">
-            {users.map((u) => <div className="list-item" key={u.id}><Avatar name={u.name} /><div className="grow"><b>{u.name}</b> <span className="muted">{u.isAdmin ? '· admin' : ''}</span></div>{u.id !== user.id && <button className="btn sm danger" onClick={() => del(u)} aria-label={`Remove ${u.name}`}><IconTrash /></button>}</div>)}
-          </div>
-          <h3 style={{ marginTop: 20 }}>Add user</h3>
-          <div className="form">
-            <div className="row2">
-              <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-              <input className="input" type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} />
-            </div>
-            <label style={{ flexDirection: 'row', display: 'flex', gap: 10, alignItems: 'center' }}><input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> Administrator</label>
-            {err && <div className="error">{err}</div>}
-            <div><button className="btn primary" onClick={add} disabled={!name || pw.length < 4}>Add user</button></div>
-          </div>
-        </div>
-      )}
+      <Profiles />
       {user?.isAdmin && <SignInScreen />}
     </>
   )
@@ -249,6 +215,12 @@ function SignInScreen() {
           <button role="radio" aria-checked={profiles} className={profiles ? 'active' : ''} onClick={() => save({ loginStyle: 'profiles' })}>Who's watching? (profiles)</button>
           <button role="radio" aria-checked={!profiles} className={!profiles ? 'active' : ''} onClick={() => save({ loginStyle: 'classic' })}>Classic name and password</button>
         </div>
+        <label>Who may create and change Kids profiles
+          <select className="select" value={s.kidsManagedBy || 'adults'} onChange={(e) => save({ kidsManagedBy: e.target.value })}>
+            <option value="adults">Every adult profile</option>
+            <option value="admin">Only the administrator</option>
+          </select>
+        </label>
         {profiles && (
           <label style={{ flexDirection: 'row', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <input type="checkbox" checked={s.profilesRemote === '1'} onChange={(e) => save({ profilesRemote: e.target.checked ? '1' : '0' })} />

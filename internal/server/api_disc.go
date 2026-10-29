@@ -131,7 +131,7 @@ func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item
 		writeErr(w, 400, "bad id")
 		return nil, nil, false
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil || (it.Kind != "dvd-iso" && it.Kind != "dvd-folder") {
 		writeErr(w, 404, "disc not found")
 		return nil, nil, false
@@ -176,7 +176,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 	}
 	ttn, _ := strconv.Atoi(r.PathValue("ttn"))
 	n, _ := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".jpg"))
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil || (it.Kind != "dvd-iso" && it.Kind != "dvd-folder") {
 		writeErr(w, 404, "disc not found")
 		return

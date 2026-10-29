@@ -18,7 +18,7 @@ import (
 )
 
 func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
-	libs, err := s.Store.Libraries(r.Context())
+	libs, err := s.visibleLibraries(r.Context(), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -158,6 +158,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Offset:    qInt(r, "offset", 0),
 		Genre:     r.URL.Query().Get("genre"),
 		Kind:      r.URL.Query().Get("kind"),
+		Access:    s.access(r),
 	}
 	items, total, err := s.Store.Items(r.Context(), q)
 	if err != nil {
@@ -174,7 +175,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil {
 		writeErr(w, 404, "item not found")
 		return
@@ -196,12 +197,12 @@ func (s *Server) handleRecommend(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil {
 		writeErr(w, 404, "item not found")
 		return
 	}
-	rec, show, err := s.Store.Recommend(r.Context(), userFrom(r).ID, it)
+	rec, show, err := s.Store.Recommend(r.Context(), userFrom(r).ID, it, s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -300,8 +301,10 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	u := userFrom(r)
+	acc := s.access(r)
 	cont, _ := s.Store.ContinueWatching(ctx, u.ID, 20)
-	libs, err := s.Store.Libraries(ctx)
+	cont = s.filterItems(ctx, acc, cont)
+	libs, err := s.visibleLibraries(ctx, acc)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -322,7 +325,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, l := range libs {
 		if l.Type == "shows" {
-			shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID})
+			shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID, Access: acc})
 			if err != nil || len(shows) == 0 {
 				continue
 			}
@@ -330,7 +333,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently Added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
-		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20})
+		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc})
 		if err != nil || len(items) == 0 {
 			continue
 		}
@@ -340,7 +343,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -363,13 +366,13 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
 // nextUp offers the next episode of each show the user has started.
 func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item {
-	ctx, uid := r.Context(), userFrom(r).ID
+	ctx, uid, acc := r.Context(), userFrom(r).ID, s.access(r)
 	var out []*library.Item
 	for _, l := range libs {
 		if l.Type != "shows" {
 			continue
 		}
-		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid})
+		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc})
 		if err != nil {
 			continue
 		}
@@ -377,7 +380,7 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 			if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
 				continue // finished, or never started
 			}
-			eps, err := s.Store.Episodes(ctx, sh.ID)
+			eps, err := s.Store.Episodes(ctx, sh.ID, acc)
 			if err != nil {
 				continue
 			}
@@ -406,7 +409,7 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		writeErr(w, 400, "bad id")
 		return
 	}
-	it, err := s.Store.Item(r.Context(), id)
+	it, err := s.visibleItem(r, id)
 	if err != nil {
 		writeErr(w, 404, "item not found")
 		return

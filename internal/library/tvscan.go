@@ -328,7 +328,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	if err != nil {
 		return sh, err
 	}
-	items, err := s.Store.Episodes(ctx, sh.ID)
+	items, err := s.Store.Episodes(ctx, sh.ID, nil)
 	if err != nil {
 		return sh, err
 	}

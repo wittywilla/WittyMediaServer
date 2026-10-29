@@ -121,9 +121,10 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
 	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
 	m.Handle("GET /api/system", s.requireAdmin(s.handleSystem))
-	m.Handle("GET /api/users", s.requireAdmin(s.handleUsers))
-	m.Handle("POST /api/users", s.requireAdmin(s.handleCreateUser))
-	m.Handle("DELETE /api/users/{id}", s.requireAdmin(s.handleDeleteUser))
+	m.Handle("GET /api/users", a(s.handleUsers))       // filtered by who may manage whom
+	m.Handle("POST /api/users", a(s.handleCreateUser)) // adults may add Kids profiles
+	m.Handle("DELETE /api/users/{id}", a(s.handleDeleteUser))
+	m.Handle("PUT /api/users/{id}/access", a(s.handleUserAccess))
 	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
 	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))

@@ -12,11 +12,13 @@ import (
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
 	"serverName", "audioCodec", "lowPower", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
-	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed"}
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
+	"loginStyle", "profilesRemote", "setupDone"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
-	"theme": "default", "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4"}
+	"theme": "default", "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
+	"loginStyle": "profiles", "profilesRemote": "0"}
 
 // secretSettings are masked when read back.
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}

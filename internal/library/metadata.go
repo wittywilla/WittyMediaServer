@@ -327,10 +327,19 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 	if t.Key == "" {
 		return errors.New("tmdb: no api key")
 	}
-	q.Set("api_key", t.Key)
+	// TMDB hands out two credentials on the same page: the short v3 "API
+	// key" and the long v4 "API Read Access Token". Accept either.
+	key := strings.TrimSpace(t.Key)
+	bearer := strings.HasPrefix(key, "eyJ")
+	if !bearer {
+		q.Set("api_key", key)
+	}
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.themoviedb.org/3"+path+"?"+q.Encode(), nil)
 	if err != nil {
 		return err
+	}
+	if bearer {
+		req.Header.Set("Authorization", "Bearer "+key)
 	}
 	c := t.Client
 	if c == nil {
@@ -469,4 +478,10 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		it.Backdrop = tmdbImage + "w1280" + m.BackdropPath
 	}
 	return nil
+}
+
+// Check verifies the key with a cheap request (used by the setup wizard).
+func (t *TMDB) Check(ctx context.Context) error {
+	var out struct{}
+	return t.get(ctx, "/configuration", url.Values{}, &out)
 }

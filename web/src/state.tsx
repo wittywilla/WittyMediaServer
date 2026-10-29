@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { api, setToken, type Library, type User } from './api'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; user: User | null; brandName?: string; theme?: string }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; theme?: string }
 
 type AppState = {
   user: User | null
@@ -18,6 +18,11 @@ type AppState = {
   serverTheme: string
   setBrandName: (n: string) => void
   setServerTheme: (id: string) => void
+  // The setup wizard is still running (after the admin account exists).
+  onboarding: boolean
+  setOnboarding: (v: boolean) => void
+  // The browser runs on the server itself, so the system folder picker can open.
+  pickerLocal: boolean
 }
 
 const Ctx = createContext<AppState>(null!)
@@ -31,6 +36,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [brandName, setBrand] = useState('')
   const [serverTheme, setServerThemeState] = useState('default')
+  const [onboarding, setOnboarding] = useState(false)
+  const [pickerLocal, setPickerLocal] = useState(false)
   const setBrandName = (n: string) => { setBrand(n); applyBrand(n) }
   const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id) }
 
@@ -41,6 +48,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     api.get<Status>('/status').then(async (s) => {
       setSetup(s.setupRequired)
+      setOnboarding(!!s.onboarding)
+      setPickerLocal(!!s.pickerLocal)
       setVersion(s.version)
       setBrandName(s.brandName || '')
       setServerThemeState(s.theme || 'default')
@@ -56,7 +65,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, serverTheme, setBrandName, setServerTheme }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal }}>{children}</Ctx.Provider>
 }
 
 // Tiny toast helper.

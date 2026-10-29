@@ -1,0 +1,94 @@
+/* Setup wizard, "Who's watching?" and the folder picker. Everything uses the
+   theme's variables, so the first screens match whichever theme is active. */
+
+/* ---------------------------------------------------------------- setup wizard */
+.oobe { position: relative; min-height: 100vh; min-height: 100dvh; background: var(--bg); overflow: hidden; display: flex; justify-content: center; }
+.oobe-glow { position: absolute; inset: -30% -10% auto; height: 80vh; pointer-events: none;
+  background: radial-gradient(60% 60% at 30% 40%, rgb(var(--accent-rgb) / .28), transparent 70%), radial-gradient(50% 50% at 75% 30%, rgb(var(--accent-rgb) / .14), transparent 70%); filter: blur(10px); }
+.oobe-shell { position: relative; width: min(860px, 100%); padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 18px; }
+.oobe-head { display: flex; flex-direction: column; gap: 14px; }
+.oobe-head .brand { font-size: 20px; }
+.oobe-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
+.oobe-steps li { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-3); min-width: 0; }
+.oobe-steps li::after { content: ""; flex: 1; height: 2px; background: var(--bg-4); border-radius: 2px; }
+.oobe-steps li:last-child::after { display: none; }
+.oobe-steps .dot { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-3); font-weight: 700; font-size: 12px; }
+.oobe-steps .dot svg { fill: currentColor; }
+.oobe-steps .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oobe-steps li.current { color: var(--fg); }
+.oobe-steps li.current .dot { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / .25); }
+.oobe-steps li.done .dot { background: rgb(var(--accent-rgb) / .2); color: var(--accent); }
+.oobe-steps li.done::after { background: rgb(var(--accent-rgb) / .5); }
+.oobe-card { background: color-mix(in srgb, var(--bg-2) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 20px; padding: clamp(20px, 4vw, 40px); box-shadow: var(--shadow); animation: oobe-in .25s ease-out; }
+@keyframes oobe-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.oobe-card h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 34px); line-height: 1.15; letter-spacing: -.3px; }
+.oobe-card .lead { color: var(--fg-2); font-size: 16px; line-height: 1.55; margin: 0 0 22px; max-width: 62ch; }
+.oobe-points { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; color: var(--fg-2); }
+.oobe-points b { color: var(--accent); margin-right: 6px; }
+.oobe-field { display: grid; gap: 6px; font-weight: 600; font-size: 14px; margin-bottom: 14px; }
+.oobe-form { display: grid; gap: 2px; max-width: 420px; }
+.oobe-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+.btn.big { padding: 12px 22px; font-size: 15px; border-radius: 12px; }
+.oobe-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.oobe-type { display: grid; gap: 6px; justify-items: start; text-align: left; padding: 18px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-3); color: var(--fg); transition: transform .12s, border-color .12s; }
+.oobe-type:hover, .oobe-type:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+.oobe-type .ic svg, .oobe-lib-head .ic svg { width: 28px; height: 28px; fill: var(--accent); }
+.oobe-type .muted { font-size: 13px; line-height: 1.4; }
+.oobe-lib { border: 1px solid var(--border); border-radius: 14px; padding: 16px; background: var(--bg-3); }
+.oobe-lib-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 17px; }
+.oobe-lib-head .linkish { margin-left: auto; }
+.oobe-paths { display: grid; gap: 6px; margin-bottom: 10px; }
+.oobe-path { display: flex; align-items: center; gap: 8px; background: var(--bg-2); border-radius: 10px; padding: 8px 10px; font-size: 14px; word-break: break-all; }
+.oobe-path svg { flex: none; width: 18px; height: 18px; fill: var(--accent); }
+.oobe-path span { flex: 1; }
+.oobe-added { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
+.oobe-added li { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; background: rgb(var(--accent-rgb) / .12); font-size: 14px; flex-wrap: wrap; }
+.oobe-added svg { fill: var(--accent); }
+.oobe-providers { display: grid; gap: 14px; }
+.oobe-provider { border: 1px solid var(--border); border-radius: 14px; padding: 16px; background: var(--bg-3); transition: border-color .2s; }
+.oobe-provider.ok { border-color: #2fa35a; }
+.op-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.op-ok { margin-left: auto; color: #2fa35a; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.op-ok svg { fill: currentColor; }
+.op-steps { margin: 0 0 12px; padding-left: 20px; color: var(--fg-2); line-height: 1.6; font-size: 14px; }
+.op-steps a { color: var(--accent); }
+.op-note { font-size: 11.5px; margin-top: 8px; }
+.oobe-provider .input.pin { max-width: 150px; }
+.oobe-done { text-align: center; }
+.oobe-done .lead { margin-left: auto; margin-right: auto; }
+.oobe-check { width: 84px; height: 84px; border-radius: 50%; margin: 6px auto 16px; display: grid; place-items: center; background: rgb(var(--accent-rgb) / .18); animation: oobe-pop .4s ease-out; }
+.oobe-check svg { fill: var(--accent); }
+@keyframes oobe-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.oobe-foot { text-align: center; margin-top: auto; }
+@media (max-width: 600px) {
+  .oobe-steps .lbl { display: none; }
+  .oobe-steps li.current .lbl { display: inline; }
+  .oobe .field-row { flex-wrap: wrap; }
+  .oobe .field-row > * { flex: 1 1 auto; }
+}
+
+/* ---------------------------------------------------------------- who's watching */
+.who { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 16px; text-align: center;
+  background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .16), transparent 70%), var(--bg); }
+.who-brand { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.who-brand img { width: 32px; height: 32px; }
+.who h1 { margin: 0; font-size: clamp(26px, 5vw, 46px); font-weight: 700; }
+.who-grid { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(14px, 3vw, 30px); max-width: 1000px; }
+.who-tile { background: none; border: 0; color: var(--fg-2); display: grid; justify-items: center; gap: 10px; padding: 6px; border-radius: 16px; }
+.who-tile .avatar-tile { transition: transform .15s, box-shadow .15s; }
+.who-tile:hover .avatar-tile, .who-tile:focus-visible .avatar-tile { transform: scale(1.06); box-shadow: 0 0 0 4px var(--fg); }
+.who-tile:hover, .who-tile:focus-visible { color: var(--fg); outline: none; }
+.who-name { font-size: 16px; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar-tile { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; color: #fff; font-weight: 800; font-size: 22px; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.avatar-tile.big { width: clamp(88px, 18vw, 140px); height: clamp(88px, 18vw, 140px); border-radius: 22%; font-size: clamp(36px, 7vw, 60px); }
+.auth-card { position: relative; }
+.auth-back { position: absolute; left: 10px; top: 10px; color: var(--fg); }
+.auth-profile { display: grid; justify-items: center; gap: 10px; margin-bottom: 6px; }
+.auth-profile h2 { margin: 0; }
+
+/* ---------------------------------------------------------------- folder browser */
+.folder-browser .fb-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.folder-browser .fb-path { flex: 1; min-width: 0; font-size: 13px; color: var(--fg-2); word-break: break-all; }
+.fs-browser button { display: flex; align-items: center; gap: 8px; }
+.fs-browser button svg { width: 18px; height: 18px; fill: var(--accent); flex: none; }

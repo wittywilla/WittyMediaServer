@@ -21,6 +21,7 @@ import (
 	"fyne.io/systray"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
 )
 
@@ -402,16 +403,7 @@ func lastLogLine(p string) string {
 	return last
 }
 
-func openURL(u string) {
-	switch runtime.GOOS {
-	case "windows":
-		_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
-	case "darwin":
-		_ = exec.Command("open", u).Start()
-	default:
-		_ = exec.Command("xdg-open", u).Start()
-	}
-}
+func openURL(u string) { _ = desktop.OpenURL(u) }
 
 func openPath(p string) {
 	switch runtime.GOOS {

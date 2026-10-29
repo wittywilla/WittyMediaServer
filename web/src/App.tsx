@@ -11,6 +11,7 @@ import ShowPage from './pages/ShowPage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
+import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
 
 export default function App() {
@@ -23,7 +24,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired } = useApp()
+  const { user, loading, setupRequired, onboarding } = useApp()
   const loc = useLocation()
   const [navOpen, setNavOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches)
   const isMobile = () => !window.matchMedia('(min-width: 901px)').matches
@@ -37,7 +38,8 @@ function Shell() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
   if (loading) return <div className="center"><div className="spinner" /></div>
-  if (!user) return <AuthPage setup={setupRequired} />
+  if (!user) return setupRequired ? <SetupWizard resume={false} /> : <AuthPage />
+  if (onboarding && user.isAdmin) return <SetupWizard resume />
   // The player lives outside the page routes (see PlayerDock) so it can keep
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')

@@ -37,7 +37,8 @@ type Server struct {
 	Web     fs.FS
 	Version string
 
-	mux *http.ServeMux
+	mux    *http.ServeMux
+	logins loginLimiter
 }
 
 type ctxKey int
@@ -59,6 +60,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /api/setup", s.handleSetup)
 	m.HandleFunc("POST /api/login", s.handleLogin)
 	m.HandleFunc("POST /api/logout", s.handleLogout)
+	m.HandleFunc("GET /api/profiles", s.handleProfiles)
 	m.HandleFunc("GET /api/themes", s.handleThemes)
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
@@ -121,6 +123,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/users/{id}", s.requireAdmin(s.handleDeleteUser))
 	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
+	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))
+	m.Handle("POST /api/metadata/test", s.requireAdmin(s.handleMetadataTest))
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

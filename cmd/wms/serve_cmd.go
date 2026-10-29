@@ -18,6 +18,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
@@ -98,6 +99,12 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	// First start on a desktop: open the setup wizard in the browser.
+	if srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
+		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {
+			log.Info("open the setup page in your browser", "url", listenURL(cfg.Listen))
+		}
+	}
 
 	// Rescan libraries periodically.
 	go func() {

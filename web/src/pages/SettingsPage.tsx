@@ -1,3 +1,5 @@
+import { ChooseFolderButton } from '../components/FolderPicker'
+import { Avatar } from './AuthPage'
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { api, getPrefs, type Library, type User } from '../api'
@@ -75,7 +77,6 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
   const [paths, setPaths] = useState<string[]>(lib.paths || [])
   const [manual, setManual] = useState('')
   const [err, setErr] = useState('')
-  const [browse, setBrowse] = useState(false)
   const save = async () => {
     try {
       const body = { name, type, paths }
@@ -100,33 +101,13 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
             </div>
           </label>
           <div className="field-row">
-            <input className="input" placeholder="Type a folder path…" value={manual} onChange={(e) => setManual(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && manual) { setPaths([...paths, manual]); setManual('') } }} />
-            <button className="btn" onClick={() => { if (manual) { setPaths([...paths, manual]); setManual('') } }}>Add</button>
-            <button className="btn ghost" onClick={() => setBrowse(!browse)}>Browse…</button>
+            <ChooseFolderButton className="btn primary" onPick={(p) => setPaths([...new Set([...paths, p])])} />
+            <input className="input" placeholder="…or type a folder path" aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && manual) { setPaths([...new Set([...paths, manual])]); setManual('') } }} />
+            <button className="btn" onClick={() => { if (manual) { setPaths([...new Set([...paths, manual])]); setManual('') } }}>Add</button>
           </div>
-          {browse && <FolderBrowser onPick={(p) => { setPaths([...new Set([...paths, p])]); setBrowse(false) }} />}
           {err && <div className="error">{err}</div>}
         </div>
         <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save} disabled={!name || paths.length === 0}>Save &amp; scan</button></div>
-      </div>
-    </div>
-  )
-}
-
-function FolderBrowser({ onPick }: { onPick: (p: string) => void }) {
-  const [cur, setCur] = useState('')
-  const [data, setData] = useState<{ path: string; parent: string | null; entries: { name: string; path: string }[] } | null>(null)
-  useEffect(() => { api.get<any>(`/fs?path=${encodeURIComponent(cur)}`).then(setData).catch(() => setData(null)) }, [cur])
-  return (
-    <div>
-      <div className="field-row" style={{ marginBottom: 6 }}>
-        <span className="muted" style={{ flex: 1, fontSize: 13, wordBreak: 'break-all' }}>{data?.path || 'Locations'}</span>
-        {data?.parent !== null && data?.path && <button className="btn sm ghost" onClick={() => setCur(data.parent || '')}>Up</button>}
-        {data?.path && <button className="btn sm primary" onClick={() => onPick(data.path)}>Use this folder</button>}
-      </div>
-      <div className="fs-browser">
-        {data?.entries.map((e) => <button key={e.path} onClick={() => setCur(e.path)}>📁 {e.name}</button>)}
-        {data && data.entries.length === 0 && <div className="muted" style={{ padding: 10 }}>No subfolders</div>}
       </div>
     </div>
   )
@@ -228,7 +209,7 @@ function Users() {
         <div className="panel">
           <h2>Users</h2>
           <div className="list">
-            {users.map((u) => <div className="list-item" key={u.id}><div className="grow"><b>{u.name}</b> <span className="muted">{u.isAdmin ? '· admin' : ''}</span></div>{u.id !== user.id && <button className="btn sm danger" onClick={() => del(u)}><IconTrash /></button>}</div>)}
+            {users.map((u) => <div className="list-item" key={u.id}><Avatar name={u.name} /><div className="grow"><b>{u.name}</b> <span className="muted">{u.isAdmin ? '· admin' : ''}</span></div>{u.id !== user.id && <button className="btn sm danger" onClick={() => del(u)} aria-label={`Remove ${u.name}`}><IconTrash /></button>}</div>)}
           </div>
           <h3 style={{ marginTop: 20 }}>Add user</h3>
           <div className="form">
@@ -242,7 +223,37 @@ function Users() {
           </div>
         </div>
       )}
+      {user?.isAdmin && <SignInScreen />}
     </>
+  )
+}
+
+// SignInScreen chooses between the "Who's watching?" profile screen and the
+// classic name + password form.
+function SignInScreen() {
+  const [s, setS] = useState<Record<string, string> | null>(null)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then(setS).catch(() => {}) }, [])
+  if (!s) return null
+  const save = async (patch: Record<string, string>) => {
+    try { setS(await api.put<Record<string, string>>('/settings', patch)); toast('Sign-in screen updated') } catch (e: any) { toast(e.message) }
+  }
+  const profiles = (s.loginStyle || 'profiles') === 'profiles'
+  return (
+    <div className="panel">
+      <h2>Sign-in screen</h2>
+      <div className="form">
+        <div className="seg big" role="radiogroup" aria-label="Sign-in screen">
+          <button role="radio" aria-checked={profiles} className={profiles ? 'active' : ''} onClick={() => save({ loginStyle: 'profiles' })}>Who's watching? (profiles)</button>
+          <button role="radio" aria-checked={!profiles} className={!profiles ? 'active' : ''} onClick={() => save({ loginStyle: 'classic' })}>Classic name and password</button>
+        </div>
+        {profiles && (
+          <label style={{ flexDirection: 'row', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <input type="checkbox" checked={s.profilesRemote === '1'} onChange={(e) => save({ profilesRemote: e.target.checked ? '1' : '0' })} />
+            <span>Also show profiles to devices outside your home network <span className="muted">(off by default: anyone who can reach the server would see everyone's names; passwords are always required)</span></span>
+          </label>
+        )}
+      </div>
+    </div>
   )
 }
 

@@ -39,8 +39,33 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   corner, see-through tooltips (*Eject the DVD*, *Close the Remote*), and an *In control bar*
   style that puts its buttons in a strip above the seek bar.
 
+### First run and sign-in
+
+- **Setup wizard**: welcome → administrator account → libraries → posters & info → done, with a
+  step indicator. Libraries are added by kind (Movies, TV Shows, Home videos).
+- **System folder picker**: on the server's own screen, *Choose folder…* opens the native
+  dialog (the modern Explorer window on Windows, Finder on macOS, the desktop's dialog on
+  Linux); other devices browse the server's folders in the page.
+- **Metadata keys in setup**: step-by-step instructions for TMDB and TheTVDB with a *Test*
+  button. TMDB accepts either the API key or the API Read Access Token.
+- The browser opens the setup page by itself on first start (not on servers, containers or
+  with `WMS_NO_BROWSER=1`).
+- **"Who's watching?"** profile screen; *Settings → Users → Sign-in screen* switches back to
+  the classic form. Profiles are only listed on the home network unless allowed for remote
+  devices.
+- Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
+  15 minutes). First-run account creation cannot be raced.
+
+### TV, controllers and accessibility
+
+- Arrow keys / D-pad move between controls on every page; Back returns. Game controllers
+  (Xbox, PlayStation, Nintendo, generic) work through the Gamepad API.
+- Screen readers: labelled landmarks, live announcements, DVD menu options as real buttons,
+  visible focus, reduced-motion and high-contrast support.
+
 ### Interface
 
+- Fixed missing borders in the default look (a circular colour variable).
 - Theme cards: the whole card is clickable and switching themes is reliable (the new theme
   replaces the old one only once it has loaded).
 

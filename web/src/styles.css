@@ -18,7 +18,7 @@
   /* Channels of --bg and --accent for translucent mixes: rgb(var(--bg-rgb) / .5) */
   --bg-rgb: 15 17 21;
   --accent-rgb: 139 108 255;
-  --border: var(--border);          /* hairlines between panels */
+  --border: rgba(255, 255, 255, 0.06); /* hairlines between panels (themes override) */
   --card-shadow: 0 10px 24px rgba(0,0,0,.5);
   --overlay: rgba(0,0,0,.6);  /* modal backdrop */
   --brand-accent: var(--accent);

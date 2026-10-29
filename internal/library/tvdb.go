@@ -473,3 +473,9 @@ func (t *TVDB) Episodes(ctx context.Context, id string) (map[[2]int]EpisodeMeta,
 	}
 	return out, nil
 }
+
+// Check verifies the key (and PIN) by logging in (used by the setup wizard).
+func (t *TVDB) Check(ctx context.Context) error {
+	_, err := t.token(ctx, true)
+	return err
+}

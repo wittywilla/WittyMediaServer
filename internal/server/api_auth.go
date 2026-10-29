@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -10,7 +13,17 @@ import (
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	u := s.resolveUser(r)
+	ctx := r.Context()
+	// The setup wizard continues after the admin account exists, until it is
+	// finished or skipped (existing servers with libraries never see it).
+	onboarding := false
+	if u != nil && u.IsAdmin && s.DB.GetSetting(ctx, "setupDone", "") != "1" {
+		libs, _ := s.Store.Libraries(ctx)
+		onboarding = len(libs) == 0
+	}
 	writeJSON(w, 200, map[string]any{
+		"onboarding":    onboarding,
+		"pickerLocal":   onThisMachine(r),
 		"name":          "WittyMediaServer",
 		"version":       s.Version,
 		"setupRequired": s.Auth.UserCount(r.Context()) == 0,
@@ -33,7 +46,13 @@ func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string)
 	})
 }
 
+// setupMu makes "is there an account yet?" and creating the first admin one
+// step, so two browsers racing through setup cannot both become admin.
+var setupMu sync.Mutex
+
 func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
+	setupMu.Lock()
+	defer setupMu.Unlock()
 	if s.Auth.UserCount(r.Context()) > 0 {
 		writeErr(w, 409, "already set up")
 		return
@@ -62,11 +81,19 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	k := s.logins.key(r, c.Name)
+	if d := s.logins.wait(k); d > 0 {
+		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
+		writeErr(w, 429, fmt.Sprintf("Too many wrong passwords. Try again in %d seconds.", int(d.Seconds())+1))
+		return
+	}
 	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device)
 	if err != nil {
+		s.logins.fail(k)
 		writeErr(w, 401, err.Error())
 		return
 	}
+	s.logins.ok(k)
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }

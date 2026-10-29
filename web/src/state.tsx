@@ -68,5 +68,6 @@ export function ToastHost() {
     toastFn = (m) => { setMsg(m); setTimeout(() => setMsg(null), 3000) }
     return () => { toastFn = null }
   }, [])
-  return msg ? <div className="toast">{msg}</div> : null
+  // Always mounted so screen readers announce new messages.
+  return <div className={msg ? 'toast' : 'sr-only'} role="status" aria-live="polite">{msg || ''}</div>
 }

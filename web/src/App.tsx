@@ -52,10 +52,11 @@ function Shell() {
 function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '')}>
+      <a className="skip-link" href="#main">Skip to content</a>
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="main">
         <TopBar onMenu={() => setNavOpen((o) => !o)} />
-        <div className="content">
+        <main className="content" id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/library/:id" element={<LibraryPage />} />
@@ -65,7 +66,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </div>
+        </main>
       </div>
     </div>
   )
@@ -77,7 +78,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <>
       {open && <div className="backdrop-dim" onClick={onClose} />}
-      <aside className="sidebar" aria-hidden={!open}>
+      <aside className="sidebar" aria-label="Main navigation" aria-hidden={!open} inert={!open || undefined}>
         <Link to="/" className="brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></Link>
         <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
         <div className="nav-section">Libraries</div>
@@ -107,7 +108,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
       <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Toggle navigation" title="Toggle navigation"><IconMenu /></button>
       <form className="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
-        <input placeholder="Search movies, shows, episodes…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label="Search" type="search" placeholder="Search movies, shows, episodes…" value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
       <div className="spacer" />
       <Link to="/settings/users" className="avatar" title={user?.name}>{user?.name?.[0]?.toUpperCase()}</Link>

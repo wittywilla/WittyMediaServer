@@ -325,6 +325,11 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     selectQuiet(target.n)
   }, [inMenu, buttons, selected, pressButton, selectQuiet])
 
+  useEffect(() => {
+    const layer = stage.current?.querySelector('.dvd-layer')
+    if (layer?.contains(document.activeElement)) layer.querySelector<HTMLButtonElement>('.hit.selected')?.focus({ preventScroll: true })
+  }, [selected])
+
   const title = pres?.title
   const chapters = title?.chapters || []
   const discTitle = title && disc ? [disc.main, ...disc.extras].find((t) => t?.ttn === title.ttn) : undefined
@@ -424,6 +429,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       const v = video.current
       switch (e.key) {
         case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
+          // Focus on the player's own controls: arrows move between them (see tv.ts).
+          if ((e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .remote-bar, .view-settings')) break
           if (inMenu) { e.preventDefault(); move(e.key.replace('Arrow', '').toLowerCase() as any) }
           else if (v && pres?.kind === 'title' && !(e.target as HTMLElement)?.closest?.('.bottom, .top, .remote')) {
             e.preventDefault(); if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10
@@ -503,8 +510,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             {inMenu && menu.highlightUrl && buttons.filter((b) => b.lit).map((b) => (
               <img key={`${pres!.serial}-${b.n}`} className={'hl' + (b.n === selected ? ' on' : '')} src={mediaUrl(menu.highlightUrl!.replace('{n}', String(b.n)))} alt="" />
             ))}
-            {inMenu && buttons.map((b) => (
-              <div key={b.n} title={b.cmd}
+            {/* Real buttons (not just hit areas) so screen readers and keyboards
+                can reach every menu option; the disc's own artwork is the label. */}
+            {inMenu && buttons.map((b, i) => (
+              <button key={b.n} type="button" tabIndex={b.n === selected ? 0 : -1} aria-label={`Menu option ${i + 1} of ${buttons.length}`}
                 className={'hit' + (b.n === selected ? ' selected' : '') + (!menu.hasHighlights || !b.lit ? ' fallback' : '')}
                 style={{ left: b.x1 * scale.x, top: b.y1 * scale.y, width: (b.x2 - b.x1) * scale.x, height: (b.y2 - b.y1) * scale.y }}
                 onMouseEnter={() => { if (b.n !== selected) { setSelected(b.n); selectQuiet(b.n) } }}
@@ -513,6 +522,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           </div>
         )}
         {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} />}
+      </div>
+      {/* Announces what is on screen to screen readers. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {pres?.kind === 'title' ? `Playing ${titleName}` : pres?.kind === 'menu' ? (inMenu ? `Disc menu, ${buttons.length} options. Use the arrow keys and Enter.` : 'Disc menu loading') : ''}
       </div>
       {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} />}
       {spin && !needClick && !inserting && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}

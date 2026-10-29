@@ -271,7 +271,8 @@ button { cursor: pointer; }
 /* DVD menu layer: sized to the video's displayed rectangle */
 .dvd-layer { position: absolute; z-index: 2; pointer-events: none; }
 .dvd-layer img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.dvd-layer .hit { position: absolute; pointer-events: auto; cursor: pointer; border-radius: 4px; }
+.dvd-layer .hit { position: absolute; pointer-events: auto; cursor: pointer; border-radius: 4px; background: transparent; border: 0; padding: 0; margin: 0; }
+.dvd-layer .hit:focus-visible { outline: none; } /* the disc's own highlight shows the focus */
 .dvd-layer .hit.debug { outline: 1px dashed rgba(255,255,255,.4); }
 .dvd-layer .hit.selected.fallback { outline: 3px solid var(--accent); box-shadow: 0 0 14px rgb(var(--accent-rgb) / .8); }
 .dvd-bar { display: flex; gap: 6px; align-items: center; }
@@ -320,3 +321,19 @@ button { cursor: pointer; }
 .thumb-na { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 8px; font-size: 12px; font-weight: 600; color: var(--fg-3);
   background: var(--bg-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' opacity='.12'%3E%3Cpath d='M12 2a10 10 0 100 20 10 10 0 000-20zm0 13a3 3 0 110-6 3 3 0 010 6z'/%3E%3C/svg%3E") center / 40% no-repeat; }
 .scene-thumb img.loading, .feature-thumb img.loading { opacity: 0; }
+
+/* ---------------------------------------------------------------- accessibility */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip-link { position: fixed; left: 12px; top: -60px; z-index: 1000; background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 700; transition: top .15s; }
+.skip-link:focus { top: 12px; }
+/* Keyboard, remote and controller focus is always visible. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.using-controller :where(a, button, [tabindex]):focus { outline: 3px solid var(--accent); outline-offset: 3px; }
+.using-controller .card:focus-within, .using-controller a.card:focus { transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .switch.on, .seg button.active, .picker-tile.active { outline: 2px solid CanvasText; }
+}
+main.content:focus { outline: none; }

@@ -23,6 +23,8 @@ export default defineConfig({
   base: './',
   plugins: [react(), csp],
   resolve: { alias, dedupe: ['react', 'react-dom', 'pdfjs-dist'] },
+  // The plugins ship as TypeScript source: compile them like the app's own files.
+  optimizeDeps: { exclude: ['@wittywilla/wittyink', '@wittywilla/wittyebook', '@wittywilla/wittypdf', '@wittywilla/wittycomics'] },
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
   server: { port: 5180 },
 })

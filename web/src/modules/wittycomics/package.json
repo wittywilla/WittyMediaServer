@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A comic and manga reader: single pages, spreads or a vertical strip, in either reading direction.",
   "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
   "type": "module",
   "main": "./index.ts",
   "exports": {

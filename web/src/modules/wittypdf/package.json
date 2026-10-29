@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A PDF reader for papers and textbooks: selectable text, zoom, outline, thumbnails, search, highlights, notes and handwriting with pen pressure.",
   "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
   "type": "module",
   "main": "./index.ts",
   "exports": {

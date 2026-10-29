@@ -41,3 +41,4 @@ html, body, #root { height: 100%; }
   .wr-top { padding-left: 14px; padding-right: 14px; }
   .wr-top h1 { font-size: 17px; }
 }
+.wr-about a { color: var(--accent); }

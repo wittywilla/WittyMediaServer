@@ -12,6 +12,7 @@ import { books, type BookRec } from './store'
 const WittyPDF = lazy(() => import('@wittywilla/wittypdf'))
 const DICT_KEY = 'wittyreader.dictionary'
 const ACCEPT = '.epub,.pdf,.cbz,application/epub+zip,application/pdf'
+const VERSION = '0.1.0'
 
 export default function App() {
   const [list, setList] = useState<BookRec[] | null>(null)
@@ -183,6 +184,9 @@ function Settings({ dictionary, setDictionary, importNotes, close }: { dictionar
       </div>
       {used && <p className="muted small">Books and notes on this device: {used}.</p>}
       <p className="muted small">WittyReader keeps your books and notes in this browser on this device. Clearing the browser's site data removes them, so export notes you want to keep.</p>
+      <p className="muted small wr-about">
+        WittyReader {VERSION}, developed by WittyWilla. Apache License 2.0 · <a href="https://github.com/wittywilla/WittyReader" target="_blank" rel="noreferrer">Source and licences</a> · Part of the <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">WittyMediaServer</a> family.
+      </p>
       <button className="btn sm ghost" onClick={close}>Close</button>
     </section>
   )

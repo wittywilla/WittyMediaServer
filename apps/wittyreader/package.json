@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Read and annotate books, PDFs and comics on your own device.",
   "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
   "type": "module",
   "scripts": {
     "dev": "vite",

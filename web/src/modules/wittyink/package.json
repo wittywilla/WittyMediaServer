@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "What the Witty readers share: the reader host interface, annotations with undo, highlight colours, notes, definitions, citations and handwriting with pen pressure.",
   "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
   "type": "module",
   "main": "./index.ts",
   "exports": {

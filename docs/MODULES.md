@@ -72,6 +72,16 @@ apps/
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer
 ```
 
+Each plugin and app folder carries what its own repository needs:
+
+- **README.md:** what it does.
+- **wiki/:** the full guide, published to the repository's GitHub wiki.
+- **LICENSE:** Apache-2.0, the same as WittyMediaServer.
+- **NOTICE:** credits *"<name>, developed by WittyWilla"*. The licence requires anyone who
+  redistributes the code or builds on it to keep that attribution.
+
+`scripts/mirror.sh` publishes the folders and their wikis.
+
 ### Rules every plugin follows
 
 1. **No reaching into the host.** A plugin imports only its own files, its declared libraries

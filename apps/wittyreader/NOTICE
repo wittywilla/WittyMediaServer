@@ -1,0 +1,20 @@
+WittyReader
+Copyright 2026 WittyWilla and contributors
+https://github.com/wittywilla/WittyReader
+
+This product includes software developed by WittyWilla as part of the
+WittyMediaServer project ("WittyReader, developed by WittyWilla").
+https://github.com/wittywilla/WittyMediaServer
+
+Under the Apache License, Version 2.0 (Section 4(d)), any redistribution of
+this software or derivative works must reproduce the attribution notices in
+this NOTICE file - in a NOTICE file, in documentation, or in an "About"
+display of the derivative work.
+
+WittyReader is built from the WittyInk, WittyEbook, WittyPDF and WittyComics
+plugins (Copyright 2026 WittyWilla and contributors, Apache License 2.0).
+
+Third-party components bundled in the built app:
+- pdf.js (pdfjs-dist), Copyright Mozilla Foundation - Apache License 2.0
+- React and React DOM, Copyright Meta Platforms, Inc. and affiliates - MIT
+- fflate, Copyright Arjun Barrett - MIT

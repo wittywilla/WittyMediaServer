@@ -5,8 +5,19 @@ import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
 import { useApp } from '../state'
 import { IconRefresh } from '../icons'
 import { toast } from '../state'
+import AudioLibrary from './AudioLibrary'
+
+const AUDIO = ['music', 'audiobooks', 'podcasts']
 
 export default function LibraryPage() {
+  const { id } = useParams()
+  const { libraries } = useApp()
+  const lib = libraries.find((l) => String(l.id) === id)
+  if (lib && AUDIO.includes(lib.type)) return <AudioLibrary key={lib.id} lib={lib} />
+  return <VideoLibrary />
+}
+
+function VideoLibrary() {
   const { id } = useParams()
   const { libraries, user } = useApp()
   const lib = libraries.find((l) => String(l.id) === id)

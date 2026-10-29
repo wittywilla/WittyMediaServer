@@ -68,12 +68,12 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if out, err := exec.CommandContext(ctx, t.FFmpeg, "-hide_banner", "-version").Output(); err == nil {
+	if out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-version").Output(); err == nil {
 		if line, _, ok := bytes.Cut(out, []byte("\n")); ok {
 			t.Version = strings.TrimSpace(string(line))
 		}
 	}
-	if out, err := exec.CommandContext(ctx, t.FFmpeg, "-hide_banner", "-encoders").Output(); err == nil {
+	if out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-encoders").Output(); err == nil {
 		for _, line := range strings.Split(string(out), "\n") {
 			f := strings.Fields(line)
 			if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
@@ -166,7 +166,7 @@ func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	args := []string{"-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"}
 	args = append(args, input...)
-	cmd := exec.CommandContext(ctx, t.FFprobe, args...)
+	cmd := Command(ctx, t.FFprobe, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -273,11 +273,19 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 		vf += ",format=yuvj420p"
 	}
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "3", out)
-	cmd := exec.CommandContext(ctx, t.FFmpeg, args...)
+	cmd := Command(ctx, t.FFmpeg, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg still: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return nil
+}
+
+// Command prepares an ffmpeg/ffprobe process. On Windows it never opens a
+// console window (the server often runs without one, from the tray).
+func Command(ctx context.Context, path string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, path, args...)
+	hideWindow(cmd)
+	return cmd
 }

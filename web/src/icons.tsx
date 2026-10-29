@@ -39,6 +39,7 @@ export const IconEject = (p: P) => <S {...p} d="M5 17h14v2H5zm7-12L5.3 15h13.4z"
 export const IconRew = (p: P) => <S {...p} d="M11 18V6l-8.5 6zm.5-6l8.5 6V6z" />
 export const IconFf = (p: P) => <S {...p} d="M4 18l8.5-6L4 6zm9-12v12l8.5-6z" />
 export const IconStop = (p: P) => <S {...p} d="M6 6h12v12H6z" />
+export const IconBook = (p: P) => <S {...p} d="M18 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zM6 4h5v8l-2.5-1.5L6 12z" />
 export const IconAnime = (p: P) => <S {...p} d="M12 2l2.4 5.6L20 9l-4.3 3.9L17 19l-5-3-5 3 1.3-6.1L4 9l5.6-1.4z" />
 export const IconAngle = (p: P) => <S {...p} d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11z" />
 export const IconRemote = (p: P) => <S {...p} d="M15 2H9a3 3 0 00-3 3v14a3 3 0 003 3h6a3 3 0 003-3V5a3 3 0 00-3-3zm-3 3a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM9.5 13h1.5v1.5H9.5zm3.5 0h1.5v1.5H13zm-3.5 3h1.5v1.5H9.5zm3.5 0h1.5v1.5H13z" />

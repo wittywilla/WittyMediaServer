@@ -178,7 +178,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	var all []candidate
 	for _, root := range lib.Paths {
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
-		c, err := discover(root)
+		find := discover
+		if IsAudioLibrary(lib.Type) {
+			find = discoverAudio
+		}
+		c, err := find(root)
 		if err != nil {
 			s.Log.Warn("discover", "root", root, "err", err)
 		}
@@ -187,6 +191,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}
 	tv := newTVScan()
+	covers := map[string]string{} // audio: one cover per folder+album
 	for i, c := range all {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -194,9 +199,12 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		keep[c.path] = true
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
 		var err error
-		if lib.Type == "shows" || lib.Type == "anime" {
+		switch {
+		case lib.Type == "shows" || lib.Type == "anime":
 			err = s.indexEpisode(ctx, lib, c, tv)
-		} else {
+		case IsAudioLibrary(lib.Type):
+			err = s.indexAudio(ctx, lib, c, covers)
+		default:
 			err = s.index(ctx, lib, c)
 		}
 		if err != nil {

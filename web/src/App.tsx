@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api } from './api'
-import { IconAnime, IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers } from './icons'
+import { IconAnime, IconAudio, IconBook, IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -10,6 +10,8 @@ import { Brand, VersionTag } from './components/common'
 import LibraryPage from './pages/LibraryPage'
 import ItemPage from './pages/ItemPage'
 import ShowPage from './pages/ShowPage'
+import { AlbumPage } from './pages/AudioLibrary'
+import { AudioProvider } from './audio/player'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
@@ -46,10 +48,10 @@ function Shell() {
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
   return (
-    <>
+    <AudioProvider>
       {isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
-    </>
+    </AudioProvider>
   )
 }
 
@@ -68,6 +70,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/library/:id" element={<LibraryPage />} />
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
+            <Route path="/album/:lib" element={<AlbumPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -79,7 +82,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
   )
 }
 
-const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : <IconDisc />)
+const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' ? <IconBook /> : <IconDisc />)
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, version, brandName } = useApp()

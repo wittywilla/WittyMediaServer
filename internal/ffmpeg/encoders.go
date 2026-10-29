@@ -3,7 +3,6 @@ package ffmpeg
 import (
 	"bytes"
 	"context"
-	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -66,10 +65,9 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 			args = append(args, plan.Args...)
 			args = append(args, "-f", "null", "-")
 			cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-			cmd := exec.CommandContext(cctx, t.FFmpeg, args...)
+			cmd := Command(cctx, t.FFmpeg, args...)
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr
-			hideWindow(cmd)
 			err := cmd.Run()
 			cancel()
 			st.Tested, st.Working = true, err == nil

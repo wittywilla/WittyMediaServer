@@ -378,10 +378,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		"-hls_segment_filename", filepath.Join(s.Dir, "seg%05d.ts"),
 		filepath.Join(s.Dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
 	)
-	cmd := exec.Command(s.tools.FFmpeg, args...)
+	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), lastSeg: fromSeg - 1}
 	cmd.Stderr = &j.stderr
-	hideWindow(cmd)
 	s.log.Info("ffmpeg start", "cat", "ffmpeg", "hls", s.Spec.ID, "from", fromSeg, "args", strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		return nil, err

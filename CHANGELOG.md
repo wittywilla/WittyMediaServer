@@ -56,6 +56,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Music and audiobooks
+
+- New **Music** and **Audiobooks** library types: tags (artist, album, album artist, track,
+  disc, year, genre), folder or embedded covers (the largest image wins), folder-name fallbacks.
+  Nothing is written into music folders.
+- Albums / Artists / Songs views (Books / Authors for audiobooks), album and book pages with
+  Play, Shuffle, Add to queue and Continue.
+- **Audio player bar** that keeps playing while browsing, full *Now playing* view with the
+  queue, shuffle and repeat; audiobooks resume on every device, speed up to 3× with pitch kept,
+  ±15/30 s, sleep timer (incl. end of chapter); lock-screen and media-key controls.
+- MP3/AAC/FLAC/Opus/Vorbis/WAV play directly; other formats (ALAC, WMA, APE…) are converted to
+  AAC while playing, with seeking.
+- Audit: every FFmpeg/ffprobe process now starts without a console window on Windows (one
+  shared helper replaces two copies).
+
 ### Anime
 
 - New **Anime** library type with **AniList** information (no key): titles in English, rōmaji

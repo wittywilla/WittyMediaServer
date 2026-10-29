@@ -29,7 +29,11 @@ export type Item = {
   showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
   playMode: '' | 'menu' | 'title'; insertFx: '' | 'on' | 'off'
   introStart?: number; introEnd?: number
+  // Audio (music, audiobooks, podcasts). videoCodec holds the audio codec for these.
+  artist?: string; album?: string; albumArtist?: string; track?: number; discNo?: number
 }
+export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }
+export type Artist = { name: string; albums: number; tracks: number; coverItem: number }
 export type Show = {
   id: number; libraryId: number; path: string; title: string; sortTitle: string; year: number | null; overview: string
   genres: string[]; rating: number | null; contentRating: string; network: string; status: string; poster: string; backdrop: string

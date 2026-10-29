@@ -25,7 +25,7 @@ type Library struct {
 type Item struct {
 	ID            int64     `json:"id"`
 	LibraryID     int64     `json:"libraryId"`
-	Kind          string    `json:"kind"` // video | dvd-iso | dvd-folder
+	Kind          string    `json:"kind"` // video | dvd-iso | dvd-folder | audio
 	Path          string    `json:"path"`
 	Title         string    `json:"title"`
 	SortTitle     string    `json:"sortTitle"`
@@ -68,6 +68,12 @@ type Item struct {
 	// the show's range.
 	IntroStart *float64 `json:"introStart,omitempty"`
 	IntroEnd   *float64 `json:"introEnd,omitempty"`
+	// Audio (music, audiobooks, podcasts), from the file's tags:
+	Artist      string `json:"artist,omitempty"`
+	Album       string `json:"album,omitempty"`       // album, or the book for audiobooks
+	AlbumArtist string `json:"albumArtist,omitempty"` // or the author
+	Track       *int   `json:"track,omitempty"`
+	DiscNo      *int   `json:"discNo,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
 }
@@ -225,7 +231,8 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 	i.content_rating, i.studio, i.runtime_sec, i.poster, i.backdrop, i.container, i.video_codec, i.width, i.height,
 	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing,
 	i.show_id, (SELECT s.title FROM shows s WHERE s.id = i.show_id), i.season, i.episode, i.episode_end, i.aired,
-	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end`
+	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end,
+	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no`
 
 func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var it Item
@@ -237,10 +244,12 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var showID, season, episode, episodeEnd sql.NullInt64
 	var showTitle, aired sql.NullString
 	var introStart, introEnd sql.NullFloat64
+	var track, discNo sql.NullInt64
 	err := sc.Scan(&it.ID, &it.LibraryID, &it.Kind, &it.Path, &it.Title, &it.SortTitle, &year, &overview, &tagline, &genres, &rating,
 		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
 		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
-		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd)
+		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd,
+		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo)
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +261,7 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	}
 	it.ShowTitle, it.Aired = showTitle.String, aired.String
 	it.Season, it.Episode, it.EpisodeEnd = nullInt(season), nullInt(episode), nullInt(episodeEnd)
+	it.Track, it.DiscNo = nullInt(track), nullInt(discNo)
 	if year.Valid {
 		y := int(year.Int64)
 		it.Year = &y
@@ -317,6 +327,9 @@ type ItemQuery struct {
 	NoEpisodes bool
 	// Access limits the result to what a Kids/Guest profile may see.
 	Access *Access
+	// Audio: one album (by album artist and album title).
+	Album       *string
+	AlbumArtist *string
 }
 
 // BackfillAges fills min_age for items and shows saved before parental
@@ -386,6 +399,14 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "i.show_id = ?")
 		args = append(args, q.ShowID)
 	}
+	if q.Album != nil {
+		where = append(where, "IFNULL(i.album, '') = ?")
+		args = append(args, *q.Album)
+	}
+	if q.AlbumArtist != nil {
+		where = append(where, albumArtist+" = ?")
+		args = append(args, *q.AlbumArtist)
+	}
 	order := "i.sort_title COLLATE NOCASE"
 	switch q.Sort {
 	case "added":
@@ -396,6 +417,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		order = "IFNULL(i.rating, 0)"
 	case "runtime":
 		order = "IFNULL(i.runtime_sec, 0)"
+	case "track":
+		order = "IFNULL(i.disc_no, 1), IFNULL(i.track, 9999), i.sort_title COLLATE NOCASE"
 	case "random":
 		order = "RANDOM()" // the Shuffle widget; fine for home-sized limits
 	case "updated":
@@ -459,12 +482,14 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	if it.ID == 0 {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, year, overview, tagline, genres, rating,
 			content_rating, studio, runtime_sec, poster, backdrop, container, video_codec, width, height, audio_langs, sub_langs, disc_json,
-			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end, min_age)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?)`,
+			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end, min_age,
+			artist, album, album_artist, track, disc_no)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			it.LibraryID, it.Kind, it.Path, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 			it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now,
-			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating))
+			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
+			it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo)
 		if err != nil {
 			return err
 		}
@@ -475,11 +500,13 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
 		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0,
-		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=?, min_age=? WHERE id=?`,
+		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=?, min_age=?,
+		artist=?, album=?, album_artist=?, track=?, disc_no=? WHERE id=?`,
 		it.Kind, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 		it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now,
-		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating), it.ID)
+		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
+		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.ID)
 	it.UpdatedAt = now
 	return err
 }

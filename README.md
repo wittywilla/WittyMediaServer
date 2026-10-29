@@ -28,6 +28,7 @@ ten minutes, no command line needed.
 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, Skip intro / Watch next, networks & genres for future TV channels |
 | [Metadata & artwork](docs/METADATA.md) | NFO files, the artwork picker, moving from another media server |
 | [Config file, portable mode & logs](docs/CONFIG.md) | `wms.json`, running from a USB drive, where files go, what is logged |
+| [Music & audiobooks](docs/MUSIC.md) | folder layout, tags and covers, the player, formats |
 | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality modes, GPU/CPU capability tables |
 | [Themes](docs/THEMES.md) | built-in themes, the custom name, writing your own theme ZIP |
 | [Contributing](CONTRIBUTING.md) | building from source, tests, code layout, sending changes |

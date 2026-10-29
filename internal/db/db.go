@@ -108,6 +108,13 @@ var migrations = []string{
 	 ALTER TABLE shows ADD COLUMN min_age INTEGER;`,
 	// 5: per-account interface choices (home widgets...), JSON.
 	`ALTER TABLE users ADD COLUMN ui TEXT;`,
+	// 6: music, audiobooks and podcasts: tag fields of audio files.
+	`ALTER TABLE items ADD COLUMN artist TEXT;
+	 ALTER TABLE items ADD COLUMN album TEXT;
+	 ALTER TABLE items ADD COLUMN album_artist TEXT;
+	 ALTER TABLE items ADD COLUMN track INTEGER;
+	 ALTER TABLE items ADD COLUMN disc_no INTEGER;
+	 CREATE INDEX IF NOT EXISTS items_album ON items(library_id, album_artist, album);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

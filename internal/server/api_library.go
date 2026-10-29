@@ -38,11 +38,11 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "shows", "anime", "videos":
+	case "movies", "shows", "anime", "videos", "music", "audiobooks", "podcasts":
 	case "":
 		b.Type = "movies"
 	default:
-		return errors.New("type must be movies, shows, anime or videos")
+		return errors.New("unknown library type")
 	}
 	var clean []string
 	for _, p := range b.Paths {

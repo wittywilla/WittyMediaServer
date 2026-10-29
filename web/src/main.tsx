@@ -6,6 +6,7 @@ import './styles.css'
 import './player.css'
 import './oobe.css'
 import './shell.css'
+import './audio.css'
 import { installTVInput } from './tv'
 import { installErrorReporter } from './errorReport'
 

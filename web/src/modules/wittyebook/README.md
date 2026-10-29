@@ -7,7 +7,7 @@ tools serious readers need, and handwriting with pen pressure.
 It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
 libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-📖 **[Read the wiki](https://github.com/wittywilla/WittyEbook/wiki)** for the full guide.
+📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
 
 > This repository is a read-only mirror of `web/src/modules/wittyebook` in
 > [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
@@ -84,7 +84,7 @@ import WittyEbook from '@wittywilla/wittyebook'
 
 The host's `epub` field supplies the book: its chapters, contents and word counts, where each
 chapter is loaded from, and search. See
-[Embedding](https://github.com/wittywilla/WittyEbook/wiki/Embedding).
+[Embedding](wiki/Embedding.md).
 
 ## License
 

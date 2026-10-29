@@ -7,7 +7,7 @@ text selectable, and lets you highlight, annotate and write on any page.
 It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
 libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-📖 **[Read the wiki](https://github.com/wittywilla/WittyPDF/wiki)** for the full guide.
+📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
 
 > This repository is a read-only mirror of `web/src/modules/wittypdf` in
 > [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.

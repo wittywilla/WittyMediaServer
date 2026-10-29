@@ -6,7 +6,7 @@ spread, or one long vertical strip, in either reading direction.
 It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
 libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-📖 **[Read the wiki](https://github.com/wittywilla/WittyComics/wiki)** for the full guide.
+📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
 
 > This repository is a read-only mirror of `web/src/modules/wittycomics` in
 > [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
@@ -52,7 +52,7 @@ import WittyComics from '@wittywilla/wittycomics'
 
 The host's `comic` field lists the pages: `{ pages: number, pageUrl: (n) => string }`. Set
 `reading` to `rtl` (manga) or `webtoon` (vertical strip) to choose the first layout. See
-[Embedding](https://github.com/wittywilla/WittyComics/wiki/Embedding).
+[Embedding](wiki/Embedding.md).
 
 ## License
 

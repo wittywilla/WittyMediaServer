@@ -11,7 +11,7 @@ and [WittyComics](https://github.com/wittywilla/WittyComics) share. It contains:
 The readers run inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
 [WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-📖 **[Read the wiki](https://github.com/wittywilla/WittyInk/wiki)** for the full guide.
+📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
 
 > This repository is a read-only mirror of `web/src/modules/wittyink` in
 > [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
@@ -96,7 +96,7 @@ const host: ReaderHost = {
 <HostContext.Provider value={host}><WittyEbook /></HostContext.Provider>
 ```
 
-The wiki's [Reader host](https://github.com/wittywilla/WittyInk/wiki/Reader-host) page
+The guide's [Reader host](wiki/Reader-host.md) page
 explains every field.
 
 ## License

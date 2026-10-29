@@ -4,7 +4,7 @@
 for EPUB books, PDFs and CBZ comics, with highlights, notes and handwriting with pen pressure.
 Nothing is uploaded: your library, reading positions and notes stay on this device.
 
-📖 **[Read the wiki](https://github.com/wittywilla/WittyReader/wiki)** for the full guide.
+📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
 
 > This repository is a read-only mirror of `apps/wittyreader` in
 > [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
@@ -74,7 +74,7 @@ npm run build      # the finished app, in dist/
 `dist/` is a plain static site: host it on any web server over **https**, or open it from
 `localhost`. Browsers only allow the offline service worker, which also shows EPUBs, on secure
 addresses. See
-[Hosting and building](https://github.com/wittywilla/WittyReader/wiki/Hosting-and-building).
+[Hosting and building](wiki/Hosting-and-building.md).
 
 Desktop builds that open in their own window are planned.
 

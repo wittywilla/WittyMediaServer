@@ -1,0 +1,32 @@
+name: ffmpeg-freebsd
+# Builds a static FFmpeg for FreeBSD (no prebuilt static builds exist).
+# Used by the release workflow, and runs on its own whenever the build
+# script changes so it can be tested without making a release.
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [master, main]
+    paths:
+      - scripts/build-ffmpeg-static.sh
+      - .github/workflows/ffmpeg-freebsd.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.4"
+          usesh: true
+          prepare: pkg install -y bash gmake nasm pkgconf curl git
+          # Sources and objects stay in /tmp so only the two binaries are copied back.
+          run: |
+            WORK=/tmp/ffmpeg-src sh scripts/build-ffmpeg-static.sh "$PWD/ffmpeg-freebsd-amd64"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-freebsd-amd64
+          path: ffmpeg-freebsd-amd64
+          if-no-files-found: error

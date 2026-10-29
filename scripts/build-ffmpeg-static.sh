@@ -17,15 +17,24 @@ FFMPEG_VER="${FFMPEG_VER:-7.1.1}"
 LAME_VER=3.100
 OPUS_VER=1.5.2
 MAKE=make; command -v gmake >/dev/null 2>&1 && MAKE=gmake
-# x264's configure is a bash script (#!/bin/bash), and FreeBSD keeps bash in
-# /usr/local/bin, so it must be started through bash explicitly.
+# FreeBSD (and macOS) ship clang as "cc" and no gcc, but x264 and FFmpeg
+# default to "gcc", so name the compiler explicitly everywhere.
+CC="${CC:-cc}"; export CC
+# Errors are also printed as GitHub Actions annotations ("::error"), which are
+# readable without signing in (the build runs inside a FreeBSD VM over ssh,
+# so the usual CI environment variables are not visible here).
+note_error() {
+  echo "$1" >&2
+  printf '::error title=%s::%s\n' "$2" "$(printf '%s' "$1" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
+}
 BASH_BIN="$(command -v bash || true)"
 PKGCFG=pkg-config; command -v pkg-config >/dev/null 2>&1 || PKGCFG=pkgconf
-for tool in "$MAKE" cc curl git tar "$PKGCFG"; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "missing tool: $tool" >&2; exit 1; }
+for tool in "$MAKE" "$CC" curl git tar "$PKGCFG"; do
+  command -v "$tool" >/dev/null 2>&1 || { note_error "missing tool: $tool" "ffmpeg build"; exit 1; }
 done
-[ -n "$BASH_BIN" ] || { echo "missing tool: bash (needed by x264's configure)" >&2; exit 1; }
-case "$(uname -m)" in amd64|x86_64) command -v nasm >/dev/null 2>&1 || { echo "missing tool: nasm" >&2; exit 1; } ;; esac
+[ -n "$BASH_BIN" ] || { note_error "missing tool: bash (needed by x264's configure)" "ffmpeg build"; exit 1; }
+case "$(uname -m)" in amd64|x86_64) command -v nasm >/dev/null 2>&1 || { note_error "missing tool: nasm" "ffmpeg build"; exit 1; } ;; esac
+echo "==> $(uname -sr) $(uname -m), $CC: $("$CC" --version 2>&1 | head -1), $JOBS jobs"
 mkdir -p "$OUT" "$WORK" "$WORK/prefix"
 PREFIX="$WORK/prefix"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
@@ -38,7 +47,12 @@ dl() { [ -s "$2" ] || curl -fL --retry 3 -o "$2" "$1"; }
 step() {
   name="$1"; shift
   if ! "$@" >"$WORK/$name.log" 2>&1; then
-    echo "!! $name failed:" >&2; tail -n 40 "$WORK/$name.log" >&2; exit 1
+    log="$WORK/$name.log"
+    # configure scripts keep the real reason in config.log
+    [ -f config.log ] && case "$name" in *configure) log="config.log" ;; esac
+    [ -f ffbuild/config.log ] && case "$name" in *configure) log="ffbuild/config.log" ;; esac
+    note_error "$name failed: $(tail -n 25 "$WORK/$name.log"; [ "$log" != "$WORK/$name.log" ] && { echo "--- $log:"; tail -n 25 "$log"; })" "$name failed"
+    exit 1
   fi
 }
 
@@ -74,7 +88,7 @@ dl "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VER.tar.xz" ffmpeg.tar.xz
 cd "ffmpeg-$FFMPEG_VER"
 EXTRA_LD="-static"
 [ "$(uname -s)" = Darwin ] && EXTRA_LD="" # macOS cannot link fully static; libs are still static
-step ffmpeg-configure sh ./configure --prefix="$PREFIX" --pkg-config="$PKGCFG" --pkg-config-flags="--static" --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS $EXTRA_LD" \
+step ffmpeg-configure sh ./configure --prefix="$PREFIX" --cc="$CC" --pkg-config="$PKGCFG" --pkg-config-flags="--static" --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS $EXTRA_LD" \
   --enable-gpl --enable-version3 --enable-static --disable-shared --disable-debug --disable-doc --disable-ffplay \
   --enable-libx264 --enable-libmp3lame --enable-libopus --disable-vaapi --disable-vdpau --disable-xlib --disable-sdl2 \
   --enable-pthreads

@@ -13,23 +13,7 @@ jobs:
   # FreeBSD archive is as self-contained as the others. If this job fails the
   # release still ships (FreeBSD then uses ffmpeg from `pkg install ffmpeg`).
   ffmpeg-freebsd:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v7
-      - uses: vmactions/freebsd-vm@v1
-        with:
-          release: "14.4"
-          usesh: true
-          prepare: pkg install -y bash gmake nasm pkgconf curl git
-          # Sources and objects stay in /tmp so only the two binaries are copied back.
-          run: |
-            WORK=/tmp/ffmpeg-src sh scripts/build-ffmpeg-static.sh "$PWD/ffmpeg-freebsd-amd64"
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ffmpeg-freebsd-amd64
-          path: ffmpeg-freebsd-amd64
-          if-no-files-found: error
+    uses: ./.github/workflows/ffmpeg-freebsd.yml
 
   # The macOS tray launcher needs CGO (Cocoa), so build it natively for both
   # architectures and hand it to the packaging job.

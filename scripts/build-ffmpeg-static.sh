@@ -88,9 +88,13 @@ dl "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VER.tar.xz" ffmpeg.tar.xz
 cd "ffmpeg-$FFMPEG_VER"
 EXTRA_LD="-static"
 [ "$(uname -s)" = Darwin ] && EXTRA_LD="" # macOS cannot link fully static; libs are still static
+# Only the libraries built above plus libc/libm/libz are linked. Autodetected
+# system libraries such as liblzma pull in further static dependencies
+# (libmd on FreeBSD) and aren't needed, so they are disabled.
 step ffmpeg-configure sh ./configure --prefix="$PREFIX" --cc="$CC" --pkg-config="$PKGCFG" --pkg-config-flags="--static" --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS $EXTRA_LD" \
   --enable-gpl --enable-version3 --enable-static --disable-shared --disable-debug --disable-doc --disable-ffplay \
   --enable-libx264 --enable-libmp3lame --enable-libopus --disable-vaapi --disable-vdpau --disable-xlib --disable-sdl2 \
+  --disable-lzma --disable-bzlib --disable-iconv \
   --enable-pthreads
 step ffmpeg-make $MAKE -j"$JOBS"
 cp ffmpeg ffprobe "$OUT/"

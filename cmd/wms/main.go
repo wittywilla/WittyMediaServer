@@ -14,6 +14,8 @@ func main() {
 			os.Exit(cmdDisc(os.Args[2:]))
 		case "dvd":
 			os.Exit(cmdDVD(os.Args[2:]))
+		case "config":
+			os.Exit(cmdConfig(os.Args[2:]))
 		case "serve":
 			os.Exit(cmdServe(os.Args[2:]))
 		case "version", "--version", "-v":
@@ -35,7 +37,10 @@ func usage() {
 	fmt.Println(`WittyMediaServer
 
 usage:
-  wms [serve] [flags]        start the server (default)
+  wms [serve] [flags]        start the server (default); -config <file> uses a wms.json
+  wms config path            show the config file and folders in use
+  wms config init [--portable]
+                             write a starter wms.json (next to the program with --portable)
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

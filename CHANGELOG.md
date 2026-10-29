@@ -56,6 +56,18 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Config file, portable mode and logs
+
+- **`wms.json` config file** for launch settings (port, folders, FFmpeg, transcode limit, log
+  level), found next to the program, in the user config folder, or via `-config`. Typos are
+  reported. `wms config path` / `wms config init [--portable]`. See [docs/CONFIG.md](docs/CONFIG.md).
+- **Portable mode**: a `wms.json` next to the program keeps all data in that folder.
+- **Custom folders** for metadata artwork, cache, transcodes and logs.
+- **Logs**: daily files with opt-in categories (playback, discs, FFmpeg, library, web
+  requests, app errors), secrets always removed, kept 14 days. *Settings → Logs & privacy*
+  explains that logs never leave the server, and has the folder, an *Open folder* button and
+  downloads. The web app reports its errors to the server only when allowed there.
+
 ### TV, controllers and accessibility
 
 - Arrow keys / D-pad move between controls on every page; Back returns. Game controllers

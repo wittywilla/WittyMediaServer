@@ -29,7 +29,10 @@ type Scanner struct {
 	Store    *Store
 	Tools    *ffmpeg.Tools
 	CacheDir string
-	TMDBKey  func() string
+	// ImagesDir holds downloaded and generated artwork; "cache:<name>"
+	// references are relative to it, so it can be moved.
+	ImagesDir string
+	TMDBKey   func() string
 	// TVDBKey returns TheTVDB API key and optional subscriber PIN.
 	TVDBKey func() (key, pin string)
 	// SaveMeta reports whether to write NFO/artwork beside the media.
@@ -52,7 +55,7 @@ type ScanProgress struct {
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, TMDBKey: tmdbKey, Log: log, running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log, running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
 }
 
 // Start scans a library in the background (no-op if already scanning).
@@ -192,6 +195,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		if err != nil {
 			s.Log.Warn("index failed", "path", c.path, "err", err)
+		} else {
+			s.Log.Info("indexed", "cat", "library", "library", lib.Name, "path", c.path)
 		}
 	}
 	if err := s.Store.markMissing(ctx, libraryID, keep); err != nil {
@@ -263,7 +268,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if key := s.TMDBKey(); key != "" && lib.Type != "videos" && (it.Overview == "" || it.Poster == "") {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {
-			s.Log.Debug("tmdb", "title", it.Title, "err", err)
+			s.Log.Info("tmdb lookup failed", "cat", "library", "title", it.Title, "err", err)
 		}
 	}
 	// Generated thumbnail as the last resort.
@@ -271,7 +276,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
 		} else {
-			s.Log.Debug("thumbnail", "path", c.path, "err", err)
+			s.Log.Info("thumbnail failed", "cat", "library", "path", c.path, "err", err)
 		}
 	}
 	s.saveOnScan(ctx, it)
@@ -283,7 +288,7 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	defer cancel()
 	p, err := s.Tools.ProbeFile(pctx, it.Path)
 	if err != nil {
-		s.Log.Debug("probe", "path", it.Path, "err", err)
+		s.Log.Info("probe failed", "cat", "library", "path", it.Path, "err", err)
 		return
 	}
 	it.RuntimeSec = p.Duration()
@@ -401,7 +406,7 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 	h := sha1.Sum([]byte(it.Path))
 	name := "thumb-" + hex.EncodeToString(h[:8]) + ".jpg"
-	out := filepath.Join(s.CacheDir, "images", name)
+	out := filepath.Join(s.ImagesDir, name)
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return "cache:" + name, nil
 	}

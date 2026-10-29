@@ -382,7 +382,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), lastSeg: fromSeg - 1}
 	cmd.Stderr = &j.stderr
 	hideWindow(cmd)
-	s.log.Debug("ffmpeg start", "from", fromSeg, "args", strings.Join(args, " "))
+	s.log.Info("ffmpeg start", "cat", "ffmpeg", "hls", s.Spec.ID, "from", fromSeg, "args", strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}

@@ -6,8 +6,10 @@ import './styles.css'
 import './player.css'
 import './oobe.css'
 import { installTVInput } from './tv'
+import { installErrorReporter } from './errorReport'
 
 installTVInput()
+installErrorReporter()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

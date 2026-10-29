@@ -32,7 +32,7 @@ export type Show = {
 }
 export type Season = { number: number; title: string; overview: string; poster: string; episodeCount: number; unwatched: number }
 export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
-export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number }
+export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean }
 export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'current' }
 export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }

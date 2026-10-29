@@ -182,7 +182,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h := sha1.Sum([]byte(it.Path))
-	out := filepath.Join(s.Cfg.CacheDir, "images", fmt.Sprintf("dvdthumb-%s-%d-%d.jpg", hex.EncodeToString(h[:8]), ttn, n))
+	out := filepath.Join(s.Cfg.ImagesDir, fmt.Sprintf("dvdthumb-%s-%d-%d.jpg", hex.EncodeToString(h[:8]), ttn, n))
 	if st, err := os.Stat(out); err != nil || st.Size() == 0 {
 		select {
 		case thumbSlots <- struct{}{}:

@@ -30,6 +30,21 @@ func OpenURL(u string) error {
 	}
 }
 
+// OpenFolder shows a folder in the system's file manager.
+func OpenFolder(dir string) error {
+	if headless() {
+		return ErrUnavailable
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return exec.Command("explorer", dir).Start()
+	case "darwin":
+		return exec.Command("open", dir).Start()
+	default:
+		return exec.Command("xdg-open", dir).Start()
+	}
+}
+
 // Headless reports whether this process has no interactive desktop: running
 // as a service, in a container, over SSH without a display, or told so with
 // WMS_NO_BROWSER=1.

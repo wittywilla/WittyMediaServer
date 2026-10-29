@@ -20,6 +20,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 )
 
@@ -36,9 +37,11 @@ type Server struct {
 	Themes  *themes.Manager
 	Web     fs.FS
 	Version string
+	Logs    *logging.Logger
 
-	mux    *http.ServeMux
-	logins loginLimiter
+	mux        *http.ServeMux
+	logins     loginLimiter
+	clientLogs clientLogLimiter
 }
 
 type ctxKey int
@@ -125,6 +128,11 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
 	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))
 	m.Handle("POST /api/metadata/test", s.requireAdmin(s.handleMetadataTest))
+	m.Handle("GET /api/logs", s.requireAdmin(s.handleLogs))
+	m.Handle("PUT /api/logs", s.requireAdmin(s.handlePutLogs))
+	m.Handle("GET /api/logs/files/{name}", s.requireAdmin(s.handleLogFile))
+	m.Handle("POST /api/logs/open", s.requireAdmin(s.handleOpenLogs))
+	m.Handle("POST /api/logs/client", a(s.handleClientLog))
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
@@ -138,13 +146,22 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only measured when the owner turned on request logging.
+		if s.Logs == nil || !s.Logs.On("http") {
+			next.ServeHTTP(w, r)
+			return
+		}
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, code: 200}
 		next.ServeHTTP(sw, r)
-		if strings.HasPrefix(r.URL.Path, "/api/hls/") || strings.HasPrefix(r.URL.Path, "/assets/") {
+		if strings.HasPrefix(r.URL.Path, "/assets/") {
 			return
 		}
-		s.Log.Debug("http", "m", r.Method, "p", r.URL.Path, "s", sw.code, "ms", time.Since(start).Milliseconds())
+		ip := ""
+		if p := clientIP(r); p != nil {
+			ip = p.String()
+		}
+		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", r.URL.Path, "q", r.URL.RawQuery, "s", sw.code, "ms", time.Since(start).Milliseconds())
 	})
 }
 

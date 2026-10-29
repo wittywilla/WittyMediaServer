@@ -528,6 +528,10 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 	if st == nil {
 		return s.current
 	}
+	if s.m.Log != nil {
+		s.m.Log.Info("dvd step", "cat", "dvd", "session", s.ID, "kind", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN,
+			"cell", st.CellN, "serial", st.Serial, "still", st.StillSec, "loop", st.Loop, "reason", st.Reason)
+	}
 	if cur := s.current; !rebuild && cur != nil && cur.Serial == st.Serial && cur.Kind != "stop" && st.Kind != wittydvd.StepStop {
 		p := *cur
 		p.Reason = st.Reason

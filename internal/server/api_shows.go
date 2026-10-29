@@ -385,6 +385,7 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"tvdb":        s.DB.GetSetting(ctx, "tvdbKey", "") != "",
 		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",
 		"maxSpeed":    maxSpeed(s.DB.GetSetting(ctx, "maxSpeed", "4")),
+		"clientLogs":  s.Logs != nil && s.Logs.On("client"),
 	})
 }
 

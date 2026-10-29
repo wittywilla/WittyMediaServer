@@ -30,18 +30,19 @@ import (
 var version = "0.2.0-alpha"
 
 type launcher struct {
-	mu      sync.Mutex
-	exe     string // wms binary
-	dataDir string
-	listen  string
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	logFile *os.File
-	running bool
-	healthy bool
-	wantRun bool
-	lastErr string
-	logPath string
+	mu         sync.Mutex
+	exe        string // wms binary
+	dataDir    string
+	listen     string
+	configFile string
+	cmd        *exec.Cmd
+	stdin      io.WriteCloser
+	logFile    *os.File
+	running    bool
+	healthy    bool
+	wantRun    bool
+	lastErr    string
+	logPath    string
 	// Crash-loop protection.
 	startedAt time.Time
 	fails     int
@@ -54,29 +55,24 @@ func main() {
 	exe, _ := os.Executable()
 	dir := filepath.Dir(exe)
 	l.exe = findServer(dir)
-	l.dataDir = os.Getenv("WMS_DATA_DIR")
-	if l.dataDir == "" {
-		l.dataDir = config.DefaultDataDir()
-	}
-	for i, a := range os.Args {
-		if (a == "-data" || a == "--data") && i+1 < len(os.Args) {
-			l.dataDir = os.Args[i+1]
-		}
-		if (a == "-listen" || a == "--listen") && i+1 < len(os.Args) {
-			l.listen = os.Args[i+1]
+	// Same settings as the server: config file (portable or per user),
+	// environment, then our own -data/-listen/-config arguments.
+	var args []string
+	for _, a := range os.Args[1:] {
+		if a != "-no-autostart" {
+			args = append(args, a)
 		}
 	}
-	if l.listen == "" {
-		l.listen = os.Getenv("WMS_LISTEN")
+	cfg, err := config.Parse(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
-	if l.listen == "" {
-		l.listen = fmt.Sprintf(":%d", config.DefaultPort)
-	}
+	l.dataDir, l.listen, l.configFile = cfg.DataDir, cfg.Listen, cfg.ConfigFile
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
 	}
-	_ = os.MkdirAll(l.dataDir, 0o755)
-	l.logPath = filepath.Join(l.dataDir, "wms.log")
+	l.logPath = filepath.Join(cfg.LogDir, "console.log")
 	l.wantRun = !hasArg("-no-autostart")
 	systray.Run(l.onReady, l.onExit)
 }
@@ -221,7 +217,11 @@ func (l *launcher) start() {
 		_ = os.Rename(l.logPath, l.logPath+".1")
 		f, _ = os.OpenFile(l.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	}
-	cmd := exec.Command(l.exe, "serve", "-data", l.dataDir, "-listen", l.listen, "-watch-stdin")
+	args := []string{"serve", "-data", l.dataDir, "-listen", l.listen, "-watch-stdin"}
+	if l.configFile != "" {
+		args = append(args, "-config", l.configFile)
+	}
+	cmd := exec.Command(l.exe, args...)
 	cmd.Dir = filepath.Dir(l.exe)
 	cmd.Stdout = f
 	cmd.Stderr = f

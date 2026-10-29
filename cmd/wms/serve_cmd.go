@@ -23,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	builtinthemes "github.com/wittywilla/wittymediaserver/themes"
@@ -44,8 +45,17 @@ func cmdServe(args []string) int {
 	case "error":
 		level = slog.LevelError
 	}
-	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "log folder:", err)
+		return 1
+	}
+	defer logs.Close()
+	log := slog.New(logs.Handler())
 	slog.SetDefault(log)
+	if cfg.ConfigFile != "" {
+		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
+	}
 
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
 	if err != nil {
@@ -63,9 +73,28 @@ func cmdServe(args []string) int {
 	}
 	defer database.Close()
 
+	// Log choices made in Settings → Logs (folder, level, categories).
+	{
+		ctx := context.Background()
+		if d := database.GetSetting(ctx, "logDir", ""); d != "" {
+			if err := logs.SetDir(d); err != nil {
+				log.Warn("log folder from settings is not usable, using the default", "dir", d, "err", err)
+			}
+		}
+		if v := database.GetSetting(ctx, "logLevel", ""); v != "" {
+			if lv, ok := parseLevelName(v); ok {
+				logs.SetLevel(lv)
+			}
+		}
+		if v := database.GetSetting(ctx, "logCategories", ""); v != "" {
+			logs.SetCategories(strings.Split(v, ","))
+		}
+	}
+
 	store := &library.Store{DB: database}
 	tmdbKey := func() string { return database.GetSetting(context.Background(), "tmdbKey", "") }
 	scanner := library.NewScanner(store, tools, cfg.CacheDir, tmdbKey, log)
+	scanner.ImagesDir = cfg.ImagesDir
 	scanner.TVDBKey = func() (string, string) {
 		ctx := context.Background()
 		return database.GetSetting(ctx, "tvdbKey", ""), database.GetSetting(ctx, "tvdbPin", "")
@@ -85,7 +114,7 @@ func cmdServe(args []string) int {
 	}
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
-		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, Themes: themeMgr, Web: webFS, Version: version,
+		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
@@ -100,7 +129,7 @@ func cmdServe(args []string) int {
 	}
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
 	// First start on a desktop: open the setup wizard in the browser.
-	if srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
+	if cfg.OpenBrowser && srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
 		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {
 			log.Info("open the setup page in your browser", "url", listenURL(cfg.Listen))
 		}
@@ -154,4 +183,12 @@ func listenURL(addr string) string {
 		host = "localhost"
 	}
 	return "http://" + net.JoinHostPort(host, port)
+}
+
+func parseLevelName(v string) (slog.Level, bool) {
+	var lv slog.Level
+	if err := lv.UnmarshalText([]byte(strings.ToUpper(v))); err != nil {
+		return 0, false
+	}
+	return lv, true
 }

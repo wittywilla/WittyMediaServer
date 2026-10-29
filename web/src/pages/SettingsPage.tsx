@@ -7,6 +7,7 @@ import { IconFolder, IconRefresh, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import TranscodeSettings from './TranscodeSettings'
 import AppearanceSettings from './AppearanceSettings'
+import LogSettings from './LogSettings'
 
 export default function SettingsPage() {
   const { user } = useApp()
@@ -19,6 +20,7 @@ export default function SettingsPage() {
         {user?.isAdmin && <NavLink to="/settings/transcoding" className={({ isActive }) => (isActive ? 'active' : '')}>Transcoding</NavLink>}
         <NavLink to="/settings/appearance" className={({ isActive }) => (isActive ? 'active' : '')}>Appearance</NavLink>
         <NavLink to="/settings/users" className={({ isActive }) => (isActive ? 'active' : '')}>Users</NavLink>
+        {user?.isAdmin && <NavLink to="/settings/logs" className={({ isActive }) => (isActive ? 'active' : '')}>Logs &amp; privacy</NavLink>}
         <NavLink to="/settings/about" className={({ isActive }) => (isActive ? 'active' : '')}>About &amp; legal</NavLink>
       </div>
       <Routes>
@@ -27,6 +29,7 @@ export default function SettingsPage() {
         <Route path="transcoding" element={<TranscodeSettings />} />
         <Route path="appearance" element={<AppearanceSettings />} />
         <Route path="users" element={<Users />} />
+        <Route path="logs" element={<LogSettings />} />
         <Route path="about" element={<About />} />
         <Route path="*" element={<Navigate to={user?.isAdmin ? 'libraries' : 'users'} replace />} />
       </Routes>

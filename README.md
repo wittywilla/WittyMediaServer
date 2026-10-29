@@ -27,6 +27,7 @@ ten minutes, no command line needed.
 | [DVDs & WittyDVD](docs/DVD.md) | Insert DVD, menus, the remote, audio/subtitles, interactive extras, diagnosing discs |
 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, Skip intro / Watch next, networks & genres for future TV channels |
 | [Metadata & artwork](docs/METADATA.md) | NFO files, the artwork picker, moving from another media server |
+| [Config file, portable mode & logs](docs/CONFIG.md) | `wms.json`, running from a USB drive, where files go, what is logged |
 | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality modes, GPU/CPU capability tables |
 | [Themes](docs/THEMES.md) | built-in themes, the custom name, writing your own theme ZIP |
 | [Contributing](CONTRIBUTING.md) | building from source, tests, code layout, sending changes |

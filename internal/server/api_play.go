@@ -138,6 +138,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight == 0 || v.Height <= maxHeight) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
+		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
 		writeJSON(w, 200, info)
 		return
 	}
@@ -162,6 +163,12 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	})
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
+	reason := "browser cannot play the file as is"
+	if !directPlay {
+		reason = "direct play is off"
+	}
+	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
+		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
 	writeJSON(w, 200, info)
 }
 

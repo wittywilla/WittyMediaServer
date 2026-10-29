@@ -92,3 +92,17 @@
 .folder-browser .fb-path { flex: 1; min-width: 0; font-size: 13px; color: var(--fg-2); word-break: break-all; }
 .fs-browser button { display: flex; align-items: center; gap: 8px; }
 .fs-browser button svg { width: 18px; height: 18px; fill: var(--accent); flex: none; }
+
+/* ---------------------------------------------------------------- logs & privacy */
+.privacy-note { border-color: rgb(var(--accent-rgb) / .45); background: linear-gradient(135deg, rgb(var(--accent-rgb) / .12), var(--bg-2) 60%); }
+.privacy-note p { line-height: 1.6; max-width: 80ch; }
+.log-cats { display: grid; gap: 4px; }
+.log-cat { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.log-cat .grow { flex: 1; min-width: 0; }
+.log-cat:last-child { border-bottom: 0; }
+.lc-title { font-weight: 600; }
+.lc-desc { font-size: 13px; line-height: 1.45; margin-top: 2px; }
+.log-level { display: grid; gap: 6px; max-width: 360px; margin-top: 14px; font-weight: 600; }
+.log-dir { display: flex; align-items: center; gap: 10px; background: var(--bg-3); border-radius: 10px; padding: 10px 12px; }
+.log-dir svg { flex: none; width: 20px; height: 20px; fill: var(--accent); }
+.log-dir code { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

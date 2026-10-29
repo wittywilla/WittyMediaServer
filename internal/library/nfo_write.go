@@ -68,7 +68,7 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 	case ref == "":
 		return nil, errors.New("no image")
 	case strings.HasPrefix(ref, "cache:"):
-		return os.ReadFile(filepath.Join(s.CacheDir, "images", strings.TrimPrefix(ref, "cache:")))
+		return os.ReadFile(filepath.Join(s.ImagesDir, strings.TrimPrefix(ref, "cache:")))
 	case isRemote(ref):
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()

@@ -430,7 +430,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	switch {
 	case strings.HasPrefix(src, "cache:"):
-		http.ServeFile(w, r, filepath.Join(s.Cfg.CacheDir, "images", strings.TrimPrefix(src, "cache:")))
+		http.ServeFile(w, r, filepath.Join(s.Cfg.ImagesDir, strings.TrimPrefix(src, "cache:")))
 	case strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://"):
 		p, err := s.cachedRemote(src)
 		if err != nil {
@@ -446,7 +446,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 // cachedRemote downloads a remote image once into the cache.
 func (s *Server) cachedRemote(u string) (string, error) {
 	h := sha1.Sum([]byte(u))
-	p := filepath.Join(s.Cfg.CacheDir, "images", "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
+	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}

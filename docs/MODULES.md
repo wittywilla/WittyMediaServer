@@ -158,8 +158,10 @@ plugin can never show an item that an account is not allowed to see.
    plugins behind `ReaderHost`, used by the server.
 2. **WittyReader**: the app under `apps/wittyreader`, with EPUBs unpacked in the app and notes
    stored on the device. Then the mirror repositories for the plugins and the app.
-3. **Go plugins**: WittyDVD (and the ISO reader it uses) moves to `modules/wittydvd` with its
-   own `go.mod`; WittyBluray is built there with the same shape. Mirrors to their repositories.
+3. **Go plugins** (WittyDVD done): WittyDVD, its ISO reader and its CLI live in
+   `modules/wittydvd` with their own `go.mod`; the server uses it through a `replace` directive,
+   and `wms dvd …` and the standalone `wittydvd` tool share one CLI package. WittyBluray is built
+   there with the same shape.
 4. **Server plugin interface**: books, discs and audio move behind `Module` first, then the rest
    as each is built or touched.
 5. **WittyMediaPlayer**: local engine, native window and the existing player interface, with the

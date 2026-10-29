@@ -1,15 +1,16 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/wittywilla/wittymediaserver/internal/disc/isofs"
+	"github.com/wittywilla/wittydvd/isofs"
 )
 
-func cmdDisc(args []string) int {
+// Disc runs the disc subcommands: ls.
+func Disc(args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: wms disc ls <image.iso>")
+		fmt.Fprintln(os.Stderr, "usage: disc ls <image.iso>")
 		return 2
 	}
 	switch args[0] {

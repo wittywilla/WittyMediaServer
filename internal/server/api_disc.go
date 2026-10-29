@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 // The disc page: the feature first ("Feature Presentation") with named

@@ -18,6 +18,7 @@ MIRRORS=(
   "web/src/modules/wittypdf    WittyPDF"
   "web/src/modules/wittycomics WittyComics"
   "apps/wittyreader            WittyReader"
+  "modules/wittydvd            WittyDVD"
 )
 
 # Publishes a folder's history to a branch without ever rewriting it: if the

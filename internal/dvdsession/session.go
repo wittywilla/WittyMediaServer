@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 // Presentation is what the client should show right now.

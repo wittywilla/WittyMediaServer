@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
+	"github.com/wittywilla/wittydvd"
 )
 
-func cmdDVD(args []string) int {
+// DVD runs the dvd subcommands: info, walk, crawl, pgc, render.
+func DVD(args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: wms dvd info|walk|crawl|pgc|render <image> [args]")
+		fmt.Fprintln(os.Stderr, "usage: dvd info|walk|crawl|pgc|render <image> [args]")
 		return 2
 	}
 	o, err := wittydvd.Open(args[1])
@@ -38,13 +39,13 @@ func cmdDVD(args []string) int {
 		return dvdCrawl(o, limit)
 	case "render":
 		if len(args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: wms dvd render <image> <out-dir>")
+			fmt.Fprintln(os.Stderr, "usage: dvd render <image> <out-dir>")
 			return 2
 		}
 		return dvdRender(o, args[2])
 	case "pgc":
 		if len(args) < 5 {
-			fmt.Fprintln(os.Stderr, "usage: wms dvd pgc <image> fp|vmgm|vtsm|vts <vts> <pgcn>")
+			fmt.Fprintln(os.Stderr, "usage: dvd pgc <image> fp|vmgm|vtsm|vts <vts> <pgcn>")
 			return 2
 		}
 		var vts, pgcn int

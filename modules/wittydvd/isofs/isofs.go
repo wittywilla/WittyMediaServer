@@ -1,5 +1,5 @@
 // Package isofs reads files out of optical disc images (ISO 9660 and UDF)
-// without mounting them. DVD-Video discs are UDF/ISO 9660 "bridge" discs, so
+// without mounting them. It is part of WittyDVD. DVD-Video discs are UDF/ISO 9660 "bridge" discs, so
 // UDF is tried first and ISO 9660 is the fallback.
 //
 // Files are described as byte extents inside the image. That lets callers hand

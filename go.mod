@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	fyne.io/systray v1.12.2
+	github.com/wittywilla/wittydvd v0.0.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.61.0
@@ -20,3 +21,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
+
+replace github.com/wittywilla/wittydvd => ./modules/wittydvd

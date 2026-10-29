@@ -1,11 +1,11 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"math"
 	"strings"
 
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
+	"github.com/wittywilla/wittydvd"
 )
 
 // crawlNode is an interactive screen reached by pressing a path of buttons.

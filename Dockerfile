@@ -15,6 +15,8 @@ ARG VERSION=dev
 ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
 COPY go.mod go.sum ./
+# WittyDVD is a local module (a replace directive): its go.mod must be present too.
+COPY modules/wittydvd/go.mod modules/wittydvd/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

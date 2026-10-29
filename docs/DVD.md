@@ -99,9 +99,13 @@ disc image ──► ISO 9660 / UDF reader ──► IFO parser ──► naviga
                                                          └─ NAV packs, sub-pictures (buttons, subtitles)
 ```
 
-1. The image is read directly (no mounting): `internal/disc/isofs`.
+WittyDVD is its own Go module, `modules/wittydvd` here and
+[github.com/wittywilla/WittyDVD](https://github.com/wittywilla/WittyDVD) on its own, so other
+players can use it too. The steps below name its files.
+
+1. The image is read directly (no mounting): the `isofs` package.
 2. The IFO files (the disc's "program") are parsed: titles, program chains, cells, menus,
-   audio/subtitle tables — `internal/wittydvd/ifo.go`.
+   audio/subtitle tables — `ifo.go`.
 3. The **virtual machine** runs the disc's commands (16 general and 24 system registers,
    links, jumps, calls, comparisons, arithmetic, timers) — `vm.go`.
 4. The **navigator** follows first-play → menus → titles exactly as the commands dictate,
@@ -127,6 +131,8 @@ wms dvd render SHREK_2.ISO out/         # save the first menu's highlight images
 ```
 
 On Windows run these in a terminal in the WittyMediaServer folder (`.\wms.exe dvd info …`).
+The same commands exist as a standalone tool, `wittydvd`, from the
+[WittyDVD repository](https://github.com/wittywilla/WittyDVD) (`wittydvd info SHREK_2.ISO`).
 When reporting a disc problem, attach the output of `info` and `crawl` — never the disc image.
 
 ## Limits

@@ -20,4 +20,5 @@ endorsed or certified by TMDB.
 TV metadata is provided by TheTVDB (optional, user-supplied key),
 https://thetvdb.com. Please consider adding missing information or subscribing.
 
-The DVD-Video engine is WittyDVD, part of WittyMediaServer.
+The DVD-Video engine is WittyDVD (https://github.com/wittywilla/WittyDVD),
+developed by WittyWilla as part of the WittyMediaServer project.

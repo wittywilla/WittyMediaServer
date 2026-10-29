@@ -1,12 +1,12 @@
-package main
+package cli
 
 import (
 	"fmt"
 
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
+	"github.com/wittywilla/wittydvd"
 )
 
-// dvdDump prints the commands of one PGC: wms dvd pgc <image> <domain> <vts> <pgcn>
+// dvdDumpPGC prints the commands of one PGC: dvd pgc <image> <domain> <vts> <pgcn>
 func dvdDumpPGC(o *wittydvd.Opened, domain string, vts, pgcn int) int {
 	var list []wittydvd.PGCEntry
 	switch domain {

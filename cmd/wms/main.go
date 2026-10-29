@@ -5,15 +5,17 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/wittywilla/wittydvd/cli"
 )
 
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "disc":
-			os.Exit(cmdDisc(os.Args[2:]))
+			os.Exit(cli.Disc(os.Args[2:]))
 		case "dvd":
-			os.Exit(cmdDVD(os.Args[2:]))
+			os.Exit(cli.DVD(os.Args[2:]))
 		case "config":
 			os.Exit(cmdConfig(os.Args[2:]))
 		case "serve":

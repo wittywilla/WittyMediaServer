@@ -6,7 +6,7 @@ import (
 	"image"
 	"strings"
 
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
+	"github.com/wittywilla/wittydvd"
 )
 
 // SubEvent is one subtitle image on the title timeline.

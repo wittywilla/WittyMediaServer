@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/disc/isofs"
+	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittydvd/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
 )
 
 var videoExts = map[string]bool{

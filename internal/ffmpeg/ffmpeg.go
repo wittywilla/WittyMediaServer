@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/wittydvd"
+	"github.com/wittywilla/wittydvd"
 )
 
 // Tools holds resolved binary paths and encoder capabilities.

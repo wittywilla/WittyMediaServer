@@ -119,6 +119,19 @@ func (s *Service) SetRestrictions(ctx context.Context, id int64, restrictions st
 	return err
 }
 
+// UI returns an account's interface choices (JSON, "" = defaults).
+func (s *Service) UI(ctx context.Context, id int64) string {
+	var v sql.NullString
+	_ = s.DB.QueryRowContext(ctx, `SELECT ui FROM users WHERE id = ?`, id).Scan(&v)
+	return v.String
+}
+
+// SetUI stores an account's interface choices.
+func (s *Service) SetUI(ctx context.Context, id int64, ui string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE users SET ui = ? WHERE id = ?`, ui, id)
+	return err
+}
+
 // ClearPassword lets a Kids or Guest profile sign in without one.
 func (s *Service) ClearPassword(ctx context.Context, id int64) error {
 	res, err := s.DB.ExecContext(ctx, `UPDATE users SET password_hash = '' WHERE id = ? AND kind <> 'adult'`, id)

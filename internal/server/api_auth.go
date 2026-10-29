@@ -110,6 +110,32 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, userFrom(r))
 }
 
+// GET /api/me/ui: the account's interface choices (home widget order...).
+func (s *Server) handleGetUI(w http.ResponseWriter, r *http.Request) {
+	raw := s.Auth.UI(r.Context(), userFrom(r).ID)
+	if raw == "" {
+		raw = "{}"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte(raw))
+}
+
+// PUT /api/me/ui: replaces them. Any JSON object up to 16 KB.
+func (s *Server) handlePutUI(w http.ResponseWriter, r *http.Request) {
+	var v map[string]any
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+		writeErr(w, 400, "expected a JSON object of at most 16 KB")
+		return
+	}
+	b, _ := json.Marshal(v)
+	if err := s.Auth.SetUI(r.Context(), userFrom(r).ID, string(b)); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, v)
+}
+
 // userView is an account as the Users page sees it, with its limits.
 type userView struct {
 	auth.User

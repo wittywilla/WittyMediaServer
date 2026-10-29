@@ -396,6 +396,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		order = "IFNULL(i.rating, 0)"
 	case "runtime":
 		order = "IFNULL(i.runtime_sec, 0)"
+	case "random":
+		order = "RANDOM()" // the Shuffle widget; fine for home-sized limits
 	case "updated":
 		order = "i.updated_at"
 	case "episode":

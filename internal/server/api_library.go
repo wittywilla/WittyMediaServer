@@ -159,6 +159,8 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Genre:     r.URL.Query().Get("genre"),
 		Kind:      r.URL.Query().Get("kind"),
 		Access:    s.access(r),
+		// noEpisodes=1: movies and discs only (the Shuffle widget)
+		NoEpisodes: qBool(r, "noEpisodes"),
 	}
 	items, total, err := s.Store.Items(r.Context(), q)
 	if err != nil {

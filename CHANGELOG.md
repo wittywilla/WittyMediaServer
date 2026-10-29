@@ -56,6 +56,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Layout and home page
+
+- **Navigation where you want it**: side menu, top bar, or both (per device, *Settings →
+  Appearance → Layout*). Phones always get a bottom tab bar (Home, Search, Libraries, You) with
+  room for the mini player above it.
+- **Home page widgets**: *Customize* to drag sections into any order (or use the arrow buttons
+  on touch screens, TV remotes and keyboards), hide and show them, or reset. The layout is saved
+  to your profile and follows you to every device.
+- New widgets: **Your libraries** (big shortcut tiles) and **Shuffle** ("Can't decide?" — a
+  random movie or disc with Play and Another).
+- Account menu in the corner: Appearance, Settings, **Switch profile**, Sign out.
+- Larger touch targets on touch screens; the interface scales up on 4K screens and TVs.
+
 ### Metadata without keys
 
 - **TV shows work out of the box** with **TVmaze** (no key): titles, summaries, networks,

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api } from './api'
-import { IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv } from './icons'
+import { IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers } from './icons'
+import { useNavStyle } from './navPrefs'
+import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import { Brand, VersionTag } from './components/common'
 import LibraryPage from './pages/LibraryPage'
@@ -52,12 +54,14 @@ function Shell() {
 }
 
 function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
+  const style = useNavStyle()
+  const side = style !== 'top'
   return (
-    <div className={'app' + (navOpen ? ' nav-open' : '')}>
+    <div className={'app nav-' + style + (navOpen ? ' nav-open' : '')}>
       <a className="skip-link" href="#main">Skip to content</a>
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="main">
-        <TopBar onMenu={() => setNavOpen((o) => !o)} />
+        <TopBar onMenu={() => setNavOpen((o) => !o)} showMenu={side} topNav={style !== 'side'} />
         <main className="content" id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -70,13 +74,15 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
           </Routes>
         </main>
       </div>
+      <TabBar onLibraries={() => setNavOpen(true)} />
     </div>
   )
 }
 
+const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : <IconDisc />)
+
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { libraries, user, version, setUser, brandName } = useApp()
-  const logout = async () => { try { await api.post('/logout') } catch { /* ignore */ } setUser(null) }
+  const { libraries, version, brandName } = useApp()
   return (
     <>
       {open && <div className="backdrop-dim" onClick={onClose} />}
@@ -84,36 +90,84 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <Link to="/" className="brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></Link>
         <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
         <div className="nav-section">Libraries</div>
-        {libraries.map((l) => (
-          <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">
-            {l.type === 'movies' ? <IconFilm /> : l.type === 'shows' ? <IconTv /> : <IconDisc />} {l.name}
-          </NavLink>
-        ))}
+        {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-link muted" style={{ fontSize: 13 }}>No libraries yet</div>}
         <div className="nav-section">Manage</div>
         <NavLink to="/settings" className="nav-link"><IconSettings /> Settings</NavLink>
-        <button className="nav-link" style={{ background: 'none', border: 0, width: '100%' }} onClick={logout}><IconLogout /> Sign out ({user?.name})</button>
         <div className="sidebar-footer"><VersionTag version={version} /></div>
       </aside>
     </>
   )
 }
 
-function TopBar({ onMenu }: { onMenu: () => void }) {
+function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: boolean; topNav: boolean }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [q, setQ] = useState('')
   useEffect(() => { if (!loc.pathname.startsWith('/search')) setQ('') }, [loc.pathname])
-  const { user } = useApp()
+  const { libraries, brandName } = useApp()
   return (
     <header className="topbar">
-      <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Toggle navigation" title="Toggle navigation"><IconMenu /></button>
-      <form className="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
+      {showMenu && <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Show or hide the side menu" title="Side menu"><IconMenu /></button>}
+      {topNav && !showMenu && <Link to="/" className="brand top-brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></Link>}
+      {topNav && (
+        <nav className="topnav" aria-label="Libraries">
+          <NavLink to="/" end className="topnav-link"><IconHome /> <span>Home</span></NavLink>
+          {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
+        </nav>
+      )}
+      <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
         <input aria-label="Search" type="search" placeholder="Search movies, shows, episodes…" value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
-      <div className="spacer" />
-      <Link to="/settings/users" className="avatar" title={user?.name}>{user?.name?.[0]?.toUpperCase()}</Link>
+      {!topNav && <div className="spacer" />}
+      <ProfileMenu />
     </header>
+  )
+}
+
+// ProfileMenu: the avatar in the corner, with settings, switching profiles
+// (back to "Who's watching?") and signing out.
+function ProfileMenu() {
+  const { user, setUser } = useApp()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('mousedown', close)
+    window.addEventListener('keydown', close)
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', close) }
+  }, [open])
+  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } setUser(null) }
+  return (
+    <div className="profile-menu" ref={ref}>
+      <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} aria-label={`${user?.name}: account menu`} onClick={() => setOpen((o) => !o)}>
+        <Avatar name={user?.name || '?'} />
+      </button>
+      {open && (
+        <div className="menu" role="menu" onClick={() => setOpen(false)}>
+          <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
+          <Link role="menuitem" to="/settings/appearance">Appearance</Link>
+          <Link role="menuitem" to="/settings">Settings</Link>
+          <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>
+          <button role="menuitem" onClick={signOut}><IconLogout /> Sign out</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// TabBar: the bottom bar on phones (thumb reach), always present there.
+function TabBar({ onLibraries }: { onLibraries: () => void }) {
+  return (
+    <nav className="tabbar" aria-label="Main">
+      <NavLink to="/" end><IconHome /><span>Home</span></NavLink>
+      <NavLink to="/search"><IconSearch /><span>Search</span></NavLink>
+      <button type="button" onClick={onLibraries}><IconFilm /><span>Libraries</span></button>
+      <NavLink to="/settings"><IconSettings /><span>You</span></NavLink>
+    </nav>
   )
 }

@@ -1,0 +1,101 @@
+/* App shell: navigation in the sidebar, along the top, or both; a bottom
+   tab bar on phones; the account menu. Mobile first: the base rules are for
+   phones, wider screens add to them. */
+
+/* ---------------------------------------------------------------- top navigation */
+.topnav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 auto; max-width: 60%; }
+.topnav::-webkit-scrollbar { display: none; }
+.topnav-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; color: var(--fg-2); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.topnav-link svg { width: 16px; height: 16px; opacity: .85; }
+.topnav-link:hover { background: var(--bg-3); color: var(--fg); }
+.topnav-link.active { background: var(--fg); color: var(--bg); }
+.top-brand { padding: 0 6px 0 0; font-size: 16px; }
+.top-brand img { width: 26px; height: 26px; }
+/* Top-bar mode drops the side menu on wide screens; phones keep it as the drawer behind the Libraries tab. */
+@media (min-width: 901px) { .app.nav-top .sidebar { display: none; } }
+.app.nav-top .topbar .search { max-width: 340px; }
+
+/* ---------------------------------------------------------------- account menu */
+.profile-menu { position: relative; flex: none; }
+.avatar-btn { background: none; border: 0; padding: 0; border-radius: 12px; display: block; }
+.avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: 16px; border-radius: 50%; }
+.profile-menu .menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 220px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: var(--shadow); padding: 6px; z-index: 50; display: grid; animation: fade-in .12s ease-out; }
+.profile-menu .menu-head { display: grid; padding: 8px 10px 10px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.profile-menu .menu-head .muted { font-size: 12px; }
+.profile-menu .menu a, .profile-menu .menu button { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--fg); background: none; border: 0; text-align: left; font: inherit; }
+.profile-menu .menu a:hover, .profile-menu .menu button:hover, .profile-menu .menu a:focus-visible, .profile-menu .menu button:focus-visible { background: var(--bg-3); }
+.profile-menu .menu svg { width: 16px; height: 16px; fill: currentColor; }
+
+/* ---------------------------------------------------------------- phone tab bar */
+.tabbar { display: none; }
+@media (max-width: 700px) {
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: rgb(var(--bg-rgb) / .92);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border);
+  }
+  .tabbar a, .tabbar button { display: grid; justify-items: center; gap: 2px; padding: 4px 0; color: var(--fg-3); background: none; border: 0; font-size: 11px; font-weight: 600; }
+  .tabbar svg { width: 22px; height: 22px; fill: currentColor; }
+  .tabbar a.active { color: var(--accent); }
+  .app .content { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  /* On phones the top navigation and side menu button make room for the search. */
+  .topnav, .topbar .menu-toggle, .top-brand { display: none; }
+  .topbar { gap: 10px; }
+  /* The mini player sits above the tab bar. */
+  .player.mini { bottom: calc(70px + env(safe-area-inset-bottom)) !important; }
+  .app:has(~ .player.mini) .content { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
+}
+
+/* Comfortable touch targets on coarse pointers (phones, tablets, TVs). */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn.sm { min-height: 36px; }
+  .nav-link, .topnav-link { min-height: 44px; }
+}
+
+/* Big screens (TVs and 4K monitors): scale the whole interface up a little. */
+@media (min-width: 2200px) {
+  body { zoom: 1.25; }
+}
+
+/* ---------------------------------------------------------------- layout picker */
+.layout-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.layout-opt { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-3); color: var(--fg); }
+.layout-opt.on { border-color: var(--accent); }
+.layout-opt .muted { font-size: 12px; }
+.layout-pic { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: var(--bg); overflow: hidden; margin-bottom: 6px; }
+.layout-pic i { position: absolute; background: var(--bg-4); border-radius: 2px; }
+.layout-pic .s { left: 0; top: 0; bottom: 0; width: 22%; }
+.layout-pic .t { left: 0; right: 0; top: 0; height: 14%; background: var(--accent); opacity: .7; }
+.layout-pic .c { left: 28%; right: 6%; top: 24%; bottom: 10%; background: var(--bg-3); }
+.pic-side .t { display: none; }
+.pic-side .c { top: 10%; }
+.pic-top .s { display: none; }
+.pic-top .c { left: 6%; }
+.pic-both .t { left: 22%; }
+
+/* ---------------------------------------------------------------- home widgets */
+.home-tools { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 8px; flex-wrap: wrap; }
+.home-tools .muted { font-size: 13px; margin-right: auto; }
+.home .widget.edit { border: 2px dashed var(--bg-4); border-radius: 14px; margin-bottom: 14px; background: rgb(var(--bg-rgb) / .4); }
+.home .widget.edit.dragging { opacity: .4; }
+.home .widget.edit.off { opacity: .55; }
+.widget-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: grab; }
+.widget-bar .grip { font-size: 18px; color: var(--fg-3); }
+.widget-bar .grow { flex: 1; }
+.widget-preview { max-height: 260px; overflow: hidden; pointer-events: none; padding: 0 10px 10px; mask-image: linear-gradient(#000 70%, transparent); }
+.widget-preview .hero { margin: 0; height: 220px; min-height: 0; border-radius: 10px; }
+.lib-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.lib-tile { display: grid; gap: 4px; padding: 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border); transition: transform .12s, border-color .12s; }
+.lib-tile svg { width: 28px; height: 28px; fill: var(--accent); margin-bottom: 6px; }
+.lib-tile:hover, .lib-tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); }
+.lib-tile .muted { font-size: 12px; }
+.shuffle { position: relative; display: flex; gap: 18px; align-items: center; padding: 18px; border-radius: 16px; overflow: hidden; background: var(--bg-2); }
+.shuffle-art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .18; filter: blur(2px); }
+.shuffle-poster { position: relative; width: 110px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 10px; box-shadow: var(--shadow); flex: none; }
+.shuffle-info { position: relative; display: grid; gap: 6px; }
+.shuffle-info h3 { margin: 0; font-size: 22px; }
+.shuffle-info .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+@media (max-width: 600px) { .shuffle { flex-direction: column; align-items: flex-start; } .shuffle-poster { width: 90px; } }

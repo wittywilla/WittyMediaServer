@@ -72,6 +72,8 @@ func (s *Server) Handler() http.Handler {
 	// Authenticated
 	a := s.requireUser
 	m.Handle("GET /api/me", a(s.handleMe))
+	m.Handle("GET /api/me/ui", a(s.handleGetUI))
+	m.Handle("PUT /api/me/ui", a(s.handlePutUI))
 	m.Handle("GET /api/home", a(s.handleHome))
 	m.Handle("GET /api/libraries", a(s.handleLibraries))
 	m.Handle("POST /api/libraries", s.requireAdmin(s.handleCreateLibrary))

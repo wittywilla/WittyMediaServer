@@ -3,6 +3,7 @@ import { api, getToken, mediaUrl, serverBase } from '../api'
 import Tip from '../components/Tip'
 import { toast, useApp } from '../state'
 import { applyTheme, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
+import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 
 const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
 
@@ -42,6 +43,7 @@ export default function AppearanceSettings() {
   const shown = themes.filter((t) => filter === 'all' || t.scheme === filter)
   return (
     <>
+      <LayoutPanel />
       <div className="panel">
         <h2>Theme</h2>
         <p className="muted" style={{ marginTop: -6 }}>
@@ -104,5 +106,29 @@ export default function AppearanceSettings() {
         </div>
       )}
     </>
+  )
+}
+
+// LayoutPanel: where the navigation sits on this device.
+function LayoutPanel() {
+  const style = useNavStyle()
+  const opts: [NavStyle, string, string][] = [
+    ['side', 'Side menu', 'Libraries in a menu on the left'],
+    ['top', 'Top bar', 'Libraries along the top, more room for posters'],
+    ['both', 'Both', 'Top bar plus the side menu'],
+  ]
+  return (
+    <div className="panel">
+      <h2>Layout</h2>
+      <p className="muted" style={{ marginTop: -6 }}>Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize</b> on the home page.</p>
+      <div className="layout-opts" role="radiogroup" aria-label="Navigation">
+        {opts.map(([v, label, hint]) => (
+          <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>
+            <span className={'layout-pic pic-' + v} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
+            <b>{label}</b><span className="muted">{hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

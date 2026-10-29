@@ -106,6 +106,8 @@ var migrations = []string{
 	 ALTER TABLE users ADD COLUMN restrictions TEXT;
 	 ALTER TABLE items ADD COLUMN min_age INTEGER;
 	 ALTER TABLE shows ADD COLUMN min_age INTEGER;`,
+	// 5: per-account interface choices (home widgets...), JSON.
+	`ALTER TABLE users ADD COLUMN ui TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -34,18 +34,20 @@ func TestAnnotations(t *testing.T) {
 	if err := s.SaveAnnotation(ctx, 1, ink); err != nil {
 		t.Fatal(err)
 	}
-	hl := &Annotation{ItemID: book.ID, Kind: "highlight", Chapter: 1, Pos: 1.2, Quote: "Call me Ishmael.", Color: "yellow", Data: "{}"}
+	hl := &Annotation{ItemID: book.ID, Kind: "highlight", Chapter: 1, Pos: 1.2, Quote: "Call me Ishmael.", Color: "yellow", Data: `[[0.1,0.2,0.3,0.02]]`}
 	if err := s.SaveAnnotation(ctx, 1, hl); err != nil {
 		t.Fatal(err)
 	}
-	if hl.Data != "" {
-		t.Error("only ink keeps stroke data")
+	mark := &Annotation{ItemID: book.ID, Kind: "bookmark", Chapter: 3, Pos: 3, Data: "{}"}
+	if err := s.SaveAnnotation(ctx, 1, mark); err != nil || mark.Data != "" {
+		t.Error("bookmarks keep no data", err)
 	}
 
 	bad := []*Annotation{
 		{ItemID: book.ID, Kind: "scribble"},
 		{ItemID: book.ID, Kind: "highlight", Color: "red; background:url(x)"},
 		{ItemID: book.ID, Kind: "ink", Color: "#000000", Data: "not json"},
+		{ItemID: book.ID, Kind: "highlight", Color: "yellow", Data: "[1,"},
 		{ItemID: book.ID, Kind: "ink", Color: "#000000", Data: `"` + strings.Repeat("x", maxInk) + `"`},
 	}
 	for i, a := range bad {
@@ -55,7 +57,7 @@ func TestAnnotations(t *testing.T) {
 	}
 
 	list, err := s.Annotations(ctx, 1, book.ID)
-	if err != nil || len(list) != 2 || list[0].Kind != "highlight" || list[1].Data != ink.Data {
+	if err != nil || len(list) != 3 || list[0].Kind != "highlight" || list[0].Data != hl.Data || list[1].Data != ink.Data {
 		t.Fatalf("annotations in reading order with ink data, got %+v %v", list, err)
 	}
 	// Another account sees nothing and cannot change or remove them.
@@ -66,7 +68,7 @@ func TestAnnotations(t *testing.T) {
 		t.Error("another account changed a highlight")
 	}
 	_ = s.DeleteAnnotation(ctx, 2, hl.ID)
-	if list, _ := s.Annotations(ctx, 1, book.ID); len(list) != 2 {
+	if list, _ := s.Annotations(ctx, 1, book.ID); len(list) != 3 {
 		t.Error("another account removed a highlight")
 	}
 }

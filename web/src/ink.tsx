@@ -43,6 +43,7 @@ const KEY = 'wms.ink'
 export function loadInk(): InkPrefs {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '{}')
+    if (v.tool === 'eraser') v.tool = 'pen' // a new session starts with something that writes
     return { ...INK_DEF, ...v, color: { ...INK_DEF.color, ...v.color }, size: { ...INK_DEF.size, ...v.size }, opacity: { ...INK_DEF.opacity, ...v.opacity } }
   } catch { return INK_DEF }
 }
@@ -119,18 +120,19 @@ export function hits(pts: number[], w: number, x: number, y: number, tol: number
 }
 
 // One stroke as SVG, in its own units; the caller positions and scales it.
-export const InkStroke = memo(function InkStroke({ s, color, blend }: { s: Stroke; color: string; blend: boolean }) {
+export const InkStroke = memo(function InkStroke({ s, color, blend, grain = 'ink-grain' }: { s: Stroke; color: string; blend: boolean; grain?: string }) {
   if (s.t === 'marker') {
     return <path d={centerline(s.pts)} fill="none" stroke={color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.o} style={blend ? { mixBlendMode: 'multiply' } : undefined} />
   }
-  return <path d={outline(s.pts, s.w, true)} fill={color} opacity={s.o} filter={s.t === 'pencil' ? 'url(#ink-grain)' : undefined} />
+  return <path d={outline(s.pts, s.w, true)} fill={color} opacity={s.o} filter={s.t === 'pencil' ? `url(#${grain})` : undefined} />
 })
 
-// Pencil grain, for strokes drawn at one unit per em (about 16 px).
-export const InkDefs = () => (
+// Pencil grain. The frequency is per stroke unit: 9 suits strokes kept in
+// ems (about 16 px each), 0.7 suits PDF points.
+export const InkDefs = ({ id = 'ink-grain', freq = 9 }: { id?: string; freq?: number }) => (
   <defs>
-    <filter id="ink-grain" x="-10%" y="-10%" width="120%" height="120%">
-      <feTurbulence type="fractalNoise" baseFrequency="9" numOctaves="1" seed="4" result="n" />
+    <filter id={id} x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency={freq} numOctaves="1" seed="4" result="n" />
       <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2 1.6" result="m" />
       <feComposite in="SourceGraphic" in2="m" operator="in" />
     </filter>

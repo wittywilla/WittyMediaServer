@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, mediaUrl, type Item } from '../api'
 import { IconBack, IconBook, IconSearch, IconSettings } from '../icons'
-import { centerline, hits, InkBar, InkDefs, InkStroke, loadInk, MARKER_COLORS, outline, pointPressure, saveInk, type DrawTool, type InkPrefs, type Stroke } from '../ink'
+import { centerline, hits, InkBar, InkDefs, InkStroke, loadInk, outline, pointPressure, saveInk, type DrawTool, type InkPrefs, type Stroke } from '../ink'
+import { cite, colorName, Define, exportNotes, fill, HighlightEditor, NotesPanel, SelectionBar, useAnnotations, useColorLabels, type Ann } from '../readerTools'
 import { toast } from '../state'
 
 // The EPUB reader. Book view (two pages side by side), one page or
@@ -18,13 +19,11 @@ import { toast } from '../state'
 // frame's document from the outside.
 
 export type BookInfo = { format: string; reading: string; title: string; spine?: string[]; toc?: { title: string; href: string }[]; words?: number[] }
-type Ann = { id: number; kind: 'bookmark' | 'highlight' | 'ink'; chapter: number; pos: number; quote: string; prefix: string; suffix: string; color: string; note: string; data?: string; created: number }
 type Prefs = {
   layout: 'auto' | 'single' | 'book' | 'scroll'; font: number; family: 'publisher' | 'serif' | 'sans' | 'readable' | 'mono'
   line: number; margin: number; justify: boolean; theme: 'light' | 'sepia' | 'dark' | 'black'; brightness: number; warmth: number
-  labels: Record<string, string> // what each highlight colour means to the reader
 }
-const DEF: Prefs = { layout: 'auto', font: 100, family: 'publisher', line: 1.55, margin: 2, justify: true, theme: 'light', brightness: 1, warmth: 0, labels: {} }
+const DEF: Prefs = { layout: 'auto', font: 100, family: 'publisher', line: 1.55, margin: 2, justify: true, theme: 'light', brightness: 1, warmth: 0 }
 const PREFS_KEY = 'wms.ereader'
 const THEMES: Record<Prefs['theme'], [string, string, string]> = {
   light: ['#ffffff', '#1d1d1f', '#6b6b70'], sepia: ['#f4ecd8', '#3b2f1e', '#7a6a50'], dark: ['#1c1c1e', '#e5e5e7', '#98989d'], black: ['#000000', '#d4d4d6', '#8e8e93'],
@@ -32,14 +31,6 @@ const THEMES: Record<Prefs['theme'], [string, string, string]> = {
 const FAMILIES: Record<Prefs['family'], string> = {
   publisher: '', serif: "Georgia, 'Iowan Old Style', 'Palatino Linotype', serif", sans: "system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   readable: "Verdana, Tahoma, 'Trebuchet MS', sans-serif", mono: "ui-monospace, Consolas, 'Courier New', monospace",
-}
-const NAMED: Record<string, string> = { yellow: '#ffd60a', green: '#34c759', blue: '#0a84ff', pink: '#ff375f' }
-const QUICK = ['yellow', 'green', 'blue', 'pink']
-const hex = (c: string) => NAMED[c] || c || NAMED.yellow
-// A highlight colour as a see-through fill.
-function fill(c: string, a = 0.38) {
-  const h = hex(c)
-  return `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`
 }
 // Bumped when the server's book headers change, so cached chapters refresh.
 const READER_V = 2
@@ -129,7 +120,6 @@ const unwrap = (m: Element) => m.replaceWith(...Array.from(m.childNodes))
 
 // ---------------------------------------------------------------- reader
 
-type Op = { kind: 'add' | 'del'; ann: Ann }
 
 export default function EpubReader({ it, info, close }: { it: Item; info: BookInfo; close: () => void }) {
   const spine = info.spine || []
@@ -141,23 +131,21 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const [page, setPage] = useState(0)
   const [pages, setPages] = useState(1)
   const pending = useRef<{ frac?: number; quote?: { quote: string; prefix: string }; anchor?: string } | null>({ frac: start % 1 })
-  const [anns, setAnns] = useState<Ann[]>([])
+  const A = useAnnotations(it.id)
+  const anns = A.anns
+  const [labels, setLabel] = useColorLabels()
   const [panel, setPanel] = useState<null | 'contents' | 'notes' | 'search' | 'display'>(null)
   const [sel, setSel] = useState<{ x: number; y: number; quote: string; prefix: string; suffix: string; more?: boolean } | null>(null)
   const [edit, setEdit] = useState<{ ann: Ann; x: number; y: number } | null>(null)
-  const [define, setDefine] = useState<{ word: string; result: any[] | null; error?: string } | null>(null)
+  const [define, setDefine] = useState<string | null>(null)
   const [foot, setFoot] = useState<{ text: string; chapter: number; anchor: string } | null>(null)
   const [query, setQuery] = useState('')
   const [hitsFound, setHits] = useState<{ chapter: number; snippet: string; quote: string; prefix: string }[] | null>(null)
-  const [filter, setFilter] = useState<{ kind: string; color: string; text: string }>({ kind: 'all', color: '', text: '' })
   const [bar, setBar] = useState(true)
   const [speaking, setSpeaking] = useState(false)
   const [ink, setInkState] = useState(loadInk)
   const [inkMode, setInkMode] = useState(false)
   const [tick, setTick] = useState(0) // the layout moved: place ink again
-  const [, setHistory] = useState(0) // undo/redo stacks changed
-  const undoStack = useRef<Op[]>([])
-  const redoStack = useRef<Op[]>([])
   const frame = useRef<HTMLIFrameElement | null>(null)
   const live = useRef<SVGPathElement | null>(null)
   const drawing = useRef<null | { id: number; tool: DrawTool | 'eraser'; pts: number[]; gone: Set<number> }>(null)
@@ -175,7 +163,6 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const pokeBar = () => { setBar(true); clearTimeout(barTimer.current); barTimer.current = setTimeout(() => setBar(false), 3500) }
   useEffect(() => { pokeBar(); return () => clearTimeout(barTimer.current) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { api.get<Ann[]>(`/items/${it.id}/annotations`).then(setAnns).catch(() => {}) }, [it.id])
 
   const save = useCallback((pos: number) => {
     if (Math.abs(pos - savePos.current) < 0.002) return
@@ -262,11 +249,11 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       if (at < 0) continue
       const attrs: Record<string, string> = { 'data-ann': String(a.id), style: `--c:${fill(a.color)}` }
       if (a.note) attrs['data-note'] = '1'
-      if (p.labels[a.color]) attrs.title = p.labels[a.color]
+      if (labels[a.color]) attrs.title = labels[a.color]
       wrap(d, idx, at, at + a.quote.length, attrs)
     }
     setTick((t) => t + 1)
-  }, [anns, chapter, p.labels])
+  }, [anns, chapter, labels])
 
   // Page of an element in the current chapter.
   const pageOf = (el: Element) => {
@@ -378,8 +365,8 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const onKey = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return
     const mod = e.ctrlKey || e.metaKey
-    if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
-    if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return }
+    if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) A.redo(); else A.undo(); return }
+    if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); A.redo(); return }
     if (mod) return
     if (e.key === 'Escape' || e.key === 'GoBack') {
       if (panel || sel || edit || define || foot) { setPanel(null); setSel(null); setEdit(null); setDefine(null); setFoot(null) } else if (inkMode) setInkMode(false); else close()
@@ -463,39 +450,14 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
 
   // ---------------------------------------------------------- annotations
   const posNow = () => chapter + textFrac()
-  const create = async (a: Partial<Ann>): Promise<Ann | null> => {
-    try {
-      const n = await api.post<Ann>(`/items/${it.id}/annotations`, { prefix: '', suffix: '', note: '', ...a, id: 0 })
-      setAnns((x) => [...x, n].sort((m, k) => m.pos - k.pos))
-      return n
-    } catch (e: any) { toast(e.message); return null }
-  }
-  const record = (op: Op) => { undoStack.current = [...undoStack.current.slice(-199), op]; redoStack.current = []; setHistory((h) => h + 1) }
+  const deleteAnn = (a: Ann, undoable = true) => { setEdit(null); return A.remove(a, undoable) }
   const addHighlight = async (color: string, range = sel) => {
     if (!range) return null
-    color = Object.keys(NAMED).find((k) => NAMED[k] === color.toLowerCase()) || color // one name per colour, for labels and filters
-    const a = await create({ kind: 'highlight', chapter, pos: posNow(), quote: range.quote, prefix: range.prefix, suffix: range.suffix, color })
-    if (a) record({ kind: 'add', ann: a })
+    const a = await A.add({ kind: 'highlight', chapter, pos: posNow(), quote: range.quote, prefix: range.prefix, suffix: range.suffix, color: colorName(color) })
     doc()?.getSelection()?.removeAllRanges()
     setSel(null)
     return a
   }
-  const updateAnn = async (a: Ann, patch: Partial<Ann>) => {
-    try { await api.put<Ann>(`/annotations/${a.id}`, { ...a, ...patch }); setAnns((x) => x.map((y) => (y.id === a.id ? { ...y, ...patch } : y))) } catch (e: any) { toast(e.message) }
-  }
-  const deleteAnn = async (a: Ann, undoable = true) => {
-    setAnns((x) => x.filter((y) => y.id !== a.id))
-    setEdit(null)
-    try { await api.del(`/annotations/${a.id}`); if (undoable) record({ kind: 'del', ann: a }) } catch (e: any) { toast(e.message); setAnns((x) => [...x, a].sort((m, k) => m.pos - k.pos)) }
-  }
-  // Undo and redo for highlights and ink. A re-created annotation gets a new
-  // id; the op keeps the object, so later steps follow it.
-  const apply = async (op: Op, reverse: boolean) => {
-    if ((op.kind === 'add') !== reverse) { const n = await create(op.ann); if (n) op.ann = n }
-    else await deleteAnn(op.ann, false)
-  }
-  const undo = async () => { const op = undoStack.current.pop(); if (!op) return; await apply(op, true); redoStack.current.push(op); setHistory((h) => h + 1) }
-  const redo = async () => { const op = redoStack.current.pop(); if (!op) return; await apply(op, false); undoStack.current.push(op); setHistory((h) => h + 1) }
 
   // A bookmark is on this page when its place in the text is.
   const bookmarkHere = useMemo(() => {
@@ -512,30 +474,10 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
   const toggleBookmark = async () => {
     if (bookmarkHere) { await deleteAnn(bookmarkHere, false); return }
     const d = doc()
-    if (await create({ kind: 'bookmark', chapter, pos: posNow(), quote: (d ? textIndex(d).text : '').trim().slice(0, 80), color: '' })) toast('Bookmarked')
+    if (await A.create({ kind: 'bookmark', chapter, pos: posNow(), quote: (d ? textIndex(d).text : '').trim().slice(0, 80), color: '' })) toast('Bookmarked')
   }
 
   const chapterName = (c: number) => info.toc?.find((t) => t.href.split('#')[0] === spine[c])?.title.trim() || `Chapter ${c + 1}`
-  const cite = (quote: string, c: number) => `“${quote.trim().replace(/\s+/g, ' ')}” (${[it.artist, `${it.title}${it.year ? ` (${it.year})` : ''}`, chapterName(c)].filter(Boolean).join(', ')})`
-  const exportNotes = () => {
-    const lines = [`# ${it.title}`, it.artist ? `*${it.artist}*` : '', '']
-    let last = -1
-    for (const a of anns.filter((x) => x.kind !== 'ink')) {
-      if (a.chapter !== last) { lines.push(`## ${chapterName(a.chapter)}`, ''); last = a.chapter }
-      if (a.kind === 'bookmark') lines.push(`- Bookmark: ${a.quote}…`)
-      else lines.push(`> ${a.quote.replace(/\s+/g, ' ').trim()}`, '', `— ${p.labels[a.color] ? `**${p.labels[a.color]}** · ` : ''}${Math.round((a.pos - a.chapter) * 100)}% into the chapter`)
-      if (a.note) lines.push('', a.note)
-      lines.push('')
-    }
-    const strokes = anns.filter((x) => x.kind === 'ink').length
-    if (strokes) lines.push(`*${strokes} handwritten strokes are kept in the reader.*`)
-    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/markdown' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${it.title} - notes.md`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
 
   // ---------------------------------------------------------- ink
   // A stroke is kept relative to the character it starts by, in ems, so it
@@ -568,13 +510,14 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
     }
     const active = inkMode ? !(ink.penOnly && e.pointerType === 'touch') : pen && ink.autoPen
     if (!active || drawing.current) return
-    const eraser = ink.tool === 'eraser' || (pen && ((e.buttons & 32) !== 0 || (e.buttons & 2) !== 0))
+    // Outside ink mode a pen always writes; its eraser end or button erases.
+    const eraser = (inkMode && ink.tool === 'eraser') || (pen && ((e.buttons & 32) !== 0 || (e.buttons & 2) !== 0))
     if (e.button !== 0 && !eraser) return
     e.preventDefault()
     setSel(null); setEdit(null); setFoot(null)
     doc()?.getSelection()?.removeAllRanges()
     try { (e.target as Element).setPointerCapture?.(e.pointerId) } catch { /* ignore */ }
-    const tool: DrawTool | 'eraser' = eraser ? 'eraser' : (ink.tool as DrawTool)
+    const tool: DrawTool | 'eraser' = eraser ? 'eraser' : ink.tool === 'eraser' ? 'pen' : ink.tool
     drawing.current = { id: e.pointerId, tool, pts: [], gone: new Set() }
     const lp = live.current
     if (lp && tool !== 'eraser') {
@@ -638,17 +581,11 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
     const origin = charRect(d, idx, at) || { x: 0, y: 0 }
     const pts = dr.pts.map((v, i) => (i % 3 === 2 ? Math.round(v * 100) / 100 : Math.round(((v - (i % 3 === 0 ? origin.x : origin.y)) / k) * 1000) / 1000))
     const s: Stroke = { t: tool, w: Math.round((ink.size[tool] / k) * 1000) / 1000, o: ink.opacity[tool], a: at, pts }
-    const n = await create({ kind: 'ink', chapter, pos: posNow(), quote: idx.text.slice(at, at + 60).trim(), color: ink.color[tool], data: JSON.stringify(s) })
+    await A.add({ kind: 'ink', chapter, pos: posNow(), quote: idx.text.slice(at, at + 60).trim(), color: ink.color[tool], data: JSON.stringify(s) })
     live.current?.setAttribute('d', '')
-    if (n) record({ kind: 'add', ann: n })
   }
 
   // ---------------------------------------------------------- tools
-  const lookUp = (word: string) => {
-    setSel(null)
-    setDefine({ word, result: null })
-    api.get<any[]>(`/dictionary?word=${encodeURIComponent(word)}`).then((r) => setDefine({ word, result: r })).catch((e) => setDefine({ word, result: [], error: e.message }))
-  }
   const search = async (q: string) => {
     setQuery(q); setPanel('search'); setHits(null)
     if (q.trim().length < 2) { setHits([]); return }
@@ -738,27 +675,6 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
     }
   }
 
-  // ---------------------------------------------------------- notes panel
-  const usedColors = [...new Set(anns.filter((a) => a.kind === 'highlight').map((a) => a.color))]
-  const shown = anns.filter((a) => {
-    if (a.kind === 'ink') return false // listed per chapter below
-    if (filter.kind === 'highlight' && a.kind !== 'highlight') return false
-    if (filter.kind === 'note' && !a.note) return false
-    if (filter.kind === 'bookmark' && a.kind !== 'bookmark') return false
-    if (filter.color && a.color !== filter.color) return false
-    if (filter.text && !`${a.quote} ${a.note} ${p.labels[a.color] || ''}`.toLowerCase().includes(filter.text.toLowerCase())) return false
-    return true
-  })
-  const inkChapters = [...new Set(anns.filter((a) => a.kind === 'ink').map((a) => a.chapter))]
-  const palette = (current: string, onPick: (c: string) => void) => (
-    <div className="ep-palette">
-      {[...QUICK, ...MARKER_COLORS.filter((c) => !Object.values(NAMED).includes(c))].map((c) => (
-        <button key={c} className={'ep-dot' + (current === c ? ' on' : '')} style={{ background: fill(c, 0.9) }} title={p.labels[c] || c} aria-label={p.labels[c] || c} onClick={() => onPick(c)} />
-      ))}
-      <input type="color" aria-label="Any colour" value={hex(current)} onChange={(e) => onPick(e.target.value)} />
-    </div>
-  )
-
   const [bg, fg] = THEMES[p.theme]
   const chapterTitle = info.toc?.find((t) => t.href.split('#')[0] === spine[chapter])?.title.trim()
   const margin = `${2 + p.margin * 2.5}%`
@@ -794,7 +710,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       </div>
 
       {inkMode ? (
-        <InkBar p={ink} set={setInk} undo={undo} redo={redo} canUndo={undoStack.current.length > 0} canRedo={redoStack.current.length > 0} done={() => setInkMode(false)}
+        <InkBar p={ink} set={setInk} undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo} done={() => setInkMode(false)}
           extra={<><button className="ink-tool" onClick={() => turn(-1)} aria-label="Previous page">‹</button><button className="ink-tool" onClick={() => turn(1)} aria-label="Next page">›</button></>} />
       ) : (
         <div className={'reader-foot epub-foot' + (bar || panel ? '' : ' hidden')}>
@@ -819,46 +735,8 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
             </>
           )}
           {panel === 'notes' && (
-            <>
-              <div className="ep-head"><h3>Notes & highlights</h3>{anns.length > 0 && <button className="btn sm ghost" onClick={exportNotes} title="Save as Markdown">Export</button>}</div>
-              <div className="seg ep-kinds">{([['all', 'All'], ['highlight', 'Highlights'], ['note', 'Notes'], ['bookmark', 'Bookmarks'], ['ink', 'Handwriting']] as const).map(([v, l]) => (
-                <button key={v} className={filter.kind === v ? 'active' : ''} onClick={() => setFilter({ ...filter, kind: v })}>{l}</button>
-              ))}</div>
-              <input className="input" value={filter.text} onChange={(e) => setFilter({ ...filter, text: e.target.value })} placeholder="Filter notes" aria-label="Filter notes" />
-              {usedColors.length > 0 && (
-                <details className="ep-labels">
-                  <summary>Colours{filter.color ? ' (filtered)' : ''}</summary>
-                  <p className="muted small">Name what each colour means to you, like “Definition” or “Question”. Pick a colour to show only that one.</p>
-                  {usedColors.map((c) => (
-                    <div key={c} className="ep-label">
-                      <button className={'ep-dot' + (filter.color === c ? ' on' : '')} style={{ background: fill(c, 0.9) }} aria-pressed={filter.color === c} aria-label={`Only ${p.labels[c] || c}`} onClick={() => setFilter({ ...filter, color: filter.color === c ? '' : c })} />
-                      <input className="input" value={p.labels[c] || ''} placeholder="Name this colour" aria-label={`Meaning of ${c}`} onChange={(e) => setPrefs({ labels: { ...p.labels, [c]: e.target.value } })} />
-                    </div>
-                  ))}
-                </details>
-              )}
-              {anns.length === 0 && <p className="muted">Select text to highlight it, add a note or look a word up. Draw with ✎ or any pen. Bookmark a page with 🔖.</p>}
-              {filter.kind !== 'ink' && shown.map((a) => (
-                <div key={a.id} className="ep-ann">
-                  <button onClick={() => { if (a.kind === 'highlight') goChapter(a.chapter, { quote: { quote: a.quote, prefix: a.prefix } }); else goChapter(a.chapter, { frac: a.pos - a.chapter }); setPanel(null) }}>
-                    <span className="ep-kind" style={{ background: a.kind === 'highlight' ? fill(a.color, 0.8) : 'transparent' }}>{a.kind === 'bookmark' ? '🔖' : ''}</span>
-                    <span><span className="muted">{chapterName(a.chapter)}{p.labels[a.color] ? ` · ${p.labels[a.color]}` : ''}</span><br />{a.kind === 'bookmark' ? (a.quote || 'Bookmark') + '…' : `“${a.quote.slice(0, 220)}”`}{a.note && <em className="ep-note">{a.note}</em>}</span>
-                  </button>
-                  <button className="ibtn sm" onClick={() => deleteAnn(a)} aria-label="Delete">✕</button>
-                </div>
-              ))}
-              {(filter.kind === 'ink' || filter.kind === 'all') && !filter.color && !filter.text && inkChapters.map((c) => {
-                const strokes = anns.filter((a) => a.kind === 'ink' && a.chapter === c)
-                return (
-                  <div key={c} className="ep-ann">
-                    <button onClick={() => { goChapter(c, { frac: strokes[0].pos - c }); setPanel(null) }}>
-                      <span className="ep-kind">✎</span>
-                      <span><span className="muted">{chapterName(c)}</span><br />{strokes.length} handwritten {strokes.length === 1 ? 'stroke' : 'strokes'}</span>
-                    </button>
-                  </div>
-                )
-              })}
-            </>
+            <NotesPanel anns={anns} labels={labels} setLabel={setLabel} place={chapterName} remove={deleteAnn} onExport={() => exportNotes(it, anns, labels, chapterName)}
+              open={(a) => { if (a.kind === 'highlight') goChapter(a.chapter, { quote: { quote: a.quote, prefix: a.prefix } }); else goChapter(a.chapter, { frac: a.pos - a.chapter }); setPanel(null) }} />
           )}
           {panel === 'search' && (
             <>
@@ -901,7 +779,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
               </label>
               <label>Brightness <input type="range" min={0.35} max={1} step={0.05} value={p.brightness} onChange={(e) => setPrefs({ brightness: Number(e.target.value) })} /></label>
               <label>Warmth <span className="muted">(night light)</span><input type="range" min={0} max={0.45} step={0.05} value={p.warmth} onChange={(e) => setPrefs({ warmth: Number(e.target.value) })} /></label>
-              <button className="btn sm ghost" onClick={() => setPrefs({ ...DEF, labels: p.labels })}>Reset</button>
+              <button className="btn sm ghost" onClick={() => setPrefs(DEF)}>Reset</button>
             </div>
           )}
           <button className="btn ghost ep-close" onClick={() => setPanel(null)}>Close</button>
@@ -909,32 +787,16 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
       )}
 
       {sel && (
-        <div className="ep-pop" style={{ left: Math.min(Math.max(190, sel.x), window.innerWidth - 190), top: Math.max(60, sel.y - 58) }} role="toolbar" aria-label="Selected text">
-          {QUICK.map((c) => <button key={c} className="ep-dot" style={{ background: fill(c, 0.9) }} onClick={() => addHighlight(c)} title={p.labels[c] || c} aria-label={`Highlight ${p.labels[c] || c}`} />)}
-          <button className="ep-dot more" onClick={() => setSel({ ...sel, more: !sel.more })} aria-expanded={!!sel.more} aria-label="More colours">+</button>
-          <button onClick={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}>Note</button>
-          {sel.quote.trim().split(/\s+/).length <= 3 && <button onClick={() => lookUp(sel.quote.trim())}>Define</button>}
-          <button onClick={() => { navigator.clipboard?.writeText(sel.quote); setSel(null); toast('Copied') }}>Copy</button>
-          <button onClick={() => { navigator.clipboard?.writeText(cite(sel.quote, chapter)); setSel(null); toast('Copied with citation') }} title="Copy with author, title and chapter">Cite</button>
-          <button onClick={() => { search(sel.quote.trim().slice(0, 80)); setSel(null) }}>Search</button>
-          <button onClick={() => { const q = sel.quote.trim().slice(0, 40); setSel(null); readAloud(q) }}>Read aloud</button>
-          {sel.more && <div className="ep-pop-more">{palette('', (c) => addHighlight(c))}</div>}
-        </div>
+        <SelectionBar x={sel.x} y={sel.y} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
+          onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}
+          onDefine={setDefine} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, chapterName(chapter)))} onSearch={search}
+          onRead={() => readAloud(sel.quote.trim().slice(0, 40))} />
       )}
 
       {edit && (
-        <div className="ep-pop ep-edit" style={{ left: Math.min(Math.max(180, edit.x), window.innerWidth - 180), top: Math.max(60, Math.min(edit.y + 8, window.innerHeight - 320)) }} role="dialog" aria-label="Highlight">
-          {palette(edit.ann.color, (c) => { updateAnn(edit.ann, { color: c }); setEdit({ ...edit, ann: { ...edit.ann, color: c } }) })}
-          {p.labels[edit.ann.color] && <div className="small">{p.labels[edit.ann.color]}</div>}
-          <textarea className="input" rows={4} placeholder="Add a note…" defaultValue={edit.ann.note} autoFocus
-            onBlur={(e) => { if (e.target.value !== edit.ann.note) updateAnn(edit.ann, { note: e.target.value }) }} aria-label="Note" />
-          <div className="ep-colors">
-            <button className="btn sm ghost" onClick={() => { navigator.clipboard?.writeText(cite(edit.ann.quote, edit.ann.chapter)); toast('Copied with citation') }}>Cite</button>
-            <button className="btn sm danger" onClick={() => deleteAnn(edit.ann)}>Remove</button>
-            <span className="grow" />
-            <button className="btn sm primary" onClick={() => setEdit(null)}>Done</button>
-          </div>
-        </div>
+        <HighlightEditor ann={edit.ann} x={edit.x} y={edit.y} labels={labels} onDone={() => setEdit(null)} onRemove={() => deleteAnn(edit.ann)}
+          onColor={(c) => { A.update(edit.ann, { color: c }); setEdit({ ...edit, ann: { ...edit.ann, color: c } }) }} onNote={(note) => A.update(edit.ann, { note })}
+          onCite={() => navigator.clipboard?.writeText(cite(it, edit.ann.quote, chapterName(edit.ann.chapter)))} />
       )}
 
       {foot && (
@@ -945,24 +807,7 @@ export default function EpubReader({ it, info, close }: { it: Item; info: BookIn
         </div>
       )}
 
-      {define && (
-        <div className="ep-define" role="dialog" aria-label={`Definition of ${define.word}`}>
-          <div className="ep-head"><h3>{define.word}</h3><button className="ibtn" onClick={() => setDefine(null)} aria-label="Close">✕</button></div>
-          {define.result === null && <div className="spinner" />}
-          {define.result?.length === 0 && <p className="muted">{define.error || 'No definition found.'}</p>}
-          {define.result?.slice(0, 2).map((e: any, i: number) => (
-            <div key={i}>
-              {e.phonetic && <div className="muted">{e.phonetic}</div>}
-              {e.meanings?.map((m: any, j: number) => (
-                <div key={j} className="ep-sense"><i>{m.partOfSpeech}</i>
-                  <ol>{m.definitions.map((d: any, k: number) => <li key={k}>{d.definition}{d.example && <div className="muted">“{d.example}”</div>}</li>)}</ol>
-                </div>
-              ))}
-            </div>
-          ))}
-          <a className="muted" href={`https://en.wiktionary.org/wiki/${encodeURIComponent(define.word)}`} target="_blank" rel="noreferrer">More on Wiktionary ↗</a>
-        </div>
-      )}
+      {define && <Define word={define} onClose={() => setDefine(null)} />}
     </div>
   )
 }

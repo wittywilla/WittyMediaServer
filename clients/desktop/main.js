@@ -22,7 +22,7 @@ function createWindow() {
   if (state.server) win.loadURL(state.server); else win.loadFile('connect.html')
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Server', submenu: [
-      { label: 'Change server…', click: () => win.loadFile('connect.html') },
+      { label: 'Change serverâ€¦', click: () => win.loadFile('connect.html') },
       { label: 'Reload', role: 'reload' }, { type: 'separator' }, { role: 'quit' }] },
     { label: 'View', submenu: [{ role: 'togglefullscreen' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }, { role: 'toggleDevTools' }] },
   ]))

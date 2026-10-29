@@ -27,11 +27,12 @@ Run `go version -m wms` on a binary for the exact module list and versions.
 | React, React DOM | MIT |
 | react-router-dom | MIT |
 | hls.js | Apache-2.0 |
+| pdf.js (pdfjs-dist; loaded only when a PDF is opened) | Apache-2.0 |
 | Vite, TypeScript (build only) | MIT / Apache-2.0 |
 
 ## Metadata services
 
-**The Movie Database (TMDB)** — optional. "This product uses the TMDB API but
+**The Movie Database (TMDB)** â€” optional. "This product uses the TMDB API but
 is not endorsed or certified by TMDB." <https://www.themoviedb.org>
 
 ## DVD-Video

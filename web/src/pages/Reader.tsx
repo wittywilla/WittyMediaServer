@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import { IconBack } from '../icons'
 import EpubReader, { type BookInfo as EpubInfo } from './EpubReader'
 
+// pdf.js is large: it loads only when a PDF is opened.
+const PdfReader = lazy(() => import('./PdfReader'))
+
 // The reader: comics and manga page by page (single, two-page spread or a
 // vertical strip; left-to-right or right-to-left), EPUB books in
-// the full e-reader (EpubReader.tsx), PDFs in the browser's viewer.
+// the full e-reader (EpubReader.tsx), PDFs in PdfReader.tsx.
 // Progress is saved to the server, so reading continues on any device.
 
 type BookInfo = EpubInfo & { pages?: number }
@@ -34,14 +37,7 @@ export default function ReaderPage() {
   const close = () => (window.history.state?.idx > 0 ? nav(-1) : nav(`/item/${id}`))
   if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>Back</button></div></div>
   if (!it || !info) return <div className="reader center"><div className="spinner" /></div>
-  if (info.format === 'pdf') {
-    return (
-      <div className="reader">
-        <div className="reader-bar"><button className="ibtn" onClick={close} aria-label="Close the book"><IconBack /></button><b>{it.title}</b></div>
-        <iframe className="reader-pdf" title={it.title} src={mediaUrl(`/api/items/${it.id}/file`)} />
-      </div>
-    )
-  }
+  if (info.format === 'pdf') return <Suspense fallback={<div className="reader center"><div className="spinner" /></div>}><PdfReader it={it} close={close} /></Suspense>
   return info.format === 'cbz' ? <ComicReader it={it} pages={info.pages || 0} close={close} /> : <EpubReader it={it} info={info} close={close} />
 }
 

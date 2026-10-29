@@ -19,6 +19,8 @@ import (
 // highlight is anchored by its quoted text plus a little text before and
 // after it, so it is found again whatever the font size or screen. An ink
 // stroke keeps its points in Data, relative to the word it was drawn by.
+// In PDFs, where pages never reflow, a highlight also keeps its boxes on
+// the page in Data and an ink stroke is in page units.
 type Annotation struct {
 	ID      int64   `json:"id"`
 	ItemID  int64   `json:"itemId"`
@@ -30,7 +32,7 @@ type Annotation struct {
 	Suffix  string  `json:"suffix"`
 	Color   string  `json:"color"` // a named colour or #rrggbb
 	Note    string  `json:"note"`
-	Data    string  `json:"data,omitempty"` // ink: the stroke as JSON
+	Data    string  `json:"data,omitempty"` // ink: the stroke; PDF highlights: their boxes (JSON)
 	Created int64   `json:"created"`
 }
 
@@ -76,10 +78,10 @@ func (s *Store) SaveAnnotation(ctx context.Context, userID int64, a *Annotation)
 	if !annColors[a.Color] && !hexColor.MatchString(a.Color) {
 		return errors.New("unknown colour")
 	}
-	if a.Kind != "ink" {
+	if a.Kind == "bookmark" || (a.Kind == "highlight" && a.Data == "") {
 		a.Data = ""
 	} else if len(a.Data) > maxInk || !json.Valid([]byte(a.Data)) {
-		return errors.New("bad ink stroke")
+		return errors.New("bad annotation data")
 	}
 	a.Quote, a.Prefix, a.Suffix, a.Note = clip(a.Quote, 4000), clip(a.Prefix, 200), clip(a.Suffix, 200), clip(a.Note, 10000)
 	if a.ID == 0 {

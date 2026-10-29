@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconBack, useHost } from '../wittyink'
+import { IconBack, useHost } from '@wittywilla/wittyink'
 import './comics.css'
 
 // Comics and manga page by page: one page, a two-page spread or a vertical

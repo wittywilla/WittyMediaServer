@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '../wittyink'
+import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
 import './ebook.css'
 
 // WittyEbook: the EPUB reader. Book view (two pages side by side), one page or
@@ -347,6 +347,7 @@ export default function EpubReader() {
     else { loaded.current = false; setChapter(c) }
   }
   const turn = (dir: 1 | -1) => {
+    if (!loaded.current) return // the next chapter is still loading (a held arrow key must not race through the book)
     setSel(null); setEdit(null); setFoot(null)
     turnTimes.current = [...turnTimes.current.slice(-20), Date.now()]
     if (paged) {

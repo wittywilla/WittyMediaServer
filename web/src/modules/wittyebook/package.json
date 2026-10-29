@@ -1,0 +1,18 @@
+{
+  "name": "@wittywilla/wittyebook",
+  "version": "0.1.0",
+  "description": "A reader for reflowable ebooks (EPUB): book view, typography, highlights, notes, handwriting with pen pressure, search and read aloud.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "repository": "github:wittywilla/WittyEbook",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@wittywilla/wittyink": "github:wittywilla/WittyInk"
+  }
+}

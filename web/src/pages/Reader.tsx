@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
-import WittyComics from '../modules/wittycomics'
-import WittyEbook from '../modules/wittyebook'
-import { HostContext, type Ann, type EpubInfo, type ReaderHost } from '../modules/wittyink'
+import WittyComics from '@wittywilla/wittycomics'
+import WittyEbook from '@wittywilla/wittyebook'
+import { HostContext, type Ann, type EpubInfo, type ReaderHost } from '@wittywilla/wittyink'
 import { toast } from '../state'
 
 // Books libraries in WittyMediaServer: the WittyEbook, WittyPDF and
@@ -12,7 +12,7 @@ import { toast } from '../state'
 // fetches pages and definitions through the server.
 
 // pdf.js is large: WittyPDF loads only when a PDF is opened.
-const WittyPDF = lazy(() => import('../modules/wittypdf'))
+const WittyPDF = lazy(() => import('@wittywilla/wittypdf'))
 
 type BookInfo = Partial<EpubInfo> & { format: string; reading: string; title: string; pages?: number }
 // Bumped when the server's book headers change, so cached chapters refresh.

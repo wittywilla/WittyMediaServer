@@ -1,0 +1,18 @@
+{
+  "name": "@wittywilla/wittycomics",
+  "version": "0.1.0",
+  "description": "A comic and manga reader: single pages, spreads or a vertical strip, in either reading direction.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "repository": "github:wittywilla/WittyComics",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@wittywilla/wittyink": "github:wittywilla/WittyInk"
+  }
+}

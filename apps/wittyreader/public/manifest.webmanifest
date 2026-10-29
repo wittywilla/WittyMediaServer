@@ -1,0 +1,19 @@
+{
+  "name": "WittyReader",
+  "short_name": "WittyReader",
+  "description": "Read and annotate books, PDFs and comics on your own device.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }],
+  "file_handlers": [{
+    "action": "./",
+    "accept": {
+      "application/epub+zip": [".epub"],
+      "application/pdf": [".pdf"],
+      "application/vnd.comicbook+zip": [".cbz"]
+    }
+  }]
+}

@@ -13,7 +13,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": { "@wittywilla/*": ["./src/modules/*"] }
   },
   "include": ["src"]
 }

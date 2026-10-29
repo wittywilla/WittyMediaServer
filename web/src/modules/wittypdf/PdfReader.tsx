@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
-import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '../wittyink'
+import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
 import './pdf.css'
 
 // WittyPDF: the PDF reader, for papers, textbooks and scans: pages drawn by pdf.js

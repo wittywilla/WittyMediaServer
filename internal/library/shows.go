@@ -95,7 +95,15 @@ type ShowQuery struct {
 	Limit     int
 	UserID    int64
 	Access    *Access // Kids/Guest limits
+	// AnimeOf lists anime library LibraryID together with the anime shows
+	// (genre "Anime") of every TV library.
+	AnimeOf bool
+	// HideAnime leaves anime out (TV libraries when anime goes to the anime
+	// library only).
+	HideAnime bool
 }
+
+const animeGenre = "('|' || IFNULL(s.genres,'') || '|') LIKE '%|Anime|%'"
 
 func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	where := []string{"s.missing = 0"}
@@ -105,9 +113,16 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 		where = append(where, c)
 		args = append(args, a...)
 	}
-	if q.LibraryID != 0 {
+	switch {
+	case q.LibraryID != 0 && q.AnimeOf:
+		where = append(where, "(s.library_id = ? OR ("+animeGenre+" AND s.library_id IN (SELECT id FROM libraries WHERE type = 'shows')))")
+		args = append(args, q.LibraryID)
+	case q.LibraryID != 0:
 		where = append(where, "s.library_id = ?")
 		args = append(args, q.LibraryID)
+	}
+	if q.HideAnime {
+		where = append(where, "NOT "+animeGenre)
 	}
 	if q.Search != "" {
 		where = append(where, "(s.title LIKE ? OR s.overview LIKE ?)")

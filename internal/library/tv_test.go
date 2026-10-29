@@ -25,6 +25,10 @@ func TestParseEpisode(t *testing.T) {
 		{"Firefly/Specials/Episode 2 - Here's How It Was.mkv", "Firefly", 0, 2, 0, "Here's How It Was"},
 		{"Breaking.Bad.S01E01E02.Pilot.mkv", "Breaking Bad", 1, 1, 2, "Pilot"},
 		{"Show/Season 01/Show.s01e03.mkv", "Show", 1, 3, 0, ""},
+		// Anime-style absolute numbering
+		{"[SubsPlease] Frieren - 012 [1080p].mkv", "Frieren", 1, 12, 0, ""},
+		{"Cowboy Bebop/Cowboy Bebop - 05v2.mkv", "Cowboy Bebop", 1, 5, 0, ""},
+		{"[Group] One Piece/One Piece - 1071 - The Gear 5.mkv", "One Piece", 1, 1071, 0, "The Gear 5"},
 	}
 	for _, c := range cases {
 		ref, ok := ParseEpisode(root, filepath.Join(root, filepath.FromSlash(c.path)))
@@ -38,6 +42,9 @@ func TestParseEpisode(t *testing.T) {
 	}
 	if _, ok := ParseEpisode(root, filepath.Join(root, "Movies", "Shrek (2001).mkv")); ok {
 		t.Error("a movie was parsed as an episode")
+	}
+	if ref, ok := ParseEpisode(root, filepath.Join(root, "Blade Runner 2049.mkv")); ok && ref.Episode == 2049 {
+		t.Error("a year was parsed as an episode number")
 	}
 }
 

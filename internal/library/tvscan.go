@@ -52,6 +52,34 @@ func TVSource(tvdbKey, tvdbPin string, tvmazeOn bool) SeriesSource {
 	return nil
 }
 
+// sourceFor is the metadata service for a library: AniList for anime
+// libraries, the TV source otherwise.
+func (s *Scanner) sourceFor(lib *Library) SeriesSource {
+	if lib != nil && lib.Type == "anime" {
+		return s.anilist()
+	}
+	return s.tvSource()
+}
+
+// sourceNamed returns the service a show was matched with, if available.
+func (s *Scanner) sourceNamed(name string) SeriesSource {
+	if name == "anilist" {
+		return s.anilist()
+	}
+	if t := s.tvSource(); t != nil && t.Name() == name {
+		return t
+	}
+	return nil
+}
+
+func (s *Scanner) anilist() *AniList {
+	lang := ""
+	if s.AnimeTitles != nil {
+		lang = s.AnimeTitles()
+	}
+	return &AniList{TitleLang: lang}
+}
+
 func (s *Scanner) tvSource() SeriesSource {
 	key, pin := "", ""
 	if s.TVDBKey != nil {
@@ -245,7 +273,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		sh.Backdrop = b
 	}
 	fromNFO := applyShowNFO(sh, filepath.Join(ref.ShowDir, "tvshow.nfo"))
-	if t := s.tvSource(); t != nil && (sh.Provider != t.Name() || sh.Overview == "") {
+	if t := s.sourceFor(lib); t != nil && (sh.Provider != t.Name() || sh.Overview == "") {
 		var meta *SeriesMeta
 		var err error
 		if sh.Provider == t.Name() && sh.ProviderID != "" {
@@ -279,7 +307,7 @@ func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]i
 		return eps
 	}
 	var eps map[[2]int]EpisodeMeta
-	if t := s.tvSource(); t != nil && sh.ProviderID != "" && sh.Provider == t.Name() {
+	if t := s.sourceNamed(sh.Provider); t != nil && sh.ProviderID != "" {
 		var err error
 		if eps, err = t.Episodes(ctx, sh.ProviderID); err != nil {
 			s.Log.Info("episode lookup failed", "cat", "library", "source", t.Name(), "show", sh.Title, "err", err)
@@ -325,14 +353,16 @@ func applySeriesMeta(sh *Show, provider string, m *SeriesMeta, keepText, force b
 // RefreshShow re-reads a show from its metadata service (optionally with a
 // series id of that service) and re-applies episode data to its episodes.
 func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) (*Show, error) {
-	t := s.tvSource()
-	if t == nil {
-		return nil, fmt.Errorf("online TV information is switched off; add a TheTVDB key or turn TVmaze back on in Settings")
-	}
-	sh, err := s.Store.Show(ctx, showID, 0)
+	sh0, err := s.Store.Show(ctx, showID, 0)
 	if err != nil {
 		return nil, err
 	}
+	lib, _ := s.Store.Library(ctx, sh0.LibraryID)
+	t := s.sourceFor(lib)
+	if t == nil {
+		return nil, fmt.Errorf("online TV information is switched off; add a TheTVDB key or turn TVmaze back on in Settings")
+	}
+	sh := sh0
 	var meta *SeriesMeta
 	switch {
 	case tvdbID != "":

@@ -18,7 +18,7 @@ export default function LibraryPage() {
   const [networks, setNetworks] = useState<{ name: string; shows: number }[]>([])
   const [items, setItems] = useState<Item[] | null>(null)
   const [shows, setShows] = useState<Show[] | null>(null)
-  const isShows = lib?.type === 'shows'
+  const isShows = lib?.type === 'shows' || lib?.type === 'anime'
   const [total, setTotal] = useState(0)
   const [genres, setGenres] = useState<string[]>([])
   const [scan, setScan] = useState<any>(null)

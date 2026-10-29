@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"math"
 	"net/http"
 	"os"
@@ -17,8 +18,35 @@ func (s *Server) tvSource(r *http.Request) library.SeriesSource {
 	return library.TVSource(s.DB.GetSetting(ctx, "tvdbKey", ""), s.DB.GetSetting(ctx, "tvdbPin", ""), s.DB.GetSetting(ctx, "tvmaze", "1") == "1")
 }
 
+// animeQuery sets how a library lists anime: an anime library also shows
+// the anime of the TV libraries; TV libraries leave anime out when the admin
+// sends anime to the anime library only (and one exists).
+func (s *Server) animeQuery(ctx context.Context, q *library.ShowQuery) {
+	if q.LibraryID == 0 {
+		return
+	}
+	lib, err := s.Store.Library(ctx, q.LibraryID)
+	if err != nil {
+		return
+	}
+	switch lib.Type {
+	case "anime":
+		q.AnimeOf = true
+	case "shows":
+		if s.DB.GetSetting(ctx, "animeIn", "both") == "anime" {
+			libs, _ := s.Store.Libraries(ctx)
+			for _, l := range libs {
+				if l.Type == "anime" {
+					q.HideAnime = true
+					break
+				}
+			}
+		}
+	}
+}
+
 func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
-	shows, err := s.Store.Shows(r.Context(), library.ShowQuery{
+	q := library.ShowQuery{
 		LibraryID: int64(qInt(r, "library", 0)),
 		Search:    r.URL.Query().Get("search"),
 		Genre:     r.URL.Query().Get("genre"),
@@ -28,7 +56,9 @@ func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
 		Limit:     qInt(r, "limit", 0),
 		UserID:    userFrom(r).ID,
 		Access:    s.access(r),
-	})
+	}
+	s.animeQuery(r.Context(), &q)
+	shows, err := s.Store.Shows(r.Context(), q)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

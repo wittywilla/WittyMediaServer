@@ -39,6 +39,8 @@ type Scanner struct {
 	TVMazeOn func() bool
 	// WikidataOn: Wikidata may fill in movies when there is no TMDB key.
 	WikidataOn func() bool
+	// AnimeTitles: english | romaji | native titles for anime libraries.
+	AnimeTitles func() string
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -192,7 +194,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		keep[c.path] = true
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
 		var err error
-		if lib.Type == "shows" {
+		if lib.Type == "shows" || lib.Type == "anime" {
 			err = s.indexEpisode(ctx, lib, c, tv)
 		} else {
 			err = s.index(ctx, lib, c)

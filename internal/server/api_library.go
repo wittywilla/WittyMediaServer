@@ -38,11 +38,11 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "shows", "videos":
+	case "movies", "shows", "anime", "videos":
 	case "":
 		b.Type = "movies"
 	default:
-		return errors.New("type must be movies, shows or videos")
+		return errors.New("type must be movies, shows, anime or videos")
 	}
 	var clean []string
 	for _, p := range b.Paths {
@@ -56,7 +56,9 @@ func (b *libraryBody) validate() error {
 		}
 		clean = append(clean, filepath.Clean(p))
 	}
-	if len(clean) == 0 {
+	// An anime library may have no folders of its own: it then shows the
+	// anime found in the TV libraries.
+	if len(clean) == 0 && b.Type != "anime" {
 		return errors.New("at least one folder is required")
 	}
 	b.Paths = clean
@@ -340,8 +342,10 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next Up", Items: next})
 	}
 	for _, l := range libs {
-		if l.Type == "shows" {
-			shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID, Access: acc})
+		if l.Type == "shows" || l.Type == "anime" {
+			sq := library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID, Access: acc}
+			s.animeQuery(ctx, &sq)
+			shows, err := s.Store.Shows(ctx, sq)
 			if err != nil || len(shows) == 0 {
 				continue
 			}
@@ -384,8 +388,9 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item {
 	ctx, uid, acc := r.Context(), userFrom(r).ID, s.access(r)
 	var out []*library.Item
+	seen := map[int64]bool{} // anime can be listed by a TV and an anime library
 	for _, l := range libs {
-		if l.Type != "shows" {
+		if l.Type != "shows" && l.Type != "anime" {
 			continue
 		}
 		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc})
@@ -393,6 +398,10 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 			continue
 		}
 		for _, sh := range shows {
+			if seen[sh.ID] {
+				continue
+			}
+			seen[sh.ID] = true
 			if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
 				continue // finished, or never started
 			}

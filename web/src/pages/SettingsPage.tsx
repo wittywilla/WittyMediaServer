@@ -95,7 +95,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
           <div className="row2">
             <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>
             <label>Type<select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="movies">Movies (TMDB metadata)</option><option value="shows">TV shows (TheTVDB metadata)</option><option value="videos">Other videos (no online lookup)</option>
+              <option value="movies">Movies and discs</option><option value="shows">TV shows</option><option value="anime">Anime (AniList information)</option><option value="videos">Home and other videos (no online lookup)</option>
             </select></label>
           </div>
           <label>Folders
@@ -149,6 +149,20 @@ function ServerSettings() {
         {check('wikidata', <>Use <b>Wikidata</b> and Wikipedia for movie facts and ratings when there is no TMDB key <span className="muted">(free, no key; no posters)</span></>)}
         {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(standard NFO + poster.jpg/fanart.jpg that other media servers read too; existing NFOs are backed up as .nfo.bak)</span></>)}
         <div className="muted" style={{ fontSize: 13 }}>Encoders, direct play, resolution and quality are under <NavLink to="/settings/transcoding">Transcoding</NavLink>.</div>
+        <h3 className="section-title" style={{ margin: '8px 0 0' }}>Anime</h3>
+        <label>Anime kept in TV libraries appears in <span className="muted">(shows with the genre “Anime”; needs an Anime library)</span>
+          <select className="select" value={s.animeIn || 'both'} onChange={up('animeIn')}>
+            <option value="both">Both the Anime library and the TV library</option>
+            <option value="anime">Only the Anime library</option>
+          </select>
+        </label>
+        <label>Anime titles
+          <select className="select" value={s.animeTitles || 'english'} onChange={up('animeTitles')}>
+            <option value="english">English (e.g. Attack on Titan)</option>
+            <option value="romaji">Rōmaji (e.g. Shingeki no Kyojin)</option>
+            <option value="native">Japanese (e.g. 進撃の巨人)</option>
+          </select>
+        </label>
         <label>TV episode layout <span className="muted">(default for every show; each show can override it with the toggle on its page)</span>
           <select className="select" value={s.episodeView || 'cards'} onChange={up('episodeView')}>
             <option value="cards">Cards with thumbnails and overviews</option><option value="list">Compact playlist</option>

@@ -16,6 +16,9 @@ type EpisodeRef struct {
 	Episode    int
 	EpisodeEnd int // last episode of a multi-episode file, 0 when single
 	Title      string
+	// Absolute: the file only had an episode number counted across the whole
+	// show ("Show - 012"), as anime releases usually do. Season is 1 then.
+	Absolute bool
 }
 
 var (
@@ -30,6 +33,11 @@ var (
 	seasonDirRe   = regexp.MustCompile(`(?i)^(?:season|series|staffel|saison|temporada)[ ._-]*(\d{1,3})$|^s(\d{1,2})$`)
 	specialsDirRe = regexp.MustCompile(`(?i)^(specials?|extras?)$`)
 	trailingSepRe = regexp.MustCompile(`^[\s._-]+|[\s._-]+$`)
+	// Anime-style absolute numbers: "[Group] Show - 012 [1080p]", "Show - 12v2",
+	// "Show 012 (BD)". The number must be followed by a tag, a version or the end.
+	absRe = regexp.MustCompile(`^(.*?\S)[ ._]+(?:-[ ._]+)?(?:#|ep?[ ._]?)?(\d{1,4})(?:v\d)?(?:[ ._]*(?:[\[(].*)?|[ ._]+-[ ._]+(.*))$`)
+	// Release-group and quality tags in square brackets.
+	bracketTagRe = regexp.MustCompile(`\[[^\]]*\]`)
 )
 
 // ParseEpisode reads show/season/episode from a path relative to the
@@ -91,12 +99,29 @@ func ParseEpisode(root, path string) (EpisodeRef, bool) {
 		}
 	}
 	if !matched {
+		// Last resort: anime-style absolute numbering.
+		bare := strings.TrimSpace(bracketTagRe.ReplaceAllString(name, " "))
+		if m := absRe.FindStringSubmatch(bare); m != nil {
+			n := atoiFirst(m[2])
+			if n > 0 && !(n >= 1900 && n <= 2099) { // never mistake a year for an episode
+				ref.Season, ref.Episode, ref.Absolute = 1, n, true
+				prefix, titleFrom, matched = m[1], len(name), true
+				if m[3] != "" {
+					ref.Title = cleanEpisodeTitle(m[3])
+				}
+				name = bare
+			}
+		}
+	}
+	if !matched {
 		return ref, false
 	}
 	if ref.EpisodeEnd != 0 && ref.EpisodeEnd <= ref.Episode {
 		ref.EpisodeEnd = 0
 	}
-	ref.Title = cleanEpisodeTitle(name[titleFrom:])
+	if titleFrom < len(name) {
+		ref.Title = cleanEpisodeTitle(name[titleFrom:])
+	}
 
 	// The show is the first folder under the root, unless that folder is a
 	// season folder (then the file name prefix names it).
@@ -106,7 +131,7 @@ func ParseEpisode(root, path string) (EpisodeRef, bool) {
 	}
 	if len(showDirs) > 0 {
 		ref.ShowDir = filepath.Join(root, filepath.FromSlash(showDirs[0]))
-		ref.Show, ref.ShowYear = ParseName(showDirs[0])
+		ref.Show, ref.ShowYear = ParseName(strings.TrimSpace(bracketTagRe.ReplaceAllString(showDirs[0], " ")))
 	} else {
 		p := cleanEpisodeTitle(prefix)
 		if p == "" {

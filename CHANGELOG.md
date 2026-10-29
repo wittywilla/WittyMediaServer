@@ -56,6 +56,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Anime
+
+- New **Anime** library type with **AniList** information (no key): titles in English, rōmaji
+  or Japanese, synopsis, studio, score, cover, banner, episode names; adult titles are rated 18.
+- Anime in TV libraries (genre *Anime*) also shows in the Anime library; a setting can show it
+  **only** there. An Anime library may have no folders and just collect anime from TV.
+- **Absolute episode numbers** (`[Group] Show - 012 [1080p].mkv`, `Show - 05v2`) are parsed;
+  release tags ignored, years never mistaken for episodes.
+
 ### Layout and home page
 
 - **Navigation where you want it**: side menu, top bar, or both (per device, *Settings →

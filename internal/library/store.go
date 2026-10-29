@@ -14,7 +14,7 @@ import (
 type Library struct {
 	ID         int64    `json:"id"`
 	Name       string   `json:"name"`
-	Type       string   `json:"type"` // movies | shows | videos
+	Type       string   `json:"type"` // movies | shows | anime | videos
 	Paths      []string `json:"paths"`
 	CreatedAt  int64    `json:"createdAt"`
 	LastScanAt *int64   `json:"lastScanAt"`

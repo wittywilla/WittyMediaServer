@@ -8,6 +8,7 @@ TV libraries organise episodes by **show → season → episode**, fetch metadat
 - [Show pages](#show-pages)
 - [Networks and genres (for TV channels)](#networks-and-genres-for-tv-channels)
 - [Fixing a wrong match](#fixing-a-wrong-match)
+- [Anime](#anime)
 
 ## Setting up
 
@@ -79,6 +80,33 @@ If a show is matched to the wrong series, open it → **Edit** → enter the The
 number in the show's thetvdb.com address) → **Match & refresh**. Episode titles, overviews,
 air dates and stills are re-applied to every episode. You can also put the id in `tvshow.nfo`
 (`<uniqueid type="tvdb">76163</uniqueid>`) and rescan.
+
+## Anime
+
+Anime can live in its own **Anime** library, in your TV folders, or both:
+
+- **An Anime library with its own folders** gets its information from
+  [AniList](https://anilist.co) (free, no key): English, rōmaji or Japanese titles (*Settings →
+  Server → Anime titles*), synopsis, studio, genres, score, cover and banner, and episode names
+  where AniList has them. Titles AniList marks as adult are rated 18, so Kids and Guest
+  profiles never see them.
+- **Anime kept in a TV library** (any show with the genre *Anime*, which TVmaze, TheTVDB and
+  AniList all set; you can also add it under *Edit → Genres*) also appears in your Anime
+  library. *Settings → Server → Anime kept in TV libraries appears in* chooses **both** (the
+  default) or **only the Anime library**.
+- An Anime library may have **no folders at all**: it then simply collects the anime from your
+  TV libraries.
+
+File names with **absolute episode numbers**, as most anime releases use, are understood:
+
+```
+Frieren/[SubsPlease] Frieren - 012 [1080p].mkv     → episode 12
+Cowboy Bebop/Cowboy Bebop - 05v2.mkv               → episode 5
+One Piece/One Piece - 1071 - The Gear 5.mkv        → episode 1071, "The Gear 5"
+```
+
+Release-group tags in square brackets are ignored, and a year is never taken for an episode
+number. `S01E12`-style names keep working as usual.
 
 ---
 <sub>WittyMediaServer 0.2.0-alpha documentation</sub>

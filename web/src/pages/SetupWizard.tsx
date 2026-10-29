@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api, setToken, type Library, type User } from '../api'
 import { Brand, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconCheck, IconDisc, IconFilm, IconFolder, IconTv } from '../icons'
+import { IconAnime, IconCheck, IconDisc, IconFilm, IconFolder, IconTv } from '../icons'
 import { useApp } from '../state'
 import { AddProfile } from './Profiles'
 
@@ -20,6 +20,7 @@ const STEPS: { id: Step; label: string }[] = [
 const LIB_TYPES = [
   { type: 'movies', name: 'Movies', icon: <IconFilm />, hint: 'Films, DVD and Blu-ray images (.iso) and disc folders' },
   { type: 'shows', name: 'TV Shows', icon: <IconTv />, hint: 'One folder per show, with season folders inside' },
+  { type: 'anime', name: 'Anime', icon: <IconAnime />, hint: 'Series with AniList information; also collects anime found in your TV shows' },
   { type: 'videos', name: 'Home videos', icon: <IconDisc />, hint: 'Your own recordings and other videos, no online lookup' },
 ]
 

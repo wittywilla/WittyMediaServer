@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api } from './api'
-import { IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers } from './icons'
+import { IconAnime, IconDisc, IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -79,7 +79,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
   )
 }
 
-const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : <IconDisc />)
+const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : <IconDisc />)
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, version, brandName } = useApp()

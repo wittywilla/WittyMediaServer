@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, backdropUrl, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
 import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
-import { IconDisc, IconFilm, IconInfo, IconPlay, IconRefresh, IconTv } from '../icons'
+import { IconAnime, IconDisc, IconFilm, IconInfo, IconPlay, IconRefresh, IconTv } from '../icons'
 import { toast, useApp } from '../state'
 
 // The home page is a column of widgets. Everyone can reorder and hide them
@@ -126,7 +126,7 @@ function LibraryTiles() {
       <div className="lib-tiles">
         {libraries.map((l) => (
           <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
-            {l.type === 'movies' ? <IconFilm /> : l.type === 'shows' ? <IconTv /> : <IconDisc />}
+            {l.type === 'movies' ? <IconFilm /> : l.type === 'shows' ? <IconTv /> : l.type === 'anime' ? <IconAnime /> : <IconDisc />}
             <b>{l.name}</b><span className="muted">{l.itemCount} {l.itemCount === 1 ? 'item' : 'items'}</span>
           </Link>
         ))}

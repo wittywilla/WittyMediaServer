@@ -56,6 +56,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Sign-in is rate-limited: after 5 wrong passwords for a name, each try waits longer (up to
   15 minutes). First-run account creation cannot be raced.
 
+### Podcasts
+
+- New **Podcasts** library type: follow shows by searching the Apple Podcasts directory or by
+  pasting a feed address; feeds are checked every 2 hours.
+- Episodes play through the server (private; old http:// feeds work; seeking supported) and can
+  be **downloaded** into the library folder, by hand or automatically (keep newest N).
+- Episodes resume where you stopped; explicit episodes are hidden from Kids and Guest profiles.
+- Security: feeds and episodes may only be fetched from the internet — never from the server
+  itself or the local network.
+
 ### Music and audiobooks
 
 - New **Music** and **Audiobooks** library types: tags (artist, album, album artist, track,

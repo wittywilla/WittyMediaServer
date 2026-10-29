@@ -142,6 +142,15 @@ func cmdServe(args []string) int {
 		}
 	}
 
+	// Check podcast feeds for new episodes.
+	go func() {
+		time.Sleep(time.Minute)
+		for {
+			scanner.RefreshPodcasts(context.Background())
+			time.Sleep(2 * time.Hour)
+		}
+	}()
+
 	// Rescan libraries periodically.
 	go func() {
 		for range time.Tick(6 * time.Hour) {

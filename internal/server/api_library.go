@@ -58,7 +58,7 @@ func (b *libraryBody) validate() error {
 	}
 	// An anime library may have no folders of its own: it then shows the
 	// anime found in the TV libraries.
-	if len(clean) == 0 && b.Type != "anime" {
+	if len(clean) == 0 && b.Type != "anime" && b.Type != "podcasts" {
 		return errors.New("at least one folder is required")
 	}
 	b.Paths = clean

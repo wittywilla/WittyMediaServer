@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -48,6 +49,9 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	if iq.Album == nil && iq.AlbumArtist == nil {
 		iq.Sort, iq.Limit = "title", 2000 // all songs of the library
 	}
+	if lib, err := s.Store.Library(r.Context(), iq.LibraryID); err == nil && lib.Type == "podcasts" {
+		iq.Sort, iq.Desc = "aired", true // newest episode first
+	}
 	items, _, err := s.Store.Items(r.Context(), iq)
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -70,6 +74,10 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	it, err := s.visibleItem(r, id)
 	if err != nil || it.Kind != "audio" {
 		writeErr(w, 404, "not found")
+		return
+	}
+	if strings.HasPrefix(it.Path, "http://") || strings.HasPrefix(it.Path, "https://") {
+		s.proxyEpisode(w, r, it) // a podcast episode that was not downloaded
 		return
 	}
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {

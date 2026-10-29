@@ -115,6 +115,12 @@ var migrations = []string{
 	 ALTER TABLE items ADD COLUMN track INTEGER;
 	 ALTER TABLE items ADD COLUMN disc_no INTEGER;
 	 CREATE INDEX IF NOT EXISTS items_album ON items(library_id, album_artist, album);`,
+	// 7: podcast subscriptions (episodes are audio items).
+	`CREATE TABLE IF NOT EXISTS podcasts (
+	   id INTEGER PRIMARY KEY, library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   url TEXT NOT NULL, title TEXT NOT NULL, author TEXT, image TEXT, description TEXT,
+	   last_checked INTEGER, auto_download INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL,
+	   UNIQUE(library_id, url));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

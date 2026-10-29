@@ -80,3 +80,17 @@
 .ab-queue button { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; width: 100%; text-align: left; padding: 8px; border-radius: 8px; background: none; border: 0; color: var(--fg); }
 .ab-queue li.on button { color: var(--accent); font-weight: 700; }
 .ab-queue button:hover { background: var(--bg-2); }
+
+/* podcasts */
+.track-list li { display: flex; align-items: center; gap: 6px; }
+.track-list li > button { flex: 1; min-width: 0; }
+.tl-x { flex: none; }
+.dl-done { font-size: 12px; padding: 0 8px; }
+.podcast-admin { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+.podcast-admin label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.podcast-hits { display: grid; gap: 6px; margin-top: 12px; max-height: 50vh; overflow: auto; }
+.podcast-hit { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; background: var(--bg-3); }
+.podcast-hit img { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex: none; }
+.podcast-hit .grow { display: grid; min-width: 0; }
+.podcast-hit .grow b, .podcast-hit .grow .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.podcast-hit .muted { font-size: 12.5px; }

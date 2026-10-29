@@ -417,6 +417,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		order = "IFNULL(i.rating, 0)"
 	case "runtime":
 		order = "IFNULL(i.runtime_sec, 0)"
+	case "aired":
+		order = "IFNULL(i.aired, '')"
 	case "track":
 		order = "IFNULL(i.disc_no, 1), IFNULL(i.track, 9999), i.sort_title COLLATE NOCASE"
 	case "random":
@@ -580,7 +582,8 @@ func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[strin
 			rows.Close()
 			return err
 		}
-		if !keep[p] {
+		// Podcast episodes that were not downloaded live at their web address.
+		if !keep[p] && !strings.HasPrefix(p, "http://") && !strings.HasPrefix(p, "https://") {
 			gone = append(gone, id)
 		}
 	}

@@ -26,6 +26,7 @@ var engines = []moduleInfo{
 	{Name: "WittyDVD", Module: "github.com/wittywilla/wittydvd", Role: "DVD engine: menus, titles and navigation"},
 	{Name: "WittyBluray", Module: "github.com/wittywilla/wittybluray", Role: "Blu-ray engine: menus, playlists, 4K and HDR"},
 	{Name: "WittyDisc", Module: "github.com/wittywilla/wittydisc", Role: "Disc image reader (UDF and ISO 9660)"},
+	{Name: "WittyIntegratedFileBrowser", Module: "github.com/wittywilla/wittyintegratedfilebrowser", Role: "The built-in folder browser: drives and folders, from any device"},
 }
 
 var (

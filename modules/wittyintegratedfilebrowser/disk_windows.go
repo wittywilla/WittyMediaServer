@@ -1,4 +1,4 @@
-package server
+package wittyintegratedfilebrowser
 
 import "golang.org/x/sys/windows"
 

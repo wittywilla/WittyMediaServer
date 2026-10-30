@@ -1,6 +1,6 @@
 //go:build !windows
 
-package server
+package wittyintegratedfilebrowser
 
 import "golang.org/x/sys/unix"
 

@@ -8,6 +8,8 @@ WORKDIR /src/web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 COPY web/ ./
+# WittyIntegratedFileBrowser's web half lives beside its Go half.
+COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
@@ -21,6 +23,7 @@ COPY go.mod go.sum ./
 COPY modules/wittydisc/go.mod modules/wittydisc/
 COPY modules/wittydvd/go.mod modules/wittydvd/
 COPY modules/wittybluray/go.mod modules/wittybluray/
+COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

@@ -32,6 +32,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDisc** | Reads DVD and Blu-ray disc images (UDF 1.02 and 2.50, ISO 9660) without mounting them | WittyDVD, WittyBluray |
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
+| **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
 
 ### Server libraries
 
@@ -69,6 +70,7 @@ modules/                    Go plugins
   wittydisc/                → github.com/wittywilla/WittyDisc
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
+  wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer

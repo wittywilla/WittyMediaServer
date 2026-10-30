@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -13,8 +17,32 @@
     "isolatedModules": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite/client"],
-    "paths": { "@wittywilla/*": ["./src/modules/*"] }
+    "types": [
+      "vite/client"
+    ],
+    "paths": {
+      "@wittywilla/wittyintegratedfilebrowser": [
+        "../modules/wittyintegratedfilebrowser/web/index.ts"
+      ],
+      "@wittywilla/*": [
+        "./src/modules/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom"
+      ],
+      "react-dom/*": [
+        "./node_modules/@types/react-dom/*"
+      ]
+    }
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../modules/wittyintegratedfilebrowser/web"
+  ]
 }

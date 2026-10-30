@@ -1,0 +1,29 @@
+/* The app's own title bar. Colours are replaced by the server's theme. */
+:root { --bg: #0f1115; --fg: #e8eaf0; --border: #2b2f38; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg);
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+  font: 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.title { flex: 1; align-self: center; padding: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button {
+  -webkit-app-region: no-drag;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 12px;
+  cursor: pointer;
+}
+button[hidden] { display: none; }
+button:hover { background: color-mix(in srgb, var(--fg) 14%, transparent); }
+button:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.ctl { width: 46px; padding: 0; }
+.close:hover { background: #d4293a; color: #fff; }

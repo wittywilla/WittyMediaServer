@@ -1,0 +1,31 @@
+{
+  "name": "wittymediaclient-desktop",
+  "productName": "WittyMedia",
+  "version": "0.1.0",
+  "description": "WittyMediaClient for Windows and Linux",
+  "author": "WittyWilla",
+  "license": "Apache-2.0",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "sync": "node scripts/sync-shared.mjs",
+    "start": "npm run sync && electron .",
+    "test": "node --test ../shared/connect/address.test.js test/state.test.js",
+    "package:win": "npm run sync && electron-builder --win",
+    "package:linux": "npm run sync && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.wittywilla.wittymediaclient",
+    "productName": "WittyMedia",
+    "directories": { "output": "out" },
+    "files": ["main.js", "preload.js", "state.js", "titlebar/**", "connect/**"],
+    "publish": null,
+    "win": { "target": ["nsis", "portable"] },
+    "linux": { "target": ["AppImage", "deb"], "category": "AudioVideo", "maintainer": "WittyWilla" },
+    "nsis": { "oneClick": true, "perMachine": false }
+  }
+}

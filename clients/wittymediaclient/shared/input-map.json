@@ -1,0 +1,23 @@
+{
+  "comment": "What each button means on every client. Clients map their platform's key codes to these actions.",
+  "actions": {
+    "up": { "remote": "D-pad up", "controller": "D-pad or left stick up", "keyboard": "ArrowUp" },
+    "down": { "remote": "D-pad down", "controller": "D-pad or left stick down", "keyboard": "ArrowDown" },
+    "left": { "remote": "D-pad left", "controller": "D-pad or left stick left", "keyboard": "ArrowLeft" },
+    "right": { "remote": "D-pad right", "controller": "D-pad or left stick right", "keyboard": "ArrowRight" },
+    "confirm": { "remote": "Centre / OK", "controller": "The right-hand confirm button (A on Xbox, Cross on PlayStation, A on Nintendo)", "keyboard": "Enter" },
+    "back": { "remote": "Back / Menu", "controller": "B on Xbox, Circle on PlayStation, B on Nintendo", "keyboard": "Escape" },
+    "playPause": { "remote": "Play/Pause", "controller": "X on Xbox, Square on PlayStation, Y on Nintendo", "keyboard": "Space" },
+    "seekBack": { "remote": "Rewind", "controller": "Left shoulder", "keyboard": "J" },
+    "seekForward": { "remote": "Fast forward", "controller": "Right shoulder", "keyboard": "L" }
+  },
+  "seekSeconds": 10,
+  "progressSaveSeconds": 10,
+  "resumeMinimumSeconds": 60,
+  "rules": [
+    "Focus is always visible and starts on the most likely choice.",
+    "Back goes up one level. It only leaves the app from the top level.",
+    "Returning to a screen puts focus back where it was.",
+    "In the player, up or down shows the controls, and left or right seeks while they are hidden."
+  ]
+}

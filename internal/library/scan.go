@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittydisc/isofs"
+	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 

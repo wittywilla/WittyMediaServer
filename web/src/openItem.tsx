@@ -10,7 +10,7 @@ export function useOpenItem() {
   const nav = useNavigate()
   const audio = useAudio()
   const { libraries } = useApp()
-  const started = (it: Item) => !!it.progress && !it.progress.watched && it.progress.positionSec > (it.kind === 'book' ? 0 : 60)
+  const started = (it: Item) => !!it.progress?.resumeSec
   return {
     label(it: Item): string {
       if (it.kind === 'book') return started(it) ? 'Continue reading' : 'Read'

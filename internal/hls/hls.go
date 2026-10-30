@@ -7,6 +7,7 @@
 package hls
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -43,14 +44,34 @@ type Spec struct {
 	AudioChannels int    // 0 = keep (max 6)
 	AudioFilter   string // extra -af chain, before the output's own (karaoke: leave out the vocals)
 	SubtitleIndex int    // s:N to burn in, -1 = none
-	AudioCodec    string // aac (default) | mp3
-	SegmentSec    float64
-	MaxHeight     int    // 0 = source
-	VideoBitrate  string // e.g. "8M"; empty = quality mode
+	// SubtitleText: that stream is text (SubRip, ASS), which the picture-overlay
+	// way of burning in draws nothing for; it goes through the subtitles filter,
+	// which reads Source itself.
+	SubtitleText bool
+	AudioCodec   string // aac (default) | mp3
+	SegmentSec   float64
+	MaxHeight    int    // 0 = source
+	VideoBitrate string // e.g. "8M"; empty = quality mode
 	// Quality is the encoder choice and quality profile from Settings.
 	Quality    ffmpeg.Quality
 	LowLatency bool // menus: tiny segments, zerolatency
-	CopyVideo  bool // remux (h264 sources); keyframe alignment is approximate
+	CopyVideo  bool // remux; see Growing
+	CopyAudio  bool // with CopyVideo: the sound goes through unchanged too
+	// FMP4 stores segments as fragmented MP4 instead of MPEG-TS: what HEVC
+	// needs in HLS. VideoTag sets the MP4 sample tag ("hvc1" for Apple players).
+	FMP4     bool
+	VideoTag string
+	// Growing serves FFmpeg's own playlist, which grows while it runs, instead
+	// of one written ahead from the duration. A copied stream can only be cut
+	// at the file's keyframes, so its segment lengths aren't known before it
+	// has been read. It starts at StartSec and can't be entered part-way:
+	// clients seek past what exists by opening a new stream.
+	Growing  bool
+	StartSec float64
+	// Source and Variant describe the stream in its master playlist, for
+	// clients that get subtitles as HLS renditions.
+	Source  string
+	Variant *Variant
 	// Preset overrides the libx264 preset (e.g. "superfast" for DVD menus or
 	// low-power machines). Ignored by hardware encoders.
 	Preset string
@@ -59,6 +80,24 @@ type Spec struct {
 	// shown for many seconds; without this the stream would be one frame
 	// long and players stall waiting for more.
 	HoldLastFrame bool
+}
+
+// Variant is the single stream a master playlist points at.
+type Variant struct {
+	BandwidthKbps int
+	Codecs        string // RFC 6381; empty when not known for sure
+	Width, Height int
+	Range         string // SDR | PQ | HLG; empty for SDR
+	Subtitles     []Rendition
+}
+
+// Rendition is a WebVTT subtitle track of a stream.
+type Rendition struct {
+	Stream   int // subtitle stream number in the source (s:N)
+	Name     string
+	Language string
+	Default  bool
+	Forced   bool
 }
 
 type job struct {
@@ -198,12 +237,14 @@ func (m *Manager) sweepOnce() {
 		idle := time.Since(s.lastUsed)
 		s.mu.Unlock()
 		switch {
-		case idle > forgetAfter:
+		// A growing stream can't continue where it was stopped; it is paced, so
+		// it may run on until its session expires, and then it is opened again.
+		case idle > forgetAfter, idle > cleanAfter && s.Spec.Growing:
 			clean = append(clean, s)
 			delete(m.session, id)
 		case idle > cleanAfter:
 			clean = append(clean, s)
-		case idle > pauseAfter:
+		case idle > pauseAfter && !s.Spec.Growing:
 			s.pause()
 		}
 	}
@@ -223,7 +264,7 @@ func (m *Manager) makeRoom(s *Session) error {
 	var oldest *Session
 	var oldestUsed time.Time
 	for _, o := range m.session {
-		if o == s {
+		if o == s || o.Spec.Growing { // growing streams copy, and have their own limit
 			continue
 		}
 		o.mu.Lock()
@@ -273,7 +314,13 @@ func (m *Manager) Ensure(spec Spec) *Session {
 	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
 	_ = os.MkdirAll(s.Dir, 0o755)
+	if spec.Growing {
+		m.evictGrowing(maxGrowing - 1)
+	}
 	m.session[spec.ID] = s
+	if spec.Growing {
+		s.Warm()
+	}
 	return s
 }
 
@@ -290,6 +337,40 @@ func (m *Manager) dropOldestLocked() {
 		oldest.stop()
 		_ = os.RemoveAll(oldest.Dir)
 		delete(m.session, id)
+	}
+}
+
+// maxGrowing limits growing streams at once: each runs FFmpeg until it finishes
+// or expires, needs no request to keep going, and a new one starts at every
+// seek past what exists, so they must not be able to pile up.
+const maxGrowing = 8
+
+// evictGrowing ends the longest-unused growing streams, leaving at most keep.
+// A viewer still on one gets a 404 and opens it again. The caller holds m.mu.
+func (m *Manager) evictGrowing(keep int) {
+	for {
+		n := 0
+		var oldest string
+		var at time.Time
+		for id, s := range m.session {
+			if !s.Spec.Growing {
+				continue
+			}
+			n++
+			s.mu.Lock()
+			used := s.lastUsed
+			s.mu.Unlock()
+			if oldest == "" || used.Before(at) {
+				oldest, at = id, used
+			}
+		}
+		if n <= keep {
+			return
+		}
+		s := m.session[oldest]
+		s.stop()
+		_ = os.RemoveAll(s.Dir)
+		delete(m.session, oldest)
 	}
 }
 
@@ -383,12 +464,189 @@ func (s *Session) touch() {
 	s.mu.Unlock()
 }
 
-func (s *Session) segPath(n int) string { return filepath.Join(s.Dir, fmt.Sprintf("seg%05d.ts", n)) }
+// SegmentExt is the file extension of this stream's segments.
+func (s *Session) SegmentExt() string {
+	if s.Spec.FMP4 {
+		return ".m4s"
+	}
+	return ".ts"
+}
+
+func (s *Session) segPath(n int) string {
+	return filepath.Join(s.Dir, fmt.Sprintf("seg%05d%s", n, s.SegmentExt()))
+}
+
+// growingName is the file FFmpeg writes a growing stream's playlist to.
+const growingName = "ffmpeg-0.m3u8"
+
+// growingTarget is the least target duration a growing playlist announces.
+const growingTarget = 10
+
+// GrowingPlaylist is FFmpeg's playlist as it stands, with segments renamed by
+// segURL (a segment number, or -1 for the fMP4 init segment). It waits until
+// the first segments exist: players give up on a nearly empty playlist.
+func (s *Session) GrowingPlaylist(ctx context.Context, segURL func(n int) string) ([]byte, error) {
+	s.touch()
+	p := filepath.Join(s.Dir, growingName)
+	deadline := time.Now().Add(45 * time.Second)
+	for {
+		s.mu.Lock()
+		j := s.job
+		s.mu.Unlock()
+		b, err := os.ReadFile(p)
+		if err == nil && (bytes.Count(b, []byte("#EXTINF")) >= 3 || (j != nil && j.finished())) {
+			return rewriteGrowing(b, segURL), nil
+		}
+		if j != nil && j.finished() {
+			return nil, fmt.Errorf("remux ended before the stream started: %s", tail(j.stderr.String(), 800))
+		}
+		if time.Now().After(deadline) {
+			return nil, errors.New("timed out waiting for the stream")
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(150 * time.Millisecond):
+		}
+	}
+}
+
+// rewriteGrowing renames the segments in FFmpeg's playlist and makes players
+// start at its beginning (a playlist that is still growing otherwise starts
+// near its end, as if it were live). FFmpeg raises the target duration when a
+// long gap between keyframes comes along, which players may refuse in a playlist
+// they already know, so it starts high enough to cover the usual cases.
+func rewriteGrowing(b []byte, segURL func(n int) string) []byte {
+	var out strings.Builder
+	for _, line := range strings.Split(strings.ReplaceAll(string(b), "\r\n", "\n"), "\n") {
+		switch {
+		case line == "":
+			continue
+		case strings.HasPrefix(line, "#EXT-X-MAP:"):
+			fmt.Fprintf(&out, "#EXT-X-MAP:URI=\"%s\"\n", segURL(-1))
+		case strings.HasPrefix(line, "#EXT-X-TARGETDURATION:"):
+			n, _ := strconv.Atoi(strings.TrimPrefix(line, "#EXT-X-TARGETDURATION:"))
+			fmt.Fprintf(&out, "#EXT-X-TARGETDURATION:%d\n", max(n, growingTarget))
+		case strings.HasPrefix(line, "#EXT-X-VERSION:"):
+			out.WriteString(line + "\n#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
+		case strings.HasPrefix(line, "#"):
+			out.WriteString(line + "\n")
+		default:
+			name := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(line, "seg"), ".ts"), ".m4s")
+			if n, err := strconv.Atoi(name); err == nil {
+				out.WriteString(segURL(n) + "\n")
+			}
+		}
+	}
+	return []byte(out.String())
+}
+
+// MasterPlaylist points at the stream and its subtitle renditions. subs maps
+// a position in Variant.Subtitles to its media playlist.
+func (s *Session) MasterPlaylist(media string, subs func(i int) string) []byte {
+	v := s.Spec.Variant
+	if v == nil {
+		v = &Variant{}
+	}
+	var b strings.Builder
+	version := 4
+	if s.Spec.FMP4 {
+		version = 7
+	}
+	fmt.Fprintf(&b, "#EXTM3U\n#EXT-X-VERSION:%d\n#EXT-X-INDEPENDENT-SEGMENTS\n", version)
+	yn := func(on bool) string {
+		if on {
+			return "YES"
+		}
+		return "NO"
+	}
+	seen := map[string]int{}
+	for i, r := range v.Subtitles {
+		name := strings.NewReplacer(`"`, "'", "\n", " ", "\r", " ").Replace(r.Name)
+		// Names must differ within the group.
+		if seen[name]++; seen[name] > 1 {
+			name = fmt.Sprintf("%s (%d)", name, seen[name])
+		}
+		fmt.Fprintf(&b, `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="%s",DEFAULT=%s,AUTOSELECT=%s,FORCED=%s`, name, yn(r.Default), yn(r.Default || r.Forced), yn(r.Forced))
+		if r.Language != "" {
+			fmt.Fprintf(&b, `,LANGUAGE="%s"`, r.Language)
+		}
+		fmt.Fprintf(&b, ",URI=\"%s\"\n", subs(i))
+	}
+	kbps := v.BandwidthKbps
+	if kbps <= 0 {
+		kbps = 8000
+	}
+	fmt.Fprintf(&b, "#EXT-X-STREAM-INF:BANDWIDTH=%d,AVERAGE-BANDWIDTH=%d", kbps*1000, kbps*1000)
+	if v.Codecs != "" {
+		fmt.Fprintf(&b, `,CODECS="%s"`, v.Codecs)
+	}
+	if v.Width > 0 && v.Height > 0 {
+		fmt.Fprintf(&b, ",RESOLUTION=%dx%d", v.Width, v.Height)
+	}
+	if v.Range != "" {
+		fmt.Fprintf(&b, ",VIDEO-RANGE=%s", v.Range)
+	}
+	if len(v.Subtitles) > 0 {
+		b.WriteString(`,SUBTITLES="subs"`)
+	}
+	fmt.Fprintf(&b, "\n%s\n", media)
+	return []byte(b.String())
+}
+
+// SubtitlePlaylist is the media playlist of one subtitle rendition: the whole
+// track as a single WebVTT file, which is allowed for video on demand.
+func (s *Session) SubtitlePlaylist(vtt string) []byte {
+	s.touch()
+	d := s.Spec.Duration - s.Spec.StartSec
+	if d < 1 {
+		d = 1
+	}
+	return []byte(fmt.Sprintf("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:%.3f,\n%s\n#EXT-X-ENDLIST\n",
+		int(d+0.999), d, vtt))
+}
+
+// InitSegment is the fMP4 header of a growing stream, once FFmpeg has written it.
+func (s *Session) InitSegment(ctx context.Context) (string, error) {
+	return s.waitFile(ctx, filepath.Join(s.Dir, "init.mp4"))
+}
+
+// waitFile waits for a file of a running growing stream.
+func (s *Session) waitFile(ctx context.Context, p string) (string, error) {
+	s.touch()
+	deadline := time.Now().Add(60 * time.Second)
+	for time.Now().Before(deadline) {
+		if fileReady(p) {
+			return p, nil
+		}
+		s.mu.Lock()
+		j := s.job
+		s.mu.Unlock()
+		if j == nil || j.finished() {
+			if fileReady(p) {
+				return p, nil
+			}
+			return "", errors.New("this stream has no such segment; open it again")
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	return "", errors.New("timed out waiting for segment")
+}
 
 // Segment returns the path of segment n, starting or restarting FFmpeg as
 // needed and waiting until the file is complete.
 func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	s.touch()
+	if s.Spec.Growing {
+		if n < 0 {
+			return "", errors.New("segment out of range")
+		}
+		return s.waitFile(ctx, s.segPath(n))
+	}
 	if n < 0 || n >= s.SegmentCount() {
 		return "", errors.New("segment out of range")
 	}
@@ -553,6 +811,14 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			args = append(args, "-hwaccel", "auto")
 		}
 	}
+	if sp.Growing {
+		if sp.StartSec > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(sp.StartSec, 'f', 3, 64))
+		}
+		// A copy runs as fast as the disk reads; a few times real time leaves
+		// plenty ahead of the viewer without filling the disk for nothing.
+		args = append(args, "-readrate", "4")
+	}
 	if start > 0 && sp.AudioInput > 0 {
 		for _, a := range sp.InputArgs {
 			if a == "-i" {
@@ -575,6 +841,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	// Video
 	if sp.CopyVideo {
 		args = append(args, "-c:v", "copy")
+		if sp.VideoTag != "" {
+			args = append(args, "-tag:v", sp.VideoTag)
+		}
 	} else {
 		var vf []string
 		if sp.VideoFilter != "" {
@@ -587,12 +856,15 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.HoldLastFrame {
 			vf = append(vf, fmt.Sprintf("tpad=stop_mode=clone:stop_duration=%.3f", sp.Duration))
 		}
+		if sp.SubtitleIndex >= 0 && sp.SubtitleText {
+			vf = append(vf, textSubtitleFilter(sp.Source, sp.SubtitleIndex, start))
+		}
 		vf = append(vf, "setsar=1", "format="+plan.PixFmt)
 		if plan.Upload != "" {
 			vf = append(vf, plan.Upload)
 		}
-		if sp.SubtitleIndex >= 0 {
-			// Burn bitmap/text subtitles in via a filter graph.
+		if sp.SubtitleIndex >= 0 && !sp.SubtitleText {
+			// Burn bitmap subtitles in via a filter graph.
 			graph := fmt.Sprintf("[0:v:0]%s[v0];[0:s:%d]scale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", strings.Join(vf, ","), sp.SubtitleIndex)
 			args = append(args, "-filter_complex", graph, "-map", "-0:v:0", "-map", "[vout]")
 		} else {
@@ -610,7 +882,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		args = append(args, "-force_key_frames", fmt.Sprintf("expr:gte(t,n_forced*%g)", sp.SegmentSec), "-g", strconv.Itoa(int(sp.SegmentSec*30)), "-sc_threshold", "0")
 	}
 	// Audio
-	if sp.AudioIndex >= 0 {
+	if sp.AudioIndex >= 0 && sp.CopyAudio {
+		args = append(args, "-c:a", "copy")
+	} else if sp.AudioIndex >= 0 {
 		ch := sp.AudioChannels
 		codec := "aac"
 		if sp.AudioCodec == "mp3" {
@@ -643,14 +917,32 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		"-output_ts_offset", strconv.FormatFloat(start, 'f', 3, 64),
 		"-f", "hls",
 		"-hls_time", strconv.FormatFloat(sp.SegmentSec, 'f', 3, 64),
-		"-hls_segment_type", "mpegts",
+	)
+	dir := s.Dir
+	if sp.FMP4 {
+		// FFmpeg writes the init segment relative to where it runs, whatever
+		// the other paths say, so it runs in the stream's folder.
+		if abs, err := filepath.Abs(dir); err == nil {
+			dir = abs
+		}
+		args = append(args, "-hls_segment_type", "fmp4", "-hls_fmp4_init_filename", "init.mp4")
+	} else {
+		args = append(args, "-hls_segment_type", "mpegts")
+	}
+	if sp.Growing {
+		args = append(args, "-hls_playlist_type", "event")
+	}
+	args = append(args,
 		"-hls_list_size", "0",
 		"-hls_flags", "temp_file+independent_segments",
 		"-start_number", strconv.Itoa(fromSeg),
-		"-hls_segment_filename", filepath.Join(s.Dir, "seg%05d.ts"),
-		filepath.Join(s.Dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
+		"-hls_segment_filename", filepath.Join(dir, "seg%05d"+s.SegmentExt()),
+		filepath.Join(dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
 	)
 	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
+	if sp.FMP4 {
+		cmd.Dir = dir
+	}
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{})}
 	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
@@ -668,6 +960,23 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	}()
 	go s.watch(j)
 	return j, nil
+}
+
+// textSubtitleFilter draws text subtitles from the file itself. The filter
+// counts from the start of the file while the picture, after a seek, counts from
+// where it started, so the clock is put right around it.
+func textSubtitleFilter(path string, stream int, start float64) string {
+	f := fmt.Sprintf("subtitles='%s':si=%d", escapeFilterPath(path), stream)
+	if start > 0 {
+		f = fmt.Sprintf("setpts=PTS+%.3f/TB,%s,setpts=PTS-STARTPTS", start, f)
+	}
+	return f
+}
+
+// escapeFilterPath writes a path for a quoted value in a filter graph, which is
+// read twice: by the graph, then by the option.
+func escapeFilterPath(p string) string {
+	return strings.NewReplacer(`\`, `\\\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
 }
 
 // watch tracks the newest finished segment so Segment() can decide whether a

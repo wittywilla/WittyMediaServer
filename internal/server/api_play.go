@@ -17,6 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/playback"
 )
 
 // playInfo tells the client how to play a regular video item.
@@ -189,10 +190,9 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	q, maxHeight := s.quality(r)
 	ext := strings.ToLower(filepath.Ext(it.Path))
 	directPlay := s.DB.GetSetting(r.Context(), "directPlay", "1") == "1"
-	browserFriendly := v != nil && (v.CodecName == "h264" || v.CodecName == "vp9" || v.CodecName == "av1") &&
-		(ext == ".mp4" || ext == ".m4v" || ext == ".mov" || ext == ".webm")
-	audioOK := len(info.Audio) == 0 || info.Audio[0].Codec == "aac" || info.Audio[0].Codec == "mp3" || info.Audio[0].Codec == "opus" || info.Audio[0].Codec == "vorbis"
-	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight <= 0 || v.Height <= maxHeight) {
+	web, _ := playback.Find("web")
+	d := playback.Decide(web, probeSource(it, pr), playback.Request{AudioIndex: info.AudioIndex, SubtitleIndex: info.SubIndex, MaxHeight: maxHeight, AllowDirect: directPlay, ForceTranscode: qBool(r, "transcode")})
+	if d.Mode == playback.Direct {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
@@ -214,8 +214,8 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), VideoFilter: vf,
-		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
+		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), VideoFilter: vf,
+		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
@@ -256,6 +256,12 @@ func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, err
 	s.probes.m[key] = pr
 	s.probes.Unlock()
 	return pr, nil
+}
+
+// textBurn: this subtitle stream is text, and this FFmpeg can draw text.
+func (s *Server) textBurn(n int, pr *ffmpeg.Probe) bool {
+	subs := pr.Subtitles()
+	return n >= 0 && n < len(subs) && playback.IsTextSubtitle(subs[n].CodecName) && s.Tools.HasFilter("subtitles")
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
@@ -321,19 +327,37 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess.See(auth.TokenFrom(r))
-	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-	w.Header().Set("Cache-Control", "no-store")
-	// A player that had to put its token in the playlist's address can't send
-	// one with the segments either, so their addresses carry one too: a stream
-	// token, never the session's own.
+	// A stream token doesn't carry over to relative addresses by itself. A player
+	// that had to put its sign-in in the playlist's address can't send one with
+	// the segments either, so their addresses carry one too: a stream token,
+	// never the session's own.
+	st := r.URL.Query().Get("st")
 	suffix := ""
-	if tok := tokenFrom(r); tok != "" && tok == r.URL.Query().Get("token") {
+	if tok := tokenFrom(r); st == "" && tok != "" && tok == r.URL.Query().Get("token") {
 		if !auth.IsStreamToken(tok) {
 			tok, _ = auth.StreamToken(tok, "/api/hls/"+id+"/", auth.StreamTokenTTL)
 		}
 		suffix = "?token=" + url.QueryEscape(tok)
 	}
-	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts%s", n, suffix) }))
+	seg := func(n int) string {
+		if n < 0 {
+			return withStream("seg/init.mp4", st) + suffix
+		}
+		return withStream(fmt.Sprintf("seg/%d%s", n, sess.SegmentExt()), st) + suffix
+	}
+	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	w.Header().Set("Cache-Control", "no-store")
+	if sess.Spec.Growing {
+		b, err := sess.GrowingPlaylist(r.Context(), seg)
+		if err != nil {
+			s.Log.Warn("playlist", "id", id, "err", err)
+			writeErr(w, 500, err.Error())
+			return
+		}
+		_, _ = w.Write(b)
+		return
+	}
+	_, _ = w.Write(sess.Playlist(seg))
 }
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
@@ -343,13 +367,20 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "no such stream")
 		return
 	}
-	n, err := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".ts"))
-	if err != nil {
-		writeErr(w, 400, "bad segment")
-		return
-	}
 	sess.See(auth.TokenFrom(r))
-	p, err := sess.Segment(r.Context(), n)
+	name := r.PathValue("n")
+	var p string
+	var err error
+	if name == "init.mp4" {
+		p, err = sess.InitSegment(r.Context())
+	} else {
+		n, nerr := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(name, ".ts"), ".m4s"))
+		if nerr != nil {
+			writeErr(w, 400, "bad segment")
+			return
+		}
+		p, err = sess.Segment(r.Context(), n)
+	}
 	if errors.Is(err, hls.ErrBusy) {
 		w.Header().Set("Retry-After", "5")
 		writeErr(w, 503, err.Error())
@@ -359,11 +390,15 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return // the viewer moved on
 	}
 	if err != nil {
-		s.Log.Warn("segment", "id", id, "n", n, "err", err)
+		s.Log.Warn("segment", "id", id, "n", name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "video/mp2t")
+	if sess.Spec.FMP4 {
+		w.Header().Set("Content-Type", "video/mp4")
+	} else {
+		w.Header().Set("Content-Type", "video/mp2t")
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	http.ServeFile(w, r, p)
 }

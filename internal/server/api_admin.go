@@ -23,7 +23,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "uploads", "uploadMaxMb", "shareLinks", "mapTiles"}
+	"libraryGrouping", "updateCheck", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -37,7 +37,9 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// uploads and shareLinks: adults may add photos from their devices, and make
 	// links for people without an account. mapTiles (off when empty) is an online
 	// map provider's address for the photo map; nothing else ever contacts one.
-	"uploads": "1", "uploadMaxMb": "4096", "shareLinks": "1", "mapTiles": ""}
+	"uploads": "1", "uploadMaxMb": "4096", "shareLinks": "1", "mapTiles": "",
+	// lanDiscovery: apps on the home network can find this server.
+	"lanDiscovery": "1"}
 
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
@@ -119,6 +121,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 500, err.Error())
 			return
 		}
+	}
+	if s.Discovery != nil {
+		s.Discovery.Refresh() // it may have been switched off, or the server renamed
 	}
 	s.handleGetSettings(w, r)
 }

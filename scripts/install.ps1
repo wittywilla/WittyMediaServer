@@ -39,6 +39,8 @@ if (Test-Path "$Prefix\WittyMediaServer.exe") {
 netsh advfirewall firewall delete rule name="WittyMediaServer" | Out-Null
 # (home and work networks: not open to everyone on a public Wi-Fi network)
 netsh advfirewall firewall add rule name="WittyMediaServer" dir=in action=allow protocol=TCP localport=$Port profile=private,domain | Out-Null
+# So apps on the home network can find the server (mDNS, and its UDP question)
+netsh advfirewall firewall add rule name="WittyMediaServer" dir=in action=allow protocol=UDP localport="5353,9797" remoteip=localsubnet profile=private,domain | Out-Null
 
 # Scheduled task: runs hidden at startup as SYSTEM, restarts on failure.
 $action = New-ScheduledTaskAction -Execute "$Prefix\wms.exe" -Argument "serve -data `"$Data`" -listen :$Port" -WorkingDirectory $Prefix

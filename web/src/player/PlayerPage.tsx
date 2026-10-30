@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
+import { api, dvdStartMode, isDisc, type Item } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
 
@@ -65,7 +65,7 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   if (isDisc(item)) {
     // No explicit mode: the item's start setting (menu by default).
     const m = params.get('mode')
-    const mode = m === 'menu' || m === 'title' ? m : params.get('ttn') ? 'title' : dvdStartMode(item, prefs)
+    const mode = m === 'menu' || m === 'title' ? m : params.get('ttn') ? 'title' : dvdStartMode(item)
     const ttn = params.get('ttn') ? Number(params.get('ttn')) : undefined
     const chapter = params.get('chapter') ? Number(params.get('chapter')) : undefined
     const menu = params.get('menu') || undefined

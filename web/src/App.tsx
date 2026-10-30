@@ -8,6 +8,7 @@ import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import { Brand, BrandMark, Spinner, UpdateDot, VersionTag } from './components/common'
 import { AudioProvider } from './audio/player'
+import PairPage from './pages/PairPage'
 import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -94,6 +95,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
             <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/pair" element={<PairPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -181,6 +183,7 @@ function ProfileMenu() {
           <Link role="menuitem" to="/review">Your year</Link>
           <Link role="menuitem" to="/settings/appearance">Appearance</Link>
           <Link role="menuitem" to="/settings">Settings</Link>
+          {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair">Sign in a TV</Link>}
           <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>
           <button role="menuitem" onClick={signOut}><IconLogout /> Sign out</button>
         </div>

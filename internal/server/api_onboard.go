@@ -256,6 +256,21 @@ func (l *loginLimiter) begin(k string, free int) time.Duration {
 	return 0
 }
 
+// wait says how long k must wait before trying again, counting nothing.
+func (l *loginLimiter) wait(k string) time.Duration {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if a := l.m[k]; a != nil {
+		if d := time.Until(a.until); d > 0 {
+			return d
+		}
+	}
+	return 0
+}
+
+// fail counts a wrong attempt that wait let through.
+func (l *loginLimiter) fail(k string) { l.begin(k, freeTriesPerName) }
+
 // trim keeps the map from growing without bound: it forgets stale entries,
 // and when that isn't enough, entries that aren't holding anyone back.
 func (l *loginLimiter) trim(now time.Time) {

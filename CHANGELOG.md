@@ -82,6 +82,35 @@ Everything found in a full audit of the code; [docs/AUDIT.md](docs/AUDIT.md) has
 - An interrupted database upgrade could stop the server from ever starting again.
 - One DVD in 256 opened as "expired". Library pages flickered while scanning.
 - Starting the server deleted the whole transcode folder, whatever else was in it.
+### Getting ready for the TV apps
+
+- **Client API**: `/api/v1`, `GET /api/capabilities`, and [a guide](docs/CLIENT-API.md) and
+  [OpenAPI file](docs/openapi.json) covering every route. A test fails when a route is left out, or
+  when what they say about sign-in isn't what the server does.
+- **One way to play anything**: `POST /api/items/{id}/playback` takes what a device can play and
+  chooses direct play, remux or transcode. Built-in profiles for Apple TV and Android TV; apps can
+  add what their device reports. Remuxing keeps the picture untouched, in fMP4 for HEVC, for almost
+  no work on the server.
+- **Stream tokens**: short-lived, read-only addresses for one item's media, for players that can't
+  send headers. They end with the sign-in they came from.
+- **Apps can find the server on the home network** (mDNS, with an off switch), and check it is really
+  your server with a key they remember, so a look-alike is noticed. Only its name, a random ID and
+  its version are announced.
+- **TV sign-in with a code**, either way round: the TV shows a code, and someone signed in approves it at
+  *Sign in a TV*, after seeing which device is asking; or that page shows 6 digits to type on the device.
+- **Subtitles for native players**: text tracks as WebVTT, by HLS rendition or as a separate file.
+- **Themes as data**: `GET /api/themes/{id}/tokens.json` gives a theme's colours, lengths and fonts.
+- The resume rule and how a disc starts now come from the server, for every client.
+
+### Fixed
+
+- **Text subtitles (SRT, ASS) that are burned in now show.** Choosing one converted the video but drew
+  nothing.
+- **TV remotes and controllers**: no more getting stuck in the search box, a drop-down list or the
+  seek bar, and lists no longer change value as focus passes over them (OK opens them). OK brings up
+  the player's buttons, and reaches Skip intro and Play when those are waiting. Disc menus hand over to
+  the player's buttons at their edges. Episode cards and a disc's list of all titles can be reached.
+  In books, OK brings up the toolbar and walking along it no longer turns the page.
 
 ## 0.4.0-alpha
 

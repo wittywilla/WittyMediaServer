@@ -65,6 +65,11 @@ type Item struct {
 	// Per-item viewer preferences (set from the item's settings, never by scans):
 	PlayMode string `json:"playMode"` // DVDs: menu | title | "" (server default)
 	InsertFX string `json:"insertFx"` // DVDs: on | off | "" (server default)
+	// StartMode and InsertEffect are what those settings come to with the
+	// server's defaults applied: menu | title, and whether the insert effect
+	// plays. Filled for discs by the item endpoints.
+	StartMode    string `json:"startMode,omitempty"`
+	InsertEffect *bool  `json:"insertEffect,omitempty"`
 	// Intro range for "Skip intro" (seconds); the item endpoint falls back to
 	// the show's range.
 	IntroStart *float64 `json:"introStart,omitempty"`
@@ -127,6 +132,18 @@ type Progress struct {
 	Watched     bool    `json:"watched"`
 	DiscTitle   *int    `json:"discTitle,omitempty"`
 	UpdatedAt   int64   `json:"updatedAt"`
+	// ResumeSec is where to pick up again, 0 to start over: the rule for
+	// "Resume" that every client shares (see resumePoint).
+	ResumeSec float64 `json:"resumeSec"`
+}
+
+// resumePoint: anything watched for less than a minute starts over, as does
+// anything finished; books keep any position (they count pages or chapters).
+func resumePoint(kind string, p *Progress) float64 {
+	if p.Watched || p.PositionSec <= 0 || (kind != "book" && p.PositionSec <= 60) {
+		return 0
+	}
+	return p.PositionSec
 }
 
 type Store struct {
@@ -835,6 +852,7 @@ func (s *Store) AttachProgress(ctx context.Context, userID int64, items []*Item)
 		}
 		if it := byID[id]; it != nil {
 			pp := p
+			pp.ResumeSec = resumePoint(it.Kind, &pp)
 			it.Progress = &pp
 		}
 	}

@@ -243,3 +243,5 @@
   .ink-sep { margin: 0 3px; }
 }
 @media (forced-colors: active) { .ink-swatch, .ep-dot { forced-color-adjust: none; } }
+/* A remote or keyboard reaches the toolbars without a pointer to bring them up. */
+.reader-bar.hidden:focus-within, .reader-foot.hidden:focus-within { opacity: 1; pointer-events: auto; transform: none; }

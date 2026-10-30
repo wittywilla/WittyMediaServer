@@ -208,6 +208,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 	if next := s.nextForCollection(r, it); next != nil {
 		it.NextID = next // playing a list through
 	}
+	s.fillDiscStart(r.Context(), it)
 	if it.IntroEnd == nil && it.ShowID != nil {
 		if sh, err := s.Store.ShowFacts(r.Context(), *it.ShowID); err == nil {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
@@ -370,7 +371,25 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.fillDiscStart(r.Context(), it)
 	writeJSON(w, 200, it)
+}
+
+// fillDiscStart works out how a disc starts: its own settings, else the
+// server's. Discs without menus can only start with the feature.
+func (s *Server) fillDiscStart(ctx context.Context, it *library.Item) {
+	if !isDiscKind(it) {
+		return
+	}
+	it.StartMode = it.PlayMode
+	if it.StartMode == "" {
+		it.StartMode = "menu"
+		if (it.Disc != nil && !it.Disc.HasMenus) || s.DB.GetSetting(ctx, "dvdStart", "menu") == "title" {
+			it.StartMode = "title"
+		}
+	}
+	fx := it.InsertFX == "on" || (it.InsertFX == "" && s.DB.GetSetting(ctx, "insertFx", "1") == "1")
+	it.InsertEffect = &fx
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {

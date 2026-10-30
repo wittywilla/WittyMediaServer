@@ -111,6 +111,11 @@ Paste the key, **Save**, and rescan the library. You can change any poster after
 
 Keyboard: `Space` pause · `←`/`→` skip 10 s · `f` fullscreen · `r` remote · `Esc` back.
 
+TV remote or game controller: the arrows move around every page. In the player they skip through
+the film or drive a disc's menu; `OK` brings up the player's own buttons, and moving past their top
+or bottom edge hands the arrows back to the picture. A signed-in TV app is approved with a code at
+*your name → Sign in a TV*.
+
 ## 8. Watch on other devices
 
 Any phone, tablet, laptop or smart-TV browser on the **same home network** (the same Wi-Fi or

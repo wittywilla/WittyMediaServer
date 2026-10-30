@@ -19,7 +19,8 @@ export type DiscTitle = {
 }
 export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean
   content?: 'movie' | 'tv'; contentManual?: boolean } // a film, or episodes of a series
-export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number }
+// resumeSec: where "Resume" picks up, 0 to start over (the server's rule).
+export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number; resumeSec?: number }
 export type Item = {
   id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | 'bluray-iso' | 'bluray-folder' | string; path: string
   title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
@@ -29,6 +30,8 @@ export type Item = {
   sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
   showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
   playMode: '' | 'menu' | 'title'; insertFx: '' | 'on' | 'off'
+  // Discs: what those come to with the server's defaults applied.
+  startMode?: 'menu' | 'title'; insertEffect?: boolean
   introStart?: number; introEnd?: number
   // Audio (music, audiobooks, podcasts). videoCodec holds the audio codec for these.
   artist?: string; album?: string; albumArtist?: string; track?: number; discNo?: number
@@ -152,10 +155,10 @@ export const getPrefs = (fresh = false): Promise<Prefs> => {
   if (!prefsCache || fresh) prefsCache = api.get<Prefs>('/prefs').catch(() => ({ dvdStart: 'menu', insertFx: true, tvdb: false, tmdb: false, episodeView: 'cards' } as Prefs))
   return prefsCache
 }
-// The DVD start mode for an item: its own setting, else the server default.
-export const dvdStartMode = (it: Item, p: Prefs | null): 'menu' | 'title' =>
-  it.playMode || (it.disc && !it.disc.hasMenus ? 'title' : p?.dvdStart === 'title' ? 'title' : 'menu')
-export const insertFxOn = (it: Item, p: Prefs | null) => (it.insertFx ? it.insertFx === 'on' : p?.insertFx !== false)
+// How a disc starts: worked out by the server from the disc's own settings and
+// the server's defaults.
+export const dvdStartMode = (it: Item): 'menu' | 'title' => it.startMode || 'menu'
+export const insertFxOn = (it: Item) => it.insertEffect !== false
 
 // Track label with the disc's purpose, e.g. "English · Commentary · AC3 2ch".
 export const dvdTrackLabel = (t: DvdTrack) =>

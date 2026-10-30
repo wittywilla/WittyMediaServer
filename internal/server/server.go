@@ -22,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -44,6 +45,9 @@ type Server struct {
 	Version string
 	Logs    *logging.Logger
 	Update  *update.Updater // nil: this build can't update itself
+	// Discovery announces the server on the home network; nil when it can't
+	// be reached from other devices.
+	Discovery interface{ Refresh() }
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -52,6 +56,12 @@ type Server struct {
 		sync.Mutex
 		m map[string]*ffmpeg.Probe
 	}
+	stream    streamTokens
+	pair      pairings
+	subtitles subtitleFiles
+	idOnce    sync.Once
+	id        *identity.Identity
+	idErr     error
 
 	setupCode     string
 	setupCodeOnce sync.Once
@@ -91,6 +101,12 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
+	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
+	m.HandleFunc("POST /api/identity", s.handleIdentity)
+	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
+	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
+	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
+	m.HandleFunc("POST /api/pair/redeem", s.handlePairRedeem)
 
 	// Authenticated
 	a := s.requireUser
@@ -129,6 +145,14 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/backdrop", a(s.handleBackdrop))
 	m.Handle("POST /api/items/{id}/progress", a(s.handleProgress))
 	m.Handle("DELETE /api/items/{id}/progress", a(s.handleClearProgress))
+	m.Handle("POST /api/pair/info", a(s.handlePairInfo))
+	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
+	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
+	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
+	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
+	m.Handle("POST /api/items/{id}/stream-token", a(s.handleItemStreamToken))
+	m.Handle("GET /api/items/{id}/subtitles/{file}", a(s.handleItemSubtitle))
 	m.Handle("GET /api/items/{id}/play", a(s.handlePlayInfo))
 	m.Handle("GET /api/items/{id}/file", a(s.handleFile))
 	m.Handle("GET /api/items/{id}/stream", a(s.handleAudioStream))
@@ -165,6 +189,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/dvd/{sid}/still/{name}", a(s.handleDVDStill))
 	m.Handle("GET /api/dvd/{sid}/subs", a(s.handleDVDSubs))
 	m.Handle("GET /api/dvd/{sid}/sub/{name}", a(s.handleDVDSub))
+	m.Handle("GET /api/hls/{id}/master.m3u8", a(s.handleHLSMaster))
+	m.Handle("GET /api/hls/{id}/subs/{file}", a(s.handleHLSSubtitle))
 	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
 	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
 	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))
@@ -274,7 +300,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("/", s.spa())
 
 	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
-	return s.limits(s.logging(s.headers(s.cors(s.csrf(m)))))
+	return s.limits(s.logging(s.headers(s.versioned(s.cors(s.csrf(m))))))
 }
 
 // ---------------------------------------------------------------------------
@@ -336,15 +362,17 @@ func (w *statusWriter) Flush() {
 // people attach to bug reports, never hold a working login.
 func redactQuery(q string) string {
 	// "%" too: %74oken=... decodes to the same parameter when signing in.
-	if !strings.Contains(q, "token") && !strings.Contains(q, "%") {
+	if !strings.Contains(q, "token") && !strings.Contains(q, "st=") && !strings.Contains(q, "%") {
 		return q
 	}
 	v, err := url.ParseQuery(q)
 	if err != nil {
 		return "(unreadable)"
 	}
-	if v.Has("token") {
-		v.Set("token", "REDACTED")
+	for _, k := range []string{"token", "st"} {
+		if v.Has(k) {
+			v.Set(k, "REDACTED")
+		}
 	}
 	return v.Encode()
 }
@@ -467,6 +495,9 @@ func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, tok := s.signedIn(r)
+		if u == nil {
+			u = s.resolveStream(r) // media addresses only; see stream_tokens.go
+		}
 		if u == nil {
 			writeErr(w, 401, "authentication required")
 			return

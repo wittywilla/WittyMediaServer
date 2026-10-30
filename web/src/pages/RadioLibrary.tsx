@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Item, type Library } from '../api'
 import { useAudio } from '../audio/player'
 import { EmptyState, Spinner } from '../components/common'
-import { IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
+import { IconPause, IconPlay, IconPlus, IconTrash, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
 
@@ -38,7 +38,7 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
           {genres.map((g) => <button key={g} className={'ch-tag' + (genre === g ? ' on' : '')} aria-pressed={genre === g} onClick={() => setGenre(g)}>{g}</button>)}
         </div>
       )}
-      {!stations.length ? <EmptyState title="No stations yet" text={user?.isAdmin ? 'Add a station by its stream address, or import an M3U or PLS playlist.' : 'An administrator can add stations by their stream address.'} /> : (
+      {!stations.length ? <EmptyState icon={libIcon('radio')} title="No stations yet" text={user?.isAdmin ? 'Add a station by its stream address, or import an M3U or PLS playlist.' : 'An administrator can add stations by their stream address.'} /> : (
         <ul className="radio-list">
           {shown.map((s, i) => {
             const on = audio.current?.id === s.id

@@ -197,6 +197,7 @@ export function fmtTime(sec: number): string {
 
 export function fmtRuntime(sec: number): string {
   if (!sec) return ''
+  if (sec < 60) return `${Math.max(1, Math.round(sec))} s`
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
   return h > 0 ? `${h} h ${m} min` : `${m} min`
 }

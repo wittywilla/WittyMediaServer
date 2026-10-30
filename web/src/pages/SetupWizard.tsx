@@ -371,7 +371,7 @@ function LookStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   // A handful of looks to start from; every theme is in Settings → Appearance.
   const featured = ['default', 'dark', 'oled', 'light', 'dark-blue', 'dark-green', 'light-pink', 'dark-gold']
   const shown = themes.filter((t) => featured.includes(t.id)).sort((a, b) => featured.indexOf(a.id) - featured.indexOf(b.id))
-  const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left']]
+  const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left'], ['both', 'Both', 'The top bar and the side menu']]
   return (
     <section>
       <h1>Make it yours</h1>

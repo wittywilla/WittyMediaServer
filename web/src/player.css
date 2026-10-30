@@ -3,7 +3,7 @@
 .player.controls-hidden .remote { opacity: .45; }
 .player.controls-hidden .remote:hover, .player.controls-hidden .remote:focus-within { opacity: 1; }
 .player .top .grow { flex: 1; min-width: 0; }
-.player .top .grow h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player .top .grow h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------------------------------------------------------------- DVD remote */
 .remote {
@@ -304,7 +304,7 @@
   .player .ctl .speed-btn { min-width: 0; padding: 4px 8px; }
   .player .top { padding: max(10px, env(safe-area-inset-top)) 10px 10px; gap: 6px; }
   .player .top .grow { min-width: 0; }
-  .player .top h2 { font-size: var(--text-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player .top h1 { font-size: var(--text-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player .top .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--text-xs); }
   .remote-bar { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
 }

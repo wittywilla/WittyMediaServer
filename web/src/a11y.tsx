@@ -58,11 +58,12 @@ export function useDialogs() {
         if (!d.contains(document.activeElement)) { e.preventDefault(); first.focus(); return }
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !(e.target as HTMLElement)?.matches?.('input, textarea, select, [contenteditable=true]'))) {
+        if (e.key !== 'Escape') e.preventDefault()
         // Let the dialog's own handlers run first; close by the backdrop if
         // nothing did (a still-open dialog after this tick).
         setTimeout(() => {
-          if (e.defaultPrevented || !d.isConnected) return
+          if ((e.key === 'Escape' && e.defaultPrevented) || !d.isConnected) return
           const backdrop = d.closest('.modal-backdrop') as HTMLElement | null
           backdrop?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
         }, 0)

@@ -64,7 +64,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">
               <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} />}</div>
               <b>{a.title || 'Unknown album'}</b>
-              <span className="muted">{a.artist || (books ? 'Unknown author' : 'Unknown artist')}{a.year ? ` · ${a.year}` : ''}</span>
+              <span className="muted">{a.artist || (books ? 'Unknown author' : pods ? '' : 'Unknown artist')}{a.artist && a.year ? ` · ${a.year}` : a.year && !pods ? ` · ${a.year}` : ''}</span>
             </Link>
           ))}
         </div>

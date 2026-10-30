@@ -228,7 +228,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverPhotos
 		case IsCreatorLibrary(lib.Type):
 			find = discoverCreatorVideos
-		case lib.Type == CommercialsType:
+		case lib.Type == CommercialsType, lib.Type == "videos":
 			find = discoverClips
 		case lib.Type == "games":
 			find = func(root string) ([]candidate, error) { return discoverGames(root, lib.Console) }

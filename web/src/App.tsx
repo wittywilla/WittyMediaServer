@@ -89,6 +89,7 @@ function Shell() {
 function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   const style = useNavStyle()
   const side = style !== 'top'
+  const { version } = useApp()
   return (
     <div className={'app nav-' + style + (navOpen ? ' nav-open' : '')}>
       <a className="skip-link" href="#main">Skip to content</a>
@@ -117,6 +118,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
       </div>
       <TabBar onLibraries={() => setNavOpen(true)} />

@@ -323,7 +323,13 @@ function About() {
   const [about, setAbout] = useState<{ version: string; modules: Engine[] } | null>(null)
   const { user, version } = useApp()
   const loc = useLocation()
-  useEffect(() => { if (user?.isAdmin) api.get('/system').then(setSys).catch(() => {}) }, [user])
+  useEffect(() => {
+    if (!user?.isAdmin) return
+    let t = 0
+    const ask = () => api.get<any>('/system').then((s) => { setSys(s); if (!s.hwTested) t = window.setTimeout(ask, 2000) }).catch(() => {})
+    ask()
+    return () => clearTimeout(t)
+  }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
   useEffect(() => { if (loc.hash === '#modules' && about) document.getElementById('modules')?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
   const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
@@ -360,7 +366,7 @@ function About() {
             <div className="wide"><dt>Open it on other devices at home</dt><dd className="mono">{(sys.lanUrls || []).length ? sys.lanUrls.join('  ·  ') : 'This server only accepts connections from this computer'}</dd></div>
             <div><dt>System</dt><dd>{sys.os} / {sys.arch}</dd></div>
             <div><dt>Computer</dt><dd>{sys.hostname}</dd></div>
-            <div><dt>Hardware video</dt><dd>{hw.length ? hw.join(', ') : 'None found; software encoding'}</dd></div>
+            <div><dt>Hardware video</dt><dd>{hw.length ? hw.join(', ') : sys?.hwTested ? 'None found; software encoding' : 'Checking…'}</dd></div>
             <div><dt>Open discs</dt><dd>{sys.dvdSessions} DVD · {sys.blurays ?? 0} Blu-ray</dd></div>
             <div><dt>Built with</dt><dd>{sys.go}</dd></div>
             <div className="wide"><dt>Data folder</dt><dd className="mono">{sys.dataDir}</dd></div>

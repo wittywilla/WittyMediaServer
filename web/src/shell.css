@@ -48,6 +48,11 @@
 .profile-menu .menu a:hover, .profile-menu .menu button:hover, .profile-menu .menu a:focus-visible, .profile-menu .menu button:focus-visible { background: var(--hover); }
 .profile-menu .menu svg { width: 16px; height: 16px; color: var(--fg-3); }
 
+/* The version, where no side menu shows it. */
+.page-foot { display: none; margin-top: var(--section-gap); text-align: center; }
+.nav-top .page-foot { display: block; }
+@media (max-width: 900px) { .page-foot { display: block; } }
+
 /* ---------------------------------------------------------------- phone tab bar */
 .tabbar { display: none; }
 @media (max-width: 700px) {

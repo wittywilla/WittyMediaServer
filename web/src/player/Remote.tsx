@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { IconClose, IconDown, IconEject, IconFf, IconLeft, IconNext, IconPause, IconPlay, IconPrev, IconRew, IconRight, IconStop, IconUp } from '../icons'
+import { IconClose, IconContrast, IconDown, IconEject, IconFf, IconLeft, IconNext, IconPause, IconPlay, IconPrev, IconRew, IconRight, IconStop, IconUp } from '../icons'
 
 // Keys of a classic DVD remote. Disc-only keys are disabled for plain videos.
 export type RemoteKey =
@@ -100,7 +100,7 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
       <div className="remote-head" onPointerDown={startDrag}>
         <B k="eject" cls="round red" tip={label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close'}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
-        <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}>{'\u25d0'}</button>
+        <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}><IconContrast size={14} /></button>
         <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
       </div>
       <div className="remote-row2">

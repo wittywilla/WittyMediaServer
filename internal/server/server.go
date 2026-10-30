@@ -56,11 +56,20 @@ type Server struct {
 
 type ctxKey int
 
-const userKey ctxKey = 1
+const (
+	userKey ctxKey = iota + 1
+	tokenKey
+)
 
 func userFrom(r *http.Request) *auth.User {
 	u, _ := r.Context().Value(userKey).(*auth.User)
 	return u
+}
+
+// tokenFrom is the token this request was signed in with.
+func tokenFrom(r *http.Request) string {
+	t, _ := r.Context().Value(tokenKey).(string)
+	return t
 }
 
 // Handler builds the root handler.
@@ -82,6 +91,7 @@ func (s *Server) Handler() http.Handler {
 	// Authenticated
 	a := s.requireUser
 	m.Handle("GET /api/me", a(s.handleMe))
+	m.Handle("POST /api/stream-token", a(s.handleStreamToken))
 	m.Handle("GET /api/me/ui", a(s.handleGetUI))
 	m.Handle("PUT /api/me/ui", a(s.handlePutUI))
 	m.Handle("GET /api/home", a(s.handleHome))
@@ -344,27 +354,41 @@ func crossOrigin(r *http.Request) bool {
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {
+	u, _ := s.signedIn(r)
+	return u
+}
+
+// signedIn finds the account and the token that signed this request in.
+func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 	// The first token that belongs to a session here wins (a stale cookie
 	// must not hide a valid token).
 	for i, tok := range auth.Tokens(r) {
 		if i >= 4 {
 			break
 		}
-		if u, err := s.Auth.Resolve(r.Context(), tok); err == nil {
-			return u
+		var u *auth.User
+		var err error
+		if auth.IsStreamToken(tok) {
+			u, err = s.Auth.ResolveStream(r.Context(), tok, r)
+		} else {
+			u, err = s.Auth.Resolve(r.Context(), tok)
+		}
+		if err == nil {
+			return u, tok
 		}
 	}
-	return nil
+	return nil, ""
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := s.resolveUser(r)
+		u, tok := s.signedIn(r)
 		if u == nil {
 			writeErr(w, 401, "authentication required")
 			return
 		}
-		h(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
+		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
+		h(w, r.WithContext(ctx))
 	})
 }
 

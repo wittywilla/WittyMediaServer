@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -20,14 +22,18 @@ import (
 
 // playInfo tells the client how to play a regular video item.
 type playInfo struct {
-	Type        string      `json:"type"` // direct | hls
-	URL         string      `json:"url"`
-	DurationSec float64     `json:"durationSec"`
-	Audio       []trackInfo `json:"audio"`
-	Subtitles   []trackInfo `json:"subtitles"`
-	AudioIndex  int         `json:"audioIndex"`
-	SubIndex    int         `json:"subtitleIndex"`
-	Container   string      `json:"container"`
+	Type string `json:"type"` // direct | hls
+	URL  string `json:"url"`
+	// StreamURL is URL with a stream token in it, for players that can't send
+	// a header; StreamExpires is when it stops working (Unix seconds).
+	StreamURL     string      `json:"streamUrl"`
+	StreamExpires int64       `json:"streamExpires"`
+	DurationSec   float64     `json:"durationSec"`
+	Audio         []trackInfo `json:"audio"`
+	Subtitles     []trackInfo `json:"subtitles"`
+	AudioIndex    int         `json:"audioIndex"`
+	SubIndex      int         `json:"subtitleIndex"`
+	Container     string      `json:"container"`
 }
 
 type trackInfo struct {
@@ -176,6 +182,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight <= 0 || v.Height <= maxHeight) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
+		info.StreamURL, info.StreamExpires = s.streamURL(r, info.URL)
 		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
 		writeJSON(w, 200, info)
 		return
@@ -200,6 +207,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	})
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
+	info.StreamURL, info.StreamExpires = s.streamURL(r, info.URL)
 	reason := "browser cannot play the file as is"
 	if !directPlay {
 		reason = "direct play is off"
@@ -270,7 +278,47 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts", n) }))
+	// A player that had to put its token in the playlist's address can't send
+	// one with the segments either, so their addresses carry one too: a stream
+	// token, never the session's own.
+	suffix := ""
+	if tok := tokenFrom(r); tok != "" && tok == r.URL.Query().Get("token") {
+		if !auth.IsStreamToken(tok) {
+			tok, _ = auth.StreamToken(tok, "/api/hls/"+id+"/", auth.StreamTokenTTL)
+		}
+		suffix = "?token=" + url.QueryEscape(tok)
+	}
+	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts%s", n, suffix) }))
+}
+
+// streamURL is a media address with a stream token in it.
+func (s *Server) streamURL(r *http.Request, path string) (string, int64) {
+	scope := auth.StreamScope(path)
+	session := tokenFrom(r)
+	if scope == "" || session == "" || auth.IsStreamToken(session) {
+		return "", 0
+	}
+	tok, exp := auth.StreamToken(session, scope, auth.StreamTokenTTL)
+	return path + "?token=" + url.QueryEscape(tok), exp.Unix()
+}
+
+// POST /api/stream-token {path}: a token for a media address (a poster, an audio
+// stream, an HLS playlist of a disc), for players that can't send a header.
+// Whether the account may see what it opens is checked each time it is used.
+func (s *Server) handleStreamToken(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Path string `json:"path"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	u, exp := s.streamURL(r, b.Path)
+	if u == "" {
+		writeErr(w, 400, "not a media address")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"url": u, "expiresAt": exp})
 }
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {

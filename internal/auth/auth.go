@@ -3,9 +3,12 @@ package auth
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -321,15 +324,101 @@ func (s *Service) Resolve(ctx context.Context, token string) (*User, error) {
 	if token == "" {
 		return nil, ErrInvalid
 	}
+	return s.resolveStored(ctx, storedToken(token))
+}
+
+func (s *Service) resolveStored(ctx context.Context, stored string) (*User, error) {
 	var userID, expires int64
-	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at FROM sessions WHERE token = ?`, storedToken(token)).Scan(&userID, &expires); err != nil {
+	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at FROM sessions WHERE token = ?`, stored).Scan(&userID, &expires); err != nil {
 		return nil, ErrInvalid
 	}
 	if time.Now().Unix() > expires {
-		s.Logout(ctx, token)
+		_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, stored)
 		return nil, ErrInvalid
 	}
 	return s.User(ctx, userID)
+}
+
+// Stream tokens are for players that can't send a header (native TV players
+// fetching HLS, for one) and so have to carry a credential in the address.
+// Addresses end up in logs and players' caches, so instead of the session's
+// own token they carry one that opens a single title or stream, only for
+// reading, for a few hours, and only while the session it came from lasts:
+// signing out or changing a password ends it too.
+const (
+	streamPrefix = "st1."
+	// StreamTokenTTL is long enough for a long film with a pause in it. A
+	// player that outlasts it gets 401 and asks for a new one.
+	StreamTokenTTL = 6 * time.Hour
+)
+
+// streamKey is chosen at every start: stream tokens don't outlive the server
+// run, and neither do the streams themselves.
+var streamKey = func() []byte {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return b
+}()
+
+var streamScopeRe = regexp.MustCompile(`^/api/(items/\d+/|shows/\d+/art/|hls/[^/]+/|dvd/[^/]+/)`)
+
+// StreamScope is what a stream token for this media address may open: the
+// title, show or stream it belongs to, or "" if it isn't one a token can be
+// made for.
+func StreamScope(path string) string {
+	if strings.Contains(path, "..") || !mediaRoute.MatchString(path) {
+		return ""
+	}
+	return streamScopeRe.FindString(path)
+}
+
+// IsStreamToken tells stream tokens from session tokens.
+func IsStreamToken(tok string) bool { return strings.HasPrefix(tok, streamPrefix) }
+
+func signStream(payload []byte) []byte {
+	m := hmac.New(sha256.New, streamKey)
+	m.Write(payload)
+	return m.Sum(nil)
+}
+
+// StreamToken makes a token from a session's token for one scope.
+func StreamToken(session, scope string, ttl time.Duration) (string, time.Time) {
+	exp := time.Now().Add(ttl)
+	payload := binary.BigEndian.AppendUint64(nil, uint64(exp.Unix()))
+	payload = append(payload, storedToken(session)[len(hashedPrefix):]...)
+	payload = append(payload, scope...)
+	enc := base64.RawURLEncoding
+	return streamPrefix + enc.EncodeToString(payload) + "." + enc.EncodeToString(signStream(payload)), exp
+}
+
+// streamSessionLen is the session's hash inside a stream token, in hex.
+const streamSessionLen = sha256.Size * 2
+
+// ResolveStream returns the user for a stream token on this request.
+func (s *Service) ResolveStream(ctx context.Context, tok string, r *http.Request) (*User, error) {
+	if (r.Method != http.MethodGet && r.Method != http.MethodHead) || !mediaRoute.MatchString(r.URL.Path) || strings.Contains(r.URL.Path, "..") {
+		return nil, ErrInvalid
+	}
+	body, sig, ok := strings.Cut(strings.TrimPrefix(tok, streamPrefix), ".")
+	if !ok {
+		return nil, ErrInvalid
+	}
+	enc := base64.RawURLEncoding
+	payload, err1 := enc.DecodeString(body)
+	mac, err2 := enc.DecodeString(sig)
+	if err1 != nil || err2 != nil || !hmac.Equal(mac, signStream(payload)) || len(payload) < 8+streamSessionLen {
+		return nil, ErrInvalid
+	}
+	if time.Now().Unix() > int64(binary.BigEndian.Uint64(payload)) {
+		return nil, ErrInvalid
+	}
+	session, scope := string(payload[8:8+streamSessionLen]), string(payload[8+streamSessionLen:])
+	if scope == "" || !strings.HasPrefix(r.URL.Path, scope) {
+		return nil, ErrInvalid
+	}
+	return s.resolveStored(ctx, hashedPrefix+session)
 }
 
 const CookieName = "wms_token"

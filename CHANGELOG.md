@@ -15,6 +15,9 @@ notice:
 - Files that are links leading out of their library are no longer indexed or served.
 - The expert FFmpeg fields accept only options that tune encoding.
 - Accounts other than the administrator no longer see server folders or podcast feed addresses.
+- Players that can't send headers get stream tokens: scoped to one title or stream, read-only,
+  short-lived (`streamUrl` in play info, `POST /api/stream-token`). A session token in a media address
+  still works.
 
 ## 0.4.0-alpha
 

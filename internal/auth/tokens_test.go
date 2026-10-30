@@ -145,3 +145,83 @@ func TestPasswordRules(t *testing.T) {
 		t.Error("an adult's new password can't be short")
 	}
 }
+
+func streamRequest(method, path, tok string) *http.Request {
+	return httptest.NewRequest(method, path+"?token="+tok, nil)
+}
+
+// A stream token opens one title or stream, to read it, and nothing else.
+func TestStreamTokenScope(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+	if _, err := s.CreateUser(ctx, "a", "long enough pw", true); err != nil {
+		t.Fatal(err)
+	}
+	session, _, err := s.Login(ctx, "a", "long enough pw", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tok, _ := StreamToken(session, "/api/hls/abc/", time.Hour)
+	if strings.Contains(tok, session) {
+		t.Fatal("a stream token must not contain the session's token")
+	}
+	for _, c := range []struct {
+		method, path string
+		want         bool
+	}{
+		{"GET", "/api/hls/abc/playlist.m3u8", true},
+		{"GET", "/api/hls/abc/seg/1.ts", true},
+		{"HEAD", "/api/hls/abc/seg/1.ts", true},
+		{"DELETE", "/api/hls/abc/", false},
+		{"POST", "/api/hls/abc/seg/1.ts", false},
+		{"GET", "/api/hls/other/seg/1.ts", false},
+		{"GET", "/api/hls/abc/../other/seg/1.ts", false},
+		{"GET", "/api/users", false},
+		{"GET", "/api/items/1/file", false},
+	} {
+		if _, err := s.ResolveStream(ctx, tok, streamRequest(c.method, c.path, tok)); (err == nil) != c.want {
+			t.Errorf("%s %s: got %v, want allowed=%v", c.method, c.path, err, c.want)
+		}
+	}
+	// As a session token it is nothing.
+	if _, err := s.Resolve(ctx, tok); err == nil {
+		t.Error("a stream token worked as a session")
+	}
+	// Changed in any way, it is nothing.
+	for _, bad := range []string{tok[:len(tok)-2] + "aa", "st1." + tok[6:], "st1.x", "st1.", strings.Replace(tok, ".", "", 2)} {
+		if _, err := s.ResolveStream(ctx, bad, streamRequest("GET", "/api/hls/abc/seg/1.ts", "x")); err == nil {
+			t.Errorf("tampered token %q was accepted", bad)
+		}
+	}
+	// Past its time, it is nothing.
+	old, _ := StreamToken(session, "/api/hls/abc/", -time.Minute)
+	if _, err := s.ResolveStream(ctx, old, streamRequest("GET", "/api/hls/abc/seg/1.ts", old)); err == nil {
+		t.Error("an expired stream token was accepted")
+	}
+	// Signing out ends it at once.
+	s.Logout(ctx, session)
+	if _, err := s.ResolveStream(ctx, tok, streamRequest("GET", "/api/hls/abc/seg/1.ts", tok)); err == nil {
+		t.Error("a stream token outlived its session")
+	}
+}
+
+func TestStreamScope(t *testing.T) {
+	for path, want := range map[string]string{
+		"/api/items/5/stream":          "/api/items/5/",
+		"/api/items/5/poster":          "/api/items/5/",
+		"/api/shows/3/art/poster":      "/api/shows/3/art/",
+		"/api/hls/v-1/playlist.m3u8":   "/api/hls/v-1/",
+		"/api/dvd/abc/still/x.png":     "/api/dvd/abc/",
+		"/api/items/5":                 "",
+		"/api/items/5/annotations":     "",
+		"/api/users":                   "",
+		"/api/logs/files/wms-1.log":    "",
+		"/api/artwork/preview":         "",
+		"/api/hls/../users/x":          "",
+		"https://evil.test/api/hls/x/": "",
+	} {
+		if got := StreamScope(path); got != want {
+			t.Errorf("%s: %q, want %q", path, got, want)
+		}
+	}
+}

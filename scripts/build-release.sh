@@ -31,7 +31,7 @@ TARGETS=("$@")
 if [ ${#TARGETS[@]} -eq 0 ]; then
   TARGETS=(windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64)
 fi
-DIST=dist
+DIST="${DIST:-dist}" # DIST=elsewhere builds into another folder
 CACHE=.tools/ffmpeg-dl
 TOOLS=.tools/bin
 mkdir -p "$DIST" "$CACHE" "$TOOLS"
@@ -164,6 +164,13 @@ for t in "${TARGETS[@]}"; do
   label="$arch"; [ "$os/$arch" = linux/arm ] && label=armv7
   name="wittymediaserver-${VERSION}-${os}-${label}"
   out="$DIST/$name"
+  # A package folder someone runs in place keeps its data (library, accounts,
+  # progress) in data/: never delete that.
+  if [ -e "$out/data" ]; then
+    echo "error: $out/data exists: a copy is being used from this folder, and its data must not be deleted." >&2
+    echo "       Stop it and move the data folder out, or build elsewhere: DIST=dist/next $0 $VERSION" >&2
+    exit 1
+  fi
   rm -rf "$out" "$out.zip" "$out.tar.gz"; mkdir -p "$out"
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"

@@ -41,6 +41,8 @@ turn it on in the new **Settings → Remote Access**, and nothing phones home.
 - **Other websites** can no longer read the server's answers without a sign-in token, such as the list
   of profiles of a server on your network.
 - Fixed: with *Show profiles outside your home* on, password-free profiles could sign in from outside.
+- Players that can only sign in with `?token=` can now play HLS: the playlist carries it on to its
+  segments, when that is how the playlist was fetched.
 - Over HTTPS, the web app no longer puts its sign-in token in media addresses, where a reverse proxy
   would log it. The version is hidden from visitors on the internet who aren't signed in.
 

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -215,7 +216,13 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts", n) }))
+	// A player signed in by ?token= (native players often can't add headers)
+	// has no other way to sign in for the segments.
+	query := ""
+	if t := r.URL.Query().Get("token"); t != "" && t == currentToken(r) {
+		query = "?token=" + url.QueryEscape(t)
+	}
+	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts%s", n, query) }))
 }
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {

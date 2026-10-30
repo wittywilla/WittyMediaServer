@@ -58,7 +58,8 @@ same tools ship on their own as `wittydvd` and `wittybluray`.
 
 Everything is under `/api` and answers JSON. Sign in with `POST /api/login` and send the token as
 `Authorization: Bearer <token>` (or `X-WMS-Token`). Media URLs that a page can't add headers to
-(images, video) take `?token=`. An account with two-factor sign-in answers `POST /login` with 401 and
+(images, video) take `?token=`; an HLS playlist fetched that way carries it on to its segments, but those
+addresses can end up in the logs of a reverse proxy, so players that can add a header should. An account with two-factor sign-in answers `POST /login` with 401 and
 `{"twoFactor": true}` until the request also has `code`.
 
 **Security rules for API clients:** apps on other origins (the mobile app, your own tools) send the

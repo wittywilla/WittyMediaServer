@@ -103,12 +103,22 @@ type Stream struct {
 	Tags        map[string]string `json:"tags"`
 	Disposition map[string]int    `json:"disposition"`
 	Duration    string            `json:"duration"`
+	// For playback decisions.
+	Profile       string           `json:"profile"`
+	Level         int              `json:"level"`
+	PixFmt        string           `json:"pix_fmt"`
+	ColorTransfer string           `json:"color_transfer"`
+	BitRate       string           `json:"bit_rate"`
+	BitsPerSample string           `json:"bits_per_raw_sample"`
+	CodecTag      string           `json:"codec_tag_string"`
+	SideData      []map[string]any `json:"side_data_list"`
 }
 
 type Format struct {
 	Filename   string            `json:"filename"`
 	FormatName string            `json:"format_name"`
 	Duration   string            `json:"duration"`
+	StartTime  string            `json:"start_time"`
 	Size       string            `json:"size"`
 	BitRate    string            `json:"bit_rate"`
 	Tags       map[string]string `json:"tags"`

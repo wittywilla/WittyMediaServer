@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
-import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
+import { centerline, cite, colorName, Define, exportNotes, Field, fill, HighlightEditor, hits, IconBack, IconBookmark, IconContents, IconHandwriting, IconNext, IconNotes, IconPrev, IconSearch, IconSettings, IconSpeaker, IconStop, IconZoomIn, IconZoomOut, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, Range, saveInk, SelectionBar, Sheet, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
 import './pdf.css'
 
 // WittyPDF: the PDF reader, for papers, textbooks and scans: pages drawn by pdf.js
@@ -160,7 +160,7 @@ export default function PdfReader() {
   const [panel, setPanel] = useState<null | 'contents' | 'notes' | 'search' | 'display'>(null)
   const [tab, setTab] = useState<'outline' | 'pages'>('outline')
   const [outlineItems, setOutline] = useState<OutlineItem[] | null>(null)
-  const [sel, setSel] = useState<{ x: number; y: number; quote: string; boxes: Box[] } | null>(null)
+  const [sel, setSel] = useState<{ x: number; y: number; y2: number; quote: string; boxes: Box[] } | null>(null)
   const [edit, setEdit] = useState<{ ann: Ann; x: number; y: number } | null>(null)
   const [define, setDefine] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -170,6 +170,7 @@ export default function PdfReader() {
   const [speaking, setSpeaking] = useState(false)
   const [ink, setInkState] = useState(loadInk)
   const [inkMode, setInkMode] = useState(false)
+  useEffect(() => { if (inkMode) { setSel(null); setEdit(null); window.getSelection()?.removeAllRanges() } }, [inkMode])
   const A = useAnnotations()
   const anns = A.anns
   const [labels, setLabel] = useColorLabels()
@@ -352,7 +353,7 @@ export default function PdfReader() {
     }
     if (!boxes.length) { setSel(null); return }
     const b = range.getBoundingClientRect()
-    setSel({ x: b.left + b.width / 2, y: b.top, quote, boxes: mergeBoxes(boxes) })
+    setSel({ x: b.left + b.width / 2, y: b.top, y2: b.bottom, quote, boxes: mergeBoxes(boxes) })
     setEdit(null)
   }
   const addHighlight = async (color: string) => {
@@ -549,7 +550,7 @@ export default function PdfReader() {
   const place = (c: number) => `Page ${c + 1}`
   const flashFor = (i: number) => (flash?.page === i ? flash.q : '')
   return (
-    <div className={'reader pdf2' + (inkMode ? ' inking' : '') + (dark ? ' theme-dark' : '')} onMouseMove={(e) => { if (e.clientY < 70 || e.clientY > window.innerHeight - 70) pokeBar() }}>
+    <div className={'reader pdf2' + (inkMode ? ' inking' : '') + (dark ? ' theme-dark' : '')} onMouseMove={(e) => { if (e.clientY < 72 || e.clientY > window.innerHeight - 96) pokeBar() }}>
       <div ref={scroller} className={'pdf-scroll' + (inkMode ? ' pdf-inking' : '')} onScroll={onScroll} onClick={onClick}
         onMouseUp={() => setTimeout(onSelect, 0)} onTouchEnd={() => setTimeout(onSelect, 250)}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
@@ -566,93 +567,99 @@ export default function PdfReader() {
       <svg className="pdf-live" aria-hidden="true"><InkDefs id="ink-grain-pdf" freq={0.7} /><path ref={live} strokeLinecap="round" strokeLinejoin="round" /></svg>
 
       <div className={'reader-bar' + (bar || panel || inkMode ? '' : ' hidden')}>
-        <button className="ibtn" onClick={close} aria-label="Close the document"><IconBack /></button>
-        <div className="grow rd-titles"><b>{it.title}</b>{it.author && <span className="muted">{it.author}</span>}</div>
-        <div className="pdf-zoom" role="group" aria-label="Zoom">
-          <button className="ibtn sm" onClick={() => zoomBy(-1)} aria-label="Zoom out" title="Zoom out (−)">−</button>
-          <button className="btn sm ghost" onClick={() => setZoom(p.zoom === 'width' ? 'page' : 'width')} title="Fit width or whole page">{p.zoom === 'width' ? 'Fit width' : p.zoom === 'page' ? 'Fit page' : `${Math.round(scale * 100)}%`}</button>
-          <button className="ibtn sm" onClick={() => zoomBy(1)} aria-label="Zoom in" title="Zoom in (+)">+</button>
+        <button className="ibtn" onClick={close} aria-label="Close the document" title="Close (Esc)"><IconBack /></button>
+        <div className="rd-titles"><b>{it.title}</b>{it.author && <span>{it.author}</span>}</div>
+        <div className="pdf-zoom rd-wide" role="group" aria-label="Zoom">
+          <button className="ibtn" onClick={() => zoomBy(-1)} aria-label="Zoom out" title="Zoom out (−)"><IconZoomOut /></button>
+          <button className="pdf-zoom-level" onClick={() => setZoom(p.zoom === 'width' ? 'page' : 'width')} title={p.zoom === 'width' ? 'Fit the whole page' : 'Fit the width'}>{p.zoom === 'width' ? 'Fit width' : p.zoom === 'page' ? 'Fit page' : `${Math.round(scale * 100)}%`}</button>
+          <button className="ibtn" onClick={() => zoomBy(1)} aria-label="Zoom in" title="Zoom in (+)"><IconZoomIn /></button>
         </div>
-        <button className="ibtn" onClick={() => setPanel(panel === 'contents' ? null : 'contents')} aria-label="Contents and pages" title="Contents and pages"><IconBook /></button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'search' ? null : 'search')} aria-label="Search in the document" title="Search (/)"><IconSearch /></button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'notes' ? null : 'notes')} aria-label="Notes and highlights" title="Notes and highlights">☰</button>
-        <button className={'ibtn' + (inkMode ? ' on' : '')} onClick={() => setInkMode(!inkMode)} aria-pressed={inkMode} aria-label="Handwriting" title="Pen, pencil and highlighter (p)">✎</button>
-        <button className={'ibtn' + (bookmarks.has(current) ? ' on' : '')} onClick={toggleBookmark} aria-pressed={bookmarks.has(current)} aria-label="Bookmark this page" title="Bookmark (b)">🔖</button>
-        <button className={'ibtn' + (speaking ? ' on' : '')} onClick={() => readAloud()} aria-pressed={speaking} aria-label="Read aloud" title="Read aloud">🔊</button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'display' ? null : 'display')} aria-label="Display settings" title="Display"><IconSettings /></button>
+        <span className="rd-gap rd-wide" />
+        <button className={'ibtn' + (panel === 'contents' ? ' on' : '')} onClick={() => setPanel(panel === 'contents' ? null : 'contents')} aria-label="Contents and pages" title="Contents and pages"><IconContents /></button>
+        <button className={'ibtn' + (panel === 'search' ? ' on' : '')} onClick={() => setPanel(panel === 'search' ? null : 'search')} aria-label="Search in the document" title="Search (/)"><IconSearch /></button>
+        <button className={'ibtn' + (panel === 'notes' ? ' on' : '')} onClick={() => setPanel(panel === 'notes' ? null : 'notes')} aria-label="Notes and highlights" title="Notes and highlights"><IconNotes /></button>
+        <span className="rd-gap rd-wide" />
+        <button className={'ibtn' + (inkMode ? ' on' : '')} onClick={() => setInkMode(!inkMode)} aria-pressed={inkMode} aria-label="Handwriting" title="Pen, pencil and highlighter (p)"><IconHandwriting /></button>
+        <button className={'ibtn' + (bookmarks.has(current) ? ' on' : '')} onClick={toggleBookmark} aria-pressed={bookmarks.has(current)} aria-label="Bookmark this page" title="Bookmark (b)"><IconBookmark on={bookmarks.has(current)} /></button>
+        <button className={'ibtn rd-wide' + (speaking ? ' on' : '')} onClick={() => readAloud()} aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read aloud'} title={speaking ? 'Stop reading' : 'Read aloud'}>{speaking ? <IconStop /> : <IconSpeaker />}</button>
+        <button className={'ibtn' + (panel === 'display' ? ' on' : '')} onClick={() => setPanel(panel === 'display' ? null : 'display')} aria-label="Display settings" title="Display"><IconSettings /></button>
       </div>
 
       {inkMode ? (
         <InkBar p={ink} set={setInk} undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo} done={() => setInkMode(false)} />
       ) : (
-        <div className={'reader-foot rd-foot' + (bar || panel ? '' : ' hidden')}>
-          <button className="ibtn sm" onClick={() => goTo(current - cols)} aria-label="Previous page">‹</button>
-          <input type="range" min={0} max={Math.max(0, n - 1)} value={current} aria-label="Page" aria-valuetext={`Page ${current + 1} of ${n}`} onChange={(e) => goTo(Number(e.target.value))} />
-          <button className="ibtn sm" onClick={() => goTo(current + cols)} aria-label="Next page">›</button>
-          <form onSubmit={(e) => { e.preventDefault(); const v = Number((e.currentTarget.elements.namedItem('pg') as HTMLInputElement).value); if (v >= 1 && v <= n) goTo(v - 1) }}>
-            <input name="pg" className="pdf-pg" key={current} defaultValue={current + 1} inputMode="numeric" aria-label="Go to page" /> <span>of {n}</span>
+        <div className={'reader-foot' + (bar || panel ? '' : ' hidden')}>
+          <button className="ibtn" onClick={() => goTo(current - cols)} disabled={current <= 0} aria-label="Previous page" title="Previous page"><IconPrev /></button>
+          <Range min={0} max={Math.max(0, n - 1)} value={current} label="Page" valueText={`Page ${current + 1} of ${n}`} onChange={(v) => goTo(v)} />
+          <button className="ibtn" onClick={() => goTo(current + cols)} disabled={current >= n - 1} aria-label="Next page" title="Next page"><IconNext /></button>
+          <form className="rd-foot-info" onSubmit={(e) => { e.preventDefault(); const el = e.currentTarget.elements.namedItem('pg') as HTMLInputElement; const v = Number(el.value); if (v >= 1 && v <= n) goTo(v - 1); el.blur() }}>
+            <span>Page</span>
+            <input name="pg" className="pdf-pg" key={current} defaultValue={current + 1} inputMode="numeric" aria-label="Go to page" onFocus={(e) => e.target.select()} />
+            <span>of {n}</span>
+            {n > 1 && <><span className="rd-dot">·</span><b>{Math.round(((current + 1) / n) * 100)}%</b></>}
           </form>
         </div>
       )}
 
       {panel && (
-        <aside className="rd-panel" role="dialog" aria-label={panel}>
+        <Sheet title={{ contents: 'Contents', notes: 'Notes & highlights', search: 'Search', display: 'Display' }[panel]} onClose={() => setPanel(null)}
+          actions={panel === 'notes' && anns.length > 0 ? <button className="btn sm ghost" onClick={() => exportNotes(it, anns, labels, place)} title="Save as Markdown">Export</button> : undefined}>
           {panel === 'contents' && (
             <>
-              <div className="seg">{(['outline', 'pages'] as const).map((v) => <button key={v} className={tab === v ? 'active' : ''} onClick={() => setTab(v)}>{v === 'outline' ? 'Contents' : 'Pages'}</button>)}</div>
-              {tab === 'outline' && (outlineItems === null ? <div className="spinner" /> : outlineItems.length === 0 ? <p className="muted">This document has no contents list. Use Pages to find your way.</p> :
-                outlineItems.map((o, i) => <button key={i} style={{ paddingLeft: 10 + o.depth * 16 }} onClick={() => { goDest(o.dest); setPanel(null) }}>{o.title}</button>))}
+              <div className="seg pdf-tabs">{(['outline', 'pages'] as const).map((v) => <button key={v} className={tab === v ? 'active' : ''} aria-pressed={tab === v} onClick={() => setTab(v)}>{v === 'outline' ? 'Outline' : 'Pages'}</button>)}</div>
+              {tab === 'outline' && (outlineItems === null ? <div className="spinner" /> : outlineItems.length === 0
+                ? <div className="rd-empty"><b>No outline</b><p>This document has no table of contents. Pages shows every page.</p></div>
+                : outlineItems.map((o, i) => <button key={i} className={'rd-list-item' + (o.depth ? ' sub' : '')} style={{ paddingLeft: 12 + o.depth * 16 }} onClick={() => { goDest(o.dest); setPanel(null) }}>{o.title}</button>))}
               {tab === 'pages' && doc && <div className="pdf-thumbs">{sizes.map((_, i) => <Thumb key={i} doc={doc} index={i} current={i === current} go={() => { goTo(i); setPanel(null) }} />)}</div>}
             </>
           )}
           {panel === 'notes' && (
-            <NotesPanel anns={anns} labels={labels} setLabel={setLabel} place={place} remove={deleteAnn} onExport={() => exportNotes(it, anns, labels, place)}
+            <NotesPanel anns={anns} labels={labels} setLabel={setLabel} place={place} remove={deleteAnn}
               open={(a) => { goTo(a.chapter, Math.max(0, a.pos - a.chapter - 0.05)); setPanel(null) }} />
           )}
           {panel === 'search' && (
             <>
-              <h3>Search</h3>
               <form onSubmit={(e) => { e.preventDefault(); search(query) }}>
-                <input className="input" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this document" aria-label="Search in this document" />
+                <input className="input" type="search" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this document" aria-label="Search in this document" />
               </form>
               {found === null && query && <div className="spinner" />}
-              {found && <p className="muted">{found.length === 0 ? 'No matches' : `${found.length}${found.length >= 300 ? '+' : ''} matches`}</p>}
+              {found && <div className="rd-count">{found.length === 0 ? 'No matches' : `${found.length}${found.length >= 300 ? '+' : ''} matches`}</div>}
+              {!query && <p className="rd-empty">Type a word or phrase and press Enter.</p>}
               {found?.map((h, i) => (
                 <button key={i} className="ep-hit" onClick={() => { goTo(h.page); setFlash({ page: h.page, q: query.trim() }); setPanel(null) }}>
-                  <span className="muted">{place(h.page)}</span> {h.snippet}
+                  <span className="ep-where">{place(h.page)}</span>{h.snippet}
                 </button>
               ))}
             </>
           )}
           {panel === 'display' && (
             <div className="ep-display">
-              <h3>Display</h3>
-              <label>Zoom
+              <Field label="Zoom" value={`${Math.round(scale * 100)}%`}>
                 <div className="seg">
                   <button className={p.zoom === 'width' ? 'active' : ''} onClick={() => setZoom('width')}>Fit width</button>
                   <button className={p.zoom === 'page' ? 'active' : ''} onClick={() => setZoom('page')}>Fit page</button>
                   {[1, 1.5, 2].map((z) => <button key={z} className={p.zoom === z ? 'active' : ''} onClick={() => setZoom(z)}>{z * 100}%</button>)}
                 </div>
-              </label>
-              <label>Pages across
+              </Field>
+              <Field label="Pages across">
                 <div className="seg">
-                  <button className={!p.spread ? 'active' : ''} onClick={() => { keep.current = where(); setPrefs({ spread: false }) }}>One</button>
-                  <button className={p.spread ? 'active' : ''} onClick={() => { keep.current = where(); setPrefs({ spread: true }) }}>Two</button>
+                  <button className={!p.spread ? 'active' : ''} onClick={() => { keep.current = where(); setPrefs({ spread: false }) }}>One page</button>
+                  <button className={p.spread ? 'active' : ''} onClick={() => { keep.current = where(); setPrefs({ spread: true }) }}>Two pages</button>
                 </div>
-              </label>
-              <label>Page colour
+              </Field>
+              <Field label="Page colour">
                 <div className="seg">{([['normal', 'As printed'], ['sepia', 'Sepia'], ['dark', 'Dark']] as const).map(([v, l]) => <button key={v} className={p.theme === v ? 'active' : ''} onClick={() => setPrefs({ theme: v })}>{l}</button>)}</div>
-              </label>
-              <p className="muted small">Dark turns pages to light text on dark; pictures change colour too. Ctrl + scroll or + and − zoom.</p>
+                <p className="muted small">Dark shows light text on dark pages; pictures change colour too.</p>
+              </Field>
+              <p className="muted small">Ctrl + scroll, or + and −, zoom. Arrow keys and Page Up / Down turn pages.</p>
             </div>
           )}
-          <button className="btn ghost ep-close" onClick={() => setPanel(null)}>Close</button>
-        </aside>
+        </Sheet>
       )}
 
       {sel && (
-        <SelectionBar x={sel.x} y={sel.y} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
-          onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}
+        <SelectionBar x={sel.x} y={sel.y} y2={sel.y2} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
+          onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y2 }) }}
           onDefine={host.define ? setDefine : undefined} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, `p. ${sel.boxes[0][0] + 1}`))} onSearch={search}
           onRead={() => readAloud(sel.quote.trim())} />
       )}

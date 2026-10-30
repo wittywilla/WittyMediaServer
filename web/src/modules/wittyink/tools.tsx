@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useHost, type Ann, type BookMeta } from './host'
+import { IconClose } from './icons'
 import { MARKER_COLORS } from './ink'
 
 export type { Ann } from './host'
@@ -87,6 +88,48 @@ export function useColorLabels() {
 
 // ---------------------------------------------------------------- pieces
 
+// A side panel (contents, notes, search, settings): a header with its title
+// and a close button, a body that scrolls, and a backdrop that closes it.
+// The current entry (`.on`) is scrolled into view when it opens.
+export function Sheet({ title, actions, onClose, children }: { title: string; actions?: ReactNode; onClose: () => void; children: ReactNode }) {
+  const body = useRef<HTMLDivElement | null>(null)
+  useEffect(() => { body.current?.querySelector('.on')?.scrollIntoView({ block: 'center' }) }, [title])
+  return (
+    <>
+      <div className="rd-scrim" onClick={onClose} aria-hidden="true" />
+      <aside className="rd-panel" role="dialog" aria-label={title}>
+        <header className="rd-panel-head">
+          <h2>{title}</h2>
+          {actions}
+          <button className="ibtn sm" onClick={onClose} aria-label="Close" title="Close (Esc)"><IconClose /></button>
+        </header>
+        <div className="rd-panel-body" ref={body}>{children}</div>
+      </aside>
+    </>
+  )
+}
+
+// One setting: its name (and current value) over its control.
+export function Field({ label, value, children }: { label: string; value?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="rd-field" role="group" aria-label={label}>
+      <div className="rd-field-head"><span>{label}</span>{value !== undefined && <span className="rd-value">{value}</span>}</div>
+      {children}
+    </div>
+  )
+}
+
+// A range input whose filled part shows the value.
+export function Range({ value, min, max, step, onChange, label, valueText, dir }: {
+  value: number; min: number; max: number; step?: number; onChange: (v: number) => void; label: string; valueText?: string; dir?: 'ltr' | 'rtl'
+}) {
+  const pct = max > min ? ((value - min) / (max - min)) * 100 : 0
+  return (
+    <input type="range" className={'rd-range' + (dir === 'rtl' ? ' rtl' : '')} min={min} max={max} step={step} value={value} aria-label={label} aria-valuetext={valueText}
+      style={{ ['--pct' as string]: `${pct}%`, direction: dir }} onChange={(e) => onChange(Number(e.target.value))} />
+  )
+}
+
 export function Palette({ current, labels, onPick }: { current: string; labels: Record<string, string>; onPick: (c: string) => void }) {
   return (
     <div className="ep-palette">
@@ -109,7 +152,7 @@ export function Define({ word, onClose }: { word: string; onClose: () => void })
   }, [word]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="ep-define" role="dialog" aria-label={`Definition of ${word}`}>
-      <div className="ep-head"><h3>{word}</h3><button className="ibtn" onClick={onClose} aria-label="Close">✕</button></div>
+      <div className="ep-head"><h3>{word}</h3><button className="ibtn sm" onClick={onClose} aria-label="Close"><IconClose /></button></div>
       {res.list === null && <div className="spinner" />}
       {res.list?.length === 0 && <p className="muted">{res.error || 'No definition found.'}</p>}
       {res.list?.slice(0, 2).map((e: any, i: number) => (
@@ -122,7 +165,7 @@ export function Define({ word, onClose }: { word: string; onClose: () => void })
           ))}
         </div>
       ))}
-      <a className="muted" href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word)}`} target="_blank" rel="noreferrer">More on Wiktionary ↗</a>
+      <a className="ep-more-link" href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word)}`} target="_blank" rel="noreferrer">More on Wiktionary ↗</a>
     </div>
   )
 }
@@ -154,10 +197,11 @@ export function exportNotes(it: BookMeta, anns: Ann[], labels: Record<string, st
 }
 
 // The notes panel: highlights, notes, bookmarks and handwriting, filtered by
-// kind, colour or text, with colour meanings.
-export function NotesPanel({ anns, labels, setLabel, place, open, remove, onExport }: {
+// kind, colour or text, with colour meanings. The reader shows it in a
+// Sheet, with Export in the header.
+export function NotesPanel({ anns, labels, setLabel, place, open, remove }: {
   anns: Ann[]; labels: Record<string, string>; setLabel: (c: string, v: string) => void
-  place: (chapter: number) => string; open: (a: Ann) => void; remove: (a: Ann) => void; onExport: () => void
+  place: (chapter: number) => string; open: (a: Ann) => void; remove: (a: Ann) => void
 }) {
   const [f, setF] = useState({ kind: 'all', color: '', text: '' })
   const used = [...new Set(anns.filter((a) => a.kind === 'highlight').map((a) => a.color))]
@@ -170,11 +214,10 @@ export function NotesPanel({ anns, labels, setLabel, place, open, remove, onExpo
   const inkGroups = (f.kind === 'all' || f.kind === 'ink') && !f.color && !f.text ? [...new Set(anns.filter((a) => a.kind === 'ink').map((a) => a.chapter))] : []
   return (
     <>
-      <div className="ep-head"><h3>Notes & highlights</h3>{anns.length > 0 && <button className="btn sm ghost" onClick={onExport} title="Save as Markdown">Export</button>}</div>
-      <div className="seg ep-kinds">{([['all', 'All'], ['highlight', 'Highlights'], ['note', 'Notes'], ['bookmark', 'Bookmarks'], ['ink', 'Handwriting']] as const).map(([v, l]) => (
-        <button key={v} className={f.kind === v ? 'active' : ''} onClick={() => setF({ ...f, kind: v })}>{l}</button>
+      <div className="rd-chips" role="radiogroup" aria-label="Show">{([['all', 'All'], ['highlight', 'Highlights'], ['note', 'Notes'], ['bookmark', 'Bookmarks'], ['ink', 'Handwriting']] as const).map(([v, l]) => (
+        <button key={v} role="radio" aria-checked={f.kind === v} className={f.kind === v ? 'active' : ''} onClick={() => setF({ ...f, kind: v })}>{l}</button>
       ))}</div>
-      <input className="input" value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} placeholder="Filter notes" aria-label="Filter notes" />
+      <input className="input rd-search" type="search" value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} placeholder="Filter notes" aria-label="Filter notes" />
       {used.length > 0 && (
         <details className="ep-labels">
           <summary>Colours{f.color ? ' (filtered)' : ''}</summary>
@@ -187,23 +230,36 @@ export function NotesPanel({ anns, labels, setLabel, place, open, remove, onExpo
           ))}
         </details>
       )}
-      {anns.length === 0 && <p className="muted">Select text to highlight it, add a note or look a word up. Draw with ✎ or any pen. Bookmark a page with 🔖.</p>}
+      {anns.length === 0 && (
+        <div className="rd-empty">
+          <b>No notes yet</b>
+          <p>Select text to highlight it, add a note or look a word up. Write with the pen tools or any stylus, and bookmark pages to find them again.</p>
+        </div>
+      )}
+      {anns.length > 0 && shown.length === 0 && !inkGroups.length && <p className="rd-empty">Nothing matches.</p>}
       {shown.map((a) => (
-        <div key={a.id} className="ep-ann">
+        <div key={a.id} className={'ep-ann kind-' + a.kind}>
           <button onClick={() => open(a)}>
-            <span className="ep-kind" style={{ background: a.kind === 'highlight' ? fill(a.color, 0.8) : 'transparent' }}>{a.kind === 'bookmark' ? '🔖' : ''}</span>
-            <span><span className="muted">{place(a.chapter)}{labels[a.color] ? ` · ${labels[a.color]}` : ''}</span><br />{a.kind === 'bookmark' ? (a.quote || 'Bookmark') + '…' : `“${a.quote.slice(0, 220)}”`}{a.note && <em className="ep-note">{a.note}</em>}</span>
+            <span className="ep-kind" style={{ background: a.kind === 'highlight' ? fill(a.color, 0.85) : undefined }} />
+            <span className="ep-body">
+              <span className="ep-where">{a.kind === 'bookmark' ? 'Bookmark · ' : ''}{place(a.chapter)}{labels[a.color] ? ` · ${labels[a.color]}` : ''}</span>
+              <span className="ep-quote">{a.kind === 'bookmark' ? (a.quote || 'Bookmark') + '…' : `“${a.quote.slice(0, 220).trim()}”`}</span>
+              {a.note && <span className="ep-note">{a.note}</span>}
+            </span>
           </button>
-          <button className="ibtn sm" onClick={() => remove(a)} aria-label="Delete">✕</button>
+          <button className="ibtn sm ep-del" onClick={() => remove(a)} aria-label="Delete" title="Delete"><IconClose size={16} /></button>
         </div>
       ))}
       {inkGroups.map((c) => {
         const strokes = anns.filter((a) => a.kind === 'ink' && a.chapter === c)
         return (
-          <div key={'ink' + c} className="ep-ann">
+          <div key={'ink' + c} className="ep-ann kind-ink">
             <button onClick={() => open(strokes[0])}>
-              <span className="ep-kind">✎</span>
-              <span><span className="muted">{place(c)}</span><br />{strokes.length} handwritten {strokes.length === 1 ? 'stroke' : 'strokes'}</span>
+              <span className="ep-kind" />
+              <span className="ep-body">
+                <span className="ep-where">Handwriting · {place(c)}</span>
+                <span className="ep-quote">{strokes.length} {strokes.length === 1 ? 'stroke' : 'strokes'}</span>
+              </span>
             </button>
           </div>
         )
@@ -212,18 +268,36 @@ export function NotesPanel({ anns, labels, setLabel, place, open, remove, onExpo
   )
 }
 
-// The toolbar over selected text.
-export function SelectionBar({ x, y, quote, labels, onHighlight, onNote, onDefine, onCite, onSearch, onRead, onClose }: {
-  x: number; y: number; quote: string; labels: Record<string, string>; onHighlight: (c: string) => void; onNote: () => void
+// Keeps a pop-up of the given half-width on screen, then nudges it once it
+// has been measured (its width depends on the buttons it shows).
+const clampX = (x: number, half: number) => Math.min(Math.max(Math.min(half, window.innerWidth / 2), x), window.innerWidth - Math.min(half, window.innerWidth / 2))
+function useOnScreen<T extends HTMLElement>(deps: unknown[]) {
+  const ref = useRef<T | null>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.marginLeft = '0px'
+    const r = el.getBoundingClientRect()
+    const dx = r.left < 8 ? 8 - r.left : r.right > window.innerWidth - 8 ? window.innerWidth - 8 - r.right : 0
+    el.style.marginLeft = `${dx}px`
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  return ref
+}
+
+// The toolbar over selected text, or under it (y2) when there is no room.
+export function SelectionBar({ x, y, y2 = y + 24, quote, labels, onHighlight, onNote, onDefine, onCite, onSearch, onRead, onClose }: {
+  x: number; y: number; y2?: number; quote: string; labels: Record<string, string>; onHighlight: (c: string) => void; onNote: () => void
   onDefine?: (w: string) => void; onCite: () => void; onSearch: (q: string) => void; onRead?: () => void; onClose: () => void
 }) {
   const { toast } = useHost()
   const [more, setMore] = useState(false)
   const then = (f: () => void) => () => { f(); onClose() }
+  const ref = useOnScreen<HTMLDivElement>([x, y, quote])
   return (
-    <div className="ep-pop" style={{ left: Math.min(Math.max(190, x), window.innerWidth - 190), top: Math.max(60, y - 58) }} role="toolbar" aria-label="Selected text">
+    <div ref={ref} className="ep-pop" style={{ left: clampX(x, 210), top: y - 64 >= 64 ? y - 64 : Math.min(y2 + 12, window.innerHeight - 140) }} role="toolbar" aria-label="Selected text">
       {QUICK.map((c) => <button key={c} className="ep-dot" style={{ background: fill(c, 0.9) }} onClick={() => onHighlight(c)} title={labels[c] || c} aria-label={`Highlight ${labels[c] || c}`} />)}
-      <button className="ep-dot more" onClick={() => setMore(!more)} aria-expanded={more} aria-label="More colours">+</button>
+      <button className={'ep-dot more' + (more ? ' on' : '')} onClick={() => setMore(!more)} aria-expanded={more} aria-label="More colours" title="More colours" />
+      <span className="ep-sep" />
       <button onClick={onNote}>Note</button>
       {onDefine && quote.trim().split(/\s+/).length <= 3 && <button onClick={then(() => onDefine(quote.trim()))}>Define</button>}
       <button onClick={then(() => { navigator.clipboard?.writeText(quote); toast('Copied') })}>Copy</button>
@@ -241,10 +315,11 @@ export function HighlightEditor({ ann, x, y, labels, onColor, onNote, onCite, on
   onCite: () => void; onRemove: () => void; onDone: () => void
 }) {
   const { toast } = useHost()
+  const ref = useOnScreen<HTMLDivElement>([x, y])
   return (
-    <div className="ep-pop ep-edit" style={{ left: Math.min(Math.max(180, x), window.innerWidth - 180), top: Math.max(60, Math.min(y + 8, window.innerHeight - 320)) }} role="dialog" aria-label="Highlight">
+    <div ref={ref} className="ep-pop ep-edit" style={{ left: clampX(x, 182), top: Math.max(64, Math.min(y + 10, window.innerHeight - 300)) }} role="dialog" aria-label="Highlight">
       <Palette current={ann.color} labels={labels} onPick={onColor} />
-      {labels[ann.color] && <div className="small">{labels[ann.color]}</div>}
+      {labels[ann.color] && <div className="ep-label-name">{labels[ann.color]}</div>}
       <textarea className="input" rows={4} placeholder="Add a note…" defaultValue={ann.note} autoFocus
         onBlur={(e) => { if (e.target.value !== ann.note) onNote(e.target.value) }} aria-label="Note" />
       <div className="ep-colors">

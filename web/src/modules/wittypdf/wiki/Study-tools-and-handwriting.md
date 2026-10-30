@@ -36,7 +36,7 @@ shared guides in the WittyInk wiki go into more detail:
 
 ## Bookmarks
 
-**🔖** (or **b**) bookmarks the page at the top of the screen, and a red ribbon appears on that
+The **bookmark** button (or **b**) bookmarks the page at the top of the screen, and a red ribbon appears on that
 page. Press it again to remove the bookmark.
 
 ## Definitions
@@ -52,7 +52,7 @@ provides a dictionary.
 
 ## Handwriting
 
-- **Starting:** write with a pen at any time, or press **✎** (or **p**) to write with a finger or
+- **Starting:** write with a pen at any time, or press the **pen** button (or **p**) to write with a finger or
   mouse.
 - **Strokes are stored in the page's own units**, so they stay exactly where you drew them at any
   zoom or layout.

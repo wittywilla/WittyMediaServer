@@ -8,7 +8,7 @@ Write in the margins, circle words, underline, sketch diagrams. Handwriting work
 
 - **With a pen:** just write on the page. A pen writes at any time, without opening any tools
   (you can turn this off).
-- **With a finger or mouse:** press **✎** in the top bar (or the **p** key) to open the ink
+- **With a finger or mouse:** press the **pen** button in the top bar (or the **p** key) to open the ink
   toolbar. While it is open, dragging writes instead of selecting text.
 - Press **Done** (or **Esc**) to close the toolbar.
 

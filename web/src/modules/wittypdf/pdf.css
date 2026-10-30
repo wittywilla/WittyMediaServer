@@ -1,11 +1,11 @@
 /* PDF reader: a scrolling column (or two) of pages, each a canvas with the
    highlight boxes, the selectable text and the ink stacked over it. */
-.pdf2 { background: #3a3b3f; color: #eee; }
+.pdf2 { background: radial-gradient(ellipse at 50% 30%, #3d3e44, #2b2c30 70%); color: #eee; }
 .pdf-scroll { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; }
 .pdf-scroll > .spinner { margin: 40vh auto; }
-.pdf-pages { display: flex; flex-direction: column; align-items: center; padding: 64px 16px 96px; width: max-content; min-width: 100%; box-sizing: border-box; }
+.pdf-pages { display: flex; flex-direction: column; align-items: center; padding: 76px 20px 120px; width: max-content; min-width: 100%; box-sizing: border-box; }
 .pdf-pages.spread { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; }
-.pdf-page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.35); flex: none; }
+.pdf-page { position: relative; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 24px rgba(0,0,0,.28); border-radius: 2px; flex: none; }
 .theme-dark .pdf-page { background: #1a1a1a; }
 .pdf-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .pdf-marks { position: absolute; inset: 0; pointer-events: none; }
@@ -17,14 +17,20 @@
 .pdf-inking { touch-action: none; cursor: crosshair; }
 .pdf-inking .textLayer { pointer-events: none; user-select: none; }
 .pdf-flash { background: rgba(255,159,10,.55); border-radius: 2px; }
-.pdf-zoom { display: flex; align-items: center; gap: 2px; }
-.pdf-pg { width: 4.2em; text-align: center; padding: 2px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: inherit; font: inherit; }
-.pdf-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; padding: 8px 0; }
-.pdf-thumb { display: grid; justify-items: center; gap: 4px; background: none; border: 2px solid transparent; border-radius: 8px; padding: 4px; color: inherit; cursor: pointer; }
-.pdf-thumb canvas { width: 100%; height: auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-.pdf-thumb.on { border-color: var(--accent); }
-.rd-panel .seg { margin-bottom: 8px; }
-@media (max-width: 700px) { .pdf-zoom .btn { display: none; } .pdf-pages { padding: 56px 4px 96px; } }
+.pdf-zoom { display: flex; align-items: center; gap: 0; flex: none; }
+.pdf-zoom-level { min-width: 76px; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: rgba(255,255,255,.08); color: var(--rd-fg); font: 600 12.5px var(--font); font-variant-numeric: tabular-nums; cursor: pointer; }
+.pdf-zoom-level:hover { background: rgba(255,255,255,.14); }
+.pdf-pg { width: 3.6em; height: 24px; text-align: center; padding: 0 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: var(--rd-fg); font: inherit; font-weight: 600; }
+.pdf-pg:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,.12); }
+.pdf-tabs { display: flex; margin: 0 4px 10px; }
+.pdf-tabs button { flex: 1; }
+.pdf-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 10px; padding: 4px; }
+.pdf-thumb { display: grid; justify-items: center; gap: 6px; background: none; border: 0; border-radius: 10px; padding: 6px; color: var(--fg-2); font: 600 12px var(--font); cursor: pointer; transition: background .12s; }
+.pdf-thumb:hover { background: var(--bg-3); }
+.pdf-thumb canvas { width: 100%; height: auto; background: #fff; border-radius: 2px; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.pdf-thumb.on { color: var(--accent); }
+.pdf-thumb.on canvas { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--accent); }
+@media (max-width: 700px) { .pdf-pages { padding: 68px 6px 120px; } }
 
 /* Selectable text over each page. Adapted from pdf.js's viewer styles
    (Apache-2.0, Mozilla Foundation). */

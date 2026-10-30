@@ -73,7 +73,7 @@ Choose an entry to jump to it; the passage flashes so you can find it. **✕** d
 
 ## Bookmarks
 
-**🔖** in the top bar (or the **b** key) bookmarks the page you are on, and a red ribbon shows in
+The **bookmark** button in the top bar (or the **b** key) bookmarks the page you are on, and a red ribbon shows in
 the corner. Press it again to remove the bookmark. Bookmarks are listed in the notes panel.
 
 ## Citations

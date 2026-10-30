@@ -1,10 +1,14 @@
 /* WittyEbook: the page area, book-view spine and the brightness and warmth layers. */
-.epub2 { transition: background .25s; }
+.epub2 { transition: background .3s; }
 .epub-page { position: absolute; top: 18px; bottom: 26px; }
+/* Paged: the top and bottom margins every page shares (in columns the
+   body's own padding would only reach the first and last page). */
+.paged .epub-page { top: max(54px, calc(env(safe-area-inset-top) + 46px)); bottom: max(62px, calc(env(safe-area-inset-bottom) + 54px)); }
 .epub-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
-.epub-spine { position: absolute; top: 4%; bottom: 4%; left: 50%; width: 40px; transform: translateX(-50%); pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(0,0,0,.07) 45%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.07) 55%, transparent); }
-.theme-dark .epub-spine, .theme-black .epub-spine { background: linear-gradient(90deg, transparent, rgba(255,255,255,.04) 50%, transparent); }
-.epub-light { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+/* The fold between two pages: a soft shadow either side of the gutter. */
+.epub-spine { position: absolute; top: 0; bottom: 0; left: 50%; width: 64px; transform: translateX(-50%); pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.045) 38%, rgba(0,0,0,.11) 49.5%, rgba(255,255,255,.05) 50.5%, rgba(0,0,0,.045) 62%, transparent); }
+.theme-dark .epub-spine, .theme-black .epub-spine { background: linear-gradient(90deg, transparent, rgba(0,0,0,.25) 49.5%, rgba(255,255,255,.035) 50.5%, transparent); }
+.epub-light { position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: background .2s; }
 .epub-light.warm { mix-blend-mode: multiply; }
-.epub-mini-progress { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 11px; opacity: .45; pointer-events: none; font-variant-numeric: tabular-nums; }
+.epub-mini-progress { position: absolute; bottom: max(6px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); font: 500 11px var(--font); letter-spacing: .02em; opacity: .42; pointer-events: none; font-variant-numeric: tabular-nums; }

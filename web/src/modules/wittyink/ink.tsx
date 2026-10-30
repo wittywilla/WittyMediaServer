@@ -1,4 +1,5 @@
-import { memo, useState } from 'react'
+import { memo, useState, type ReactNode } from 'react'
+import { IconEraser, IconMarker, IconMore, IconPen, IconPencil, IconRedo, IconUndo } from './icons'
 
 // Handwriting for the readers: pen, pencil and highlighter strokes with pen
 // pressure and tilt, an eraser, and the tool settings. Strokes are flat
@@ -24,7 +25,7 @@ export const MARKER_COLORS = [
   '#ff6b6b', '#ff6fa8', '#f48fb1', '#e0a0ff', '#b39ddb', '#9fa8ff',
   '#5ac8fa', '#80deea', '#64ffda', '#69f0ae', '#b2ff59', '#d4e157',
 ]
-const TOOLS: [Tool, string, string][] = [['pen', '✒', 'Pen'], ['pencil', '✏', 'Pencil'], ['marker', '🖍', 'Highlighter'], ['eraser', '⌫', 'Eraser']]
+const TOOLS: [Tool, ReactNode, string][] = [['pen', <IconPen />, 'Pen'], ['pencil', <IconPencil />, 'Pencil'], ['marker', <IconMarker />, 'Highlighter'], ['eraser', <IconEraser />, 'Eraser']]
 const SIZES: Record<DrawTool, number[]> = { pen: [0.75, 1.5, 2.5, 4, 6, 9], pencil: [0.5, 1, 1.5, 2.5, 4, 6], marker: [8, 12, 16, 22, 30, 40] }
 
 export type InkPrefs = {
@@ -139,6 +140,9 @@ export const InkDefs = ({ id = 'ink-grain', freq = 9 }: { id?: string; freq?: nu
   </defs>
 )
 
+// How full a range input's track is drawn (see .rd-range).
+const pct = (v: number, min: number, max: number) => ({ ['--pct' as string]: `${((v - min) / (max - min)) * 100}%` })
+
 // The ink toolbar: tools, colours, thickness, opacity and pen settings.
 export function InkBar({ p, set, undo, redo, canUndo, canRedo, done, extra }: {
   p: InkPrefs; set: (v: Partial<InkPrefs>) => void; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; done: () => void; extra?: React.ReactNode
@@ -164,16 +168,17 @@ export function InkBar({ p, set, undo, redo, canUndo, canRedo, done, extra }: {
         <div className="ink-sizes" role="radiogroup" aria-label="Thickness">
           {SIZES[t].map((s) => (
             <button key={s} role="radio" aria-checked={p.size[t] === s} className={p.size[t] === s ? 'on' : ''} title={`${s} px`} aria-label={`${s} pixels`} onClick={() => set({ size: { ...p.size, [t]: s }, tool: p.tool === 'eraser' ? t : p.tool })}>
-              <i style={{ width: Math.min(22, Math.max(3, t === 'marker' ? s / 2 : s * 1.6)), height: Math.min(22, Math.max(3, t === 'marker' ? s / 2 : s * 1.6)), background: color }} />
+              <i style={{ width: Math.min(22, Math.max(3, t === 'marker' ? s / 2 : s * 1.6)), height: Math.min(22, Math.max(3, t === 'marker' ? s / 2 : s * 1.6)) }} />
             </button>
           ))}
         </div>
         <span className="ink-sep" />
-        <button className="ink-tool" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
-        <button className="ink-tool" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Y)">↷</button>
-        <button className={'ink-tool' + (open === 'more' ? ' on' : '')} onClick={() => setOpen(open === 'more' ? null : 'more')} aria-expanded={open === 'more'} aria-label="Pen settings" title="Pen settings">⋯</button>
+        <button className="ink-tool" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)"><IconUndo /></button>
+        <button className="ink-tool" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Y)"><IconRedo /></button>
+        <button className={'ink-tool' + (open === 'more' ? ' on' : '')} onClick={() => setOpen(open === 'more' ? null : 'more')} aria-expanded={open === 'more'} aria-label="Pen settings" title="Pen settings"><IconMore /></button>
         {extra}
-        <button className="btn sm primary" onClick={done}>Done</button>
+        <span className="ink-sep" />
+        <button className="btn sm primary ink-done" onClick={done}>Done</button>
       </div>
       {open === 'color' && (
         <div className="ink-pop">
@@ -185,10 +190,10 @@ export function InkBar({ p, set, undo, redo, canUndo, canRedo, done, extra }: {
       {open === 'more' && (
         <div className="ink-pop ink-more">
           <label className="ink-field">Thickness <span className="muted">{p.size[t]} px</span>
-            <input type="range" min={t === 'marker' ? 4 : 0.25} max={t === 'marker' ? 60 : 16} step={0.25} value={p.size[t]} onChange={(e) => set({ size: { ...p.size, [t]: Number(e.target.value) } })} />
+            <input type="range" className="rd-range" style={pct(p.size[t], t === 'marker' ? 4 : 0.25, t === 'marker' ? 60 : 16)} min={t === 'marker' ? 4 : 0.25} max={t === 'marker' ? 60 : 16} step={0.25} value={p.size[t]} onChange={(e) => set({ size: { ...p.size, [t]: Number(e.target.value) } })} />
           </label>
           <label className="ink-field">Opacity <span className="muted">{Math.round(p.opacity[t] * 100)}%</span>
-            <input type="range" min={0.1} max={1} step={0.05} value={p.opacity[t]} onChange={(e) => set({ opacity: { ...p.opacity, [t]: Number(e.target.value) } })} />
+            <input type="range" className="rd-range" style={pct(p.opacity[t], 0.1, 1)} min={0.1} max={1} step={0.05} value={p.opacity[t]} onChange={(e) => set({ opacity: { ...p.opacity, [t]: Number(e.target.value) } })} />
           </label>
           <label className="check-row"><input type="checkbox" checked={p.pressure} onChange={(e) => set({ pressure: e.target.checked })} /> Pen pressure changes thickness</label>
           <label className="check-row"><input type="checkbox" checked={p.penOnly} onChange={(e) => set({ penOnly: e.target.checked })} /> Only a pen draws (fingers turn pages)</label>

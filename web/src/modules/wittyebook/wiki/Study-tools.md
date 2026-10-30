@@ -52,7 +52,7 @@ with a link to Wiktionary. The button appears when the app provides a dictionary
 
 ## Handwriting
 
-Write with a pen at any time, or press **✎** (or **p**) to use a finger or mouse. In books:
+Write with a pen at any time, or press the **pen** button (or **p**) to use a finger or mouse. In books:
 
 - **Strokes stay with their words.** Each stroke is tied to the word it starts next to, and sized
   by the book's text size, so a circled word stays circled when the text reflows.

@@ -2,12 +2,12 @@
 
 ## The screen
 
-- **Top bar:**
-  - back and the title;
-  - the layout choice (**Page**, **Spread**, **Scroll**);
-  - the reading direction;
-  - **Fit width** or **Fit height**.
-- **Footer** (in Page and Spread): a page slider and *page / total*.
+- **Top bar:** back, the title with the page you are on, and the settings button, which opens
+  **Reading** settings:
+  - the layout (**Page**, **Spread**, **Scroll**);
+  - the reading direction (**Left to right** or **Right to left (manga)**);
+  - **Fit height** or **Fit width** (in Page and Spread).
+- **Footer** (in Page and Spread): previous and next buttons, a page slider and *page of total*.
 
 The bars hide after a few seconds. Tap the middle of the screen, or move the mouse, to show them.
 
@@ -21,8 +21,8 @@ The bars hide after a few seconds. Tap the middle of the screen, or move the mou
 
 ## Reading direction
 
-The direction button switches between **Left to right** and **Right to left** (manga). The
-direction changes:
+The **Reading direction** setting switches between **Left to right** and **Right to left**
+(manga). The direction changes:
 
 - which side of the screen goes forward;
 - which arrow key goes forward;

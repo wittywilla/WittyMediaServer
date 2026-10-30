@@ -6,8 +6,8 @@
   - Contents
   - Search
   - Notes ☰
-  - Handwriting ✎
-  - Bookmark 🔖
+  - Handwriting (the pen)
+  - Bookmark
   - Read aloud 🔊
   - Text and display ⚙
 - **Footer:** previous and next page, a slider for the whole book, and the percentage read with
@@ -71,7 +71,7 @@ listed as *Section 1*, *Section 2*, and so on.
 
 ## Bookmarks
 
-**🔖** (or **b**) bookmarks the page, and a red ribbon appears in the top corner. Press it again
+The **bookmark** button (or **b**) bookmarks the page, and a red ribbon appears in the top corner. Press it again
 to remove the bookmark. Find bookmarks in the notes panel ☰.
 
 ## Images

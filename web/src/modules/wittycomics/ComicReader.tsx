@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconBack, useHost } from '@wittywilla/wittyink'
+import { Field, IconBack, IconNext, IconPrev, IconSettings, Range, Sheet, useHost } from '@wittywilla/wittyink'
 import './comics.css'
 
 // Comics and manga page by page: one page, a two-page spread or a vertical
@@ -23,6 +23,7 @@ export default function ComicReader() {
   const [p, setP] = useState(() => load(host.key, host.reading || ''))
   const [page, setPage] = useState(Math.min(Math.floor(host.start), Math.max(0, pages - 1)))
   const [bar, setBar] = useState(true)
+  const [settings, setSettings] = useState(false)
   const barTimer = useRef<any>(null)
   const poke = useCallback(() => { setBar(true); clearTimeout(barTimer.current); barTimer.current = setTimeout(() => setBar(false), 3000) }, [])
   useEffect(() => { poke(); return () => clearTimeout(barTimer.current) }, [poke])
@@ -38,7 +39,7 @@ export default function ComicReader() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const fwd = p.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight', back = p.dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft'
-      if (e.key === 'Escape' || e.key === 'GoBack') close()
+      if (e.key === 'Escape' || e.key === 'GoBack') { if (settings) setSettings(false); else close() }
       else if (p.mode === 'strip') return
       else if (e.key === fwd || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(step) }
       else if (e.key === back || e.key === 'PageUp') { e.preventDefault(); go(-step) }
@@ -47,7 +48,7 @@ export default function ComicReader() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [p, step, go, close, pages])
+  }, [p, step, go, close, pages, settings])
   // Tap zones: the outer thirds turn the page, the middle shows the bar.
   const tap = (e: React.MouseEvent) => {
     const x = e.clientX / window.innerWidth
@@ -82,20 +83,36 @@ export default function ComicReader() {
           {shown.map((n) => <img key={n} src={src(n)} alt={`Page ${n + 1} of ${pages}`} draggable={false} />)}
         </div>
       )}
-      <div className={'reader-bar' + (bar ? '' : ' hidden')} onClick={(e) => e.stopPropagation()}>
-        <button className="ibtn" onClick={close} aria-label="Close the book"><IconBack /></button>
-        <b className="grow">{host.book.title}</b>
-        <div className="seg" role="radiogroup" aria-label="Layout">
-          {([['single', 'Page'], ['double', 'Spread'], ['strip', 'Scroll']] as const).map(([v, l]) => <button key={v} role="radio" aria-checked={p.mode === v} className={p.mode === v ? 'active' : ''} onClick={() => setPrefs({ mode: v })}>{l}</button>)}
-        </div>
-        <button className="btn sm" onClick={() => setPrefs({ dir: p.dir === 'rtl' ? 'ltr' : 'rtl' })} title="Reading direction">{p.dir === 'rtl' ? 'Right to left' : 'Left to right'}</button>
-        {p.mode !== 'strip' && <button className="btn sm ghost" onClick={() => setPrefs({ fit: p.fit === 'height' ? 'width' : 'height' })}>Fit {p.fit === 'height' ? 'width' : 'height'}</button>}
+      <div className={'reader-bar' + (bar || settings ? '' : ' hidden')} onClick={(e) => e.stopPropagation()}>
+        <button className="ibtn" onClick={close} aria-label="Close the book" title="Close (Esc)"><IconBack /></button>
+        <div className="rd-titles"><b>{host.book.title}</b><span>{p.mode === 'strip' ? `${pages} pages` : `Page ${page + 1} of ${pages}`}</span></div>
+        <button className={'ibtn' + (settings ? ' on' : '')} onClick={() => setSettings(!settings)} aria-label="Reading settings" title="Reading settings"><IconSettings /></button>
       </div>
       {p.mode !== 'strip' && (
-        <div className={'reader-foot' + (bar ? '' : ' hidden')} onClick={(e) => e.stopPropagation()}>
-          <input type="range" min={0} max={Math.max(0, pages - 1)} value={page} aria-label="Page" style={{ direction: p.dir }} onChange={(e) => setPage(Number(e.target.value))} />
-          <span>{page + 1} / {pages}</span>
+        <div className={'reader-foot' + (bar || settings ? '' : ' hidden')} onClick={(e) => e.stopPropagation()}>
+          <button className="ibtn" onClick={() => go(p.dir === 'rtl' ? step : -step)} aria-label={p.dir === 'rtl' ? 'Next page' : 'Previous page'}><IconPrev /></button>
+          <Range min={0} max={Math.max(0, pages - 1)} value={page} label="Page" valueText={`Page ${page + 1} of ${pages}`} dir={p.dir} onChange={setPage} />
+          <button className="ibtn" onClick={() => go(p.dir === 'rtl' ? -step : step)} aria-label={p.dir === 'rtl' ? 'Previous page' : 'Next page'}><IconNext /></button>
+          <div className="rd-foot-info"><b>{shown.length > 1 ? `${Math.min(...shown) + 1}–${Math.max(...shown) + 1}` : page + 1}</b><span>of {pages}</span></div>
         </div>
+      )}
+      {settings && (
+        <Sheet title="Reading" onClose={() => setSettings(false)}>
+          <div className="ep-display">
+            <Field label="Layout">
+              <div className="seg">{([['single', 'Page'], ['double', 'Spread'], ['strip', 'Scroll']] as const).map(([v, l]) => <button key={v} className={p.mode === v ? 'active' : ''} aria-pressed={p.mode === v} onClick={() => setPrefs({ mode: v })}>{l}</button>)}</div>
+            </Field>
+            <Field label="Reading direction">
+              <div className="seg">{([['ltr', 'Left to right'], ['rtl', 'Right to left (manga)']] as const).map(([v, l]) => <button key={v} className={p.dir === v ? 'active' : ''} aria-pressed={p.dir === v} onClick={() => setPrefs({ dir: v })}>{l}</button>)}</div>
+            </Field>
+            {p.mode !== 'strip' && (
+              <Field label="Fit">
+                <div className="seg">{([['height', 'Fit height'], ['width', 'Fit width']] as const).map(([v, l]) => <button key={v} className={p.fit === v ? 'active' : ''} aria-pressed={p.fit === v} onClick={() => setPrefs({ fit: v })}>{l}</button>)}</div>
+              </Field>
+            )}
+            <p className="muted small">Tap the sides of the page or swipe to turn pages; tap the middle to show or hide the bars. Arrow keys follow the reading direction.</p>
+          </div>
+        </Sheet>
       )}
     </div>
   )

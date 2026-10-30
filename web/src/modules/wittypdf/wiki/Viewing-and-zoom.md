@@ -6,8 +6,8 @@
   - Contents and pages
   - Search
   - Notes ☰
-  - Handwriting ✎
-  - Bookmark 🔖
+  - Handwriting (the pen)
+  - Bookmark
   - Read aloud 🔊
   - Display ⚙
 - **Pages:** one continuous scroll.

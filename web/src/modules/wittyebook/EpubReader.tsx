@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { centerline, cite, colorName, Define, exportNotes, fill, HighlightEditor, hits, IconBack, IconBook, IconSearch, IconSettings, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, saveInk, SelectionBar, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
+import { centerline, cite, colorName, Define, exportNotes, Field, fill, HighlightEditor, hits, IconBack, IconBookmark, IconClose, IconContents, IconHandwriting, IconNext, IconNotes, IconPrev, IconSearch, IconSettings, IconSpeaker, IconStop, InkBar, InkDefs, InkStroke, loadInk, NotesPanel, outline, pointPressure, Range, saveInk, SelectionBar, Sheet, useAnnotations, useColorLabels, useHost, type Ann, type DrawTool, type InkPrefs, type Stroke } from '@wittywilla/wittyink'
 import './ebook.css'
 
 // WittyEbook: the EPUB reader. Book view (two pages side by side), one page or
@@ -132,7 +132,7 @@ export default function EpubReader() {
   const anns = A.anns
   const [labels, setLabel] = useColorLabels()
   const [panel, setPanel] = useState<null | 'contents' | 'notes' | 'search' | 'display'>(null)
-  const [sel, setSel] = useState<{ x: number; y: number; quote: string; prefix: string; suffix: string; more?: boolean } | null>(null)
+  const [sel, setSel] = useState<{ x: number; y: number; y2?: number; quote: string; prefix: string; suffix: string } | null>(null)
   const [edit, setEdit] = useState<{ ann: Ann; x: number; y: number } | null>(null)
   const [define, setDefine] = useState<string | null>(null)
   const [foot, setFoot] = useState<{ text: string; chapter: number; anchor: string } | null>(null)
@@ -153,12 +153,17 @@ export default function EpubReader() {
 
   const setPrefs = (v: Partial<Prefs>) => setP((cur) => { const n = { ...cur, ...v }; try { localStorage.setItem(PREFS_KEY, JSON.stringify(n)) } catch { /* ignore */ } return n })
   const setInk = (v: Partial<InkPrefs>) => setInkState((cur) => { const n = { ...cur, ...v }; saveInk(n); return n })
+  // Two pages need room: "Auto" shows them on wide landscape screens, and
+  // even "Two pages" shows one on a phone.
   const wide = typeof window !== 'undefined' && window.innerWidth >= 1000 && window.innerWidth > window.innerHeight
-  const cols = p.layout === 'book' || (p.layout === 'auto' && wide) ? 2 : 1
+  const roomy = typeof window !== 'undefined' && window.innerWidth >= 700
+  const cols = (p.layout === 'book' && roomy) || (p.layout === 'auto' && wide) ? 2 : 1
   const paged = p.layout !== 'scroll'
   const dark = p.theme === 'dark' || p.theme === 'black'
   const pokeBar = () => { setBar(true); clearTimeout(barTimer.current); barTimer.current = setTimeout(() => setBar(false), 3500) }
   useEffect(() => { pokeBar(); return () => clearTimeout(barTimer.current) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // A mouse near the top or bottom edge brings the bars back.
+  const edgeHover = (y: number) => { if (y < 72 || y > window.innerHeight - 96) pokeBar() }
 
 
   const save = useCallback((pos: number) => {
@@ -169,10 +174,12 @@ export default function EpubReader() {
 
   // ---------------------------------------------------------- layout
   const geometry = () => {
-    const fr = frame.current!
-    const W = fr.clientWidth, H = fr.clientHeight
+    // The frame's exact width: rounding it would make the columns drift
+    // from the pages a little more on every turn.
+    const r = frame.current!.getBoundingClientRect()
+    const W = r.width, H = Math.floor(r.height)
     const gap = Math.max(32, Math.round(W * 0.04))
-    return { W, H, gap, step: W + gap, cw: (W - (cols - 1) * gap) / cols }
+    return { W, H, gap, step: W + gap }
   }
   // The chapter's document once it has loaded (before that the frame holds
   // an empty page, and laying that out would save a wrong position).
@@ -184,14 +191,14 @@ export default function EpubReader() {
     const d = doc()
     if (!d?.documentElement || !frame.current) return
     const [bg, fg, muted] = THEMES[p.theme]
-    const { H, gap, cw } = geometry()
+    const { H, gap } = geometry()
     let st = d.getElementById('wms-style') as HTMLStyleElement | null
     if (!st) { st = d.createElement('style'); st.id = 'wms-style'; (d.head || d.documentElement).appendChild(st) }
     const fam = FAMILIES[p.family]
     st.textContent = `
       html{background:${bg}!important;color:${fg}!important;font-size:${p.font}%!important;-webkit-text-size-adjust:none;touch-action:${inkMode ? 'none' : paged ? 'pinch-zoom' : 'auto'}}
       ${inkMode ? 'html{cursor:crosshair;-webkit-user-select:none;user-select:none}' : ''}
-      body{margin:0!important;background:transparent!important;color:inherit!important;line-height:${p.line}!important;${paged ? 'padding:28px 0 36px!important' : 'padding:28px 0 120px!important'}}
+      body{margin:0!important;background:transparent!important;color:inherit!important;line-height:${p.line}!important;${paged ? 'padding:0!important' : 'padding:28px 0 120px!important'}}
       ${fam ? `body,p,div,span,li,td,blockquote,h1,h2,h3,h4,h5,h6{font-family:${fam}!important}` : ''}
       p,li{text-align:${p.justify ? 'justify' : 'start'}!important;hyphens:${p.justify ? 'auto' : 'manual'}}
       a{color:inherit!important} img,svg,video{max-width:100%!important;height:auto!important;max-height:${H - 80}px!important;object-fit:contain}
@@ -199,7 +206,7 @@ export default function EpubReader() {
       mark[data-ann]{background:var(--c)!important;color:inherit!important;border-radius:2px;cursor:pointer}
       mark[data-ann][data-note]{text-decoration:underline dotted ${muted};text-underline-offset:3px}
       mark.wms-flash{background:rgba(255,159,10,.55)!important;color:inherit!important}
-      ${paged ? `html{height:${H}px!important;column-width:${cw}px!important;column-gap:${gap}px!important;column-fill:auto!important;overflow:hidden!important}
+      ${paged ? `html{height:${H}px!important;column-count:${cols}!important;column-width:auto!important;column-gap:${gap}px!important;column-fill:auto!important;overflow:hidden!important}
       body{height:${H}px!important;box-sizing:border-box}` : 'html{overflow-y:auto!important}'}`
   }
 
@@ -299,7 +306,7 @@ export default function EpubReader() {
     if (!d) return 0
     const idx = textIndex(d)
     const len = idx.text.length || 1
-    for (const [x, y] of [[6, 44], [24, 70], [6, 110]]) {
+    for (const [x, y] of (paged ? [[6, 8], [24, 30], [6, 60]] : [[6, 44], [24, 70], [6, 110]])) {
       const o = offsetAt(d, idx, x, y)
       if (o >= 0) return Math.min(0.9999, o / len)
     }
@@ -320,6 +327,7 @@ export default function EpubReader() {
     on(d, 'keydown', 'key')
     on(d, 'mouseup', 'select')
     on(d, 'click', 'click')
+    on(d, 'mousemove', 'hover', { passive: true })
     on(d, 'pointerdown', 'down')
     on(d, 'pointermove', 'move')
     on(d, 'pointerup', 'up')
@@ -337,6 +345,7 @@ export default function EpubReader() {
     return () => { window.removeEventListener('resize', r); cancelAnimationFrame(raf) }
   })
   useEffect(() => { paint() }, [paint])
+  useEffect(() => { if (inkMode) { setSel(null); setEdit(null); doc()?.getSelection()?.removeAllRanges() } }, [inkMode]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (paged && loaded.current) save(chapter + textFrac()) }, [chapter, page, pages, paged, save]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------- navigation
@@ -442,7 +451,7 @@ export default function EpubReader() {
     const at = pre.toString().length
     const r = range.getBoundingClientRect()
     const o = frame.current!.getBoundingClientRect()
-    setSel({ x: o.left + r.left + r.width / 2, y: o.top + r.top, quote, prefix: idx.text.slice(Math.max(0, at - 40), at), suffix: idx.text.slice(at + quote.length, at + quote.length + 40) })
+    setSel({ x: o.left + r.left + r.width / 2, y: o.top + r.top, y2: o.top + r.bottom, quote, prefix: idx.text.slice(Math.max(0, at - 40), at), suffix: idx.text.slice(at + quote.length, at + quote.length + 40) })
     setEdit(null)
   }
 
@@ -632,6 +641,7 @@ export default function EpubReader() {
   H.current = {
     key: onKey, select: onSelect, click: onClickDoc, down: onDown, move: onMove, up: onUp,
     show: (b: Element) => reveal(b),
+    hover: (e: MouseEvent) => { if (!drawing.current) edgeHover((frame.current?.getBoundingClientRect().top || 0) + e.clientY) },
     nextChapter: chapter + 1 < spine.length ? () => goChapter(chapter + 1) : undefined,
     touchstart: (e: TouchEvent) => { touchX.current = drawing.current ? null : e.touches[0].clientX },
     touchend: (e: TouchEvent) => {
@@ -676,8 +686,10 @@ export default function EpubReader() {
   const [bg, fg] = THEMES[p.theme]
   const chapterTitle = info.toc?.find((t) => t.href.split('#')[0] === spine[chapter])?.title.trim()
   const margin = `${2 + p.margin * 2.5}%`
+  const toc = info.toc?.length ? info.toc : spine.map((s, i) => ({ title: `Section ${i + 1}`, href: s }))
+  const panelTitle = { contents: 'Contents', notes: 'Notes & highlights', search: 'Search', display: 'Text and display' }
   return (
-    <div className={'reader epub2 theme-' + p.theme + (inkMode ? ' inking' : '')} style={{ background: bg, color: fg }} onMouseMove={(e) => { if (e.clientY < 70 || e.clientY > window.innerHeight - 70) pokeBar() }}>
+    <div className={'reader epub2 theme-' + p.theme + (paged ? ' paged' : '') + (inkMode ? ' inking' : '')} style={{ background: bg, color: fg }} onMouseMove={(e) => edgeHover(e.clientY)}>
       <div className="epub-page" style={{ left: margin, right: margin }}>
         <iframe ref={frame} key={chapter + p.layout} className="epub-frame" title={it.title} sandbox="allow-same-origin"
           src={host.epub!.chapterUrl(spine[chapter])} onLoad={onLoad} />
@@ -696,97 +708,102 @@ export default function EpubReader() {
       {bookmarkHere && <div className="rd-ribbon" aria-label="This page is bookmarked" />}
 
       <div className={'reader-bar' + (bar || panel || inkMode ? '' : ' hidden')}>
-        <button className="ibtn" onClick={close} aria-label="Close the book"><IconBack /></button>
-        <div className="grow rd-titles"><b>{it.title}</b>{chapterTitle && <span className="muted">{chapterTitle}</span>}</div>
-        <button className="ibtn" onClick={() => setPanel(panel === 'contents' ? null : 'contents')} aria-label="Contents" title="Contents"><IconBook /></button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'search' ? null : 'search')} aria-label="Search in the book" title="Search (/)"><IconSearch /></button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'notes' ? null : 'notes')} aria-label="Notes and highlights" title="Notes and highlights">☰</button>
-        <button className={'ibtn' + (inkMode ? ' on' : '')} onClick={() => setInkMode(!inkMode)} aria-pressed={inkMode} aria-label="Handwriting" title="Pen, pencil and highlighter (p)">✎</button>
-        <button className={'ibtn' + (bookmarkHere ? ' on' : '')} onClick={toggleBookmark} aria-pressed={!!bookmarkHere} aria-label="Bookmark this page" title="Bookmark (b)">🔖</button>
-        <button className={'ibtn' + (speaking ? ' on' : '')} onClick={() => readAloud()} aria-pressed={speaking} aria-label="Read aloud" title="Read aloud">🔊</button>
-        <button className="ibtn" onClick={() => setPanel(panel === 'display' ? null : 'display')} aria-label="Display settings" title="Text and display"><IconSettings /></button>
+        <button className="ibtn" onClick={close} aria-label="Close the book" title="Close (Esc)"><IconBack /></button>
+        <div className="rd-titles"><b>{it.title}</b>{chapterTitle && <span>{chapterTitle}</span>}</div>
+        <button className={'ibtn' + (panel === 'contents' ? ' on' : '')} onClick={() => setPanel(panel === 'contents' ? null : 'contents')} aria-label="Contents" title="Contents"><IconContents /></button>
+        <button className={'ibtn' + (panel === 'search' ? ' on' : '')} onClick={() => setPanel(panel === 'search' ? null : 'search')} aria-label="Search in the book" title="Search (/)"><IconSearch /></button>
+        <button className={'ibtn' + (panel === 'notes' ? ' on' : '')} onClick={() => setPanel(panel === 'notes' ? null : 'notes')} aria-label="Notes and highlights" title="Notes and highlights"><IconNotes /></button>
+        <span className="rd-gap rd-wide" />
+        <button className={'ibtn' + (inkMode ? ' on' : '')} onClick={() => setInkMode(!inkMode)} aria-pressed={inkMode} aria-label="Handwriting" title="Pen, pencil and highlighter (p)"><IconHandwriting /></button>
+        <button className={'ibtn' + (bookmarkHere ? ' on' : '')} onClick={toggleBookmark} aria-pressed={!!bookmarkHere} aria-label="Bookmark this page" title="Bookmark (b)"><IconBookmark on={!!bookmarkHere} /></button>
+        <button className={'ibtn rd-wide' + (speaking ? ' on' : '')} onClick={() => readAloud()} aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read aloud'} title={speaking ? 'Stop reading' : 'Read aloud'}>{speaking ? <IconStop /> : <IconSpeaker />}</button>
+        <button className={'ibtn' + (panel === 'display' ? ' on' : '')} onClick={() => setPanel(panel === 'display' ? null : 'display')} aria-label="Text and display" title="Text and display"><IconSettings /></button>
       </div>
 
       {inkMode ? (
         <InkBar p={ink} set={setInk} undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo} done={() => setInkMode(false)}
-          extra={<><button className="ink-tool" onClick={() => turn(-1)} aria-label="Previous page">‹</button><button className="ink-tool" onClick={() => turn(1)} aria-label="Next page">›</button></>} />
+          extra={<><span className="ink-sep" /><button className="ink-tool" onClick={() => turn(-1)} aria-label="Previous page" title="Previous page"><IconPrev /></button><button className="ink-tool" onClick={() => turn(1)} aria-label="Next page" title="Next page"><IconNext /></button></>} />
       ) : (
-        <div className={'reader-foot rd-foot' + (bar || panel ? '' : ' hidden')}>
-          <button className="ibtn sm" onClick={() => turn(-1)} aria-label="Previous page">‹</button>
-          <input type="range" min={0} max={1000} value={Math.round((doneWords / totalWords) * 1000)} aria-label="Position in the book" aria-valuetext={`${pct}%`} onChange={(e) => seekBook(Number(e.target.value))} />
-          <button className="ibtn sm" onClick={() => turn(1)} aria-label="Next page">›</button>
-          <span>{pct}% · {fmtMin(leftChapter)} left in chapter · {fmtMin(leftBook)} in book</span>
+        <div className={'reader-foot' + (bar || panel ? '' : ' hidden')}>
+          <button className="ibtn" onClick={() => turn(-1)} aria-label="Previous page" title="Previous page"><IconPrev /></button>
+          <Range min={0} max={1000} value={Math.round((doneWords / totalWords) * 1000)} label="Position in the book" valueText={`${pct}%`} onChange={seekBook} />
+          <button className="ibtn" onClick={() => turn(1)} aria-label="Next page" title="Next page"><IconNext /></button>
+          <div className="rd-foot-info">
+            <b>{pct}%</b>
+            {paged && pages > 1 && <><span className="rd-dot">·</span><span>Page {page + 1} of {pages} in chapter</span></>}
+            <span className="rd-dot">·</span><span>{fmtMin(leftChapter)} left in chapter</span>
+            <span className="rd-dot rd-wide">·</span><span className="rd-wide">{fmtMin(leftBook)} in book</span>
+          </div>
         </div>
       )}
       {!bar && !panel && !inkMode && paged && <div className="epub-mini-progress" aria-hidden="true">{pct}%</div>}
 
       {panel && (
-        <aside className="rd-panel" role="dialog" aria-label={panel}>
-          {panel === 'contents' && (
-            <>
-              <h3>Contents</h3>
-              {(info.toc?.length ? info.toc : spine.map((s, i) => ({ title: `Section ${i + 1}`, href: s }))).map((t, i) => {
-                const [file, anchor] = t.href.split('#')
-                const c = spine.findIndex((s) => s === file)
-                return <button key={i} disabled={c < 0} className={c === chapter ? 'on' : ''} onClick={() => { goChapter(c, { anchor }); setPanel(null) }}>{t.title}</button>
-              })}
-            </>
-          )}
+        <Sheet title={panelTitle[panel]} onClose={() => setPanel(null)}
+          actions={panel === 'notes' && anns.length > 0 ? <button className="btn sm ghost" onClick={() => exportNotes(it, anns, labels, chapterName)} title="Save as Markdown">Export</button> : undefined}>
+          {panel === 'contents' && toc.map((t, i) => {
+            const [file, anchor] = t.href.split('#')
+            const c = spine.findIndex((s) => s === file)
+            // Only the first entry of the current chapter is marked, so a
+            // chapter with sections shows one place.
+            const on = c === chapter && toc.findIndex((u) => u.href.split('#')[0] === file) === i
+            return <button key={i} disabled={c < 0} className={'rd-list-item' + (on ? ' on' : '')} aria-current={on ? 'true' : undefined} onClick={() => { goChapter(c, { anchor }); setPanel(null) }}>{t.title}</button>
+          })}
           {panel === 'notes' && (
-            <NotesPanel anns={anns} labels={labels} setLabel={setLabel} place={chapterName} remove={deleteAnn} onExport={() => exportNotes(it, anns, labels, chapterName)}
+            <NotesPanel anns={anns} labels={labels} setLabel={setLabel} place={chapterName} remove={deleteAnn}
               open={(a) => { if (a.kind === 'highlight') goChapter(a.chapter, { quote: { quote: a.quote, prefix: a.prefix } }); else goChapter(a.chapter, { frac: a.pos - a.chapter }); setPanel(null) }} />
           )}
           {panel === 'search' && (
             <>
-              <h3>Search</h3>
               <form onSubmit={(e) => { e.preventDefault(); search(query) }}>
-                <input className="input" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this book" aria-label="Search in this book" />
+                <input className="input" type="search" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this book" aria-label="Search in this book" />
               </form>
               {hitsFound === null && query && <div className="spinner" />}
-              {hitsFound && <p className="muted">{hitsFound.length === 0 ? 'No matches' : `${hitsFound.length}${hitsFound.length >= 200 ? '+' : ''} matches`}</p>}
+              {hitsFound && <div className="rd-count">{hitsFound.length === 0 ? 'No matches' : `${hitsFound.length}${hitsFound.length >= 200 ? '+' : ''} matches`}</div>}
+              {!query && <p className="rd-empty">Type a word or phrase and press Enter.</p>}
               {hitsFound?.map((h, i) => (
                 <button key={i} className="ep-hit" onClick={() => { goChapter(h.chapter, { quote: { quote: h.quote, prefix: h.prefix } }); setPanel(null) }}>
-                  <span className="muted">{chapterName(h.chapter)}</span> {h.snippet}
+                  <span className="ep-where">{chapterName(h.chapter)}</span><Snippet text={h.snippet} q={h.quote} />
                 </button>
               ))}
             </>
           )}
           {panel === 'display' && (
             <div className="ep-display">
-              <h3>Text and display</h3>
-              <label>Layout
-                <div className="seg">{([['auto', 'Auto'], ['single', 'One page'], ['book', 'Book view'], ['scroll', 'Scroll']] as const).map(([v, l]) => <button key={v} className={p.layout === v ? 'active' : ''} onClick={() => setPrefs({ layout: v })}>{l}</button>)}</div>
-              </label>
-              <label>Font
-                <select className="select" value={p.family} onChange={(e) => setPrefs({ family: e.target.value as Prefs['family'] })}>
+              <Field label="Layout">
+                <div className="seg">{([['auto', 'Auto'], ['single', 'One page'], ['book', 'Book view'], ['scroll', 'Scroll']] as const).map(([v, l]) => <button key={v} className={p.layout === v ? 'active' : ''} aria-pressed={p.layout === v} onClick={() => setPrefs({ layout: v })}>{l}</button>)}</div>
+              </Field>
+              <Field label="Page">
+                <div className="ep-themes">{(Object.keys(THEMES) as Prefs['theme'][]).map((t) => (
+                  <button key={t} className={p.theme === t ? 'on' : ''} style={{ background: THEMES[t][0], color: THEMES[t][1] }} onClick={() => setPrefs({ theme: t })} aria-pressed={p.theme === t} aria-label={t}><span>Aa<small>{t}</small></span></button>
+                ))}</div>
+              </Field>
+              <Field label="Font">
+                <select className="select" value={p.family} onChange={(e) => setPrefs({ family: e.target.value as Prefs['family'] })} aria-label="Font">
                   <option value="publisher">Publisher's font</option><option value="serif">Serif</option><option value="sans">Sans-serif</option><option value="readable">Extra readable</option><option value="mono">Monospace</option>
                 </select>
-              </label>
-              <label>Size <span className="muted">{p.font}%</span>
-                <div className="ep-steps"><button className="btn sm" onClick={() => setPrefs({ font: Math.max(60, p.font - 10) })} aria-label="Smaller text">A−</button>
-                  <input type="range" min={60} max={250} step={5} value={p.font} onChange={(e) => setPrefs({ font: Number(e.target.value) })} aria-label="Text size" />
-                  <button className="btn sm" onClick={() => setPrefs({ font: Math.min(250, p.font + 10) })} aria-label="Larger text">A+</button></div>
-              </label>
-              <label>Line spacing <input type="range" min={1.1} max={2.2} step={0.05} value={p.line} onChange={(e) => setPrefs({ line: Number(e.target.value) })} /></label>
-              <label>Margins <input type="range" min={0} max={6} step={1} value={p.margin} onChange={(e) => setPrefs({ margin: Number(e.target.value) })} /></label>
-              <label className="check-row"><input type="checkbox" checked={p.justify} onChange={(e) => setPrefs({ justify: e.target.checked })} /> Justify and hyphenate</label>
-              <label>Page
-                <div className="ep-themes">{(Object.keys(THEMES) as Prefs['theme'][]).map((t) => (
-                  <button key={t} className={p.theme === t ? 'on' : ''} style={{ background: THEMES[t][0], color: THEMES[t][1] }} onClick={() => setPrefs({ theme: t })} aria-label={t}>Aa</button>
-                ))}</div>
-              </label>
-              <label>Brightness <input type="range" min={0.35} max={1} step={0.05} value={p.brightness} onChange={(e) => setPrefs({ brightness: Number(e.target.value) })} /></label>
-              <label>Warmth <span className="muted">(night light)</span><input type="range" min={0} max={0.45} step={0.05} value={p.warmth} onChange={(e) => setPrefs({ warmth: Number(e.target.value) })} /></label>
-              <button className="btn sm ghost" onClick={() => setPrefs(DEF)}>Reset</button>
+              </Field>
+              <Field label="Text size" value={`${p.font}%`}>
+                <div className="ep-steps"><button className="btn sm" onClick={() => setPrefs({ font: Math.max(60, p.font - 10) })} aria-label="Smaller text"><span style={{ fontSize: 12 }}>A</span></button>
+                  <Range min={60} max={250} step={5} value={p.font} onChange={(v) => setPrefs({ font: v })} label="Text size" />
+                  <button className="btn sm" onClick={() => setPrefs({ font: Math.min(250, p.font + 10) })} aria-label="Larger text"><span style={{ fontSize: 18 }}>A</span></button></div>
+              </Field>
+              <Field label="Line spacing" value={p.line.toFixed(2)}><Range min={1.1} max={2.2} step={0.05} value={p.line} onChange={(v) => setPrefs({ line: v })} label="Line spacing" /></Field>
+              <Field label="Margins" value={['None', 'Narrow', 'Small', 'Medium', 'Wide', 'Wider', 'Widest'][p.margin]}><Range min={0} max={6} step={1} value={p.margin} onChange={(v) => setPrefs({ margin: v })} label="Margins" /></Field>
+              <Field label="Brightness" value={`${Math.round(p.brightness * 100)}%`}><Range min={0.35} max={1} step={0.05} value={p.brightness} onChange={(v) => setPrefs({ brightness: v })} label="Brightness" /></Field>
+              <Field label="Warmth (night light)" value={p.warmth ? `${Math.round((p.warmth / 0.45) * 100)}%` : 'Off'}><Range min={0} max={0.45} step={0.05} value={p.warmth} onChange={(v) => setPrefs({ warmth: v })} label="Warmth" /></Field>
+              <Field label="Paragraphs">
+                <label className="check-row"><input type="checkbox" checked={p.justify} onChange={(e) => setPrefs({ justify: e.target.checked })} /> Justify and hyphenate</label>
+              </Field>
+              <button className="btn sm ghost rd-reset" onClick={() => setPrefs(DEF)}>Reset to defaults</button>
             </div>
           )}
-          <button className="btn ghost ep-close" onClick={() => setPanel(null)}>Close</button>
-        </aside>
+        </Sheet>
       )}
 
       {sel && (
-        <SelectionBar x={sel.x} y={sel.y} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
-          onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y + 20 }) }}
+        <SelectionBar x={sel.x} y={sel.y} y2={sel.y2} quote={sel.quote} labels={labels} onHighlight={(c) => addHighlight(c)} onClose={() => setSel(null)}
+          onNote={async () => { const s = sel; const a = await addHighlight('yellow'); if (a) setEdit({ ann: a, x: s.x, y: s.y2 ?? s.y + 20 }) }}
           onDefine={host.define ? setDefine : undefined} onCite={() => navigator.clipboard?.writeText(cite(it, sel.quote, chapterName(chapter)))} onSearch={search}
           onRead={() => readAloud(sel.quote.trim().slice(0, 40))} />
       )}
@@ -799,7 +816,7 @@ export default function EpubReader() {
 
       {foot && (
         <div className="ep-define" role="dialog" aria-label="Footnote">
-          <div className="ep-head"><h3>Note</h3><button className="ibtn" onClick={() => setFoot(null)} aria-label="Close">✕</button></div>
+          <div className="ep-head"><h3>Note</h3><button className="ibtn sm" onClick={() => setFoot(null)} aria-label="Close"><IconClose /></button></div>
           <p className="ep-foot-text">{foot.text}</p>
           <button className="btn sm ghost" onClick={() => { goChapter(foot.chapter, { anchor: foot.anchor }); setFoot(null) }}>Go to the note</button>
         </div>
@@ -808,4 +825,11 @@ export default function EpubReader() {
       {define && <Define word={define} onClose={() => setDefine(null)} />}
     </div>
   )
+}
+
+// A search result with the words found marked.
+function Snippet({ text, q }: { text: string; q: string }) {
+  const i = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1
+  if (i < 0) return <>{text}</>
+  return <>{text.slice(0, i)}<mark>{text.slice(i, i + q.length)}</mark>{text.slice(i + q.length)}</>
 }

@@ -184,6 +184,13 @@ func TestOpenHTTPKinds(t *testing.T) {
 	mux.HandleFunc("/locked.ts", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(bytes.Repeat(tsPacket(0x100, true), 2000))
 	})
+	mux.HandleFunc("/dtcp", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-dtcp1; CONTENTFORMAT=video/mpeg")
+		_, _ = w.Write(bytes.Repeat(tsPacket(0x100, false), 50))
+	})
+	mux.HandleFunc("/drm.mpd", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<?xml version="1.0"?><MPD><Period><AdaptationSet><ContentProtection schemeIdUri="urn:x"/></AdaptationSet></Period></MPD>`)
+	})
 	mux.HandleFunc("/busy", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) })
 	mux.HandleFunc("/gone", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(404) })
 	mux.HandleFunc("/video.mp4", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("....ftypisom")) })
@@ -202,7 +209,7 @@ func TestOpenHTTPKinds(t *testing.T) {
 		t.Fatalf("no whitelist: %s", joined)
 	}
 
-	for _, p := range []string{"/aes.m3u8", "/drm.m3u8", "/master.m3u8"} {
+	for _, p := range []string{"/aes.m3u8", "/drm.m3u8", "/master.m3u8", "/dtcp", "/drm.mpd"} {
 		_, err = openStream(t, srv.URL+p)
 		var e *EncryptedError
 		if !errors.As(err, &e) {
@@ -231,7 +238,7 @@ func TestOpenHTTPKinds(t *testing.T) {
 	if !IsEncrypted(err) {
 		t.Fatalf("a scrambled stream must stop: %v", err)
 	}
-	if !strings.Contains(RefusalMessage("Ch", err).Error(), "does not decrypt") {
+	if m := RefusalMessage("Ch", err).Error(); !strings.Contains(m, "does not decrypt") || !strings.Contains(m, EncryptedLabel) {
 		t.Fatal(RefusalMessage("Ch", err))
 	}
 	st.Close()
@@ -245,6 +252,48 @@ func TestOpenHTTPKinds(t *testing.T) {
 	st, err = openStream(t, srv.URL+"/video.mp4")
 	if err != nil || st.Input == nil {
 		t.Fatalf("other formats go to FFmpeg: %v", err)
+	}
+}
+
+// fakeDriver is a driver that forgot about the guard.
+type fakeDriver struct{ data []byte }
+
+func (f fakeDriver) Info() Info                                  { return Info{} }
+func (f fakeDriver) Channels(context.Context) ([]Channel, error) { return nil, nil }
+func (f fakeDriver) Scan(context.Context, ScanOptions, func(Progress)) ([]Channel, error) {
+	return nil, nil
+}
+func (f fakeDriver) Close() error { return nil }
+func (f fakeDriver) Open(context.Context, Channel) (*Stream, error) {
+	return &Stream{Reader: io.NopCloser(bytes.NewReader(f.data))}, nil
+}
+
+func TestEveryDriverPassesTheGuard(t *testing.T) {
+	register(Driver{ID: "fake-test", Name: "Fake", Description: "x", Status: "tested", build: func(Config, Env) (Source, error) {
+		return fakeDriver{bytes.Repeat(tsPacket(0x100, true), 3000)}, nil
+	}})
+	defer func() { regMu.Lock(); drivers = drivers[:len(drivers)-1]; regMu.Unlock() }()
+	s, err := New("fake-test", Config{}, Env{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Open(context.Background(), Channel{Name: "L", Encrypted: "marked"}); !IsEncrypted(err) {
+		t.Fatalf("a marked channel must not reach the driver: %v", err)
+	}
+	st, err := s.Open(context.Background(), Channel{Name: "L"})
+	if err != nil || st.Guard == nil {
+		t.Fatalf("raw MPEG-TS must get a guard whatever the driver does: %v %+v", err, st)
+	}
+	if _, err := io.ReadAll(st.Reader); !IsEncrypted(err) {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestSRTPassphraseRefused(t *testing.T) {
+	s, _ := New("stream", Config{Options: map[string]string{"url": "srt://a.test:9000?passphrase=secretsecret"}}, Env{})
+	ch, _ := s.Channels(context.Background())
+	if _, err := s.Open(context.Background(), ch[0]); !IsEncrypted(err) {
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -269,6 +318,10 @@ func mockDevice(t *testing.T) (*httptest.Server, *int) {
 	mux.HandleFunc("/lineup.json", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `[{"GuideNumber":"5.1","GuideName":"WKID","HD":1,"VideoCodec":"MPEG2","URL":"%[1]s/auto/v5.1"},
 			{"GuideNumber":"7.1","GuideName":"LOCK","DRM":1,"URL":"%[1]s/auto/v7.1"},
+			{"GuideNumber":"8.1","GuideName":"TAGD","Tags":"favorite, drm","URL":"%[1]s/auto/v8.1"},
+			{"GuideNumber":"105.1","GuideName":"WKID3","VideoCodec":"HEVC","AudioCodec":"AC4","URL":"%[1]s/auto/v105.1"},
+			{"GuideNumber":"12.1","GuideName":"WEAK","URL":"%[1]s/auto/v12.1"},
+			{"GuideNumber":"13.1","GuideName":"NEED","URL":"%[1]s/auto/v13.1"},
 			{"GuideNumber":"9.1","GuideName":"BUSY","URL":"%[1]s/auto/v9.1"},
 			{"GuideNumber":"11.1","GuideName":"AWAY","URL":"http://203.0.113.9/auto/v11.1"}]`, srv.URL)
 	})
@@ -287,6 +340,14 @@ func mockDevice(t *testing.T) (*httptest.Server, *int) {
 	})
 	mux.HandleFunc("/auto/v5.1", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(bytes.Repeat(tsPacket(0x100, false), 100))
+	})
+	mux.HandleFunc("/auto/v12.1", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-HDHomeRun-Error", "806 Tune Failed")
+		w.WriteHeader(503)
+	})
+	mux.HandleFunc("/auto/v13.1", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-HDHomeRun-Error", "811 Content Protection Required")
+		w.WriteHeader(503)
 	})
 	mux.HandleFunc("/auto/v9.1", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-HDHomeRun-Error", "805 All Tuners In Use")
@@ -309,8 +370,27 @@ func TestNetworkTuner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ch) != 4 || !ch[0].HD || ch[0].Name != "WKID" || ch[0].Number != "5.1" {
+	if len(ch) != 8 || !ch[0].HD || ch[0].Name != "WKID" || ch[0].Number != "5.1" || !ch[0].Checked {
 		t.Fatalf("%+v", ch)
+	}
+	byName := map[string]Channel{}
+	for _, c := range ch {
+		byName[c.Name] = c
+	}
+	if byName["TAGD"].Encrypted == "" {
+		t.Fatal("the maker's documented \"drm\" tag must mark the channel")
+	}
+	if a := byName["WKID3"]; !a.ATSC3 || a.AudioCodec != "AC4" || a.Encrypted != "" {
+		t.Fatalf("unencrypted ATSC 3.0 is an ordinary channel: %+v", a)
+	}
+	if byName["WKID"].ATSC3 {
+		t.Fatal("ATSC 1.0 is not ATSC 3.0")
+	}
+	if _, err := s.Open(ctx, byName["WEAK"]); err == nil || IsEncrypted(err) || errors.Is(err, ErrBusy) || !strings.Contains(err.Error(), "signal") {
+		t.Fatalf("a failed tune is not encryption: %v", err)
+	}
+	if _, err := s.Open(ctx, byName["NEED"]); !IsEncrypted(err) {
+		t.Fatalf("811 is the device saying the channel is protected: %v", err)
 	}
 	if s.Info().MaxStreams != 2 || !strings.Contains(s.Info().Detail, "M1") {
 		t.Fatalf("%+v", s.Info())
@@ -332,15 +412,15 @@ func TestNetworkTuner(t *testing.T) {
 	if !errors.As(err, &e) {
 		t.Fatalf("copy protected channel: %v", err)
 	}
-	if _, err = s.Open(ctx, ch[2]); !errors.Is(err, ErrBusy) {
+	if _, err = s.Open(ctx, byName["BUSY"]); !errors.Is(err, ErrBusy) {
 		t.Fatalf("busy: %v", err)
 	}
-	if _, err = s.Open(ctx, ch[3]); err == nil || !strings.Contains(err.Error(), "another address") {
+	if _, err = s.Open(ctx, byName["AWAY"]); err == nil || !strings.Contains(err.Error(), "another address") {
 		t.Fatalf("a lineup must not send the server elsewhere: %v", err)
 	}
 	var seen []Progress
 	got, err := s.Scan(ctx, ScanOptions{Source: "Cable"}, func(p Progress) { seen = append(seen, p) })
-	if err != nil || len(got) != 4 || *polls != 3 || len(seen) != 3 || seen[1].Percent != 60 {
+	if err != nil || len(got) != 8 || *polls != 3 || len(seen) != 3 || seen[1].Percent != 60 {
 		t.Fatalf("scan: %v, %d channels, %d polls, %+v", err, len(got), *polls, seen)
 	}
 }

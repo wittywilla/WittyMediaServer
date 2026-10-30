@@ -164,7 +164,7 @@ settings, so the web form is generated from them and a new driver needs no UI wo
 |---|---|---|---|
 | **IPTV: M3U playlist** | Downloads or reads the list, with `tvg-*` and `group-title` | all | **Real FFmpeg against local streams**, parser unit-tested |
 | **IPTV: single stream** | One HTTP, HLS, RTP, UDP or RTSP address | all | **Real FFmpeg against local streams** |
-| **Network tuner** (HDHomeRun-style) | UDP and SSDP discovery, `discover.json`, `lineup.json`, scan API, HTTP MPEG-TS | all | **Against a mock device**; no real hardware here |
+| **Network tuner** (HDHomeRun-style) | UDP and SSDP discovery, `discover.json`, `lineup.json`, HTTP MPEG-TS, as the maker's guide documents. The scan call is not in that guide | all | **Against a mock device**; no real hardware here |
 | **SAT>IP** | SSDP discovery, RTSP tuning with the standard query, optional M3U from the server | all | Protocol tests only, **untested on hardware** |
 | **Linux DVB** (DVB-T/T2/C/S/S2, ATSC, ISDB-T) | `/dev/dvb` ioctls, band-plan scan, PAT/SDT/VCT reading, `channels.conf` import | Linux | Parsers tested, **untested on hardware**. DiSEqC is not done |
 | **V4L2 and analogue capture** | `/sys/class/video4linux`, frequency and input via ioctl, FFmpeg capture | Linux | Argument tests only, **untested on hardware** |
@@ -184,18 +184,107 @@ up. It stays off until the owner starts the server with `WMS_TUNER_COMMANDS=1`.
 
 ### Encrypted and copy-protected channels
 
-Never decrypted, never bypassed. Each is detected and refused with a clear message, the same way
-the disc engines treat CSS and AACS:
+Never decrypted, never bypassed. There is no plugin, hook, setting or command option for it. Each is
+detected and refused with a clear message, the same way the disc engines treat CSS and AACS. The check
+sits between every driver and the server (`wittytuner.New`), so a driver, or a custom command, can't
+leave it out.
 
 | Where | How it is detected |
 |---|---|
-| Network tuners | `DRM: 1` in the lineup (copy-protected CableCARD channels) |
+| Network tuners | A `drm` tag in the lineup (the maker's documented marking) or `DRM: 1`, and error 811 when tuning |
+| Licensed devices | A DTCP-IP stream type, or a DASH manifest with `ContentProtection` |
 | DVB, SAT>IP | `free_CA_mode` in the SDT, CA descriptors in the PMT |
 | Backends | The channel's CA field |
 | Any MPEG-TS | `transport_scrambling_control` in the packets, also mid-stream |
 | IPTV | DRM licence lines in the playlist, and any `#EXT-X-KEY` in an HLS playlist. FFmpeg's `crypto` protocol is left off its whitelist as a second lock |
 
-Refused channels stay listed, marked with a padlock and the reason. They cannot be tuned or recorded.
+Refused channels stay listed. They cannot be tuned or recorded.
+
+One limit: the check sees scrambling in MPEG-TS packets. Encryption inside the video itself, as on ATSC
+3.0, shows only if the device reports it, as the maker's guide says it does. If a device didn't report it,
+FFmpeg would fail to decode the channel and the viewer would see an error rather than the label.
+
+**Status from the API, the same on every client.** The guide, the tune answer and the tuner settings give
+each tuner channel `security: {state, label, detail, reason, helpUrl}`:
+
+| State | Means | Label |
+|---|---|---|
+| `encrypted` | The source or the stream says so | Encrypted: can't be played here |
+| `clear` | The source says so, or a stream showed it | Clear |
+| `unknown` | This source doesn't say (playlists, mostly); checked at first tune | Not checked yet |
+
+What a stream shows is remembered, so a channel found to be encrypted is labelled from then on, and a
+scan reports how many of each it found. **Check again** in the tuner's channel list forgets what a stream
+showed, for a station that has changed. An encrypted channel is refused again the next time it is tuned.
+
+When a station is encrypted here and clear elsewhere, `alternative` names the clear channel, and every
+screen offers it. Stations match by call sign or name, and by number over the air.
+
+### Help for encrypted channels
+
+The label links to a page at `/tv/encrypted`, with its words from `GET /api/tv/encrypted-help`.
+
+**What it is.** Some broadcasters encrypt their channels, so only a device licensed for that encryption
+can turn the signal into a picture. Nothing is wrong with the viewer's antenna, tuner or setup.
+
+**Why this server can't play it.** It isn't a licensed device, and it doesn't decrypt or bypass protection
+of any kind. It doesn't extract keys from a device, imitate a certified player, or capture protected
+(HDCP) HDMI.
+
+**What someone can do:**
+
+1. Watch a clear version of the station, such as its ATSC 1.0 signal. The guide offers one when it has one.
+2. Use a licensed device or app certified for encrypted channels.
+3. Bring in what a licensed device itself offers to home media servers (next section).
+
+**What to look for, by capability:** an ATSC 3.0 tuner if the station uses it; certification for encrypted
+channels, stated by the maker (in the US, the A3SA scheme); for use with this server, a documented network
+stream or export that covers encrypted channels specifically; and any limits on recording.
+
+**Devices checked on 2026-10-30, in their makers' own documents.** None of this is a recommendation, and
+support can change. **None of these documents a way to pass encrypted channels to other software.**
+
+| Device | What its maker publishes | Source |
+|---|---|---|
+| SiliconDust HDHomeRun FLEX 4K | 2 ATSC 3.0 and 4 ATSC 1.0 tuners. Some DRM-encrypted ATSC 3.0 channels will not work; it uses the ATSC 1.0 version. Documents an HTTP interface | [product page](https://shop.silicondust.com/shop/product/hdfx-4k/), [HTTP guide](https://info.hdhomerun.com/info/http_api) |
+| ZapperBox | Tuner models work with encrypted channels and record them; encrypted recordings play only on the device that made them. APIs documented for discovery and remote keys. Reaching other devices is planned through its own apps. zApp converts recordings to standard HLS; clear ATSC 3.0 recordings then lack sound in VLC (no AC-4) | [FAQ](https://zapperbox.com/pages/faqs), [gateway post](https://zapperbox.com/blogs/blog/the-unbound-gateway) |
+| ADTH NextGen TV USB | Certified to the A3SA standard, online, on Android TV, Google TV and Fire TV hosts, which do the decoding | [support](https://support.adth.com/en/support/solutions/articles/43000754091-how-to-play-encrypted-channels-on-adth-nextgen-tv-usb-) |
+| ADTH NextGen TV Box | Supports encrypted channels, offline from 2.0.0; records to a USB drive from 2.0.4 | [support FAQ](https://support.adth.com/en/support/solutions/articles/43000703336-faq) |
+| NextGen TV sets | A3SA (April 2026): nearly 40 models from Hisense, Panasonic, Samsung, Sony and TCL can decrypt protected content | [A3SA](https://a3sa.com/news-updates/) |
+
+No maker here endorses this software. No logos and no affiliate links.
+
+### Licensed devices as sources
+
+Some boxes handle the DRM themselves. If one offers its output to home media servers through an interface
+it documents, it works here as an ordinary source, with no special code:
+
+| The device offers | Add it as |
+|---|---|
+| A network tuner protocol | **Network tuner** |
+| An HTTP or HLS stream | **IPTV single stream**, or a playlist |
+| A folder of exported files | A library folder |
+
+What arrives goes through the same checks. If it is still encrypted, it shows the encrypted label and is not
+played. Any recording or copy restriction a device reports is honoured. As far as we could find, none of the
+interfaces above reports one today, so a channel can also be marked as not recordable by hand, from what
+the device's documentation says.
+
+### ATSC 3.0
+
+Unencrypted ATSC 3.0 channels tune, play and record like any others, where the tuner offers them. Checked
+with the bundled FFmpeg (build N-128142, 2026-10-28):
+
+| Part | State |
+|---|---|
+| **Tuners** | Network tuners that present ATSC 3.0 as MPEG-TS over HTTP, as the FLEX 4K's maker documents. **Not tried on real hardware.** Linux DVB has no ATSC 3.0 delivery system, so DVB cards can't. SAT>IP and capture cards don't apply |
+| **Video** | HEVC decodes, and is converted to H.264 for players. This needs real CPU: a 4K or 1080p HEVC channel may be too much for a small machine |
+| **Audio** | **The bundled FFmpeg has no AC-4 decoder**, and most US ATSC 3.0 stations use AC-4. Such a channel plays **without sound**, says so, and offers the same station on ATSC 1.0 if there is one. MPEG-H audio has no decoder either |
+| **Recording** | The raw stream is saved as it arrives, so the AC-4 sound is kept, but it plays silently here until FFmpeg can decode it |
+
+A channel is treated as ATSC 3.0 when its source names HEVC or AC-4. The server asks FFmpeg what it can
+decode, so a build with an AC-4 decoder gets sound with no change here. The fallback when a source doesn't
+name the codec reads FFmpeg's error, and has not been tried with a real AC-4 stream.
 
 No channel lists or stream addresses ship with the server. Scanning uses computed band plans (the
 standard channel-to-frequency formulas), not lists of stations.
@@ -258,6 +347,22 @@ game controllers and on phones (a narrower channel column and sideways scrolling
 
 The player reuses the on-screen remote and the shared controls, and adds channel keys.
 
+## For the TV apps
+
+Everything here lives on the server behind JSON, so the Apple TV and Android TV apps can draw their own guide:
+schedules, guide data, tuning, recording and the encryption wording. See the shared contract in
+[CLIENT-API.md](CLIENT-API.md) once it is merged.
+
+- **Playing:** `GET /api/tv/{key}/tune?viewer=<id>` gives `url`, standard live HLS. Add the same `viewer`, and `POST
+  /api/tv/{key}/leave?viewer=<id>` on leaving so the channel stops promptly. A token in the playlist's address
+  carries on to its segments, for players that can't set headers.
+- **Codecs:** H.264 and stereo AAC in MPEG-TS, which every native player handles. Viewers share one stream, so the
+  codec isn't chosen per client: it's the one they can all play.
+- **Guide:** `GET /api/guide`; pass `list=1` for numbers only. A TV app needs a grid that moves with a D-pad and
+  remote focus, as the web guide's does: arrows, Page keys, 0–9 to dial, Enter to watch.
+- **Encrypted channels:** show `security.label`, `security.detail` and `alternative` from the API, and the page from
+  `GET /api/tv/encrypted-help`, rather than wording of your own.
+
 ## API
 
 | Method and path | Who | What |
@@ -266,6 +371,7 @@ The player reuses the on-screen remote and the shared controls, and adds channel
 | `GET /api/tv/{key}/tune` | signed in | What is on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | signed in | A player has gone |
+| `GET /api/tv/encrypted-help` | signed in | The help page behind the encrypted label |
 | `GET /api/channels` | signed in | Library channels this account may see |
 | `POST /api/channels`, `PUT`/`DELETE /api/channels/{id}` | admin | Manage |
 | `GET /api/channels/{id}`, `/history`, `POST /restore` | admin | Definition and earlier versions |
@@ -309,6 +415,7 @@ channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 **Not done:**
 
 - Windows BDA digital tuning; DiSEqC dish switches on Linux DVB.
+- ATSC 3.0 sound: AC-4 needs a decoder FFmpeg doesn't have.
 - ATSC huffman-compressed guide text (those events are skipped).
 - Commercial breaks inside a programme (they play between programmes).
 - A viewer and a recording sharing one tuner on the same channel.

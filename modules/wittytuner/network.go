@@ -79,12 +79,32 @@ type discoverJSON struct {
 type lineupEntry struct {
 	GuideNumber string `json:"GuideNumber"`
 	GuideName   string `json:"GuideName"`
-	VideoCodec  string `json:"VideoCodec"`
-	AudioCodec  string `json:"AudioCodec"`
-	HD          int    `json:"HD"`
-	DRM         int    `json:"DRM"`
-	Favorite    int    `json:"Favorite"`
+	Tags        string `json:"Tags"` // comma-separated: "drm" is copy protection
 	URL         string `json:"URL"`
+	// Not in the maker's published guide, but sent by devices in use.
+	VideoCodec string `json:"VideoCodec"`
+	AudioCodec string `json:"AudioCodec"`
+	HD         int    `json:"HD"`
+	DRM        int    `json:"DRM"`
+	Favorite   int    `json:"Favorite"`
+}
+
+// protected: the published marking is a tag, and some firmware sends a field.
+func (l lineupEntry) protected() bool {
+	if l.DRM != 0 {
+		return true
+	}
+	for _, t := range strings.Split(l.Tags, ",") {
+		if strings.EqualFold(strings.TrimSpace(t), "drm") {
+			return true
+		}
+	}
+	return false
+}
+
+// atsc3: these devices name the codecs of a channel, and only ATSC 3.0 uses these.
+func (l lineupEntry) atsc3() bool {
+	return strings.EqualFold(l.VideoCodec, "hevc") || strings.EqualFold(l.AudioCodec, "ac4") || strings.EqualFold(l.AudioCodec, "ac-4")
 }
 
 func getJSON(ctx context.Context, c *http.Client, addr string, out any) error {
@@ -134,8 +154,9 @@ func (t *netTuner) Channels(ctx context.Context) ([]Channel, error) {
 		if l.GuideNumber == "" {
 			continue
 		}
-		c := Channel{ID: l.GuideNumber, Number: l.GuideNumber, Name: firstNonEmpty(l.GuideName, l.GuideNumber), Locator: l.URL, HD: l.HD != 0}
-		if l.DRM != 0 {
+		c := Channel{ID: l.GuideNumber, Number: l.GuideNumber, Name: firstNonEmpty(l.GuideName, l.GuideNumber), Locator: l.URL, HD: l.HD != 0,
+			Checked: true, ATSC3: l.atsc3(), VideoCodec: l.VideoCodec, AudioCodec: l.AudioCodec}
+		if l.protected() {
 			c.Encrypted = "the device marks it as copy protected"
 		}
 		out = append(out, c)
@@ -209,13 +230,23 @@ func (t *netTuner) Open(ctx context.Context, ch Channel) (*Stream, error) {
 	}
 	if res.StatusCode != 200 {
 		defer res.Body.Close()
-		// The device explains itself in a header: 804 and 805 mean busy.
+		// The device explains itself in a header, as its maker's guide lists.
 		code := res.Header.Get("X-HDHomeRun-Error")
-		if res.StatusCode == 503 || strings.HasPrefix(code, "804") || strings.HasPrefix(code, "805") {
+		num, _, _ := strings.Cut(code, " ")
+		switch num {
+		case "811":
+			return nil, &EncryptedError{ch.Name, "the device says it needs copy protection"}
+		case "803", "804", "805", "809":
 			return nil, ErrBusy
+		case "801":
+			return nil, errors.New("the device no longer has this channel: scan again")
+		case "806":
+			return nil, errors.New("the tuner could not tune this channel: the signal may be too weak")
+		case "807":
+			return nil, errors.New("the tuner found no picture on this channel: the signal may be too weak")
 		}
-		if strings.HasPrefix(code, "806") || strings.HasPrefix(code, "807") {
-			return nil, &EncryptedError{ch.Name, "the device refuses it as protected"}
+		if res.StatusCode == 503 {
+			return nil, ErrBusy
 		}
 		return nil, fmt.Errorf("the tuner answered %s %s", res.Status, code)
 	}

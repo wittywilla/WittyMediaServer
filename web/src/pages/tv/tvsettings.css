@@ -39,6 +39,7 @@
 .tvs-table td .input { width: 100%; min-width: 80px; padding: 5px 8px; }
 .tvs-num-in { max-width: 84px; }
 .tvs-lock { display: block; color: var(--danger); margin-top: 2px; }
+.tvs-clear { display: block; color: var(--ok); font-weight: 600; }
 .tvs-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
 .tvs-level { display: grid; gap: 2px; padding: 10px 12px; text-align: left; border-radius: 10px; border: 2px solid var(--bg-4); background: var(--bg-2); color: var(--fg); font: inherit; cursor: pointer; }
 .tvs-level span { font-size: 12.5px; color: var(--fg-2); }

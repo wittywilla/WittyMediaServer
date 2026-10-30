@@ -100,6 +100,9 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 	if c.Encrypted != "" {
 		return nil, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
 	}
+	if c.NoRecord != "" {
+		return nil, fmt.Errorf("%s can't be recorded: %s", c.Name, c.NoRecord)
+	}
 	title = strings.TrimSpace(title)
 	if title == "" {
 		return nil, errors.New("name the recording")
@@ -161,6 +164,9 @@ func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title st
 	}
 	if c.Encrypted != "" {
 		return nil, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
+	}
+	if c.NoRecord != "" {
+		return nil, fmt.Errorf("%s can't be recorded: %s", c.Name, c.NoRecord)
 	}
 	title = strings.TrimSpace(title)
 	if title == "" || len(title) > 300 {
@@ -306,6 +312,10 @@ func (m *Manager) record(r *Recording) {
 		delete(m.running(), r.ID)
 		m.mu.Unlock()
 	}()
+	if c, err := m.Channel(ctx, r.ChannelID); err == nil && c.NoRecord != "" {
+		m.finish(r.ID, "failed", fmt.Sprintf("%s can't be recorded: %s", c.Name, c.NoRecord), "")
+		return
+	}
 	opened, err := m.openForRecording(ctx, r.ChannelID)
 	if err != nil {
 		m.finish(r.ID, "failed", err.Error(), "")

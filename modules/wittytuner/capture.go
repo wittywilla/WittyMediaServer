@@ -19,7 +19,7 @@ import (
 func init() {
 	register(Driver{
 		ID: "dshow", Name: "Windows capture card (DirectShow)", Status: "untested", Platforms: []string{"windows"},
-		Description: "Analogue capture cards, HDMI capture and USB video on Windows. Not yet tried with a real card.",
+		Description: "Analogue capture cards, HDMI capture and USB video on Windows. HDMI that is protected by HDCP is not for capturing, and this makes no attempt to. Not yet tried with a real card.",
 		Fields: []Field{
 			{Key: "video", Label: "Video device", Kind: "text", Required: true, Help: "The name Windows gives it. Search finds these."},
 			{Key: "audio", Label: "Audio device", Kind: "text"},
@@ -35,7 +35,7 @@ func init() {
 	})
 	register(Driver{
 		ID: "avfoundation", Name: "macOS capture device (AVFoundation)", Status: "untested", Platforms: []string{"darwin"},
-		Description: "Capture cards and USB video on macOS. Not yet tried with a real device.",
+		Description: "Capture cards and USB video on macOS. HDMI that is protected by HDCP is not for capturing, and this makes no attempt to. Not yet tried with a real device.",
 		Fields: []Field{
 			{Key: "video", Label: "Video device", Kind: "text", Required: true, Help: "The name macOS gives it. Search finds these."},
 			{Key: "audio", Label: "Audio device", Kind: "text"},
@@ -78,7 +78,7 @@ func (c *capture) Info() Info {
 }
 
 func (c *capture) Channels(context.Context) ([]Channel, error) {
-	return []Channel{{ID: "capture", Number: "1", Name: firstNonEmpty(c.cfg.Name, c.cfg.Options["video"])}}, nil
+	return []Channel{{ID: "capture", Number: "1", Name: firstNonEmpty(c.cfg.Name, c.cfg.Options["video"]), Checked: true}}, nil
 }
 
 func (c *capture) Scan(ctx context.Context, _ ScanOptions, p func(Progress)) ([]Channel, error) {

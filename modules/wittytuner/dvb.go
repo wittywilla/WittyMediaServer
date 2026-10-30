@@ -275,8 +275,11 @@ func channelFromConf(system, name string, kv map[string]string) (Channel, bool) 
 		t.Pol = "v"
 	}
 	c := Channel{ID: kv["FREQUENCY"] + "-" + kv["SERVICE_ID"], Name: name, Number: kv["VCHANNEL"], Program: prog, Locator: t.Locator(prog)}
-	if ca := kv["CA_ID"]; ca != "" && ca != "0" {
-		c.Encrypted = "the channel file lists a conditional access system for it"
+	if ca, listed := kv["CA_ID"]; listed {
+		c.Checked = true
+		if ca != "" && ca != "0" {
+			c.Encrypted = "the channel file lists a conditional access system for it"
+		}
 	}
 	return c, true
 }
@@ -327,7 +330,7 @@ func (d *dvb) Scan(ctx context.Context, _ ScanOptions, progress func(Progress)) 
 				continue
 			}
 			out = append(out, Channel{ID: fmt.Sprintf("%d-%d", t.Frequency, sv.Program), Number: sv.number(strconv.Itoa(len(out) + 1)), Name: sv.Name, Group: sv.Provider,
-				HD: sv.HD, Radio: sv.Radio, Encrypted: sv.Encrypted, Program: sv.Program, Locator: t.Locator(sv.Program)})
+				HD: sv.HD, Radio: sv.Radio, Encrypted: sv.Encrypted, Checked: true, Program: sv.Program, Locator: t.Locator(sv.Program)})
 		}
 		_ = r.Close()
 	}

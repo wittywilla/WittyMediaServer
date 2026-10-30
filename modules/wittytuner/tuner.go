@@ -39,15 +39,27 @@ type Channel struct {
 	Program  int    `json:"program,omitempty"` // MPEG program number
 	// Encrypted is why this channel cannot be tuned ("" = it can).
 	Encrypted string `json:"encrypted,omitempty"`
+	// Checked: the source says for itself whether this channel is protected,
+	// so no Encrypted reason means it is clear. Otherwise nobody knows until
+	// the channel is first tuned.
+	Checked bool `json:"checked,omitempty"`
+	// ATSC3: an ATSC 3.0 (NextGen TV) broadcast.
+	ATSC3      bool   `json:"atsc3,omitempty"`
+	VideoCodec string `json:"videoCodec,omitempty"` // as the source names it: HEVC, MPEG2…
+	AudioCodec string `json:"audioCodec,omitempty"` // AC4, AC3…
+	// NoRecord is why the device says this channel may not be recorded.
+	NoRecord string `json:"noRecord,omitempty"`
 }
 
 // Stream is an open channel: Reader for raw MPEG-TS, else Input for FFmpeg.
 type Stream struct {
 	Reader io.ReadCloser
 	Input  []string
-	// OnEvent, when set by the host before reading, gets guide data found in
-	// the stream.
+	// Guard watches a Reader for scrambling and collects guide data. Set
+	// OnEvent on it before reading to receive that data.
 	Guard *mpegts.Guard
+	// Verified: an Input stream was inspected on opening and found clear.
+	Verified bool
 }
 
 // Close releases what the stream holds.
@@ -107,8 +119,18 @@ func (e *EncryptedError) Error() string {
 	if name == "" {
 		name = "This channel"
 	}
-	return fmt.Sprintf("%s is encrypted or copy protected (%s). WittyMediaServer does not decrypt or bypass protected broadcasts, so it cannot be played or recorded.", name, e.Why)
+	return fmt.Sprintf("%s: %s. %s (%s). %s", name, EncryptedLabel, encryptedBecause, e.Why, encryptedPolicy)
 }
+
+// What every client shows for an encrypted channel, so that nobody takes it
+// for a fault in their setup.
+const (
+	EncryptedLabel   = "Encrypted: can't be played here"
+	encryptedBecause = "The broadcaster protects this channel"
+	encryptedPolicy  = "WittyMediaServer does not decrypt or bypass protected broadcasts, so it can't be played or recorded. Nothing is wrong with your setup."
+	// EncryptedExplain is the same in one line, for lists.
+	EncryptedExplain = encryptedBecause + ". " + encryptedPolicy
+)
 
 // IsEncrypted reports whether err means a channel was refused for encryption.
 func IsEncrypted(err error) bool {
@@ -116,10 +138,13 @@ func IsEncrypted(err error) bool {
 	return errors.As(err, &e) || errors.Is(err, mpegts.ErrScrambled)
 }
 
+// ScrambledReason says why a stream stopped by the guard was refused.
+const ScrambledReason = "the signal itself is scrambled"
+
 // RefusalMessage turns a stream that a guard stopped into words for a person.
 func RefusalMessage(name string, err error) error {
 	if errors.Is(err, mpegts.ErrScrambled) {
-		return &EncryptedError{Channel: name, Why: "its packets are scrambled"}
+		return &EncryptedError{Channel: name, Why: ScrambledReason}
 	}
 	return err
 }
@@ -258,9 +283,40 @@ func New(driver string, cfg Config, env Env) (Source, error) {
 		if len(cfg.Name) > 200 {
 			return nil, errors.New("the name is too long")
 		}
-		return d.build(cfg, env)
+		s, err := d.build(cfg, env)
+		if err != nil {
+			return nil, err
+		}
+		return checked{s}, nil
 	}
 	return nil, errors.New("unknown kind of tuner")
+}
+
+// checked is the one way a driver reaches the host, so the rule about encrypted
+// channels holds for every driver, custom commands included: a channel known to
+// be protected is never opened, and raw MPEG-TS always passes the guard.
+type checked struct{ Source }
+
+func (c checked) Open(ctx context.Context, ch Channel) (*Stream, error) {
+	if ch.Encrypted != "" {
+		return nil, &EncryptedError{ch.Name, ch.Encrypted}
+	}
+	st, err := c.Source.Open(ctx, ch)
+	if err != nil {
+		return nil, err
+	}
+	if st.Reader != nil && st.Guard == nil {
+		st = guarded(st.Reader)
+	}
+	return st, nil
+}
+
+// GuideHeaders passes on what a source needs for fetching its guide.
+func (c checked) GuideHeaders() http.Header {
+	if g, ok := c.Source.(interface{ GuideHeaders() http.Header }); ok {
+		return g.GuideHeaders()
+	}
+	return nil
 }
 
 // SecretFields lists settings a driver treats as passwords, never sent back to

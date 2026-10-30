@@ -7,9 +7,17 @@ export type Programme = {
   title: string; sub?: string; desc?: string; genre?: string; rating?: string; year?: number
   itemId?: number; showId?: number; season?: number; episode?: number
 }
+// Whether a channel is encrypted, in the server's words: every client shows the same.
+export type Security = { state: 'clear' | 'encrypted' | 'unknown'; label: string; detail: string; reason?: string; helpUrl?: string }
+export type Alternative = { key: string; number: string; name: string; atsc3?: boolean }
 export type GuideChannel = {
   key: string; kind: 'library' | 'tuner'; id: number; number: string; name: string; group?: string; logo?: string
-  hd?: boolean; radio?: boolean; encrypted?: string; canRecord?: boolean; programmes: Programme[]
+  hd?: boolean; radio?: boolean; encrypted?: string; canRecord?: boolean; noRecord?: string; atsc3?: boolean
+  security?: Security; alternative?: Alternative; notices?: string[]; programmes: Programme[]
+}
+export type EncryptedHelpPage = {
+  title: string; sections: { heading: string; paragraphs?: string[]; bullets?: string[] }[]
+  devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
 }
 export type GuidePage = { now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming' }
 export type Skin = 'cable' | 'satellite' | 'theme'
@@ -17,6 +25,7 @@ export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
   now: Programme | null; next: Programme | null; positionSec: number; serverTime: number
   countProgress: boolean; canRecord: boolean; bufferSec: number
+  atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
 }
 
 export type Rules = {
@@ -44,9 +53,9 @@ export type EditorOptions = { networks: NetworkFact[]; genres: string[]; studios
 
 export type DriverField = { key: string; label: string; kind: 'text' | 'url' | 'path' | 'password' | 'select' | 'number' | 'textarea' | 'toggle'; help?: string; default?: string; required?: boolean; options?: string[] }
 export type Driver = { id: string; name: string; description: string; status: 'tested' | 'mock' | 'untested' | 'planned'; platforms?: string[]; fields: DriverField[]; scans: boolean; planned?: boolean; available: boolean; note?: string }
-export type Tuner = { id: number; driver: string; name: string; options: Record<string, string>; enabled: boolean; maxStreams: number; lastScan: number | null; lastError: string; detail: string; channels: number; inUse: number }
-export type TunerChannel = { id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
-export type ScanState = { running: boolean; percent: number; found: number; message?: string; error?: string; added: number }
+export type Tuner = { id: number; driver: string; name: string; options: Record<string, string>; enabled: boolean; maxStreams: number; lastScan: number | null; lastError: string; detail: string; channels: number; encrypted: number; clear: number; inUse: number }
+export type TunerChannel = { id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
+export type ScanState = { running: boolean; percent: number; found: number; message?: string; error?: string; added: number; clear: number; encrypted: number; unknown: number }
 export type Found = { driver: string; name: string; detail?: string; options: Record<string, string> }
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }
 export type Recording = { id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number }

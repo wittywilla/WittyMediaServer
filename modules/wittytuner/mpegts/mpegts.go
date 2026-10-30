@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync/atomic"
 	"time"
 	"unicode/utf16"
 )
@@ -639,7 +640,8 @@ type Guard struct {
 	carry   []byte
 	seen    int
 	bad     int
-	fatal   error
+	fatal   atomic.Bool
+	packets atomic.Int64
 }
 
 // NewGuard watches r.
@@ -670,14 +672,14 @@ func (g *Guard) section(pid int, s []byte) {
 
 // Read implements io.Reader.
 func (g *Guard) Read(p []byte) (int, error) {
-	if g.fatal != nil {
-		return 0, g.fatal
+	if g.fatal.Load() {
+		return 0, ErrScrambled
 	}
 	n, err := g.r.Read(p)
 	if n > 0 {
 		g.inspect(p[:n])
-		if g.fatal != nil {
-			return 0, g.fatal
+		if g.fatal.Load() {
+			return 0, ErrScrambled
 		}
 	}
 	return n, err
@@ -719,10 +721,11 @@ func (g *Guard) packet(p []byte) {
 		return
 	}
 	g.seen++
+	g.packets.Add(1)
 	if h.Scrambled {
 		g.bad++
 		if g.bad >= scrambleLimit {
-			g.fatal = ErrScrambled
+			g.fatal.Store(true)
 			return
 		}
 	}
@@ -735,7 +738,15 @@ func (g *Guard) packet(p []byte) {
 }
 
 // Fatal says why the guard stopped the stream, if it did.
-func (g *Guard) Fatal() error { return g.fatal }
+func (g *Guard) Fatal() error {
+	if g.fatal.Load() {
+		return ErrScrambled
+	}
+	return nil
+}
+
+// Verified says enough of the stream has gone by, unscrambled, to call it clear.
+func (g *Guard) Verified() bool { return !g.fatal.Load() && g.packets.Load() >= scrambleWindow }
 
 // Close closes the stream underneath.
 func (g *Guard) Close() error { return g.r.Close() }

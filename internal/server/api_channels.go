@@ -8,6 +8,7 @@ import (
 	"image"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 // TV channels: the library channels' API, the guide shared with tuner
@@ -583,19 +585,37 @@ type guideProgramme struct {
 
 // guideChannel is one row of the guide.
 type guideChannel struct {
-	Key        string           `json:"key"` // lib-5, tun-12
-	Kind       string           `json:"kind"`
-	ID         int64            `json:"id"`
-	Number     string           `json:"number"`
-	Name       string           `json:"name"`
-	Group      string           `json:"group,omitempty"`
-	Logo       string           `json:"logo,omitempty"`
-	HD         bool             `json:"hd,omitempty"`
-	Radio      bool             `json:"radio,omitempty"`
-	Encrypted  string           `json:"encrypted,omitempty"` // why it cannot be tuned
-	CanRecord  bool             `json:"canRecord,omitempty"`
-	Programmes []guideProgramme `json:"programmes"`
+	Key       string `json:"key"` // lib-5, tun-12
+	Kind      string `json:"kind"`
+	ID        int64  `json:"id"`
+	Number    string `json:"number"`
+	Name      string `json:"name"`
+	Group     string `json:"group,omitempty"`
+	Logo      string `json:"logo,omitempty"`
+	HD        bool   `json:"hd,omitempty"`
+	Radio     bool   `json:"radio,omitempty"`
+	Encrypted string `json:"encrypted,omitempty"` // why it cannot be tuned
+	CanRecord bool   `json:"canRecord,omitempty"`
+	NoRecord  string `json:"noRecord,omitempty"` // why not, when the device says
+	ATSC3     bool   `json:"atsc3,omitempty"`
+	// Security is the same wording for every client. Tuner channels only: a
+	// library channel plays the owner's own files.
+	Security    *securityInfo       `json:"security,omitempty"`
+	Alternative *livetv.Alternative `json:"alternative,omitempty"` // the same station, clear
+	Notices     []string            `json:"notices,omitempty"`
+	Programmes  []guideProgramme    `json:"programmes"`
 }
+
+// securityInfo is whether a channel is encrypted, in words.
+type securityInfo struct {
+	State   string `json:"state"` // clear | encrypted | unknown
+	Label   string `json:"label"`
+	Detail  string `json:"detail"`
+	Reason  string `json:"reason,omitempty"`
+	HelpURL string `json:"helpUrl,omitempty"`
+}
+
+const encryptedHelpURL = "/api/tv/encrypted-help"
 
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,
@@ -744,6 +764,11 @@ type tuneInfo struct {
 	CountProgress bool            `json:"countProgress"`
 	CanRecord     bool            `json:"canRecord"`
 	BufferSec     float64         `json:"bufferSec"`
+	ATSC3         bool            `json:"atsc3,omitempty"`
+	Security      *securityInfo   `json:"security,omitempty"`
+	Notices       []string        `json:"notices,omitempty"`
+	// Alternative: the same station with sound, when this one has none.
+	Alternative *livetv.Alternative `json:"alternative,omitempty"`
 }
 
 func parseKey(key string) (kind string, id int64, ok bool) {
@@ -1056,9 +1081,17 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		tuneError(w, err)
 		return
 	}
+	// A player that can't set headers (a TV's own player) keeps its token.
+	suffix := ""
+	for _, k := range []string{"st", "token"} {
+		if v := r.URL.Query().Get(k); v != "" {
+			suffix = "?" + k + "=" + url.QueryEscape(v)
+			break
+		}
+	}
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(ls.Playlist(func(f string) string { return "seg/" + f }))
+	_, _ = w.Write(ls.Playlist(func(f string) string { return "seg/" + f + suffix }))
 }
 
 func (s *Server) handleLiveSegment(w http.ResponseWriter, r *http.Request) {

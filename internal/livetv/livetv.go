@@ -36,23 +36,33 @@ type Tuner struct {
 	LastError  string            `json:"lastError"`
 	Detail     string            `json:"detail"`
 	Channels   int               `json:"channels"`
+	Encrypted  int               `json:"encrypted"` // channels known to be protected
+	Clear      int               `json:"clear"`     // channels known not to be
 	InUse      int               `json:"inUse"`
 }
 
 // Channel is a tuner's channel as the guide and the settings see it. Number
 // and Name are what the viewer sees: the owner's choice, else the source's.
 type Channel struct {
-	ID         int64  `json:"id"`
-	TunerID    int64  `json:"tunerId"`
-	SourceID   string `json:"sourceId"`
-	Number     string `json:"number"`
-	Name       string `json:"name"`
-	Group      string `json:"group,omitempty"`
-	CallSign   string `json:"callsign,omitempty"`
-	Logo       string `json:"logo,omitempty"`
-	HD         bool   `json:"hd,omitempty"`
-	Radio      bool   `json:"radio,omitempty"`
-	Encrypted  string `json:"encrypted,omitempty"`
+	ID        int64  `json:"id"`
+	TunerID   int64  `json:"tunerId"`
+	SourceID  string `json:"sourceId"`
+	Number    string `json:"number"`
+	Name      string `json:"name"`
+	Group     string `json:"group,omitempty"`
+	CallSign  string `json:"callsign,omitempty"`
+	Logo      string `json:"logo,omitempty"`
+	HD        bool   `json:"hd,omitempty"`
+	Radio     bool   `json:"radio,omitempty"`
+	Encrypted string `json:"encrypted,omitempty"`
+	// Security is encrypted, clear or unknown (nobody can tell until it is tuned).
+	Security   string `json:"security"`
+	ATSC3      bool   `json:"atsc3,omitempty"`
+	VideoCodec string `json:"videoCodec,omitempty"`
+	AudioCodec string `json:"audioCodec,omitempty"`
+	// NoRecord is why this channel may not be recorded: the device said so, or
+	// the owner did from what the device's documentation says.
+	NoRecord   string `json:"noRecord,omitempty"`
 	Program    int    `json:"program,omitempty"`
 	Enabled    bool   `json:"enabled"`
 	EPGID      string `json:"epgId,omitempty"`
@@ -61,6 +71,7 @@ type Channel struct {
 	EPGSet     string `json:"epgSet,omitempty"`
 	locator    string
 	sourceName string
+	driver     string
 }
 
 // Manager owns the running sources.
@@ -94,7 +105,11 @@ type ScanState struct {
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
 	Added   int    `json:"added"`
-	cancel  context.CancelFunc
+	// What the finished scan found.
+	Clear     int `json:"clear"`
+	Encrypted int `json:"encrypted"`
+	Unknown   int `json:"unknown"`
+	cancel    context.CancelFunc
 }
 
 // New makes a manager. Background work starts only when something needs it.
@@ -144,14 +159,16 @@ func (m *Manager) Env() wittytuner.Env {
 }
 
 const tunerCols = `t.id, t.driver, t.name, t.options, t.enabled, t.max_streams, t.last_scan, t.last_error,
-	(SELECT COUNT(*) FROM tuner_channels c WHERE c.tuner_id = t.id)`
+	(SELECT COUNT(*) FROM tuner_channels c WHERE c.tuner_id = t.id),
+	(SELECT COUNT(*) FROM tuner_channels c WHERE c.tuner_id = t.id AND (c.encrypted = 1 OR c.encrypted_seen <> '')),
+	(SELECT COUNT(*) FROM tuner_channels c WHERE c.tuner_id = t.id AND c.encrypted = 0 AND c.encrypted_seen = '' AND (c.checked = 1 OR c.seen_clear = 1))`
 
 func scanTuner(sc interface{ Scan(...any) error }) (*Tuner, error) {
 	var t Tuner
 	var opts string
 	var enabled int
 	var last sql.NullInt64
-	if err := sc.Scan(&t.ID, &t.Driver, &t.Name, &opts, &enabled, &t.MaxStreams, &last, &t.LastError, &t.Channels); err != nil {
+	if err := sc.Scan(&t.ID, &t.Driver, &t.Name, &opts, &enabled, &t.MaxStreams, &last, &t.LastError, &t.Channels, &t.Encrypted, &t.Clear); err != nil {
 		return nil, err
 	}
 	t.Enabled = enabled != 0
@@ -387,11 +404,13 @@ func (m *Manager) saveChannels(ctx context.Context, id int64, list []wittytuner.
 			continue
 		}
 		keep[c.ID] = true
-		_, err := tx.ExecContext(ctx, `INSERT INTO tuner_channels(tuner_id, source_id, number, name, grp, callsign, locator, logo, hd, radio, encrypted, encrypted_why, program, epg_id)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		_, err := tx.ExecContext(ctx, `INSERT INTO tuner_channels(tuner_id, source_id, number, name, grp, callsign, locator, logo, hd, radio, encrypted, encrypted_why, program, epg_id, checked, atsc3, video_codec, audio_codec, no_record)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 			ON CONFLICT(tuner_id, source_id) DO UPDATE SET number=excluded.number, name=excluded.name, grp=excluded.grp, callsign=excluded.callsign, locator=excluded.locator,
-			logo=excluded.logo, hd=excluded.hd, radio=excluded.radio, encrypted=excluded.encrypted, encrypted_why=excluded.encrypted_why, program=excluded.program, epg_id=excluded.epg_id`,
-			id, c.ID, c.Number, c.Name, c.Group, c.CallSign, c.Locator, c.Logo, boolInt(c.HD), boolInt(c.Radio), boolInt(c.Encrypted != ""), c.Encrypted, c.Program, c.EPGID)
+			logo=excluded.logo, hd=excluded.hd, radio=excluded.radio, encrypted=excluded.encrypted, encrypted_why=excluded.encrypted_why, program=excluded.program, epg_id=excluded.epg_id,
+			checked=excluded.checked, atsc3=excluded.atsc3, video_codec=excluded.video_codec, audio_codec=excluded.audio_codec, no_record=excluded.no_record`,
+			id, c.ID, c.Number, c.Name, c.Group, c.CallSign, c.Locator, c.Logo, boolInt(c.HD), boolInt(c.Radio), boolInt(c.Encrypted != ""), c.Encrypted, c.Program, c.EPGID,
+			boolInt(c.Checked), boolInt(c.ATSC3), c.VideoCodec, c.AudioCodec, c.NoRecord)
 		if err != nil {
 			return 0, err
 		}
@@ -466,9 +485,21 @@ func (m *Manager) StartScan(id int64, source string) error {
 			added, err = m.saveChannels(context.Background(), id, ch)
 		}
 		_, _ = m.DB.Exec(`UPDATE tuners SET last_scan = ? WHERE id = ?`, db.Now(), id)
+		found, _ := m.Channels(context.Background(), id)
 		m.mu.Lock()
 		m.inUse[id]--
 		st.Running, st.Added = false, added
+		st.Clear, st.Encrypted, st.Unknown = 0, 0, 0
+		for _, c := range found {
+			switch c.Security {
+			case SecurityClear:
+				st.Clear++
+			case SecurityEncrypted:
+				st.Encrypted++
+			default:
+				st.Unknown++
+			}
+		}
 		if err != nil {
 			st.Error = err.Error()
 		} else {
@@ -500,19 +531,41 @@ func (m *Manager) ScanProgress(id int64) ScanState {
 // --------------------------------------------------------------------------
 
 const channelCols = `c.id, c.tuner_id, c.source_id, c.number, c.name, c.grp, c.callsign, c.locator, c.logo, c.hd, c.radio, c.encrypted, c.encrypted_why, c.program, c.enabled,
-	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name`
+	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name, t.driver, c.encrypted_seen, c.checked, c.seen_clear, c.atsc3, c.video_codec, c.audio_codec, c.no_record, c.no_record_set`
+
+// What is known about a channel's protection.
+const (
+	SecurityClear     = "clear"
+	SecurityEncrypted = "encrypted"
+	SecurityUnknown   = "unknown"
+)
 
 func scanChannel(sc interface{ Scan(...any) error }) (*Channel, error) {
 	var c Channel
-	var hd, radio, enc, enabled int
-	var why string
+	var hd, radio, enc, enabled, checked, seenClear, atsc3, noRecordSet int
+	var why, seen, noRecord string
 	if err := sc.Scan(&c.ID, &c.TunerID, &c.SourceID, &c.Number, &c.Name, &c.Group, &c.CallSign, &c.locator, &c.Logo, &hd, &radio, &enc, &why, &c.Program, &enabled,
-		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName); err != nil {
+		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName, &c.driver, &seen, &checked, &seenClear, &atsc3, &c.VideoCodec, &c.AudioCodec, &noRecord, &noRecordSet); err != nil {
 		return nil, err
 	}
-	c.HD, c.Radio, c.Enabled = hd != 0, radio != 0, enabled != 0
-	if enc != 0 {
+	c.HD, c.Radio, c.Enabled, c.ATSC3 = hd != 0, radio != 0, enabled != 0, atsc3 != 0
+	switch {
+	case enc != 0:
 		c.Encrypted = firstNonEmpty(why, "it is marked as encrypted")
+	case seen != "":
+		c.Encrypted = seen
+	}
+	switch {
+	case c.Encrypted != "":
+		c.Security = SecurityEncrypted
+	case checked != 0 || seenClear != 0:
+		c.Security = SecurityClear
+	default:
+		c.Security = SecurityUnknown
+	}
+	c.NoRecord = noRecord
+	if noRecordSet != 0 {
+		c.NoRecord = firstNonEmpty(noRecord, "you marked it as not to be recorded, from what the device says")
 	}
 	if c.NumberSet != "" {
 		c.Number = c.NumberSet
@@ -604,6 +657,11 @@ type ChannelEdit struct {
 	Number  *string `json:"number"`
 	Name    *string `json:"name"`
 	EPG     *string `json:"epg"`
+	// NoRecord: the device's documentation says this may not be recorded.
+	NoRecord *bool `json:"noRecord"`
+	// CheckAgain forgets what a stream showed, for a station that has changed.
+	// A channel still encrypted is refused again the next time it is tuned.
+	CheckAgain bool `json:"checkAgain"`
 }
 
 // EditChannel saves the owner's choices. They survive rescans.
@@ -638,6 +696,16 @@ func (m *Manager) EditChannel(ctx context.Context, id int64, e ChannelEdit) (*Ch
 			return nil, err
 		}
 	}
+	if e.NoRecord != nil {
+		if _, err := m.DB.ExecContext(ctx, `UPDATE tuner_channels SET no_record_set = ? WHERE id = ?`, boolInt(*e.NoRecord), id); err != nil {
+			return nil, err
+		}
+	}
+	if e.CheckAgain {
+		if _, err := m.DB.ExecContext(ctx, `UPDATE tuner_channels SET encrypted_seen = '', seen_clear = 0 WHERE id = ?`, id); err != nil {
+			return nil, err
+		}
+	}
 	return m.Channel(ctx, id)
 }
 
@@ -659,12 +727,21 @@ type Opened struct {
 	Stream  *wittytuner.Stream
 	Channel *Channel
 	release func()
+	note    func(encryptedWhy string)
 	once    sync.Once
 }
 
-// Release frees the tuner.
+// Release frees the tuner, and remembers what the stream showed about itself.
 func (o *Opened) Release() {
 	o.once.Do(func() {
+		if g := o.Stream.Guard; g != nil {
+			switch {
+			case g.Fatal() != nil:
+				o.note(wittytuner.ScrambledReason)
+			case g.Verified():
+				o.note("")
+			}
+		}
 		_ = o.Stream.Close()
 		o.release()
 	})
@@ -711,7 +788,99 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	if st.Guard != nil {
 		st.Guard.OnEvent = m.broadcastEvents(c)
 	}
-	return &Opened{Stream: st, Channel: c, release: release}, nil
+	note := func(why string) { m.noteStream(c.ID, why) }
+	if st.Verified {
+		note("")
+	}
+	return &Opened{Stream: st, Channel: c, release: release, note: note}, nil
+}
+
+// noteStream keeps what a stream showed, so the guide and settings are right
+// from then on: why it is encrypted, or "" for clear.
+func (m *Manager) noteStream(id int64, why string) {
+	var err error
+	if why != "" {
+		_, err = m.DB.Exec(`UPDATE tuner_channels SET encrypted_seen = ?, seen_clear = 0 WHERE id = ?`, why, id)
+	} else {
+		_, err = m.DB.Exec(`UPDATE tuner_channels SET seen_clear = 1, encrypted_seen = '' WHERE id = ?`, id)
+	}
+	if err != nil {
+		m.Log.Warn("tuner channel", "cat", "tv", "err", err)
+	}
+}
+
+// Alternative is a clear way to watch a station that is encrypted here.
+type Alternative struct {
+	Key    string `json:"key"`
+	Number string `json:"number"`
+	Name   string `json:"name"`
+	ATSC3  bool   `json:"atsc3,omitempty"`
+}
+
+var stationSuffix = []string{"atsc30", "atsc3", "nextgen", "nextgentv", "ngtv", "4k", "hd", "dt"}
+
+// stationKey lets WTST, WTST-HD and "WTST ATSC3" count as one station.
+func stationKey(name string) string {
+	k := normalizeName(name)
+	for changed := true; changed; {
+		changed = false
+		for _, s := range stationSuffix {
+			if len(k) > len(s)+1 && strings.HasSuffix(k, s) {
+				k, changed = strings.TrimSuffix(k, s), true
+			}
+		}
+	}
+	return k
+}
+
+// overTheAir: a virtual channel number means the same station on these.
+func overTheAir(driver string) bool { return driver == "network" || driver == "dvb" }
+
+// Alternatives finds, for each channel that needs one, the same station from a
+// clear source: an ATSC 1.0 version, or another tuner or playlist. It matches
+// by call sign and name, and by number over the air, where a number names a
+// station. It never offers a channel not known to be watchable. need says which
+// channels want one, besides the encrypted: those that would play without sound.
+func Alternatives(list []*Channel, need func(*Channel) bool) map[int64]*Alternative {
+	var byName, byNumber = map[string][]*Channel{}, map[string][]*Channel{}
+	for _, c := range list {
+		if c.Security == SecurityEncrypted || !c.Enabled || (need != nil && need(c)) {
+			continue
+		}
+		if k := stationKey(firstNonEmpty(c.CallSign, c.Name)); k != "" {
+			byName[k] = append(byName[k], c)
+		}
+		if overTheAir(c.driver) && c.Number != "" {
+			byNumber[c.Number] = append(byNumber[c.Number], c)
+		}
+	}
+	best := func(cands []*Channel, me *Channel) *Channel {
+		var pick *Channel
+		for _, d := range cands {
+			if d.ID == me.ID {
+				continue
+			}
+			// Sound and picture every client can have comes first.
+			if pick == nil || (pick.ATSC3 && !d.ATSC3) {
+				pick = d
+			}
+		}
+		return pick
+	}
+	out := map[int64]*Alternative{}
+	for _, c := range list {
+		if c.Security != SecurityEncrypted && (need == nil || !need(c)) {
+			continue
+		}
+		d := best(byName[stationKey(firstNonEmpty(c.CallSign, c.Name))], c)
+		if d == nil && overTheAir(c.driver) {
+			d = best(byNumber[c.Number], c)
+		}
+		if d != nil {
+			out[c.ID] = &Alternative{Key: "tun-" + strconv.FormatInt(d.ID, 10), Number: d.Number, Name: d.Name, ATSC3: d.ATSC3}
+		}
+	}
+	return out
 }
 
 // TunerBusy says whether a tuner is at its limit.

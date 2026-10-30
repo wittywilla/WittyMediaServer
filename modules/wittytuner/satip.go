@@ -156,7 +156,7 @@ func (s *satip) Scan(ctx context.Context, _ ScanOptions, progress func(Progress)
 				}
 			}
 			out = append(out, Channel{ID: q.Get("freq") + "-" + strconv.Itoa(sv.Program), Number: sv.number(strconv.Itoa(len(out) + 1)), Name: sv.Name, Group: sv.Provider,
-				HD: sv.HD, Radio: sv.Radio, Encrypted: sv.Encrypted, Program: sv.Program, Locator: s.tuneURL(q, strings.Join(ps, ","))})
+				HD: sv.HD, Radio: sv.Radio, Encrypted: sv.Encrypted, Checked: true, Program: sv.Program, Locator: s.tuneURL(q, strings.Join(ps, ","))})
 		}
 	}
 	if progress != nil {

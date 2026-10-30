@@ -205,3 +205,28 @@ func TestHiddenCommercialsLibraries(t *testing.T) {
 		t.Errorf("only commercials libraries have the switch: %d", w.Code)
 	}
 }
+
+func TestNoAudioDecoderReadsFFmpeg(t *testing.T) {
+	for _, m := range []string{
+		"Decoder (codec ac4) not found for input stream #0:1",
+		"Decoding requested, but no decoder found for: ac4",
+	} {
+		if !noAudioDecoder(m) {
+			t.Errorf("%q should mean no AC-4 decoder", m)
+		}
+	}
+	if noAudioDecoder("Connection reset by peer") {
+		t.Error("other failures are not about sound")
+	}
+}
+
+func TestEncryptedHelpComesFromTheAPI(t *testing.T) {
+	h, _, kid, _ := tvServer(t)
+	w := call(h, "GET", "/api/tv/encrypted-help", kid, "")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "ATSC 1.0") {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if w := call(h, "GET", "/api/tv/encrypted-help", "", ""); w.Code != 401 {
+		t.Errorf("signed out: %d", w.Code)
+	}
+}

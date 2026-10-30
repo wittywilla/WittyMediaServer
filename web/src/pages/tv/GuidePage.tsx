@@ -230,7 +230,7 @@ export default function GuidePage() {
   const label = (ch: GuideChannel, p: Programme) => {
     const when = p.kind === 'none' ? '' : fmtSpan(p)
     const on = p.start <= now && p.end > now ? ', on now' : ''
-    const lock = ch.encrypted ? ', encrypted, cannot be played' : ''
+    const lock = ch.security?.state === 'encrypted' ? `, ${ch.security.label}` : ''
     return `Channel ${ch.number}, ${ch.name}: ${[p.title, p.sub, when].filter(Boolean).join(', ')}${on}${lock}`
   }
   // What the little TV shows: settled on by the preview itself.
@@ -281,10 +281,20 @@ export default function GuidePage() {
             {panel?.genre && <span>{panel.genre}</span>}
             {panel?.year ? <span>{panel.year}</span> : null}
             {cur?.hd && <span className="ctv-rate">HD</span>}
-            {cur?.encrypted && <span className="ctv-rate">LOCKED</span>}
+            {cur?.atsc3 && <span className="ctv-rate">ATSC 3.0</span>}
+            {cur?.security?.state === 'clear' && <span className="ctv-rate">Clear</span>}
+            {cur?.security?.state === 'unknown' && <span className="ctv-rate" title={cur.security.detail}>{cur.security.label}</span>}
           </div>
           {panel?.desc && <p className="ctv-info-desc">{panel.desc}</p>}
-          {cur?.encrypted && <p className="ctv-info-desc">{cur.encrypted}. Protected channels cannot be played or recorded here.</p>}
+          {cur?.security?.state === 'encrypted' && (
+            <p className="ctv-info-desc"><b>{cur.security.label}.</b> {cur.security.detail} <Link className="ctv-link" to="/tv/encrypted">What can I do?</Link></p>
+          )}
+          {cur?.notices?.map((n) => <p key={n} className="ctv-info-desc">{n}</p>)}
+          {cur?.alternative && (
+            <div className="ctv-info-actions">
+              <button className="ctv-btn on" onClick={() => nav(`/tv/watch/${cur.alternative!.key}`)}><IconPlay size={15} /> Watch {cur.alternative.number} {cur.alternative.name} instead</button>
+            </div>
+          )}
           {cur && panel && !cur.encrypted && (
             <div className="ctv-info-actions">
               <button className="ctv-btn on" onClick={() => activate(cur, panel)}><IconPlay size={15} /> {panel.kind === 'none' || (panel.start <= now && panel.end > now) ? 'Watch' : 'Details'}</button>
@@ -427,12 +437,16 @@ function Details({ ch, p, now, onClose, onWatch, onRecord }: { ch: GuideChannel;
         {p.sub && <p className="muted">{p.sub}</p>}
         <p className="muted">Channel {ch.number}, {ch.name}{p.kind !== 'none' && <> · {fmtDay(p.start)}, {fmtSpan(p)}</>}{p.rating && <> · {p.rating}</>}</p>
         {desc && <p>{desc}</p>}
-        {ch.encrypted && <p role="alert"><b>This channel is protected.</b> {ch.encrypted}. WittyMediaServer does not decrypt or bypass protected broadcasts, so it cannot be played or recorded.</p>}
+        {ch.security?.state === 'encrypted' && <p role="alert"><b>{ch.security.label}.</b> {ch.security.detail} <Link to="/tv/encrypted">What can I do?</Link></p>}
+        {ch.security?.state === 'unknown' && <p className="muted" style={{ fontSize: 13 }}>{ch.security.detail}</p>}
+        {ch.noRecord && <p className="muted" style={{ fontSize: 13 }}>This channel can't be recorded: {ch.noRecord}.</p>}
+        {ch.notices?.map((n) => <p key={n} className="muted" style={{ fontSize: 13 }}>{n}</p>)}
         {ch.kind === 'library' && <p className="muted" style={{ fontSize: 13 }}>Library channels can't be recorded: what they play is already in your library.</p>}
         <div className="actions">
           <button className="btn ghost" onClick={onClose}>Close</button>
           {ch.canRecord && p.kind === 'broadcast' && p.end > now && <><button className="btn" onClick={() => void addSeries()}>Record every airing</button><button className="btn" onClick={onRecord}>Record this</button></>}
-          {!ch.encrypted && <button className="btn primary" onClick={onWatch}><IconPlay /> Watch channel now</button>}
+          {ch.alternative && <Link className="btn primary" to={`/tv/watch/${ch.alternative.key}`}><IconPlay /> Watch {ch.alternative.number} {ch.alternative.name} instead</Link>}
+          {!ch.encrypted && <button className={'btn' + (ch.alternative ? '' : ' primary')} onClick={onWatch}><IconPlay /> Watch channel now</button>}
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ import (
 func init() {
 	register(Driver{
 		ID: "v4l2", Name: "Analogue and capture cards (V4L2)", Status: "untested", Platforms: []string{"linux"},
-		Description: "Analogue TV tuners, composite, S-Video and HDMI capture on Linux. Not yet tried with a real card.",
+		Description: "Analogue TV tuners, composite, S-Video and HDMI capture on Linux. HDMI that is protected by HDCP is not for capturing, and this makes no attempt to. Not yet tried with a real card.",
 		Fields: []Field{
 			{Key: "device", Label: "Video device", Kind: "path", Required: true, Default: "/dev/video0"},
 			{Key: "audio", Label: "ALSA audio device", Kind: "text", Help: "Such as hw:1,0. Optional."},
@@ -49,7 +49,7 @@ func (v *v4l2) Info() Info {
 func (v *v4l2) Channels(context.Context) ([]Channel, error) {
 	text := strings.TrimSpace(v.cfg.Options["channels"])
 	if text == "" {
-		return []Channel{{ID: "capture", Number: "1", Name: firstNonEmpty(v.cfg.Name, "Capture")}}, nil
+		return []Channel{{ID: "capture", Number: "1", Name: firstNonEmpty(v.cfg.Name, "Capture"), Checked: true}}, nil
 	}
 	var out []Channel
 	for _, line := range strings.Split(text, "\n") {
@@ -60,7 +60,7 @@ func (v *v4l2) Channels(context.Context) ([]Channel, error) {
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, Channel{ID: strconv.FormatFloat(f, 'f', 3, 64), Number: strconv.Itoa(len(out) + 1), Name: name, Locator: strconv.FormatFloat(f, 'f', 3, 64)})
+		out = append(out, Channel{ID: strconv.FormatFloat(f, 'f', 3, 64), Number: strconv.Itoa(len(out) + 1), Name: name, Locator: strconv.FormatFloat(f, 'f', 3, 64), Checked: true})
 	}
 	return out, nil
 }

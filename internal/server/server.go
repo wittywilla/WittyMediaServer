@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -48,6 +49,7 @@ type Server struct {
 	// Channels and Live TV (see api_channels.go, api_tuners.go).
 	Channels *channels.Store
 	TV       *livetv.Manager
+	silent   sync.Map // tuner channels whose sound can't be decoded here
 
 	mux        *http.ServeMux
 	logins     loginLimiter

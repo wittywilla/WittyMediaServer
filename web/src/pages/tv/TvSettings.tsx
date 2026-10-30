@@ -144,7 +144,7 @@ function Tuners() {
     try { await api.del(`/tuners/${t.id}`); forgetLineup(); void load() } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Tuners and IPTV" desc="Add as many as you like. Encrypted and copy-protected channels are detected and refused, never decrypted. No channel lists or stream addresses come with the server: bring your own."
+    <Section title="Tuners and IPTV" desc={<>Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>}
       actions={<button className="btn sm" disabled={searching} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>}>
       {found && found.length === 0 && <p className="muted">No new tuners found on your network or this machine. You can still add one below.</p>}
       {found && found.length > 0 && (
@@ -166,7 +166,7 @@ function Tuners() {
             <li key={t.id} className="tvs-item">
               <div className="tvs-item-text">
                 <b>{t.name}</b>
-                <span>{drivers.find((d) => d.id === t.driver)?.name || t.driver} · {t.channels} {t.channels === 1 ? 'channel' : 'channels'}{t.inUse > 0 ? ` · ${t.inUse} in use` : ''}</span>
+                <span>{drivers.find((d) => d.id === t.driver)?.name || t.driver} · {t.channels} {t.channels === 1 ? 'channel' : 'channels'}{t.clear > 0 ? ` · ${t.clear} clear` : ''}{t.encrypted > 0 ? ` · ${t.encrypted} encrypted` : ''}{t.inUse > 0 ? ` · ${t.inUse} in use` : ''}</span>
                 {t.lastError && <span className="tvs-error" role="alert">{t.lastError}</span>}
               </div>
               <Link className="btn sm ghost" to={`tuner/${t.id}`}><IconEdit /> Channels</Link>
@@ -267,7 +267,7 @@ function TunerChannels() {
   useEffect(load, [id])
   useEffect(() => {
     if (!scan?.running) return
-    const t = setTimeout(() => api.get<ScanState>(`/tuners/${id}/scan`).then((s) => { setScan(s); if (!s.running) { load(); forgetLineup(); toast(s.error || `Scan finished: ${s.found} found`) } }).catch(() => {}), 1500)
+    const t = setTimeout(() => api.get<ScanState>(`/tuners/${id}/scan`).then((s) => { setScan(s); if (!s.running) { load(); forgetLineup(); toast(s.error || `Scan finished: ${s.clear} clear, ${s.encrypted} encrypted${s.unknown ? `, ${s.unknown} not checked yet` : ''}`) } }).catch(() => {}), 1500)
     return () => clearTimeout(t)
   }, [scan]) // eslint-disable-line react-hooks/exhaustive-deps
   const edit = async (c: TunerChannel, patch: Record<string, unknown>) => {
@@ -301,6 +301,7 @@ function TunerChannels() {
         </>}>
         {scan?.running && <div className="tvs-progress" role="progressbar" aria-valuenow={scan.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Scan progress"><i style={{ width: scan.percent + '%' }} /><span>{scan.found} found{scan.message ? ` · ${scan.message}` : ''}</span></div>}
         {scan?.error && <p className="tvs-error" role="alert">{scan.error}</p>}
+        {scan && !scan.running && !scan.error && <p className="tvs-note" role="status">The scan found {scan.clear} clear and {scan.encrypted} encrypted {scan.clear + scan.encrypted === 1 ? 'channel' : 'channels'}{scan.unknown ? `, and ${scan.unknown} not checked yet` : ''}.{scan.encrypted > 0 && <> Encrypted channels can't be played here, which isn't a fault in your setup. <Link to="/tv/encrypted">What can I do?</Link></>}</p>}
         <div className="tvs-toolbar">
           <input className="input" type="search" aria-label="Find a channel" placeholder="Find a channel…" value={q} onChange={(e) => setQ(e.target.value)} />
           <button className="btn sm ghost" onClick={() => void all(true)}>Show all</button>
@@ -308,7 +309,7 @@ function TunerChannels() {
         </div>
         <div className="tvs-table-wrap">
           <table className="tvs-table">
-            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Guide id</th></tr></thead>
+            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
             <tbody>
               {shown.map((c) => (
                 <tr key={c.id} className={c.encrypted ? 'locked' : ''}>
@@ -316,9 +317,15 @@ function TunerChannels() {
                   <td><input className="input tvs-num-in" aria-label={`Number of ${c.name}`} defaultValue={c.number} onBlur={(e) => { if (e.target.value !== c.number) void edit(c, { number: e.target.value }) }} /></td>
                   <td>
                     <input className="input" aria-label={`Name of ${c.name}`} defaultValue={c.name} onBlur={(e) => { if (e.target.value !== c.name) void edit(c, { name: e.target.value }) }} />
-                    {c.encrypted && <small className="tvs-lock">🔒 Protected: {c.encrypted}. It cannot be played or recorded.</small>}
                     {c.group && <small className="tvs-dim">{c.group}</small>}
                   </td>
+                  <td>
+                    {c.security === 'encrypted' && <small className="tvs-lock">Encrypted: can't be played here. {c.encrypted}. <Link to="/tv/encrypted">What can I do?</Link> <button className="btn sm ghost" onClick={() => void edit(c, { checkAgain: true })} title="If the station has stopped encrypting: it is checked again next time it is tuned">Check again</button></small>}
+                    {c.security === 'clear' && <small className="tvs-clear">Clear</small>}
+                    {c.security === 'unknown' && <small className="tvs-dim" title="This source doesn't say. It is checked when you tune in.">Not checked yet</small>}
+                    {c.atsc3 && <small className="tvs-dim">ATSC 3.0{c.audioCodec ? ` · ${c.videoCodec || ''} ${c.audioCodec}` : ''}</small>}
+                  </td>
+                  <td><input type="checkbox" aria-label={`${c.name} can be recorded`} disabled={!!c.encrypted} checked={!c.noRecord && !c.encrypted} title={c.noRecord || 'Untick if the device says this may not be recorded'} onChange={(e) => void edit(c, { noRecord: !e.target.checked })} /></td>
                   <td><input className="input mono" aria-label={`Guide id of ${c.name}`} defaultValue={c.epgSet || c.epgId || ''} onBlur={(e) => { if (e.target.value !== (c.epgSet || c.epgId || '')) void edit(c, { epg: e.target.value }) }} /></td>
                 </tr>
               ))}

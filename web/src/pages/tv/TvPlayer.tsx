@@ -8,7 +8,7 @@ import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
 import { rememberChannel, useLook } from './look'
-import { fmtClock, fmtSpan, getLineup, leaveChannel, logoSrc, makeViewer, preflight, tune, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
+import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, logoSrc, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
@@ -31,6 +31,7 @@ export default function TvPlayer() {
   const [remoteOn, setRemoteOnState] = useState(remoteSaved)
   const [dial, setDial] = useState('')
   const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
+  const [alt, setAlt] = useState<Alternative | null>(null)
   const lastKey = useRef<string | null>(null)
   const prevKey = useRef('')
   const bannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -49,7 +50,7 @@ export default function TvPlayer() {
   useEffect(() => {
     if (prevKey.current && prevKey.current !== key) lastKey.current = prevKey.current
     prevKey.current = key
-    setInfo(null); setUrl(null); setErr(''); setNeedClick(false)
+    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null)
     const ac = new AbortController()
     showBanner()
     rememberChannel(key)
@@ -58,13 +59,21 @@ export default function TvPlayer() {
       .then(async (i) => {
         if (ac.signal.aborted) return
         setInfo(i)
-        announce(`Channel ${i.number}, ${i.name}${i.now?.title ? ', ' + i.now.title : ''}`)
+        announce(`Channel ${i.number}, ${i.name}${i.now?.title ? ', ' + i.now.title : ''}${i.notices?.length ? '. ' + i.notices.join(' ') : ''}`)
         const u = i.url + '?viewer=' + v
         await preflight(u, ac.signal)
         if (!ac.signal.aborted) setUrl(u)
       })
-      .catch((e) => { if (!ac.signal.aborted) setErr(e.message) })
-    return () => { ac.abort(); leaveChannel(key, v) }
+      .catch((e) => {
+        if (ac.signal.aborted) return
+        setErr(e.message)
+        // A channel refused now may have just shown itself to be encrypted.
+        forgetLineup()
+        getLineup().then((l) => setAlt(l.find((c) => c.key === key)?.alternative || null)).catch(() => {})
+      })
+    const gone = () => leaveChannel(key, v)
+    window.addEventListener('pagehide', gone)
+    return () => { ac.abort(); window.removeEventListener('pagehide', gone); gone() }
   }, [key, showBanner])
 
   const hlsRef = useSource(video, url, {
@@ -218,6 +227,8 @@ export default function TvPlayer() {
           <div className="box">
             <b>{info ? `Channel ${info.number}, ${info.name}` : 'This channel'}</b><br />{err}<br />
             <div className="ctv-msg-actions" onClick={(e) => e.stopPropagation()}>
+              {alt && <button className="btn primary" onClick={() => nav(`/tv/watch/${alt.key}`, { replace: true })}>Watch {alt.number} {alt.name} instead</button>}
+              {err.includes('Encrypted:') && <button className="btn" onClick={() => nav('/tv/encrypted')}>What can I do?</button>}
               <button className="btn" onClick={guide}>Back to the guide</button>
               <button className="btn" onClick={() => void step(1)}>Next channel</button>
             </div>
@@ -252,7 +263,7 @@ function Banner({ info }: { info: TuneInfo }) {
   const p = info.now
   const pct = p && p.end > p.start ? Math.max(0, Math.min(100, ((now - p.start) / (p.end - p.start)) * 100)) : 0
   return (
-    <div className="ctv-banner" aria-hidden="true" onClick={(e) => e.stopPropagation()}>
+    <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
       <div className="ctv-banner-ch">
         {info.logo ? <img src={logoSrc(info.logo)} alt="" /> : null}
         <b>{info.number}</b><span>{info.name}</span>
@@ -262,6 +273,7 @@ function Banner({ info }: { info: TuneInfo }) {
         <div className="ctv-banner-sub">{p?.sub || (p ? '' : 'No guide data')}</div>
         {p && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
         {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
+        {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>

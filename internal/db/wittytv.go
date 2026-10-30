@@ -65,6 +65,17 @@ var wittyTVMigrations = []string{
 	   id INTEGER PRIMARY KEY, channel_id INTEGER NOT NULL, user_id INTEGER, title TEXT NOT NULL, created_at INTEGER NOT NULL);`,
 	// 3: whether a commercials library also appears in the main menus and Home.
 	`ALTER TABLE libraries ADD COLUMN show_main INTEGER NOT NULL DEFAULT 0;`,
+	// 4: what is known about each channel's protection and format. encrypted
+	// comes from the source; encrypted_seen from the stream itself, and stays
+	// through rescans. checked: the source says, or a stream showed, it is clear.
+	`ALTER TABLE tuner_channels ADD COLUMN encrypted_seen TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN checked INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE tuner_channels ADD COLUMN seen_clear INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE tuner_channels ADD COLUMN atsc3 INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE tuner_channels ADD COLUMN video_codec TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN audio_codec TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN no_record TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN no_record_set INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

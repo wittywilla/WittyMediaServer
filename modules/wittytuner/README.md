@@ -40,11 +40,16 @@ It also reads what is in a stream: PAT, PMT, SDT, ATSC VCT, and guide data from 
 **Nothing here decrypts or bypasses anything.** Protected channels are detected and refused with a
 clear message:
 
-- `DRM: 1` in a network tuner's lineup;
+- a `drm` tag or `DRM: 1` in a network tuner's lineup, and its "content protection required" error;
+- DTCP-IP streams, and DASH manifests with `ContentProtection`;
 - `free_CA_mode` in the SDT, CA descriptors in the PMT, `access_controlled` in the ATSC VCT;
 - `transport_scrambling_control` in the packets themselves, also mid-stream (`mpegts.Guard`);
 - DRM licence lines in a playlist, and any `#EXT-X-KEY` in an HLS playlist. FFmpeg's `crypto`
   protocol is left off its whitelist as a second lock.
+
+`wittytuner.New` applies the check to every driver, so none can leave it out, and there is no hook for
+changing it. Channels are `Checked` when their source says whether they are protected, and ATSC 3.0 is an
+ordinary channel when it isn't encrypted (the host decides what it can decode).
 
 No channel lists or stream addresses are included. Scans use the standard channel-to-frequency
 formulas, which say where a channel could be, not what is there.

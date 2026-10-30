@@ -345,13 +345,19 @@ func (s *iptv) Open(ctx context.Context, ch Channel) (*Stream, error) {
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https":
 		return openHTTPStream(ctx, s.env, ch, ua, nil)
+	// A relay turns the rest into MPEG-TS, so the guard can read them too.
 	case "rtp", "udp":
-		// A relay turns these into MPEG-TS the guard can read.
 		return relay(ctx, s.env, []string{"-protocol_whitelist", "udp,rtp", "-i", ch.Locator})
-	case "rtmp", "rtmps", "srt":
-		return &Stream{Input: []string{"-protocol_whitelist", "rtmp,rtmps,srt,udp,tcp,tls", "-i", ch.Locator}}, nil
+	case "rtmp", "rtmps":
+		return relay(ctx, s.env, []string{"-protocol_whitelist", "rtmp,rtmps,tcp,tls", "-i", ch.Locator})
+	case "srt":
+		// A passphrase here would have FFmpeg decrypting the stream.
+		if u.Query().Has("passphrase") {
+			return nil, &EncryptedError{ch.Name, "its address asks for a decryption passphrase"}
+		}
+		return relay(ctx, s.env, []string{"-protocol_whitelist", "srt,udp", "-i", ch.Locator})
 	default:
-		return &Stream{Input: []string{"-rtsp_transport", "tcp", "-protocol_whitelist", "rtsp,rtsps,rtp,udp,tcp,tls", "-i", ch.Locator}}, nil
+		return relay(ctx, s.env, []string{"-rtsp_transport", "tcp", "-protocol_whitelist", "rtsp,rtsps,rtp,udp,tcp,tls", "-i", ch.Locator})
 	}
 }
 
@@ -402,6 +408,20 @@ func openHTTPStream(ctx context.Context, env Env, ch Channel, ua string, headers
 	n, _ := io.ReadFull(res.Body, head)
 	head = head[:n]
 	ct := strings.ToLower(res.Header.Get("Content-Type"))
+	// DTCP-IP: a licensed device sending a stream that only a licensed player
+	// may open. It reached us still protected, so it stays that way.
+	if strings.Contains(ct, "dtcp") {
+		res.Body.Close()
+		return nil, &EncryptedError{ch.Name, "the device sends it copy protected"}
+	}
+	if bytes.Contains(head, []byte("<MPD")) {
+		rest, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
+		res.Body.Close()
+		if bytes.Contains(append(head, rest...), []byte("ContentProtection")) {
+			return nil, &EncryptedError{ch.Name, "its DASH manifest uses DRM"}
+		}
+		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: true}, nil
+	}
 	isHLS := bytes.HasPrefix(bytes.TrimPrefix(head, []byte("\xef\xbb\xbf")), []byte("#EXTM3U")) || strings.Contains(ct, "mpegurl")
 	if isHLS {
 		rest, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
@@ -414,7 +434,7 @@ func openHTTPStream(ctx context.Context, env Env, ch Channel, ua string, headers
 				return nil, &EncryptedError{ch.Name, why}
 			}
 		}
-		return &Stream{Input: httpInput(ch.Locator, ua, headers)}, nil
+		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: true}, nil
 	}
 	if n >= 188 && head[0] == 0x47 && (n < 376 || head[188] == 0x47) {
 		// Raw MPEG-TS: read on, starting with what was already read.

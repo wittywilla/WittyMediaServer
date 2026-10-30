@@ -201,7 +201,7 @@ func parseSVDRPChannel(s, host, port string) (Channel, bool) {
 	if f[12] != "0" && f[12] != "" {
 		id += "-" + f[12]
 	}
-	c := Channel{ID: id, Number: number, Name: name, Group: group}
+	c := Channel{ID: id, Number: number, Name: name, Group: group, Checked: true}
 	c.Program, _ = strconv.Atoi(f[9])
 	u := url.URL{Scheme: "http", Host: net.JoinHostPort(host, port), Path: "/TS/" + id}
 	c.Locator = u.String()

@@ -41,6 +41,9 @@ type LiveInput struct {
 	Realtime bool
 	Slate    bool
 	Release  func() // called when the run ends (frees a tuner)
+	// OnFail hears what FFmpeg said when a run failed, so that the next one can
+	// do without what it could not decode.
+	OnFail func(stderr string)
 }
 
 // LiveFeed says what to play at a moment. An error ends the session unless
@@ -578,6 +581,9 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 			if err != nil {
 				if f := in.fatalCause(); f != nil {
 					return &FatalError{f}
+				}
+				if in.OnFail != nil {
+					in.OnFail(stderr.String())
 				}
 				return fmt.Errorf("%w: %s", err, tail(stderr.String(), 400))
 			}

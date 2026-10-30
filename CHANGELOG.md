@@ -20,7 +20,11 @@ See [CHANNELS.md](docs/CHANNELS.md).
 - **Live TV** through the new **WittyTuner** module: IPTV playlists and streams, network tuners, Linux
   DVB, capture cards, SAT>IP, external backends and a custom command. Most drivers have not been tried
   on real hardware yet, and say so.
-- **Encrypted and copy-protected channels are detected and refused**, never decrypted.
+- **Encrypted and copy-protected channels are detected and refused**, never decrypted. Every channel
+  shows whether it is clear or encrypted, with a help page, and the same station from a clear source
+  is offered when there is one.
+- **Unencrypted ATSC 3.0** tunes, plays and records. The bundled FFmpeg has no AC-4 decoder, so channels
+  with AC-4 sound play silently for now, and say so.
 - **Guide data** from XMLTV and from the broadcasts themselves, and **recording** of live channels.
 - One stream per channel however many are watching, and FFmpeg runs only while someone is.
 

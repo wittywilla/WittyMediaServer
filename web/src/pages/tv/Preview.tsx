@@ -38,7 +38,10 @@ export default function Preview({ channel, label, look }: { channel: string; lab
         })
         .catch((e) => { if (!ac.signal.aborted) { setState('failed'); setMsg(e.message) } })
     }, SETTLE_MS)
-    return () => { clearTimeout(t); ac.abort(); leaveChannel(channel, v) }
+    // Closing the tab counts as leaving, too.
+    const gone = () => leaveChannel(channel, v)
+    window.addEventListener('pagehide', gone)
+    return () => { clearTimeout(t); ac.abort(); window.removeEventListener('pagehide', gone); gone() }
   }, [channel])
 
   useSource(video, url, {

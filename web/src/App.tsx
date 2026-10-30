@@ -23,6 +23,7 @@ import { Announcer, useDialogs } from './a11y'
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
+const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
 const tvFallback = <div className="center"><div className="spinner" /></div>
 
@@ -87,6 +88,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/search" element={<SearchPage />} />
             <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
             <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
+            <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

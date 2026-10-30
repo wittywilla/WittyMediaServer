@@ -269,7 +269,7 @@ func Parse(args []string) (*Config, error) {
 	c.ImagesDir = env("WMS_METADATA_DIR", or(rel(f.MetadataDir), filepath.Join(c.CacheDir, "images")))
 	c.LogDir = or(c.LogDir, filepath.Join(c.DataDir, "logs"))
 	for _, d := range []string{c.DataDir, c.TranscodeDir, c.CacheDir, c.ImagesDir, c.LogDir} {
-		if err := os.MkdirAll(d, 0o755); err != nil {
+		if err := os.MkdirAll(d, 0o750); err != nil {
 			return nil, err
 		}
 	}

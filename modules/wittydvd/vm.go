@@ -77,7 +77,9 @@ func NewRegisters(o RegisterOptions) *Registers {
 	r.SPRM[SprmHLBTNN] = 1 << 10
 	r.SPRM[SprmCountry] = code2("US")
 	r.SPRM[SprmParental] = 15
-	r.SPRM[SprmVideoMode] = 3 << 10 // 16:9 capable, letterbox preferred
+	// 16:9 display, normal mode: players show the whole anamorphic frame,
+	// which is also what the button group and sub-picture choice assume.
+	r.SPRM[SprmVideoMode] = 3 << 10
 	r.SPRM[SprmAudioCap] = (1 << 14) | (1 << 12) | (1 << 11)
 	r.SPRM[SprmAudioLang] = 0xffff
 	r.SPRM[SprmSubpLang] = 0xffff
@@ -376,11 +378,11 @@ func Decode(c Command) Instr {
 			}
 			return &Link{Op: op, Button: button}, ""
 		case 4:
-			return &Link{Op: LinkPGCN, N: int(u16(6))}, ""
+			return &Link{Op: LinkPGCN, N: int(u16(6) & 0x7fff)}, ""
 		case 5:
 			return &Link{Op: LinkPTTN, N: int(b[6]&3)<<8 | int(b[7]), Button: button}, ""
 		case 6:
-			return &Link{Op: LinkPGN, N: int(b[7]), Button: button}, ""
+			return &Link{Op: LinkPGN, N: int(b[7] & 0x7f), Button: button}, ""
 		case 7:
 			return &Link{Op: LinkCN, N: int(b[7]), Button: button}, ""
 		}
@@ -389,16 +391,19 @@ func Decode(c Command) Instr {
 	jumpOf := func(cmd int) (*Jump, string) {
 		sel := b[5] >> 6
 		menu := int(b[5] & 0x0f)
-		pgcn := int(u16(2))
+		// Title, program and PGC numbers are 7 and 15 bits wide; the top bit is
+		// reserved and some discs leave junk in it.
+		pgcn := int(u16(2) & 0x7fff)
+		ttn := int(b[5] & 0x7f)
 		switch cmd {
 		case 1:
 			return &Jump{Op: JumpExit}, ""
 		case 2:
-			return &Jump{Op: JumpTT, TTN: int(b[5])}, ""
+			return &Jump{Op: JumpTT, TTN: ttn}, ""
 		case 3:
-			return &Jump{Op: JumpVTSTT, TTN: int(b[5])}, ""
+			return &Jump{Op: JumpVTSTT, TTN: ttn}, ""
 		case 5:
-			return &Jump{Op: JumpVTSPTT, TTN: int(b[5]), PTTN: int(b[2]&3)<<8 | int(b[3])}, ""
+			return &Jump{Op: JumpVTSPTT, TTN: ttn, PTTN: int(b[2]&3)<<8 | int(b[3])}, ""
 		case 6, 8:
 			j := &Jump{Op: JumpSS}
 			if cmd == 8 {
@@ -413,7 +418,7 @@ func Decode(c Command) Instr {
 			case 2:
 				j.Domain, j.Menu = DomainVTSM, menu
 				if cmd == 6 {
-					j.VTS, j.TTN = int(b[4]), int(b[3])
+					j.VTS, j.TTN = int(b[4]), int(b[3]&0x7f)
 				}
 			default:
 				j.Domain, j.PGCN, j.HasPGCN = DomainVMGM, pgcn, true

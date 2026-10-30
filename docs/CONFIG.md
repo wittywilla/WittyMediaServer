@@ -68,7 +68,7 @@ Every setting is optional. Leave out what you don't need.
 | `logDir` | log files (can also be changed in *Settings → Logs & privacy*) | `<dataDir>/logs` |
 | `logLevel` | `error`, `warn`, `info` or `debug` | `info` |
 | `ffmpeg`, `ffprobe` | use these FFmpeg programs instead of the bundled ones | bundled, then `PATH` |
-| `maxTranscodes` | how many videos may be transcoded at once; lower it on small machines | `4` |
+| `maxTranscodes` | how many videos may be transcoded at once; lower it on small machines. When all are in use, a stream nobody has asked anything of for 20 seconds gives way, otherwise the next viewer waits | `4` |
 | `publicUrl` | the address people use from outside your home, e.g. `https://media.example.com` | — |
 | `openBrowser` | open the setup page in your browser the first time the server starts | `true` |
 | `portable` | keep everything next to the program | `false` |

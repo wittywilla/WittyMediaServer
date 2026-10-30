@@ -88,6 +88,10 @@ default), the server writes these files in the standard layout other media serve
 | TV show | `tvshow.nfo`, `poster.jpg`, `fanart.jpg`, `season01-poster.jpg`… in the show folder |
 | Episode | `<name>.nfo` (`<episodedetails>`), `<name>-thumb.jpg` |
 
+Artwork saved this way is always a real picture from the internet, the image cache or your own
+disk: a sidecar file or a feed can't make the server copy another kind of file here, or fetch
+something from your local network.
+
 Scans only write metadata for items that have no NFO yet; your own NFOs are never touched by a
 scan, and if you edit an item whose NFO you wrote by hand, the original is kept as `<name>.nfo.bak`.
 Mount media read-only (Docker `:ro`) and turn the option off if you prefer the server not to write.

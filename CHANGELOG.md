@@ -3,6 +3,39 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+Everything found in a full audit of the code; [docs/AUDIT.md](docs/AUDIT.md) has the details.
+
+### Security
+
+- Nothing the API answers can run as a page on this site; a podcast host could have answered with
+  a script. Podcast episodes are only passed on as sound.
+- Saving metadata can't be made to copy another kind of file beside your media, or to fetch from
+  your local network.
+- Accounts with limits no longer see hidden shows' artwork, genres, networks or podcasts, and only
+  administrators see where files are on the server.
+- Sign-in slows down one address trying many accounts, and a flood of attempts can't take the
+  whole processor.
+- Releases are built with the newest Go patch release.
+
+### Faster, on small machines above all
+
+- The first page loads a third of the script it did; the player, readers and Settings come when
+  opened, and scripts travel compressed.
+- The home page and library pages ask far less of the database (home: 146 ms to 33 ms on a test
+  library of 25000 items, with a thirtieth of the memory churn). Libraries load 120 items at a time.
+- FFmpeg rests when it is well ahead of the viewer, *maxTranscodes* is really enforced, and the
+  player says when it is done with a stream.
+
+### Fixed
+
+- A film paused for over 10 minutes hung when resumed.
+- A library folder that is away no longer marks everything in it as missing.
+- An interrupted database upgrade could stop the server from ever starting again.
+- One DVD in 256 opened as "expired". Library pages flickered while scanning.
+- Starting the server deleted the whole transcode folder, whatever else was in it.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

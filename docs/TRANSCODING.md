@@ -93,6 +93,16 @@ Keyframes are still forced on segment boundaries so seeking keeps working. Quote
 (`-x264-params "aq-mode=3:psy-rd=1.0"`). A wrong option makes transcodes fail; start the server
 with `-log debug` to see every FFmpeg command line.
 
+## How much a transcode costs
+
+The server stops FFmpeg once it is 6 minutes ahead of the viewer and starts it again as they near
+that point, so a fast machine doesn't convert a whole film for someone who stops after a minute.
+Segments more than 10 minutes behind the viewer are removed, so a long film stays small on disk.
+FFmpeg stops 90 seconds after the last request (a paused player), and when the player closes.
+
+The transcode folder (`transcodeDir`) is cleaned at every start, of the stream folders the server
+made itself; anything else in it stays.
+
 ## Which profile for which machine
 
 | Machine | Encoder | Profile | Max resolution | Notes |

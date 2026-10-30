@@ -270,7 +270,6 @@ func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.Info("pairing started", "cat", "http", "device", device, "from", p.ip)
 	writeJSON(w, 200, map[string]any{
 		"code":         showPairCode(p.code),
 		"deviceSecret": secret,
@@ -306,7 +305,7 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 			return
 		}
-		s.Log.Info("pairing completed", "cat", "http", "device", p.device, "user", u.Name)
+		s.Log.Info("device signed in by pairing", "device", p.device, "user", u.Name)
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
 		writeJSON(w, 200, map[string]any{"status": "pending", "intervalSec": int(pairInterval.Seconds())})
@@ -405,7 +404,7 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
-	s.Log.Info("pairing approved", "cat", "http", "device", p.device, "for", target.Name, "by", me.Name, "deviceIp", p.ip)
+	s.Log.Info("pairing approved", "device", p.device, "for", target.Name, "by", me.Name, "deviceIp", p.ip)
 	writeJSON(w, 200, map[string]any{"ok": true, "device": p.device, "user": target})
 }
 

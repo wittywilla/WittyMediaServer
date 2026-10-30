@@ -483,8 +483,8 @@ func (s *Store) Window(ctx context.Context, c *Channel, from, to time.Time) ([]P
 	return out, nil
 }
 
-// Now is what is on at t, how far into it, and what follows. Between
-// programmes (a moment left by a schedule edit) cur is a slate up to the next.
+// Now is what is on at t, and the next programme after it. Between programmes
+// (a moment left by a schedule edit) cur is a slate up to the next.
 func (s *Store) Now(ctx context.Context, c *Channel, t time.Time) (cur, next *Programme, err error) {
 	list, err := s.Window(ctx, c, t, t.Add(26*time.Hour))
 	if err != nil {
@@ -497,8 +497,11 @@ func (s *Store) Now(ctx context.Context, c *Channel, t time.Time) (cur, next *Pr
 			if cur == nil {
 				cur = &Programme{Start: u, End: p.Start, Kind: KindSlate}
 			}
-			next = p
-			return cur, next, nil
+			// Bumpers and slates are not what a viewer means by "next".
+			if p.Kind == KindShow {
+				return cur, p, nil
+			}
+			continue
 		}
 		if p.End > u {
 			cur = p

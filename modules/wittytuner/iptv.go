@@ -165,7 +165,9 @@ func ParseM3U(r io.Reader) (*M3U, error) {
 				num++
 				cur.Number = strconv.Itoa(num)
 			}
-			cur.ID = firstNonEmpty(idOf(line))
+			// Addresses often carry a login token that changes, and two entries
+			// can share one (SD and HD names), so the name is part of the id.
+			cur.ID = idOf(firstNonEmpty(cur.EPGID, line) + "|" + cur.Name)
 			cur.Locator = line
 			cur.Encrypted = drm
 			out.Entries = append(out.Entries, *cur)

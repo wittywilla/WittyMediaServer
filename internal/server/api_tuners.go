@@ -450,9 +450,6 @@ func (s *Server) ensureTunerLive(r *http.Request, id int64) (*hls.LiveSession, e
 			if o == nil {
 				var err error
 				if o, err = s.TV.Open(ctx, id); err != nil {
-					if wittytuner.IsEncrypted(err) {
-						return nil, &hls.FatalError{Err: err}
-					}
 					return nil, err
 				}
 			}

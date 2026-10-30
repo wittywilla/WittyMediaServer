@@ -279,7 +279,8 @@ func (s *Store) excludes(ctx context.Context, r Rules, a *library.Access) (bool,
 	w, args := r.where()
 	c, cargs := a.ItemClause()
 	var one int
-	err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+w+` AND NOT `+c+` LIMIT 1`,
+	// The clause is NULL for an unrated title, which NOT alone would let through.
+	err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+w+` AND NOT IFNULL(`+c+`, 0) LIMIT 1`,
 		append(args, cargs...)...).Scan(&one)
 	if err == sql.ErrNoRows {
 		return false, nil

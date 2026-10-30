@@ -971,31 +971,34 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		// Stopped while nobody was looking: start it again where it should be.
 		var err error
 		if kind == "tun" {
-			ls, err = s.ensureTunerLive(r, id)
+			if ls, err = s.ensureTunerLive(r, id); err != nil {
+				tuneError(w, err)
+				return
+			}
 		} else {
 			var c *channels.Channel
 			if c, err = s.Channels.Get(r.Context(), id); err == nil {
 				ls, err = s.ensureLibraryLive(r, c)
 			}
-		}
-		if err != nil {
-			liveError(w, err)
-			return
+			if err != nil {
+				liveError(w, err)
+				return
+			}
 		}
 	}
 	ls.Touch()
 	ctx, cancel := context.WithTimeout(r.Context(), 40*time.Second)
 	defer cancel()
 	if err := ls.WaitReady(ctx); err != nil {
-		if ctx.Err() != nil {
+		if ctx.Err() != nil && ls.Err() == nil {
 			writeErr(w, 503, "the channel is still starting")
 			return
 		}
-		writeErr(w, 502, err.Error())
+		tuneError(w, err)
 		return
 	}
 	if err := ls.Err(); err != nil {
-		writeErr(w, 502, err.Error())
+		tuneError(w, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")

@@ -502,6 +502,16 @@ func TestVisibility(t *testing.T) {
 	if s.Visible(ctx, mixed, kids, &kidsA) {
 		t.Error("a mixed channel must not show for a Kids profile")
 	}
+	// The film in the test library has no rating at all.
+	unrated := &Channel{Enabled: true, Definition: Definition{Rules: Rules{Kinds: []string{"movies"}}}}
+	if s.Visible(ctx, unrated, kids, &kidsA) {
+		t.Error("an unrated title must not reach a profile that does not allow unrated titles")
+	}
+	allowsUnrated := kidsA
+	allowsUnrated.AllowUnrated = true
+	if !s.Visible(ctx, unrated, kids, &allowsUnrated) {
+		t.Error("a profile that allows unrated titles sees them")
+	}
 	// A block with an adult show hides the channel too.
 	withBlock := &Channel{Enabled: true, Definition: Definition{Mode: "rules", Rules: kidChan.Definition.Rules, Blocks: []Block{{Start: "21:00", End: "22:00", Rules: &Rules{Ratings: []string{"TV-14"}}}}}}
 	if s.Visible(ctx, withBlock, kids, &kidsA) {

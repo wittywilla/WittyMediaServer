@@ -34,6 +34,17 @@ func (s *Server) handleThemeFile(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 
+// GET /api/themes/{id}/tokens.json: the theme's colours, lengths and fonts as
+// data, for clients that can't apply CSS (public, like the themes themselves).
+func (s *Server) handleThemeTokens(w http.ResponseWriter, r *http.Request) {
+	t, err := s.Themes.Tokens(r.PathValue("id"))
+	if err != nil {
+		writeErr(w, 404, "no such theme")
+		return
+	}
+	writeJSON(w, 200, t)
+}
+
 // GET /api/themes/{id}/download: the theme ZIP, as a template for your own.
 func (s *Server) handleThemeDownload(w http.ResponseWriter, r *http.Request) {
 	p, err := s.Themes.ZipPath(r.PathValue("id"))

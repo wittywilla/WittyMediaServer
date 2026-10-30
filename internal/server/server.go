@@ -76,6 +76,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
+	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
 
 	// Authenticated
 	a := s.requireUser

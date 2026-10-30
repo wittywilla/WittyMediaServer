@@ -56,6 +56,56 @@ func TestCheckExpertArgs(t *testing.T) {
 	}
 }
 
+func TestCapEveryEncoder(t *testing.T) {
+	tools := &Tools{Encoders: map[string]bool{}}
+	q := Quality{CapRate: "4000k", Preset: "veryfast", CRF: 21}
+	has := func(args []string, want ...string) bool {
+		for i := 0; i+len(want) <= len(args); i++ {
+			match := true
+			for j, w := range want {
+				match = match && args[i+j] == w
+			}
+			if match {
+				return true
+			}
+		}
+		return false
+	}
+	constant := map[string][]string{"h264_qsv": {"-global_quality"}, "h264_amf": {"-qp_i", "cqp"}, "h264_vaapi": {"-qp"}, "h264_videotoolbox": {"-q:v"}}
+	for _, name := range []string{"libx264", "h264_nvenc", "h264_qsv", "h264_amf", "h264_vaapi", "h264_videotoolbox", "libopenh264"} {
+		args := tools.planFor(name, q).Args
+		if !has(args, "-maxrate", "4000k") || !has(args, "-bufsize", "8000k") {
+			t.Errorf("%s has no limit: %v", name, args)
+		}
+		for _, bad := range constant[name] {
+			if has(args, bad) {
+				t.Errorf("%s stays in a constant quality mode that ignores the limit: %v", name, args)
+			}
+		}
+	}
+	// Expert options can't lift it: the limit comes last.
+	expert := q
+	expert.VideoArgs = []string{"-preset", "slow", "-maxrate", "50M"}
+	args := tools.planFor("libx264", expert).Args
+	if args[len(args)-4] != "-maxrate" || args[len(args)-3] != "4000k" {
+		t.Errorf("expert options: %v", args)
+	}
+	if args := tools.Plan(q).Args; !has(args, "-maxrate", "4000k") {
+		t.Errorf("the last-resort encoder: %v", args)
+	}
+	if args := tools.planFor("libx264", Quality{}).Args; has(args, "-maxrate") {
+		t.Errorf("no limit, no limit options: %v", args)
+	}
+}
+
+func TestParseRate(t *testing.T) {
+	for in, want := range map[string]int64{"8M": 8000000, "1500k": 1500000, "2000000": 2000000, "1.5m": 1500000, "": 0, "x": 0, "-4M": 0, "M": 0} {
+		if got := ParseRate(in); got != want {
+			t.Errorf("%q: got %d", in, got)
+		}
+	}
+}
+
 func TestValidRateAndPreset(t *testing.T) {
 	for v, want := range map[string]bool{"": true, "8M": true, "192k": true, "1.5M": true, "-y": false, "8M /tmp/x": false, "../x": false} {
 		if ValidRate(v) != want {
@@ -64,5 +114,24 @@ func TestValidRateAndPreset(t *testing.T) {
 	}
 	if ValidPreset("-y") || !ValidPreset("veryfast") {
 		t.Error("ValidPreset")
+	}
+}
+
+func TestWithCap(t *testing.T) {
+	q := Quality{AudioRate: "256k"}.WithCap("4M")
+	if q.CapRate != "3808k" || q.AudioRate != "192k" {
+		t.Errorf("sound and picture must fit in the total: %+v", q)
+	}
+	q = Quality{}.WithCap("1M")
+	if q.CapRate != "872k" || q.AudioRate != "128k" {
+		t.Errorf("small limits give sound less: %+v", q)
+	}
+	q = Quality{MaxRate: "2M"}.WithCap("8M")
+	if q.CapRate != "2000k" {
+		t.Errorf("a lower limit in Settings still counts: %+v", q)
+	}
+	q = Quality{}.WithCap("")
+	if q.CapRate != "" {
+		t.Errorf("no limit: %+v", q)
 	}
 }

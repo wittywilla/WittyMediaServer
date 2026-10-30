@@ -132,8 +132,8 @@ review, and playback speed on everything.
 
 > **On your home network.** The server runs on your own computer, so it's available to every device
 > on your home network (TV, phone, tablet, other computers) at the address the wizard shows. Away from
-> home it works only once you set up remote access, such as a VPN or a reverse proxy with HTTPS:
-> see [At home and away](docs/INSTALL.md#at-home-and-away).
+> home it works once you turn on **Remote Access** in Settings and follow its steps: see
+> [Remote access](docs/REMOTE.md).
 
 The full walkthrough, with no command line: **[Getting started](docs/GETTING_STARTED.md)**.
 
@@ -143,6 +143,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 |---|---|---|
 | 🚀 | [Getting started](docs/GETTING_STARTED.md) | install, first account, folder layout, watching on other devices |
 | 📦 | [Installing](docs/INSTALL.md) | downloads, tray app, services, Docker, Kubernetes, home and away |
+| 🌍 | [Remote access](docs/REMOTE.md) | watching away from home: Tailscale, NetBird, port forwarding, HTTPS, keeping it safe |
 | 💿 | [DVDs](docs/DVD.md) · [Blu-rays](docs/BLURAY.md) | inserting discs, menus, the remote, audio and subtitles, 3D, 4K and HDR |
 | 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
 | 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |

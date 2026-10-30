@@ -69,7 +69,9 @@ Every setting is optional. Leave out what you don't need.
 | `logLevel` | `error`, `warn`, `info` or `debug` | `info` |
 | `ffmpeg`, `ffprobe` | use these FFmpeg programs instead of the bundled ones | bundled, then `PATH` |
 | `maxTranscodes` | how many videos may be transcoded at once; lower it on small machines. When all are in use, a stream nobody has asked anything of for 20 seconds gives way, otherwise the next viewer waits | `4` |
-| `publicUrl` | the address people use from outside your home, e.g. `https://media.example.com` | — |
+| `publicUrl` | the address people use from outside your home, e.g. `https://media.example.com`. Setting it also turns remote access on | — |
+| `remoteAccess` | allow connections from outside your home without using *Settings → Remote Access*, for servers nobody can reach from a home network first ([REMOTE.md](REMOTE.md)) | `false` |
+| `trustedProxies` | reverse proxies whose `X-Forwarded-For` is believed: addresses or networks, separated by commas; added to those in Settings | — |
 | `openBrowser` | open the setup page in your browser the first time the server starts | `true` |
 | `portable` | keep everything next to the program | `false` |
 

@@ -40,6 +40,7 @@ var Categories = []Category{
 	{"library", "Library scans", "Each file found while scanning and how it was matched. Includes file and folder names."},
 	{"http", "Web requests", "Each request to the server: address, page, result and time taken. Sign-in tokens are removed."},
 	{"client", "App errors", "Errors that happen in the web app and the apps on your devices, sent to this server."},
+	{"signin", "Sign-ins", "Each sign-in and failed sign-in: account name, address and whether it came from home or away. Lock-outs are always recorded."},
 }
 
 // Logger owns the log files.

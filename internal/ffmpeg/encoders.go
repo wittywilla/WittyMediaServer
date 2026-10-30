@@ -134,6 +134,10 @@ type Quality struct {
 	CRF       int    // constant quality (lower = better); 0 = 21. Mapped onto each hardware encoder's scale.
 	MaxRate   string // e.g. "8M": cap the bitrate (helps remote/slow networks)
 	AudioRate string // e.g. "192k"; "" = 192k stereo / 384k surround
+	// CapRate is a hard limit on the video bitrate, e.g. "4M" (see WithCap).
+	// Every encoder is told in the way it really obeys, and expert options
+	// can't lift it.
+	CapRate string
 	// Expert mode: replaces the encoder options (after -c:v) entirely, and
 	// extra output options appended before the HLS muxer options.
 	VideoArgs  []string
@@ -162,7 +166,11 @@ func (t *Tools) Plan(q Quality) Plan {
 	if t.Encoders["libopenh264"] {
 		return t.planFor("libopenh264", q)
 	}
-	return Plan{Name: "mpeg4", Args: []string{"-q:v", "4"}, PixFmt: "yuv420p"}
+	p := Plan{Name: "mpeg4", Args: []string{"-q:v", "4"}, PixFmt: "yuv420p"}
+	if q.CapRate != "" {
+		p.Args = capArgs("mpeg4", p.Args, q)
+	}
+	return p
 }
 
 func (t *Tools) planFor(name string, q Quality) Plan {
@@ -204,7 +212,88 @@ func (t *Tools) planFor(name string, q Quality) Plan {
 	if len(q.VideoArgs) > 0 {
 		p.Args = append([]string(nil), q.VideoArgs...)
 	}
+	if q.CapRate != "" {
+		p.Args = capArgs(name, p.Args, q)
+	}
 	return p
+}
+
+// capArgs gives an encoder a hard bitrate limit. libx264 and NVENC keep their
+// constant quality and only stop at the limit; the others ignore a limit in
+// their constant quality modes, so they switch to a target bitrate below it.
+func capArgs(name string, args []string, q Quality) []string {
+	bits := ParseRate(q.CapRate)
+	if bits <= 0 {
+		return args
+	}
+	limit := []string{"-maxrate", rateArg(bits), "-bufsize", rateArg(2 * bits)}
+	target := rateArg(bits * 4 / 5)
+	if len(q.VideoArgs) > 0 {
+		return append(args, limit...) // expert options: added last, so they win
+	}
+	switch name {
+	case "libx264", "h264_nvenc":
+		return append(args, limit...)
+	case "h264_qsv":
+		return append([]string{"-preset", qsvPreset(q.Preset), "-b:v", target}, limit...)
+	case "h264_videotoolbox":
+		return append([]string{"-b:v", target, "-realtime", "1"}, limit...)
+	case "h264_amf":
+		return append([]string{"-quality", amfQuality(q.Preset), "-rc", "vbr_peak", "-b:v", target}, limit...)
+	case "h264_vaapi":
+		return append([]string{"-rc_mode", "VBR", "-b:v", target}, limit...)
+	case "libopenh264":
+		return append([]string{"-b:v", target, "-pix_fmt", "yuv420p", "-profile:v", "high"}, limit...)
+	}
+	return append([]string{"-b:v", target}, limit...)
+}
+
+// ParseRate reads a bitrate such as "8M", "1500k" or "2000000" as bits per
+// second (0 = not a rate).
+func ParseRate(s string) int64 {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0
+	}
+	mul := 1.0
+	switch s[len(s)-1] {
+	case 'k', 'K':
+		mul, s = 1e3, s[:len(s)-1]
+	case 'm', 'M':
+		mul, s = 1e6, s[:len(s)-1]
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil || v <= 0 || v > 1e12 {
+		return 0
+	}
+	return int64(v * mul)
+}
+
+func rateArg(bits int64) string { return strconv.FormatInt(bits/1000, 10) + "k" }
+
+// WithCap applies a total bitrate limit (video and sound together, e.g. "4M")
+// to a profile: sound stays within it, the video gets the rest, and a lower
+// limit chosen in Settings still counts.
+func (q Quality) WithCap(total string) Quality {
+	bits := ParseRate(total)
+	if bits <= 0 {
+		return q
+	}
+	audio := ParseRate(q.AudioRate)
+	if audio <= 0 || audio > 192000 {
+		audio = 192000
+		q.AudioRate = "192k"
+	}
+	if bits <= 2000000 {
+		audio = min(audio, 128000)
+		q.AudioRate = "128k"
+	}
+	video := max(bits-audio, 200000)
+	if own := ParseRate(q.MaxRate); own > 0 && own < video {
+		video = own
+	}
+	q.CapRate = rateArg(video)
+	return q
 }
 
 func nvencPreset(x264 string) string {

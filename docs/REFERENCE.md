@@ -22,7 +22,9 @@ portable mode and the folders the server uses.
 | `-ffmpeg`, `-ffprobe` | `WMS_FFMPEG`, `WMS_FFPROBE` | bundled `bin/`, then next to the program, then `PATH` | FFmpeg programs |
 | `-max-transcodes` | `WMS_MAX_TRANSCODES` | `4` | FFmpeg jobs at once |
 | `-log` | `WMS_LOG` | `info` | `debug` logs every FFmpeg command line |
-| `-public-url` | `WMS_PUBLIC_URL` | — | the outside address, behind a reverse proxy |
+| `-public-url` | `WMS_PUBLIC_URL` | — | the outside address, behind a reverse proxy; also turns remote access on |
+| `-remote-access` | `WMS_REMOTE_ACCESS=1` | off | allow connections from outside the home network ([REMOTE.md](REMOTE.md)) |
+| `-trusted-proxies` | `WMS_TRUSTED_PROXIES` | — | reverse proxies whose `X-Forwarded-For` is believed |
 | `-watch-stdin` | `WMS_WATCH_STDIN` | off | exit when stdin closes (the tray launcher uses it) |
 | `-dev` | `WMS_DEV=1` | off | serve `web/dist` from disk instead of the built-in copy |
 | — | `WMS_TRANSCODE_DIR` | `<data>/transcode` | put it on an SSD or RAM disk |
@@ -59,17 +61,24 @@ same tools ship on their own as `wittydvd` and `wittybluray`.
 
 Everything is under `/api` and answers JSON. Sign in with `POST /api/login` and send the token as
 `Authorization: Bearer <token>` (or `X-WMS-Token`). Media URLs that a page can't add headers to
-(images, video) take `?token=`.
+(images, video) take `?token=`; an HLS playlist fetched that way carries it on to its segments, but those
+addresses can end up in the logs of a reverse proxy, so players that can add a header should. An account with two-factor sign-in answers `POST /login` with 401 and
+`{"twoFactor": true}` until the request also has `code`.
 
 **Security rules for API clients:** apps on other origins (the mobile app, your own tools) send the
 token in a header; the server answers them with CORS but never honours the session cookie across
-origins, and refuses state-changing requests signed in by cookie that come from another site.
+origins, and refuses state-changing requests signed in by cookie that come from another site. A page
+elsewhere that sends no token gets no answer it can read; only the mobile app's origins may sign in.
+Connections from outside the home network are refused until remote access is on ([REMOTE.md](REMOTE.md)).
 Changing your own password needs the current one (`{"password", "current"}`) and signs out your
 other devices.
 
 | Area | Endpoints |
 |---|---|
 | Sign-in | `GET /status` · `POST /setup` · `POST /login` · `POST /logout` · `GET /me` · `GET /profiles` |
+| Devices | `GET /sessions` (`?all=1`: everyone's, admin) · `DELETE /sessions/{id}` · `DELETE /sessions` (all your others) |
+| Two-factor sign-in | `GET /me/2fa` · `POST /me/2fa/setup` · `POST /me/2fa/confirm` · `POST /me/2fa/disable` · `DELETE /users/{id}/2fa` (admin) |
+| Remote access (admin) | `GET/PUT /remote` · `POST /remote/test` · `POST /remote/selfcheck` · `POST /remote/router` · `POST /remote/obtain` · `DELETE /remote/lockouts` · public: `GET /reach/{nonce}` (the outside test) |
 | Home | `GET /home` · `GET/PUT /me/ui` (home layout) |
 | Libraries | `GET/POST /libraries` · `PUT/DELETE /libraries/{id}` · `POST/GET /libraries/{id}/scan` |
 | Items | `GET /items?library=&search=&sort=&desc=&genre=&kind=&limit=&offset=` · `GET/PUT /items/{id}` · `GET /items/{id}/poster` · `…/backdrop` · `…/recommend` · `…/artwork` |

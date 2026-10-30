@@ -16,25 +16,25 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 // First-run setup and the sign-in screen: the profile list, the system
 // folder picker and API-key checks for the setup wizard.
 
-// clientIP is the address the request came from. X-Forwarded-For is not
-// trusted: behind a reverse proxy everyone counts as remote, which is the
-// safe direction for everything that uses this.
+// clientIP is the address the request came from. X-Forwarded-For is trusted
+// only from the reverse proxies the owner listed in Settings: behind any other
+// proxy everyone counts as remote, which is the safe direction for everything
+// that uses this.
 func clientIP(r *http.Request) net.IP {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
+	if a := clientFrom(r).IP; a.IsValid() {
+		return net.IP(a.AsSlice())
 	}
-	return net.ParseIP(host)
+	return nil
 }
 
-func proxied(r *http.Request) bool {
-	return r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("Forwarded") != ""
-}
+// onLocalNetwork: the same machine or the home network.
+func onLocalNetwork(r *http.Request) bool { return clientFrom(r).Where.AtHome() && localHostName(r) }
 
 // localHostName: the address in the browser's bar is one only this network can
 // resolve. A page on the internet can make its own domain point at this server
@@ -58,16 +58,11 @@ func localHostName(r *http.Request) bool {
 	return false
 }
 
-// onLocalNetwork: the same machine or a private LAN address.
-func onLocalNetwork(r *http.Request) bool {
-	ip := clientIP(r)
-	return ip != nil && !proxied(r) && localHostName(r) && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast())
-}
-
-// onThisMachine: the browser runs on the server's own desktop.
+// onThisMachine: the browser runs on the server's own desktop, with nothing
+// in between.
 func onThisMachine(r *http.Request) bool {
-	ip := clientIP(r)
-	return ip != nil && ip.IsLoopback() && !proxied(r) && localHostName(r)
+	c := clientFrom(r)
+	return c.Where == remote.Machine && c.Direct() && localHostName(r)
 }
 
 // GET /api/profiles (public). The "Who's watching?" screen lists accounts by
@@ -92,7 +87,9 @@ func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]profile, 0, len(users))
 	for _, u := range users {
-		out = append(out, profile{ID: u.ID, Name: u.Name, Kind: u.Kind, HasPassword: u.HasPassword})
+		// Away from home nobody can sign in without a password, and nobody
+		// needs to know which profiles have none.
+		out = append(out, profile{ID: u.ID, Name: u.Name, Kind: u.Kind, HasPassword: u.HasPassword || !onLocalNetwork(r)})
 	}
 	writeJSON(w, 200, map[string]any{"style": "profiles", "profiles": out})
 }
@@ -172,27 +169,34 @@ func (s *Server) handleMetadataTest(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- sign-in limits
 
-// loginSlots: password checks running at once.
-var loginSlots = make(chan struct{}, 2)
+// Thresholds of the sign-in limits. Limits for one address and one account
+// apply only away from home: nobody on the internet can lock the owner out of
+// their server at home, and a child guessing at home locks nobody else out.
+const (
+	pairFails, pairWait, pairCeil = 5, 30 * time.Second, 15 * time.Minute // one name from one address
+	addrFails, addrWait, addrCeil = 20, 5 * time.Minute, time.Hour        // one address trying many names
+	acctFails, acctWait, acctCeil = 30, 15 * time.Minute, time.Hour       // one name from many addresses
+	failMemory                    = 30 * time.Minute                      // quiet for this long: start over
+	limiterSize                   = 20000
+)
 
-// ipFailLimit: wrong passwords from one address, over all names, before that
-// address has to slow down (it can't try one password on every account).
-const ipFailLimit = 30
+const (
+	freeTriesPerName    = pairFails
+	freeTriesPerAddress = addrFails
+	maxLimiterEntries   = limiterSize
+)
 
-// maxLoginEntries bounds the limiter's memory whatever a flood sends.
-const maxLoginEntries = 10000
+// loginConcurrency: checking a password takes real work, so a flood of sign-in
+// attempts must not take the whole machine.
+func loginConcurrency() int { return max(2, runtime.NumCPU()/2) }
 
 // loginLimiter slows down password guessing: after 5 failures for one name
-// from one address, each further attempt waits longer (up to 15 minutes).
-// One address trying many names (one common password against every account)
-// gets the same treatment after 30.
-//
-// An attempt counts when it starts, not when its password turns out wrong:
-// otherwise hundreds of guesses sent at once all pass the check before the
-// first one has finished.
+// from one address, each further attempt waits longer (up to 15 minutes). Away
+// from home there are also limits per address and per account.
 type loginLimiter struct {
-	mu sync.Mutex
-	m  map[string]*attempts
+	mu     sync.Mutex
+	m      map[string]*attempts
+	recent []time.Time // the latest failures, for Settings
 }
 
 type attempts struct {
@@ -201,19 +205,17 @@ type attempts struct {
 	until time.Time
 }
 
-const (
-	freeTriesPerName    = 5
-	freeTriesPerAddress = 30
-	maxLimiterEntries   = 10000
-)
-
 func (l *loginLimiter) key(r *http.Request, name string) string {
+	return addressKey(r) + "|" + limitName(name)
+}
+
+func limitName(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if len(name) > 64 { // no name is this long, and the key is kept in memory
 		sum := sha256.Sum256([]byte(name))
 		name = hex.EncodeToString(sum[:])
 	}
-	return addressKey(r) + "|" + name
+	return name
 }
 
 // addressKey groups the addresses one attacker can use: an IPv6 network hands
@@ -232,6 +234,12 @@ func addressKey(r *http.Request) string {
 // begin counts an attempt and says how long the caller must wait first (0 =
 // go ahead). free is how many attempts are allowed before waiting starts.
 func (l *loginLimiter) begin(k string, free int) time.Duration {
+	return l.bump(k, free, pairWait, pairCeil)
+}
+
+func (l *loginLimiter) fail(k string) { l.bump(k, pairFails, pairWait, pairCeil) }
+
+func (l *loginLimiter) bump(k string, limit int, wait, ceil time.Duration) time.Duration {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
@@ -242,16 +250,15 @@ func (l *loginLimiter) begin(k string, free int) time.Duration {
 		l.m = map[string]*attempts{}
 	}
 	a := l.m[k]
-	if a == nil || now.Sub(a.last) > 30*time.Minute {
+	if a == nil || now.Sub(a.last) > failMemory {
 		l.trim(now)
 		a = &attempts{}
 		l.m[k] = a
 	}
 	a.fails++
 	a.last = now
-	if a.fails >= free {
-		d := 30 * time.Second << min(a.fails-free, 5)
-		a.until = now.Add(min(d, 15*time.Minute))
+	if a.fails >= limit {
+		a.until = now.Add(min(wait<<min(a.fails-limit, 8), ceil))
 	}
 	return 0
 }
@@ -267,9 +274,6 @@ func (l *loginLimiter) wait(k string) time.Duration {
 	}
 	return 0
 }
-
-// fail counts a wrong attempt that wait let through.
-func (l *loginLimiter) fail(k string) { l.begin(k, freeTriesPerName) }
 
 // trim keeps the map from growing without bound: it forgets stale entries,
 // and when that isn't enough, entries that aren't holding anyone back.
@@ -308,22 +312,6 @@ func (l *loginLimiter) refund(k string) {
 	}
 }
 
-// passwordSlots limits how many password checks run at once: each takes a CPU
-// core for a moment on purpose, and a small server must stay usable when
-// someone sends a thousand sign-ins at the same time.
-var passwordSlots = make(chan struct{}, max(2, runtime.NumCPU()))
-
-func acquirePasswordSlot(ctx context.Context) bool {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	select {
-	case passwordSlots <- struct{}{}:
-		return true
-	case <-ctx.Done():
-		return false
-	}
-}
-
 // ---------------------------------------------------------------- first run
 
 // A fresh server has no accounts, and whoever makes the first one owns it.
@@ -354,4 +342,111 @@ func (s *Server) SetupCode() string {
 func (s *Server) setupCodeOK(given string) bool {
 	given = strings.ToUpper(strings.TrimSpace(given))
 	return subtle.ConstantTimeCompare([]byte(given), []byte(s.SetupCode())) == 1
+}
+
+// gate is how long this client must wait before trying this name again.
+func (l *loginLimiter) gate(r *http.Request, name string) time.Duration {
+	d := l.wait(l.key(r, name))
+	if c := clientFrom(r); !c.Where.AtHome() {
+		d = max(d, l.wait("addr|"+remote.LimitKey(c.IP)), l.wait("acct|"+limitName(name)))
+	}
+	return d
+}
+
+// failed counts a wrong password or code.
+func (l *loginLimiter) failed(r *http.Request, name string) {
+	l.fail(l.key(r, name))
+	if c := clientFrom(r); !c.Where.AtHome() {
+		l.bump("addr|"+remote.LimitKey(c.IP), addrFails, addrWait, addrCeil)
+		l.bump("acct|"+limitName(name), acctFails, acctWait, acctCeil)
+	}
+	l.noteFailure()
+}
+
+// attempt counts a sign-in as it starts, and says how long this client must
+// wait instead (0 = go ahead).
+func (l *loginLimiter) attempt(r *http.Request, name string) time.Duration {
+	d := l.bump(l.key(r, name), pairFails, pairWait, pairCeil)
+	if c := clientFrom(r); !c.Where.AtHome() {
+		d = max(d, l.bump("addr|"+remote.LimitKey(c.IP), addrFails, addrWait, addrCeil), l.bump("acct|"+limitName(name), acctFails, acctWait, acctCeil))
+	}
+	return d
+}
+
+// uncount takes back an attempt that turned out to guess nothing.
+func (l *loginLimiter) uncount(r *http.Request, name string) {
+	l.refund(l.key(r, name))
+	l.refundAway(r, name)
+}
+
+func (l *loginLimiter) refundAway(r *http.Request, name string) {
+	if c := clientFrom(r); !c.Where.AtHome() {
+		l.refund("addr|" + remote.LimitKey(c.IP))
+		l.refund("acct|" + limitName(name))
+	}
+}
+
+// noteFailure remembers when a failure happened, for Settings.
+func (l *loginLimiter) noteFailure() {
+	l.mu.Lock()
+	l.recent = append(l.recent, time.Now())
+	if len(l.recent) > 500 {
+		l.recent = l.recent[len(l.recent)-500:]
+	}
+	l.mu.Unlock()
+}
+
+// passed clears this client's count for this name, and takes back this attempt
+// from the address and account counts: signing in now and then must not wear
+// them out, nor wipe out what an attacker has used up.
+func (l *loginLimiter) passed(r *http.Request, name string) {
+	l.ok(l.key(r, name))
+	l.refundAway(r, name)
+}
+
+// lockout is one active sign-in lock, as Settings shows it.
+type lockout struct {
+	Kind  string `json:"kind"` // pair | address | account
+	Addr  string `json:"addr,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Until int64  `json:"until"`
+	Fails int    `json:"fails"`
+}
+
+// snapshot lists the active locks and counts the failures of the last day.
+func (l *loginLimiter) snapshot() (locks []lockout, failures int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	locks = []lockout{}
+	for k, a := range l.m {
+		if !now.Before(a.until) {
+			continue
+		}
+		v := lockout{Until: a.until.Unix(), Fails: a.fails}
+		switch {
+		case strings.HasPrefix(k, "addr|"):
+			v.Kind, v.Addr = "address", k[5:]
+		case strings.HasPrefix(k, "acct|"):
+			v.Kind, v.Name = "account", k[5:]
+		case strings.HasPrefix(k, "setup|"):
+			v.Kind, v.Addr = "address", k[6:]
+		default:
+			v.Kind = "pair"
+			v.Addr, v.Name, _ = strings.Cut(k, "|")
+		}
+		locks = append(locks, v)
+	}
+	for _, t := range l.recent {
+		if now.Sub(t) < 24*time.Hour {
+			failures++
+		}
+	}
+	return locks, failures
+}
+
+func (l *loginLimiter) clear() {
+	l.mu.Lock()
+	l.m = nil
+	l.mu.Unlock()
 }

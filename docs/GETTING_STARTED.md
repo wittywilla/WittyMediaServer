@@ -130,9 +130,9 @@ cable network) can open the server:
 
 On phones you can choose *Add to Home Screen* to get an app-like icon.
 
-> **Home network only, until you set up remote access.** The server runs on your own computer, so
-> it can't be reached from outside your home by default. To watch away from home, set up a VPN or a
-> reverse proxy with HTTPS first: see [At home and away](INSTALL.md#at-home-and-away).
+> **Home network only, until you turn on remote access.** The server runs on your own computer, and
+> refuses connections from outside your home by default. To watch away from home, go to
+> *Settings → Remote Access* and follow the steps: see [Remote access](REMOTE.md).
 
 ## Glossary
 

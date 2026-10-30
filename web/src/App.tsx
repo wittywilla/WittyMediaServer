@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage'
 import { Brand, BrandMark, Spinner, UpdateDot, VersionTag } from './components/common'
 import { AudioProvider } from './audio/player'
 import PairPage from './pages/PairPage'
+import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -42,7 +43,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired, onboarding } = useApp()
+  const { user, loading, setupRequired, onboarding, needServer } = useApp()
   const loc = useLocation()
   const [navOpen, setNavOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches)
   const isMobile = () => !window.matchMedia('(min-width: 901px)').matches
@@ -58,6 +59,7 @@ function Shell() {
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
+  if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard resume={false} /></Suspense> : <AuthPage />
   if (onboarding && user.isAdmin) return <Suspense fallback={<Spinner />}><SetupWizard resume /></Suspense>
   // The player lives outside the page routes (see PlayerDock) so it can keep

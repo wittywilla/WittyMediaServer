@@ -33,15 +33,15 @@ const (
 	clientDoc   = "../../docs/CLIENT-API.md"
 )
 
-// route is one route as the code registers it.
-type route struct {
+// apiRoute is one route as the code registers it.
+type apiRoute struct {
 	method, path string // "/items/{id}", without /api
 	raw          string // the pattern as written
 	public       bool
 	auth         string // public | user | admin
 }
 
-func (r route) pattern() string { return r.method + " /api" + r.path }
+func (r apiRoute) pattern() string { return r.method + " /api" + r.path }
 
 // wildcard {file...} is written {file} in OpenAPI.
 func docPath(p string) string { return strings.ReplaceAll(p, "...}", "}") }
@@ -51,14 +51,14 @@ var routePattern = regexp.MustCompile(`^(GET|POST|PUT|DELETE|PATCH|HEAD) /api(/.
 // codeRoutes reads the routes out of this package's source, wherever they are
 // registered and whatever the variable holding the mux is called. Sign-in comes
 // from what wraps the handler: a(...)/s.requireUser(...) or s.requireAdmin(...).
-func codeRoutes(t *testing.T) []route {
+func codeRoutes(t *testing.T) []apiRoute {
 	t.Helper()
 	fset := token.NewFileSet()
 	files, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var out []route
+	var out []apiRoute
 	for _, name := range files {
 		if strings.HasSuffix(name, "_test.go") {
 			continue
@@ -88,7 +88,7 @@ func codeRoutes(t *testing.T) []route {
 			if m == nil {
 				return true
 			}
-			r := route{method: m[1], path: m[2], raw: pat, auth: "public"}
+			r := apiRoute{method: m[1], path: m[2], raw: pat, auth: "public"}
 			if wrap, ok := call.Args[1].(*ast.CallExpr); ok {
 				switch fn := wrap.Fun.(type) {
 				case *ast.Ident:
@@ -195,7 +195,7 @@ func fillPath(p string, id int64) string {
 }
 
 // A stub ready to paste into docs/openapi.json, to get a new route started.
-func openAPIStub(r route) string {
+func openAPIStub(r apiRoute) string {
 	var params []string
 	for _, m := range regexp.MustCompile(`\{([^.}]+)(?:\.\.\.)?\}`).FindAllStringSubmatch(r.path, -1) {
 		params = append(params, fmt.Sprintf(`{"name": %q, "in": "path", "required": true, "schema": {"type": "string"}}`, m[1]))

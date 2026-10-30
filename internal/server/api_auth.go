@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -29,12 +31,17 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if u != nil && u.IsAdmin && s.Update != nil {
 		newer = s.Update.Available()
 	}
+	// Which version runs is nobody's business on the internet until they sign in.
+	version := s.Version
+	if u == nil && clientFrom(r).Where == remote.Internet {
+		version = ""
+	}
 	writeJSON(w, 200, map[string]any{
 		"update":        newer,
 		"onboarding":    onboarding,
 		"pickerLocal":   onThisMachine(r),
 		"name":          "WittyMediaServer",
-		"version":       s.Version,
+		"version":       version,
 		"setupRequired": setupRequired,
 		// Setting up from outside this network takes the code from the log.
 		"setupCodeRequired": setupRequired && !onLocalNetwork(r),
@@ -49,6 +56,7 @@ type credentials struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
 	Device   string `json:"device"`
+	Code     string `json:"code"` // two-factor sign-in
 	// SetupCode: first-run setup from outside this network.
 	SetupCode string `json:"setupCode"`
 }
@@ -60,7 +68,7 @@ const maxCredentialBytes = 16 << 10
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string) {
 	http.SetCookie(w, &http.Cookie{
 		Name: auth.CookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
-		Secure: r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https"), Expires: time.Now().Add(90 * 24 * time.Hour),
+		Secure: remote.SecureHint(r), Expires: time.Now().Add(90 * 24 * time.Hour),
 	})
 }
 
@@ -97,7 +105,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, false)
+	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, deviceName(c.Device, r), false)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -109,61 +117,163 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
 	var c credentials
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	tooMany := func(d time.Duration) {
-		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
-		writeErr(w, 429, fmt.Sprintf("Too many wrong passwords. Try again in %d seconds.", int(d.Seconds())+1))
-	}
-	k := s.logins.key(r, c.Name)
-	if d := s.logins.begin(k, freeTriesPerName); d > 0 {
-		tooMany(d)
+	release, ok := s.loginAllowed(w, r, c.Name)
+	if !ok {
 		return
 	}
-	// Behind a reverse proxy every visitor has the proxy's address, so one
-	// address's count would lock everybody out.
-	addr := ""
-	if !proxied(r) {
-		addr = addressKey(r)
-		if d := s.logins.begin(addr, freeTriesPerAddress); d > 0 {
-			tooMany(d)
-			return
-		}
-	}
-	if !acquirePasswordSlot(r.Context()) {
-		w.Header().Set("Retry-After", "5")
-		writeErr(w, 503, "The server is busy. Try again in a moment.")
+	defer release()
+	// Password-free Kids and Guest profiles sign in only at home, whatever the
+	// sign-in screen shows.
+	allowNoPassword := onLocalNetwork(r) && s.profilesVisible(r)
+	tok, u, err := s.Auth.LoginCode(r.Context(), c.Name, c.Password, c.Code, deviceName(c.Device, r), allowNoPassword)
+	switch {
+	case errors.Is(err, auth.ErrCodeNeeded):
+		s.logins.uncount(r, c.Name) // the password was right: nothing was guessed
+		writeJSON(w, 401, map[string]any{"error": err.Error(), "twoFactor": true})
 		return
-	}
-	// Checking a password is deliberately slow; a flood of attempts must not
-	// take all of a small machine's processor.
-	select {
-	case loginSlots <- struct{}{}:
-		defer func() { <-loginSlots }()
-	case <-r.Context().Done():
+	case errors.Is(err, auth.ErrCodeWrong):
+		s.logins.noteFailure()
+		s.logSignInFailure(r, c.Name)
+		writeJSON(w, 401, map[string]any{"error": err.Error(), "twoFactor": true})
 		return
-	}
-	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, s.profilesVisible(r))
-	<-passwordSlots
-	if err != nil {
+	case err != nil:
+		s.logins.noteFailure()
+		s.logSignInFailure(r, c.Name)
 		writeErr(w, 401, err.Error())
 		return
 	}
-	s.logins.ok(k)
-	if addr != "" {
-		s.logins.refund(addr)
-	}
+	s.logins.passed(r, c.Name)
+	s.Log.Info("signed in", "cat", "signin", "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
+}
+
+// loginAllowed answers 429 when this client has failed too often, or when too
+// many passwords are being checked right now. Otherwise it holds one of the
+// places for checking a password until release is called.
+func (s *Server) loginAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
+	// An attempt counts when it starts, not when its password turns out wrong:
+	// otherwise hundreds of guesses sent at once all pass before the first ends.
+	if d := s.logins.attempt(r, name); d > 0 {
+		tooManyTries(w, d)
+		return nil, false
+	}
+	t := time.NewTimer(3 * time.Second)
+	defer t.Stop()
+	select {
+	case s.loginSlots <- struct{}{}:
+		return func() { <-s.loginSlots }, true
+	case <-t.C:
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 429, "The server is busy. Try again in a moment.")
+		return nil, false
+	case <-r.Context().Done():
+		return nil, false
+	}
+}
+
+// loginWaitOver answers 429 when this client has failed too often.
+func (s *Server) loginWaitOver(w http.ResponseWriter, r *http.Request, name string) bool {
+	d := s.logins.gate(r, name)
+	if d <= 0 {
+		return true
+	}
+	tooManyTries(w, d)
+	return false
+}
+
+func tooManyTries(w http.ResponseWriter, d time.Duration) {
+	w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
+	writeErr(w, 429, fmt.Sprintf("Too many wrong tries. Try again in %s.", waitText(d)))
+}
+
+func waitText(d time.Duration) string {
+	if d < 2*time.Minute {
+		return fmt.Sprintf("%d seconds", int(d.Seconds())+1)
+	}
+	return fmt.Sprintf("%d minutes", int(d.Minutes())+1)
+}
+
+func (s *Server) signInFailed(r *http.Request, name string) {
+	s.logins.failed(r, name)
+	s.logSignInFailure(r, name)
+}
+
+// logSignInFailure writes down a failure that has already been counted.
+func (s *Server) logSignInFailure(r *http.Request, name string) {
+	s.Log.Info("sign-in failed", "cat", "signin", "name", limitName(name), "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
+	if d := s.logins.gate(r, name); d > 0 {
+		s.Log.Warn("sign-in locked after repeated failures", "name", limitName(name), "from", clientFrom(r).IP.String(), "wait", d.Round(time.Second).String())
+	}
+}
+
+// deviceName is how a session is named in the list of signed-in devices: what
+// the app calls itself, or else the browser and system its address reveals.
+func deviceName(device string, r *http.Request) string {
+	if strings.HasPrefix(device, "Mozilla/") || device == "" {
+		device = browserName(r.UserAgent())
+	}
+	device = strings.Map(func(c rune) rune {
+		if c < 32 || c == 127 {
+			return -1
+		}
+		return c
+	}, device)
+	if len(device) > 80 {
+		device = device[:80]
+	}
+	return device
+}
+
+func browserName(ua string) string {
+	has := func(s string) bool { return strings.Contains(ua, s) }
+	browser := ""
+	switch {
+	case has("Edg/"):
+		browser = "Edge"
+	case has("OPR/"):
+		browser = "Opera"
+	case has("Firefox/"):
+		browser = "Firefox"
+	case has("Chrome/"):
+		browser = "Chrome"
+	case has("Safari/"):
+		browser = "Safari"
+	}
+	system := ""
+	switch {
+	case has("Android"):
+		system = "Android"
+	case has("iPhone"), has("iPad"):
+		system = "iOS"
+	case has("Windows"):
+		system = "Windows"
+	case has("Mac OS X"):
+		system = "macOS"
+	case has("Linux"):
+		system = "Linux"
+	}
+	switch {
+	case browser != "" && system != "":
+		return browser + " on " + system
+	case browser != "":
+		return browser
+	case system != "":
+		return system
+	}
+	return "Unknown device"
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	for _, tok := range auth.Tokens(r) { // a stale token can sit in front of the live one
 		s.Auth.Logout(r.Context(), tok)
 	}
-	http.SetCookie(w, &http.Cookie{Name: auth.CookieName, Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: auth.CookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: remote.SecureHint(r)})
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -363,9 +473,9 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Your own password needs the current one, so a session left open on
-	// another device can't lock you out of your account.
-	if id == u.ID && !s.Auth.CheckPassword(r.Context(), id, c.Current) {
-		writeErr(w, 403, "the current password is not right")
+	// another device can't lock you out of your account. Wrong guesses count
+	// like wrong sign-ins, so that session can't be used to guess it either.
+	if id == u.ID && !s.checkOwnPassword(w, r, u, c.Current) {
 		return
 	}
 	if err := s.Auth.SetPassword(r.Context(), id, c.Password); err != nil {

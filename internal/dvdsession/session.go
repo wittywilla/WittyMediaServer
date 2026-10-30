@@ -176,9 +176,12 @@ type Prefs struct {
 	Wide             bool           // viewer has a 16:9 display
 	Quality          ffmpeg.Quality // encoder + quality profile from Settings
 	MaxHeight        int
-	AudioCodec       string // aac | mp3
-	LowPower         bool   // cheaper deinterlacing and encoder presets
-	Angle            int    // remembered camera angle for this disc (0 = disc default)
+	// Tag keeps streams apart in their IDs: a viewer with limits can't be
+	// handed the unlimited stream of the same disc.
+	Tag        string
+	AudioCodec string // aac | mp3
+	LowPower   bool   // cheaper deinterlacing and encoder presets
+	Angle      int    // remembered camera angle for this disc (0 = disc default)
 	// The player's identity, from Settings. 0 and "" leave the defaults: a DVD
 	// plays as its own region, a Blu-ray as region A; no parental limit.
 	DVDRegion   int
@@ -1303,9 +1306,9 @@ func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) {
 
 func (s *Session) codecTag() string {
 	if s.prefs.AudioCodec == "mp3" {
-		return "-mp3"
+		return "-mp3" + s.prefs.Tag
 	}
-	return ""
+	return s.prefs.Tag
 }
 
 // karaokeOff marks a karaoke audio stream played without its vocals.

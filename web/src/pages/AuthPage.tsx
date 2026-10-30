@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, setToken, type User } from '../api'
+import { api, ApiError, isNativeShell, setToken, type User } from '../api'
+import ConnectServer from '../components/ConnectServer'
 import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
@@ -26,12 +27,15 @@ export default function AuthPage() {
   const [style, setStyle] = useState<'profiles' | 'classic' | null>(null)
   const [chosen, setChosen] = useState<Profile | null>(null)
   const [other, setOther] = useState(false)
+  const [changing, setChanging] = useState(false)
   useEffect(() => {
     api.get<{ style: 'profiles' | 'classic'; profiles?: Profile[] }>('/profiles')
       .then((r) => { setStyle(r.profiles?.length ? r.style : 'classic'); setProfiles(r.profiles || []) })
       .catch(() => setStyle('classic'))
   }, [])
   if (!style) return <div className="center"><div className="spinner" /></div>
+  if (changing) return <ConnectServer onCancel={() => setChanging(false)} />
+  const changeServer = isNativeShell() && <button type="button" className="btn ghost sm" onClick={() => setChanging(true)}>Change server</button>
 
   if (style === 'profiles' && !chosen && !other) {
     return (
@@ -51,6 +55,7 @@ export default function AuthPage() {
         </ul>
         {tapErr && <div className="error" role="alert">{tapErr}</div>}
         <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
+        {changeServer}
         <div className="auth-version"><VersionTag version={version} /></div>
       </div>
     )
@@ -58,6 +63,7 @@ export default function AuthPage() {
   return (
     <div className="center">
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
+      {changeServer}
       <div className="auth-version"><VersionTag version={version} /></div>
     </div>
   )
@@ -69,20 +75,48 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  // The password was right and this account also wants a code.
+  const [needCode, setNeedCode] = useState(false)
+  const [code, setCode] = useState('')
   const pwRef = useRef<HTMLInputElement | null>(null)
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr('')
     setBusy(true)
     try {
-      const r = await api.post<{ token: string; user: User }>('/login', { name, password, device: navigator.userAgent.slice(0, 80) })
+      const r = await api.post<{ token: string; user: User }>('/login', { name, password, code, device: navigator.userAgent.slice(0, 80) })
       setToken(r.token)
       setUser(r.user)
     } catch (e: any) {
+      if (e instanceof ApiError && e.data?.twoFactor) {
+        if (needCode) setErr(e.message)
+        setNeedCode(true)
+        setCode('')
+        return
+      }
       setErr(e.message || 'Sign-in failed')
+      setNeedCode(false)
+      setCode('')
       setPassword('')
       pwRef.current?.focus()
     } finally { setBusy(false) }
+  }
+  if (needCode) {
+    return (
+      <form className="auth-card" onSubmit={submit}>
+        <button type="button" className="ibtn auth-back" onClick={() => { setNeedCode(false); setErr(''); setPassword('') }} aria-label="Back to the password"><IconBack /></button>
+        <div className="brand"><BrandMark /><Brand name={brandName} /></div>
+        <p>Enter the 6-digit code from your authenticator app.</p>
+        <div className="form">
+          <label><span className="sr-only">Code</span>
+            <input className="input" autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+          </label>
+          <small className="muted">Lost your phone? Enter one of your recovery codes instead.</small>
+          {err && <div className="error" role="alert">{err}</div>}
+          <button className="btn primary" disabled={busy || !code.trim()} style={{ justifyContent: 'center' }}>{busy ? 'Checking…' : 'Sign in'}</button>
+        </div>
+      </form>
+    )
   }
   return (
     <form className="auth-card" onSubmit={submit}>

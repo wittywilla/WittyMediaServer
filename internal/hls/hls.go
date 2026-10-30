@@ -873,7 +873,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		enc := plan.Name
 		args = append(args, "-c:v", enc)
 		args = append(args, plan.Args...)
-		if rate := firstNonEmpty(sp.VideoBitrate, sp.Quality.MaxRate); rate != "" && len(sp.Quality.VideoArgs) == 0 {
+		if rate := firstNonEmpty(sp.VideoBitrate, sp.Quality.MaxRate); rate != "" && len(sp.Quality.VideoArgs) == 0 && sp.Quality.CapRate == "" {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)
 		}
 		if sp.LowLatency && enc == "libx264" {

@@ -178,12 +178,12 @@ server writes the code to its log when it starts (`This server has no accounts y
 **Installed with `install.ps1`?** Its firewall rule covers home and work networks, not public ones.
 If other devices can't connect, set your network to *Private* in Windows' network settings.
 
-Away from home it works only once you set up remote access yourself, for example:
+Away from home it works once you turn on **Remote Access** in *Settings* and follow its steps. Until
+then the server refuses connections from outside your home, even if your router lets them through.
+**[REMOTE.md](REMOTE.md)** explains each way in: a private VPN (Tailscale, NetBird), which is the
+easiest and safest; forwarding a port with HTTPS; your own reverse proxy; or a rented server.
 
-- a **VPN** into your home network (WireGuard, Tailscale and similar), the safest option;
-- a **reverse proxy** with HTTPS on a domain you own (below), with the port opened on your router.
-
-Never expose plain HTTP to the internet: always put HTTPS in front, and use strong passwords for
+The server refuses unencrypted connections from the internet, so use HTTPS, and strong passwords for
 every adult profile.
 
 ## Behind a reverse proxy
@@ -191,7 +191,9 @@ every adult profile.
 WittyMediaServer serves plain HTTP; put Caddy, nginx or Traefik in front for HTTPS. Video segments are
 a few MB each and long requests are normal, so turn off body-size limits and raise read timeouts (the
 Kubernetes ingress has example annotations). Set `WMS_PUBLIC_URL` (or `publicUrl` in the
-[config file](CONFIG.md)) to the outside address.
+[config file](CONFIG.md)) to the outside address, and list the proxy in `WMS_TRUSTED_PROXIES` or in
+*Settings → Remote Access*: forwarded headers are believed from nobody else. More in
+[REMOTE.md](REMOTE.md#a-reverse-proxy-you-already-run).
 
 ```caddyfile
 media.example.com {

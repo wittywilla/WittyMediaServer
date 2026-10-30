@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/db"
 )
 
 // wms config path            show the config file and folders in use
@@ -57,5 +61,35 @@ func cmdConfig(args []string) int {
 		return 1
 	}
 	fmt.Println("wrote", target)
+	return 0
+}
+
+// wms reset-2fa [-data <dir>] <name>: the way back for an account whose phone
+// and recovery codes are both gone. It needs access to the server's files.
+func cmdReset2FA(args []string) int {
+	name := ""
+	if n := len(args); n > 0 {
+		name, args = args[n-1], args[:n-1]
+	}
+	if name == "" || strings.HasPrefix(name, "-") {
+		fmt.Fprintln(os.Stderr, "usage: wms reset-2fa [-data <dir>] <name>")
+		return 2
+	}
+	cfg, err := config.Parse(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	d, err := db.Open(cfg.DataDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	defer d.Close()
+	if err := auth.ClearTwoFactorByName(context.Background(), d, name); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	fmt.Printf("Two-factor sign-in is off for %s. They can sign in with their password and set it up again.\n", name)
 	return 0
 }

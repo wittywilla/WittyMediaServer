@@ -56,8 +56,11 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 
 ## 3. Remote access and clients
 
-- [ ] **Remote access:** settings and docs for Tailscale, NetBird, port forwarding and a VPS; a
-  custom server URL in the clients; a greyed-out hosted relay marked as a future paid service.
+- [x] **Remote access:** [REMOTE.md](REMOTE.md). *Settings → Remote Access* with a clear status and
+  guided steps for Tailscale, NetBird, port forwarding and a VPS; a test with your own phone; HTTPS
+  with Let's Encrypt or your own certificate; optional port mapping; limits on streams away from
+  home; a server address in the clients; a greyed-out hosted relay marked as a future paid service.
+- [ ] **Hosted relay:** the future paid service shown greyed out in Settings. Not built.
 - [ ] **WittyMediaRemoteMedia:** the basics of a NAS agent (UGREEN, Synology, Docker) that
   shares folders with a server. Own repository.
 - [x] **The server's side of the clients:** [the client API](CLIENT-API.md) with versioning and

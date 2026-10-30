@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -25,6 +26,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/portmap"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 )
@@ -48,9 +51,12 @@ type Server struct {
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }
+	HTTPS     *remote.HTTPS   // the HTTPS port; nil until StartRemote
+	Mapper    *portmap.Keeper // automatic port mapping; nil until StartRemote
 
 	mux        *http.ServeMux
 	logins     loginLimiter
+	loginSlots chan struct{} // password checks are slow on purpose: only so many at once
 	clientLogs clientLogLimiter
 	probes     struct {
 		sync.Mutex
@@ -62,6 +68,12 @@ type Server struct {
 	idOnce    sync.Once
 	id        *identity.Identity
 	idErr     error
+	netState  atomic.Pointer[netState]
+	applyMu   sync.Mutex // one change of the remote access settings at a time
+	reach     reachTest
+	outside   outsideSeen
+	routerMu  sync.Mutex
+	router    *portmap.Probe // the latest "check my router"
 
 	setupCode     string
 	setupCodeOnce sync.Once
@@ -73,6 +85,7 @@ type ctxKey int
 const (
 	userKey ctxKey = iota + 1
 	tokenKey
+	clientKey
 )
 
 func userFrom(r *http.Request) *auth.User {
@@ -220,6 +233,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+	s.remoteRoutes(m)
 
 	// WittyPhotos
 	m.Handle("GET /api/photos/months", a(s.handlePhotoMonths))
@@ -300,7 +314,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("/", s.spa())
 
 	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
-	return s.limits(s.logging(s.headers(s.versioned(s.cors(s.csrf(m))))))
+	s.loginSlots = make(chan struct{}, loginConcurrency())
+	s.reloadNet(context.Background())
+	return s.identify(s.limits(s.logging(s.headers(s.gate(s.versioned(s.cors(s.csrf(m))))))))
 }
 
 // ---------------------------------------------------------------------------
@@ -396,9 +412,16 @@ func (s *Server) headers(next http.Handler) http.Handler {
 			h.Set("Content-Security-Policy", appCSP)
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		}
+		if r.TLS != nil && r.TLS.ServerName != "" {
+			h.Set("Strict-Transport-Security", hsts)
+		}
 		next.ServeHTTP(w, r)
 	})
 }
+
+// hsts: a browser that used HTTPS here keeps using it. Only a week: an owner who
+// turns HTTPS off again should not be locked out of their own server for long.
+const hsts = "max-age=604800"
 
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
@@ -410,11 +433,13 @@ const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-
 const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
-// token. Cookies are never honoured across origins, so a page elsewhere on
-// the same host or network cannot act as whoever is signed in here.
+// token, and the mobile app's own origins may also sign in. Cookies are never
+// honoured across origins, and a web page elsewhere that carries no token gets
+// no answer it can read, so it can't list the profiles of a server it finds on
+// the network of whoever is looking at it.
 func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if o := r.Header.Get("Origin"); o != "" {
+		if o := r.Header.Get("Origin"); o != "" && corsAllowed(r, o) {
 			w.Header().Set("Access-Control-Allow-Origin", o)
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -428,6 +453,21 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	})
 }
 
+// appOrigins are where the mobile app's pages come from. They are only ever
+// the app itself: nothing on the internet can have these origins.
+var appOrigins = map[string]bool{"capacitor://localhost": true, "ionic://localhost": true, "https://localhost": true}
+
+func corsAllowed(r *http.Request, origin string) bool {
+	if appOrigins[origin] || r.Header.Get("Authorization") != "" || r.Header.Get("X-WMS-Token") != "" {
+		return true
+	}
+	if r.Method == http.MethodOptions {
+		h := strings.ToLower(r.Header.Get("Access-Control-Request-Headers"))
+		return strings.Contains(h, "authorization") || strings.Contains(h, "x-wms-token")
+	}
+	return false
+}
+
 // csrf refuses state-changing requests signed in by cookie that come from
 // another origin (a form or script on another page). Requests with the token
 // in a header cannot be forged that way, so apps and the mobile client pass.
@@ -438,7 +478,7 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if r.Header.Get("Authorization") == "" && r.Header.Get("X-WMS-Token") == "" && crossOrigin(r) {
+		if r.Header.Get("Authorization") == "" && r.Header.Get("X-WMS-Token") == "" && !appOrigins[r.Header.Get("Origin")] && s.crossOrigin(r) {
 			writeErr(w, 403, "cross-site request refused")
 			return
 		}
@@ -446,8 +486,10 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 	})
 }
 
-// crossOrigin: the browser says the request comes from another origin.
-func crossOrigin(r *http.Request) bool {
+// crossOrigin: the browser says the request comes from another origin. The
+// page's own address is what the browser asked for, what a trusted proxy says
+// it asked for, or the server's outside address.
+func (s *Server) crossOrigin(r *http.Request) bool {
 	switch r.Header.Get("Sec-Fetch-Site") {
 	case "same-origin", "none":
 		return false
@@ -462,7 +504,13 @@ func crossOrigin(r *http.Request) bool {
 	if err != nil {
 		return true
 	}
-	return !strings.EqualFold(u.Host, r.Host) && !strings.EqualFold(u.Host, r.Header.Get("X-Forwarded-Host"))
+	if strings.EqualFold(u.Host, r.Host) || strings.EqualFold(u.Host, clientFrom(r).ForwardedHost) {
+		return false
+	}
+	if st := s.netState.Load(); st != nil && st.publicHost != "" && strings.EqualFold(u.Host, st.publicHost) {
+		return false
+	}
+	return true
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {
@@ -502,6 +550,7 @@ func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 			writeErr(w, 401, "authentication required")
 			return
 		}
+		s.touchSession(r, tok)
 		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
 		h(w, r.WithContext(ctx))
 	})

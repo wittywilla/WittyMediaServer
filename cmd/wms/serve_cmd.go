@@ -159,9 +159,10 @@ func cmdServe(args []string) int {
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater,
 	}
+	handler := srv.Handler()
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           srv.Handler(),
+		Handler:           handler,
 		ReadHeaderTimeout: 15 * time.Second,
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    64 << 10,
@@ -178,6 +179,8 @@ func cmdServe(args []string) int {
 	if srv.Auth.UserCount(context.Background()) == 0 {
 		log.Warn("This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", "setupCode", srv.SetupCode())
 	}
+	// Remote access: nothing opens unless the owner turned it on.
+	srv.StartRemote(context.Background(), handler)
 	// First start on a desktop: open the setup wizard in the browser.
 	if cfg.OpenBrowser && srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
 		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {
@@ -251,6 +254,7 @@ func cmdServe(args []string) int {
 		log.Info("shutting down")
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		srv.StopRemote(sctx)
 		_ = httpServer.Shutdown(sctx)
 		_ = httpServer.Close() // long streams: their contexts end, and their FFmpeg with them
 		hlsMgr.StopAll()

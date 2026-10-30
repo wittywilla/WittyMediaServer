@@ -137,7 +137,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
                   <b>Watch on every screen at home</b>
                   <span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>
                   {addrs.length > 0 ? addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>) : <span className="muted">This server only accepts connections from this computer. Start it with a network address to use it from other devices.</span>}
-                  <small className="oobe-disclaimer">Your server runs in your home, so it works only on your home network. Watching away from home needs remote access set up first.</small>
+                  <small className="oobe-disclaimer">Your server runs in your home, so for now it works only on your home network. To watch away from home, follow the steps in Settings → Remote Access when you’re ready.</small>
                 </div>
                 <div className="oobe-next-card">
                   <IconUsers size={22} />

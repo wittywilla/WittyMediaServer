@@ -12,7 +12,8 @@ transcoding and libraries all work exactly as in the browser.
     npm run sync           # copy web build + sync native projects
     npm run ios            # or: npm run android
 
-Server address: the web client reads `window.WMS_SERVER` when present. Add a
-small bootstrap in `www/index.html` (or use the Settings > Server screen) to
-persist the URL with `@capacitor/preferences`; the API client sends the bearer
-token on every request so cookies are not required.
+Server address: the first time it starts, the app asks for the server's address
+(at home, or the one from Settings → Remote Access), and the sign-in screen has a
+**Change server** button. It is kept on the device. A build can also set it in
+advance with `window.WMS_SERVER`. The API client sends the bearer token on every
+request so cookies are not required.

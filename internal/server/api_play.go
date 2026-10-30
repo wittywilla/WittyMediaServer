@@ -120,6 +120,13 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 			q.Preset, q.CRF, q.AudioRate = "veryfast", 21, "192k"
 		}
 	}
+	// The limits for viewers away from home always win.
+	if h, rate := s.remoteCaps(r); h > 0 || rate != "" {
+		if h > 0 && (maxHeight == 0 || h < maxHeight) {
+			maxHeight = h
+		}
+		q = q.WithCap(rate)
+	}
 	return q, maxHeight
 }
 
@@ -192,7 +199,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	directPlay := s.DB.GetSetting(r.Context(), "directPlay", "1") == "1"
 	web, _ := playback.Find("web")
 	d := playback.Decide(web, probeSource(it, pr), playback.Request{AudioIndex: info.AudioIndex, SubtitleIndex: info.SubIndex, MaxHeight: maxHeight, AllowDirect: directPlay, ForceTranscode: qBool(r, "transcode")})
-	if d.Mode == playback.Direct {
+	if d.Mode == playback.Direct && s.fitsCap(r, it.SizeBytes, pr.Duration()) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
@@ -205,7 +212,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
 	}
 	channels := 2
-	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") {
+	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") && q.CapRate == "" {
 		channels = 6
 	}
 	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-c%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, channels, s.audioCodec(r), hex.EncodeToString(qh[:3]))
@@ -222,6 +229,8 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	reason := "browser cannot play the file as is"
 	if !directPlay {
 		reason = "direct play is off"
+	} else if d.Mode == playback.Direct && q.CapRate != "" {
+		reason = "over the limit for viewers away from home"
 	}
 	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
@@ -297,7 +306,7 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Del("Content-Security-Policy") // the browser's own viewer may show it in a tab; PDFs can't run scripts on this site
 	}
 	w.Header().Set("Accept-Ranges", "bytes")
-	http.ServeContent(w, r, "", st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
 }
 
 var mediaTypes = map[string]string{
@@ -400,7 +409,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "video/mp2t")
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	http.ServeFile(w, r, p)
+	http.ServeFile(s.capWriter(w, r), r, p)
 }
 
 // DELETE /api/hls/{id}: this viewer is done (another device may still watch).

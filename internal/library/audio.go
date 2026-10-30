@@ -45,7 +45,7 @@ func discoverAudio(root string) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil {
+		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
 		out = append(out, candidate{path: p, kind: "audio", size: st.Size(), mtime: st.ModTime().Unix()})

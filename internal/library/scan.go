@@ -159,7 +159,7 @@ func discover(root string) ([]candidate, error) {
 		}
 		ext := strings.ToLower(filepath.Ext(name))
 		st, err := d.Info()
-		if err != nil {
+		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
 		switch {

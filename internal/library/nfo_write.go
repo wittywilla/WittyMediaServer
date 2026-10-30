@@ -63,30 +63,55 @@ func soleMedia(dir, p string) bool {
 }
 
 // LoadImage reads an artwork reference: a URL, a "cache:" name or a path.
+// References can come from sidecar files anyone with access to a media folder
+// wrote, and what is read here gets saved beside the media, so it only ever
+// reads pictures: from the internet, the artwork cache or a library folder.
 func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
+	var b []byte
+	var err error
 	switch {
 	case ref == "":
 		return nil, errors.New("no image")
 	case strings.HasPrefix(ref, "cache:"):
-		return os.ReadFile(filepath.Join(s.ImagesDir, strings.TrimPrefix(ref, "cache:")))
+		name := strings.TrimPrefix(ref, "cache:")
+		if name == "" || name != filepath.Base(name) || strings.ContainsAny(name, `/\:`) {
+			return nil, errors.New("not an artwork name")
+		}
+		b, err = readPlain(filepath.Join(s.ImagesDir, name))
 	case isRemote(ref):
-		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		req, err := http.NewRequestWithContext(cctx, "GET", ref, nil)
-		if err != nil {
-			return nil, err
+		b, err = fetchPicture(ctx, ref)
+	default:
+		if !s.Store.LibraryFile(ctx, ref) {
+			return nil, errors.New("artwork outside the libraries")
 		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-		if res.StatusCode != 200 {
-			return nil, fmt.Errorf("image fetch: %s", res.Status)
-		}
-		return io.ReadAll(io.LimitReader(res.Body, 20<<20))
+		b, err = os.ReadFile(ref)
 	}
-	return os.ReadFile(ref)
+	if err != nil {
+		return nil, err
+	}
+	if !isPicture(b) {
+		return nil, errors.New("not a picture")
+	}
+	return b, nil
+}
+
+// fetchPicture downloads an image from the internet.
+func fetchPicture(ctx context.Context, ref string) ([]byte, error) {
+	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(cctx, "GET", ref, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := SafeClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("image fetch: %s", res.Status)
+	}
+	return io.ReadAll(io.LimitReader(res.Body, 20<<20))
 }
 
 // writeArt stores image bytes at dst (unless dst already is the source).
@@ -98,17 +123,13 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	if err != nil {
 		return err
 	}
-	tmp := dst + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, dst)
+	return writeBeside(dst, b)
 }
 
 func writeNFO(path string, doc any) error {
-	if old, err := os.ReadFile(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
-		if _, err := os.Stat(path + ".bak"); os.IsNotExist(err) {
-			_ = os.WriteFile(path+".bak", old, 0o644)
+	if old, err := readPlain(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
+		if _, err := os.Lstat(path + ".bak"); os.IsNotExist(err) {
+			_ = writeBeside(path+".bak", old)
 		}
 	}
 	b, err := xml.MarshalIndent(doc, "", "  ")
@@ -118,7 +139,7 @@ func writeNFO(path string, doc any) error {
 	out := []byte(xml.Header + nfoMarker + "\n")
 	out = append(out, b...)
 	out = append(out, '\n')
-	return os.WriteFile(path, out, 0o644)
+	return writeBeside(path, out)
 }
 
 type nfoUniqueID struct {

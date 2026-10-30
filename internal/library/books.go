@@ -56,7 +56,7 @@ func discoverBooks(root string) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil {
+		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
 		key := filepath.Join(filepath.Dir(p), strings.TrimSuffix(name, filepath.Ext(name)))

@@ -45,7 +45,7 @@ func (t *TVMaze) base() string {
 func (t *TVMaze) get(ctx context.Context, path string, out any) error {
 	c := t.Client
 	if c == nil {
-		c = &http.Client{Timeout: 20 * time.Second}
+		c = catalogClient(20 * time.Second)
 	}
 	for attempt := 0; attempt < 3; attempt++ {
 		tvmazeGate.Lock()
@@ -86,7 +86,7 @@ func (t *TVMaze) get(ctx context.Context, path string, out any) error {
 			b, _ := io.ReadAll(io.LimitReader(res.Body, 300))
 			return fmt.Errorf("tvmaze: %s: %s", res.Status, strings.TrimSpace(string(b)))
 		}
-		return json.NewDecoder(res.Body).Decode(out)
+		return json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(out)
 	}
 	return errors.New("tvmaze: too many requests")
 }

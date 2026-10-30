@@ -80,8 +80,8 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		s.proxyEpisode(w, r, it) // a podcast episode that was not downloaded
 		return
 	}
-	if it.Provider == "podcast" && !s.inLibraries(r.Context(), it.Path) {
-		writeErr(w, 404, "not found") // a downloaded episode lives in its library
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "not found")
 		return
 	}
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {

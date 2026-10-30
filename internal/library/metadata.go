@@ -209,16 +209,16 @@ func applyNFO(it *Item, path string) bool {
 	}
 	if it.Poster == "" {
 		for _, t := range m.Thumb {
-			if strings.HasPrefix(t, "http") {
-				it.Poster = t
+			if u := webURL(t); u != "" {
+				it.Poster = u
 				break
 			}
 		}
 	}
 	if it.Backdrop == "" {
 		for _, t := range m.Fanart.Thumb {
-			if strings.HasPrefix(t, "http") {
-				it.Backdrop = t
+			if u := webURL(t); u != "" {
+				it.Backdrop = u
 				break
 			}
 		}
@@ -273,11 +273,12 @@ func applySidecarJSON(it *Item, path string) bool {
 	if m.Provider != nil && m.ProviderID != nil && *m.ProviderID != "" {
 		it.Provider, it.ProviderID = *m.Provider, *m.ProviderID
 	}
-	if m.Poster != "" {
-		it.Poster = m.Poster
+	dir := filepath.Dir(path)
+	if p := artRef(m.Poster, dir); p != "" {
+		it.Poster = p
 	}
-	if m.Backdrop != "" {
-		it.Backdrop = m.Backdrop
+	if p := artRef(m.Backdrop, dir); p != "" {
+		it.Backdrop = p
 	}
 	return true
 }
@@ -370,7 +371,7 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 	}
 	c := t.Client
 	if c == nil {
-		c = &http.Client{Timeout: 15 * time.Second}
+		c = catalogClient(15 * time.Second)
 	}
 	res, err := c.Do(req)
 	if err != nil {
@@ -381,7 +382,7 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 		b, _ := io.ReadAll(io.LimitReader(res.Body, 512))
 		return fmt.Errorf("tmdb: %s: %s", res.Status, strings.TrimSpace(string(b)))
 	}
-	return json.NewDecoder(res.Body).Decode(out)
+	return json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(out)
 }
 
 // Images lists poster and backdrop URLs for an item's movie (best first),

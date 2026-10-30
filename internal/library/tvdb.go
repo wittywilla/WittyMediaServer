@@ -91,7 +91,7 @@ func (t *TVDB) client() *http.Client {
 	if t.Client != nil {
 		return t.Client
 	}
-	return &http.Client{Timeout: 20 * time.Second}
+	return catalogClient(20 * time.Second)
 }
 
 func (t *TVDB) token(ctx context.Context, fresh bool) (string, error) {
@@ -129,7 +129,7 @@ func (t *TVDB) token(ctx context.Context, fresh bool) (string, error) {
 			Token string `json:"token"`
 		} `json:"data"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+	if err := json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(&out); err != nil {
 		return "", err
 	}
 	if out.Data.Token == "" {
@@ -171,7 +171,7 @@ func (t *TVDB) get(ctx context.Context, path string, q url.Values, out any) erro
 			res.Body.Close()
 			return fmt.Errorf("tvdb %s: %s %s", path, res.Status, strings.TrimSpace(string(msg)))
 		}
-		err = json.NewDecoder(res.Body).Decode(out)
+		err = json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(out)
 		res.Body.Close()
 		return err
 	}

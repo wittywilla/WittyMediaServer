@@ -55,7 +55,7 @@ func (s *Server) bookItem(w http.ResponseWriter, r *http.Request) (*library.Item
 		return nil, false
 	}
 	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != "book" {
+	if err != nil || it.Kind != "book" || !s.Store.LibraryFile(r.Context(), it.Path) {
 		writeErr(w, 404, "book not found")
 		return nil, false
 	}

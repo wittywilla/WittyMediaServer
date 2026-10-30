@@ -182,6 +182,10 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "item not found")
 		return
 	}
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	f, err := os.Open(it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")

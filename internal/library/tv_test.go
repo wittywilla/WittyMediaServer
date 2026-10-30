@@ -99,7 +99,7 @@ func TestTVDBClient(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c := &TVDB{Key: "k", BaseURL: srv.URL + "/v4"}
+	c := &TVDB{Key: "k", BaseURL: srv.URL + "/v4", Client: srv.Client()}
 	ctx := context.Background()
 	s, err := c.FindSeries(ctx, "Codename Kids Next Door", nil)
 	if err != nil {

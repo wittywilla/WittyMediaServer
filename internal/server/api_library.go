@@ -49,6 +49,9 @@ func (b *libraryBody) validate() error {
 		if p == "" {
 			continue
 		}
+		if !filepath.IsAbs(p) {
+			return errors.New("use the folder's full path: " + p)
+		}
 		st, err := os.Stat(p)
 		if err != nil || !st.IsDir() {
 			return errors.New("folder not found: " + p)
@@ -523,7 +526,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	default:
 		// Pictures next to the media (poster.jpg, an NFO's thumb): inside a
 		// library folder only.
-		if !s.inLibraries(r.Context(), src) {
+		if !s.Store.LibraryFile(r.Context(), src) {
 			writeErr(w, 404, "no artwork")
 			return
 		}
@@ -550,22 +553,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 
 // inLibraries: the path is inside one of the libraries' folders.
 func (s *Server) inLibraries(ctx context.Context, path string) bool {
-	if !filepath.IsAbs(path) {
-		return false
-	}
-	libs, err := s.Store.Libraries(ctx)
-	if err != nil {
-		return false
-	}
-	clean := filepath.Clean(path)
-	for _, l := range libs {
-		for _, p := range l.Paths {
-			if rel, err := filepath.Rel(p, clean); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
-				return true
-			}
-		}
-	}
-	return false
+	return s.Store.InLibraries(ctx, path)
 }
 
 // imageType is the type of a raster picture, from its first bytes (AVIF by
@@ -590,7 +578,8 @@ func imageType(f io.ReadSeeker, name string) string {
 // internet only (a feed or catalogue must not reach devices on this network).
 func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	h := sha1.Sum([]byte(u))
-	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
+	// The file's name is ours alone: nothing from the address becomes part of it.
+	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10]))
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}
@@ -608,19 +597,30 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	if res.StatusCode != 200 {
 		return "", errors.New("artwork fetch failed: " + res.Status)
 	}
-	tmp := p + ".tmp"
-	f, err := os.Create(tmp)
+	if err := os.MkdirAll(s.Cfg.ImagesDir, 0o755); err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp(s.Cfg.ImagesDir, "r-*.tmp")
 	if err != nil {
 		return "", err
 	}
-	if _, err := io.Copy(f, io.LimitReader(res.Body, 20<<20)); err != nil {
-		f.Close()
-		os.Remove(tmp)
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	// A picture bigger than the limit is refused rather than cut short.
+	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteArt+1))
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
 		return "", err
 	}
-	f.Close()
+	if n > maxRemoteArt {
+		return "", errors.New("artwork too large")
+	}
 	return p, os.Rename(tmp, p)
 }
+
+const maxRemoteArt = 20 << 20
 
 // ---------------------------------------------------------------------------
 // Progress

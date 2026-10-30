@@ -167,6 +167,13 @@
 .set-addpath .input { flex: 1 1 240px; min-width: 0; }
 
 /* ---------------------------------------------------------------- narrow */
+/* libraries: how many, and the add window */
+.set-lib-summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: -4px 0 14px; font-size: 14px; }
+.set-lib-summary .muted { font-size: 13px; }
+.add-lib-modal { width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; }
+.add-lib-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.add-lib-modal-head h2 { margin: 0; }
+
 /* version and modules (About) */
 .mod-list { display: grid; margin: 0 0 12px; scroll-margin-top: 90px; }
 .mod-row { display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px; color: var(--fg); }

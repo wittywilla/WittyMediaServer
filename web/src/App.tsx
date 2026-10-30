@@ -6,7 +6,7 @@ import { IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, Ico
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
-import { Brand, VersionTag } from './components/common'
+import { Brand, BrandMark, VersionTag } from './components/common'
 import LibraryPage from './pages/LibraryPage'
 import ItemPage from './pages/ItemPage'
 import ShowPage from './pages/ShowPage'
@@ -91,7 +91,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
     <>
       {open && <div className="backdrop-dim" onClick={onClose} />}
       <aside className="sidebar" aria-label="Main navigation" aria-hidden={!open} inert={!open || undefined}>
-        <Link to="/" className="brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></Link>
+        <Link to="/" className="brand"><BrandMark /><Brand name={brandName} /></Link>
         <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
         <div className="nav-section">Libraries</div>
         {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
@@ -113,7 +113,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
   return (
     <header className="topbar">
       {showMenu && <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Show or hide the side menu" title="Side menu"><IconMenu /></button>}
-      {topNav && !showMenu && <Link to="/" className="brand top-brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></Link>}
+      {topNav && !showMenu && <Link to="/" className="brand top-brand"><BrandMark /><Brand name={brandName} /></Link>}
       {topNav && (
         <nav className="topnav" aria-label="Libraries">
           <NavLink to="/" end className="topnav-link"><IconHome /> <span>Home</span></NavLink>

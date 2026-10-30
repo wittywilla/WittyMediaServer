@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
+import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { IconClose, IconEdit, IconFolder, IconInfo, IconLibrary, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
@@ -95,6 +96,14 @@ const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
 function Libraries() {
   const { libraries, refreshLibraries } = useApp()
   const [editing, setEditing] = useState<Partial<Library> | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [grouping, setGrouping] = useState<Grouping>('combine')
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setGrouping(s.libraryGrouping === 'separate' ? 'separate' : 'combine')).catch(() => {}) }, [])
+  const changeGrouping = async (g: Grouping) => {
+    setGrouping(g)
+    try { await api.put('/settings', { libraryGrouping: g }); toast(g === 'combine' ? 'Folders of one kind now join one library' : 'New folders now become libraries of their own') } catch (e: any) { toast(e.message) }
+  }
+  const kinds = [...new Set(libraries.map((l) => l.type))].map((k) => `${libraries.filter((l) => l.type === k).length} ${typeLabel(k)}`)
   const remove = async (l: Library) => {
     if (!confirm(`Remove the library “${l.name}”? Your files stay where they are; only the server forgets them.`)) return
     await api.del(`/libraries/${l.id}`)
@@ -102,11 +111,20 @@ function Libraries() {
     toast('Library removed')
   }
   const scan = async (l: Library) => { await api.post(`/libraries/${l.id}/scan`); toast(`Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) }
-  const add = () => setEditing({ name: '', type: 'movies', paths: [] })
+  const add = () => setAdding(true)
   return (
     <>
       <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
+      {libraries.length > 0 && (
+        <div className="set-lib-summary">
+          <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
+          <span className="muted">{kinds.join(' · ')}</span>
+        </div>
+      )}
+      <Section title="Folders of the same kind" desc="When you add a folder of a kind you already have a library for, it can join that library, or become a new library with its own name (for example “Kids’ movies” beside “Movies”). You can always choose differently when adding.">
+        <GroupingChoice value={grouping} onChange={changeGrouping} />
+      </Section>
       {libraries.length === 0 ? (
         <div className="set-card set-empty big">
           <IconLibrary size={34} />
@@ -135,6 +153,14 @@ function Libraries() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+      {adding && (
+        <div className="modal-backdrop" onClick={() => setAdding(false)}>
+          <div className="modal wide add-lib-modal" role="dialog" aria-label="Add a library" onClick={(e) => e.stopPropagation()}>
+            <div className="add-lib-modal-head"><h2>Add a library</h2><button className="btn sm ghost square" onClick={() => setAdding(false)} aria-label="Close"><IconClose /></button></div>
+            <AddLibrary existing={libraries} grouping={grouping} onAdded={async (l) => { setAdding(false); await refreshLibraries(); toast(`${l.name} saved; scanning`) }} />
+          </div>
         </div>
       )}
       {editing && <LibraryEditor lib={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshLibraries(); toast('Library saved; scanning') }} />}

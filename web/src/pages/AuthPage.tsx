@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, setToken, type User } from '../api'
-import { Brand, VersionTag } from '../components/common'
+import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
 
@@ -36,7 +36,7 @@ export default function AuthPage() {
   if (style === 'profiles' && !chosen && !other) {
     return (
       <div className="who">
-        <div className="who-brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></div>
+        <div className="who-brand"><BrandMark /><Brand name={brandName} /></div>
         <h1>Who's watching?</h1>
         <ul className="who-grid" role="list">
           {profiles!.map((p, i) => (
@@ -89,7 +89,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
       {onBack && <button type="button" className="ibtn auth-back" onClick={onBack} aria-label="Back to profiles"><IconBack /></button>}
       {profile
         ? <div className="auth-profile"><Avatar name={profile.name} big /><h2>{profile.name}</h2></div>
-        : <div className="brand"><img src="/icon.svg" alt="" /><Brand name={brandName} /></div>}
+        : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
       <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
       <div className="form">
         {!profile && <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>}

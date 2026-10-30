@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, getToken, mediaUrl, serverBase } from '../api'
-import Tip from '../components/Tip'
+import BrandDialog, { uploadLogo } from '../components/BrandDialog'
+import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
 import { applyTheme, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
@@ -8,23 +9,25 @@ import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
 
 export default function AppearanceSettings() {
-  const { user, brandName, setBrandName, serverTheme, setServerTheme } = useApp()
+  const { user, brandName, setBrandName, brandLogo, setBrandLogo, serverTheme, setServerTheme } = useApp()
+  const [naming, setNaming] = useState(false)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [mine, setMine] = useState(deviceTheme())
-  const [name, setName] = useState(brandName)
   const [filter, setFilter] = useState<'all' | 'dark' | 'light'>('all')
   const fileRef = useRef<HTMLInputElement | null>(null)
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { load() }, [])
-  useEffect(() => setName(brandName), [brandName])
 
   const active = mine || serverTheme
   const useHere = (id: string) => { setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
   const makeDefault = async (id: string) => {
     try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Server default theme updated') } catch (e: any) { toast(e.message) }
   }
-  const saveName = async () => {
-    try { await api.put('/settings', { brandName: name.trim() }); setBrandName(name.trim()); toast('Name updated') } catch (e: any) { toast(e.message) }
+  const saveBrand = async (n: string, logo: File | 'remove' | null) => {
+    await api.put('/settings', { brandName: n })
+    setBrandName(n)
+    if (logo === 'remove') { await api.del('/branding/logo'); setBrandLogo('') } else if (logo) setBrandLogo(await uploadLogo(logo))
+    toast('Saved')
   }
   const upload = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
@@ -94,15 +97,13 @@ export default function AppearanceSettings() {
       </div>
       {user?.isAdmin && (
         <div className="panel">
-          <h2>Name</h2>
-          <div className="form">
-            <label>Name in the top-left corner <Tip>Replaces “WittyMediaServer” in the sidebar, on the sign-in page and in the browser tab. Leave empty for the default. The licence notice in Settings → About always remains.</Tip>
-              <div className="field-row">
-                <input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="WittyMediaServer" />
-                <button className="btn primary" onClick={saveName}>Save</button>
-              </div>
-            </label>
+          <h2>Name and logo</h2>
+          <div className="brand-now">
+            <div className="brand"><BrandMark /><Brand name={brandName} /></div>
+            <button className="btn" onClick={() => setNaming(true)}>Rename…</button>
           </div>
+          <p className="muted" style={{ fontSize: 13 }}>Shown in the corner, on the sign-in page and in the browser tab. The licence notice in Settings, About always remains.</p>
+          {naming && <BrandDialog name={brandName} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </div>
       )}
     </>

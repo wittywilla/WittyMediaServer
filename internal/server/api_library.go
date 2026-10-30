@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -105,6 +103,7 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Scanner.Start(lib.ID) // folders may have been added
 	writeJSON(w, 200, lib)
 }
 
@@ -650,57 +649,3 @@ func (s *Server) handleClearProgress(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// ---------------------------------------------------------------------------
-// Filesystem browsing for the library editor
-// ---------------------------------------------------------------------------
-
-func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
-	p := r.URL.Query().Get("path")
-	type entry struct {
-		Name string `json:"name"`
-		Path string `json:"path"`
-	}
-	var out []entry
-	if p == "" {
-		if runtime.GOOS == "windows" {
-			for c := 'A'; c <= 'Z'; c++ {
-				d := string(c) + `:\`
-				if _, err := os.Stat(d); err == nil {
-					out = append(out, entry{Name: d, Path: d})
-				}
-			}
-		} else {
-			out = append(out, entry{Name: "/", Path: "/"})
-			if h, err := os.UserHomeDir(); err == nil {
-				out = append(out, entry{Name: "Home", Path: h})
-			}
-			for _, d := range []string{"/media", "/mnt", "/data", "/movies", "/srv", "/Volumes"} {
-				if st, err := os.Stat(d); err == nil && st.IsDir() {
-					out = append(out, entry{Name: d, Path: d})
-				}
-			}
-		}
-		writeJSON(w, 200, map[string]any{"path": "", "parent": nil, "entries": out})
-		return
-	}
-	entries, err := os.ReadDir(p)
-	if err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	for _, e := range entries {
-		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") && !strings.HasPrefix(e.Name(), "$") {
-			out = append(out, entry{Name: e.Name(), Path: filepath.Join(p, e.Name())})
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
-	if out == nil {
-		out = []entry{}
-	}
-	parent := filepath.Dir(p)
-	var parentPtr *string
-	if parent != p {
-		parentPtr = &parent
-	}
-	writeJSON(w, 200, map[string]any{"path": p, "parent": parentPtr, "entries": out})
-}

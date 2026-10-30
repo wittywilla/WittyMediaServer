@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, showPosterUrl, type Item, type Show } from '../api'
+import { episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
+import { useApp } from '../state'
 import { IconLeft, IconPlay } from '../icons'
 
 // The way back up: the library (or show) a page belongs to.
@@ -86,6 +87,16 @@ export function VersionTag({ version }: { version: string }) {
       WittyMediaServer {num}{stage && <b className={'stage ' + stage.toLowerCase()}>{stage.toUpperCase()}</b>}
     </span>
   )
+}
+
+// logoUrl: the server's custom logo, or the app icon.
+export const logoUrl = (version: string) => (version ? `${serverBase()}/api/branding/logo?v=${encodeURIComponent(version)}` : '/icon.svg')
+
+// BrandMark is the picture beside the name: the custom logo or the app icon.
+// src overrides it (a logo being previewed before it is saved).
+export function BrandMark({ src }: { src?: string }) {
+  const { brandLogo } = useApp()
+  return <img className="brand-mark" src={src || logoUrl(brandLogo)} alt="" />
 }
 
 // Brand is the name in the top-left corner: the custom name from

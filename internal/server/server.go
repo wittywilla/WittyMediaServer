@@ -146,6 +146,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
 	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
 	m.Handle("GET /api/about", a(s.handleAbout))
+	m.Handle("GET /api/branding/logo", http.HandlerFunc(s.handleLogo))
+	m.Handle("PUT /api/branding/logo", s.requireAdmin(s.handleSetLogo))
+	m.Handle("DELETE /api/branding/logo", s.requireAdmin(s.handleDeleteLogo))
 	m.Handle("GET /api/system", s.requireAdmin(s.handleSystem))
 	m.Handle("GET /api/users", a(s.handleUsers))       // filtered by who may manage whom
 	m.Handle("POST /api/users", a(s.handleCreateUser)) // adults may add Kids profiles

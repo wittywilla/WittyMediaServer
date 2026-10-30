@@ -502,7 +502,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       active: a.n === title.audioStream,
     }))
     if (k === 'subtitle') return [
-      { id: -1, title: 'Off', sub: title.forcedStream >= 0 ? 'Forced captions still show' : undefined, active: title.subtitleStream < 0 },
+      { id: -1, title: 'Off', sub: title.forcedStream >= 0 ? (prefs.forcedSubs ? 'Forced captions still show (turn them off in viewing settings)' : 'Forced captions are off too') : undefined, active: title.subtitleStream < 0 },
       ...title.subtitles.map((s) => ({ id: s.n, title: langName(s.language), sub: s.purpose || undefined, active: s.n === title.subtitleStream })),
     ]
     return Array.from({ length: title.angles || 1 }, (_, i) => ({
@@ -557,7 +557,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             ))}
           </div>
         )}
-        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize}
+        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} forced={prefs.forcedSubs}
           stageH={stage.current?.clientHeight || 0} clear={prefs.remote && prefs.remoteStyle === 'bar' ? 150 : 104} />}
       </div>
       {/* Announces what is on screen to screen readers. */}
@@ -667,16 +667,17 @@ function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onM
 // their bottom centre (bigger captions grow upwards, like a TV setting).
 // clear: how much of the player's bottom the controls cover when shown
 // (subtitles move up out of their way, and back down when they hide).
-function SubtitleLayer({ video, title, rect, size = 1, stageH = 0, clear = 0 }: {
-  video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect; size?: number; stageH?: number; clear?: number
+// forced: draw the disc's forced captions while subtitles are off.
+function SubtitleLayer({ video, title, rect, size = 1, stageH = 0, clear = 0, forced = true }: {
+  video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect; size?: number; stageH?: number; clear?: number; forced?: boolean
 }) {
-  const stream = title.subtitleStream >= 0 ? title.subtitleStream : title.forcedStream
+  const stream = title.subtitleStream >= 0 ? title.subtitleStream : forced ? title.forcedStream : -1
   const forcedOnly = title.subtitleStream < 0
   const cache = useRef(new Map<string, SubEvent[] | 'loading'>())
   const [active, setActive] = useState<SubEvent[]>([])
   useEffect(() => {
     const v = video.current
-    if (!v) return
+    if (!v || stream < 0) { setActive([]); return }
     const W = 120
     const load = (w: number) => {
       const key = `${stream}:${w}`

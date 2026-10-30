@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, setToken, type Library, type User } from '../api'
 import { Brand, VersionTag } from '../components/common'
-import AddLibrary from '../components/AddLibrary'
+import AddLibrary, { GroupingChoice, LibrarySummary, type Grouping } from '../components/AddLibrary'
+import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { IconAudio, IconBook, IconCheck, IconDisc, IconPalette, IconPlug, IconTv, IconUsers } from '../icons'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 import { useApp } from '../state'
@@ -29,10 +30,21 @@ const FEATURES = [
 ]
 
 export default function SetupWizard({ resume }: { resume: boolean }) {
-  const { setUser, setOnboarding, brandName, setBrandName, version, refreshLibraries } = useApp()
+  const { setUser, setOnboarding, brandName, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
   const [step, setStep] = useState<Step>(resume ? 'libraries' : 'welcome')
   const idx = STEPS.findIndex((s) => s.id === step)
   const [serverName, setServerName] = useState(brandName)
+  // A logo chosen on the welcome page waits until the account exists (only
+  // an administrator may store one), then is uploaded.
+  const [pendingLogo, setPendingLogo] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState('')
+  const [naming, setNaming] = useState(false)
+  useEffect(() => {
+    if (!pendingLogo) { setLogoPreview(''); return }
+    const u = URL.createObjectURL(pendingLogo)
+    setLogoPreview(u)
+    return () => URL.revokeObjectURL(u)
+  }, [pendingLogo])
   const [added, setAdded] = useState<Library[]>([])
   const [addKids, setAddKids] = useState(false)
   const [kidsAdded, setKidsAdded] = useState(false)
@@ -56,7 +68,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
       <div className="oobe-glow" aria-hidden="true" />
       <div className="oobe-shell">
         <header className="oobe-head">
-          <div className="brand"><img src="/icon.svg" alt="" /><Brand name={serverName || brandName} /></div>
+          <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} /></div>
           <ol className="oobe-steps" aria-label="Setup progress">
             {STEPS.map((s, i) => (
               <li key={s.id} className={i < idx ? 'done' : i === idx ? 'current' : ''} aria-current={i === idx ? 'step' : undefined}>
@@ -70,15 +82,21 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
         <main className="oobe-card" key={step}>
           {step === 'welcome' && (
             <section className="oobe-welcome">
-              <img className="oobe-welcome-logo" src="/icon.svg" alt="" />
+              <img className="oobe-welcome-logo" src={logoPreview || '/icon.svg'} alt="" />
               <h1>Welcome to your media server</h1>
               <p className="lead">Everything you own — films, shows, discs, music, books — in one place, on every screen in your home. Setup takes about three minutes, and every step can be changed later.</p>
               <ul className="oobe-perks" aria-label="What your server does">
                 {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{f.title}</b> <span className="muted">{f.text}</span></span></li>)}
               </ul>
-              <label className="oobe-field oobe-name">Give your server a name <span className="muted">(optional, shown in the corner)</span>
-                <input className="input" value={serverName} onChange={(e) => setServerName(e.target.value)} placeholder="e.g. The Living Room Cinema" maxLength={40} />
-              </label>
+              <div className="oobe-name">
+                <div className="oobe-name-now">
+                  <span className="muted">Your server is called</span>
+                  <b>{serverName.trim() || 'WittyMediaServer'}</b>
+                </div>
+                <button type="button" className="btn" onClick={() => setNaming(true)}>Rename…</button>
+              </div>
+              {naming && <BrandDialog name={serverName} logo={logoPreview} onClose={() => setNaming(false)}
+                onSave={(n, logo) => { setServerName(n); if (logo === 'remove') setPendingLogo(null); else if (logo) setPendingLogo(logo) }} />}
               <button className="btn primary big oobe-start" autoFocus onClick={() => go('account')}>Get started</button>
             </section>
           )}
@@ -87,10 +105,11 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
             setToken(tok)
             setOnboarding(true) // keep the wizard open after signing in
             setUser(u)
+            if (pendingLogo) uploadLogo(pendingLogo).then(setBrandLogo).catch(() => {})
             go('libraries')
           }} />}
 
-          {step === 'libraries' && <LibrariesStep added={added} onAdded={(l) => setAdded((a) => [...a, l])} onNext={() => go('metadata')} />}
+          {step === 'libraries' && <LibrariesStep added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} onNext={() => go('metadata')} />}
 
           {step === 'metadata' && <MetadataStep onBack={() => go('libraries')} onNext={(n) => { setKeys(n); go('playback') }} />}
 
@@ -186,16 +205,16 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
   // own Back and Add buttons; the wizard's Continue would be easy to hit by
   // mistake, so it waits until the panel is closed.
   const [inPanel, setInPanel] = useState(false)
+  const [grouping, setGrouping] = useState<Grouping>('combine')
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setGrouping(s.libraryGrouping === 'separate' ? 'separate' : 'combine')).catch(() => {}) }, [])
+  const changeGrouping = (g: Grouping) => { setGrouping(g); api.put('/settings', { libraryGrouping: g }).catch(() => {}) }
   return (
     <section>
       <h1>Where is your media?</h1>
       <p className="lead">Pick a kind of media, then the folder it's in. Add as many as you like; each becomes a library you can browse.</p>
-      {added.length > 0 && (
-        <ul className="oobe-added" aria-label="Libraries added">
-          {added.map((l) => <li key={l.id}><IconCheck size={16} /> <b>{l.name}</b> <span className="muted">{l.paths.join(', ') || 'no folder'}</span></li>)}
-        </ul>
-      )}
-      <AddLibrary onAdded={onAdded} onPanel={setInPanel} />
+      <LibrarySummary libs={added} title="Libraries you've made" />
+      {!inPanel && <GroupingChoice value={grouping} onChange={changeGrouping} />}
+      <AddLibrary onAdded={onAdded} onPanel={setInPanel} existing={added} grouping={grouping} />
       {!inPanel && (
         <div className="oobe-actions">
           <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>

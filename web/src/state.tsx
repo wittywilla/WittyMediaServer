@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { api, setToken, type Library, type User } from './api'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; theme?: string }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandLogo?: string; theme?: string }
 
 type AppState = {
   user: User | null
@@ -15,6 +15,8 @@ type AppState = {
   // Name shown in the top-left corner ('' = WittyMediaServer) and the
   // server's default theme.
   brandName: string
+  brandLogo: string // the custom logo's version, '' = the app icon
+  setBrandLogo: (v: string) => void
   serverTheme: string
   setBrandName: (n: string) => void
   setServerTheme: (id: string) => void
@@ -35,6 +37,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [version, setVersion] = useState('')
   const [loading, setLoading] = useState(true)
   const [brandName, setBrand] = useState('')
+  const [brandLogo, setBrandLogo] = useState('')
   const [serverTheme, setServerThemeState] = useState('default')
   const [onboarding, setOnboarding] = useState(false)
   const [pickerLocal, setPickerLocal] = useState(false)
@@ -52,6 +55,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPickerLocal(!!s.pickerLocal)
       setVersion(s.version)
       setBrandName(s.brandName || '')
+      setBrandLogo(s.brandLogo || '')
       setServerThemeState(s.theme || 'default')
       applyTheme(deviceTheme() || s.theme || 'default')
       setUserState(s.user)
@@ -65,7 +69,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal }}>{children}</Ctx.Provider>
 }
 
 // Tiny toast helper.

@@ -62,7 +62,7 @@ func pathText(p []int) string {
 // reports where each one leads. It is the quickest way to find buttons that
 // stop playback or menus that never show buttons.
 func dvdCrawl(o *wittydvd.Opened, maxScreens int) int {
-	nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
+	nav := newNav(o)
 	s, pic, why := settleInteractive(o, nav, nav.Start())
 	if pic == nil {
 		fmt.Println("first play:", describeStep(s), "→", why)

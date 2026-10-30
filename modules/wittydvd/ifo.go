@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const Sector = 2048
@@ -214,9 +215,12 @@ type PGCEntry struct {
 	Entry       bool `json:"entry"`
 	TitleNumber int  `json:"titleNumber"` // VTS title number (title domain)
 	MenuType    int  `json:"menuType"`    // menu domain: 2 title,3 root,4 subp,5 audio,6 angle,7 chapter
-	BlockMode   int  `json:"blockMode"`
-	BlockType   int  `json:"blockType"`
-	PGC         *PGC `json:"-"`
+	BlockMode   int  `json:"blockMode"`   // parental block: 1 first, 2 middle, 3 last
+	BlockType   int  `json:"blockType"`   // 1 = parental block (alternative versions of a scene)
+	// ParentalMask names the parental IDs this PGC is for; inside a parental
+	// block the player plays the PGC whose mask matches PTL_MAIT for its level.
+	ParentalMask int  `json:"parentalMask"`
+	PGC          *PGC `json:"-"`
 }
 
 // LangUnit is a menu language unit.
@@ -257,6 +261,18 @@ type VMG struct {
 	MenuAudio    []AudioAttr
 	MenuSubp     []SubpAttr
 	MenuVOBSec   uint32
+	// MenuVOBSectors is the size of VIDEO_TS.VOB in sectors according to
+	// the IFO (0 when the IFO does not say).
+	MenuVOBSectors uint32
+	// Parental is the parental management table (PTL_MAIT), per country.
+	Parental []ParentalCountry
+}
+
+// ParentalCountry is one country's parental management masks: Masks[level-1]
+// holds one parental ID mask for the VMG (index 0) and each title set.
+type ParentalCountry struct {
+	Country string
+	Masks   [8][]uint16
 }
 
 // VTS is VTS_xx_0.IFO.
@@ -274,6 +290,10 @@ type VTS struct {
 	Subp        []SubpAttr
 	MenuVOBSec  uint32
 	TitleVOBSec uint32
+	// Sizes of the menu and title VOBs in sectors according to the IFO
+	// (0 when unknown). Cells that start beyond them are junk.
+	MenuVOBSectors  uint32
+	TitleVOBSectors uint32
 }
 
 var ErrBadIFO = errors.New("dvd: malformed IFO")
@@ -423,12 +443,13 @@ func parsePGCIT(r reader, base int) ([]PGCEntry, error) {
 			return nil, err
 		}
 		out = append(out, PGCEntry{
-			Entry:       cat&0x80000000 != 0,
-			TitleNumber: int(cat>>24) & 0x7f,
-			MenuType:    int(cat>>24) & 0x0f,
-			BlockMode:   int(cat>>22) & 3,
-			BlockType:   int(cat>>20) & 3,
-			PGC:         pgc,
+			Entry:        cat&0x80000000 != 0,
+			TitleNumber:  int(cat>>24) & 0x7f,
+			MenuType:     int(cat>>24) & 0x0f,
+			BlockMode:    int(cat>>22) & 3,
+			BlockType:    int(cat>>20) & 3,
+			ParentalMask: int(cat & 0xffff),
+			PGC:          pgc,
 		})
 	}
 	return out, nil
@@ -467,6 +488,14 @@ func ParseVMG(b []byte) (*VMG, error) {
 		NumTitleSets: r.u16(0x3e),
 		Provider:     string(trimZero(r.bytes(0x40, 32))),
 		MenuVOBSec:   r.u32(0xc0),
+	}
+	// The VMG is laid out as IFO, menu VOB, BUP: the menu VOB ends where the
+	// backup copy of the IFO (as long as the IFO) begins.
+	if last, ifoLast := r.u32(0x0c), r.u32(0x1c); v.MenuVOBSec != 0 && last > ifoLast+v.MenuVOBSec {
+		v.MenuVOBSectors = last - ifoLast - v.MenuVOBSec
+	}
+	if sec := int(r.u32(0xcc)); sec != 0 {
+		v.Parental = parsePTLMAIT(r, sec*Sector)
 	}
 	if fp := int(r.u32(0x84)); fp != 0 {
 		if pgc, err := parsePGC(r, fp); err == nil {
@@ -514,6 +543,13 @@ func ParseVTS(b []byte, number int) (*VTS, error) {
 	}
 	r := reader{b}
 	v := &VTS{Number: number, Version: r.u8(0x20), MenuVOBSec: r.u32(0xc0), TitleVOBSec: r.u32(0xc4)}
+	// A title set is laid out as IFO, menu VOB, title VOBs, BUP.
+	if last, ifoLast := r.u32(0x0c), r.u32(0x1c); v.TitleVOBSec != 0 && last > ifoLast+v.TitleVOBSec {
+		v.TitleVOBSectors = last - ifoLast - v.TitleVOBSec
+		if v.MenuVOBSec != 0 && v.MenuVOBSec < v.TitleVOBSec {
+			v.MenuVOBSectors = v.TitleVOBSec - v.MenuVOBSec
+		}
+	}
 	// PTT_SRPT
 	if sec := int(r.u32(0xc8)); sec != 0 {
 		base := sec * Sector
@@ -565,6 +601,41 @@ func ParseVTS(b []byte, number int) (*VTS, error) {
 	return v, nil
 }
 
+// parsePTLMAIT parses the VMG parental management table: per country, eight
+// blocks (level 8 first, level 1 last) of one mask for the VMG and each title
+// set.
+func parsePTLMAIT(r reader, base int) []ParentalCountry {
+	if !r.ok(base, 8) {
+		return nil
+	}
+	countries, sets := r.u16(base), r.u16(base+2)
+	if sets > maxTitleSets {
+		return nil
+	}
+	var out []ParentalCountry
+	for i := 0; i < countries && i < 256; i++ {
+		e := base + 8 + i*8
+		if !r.ok(e, 8) {
+			break
+		}
+		pc := ParentalCountry{Country: strings.ToUpper(langCode(r.bytes(e, 2)))}
+		at := base + r.u16(e+4)
+		if !r.ok(at, 16*(sets+1)) {
+			continue
+		}
+		for level := 8; level >= 1; level-- {
+			blk := at + 2*(8-level)*(sets+1)
+			masks := make([]uint16, sets+1)
+			for k := range masks {
+				masks[k] = uint16(r.u16(blk + 2*k))
+			}
+			pc.Masks[level-1] = masks
+		}
+		out = append(out, pc)
+	}
+	return out
+}
+
 func trimZero(b []byte) []byte {
 	for i, c := range b {
 		if c == 0 {
@@ -581,6 +652,51 @@ var MenuTypes = map[string]int{"title": 2, "root": 3, "subpicture": 4, "audio": 
 type Disc struct {
 	VMG *VMG
 	VTS map[int]*VTS
+}
+
+// vobSectors is the size in sectors of the VOB a domain plays from, as the
+// IFO states it (0 when unknown).
+func (d *Disc) vobSectors(domain Domain, vts int) uint32 {
+	switch domain {
+	case DomainFP, DomainVMGM:
+		return d.VMG.MenuVOBSectors
+	case DomainVTSM:
+		if v := d.VTS[vts]; v != nil {
+			return v.MenuVOBSectors
+		}
+	case DomainVTS:
+		if v := d.VTS[vts]; v != nil {
+			return v.TitleVOBSectors
+		}
+	}
+	return 0
+}
+
+// ParentalMask is the parental ID mask PTL_MAIT gives title set vts for a
+// country (SPRM12) and parental level (SPRM13). Without parental control
+// (level 15) the player acts at level 8, which permits everything; a country
+// the table does not list uses the first entry. 0 means the disc has no
+// table.
+func (d *Disc) ParentalMask(country uint16, level, vts int) uint16 {
+	t := d.VMG.Parental
+	if len(t) == 0 {
+		return 0
+	}
+	if level < 1 || level > 8 {
+		level = 8
+	}
+	pc := t[0]
+	for _, c := range t {
+		if len(c.Country) == 2 && code2(c.Country) == country {
+			pc = c
+			break
+		}
+	}
+	m := pc.Masks[level-1]
+	if vts < 0 || vts >= len(m) {
+		return 0
+	}
+	return m[vts]
 }
 
 // Region returns the lowest region number the disc allows (1-8), or 1 if all-region.

@@ -8,6 +8,8 @@ import "testing"
 func FuzzParsers(f *testing.F) {
 	f.Add(append([]byte("DVDVIDEO-VMG"), make([]byte, 0x200)...), uint8(0))
 	f.Add(append([]byte("DVDVIDEO-VTS"), make([]byte, 0x200)...), uint8(1))
+	f.Add(testVMG(), uint8(0)) // with a parental management table
+	f.Add(testVTS([3]int{2, 1, 1<<2 | 1}, [3]int{1, 2, 3<<2 | 1}), uint8(1))
 	f.Add(make([]byte, 0x3d4), uint8(2))
 	f.Add([]byte{0x00, 0x20, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x01, 0xff}, uint8(4))
 	f.Fuzz(func(t *testing.T, b []byte, which uint8) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -92,12 +93,7 @@ func Open(p string) (*Opened, error) {
 	if err != nil {
 		return nil, err
 	}
-	vmgBytes, err := src.ReadIFO("VIDEO_TS.IFO")
-	if err != nil {
-		src.Close()
-		return nil, fmt.Errorf("dvd: %w", err)
-	}
-	vmg, err := ParseVMG(vmgBytes)
+	vmg, err := readIFO(src, "VIDEO_TS", ParseVMG)
 	if err != nil {
 		src.Close()
 		return nil, err
@@ -113,17 +109,34 @@ func Open(p string) (*Opened, error) {
 		count = maxTitleSets
 	}
 	for n := 1; n <= count; n++ {
-		b, err := src.ReadIFO(fmt.Sprintf("VTS_%02d_0.IFO", n))
-		if err != nil {
-			continue
-		}
-		v, err := ParseVTS(b, n)
+		v, err := readIFO(src, fmt.Sprintf("VTS_%02d_0", n), func(b []byte) (*VTS, error) { return ParseVTS(b, n) })
 		if err != nil {
 			continue
 		}
 		d.VTS[n] = v
 	}
 	return &Opened{Disc: d, Source: src, Label: label, Format: format, spaces: map[Space][]FileExtent{}, readers: map[Space]*spaceReader{}, scans: map[scanKey]*MenuPicture{}}, nil
+}
+
+// readIFO reads and parses an IFO, falling back to its backup copy (.BUP)
+// when the IFO is missing, unreadable or does not parse: damaged discs and
+// images made from them often have a broken IFO and an intact backup, which
+// is what a player does too.
+func readIFO[T any](src Source, base string, parse func([]byte) (T, error)) (T, error) {
+	var zero T
+	b, err := src.ReadIFO(base + ".IFO")
+	if err == nil {
+		var v T
+		if v, err = parse(b); err == nil {
+			return v, nil
+		}
+	}
+	if bb, berr := src.ReadIFO(base + ".BUP"); berr == nil {
+		if v, perr := parse(bb); perr == nil {
+			return v, nil
+		}
+	}
+	return zero, fmt.Errorf("dvd: %s: %w", base, err)
 }
 
 // Close releases the reader file handles and the source.
@@ -489,12 +502,74 @@ func (d *Disc) TitleAngle(number, angle int) *TitleSummary {
 	return ts
 }
 
-// MainTitle guesses the feature: the longest title.
+// nextTitlePGC is the PGC a title continues with after pgcn: its next-PGC
+// link, or else the next PGC the title's chapter table names (discs whose
+// chapters span PGCs without linking them). 0 ends the title.
+func nextTitlePGC(v *VTS, vtsTTN, pgcn int) int {
+	if v == nil || pgcn < 1 || pgcn > len(v.PGCs) {
+		return 0
+	}
+	if next := v.PGCs[pgcn-1].PGC.NextPGCN; next != 0 {
+		return next
+	}
+	if vtsTTN >= 1 && vtsTTN <= len(v.PTT) {
+		for _, x := range v.PTT[vtsTTN-1] {
+			if x.PGCN > pgcn && x.PGCN <= len(v.PGCs) {
+				return x.PGCN
+			}
+		}
+	}
+	return 0
+}
+
+// MainTitle guesses the feature: the title with the most distinct video.
+// Structural copy protection adds decoy titles that replay the feature's
+// cells many times over or in scrambled order, and cells that point outside
+// the title VOB; counting each cell once, skipping junk cells and preferring
+// the title that plays its cells in disc order picks the real one.
 func (d *Disc) MainTitle() *TitleSummary {
-	ts := d.Titles()
-	if len(ts) == 0 {
+	type cand struct {
+		ts       TitleSummary
+		distinct float64
+		jumps    int
+	}
+	var cs []cand
+	for _, ts := range d.Titles() {
+		v := d.VTS[ts.VTS]
+		c := cand{ts: ts}
+		seen := map[[2]uint32]bool{}
+		var prev uint32
+		for i, tc := range ts.Cells {
+			cell := tc.Cell
+			if cell.LastSector < cell.FirstSector || (v != nil && v.TitleVOBSectors != 0 && cell.FirstSector >= v.TitleVOBSectors) {
+				continue
+			}
+			k := [2]uint32{cell.FirstSector, cell.LastSector}
+			if !seen[k] {
+				seen[k] = true
+				c.distinct += cell.Duration
+			}
+			if i > 0 && cell.FirstSector < prev {
+				c.jumps++
+			}
+			prev = cell.FirstSector
+		}
+		cs = append(cs, c)
+	}
+	if len(cs) == 0 {
 		return nil
 	}
-	sort.SliceStable(ts, func(i, j int) bool { return ts[i].Duration > ts[j].Duration })
-	return &ts[0]
+	sort.SliceStable(cs, func(i, j int) bool {
+		a, b := cs[i], cs[j]
+		// Within a minute of each other, decoys and the feature tie on
+		// content: the fewest jumps back on the disc wins.
+		if math.Abs(a.distinct-b.distinct) > 60 {
+			return a.distinct > b.distinct
+		}
+		if a.jumps != b.jumps {
+			return a.jumps < b.jumps
+		}
+		return a.ts.Duration > b.ts.Duration
+	})
+	return &cs[0].ts
 }

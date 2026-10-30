@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"image/png"
 	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,6 +108,14 @@ func dvdInfo(o *wittydvd.Opened) int {
 	return 0
 }
 
+// newNav starts a navigator for the diagnostics. Discs draw random numbers
+// (games, shuffled trailers); a fixed seed makes two runs print the same
+// thing, so the output of two builds can be compared line by line.
+func newNav(o *wittydvd.Opened) *wittydvd.Nav {
+	rnd := rand.New(rand.NewPCG(1, 2))
+	return wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{Rand: rnd.Float64}})
+}
+
 func describeStep(s *wittydvd.Step) string {
 	still := fmt.Sprint(s.StillSec)
 	if math.IsInf(s.StillSec, 1) {
@@ -130,7 +139,7 @@ func menuFor(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) (*wittydvd
 	}
 	var video wittydvd.VideoAttr
 	var subc *wittydvd.SubpControl
-	pgc := pgcOfStep(o, nav, s)
+	pgc := nav.StepPGC(s)
 	switch s.Domain {
 	case wittydvd.DomainVTSM:
 		video = o.Disc.VTS[s.VTS].MenuVideo
@@ -142,44 +151,14 @@ func menuFor(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) (*wittydvd
 	if pgc != nil {
 		subc = pgc.SubpControl[0]
 	}
-	return wittydvd.ScanMenu(rd, s.FirstSector, s.LastSector, wittydvd.MenuScanOptions{Palette: s.Palette, Video: video, SubpControl: subc, NavButton: s.DefaultButton})
-}
-
-func pgcOfStep(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) *wittydvd.PGC {
-	lang := nav.Registers().SPRM[wittydvd.SprmMenuLang]
-	pick := func(units []wittydvd.LangUnit) []wittydvd.PGCEntry {
-		if len(units) == 0 {
-			return nil
-		}
-		for _, u := range units {
-			if u.Language != "" && uint16(u.Language[0])<<8|uint16(u.Language[1]) == lang {
-				return u.PGCs
-			}
-		}
-		return units[0].PGCs
-	}
-	var list []wittydvd.PGCEntry
-	switch s.Domain {
-	case wittydvd.DomainFP:
-		return o.Disc.VMG.FirstPlay
-	case wittydvd.DomainVMGM:
-		list = pick(o.Disc.VMG.Menus)
-	case wittydvd.DomainVTSM:
-		list = pick(o.Disc.VTS[s.VTS].Menus)
-	case wittydvd.DomainVTS:
-		list = o.Disc.VTS[s.VTS].PGCs
-	}
-	if s.PGCN >= 1 && s.PGCN <= len(list) {
-		return list[s.PGCN-1].PGC
-	}
-	return nil
+	return wittydvd.ScanMenu(rd, s.FirstSector, s.LastSector, wittydvd.MenuScanOptions{Palette: s.Palette, Video: video, SubpControl: subc, Wide: true, NavButton: s.DefaultButton})
 }
 
 // dvdWalk runs first play, auto-advancing through cells until a menu with
 // buttons (or a title) appears, then optionally presses buttons given on the
 // command line, e.g. "walk SHREK.ISO 1 2".
 func dvdWalk(o *wittydvd.Opened, presses []string) int {
-	nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
+	nav := newNav(o)
 	s := nav.Start()
 	for hop := 0; hop < 50; hop++ {
 		fmt.Println("step:", describeStep(s))
@@ -261,7 +240,7 @@ func dvdRender(o *wittydvd.Opened, outDir string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
+	nav := newNav(o)
 	s := nav.Start()
 	for hop := 0; hop < 50 && s.Kind != wittydvd.StepStop; hop++ {
 		pic, err := menuFor(o, nav, s)

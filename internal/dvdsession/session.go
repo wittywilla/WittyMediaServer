@@ -742,39 +742,9 @@ func (s *Session) videoAttr(st *wittydvd.Step) wittydvd.VideoAttr {
 	return s.opened.Disc.VMG.MenuVideo
 }
 
-func (s *Session) pgcOf(st *wittydvd.Step) *wittydvd.PGC {
-	lang := s.nav.Registers().SPRM[wittydvd.SprmMenuLang]
-	pick := func(units []wittydvd.LangUnit) []wittydvd.PGCEntry {
-		if len(units) == 0 {
-			return nil
-		}
-		for _, u := range units {
-			if len(u.Language) == 2 && uint16(u.Language[0])<<8|uint16(u.Language[1]) == lang {
-				return u.PGCs
-			}
-		}
-		return units[0].PGCs
-	}
-	var list []wittydvd.PGCEntry
-	switch st.Domain {
-	case wittydvd.DomainFP:
-		return s.opened.Disc.VMG.FirstPlay
-	case wittydvd.DomainVMGM:
-		list = pick(s.opened.Disc.VMG.Menus)
-	case wittydvd.DomainVTSM:
-		if v := s.opened.Disc.VTS[st.VTS]; v != nil {
-			list = pick(v.Menus)
-		}
-	case wittydvd.DomainVTS:
-		if v := s.opened.Disc.VTS[st.VTS]; v != nil {
-			list = v.PGCs
-		}
-	}
-	if st.PGCN >= 1 && st.PGCN <= len(list) {
-		return list[st.PGCN-1].PGC
-	}
-	return nil
-}
+// pgcOf is the program chain a step plays, as the navigator resolves it
+// (including the menu language unit it settled on).
+func (s *Session) pgcOf(st *wittydvd.Step) *wittydvd.PGC { return s.nav.StepPGC(st) }
 
 const stillMaxSec = 1.5
 

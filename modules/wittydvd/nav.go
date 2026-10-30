@@ -72,6 +72,15 @@ type navState struct {
 	serial   int
 	current  *Step
 	inButton bool
+	// Random and shuffle program chains: programs started so far in the
+	// current PGC, and which ones (shuffle never repeats).
+	pbCount  int
+	pbPlayed [128]bool
+	// menuLU remembers, per menu space (0 = VMGM, n = VTSM n), the language
+	// unit (index+1) used because SPRM0's unit lacked a requested menu.
+	menuLU [maxTitleSets + 1]uint8
+	// skips counts unplayable cells passed in a row (junk structures).
+	skips int
 }
 
 func (s *navState) clone() *navState {
@@ -222,26 +231,50 @@ func programOf(p *PGC, n int) int {
 // PGC lookup
 // ---------------------------------------------------------------------------
 
+// langUnit is the index of the menu language unit for SPRM0, or -1.
+func langUnit(units []LangUnit, want uint16) int {
+	for i, u := range units {
+		if u.Language != "" && code2(u.Language) == want {
+			return i
+		}
+	}
+	return -1
+}
+
+// menuUnits returns the menu language units of a menu space and its key in
+// navState.menuLU.
+func (n *Nav) menuUnits(d Domain, vts int) ([]LangUnit, int) {
+	switch d {
+	case DomainVMGM:
+		return n.Disc.VMG.Menus, 0
+	case DomainVTSM:
+		if v := n.Disc.VTS[vts]; v != nil && vts >= 1 && vts <= maxTitleSets {
+			return v.Menus, vts
+		}
+	}
+	return nil, 0
+}
+
+// menuLangUnit picks the language unit a menu space plays from: one chosen
+// earlier because SPRM0's unit lacked a menu, else SPRM0's, else the first.
+func (n *Nav) menuLangUnit(s *navState, units []LangUnit, key int) int {
+	if k := int(s.menuLU[key]); k >= 1 && k <= len(units) {
+		return k - 1
+	}
+	if i := langUnit(units, s.regs.SPRM[SprmMenuLang]); i >= 0 {
+		return i
+	}
+	return 0
+}
+
 func (n *Nav) pgcList(s *navState, d Domain, vts int) []PGCEntry {
-	pick := func(units []LangUnit) []PGCEntry {
+	switch d {
+	case DomainVMGM, DomainVTSM:
+		units, key := n.menuUnits(d, vts)
 		if len(units) == 0 {
 			return nil
 		}
-		want := s.regs.SPRM[SprmMenuLang]
-		for _, u := range units {
-			if u.Language != "" && code2(u.Language) == want {
-				return u.PGCs
-			}
-		}
-		return units[0].PGCs
-	}
-	switch d {
-	case DomainVMGM:
-		return pick(n.Disc.VMG.Menus)
-	case DomainVTSM:
-		if v := n.Disc.VTS[vts]; v != nil {
-			return pick(v.Menus)
-		}
+		return units[n.menuLangUnit(s, units, key)].PGCs
 	case DomainVTS:
 		if v := n.Disc.VTS[vts]; v != nil {
 			return v.PGCs
@@ -262,6 +295,98 @@ func (n *Nav) pgcOf(s *navState, d Domain, vts, pgcn int) *PGC {
 }
 
 func (n *Nav) curPGC(s *navState) *PGC { return n.pgcOf(s, s.domain, s.vts, s.pgcn) }
+
+// StepPGC returns the program chain a step plays, resolved the way the
+// navigator does (menu language unit, first play).
+func (n *Nav) StepPGC(st *Step) *PGC {
+	if st == nil {
+		return nil
+	}
+	return n.pgcOf(n.st, st.Domain, st.VTS, st.PGCN)
+}
+
+// playable reports whether a cell can be read at all. Junk cells (structural
+// copy protection, damaged IFOs) point backwards or start past the end of
+// their VOB; the navigator passes over them like cells with no picture.
+func (n *Nav) playable(s *navState, c Cell) bool {
+	if c.LastSector < c.FirstSector {
+		return false
+	}
+	size := n.Disc.vobSectors(s.domain, s.vts)
+	return size == 0 || c.FirstSector < size
+}
+
+// randomMode decodes a PGC's program playback mode: 0 is sequential,
+// otherwise bit 7 chooses shuffle (1) or random (0) and bits 6-0 the number
+// of programs to play.
+func randomMode(p *PGC) (shuffle bool, count int, ok bool) {
+	if p == nil || p.PlaybackMode == 0 || len(p.Programs) == 0 {
+		return false, 0, false
+	}
+	return p.PlaybackMode&0x80 != 0, int(p.PlaybackMode & 0x7f), true
+}
+
+// pickProgram chooses the next program of a random (repeats allowed) or
+// shuffle (each program once) PGC; 0 when the PGC has played its count.
+func (n *Nav) pickProgram(s *navState, p *PGC) int {
+	shuffle, count, ok := randomMode(p)
+	if !ok || s.pbCount >= count {
+		return 0
+	}
+	np := len(p.Programs)
+	if np >= len(s.pbPlayed) {
+		np = len(s.pbPlayed) - 1
+	}
+	pick := func(k int) int {
+		i := int(s.regs.Rand() * float64(k))
+		return max(0, min(i, k-1))
+	}
+	pg := 1 + pick(np)
+	if shuffle {
+		var left []int
+		for i := 1; i <= np; i++ {
+			if !s.pbPlayed[i] {
+				left = append(left, i)
+			}
+		}
+		if len(left) == 0 {
+			return 0
+		}
+		pg = left[pick(len(left))]
+	}
+	s.pbCount++
+	s.pbPlayed[pg] = true
+	return pg
+}
+
+// parentalPGC picks, inside a parental block of title PGCs (alternative
+// versions of a scene), the one PTL_MAIT names for the player's parental
+// level and country. Outside a block, or when the disc has no table, the PGC
+// is played as named.
+func (n *Nav) parentalPGC(s *navState, vts, pgcn int) int {
+	list := n.pgcList(s, DomainVTS, vts)
+	i := pgcn - 1
+	if i < 0 || i >= len(list) || list[i].BlockType != 1 {
+		return pgcn
+	}
+	first, last := i, i
+	for first > 0 && list[first].BlockMode != 1 && list[first-1].BlockType == 1 {
+		first--
+	}
+	for last < len(list)-1 && list[last].BlockMode != 3 && list[last+1].BlockType == 1 {
+		last++
+	}
+	mask := n.Disc.ParentalMask(s.regs.SPRM[SprmCountry], int(s.regs.SPRM[SprmParental]), vts)
+	if mask == 0 {
+		return pgcn
+	}
+	for k := first; k <= last; k++ {
+		if uint16(list[k].ParentalMask)&mask != 0 {
+			return k + 1
+		}
+	}
+	return pgcn
+}
 
 func (n *Nav) globalTitle(vts, vtsTTN int) int {
 	for _, t := range n.Disc.VMG.Titles {
@@ -325,7 +450,10 @@ func (n *Nav) titleInfo(s *navState, p *PGC) *TitleInfo {
 func (n *Nav) present(s *navState, resumed bool, sim bool) *Step {
 	p := n.curPGC(s)
 	cell := p.Cells[s.cellN-1]
-	last := nextCellN(p, s.cellN) > len(p.Cells)
+	// In a random PGC any program may be the last one played; its PGC still
+	// comes after the cell instead (see afterCell).
+	_, _, random := randomMode(p)
+	last := nextCellN(p, s.cellN) > len(p.Cells) && !random
 	still := stillOf(cell.StillTime)
 	if s.held {
 		still = stillOf(p.StillTime)
@@ -452,7 +580,13 @@ func (n *Nav) enterPGC(s *navState, a action) action {
 		}
 		return stopA(fmt.Sprintf("%s program chain %d%s does not exist", a.domain, a.pgcn, where))
 	}
+	if a.domain == DomainVTS {
+		if q := n.parentalPGC(s, a.vts, a.pgcn); q != a.pgcn {
+			a.pgcn, p = q, n.pgcOf(s, a.domain, a.vts, q)
+		}
+	}
 	s.domain, s.vts, s.pgcn, s.cellN, s.held = a.domain, a.vts, a.pgcn, 0, false
+	s.pbCount, s.pbPlayed = 0, [128]bool{}
 	if a.domain == DomainVTS {
 		s.regs.SPRM[SprmTTPGCN] = uint16(a.pgcn)
 		e := n.pgcList(s, DomainVTS, a.vts)[a.pgcn-1]
@@ -475,8 +609,17 @@ func (n *Nav) enterPGC(s *navState, a action) action {
 	cell := 1
 	if a.program > 0 && a.program <= len(p.Programs) {
 		cell = p.Programs[a.program-1]
+		if _, _, ok := randomMode(p); ok && a.program < len(s.pbPlayed) {
+			s.pbCount, s.pbPlayed[a.program] = 1, true
+		}
 	} else if a.cell > 0 {
 		cell = a.cell
+	} else if _, _, ok := randomMode(p); ok {
+		pg := n.pickProgram(s, p)
+		if pg == 0 {
+			return action{t: actPost}
+		}
+		cell = p.Programs[pg-1]
 	}
 	if cell < 1 {
 		cell = 1
@@ -506,6 +649,15 @@ func (n *Nav) showCell(s *navState, a action, sim bool) *Step {
 			}
 		}
 	}
+	if !n.playable(s, p.Cells[s.cellN-1]) {
+		s.skips++
+		if s.skips > maxHops {
+			s.skips = 0
+			return n.stopStep(s, "the program chain has no playable cells")
+		}
+		return n.afterCell(s, sim)
+	}
+	s.skips = 0
 	return n.present(s, a.resumed, sim)
 }
 
@@ -515,9 +667,19 @@ func (n *Nav) cellEnded(s *navState, sim bool) *Step {
 	if cur == nil || cur.Kind == StepStop {
 		return n.keep(s, "")
 	}
-	p := n.curPGC(s)
 	if s.held {
 		return n.settle(s, action{t: actPost}, sim)
+	}
+	return n.afterCell(s, sim)
+}
+
+// afterCell runs the current cell's command and moves on: to the next cell
+// (in a random PGC, the next program drawn), a PGC still, or the post
+// commands.
+func (n *Nav) afterCell(s *navState, sim bool) *Step {
+	p := n.curPGC(s)
+	if p == nil || s.cellN < 1 || s.cellN > len(p.Cells) {
+		return n.stopStep(s, "no program chain")
 	}
 	cell := p.Cells[s.cellN-1]
 	if cell.Command != 0 {
@@ -527,10 +689,17 @@ func (n *Nav) cellEnded(s *navState, sim bool) *Step {
 		}
 	}
 	next := nextCellN(p, s.cellN)
+	_, _, random := randomMode(p)
+	if random && (next > len(p.Cells) || programOf(p, next) != programOf(p, s.cellN)) {
+		next = len(p.Cells) + 1
+		if pg := n.pickProgram(s, p); pg > 0 {
+			next = p.Programs[pg-1]
+		}
+	}
 	if next <= len(p.Cells) {
 		return n.settle(s, cellA(next), sim)
 	}
-	if cell.Command != 0 && p.StillTime != 0 {
+	if (cell.Command != 0 || random) && p.StillTime != 0 && n.playable(s, cell) {
 		s.held = true
 		return n.present(s, false, sim)
 	}
@@ -548,13 +717,8 @@ func (n *Nav) runPost(s *navState) action {
 	case DomainFP:
 		return n.playTitle(s, 1, 1)
 	case DomainVTS:
-		if p.NextPGCN != 0 {
-			return pgcA(DomainVTS, s.vts, p.NextPGCN)
-		}
-		for _, x := range n.pttList(s) {
-			if x.PGCN > s.pgcn {
-				return pgcA(DomainVTS, s.vts, x.PGCN)
-			}
+		if next := nextTitlePGC(n.Disc.VTS[s.vts], int(s.regs.SPRM[SprmVTSTTN]), s.pgcn); next != 0 {
+			return pgcA(DomainVTS, s.vts, next)
 		}
 		return stopA(fmt.Sprintf("title %d ended", s.regs.SPRM[SprmTTN]))
 	}
@@ -671,9 +835,11 @@ func (n *Nav) playVTSTitle(s *navState, vts, vtsTTN, pttn, ttn int) action {
 		ptts = v.PTT[vtsTTN-1]
 	}
 	var target PTT
-	if pttn >= 1 && pttn <= len(ptts) {
+	if pttn >= 1 && pttn <= len(ptts) && ptts[pttn-1].PGCN >= 1 && ptts[pttn-1].PGCN <= len(v.PGCs) {
 		target = ptts[pttn-1]
 	} else {
+		// No chapter table entry, or one naming a PGC that does not exist:
+		// chapter 1 is the title's entry PGC.
 		idx := -1
 		for i, e := range v.PGCs {
 			if e.Entry && e.TitleNumber == vtsTTN {
@@ -694,13 +860,39 @@ func (n *Nav) playVTSTitle(s *navState, vts, vtsTTN, pttn, ttn int) action {
 	}
 	s.regs.SPRM[SprmVTSTTN] = uint16(vtsTTN)
 	s.regs.SPRM[SprmPTTN] = uint16(pttn)
-	return action{t: actPGC, domain: DomainVTS, vts: vts, pgcn: target.PGCN, program: target.PGN}
+	program := target.PGN
+	if _, _, ok := randomMode(v.PGCs[target.PGCN-1].PGC); ok && pttn <= 1 {
+		program = 0 // a random title starts with a program drawn at random
+	}
+	return action{t: actPGC, domain: DomainVTS, vts: vts, pgcn: target.PGCN, program: program}
 }
 
+// menuAction enters the entry PGC of a menu type. The language unit for
+// SPRM0 is searched first; when it lacks that menu (or the disc has no unit
+// in that language), the first other unit that has it is used and
+// remembered, so the menu's own links stay inside that unit.
 func (n *Nav) menuAction(s *navState, d Domain, vts, typ int) action {
-	for i, e := range n.pgcList(s, d, vts) {
-		if e.Entry && e.MenuType == typ {
-			return pgcA(d, vts, i+1)
+	units, key := n.menuUnits(d, vts)
+	def := max(langUnit(units, s.regs.SPRM[SprmMenuLang]), 0)
+	order := []int{def}
+	if k := int(s.menuLU[key]); k >= 1 && k-1 != def {
+		order = append(order, k-1)
+	}
+	for i := range units {
+		order = append(order, i)
+	}
+	for _, u := range order {
+		if u >= len(units) {
+			continue
+		}
+		for i, e := range units[u].PGCs {
+			if e.Entry && e.MenuType == typ {
+				s.menuLU[key] = 0
+				if u != def {
+					s.menuLU[key] = uint8(u + 1)
+				}
+				return pgcA(d, vts, i+1)
+			}
 		}
 	}
 	who := "the disc"

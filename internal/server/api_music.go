@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -62,6 +63,10 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, items)
 }
 
+// audioSlots: audio conversions at once. They are far lighter than video, but
+// each is a process, started by any signed-in account.
+var audioSlots = make(chan struct{}, 8)
+
 // GET /api/items/{id}/stream?start=SEC: plays an audio file. Formats every
 // browser understands are sent as they are (with seeking); others are
 // converted to AAC while streaming, starting at start (the client reloads
@@ -88,6 +93,14 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
 		w.Header().Set("Cache-Control", "private, max-age=3600")
 		http.ServeFile(w, r, it.Path)
+		return
+	}
+	select {
+	case audioSlots <- struct{}{}:
+		defer func() { <-audioSlots }()
+	default:
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, hls.ErrBusy.Error())
 		return
 	}
 	start, _ := strconv.ParseFloat(r.URL.Query().Get("start"), 64)

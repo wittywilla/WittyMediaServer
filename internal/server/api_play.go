@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
-	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 // playInfo tells the client how to play a regular video item.
@@ -108,9 +109,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "only videos play here: discs use the disc player, and audio its stream")
 		return
 	}
-	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-	defer cancel()
-	pr, err := s.Tools.ProbeFile(pctx, it.Path)
+	pr, err := s.probeOnce(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -177,6 +176,36 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, info)
 }
 
+// probeOnce keeps what ffprobe said about the files played last: starting
+// FFprobe takes a moment on a small machine, far longer on a sleeping network
+// drive, and every change of audio or subtitle track asks again.
+func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, errors.New("the file is missing")
+	}
+	key := fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())
+	s.probes.Lock()
+	pr := s.probes.m[key]
+	s.probes.Unlock()
+	if pr != nil {
+		return pr, nil
+	}
+	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	pr, err = s.Tools.ProbeFile(pctx, path)
+	if err != nil {
+		return nil, err
+	}
+	s.probes.Lock()
+	if s.probes.m == nil || len(s.probes.m) >= 64 {
+		s.probes.m = map[string]*ffmpeg.Probe{}
+	}
+	s.probes.m[key] = pr
+	s.probes.Unlock()
+	return pr, nil
+}
+
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok {
@@ -217,6 +246,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
 	}
+	sess.See(auth.TokenFrom(r))
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(sess.Playlist(func(n int) string { return fmt.Sprintf("seg/%d.ts", n) }))
@@ -234,7 +264,16 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad segment")
 		return
 	}
+	sess.See(auth.TokenFrom(r))
 	p, err := sess.Segment(r.Context(), n)
+	if errors.Is(err, hls.ErrBusy) {
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, err.Error())
+		return
+	}
+	if errors.Is(err, context.Canceled) {
+		return // the viewer moved on
+	}
 	if err != nil {
 		s.Log.Warn("segment", "id", id, "n", n, "err", err)
 		writeErr(w, 500, err.Error())
@@ -245,9 +284,8 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
+// DELETE /api/hls/{id}: this viewer is done (another device may still watch).
 func (s *Server) handleHLSStop(w http.ResponseWriter, r *http.Request) {
-	s.HLS.Stop(r.PathValue("id"))
+	s.HLS.Leave(r.PathValue("id"), auth.TokenFrom(r))
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
-
-var _ = library.Item{}

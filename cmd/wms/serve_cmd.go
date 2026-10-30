@@ -211,18 +211,22 @@ func cmdServe(args []string) int {
 		case <-ctx.Done():
 		}
 	}()
+	stopped := make(chan struct{})
 	go func() {
+		defer close(stopped)
 		<-ctx.Done()
 		log.Info("shutting down")
-		hlsMgr.StopAll()
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = httpServer.Shutdown(sctx)
+		_ = httpServer.Close() // long streams: their contexts end, and their FFmpeg with them
+		hlsMgr.StopAll()
 	}()
 	if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("serve", "err", err)
 		return 1
 	}
+	<-stopped // Serve returns as soon as shutdown begins: don't close the database under it
 	if restarting.Load() {
 		return relaunch(cfg, log)
 	}

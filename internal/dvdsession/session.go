@@ -13,6 +13,7 @@ import (
 	"image"
 	"image/png"
 	"log/slog"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -164,15 +165,37 @@ func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, l
 
 func (m *Manager) sweep() {
 	for range time.Tick(time.Minute) {
-		m.mu.Lock()
-		for id, s := range m.sessions {
+		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
 			if time.Since(s.lastUsed()) > 30*time.Minute {
-				s.Close()
-				delete(m.sessions, id)
+				m.CloseSession(id)
 			}
 		}
-		m.mu.Unlock()
 	}
+}
+
+func (m *Manager) list() map[string]*Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return maps.Clone(m.sessions)
+}
+
+// maxSessions bounds the open discs (each keeps a file and its parsed
+// structure); the one left alone longest makes way.
+const maxSessions = 16
+
+func (m *Manager) add(s *Session) {
+	var oldest *Session
+	if all := m.list(); len(all) >= maxSessions {
+		for _, o := range all {
+			if oldest == nil || o.lastUsed().Before(oldest.lastUsed()) {
+				oldest = o
+			}
+		}
+		m.CloseSession(oldest.ID)
+	}
+	m.mu.Lock()
+	m.sessions[s.ID] = s
+	m.mu.Unlock()
 }
 
 // Session is one viewer's DVD player.
@@ -213,10 +236,12 @@ type menuArt struct {
 	highlights map[int][]byte
 }
 
+// randomID never starts with "bd": that prefix sends a request to the Blu-ray
+// sessions, and one DVD in 256 would have opened as already expired.
 func randomID() string {
 	b := make([]byte, 10)
 	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
+	return "d" + hex.EncodeToString(b)
 }
 
 // Open starts a session for a disc path.
@@ -230,30 +255,29 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
 	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle}})
-	m.mu.Lock()
-	m.sessions[s.ID] = s
-	m.mu.Unlock()
+	m.add(s)
 	return s, nil
 }
 
 // Get fetches a session.
 func (m *Manager) Get(id string) *Session {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if s := m.sessions[id]; s != nil {
+	s := m.sessions[id]
+	m.mu.Unlock()
+	if s != nil {
 		s.touch()
-		return s
 	}
-	return nil
+	return s
 }
 
 // CloseSession ends a session.
 func (m *Manager) CloseSession(id string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if s := m.sessions[id]; s != nil {
+	s := m.sessions[id]
+	delete(m.sessions, id)
+	m.mu.Unlock()
+	if s != nil {
 		s.Close()
-		delete(m.sessions, id)
 	}
 }
 
@@ -276,7 +300,12 @@ func (s *Session) lastUsed() time.Time {
 	return s.used
 }
 
-func (s *Session) Close() { _ = s.opened.Close() }
+// Close waits for any step in progress: its reads must not hit a closed file.
+func (s *Session) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_ = s.opened.Close()
+}
 
 // Current returns the last presentation.
 func (s *Session) Current() *Presentation {

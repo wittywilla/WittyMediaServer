@@ -68,6 +68,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     api.get<PlayInfo>(`/items/${item.id}/play?audio=${audio}&subtitle=${sub}`).then(setInfo).catch((e) => setErr(e.message))
   }, [item.id, audio, sub])
 
+  // Done with a stream (left the player, another audio or subtitle track):
+  // the server can stop converting it now rather than after a while.
+  const hlsUrl = info?.type === 'hls' ? info.url : ''
+  useEffect(() => {
+    if (!hlsUrl) return
+    return () => { api.del(hlsUrl.replace(/^\/api/, '').replace(/\/playlist\.m3u8$/, '')).catch(() => {}) }
+  }, [hlsUrl])
+
   // HLS seeking is "seek the playlist"; our server playlist covers the whole
   // file so a plain currentTime assignment works for both modes.
   const seek = useCallback((t: number) => { const v = video.current; if (v) v.currentTime = Math.max(0, Math.min(t, (info?.durationSec || v.duration || t))) }, [info])

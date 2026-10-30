@@ -21,7 +21,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled
 const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro'
 // What OK reaches first when the picture has the focus: whatever is asking
 // for an answer, then the controls.
-const PLAYER_FIRST = '.big-play button, .overlay-msg button, .skip-intro, .watch-next button, .bottom button:not([disabled]), .top button:not([disabled])'
+const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
 
 type Dir = 'up' | 'down' | 'left' | 'right'
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
@@ -58,6 +58,9 @@ function openList(el: HTMLSelectElement) {
 function visible(el: HTMLElement, r: DOMRect): boolean {
   if (r.width < 2 || r.height < 2) return false
   if (el.closest('[aria-hidden="true"], [inert]')) return false
+  // Inside a closed section (its summary stays reachable, to open it).
+  const closed = el.closest('details:not([open])')
+  if (closed && !el.closest('summary')) return false
   const s = getComputedStyle(el)
   return s.visibility !== 'hidden' && s.pointerEvents !== 'none' && Number(s.opacity) > 0.05
 }
@@ -127,10 +130,11 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 // the top row or the rest. False when there are none to go to.
 export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
   const player = document.querySelector('.player:not(.mini)')
-  const el = player?.querySelector<HTMLElement>(where === 'top' ? '.top button:not([disabled])' : PLAYER_FIRST)
-  if (!el) return false
-  el.focus({ preventScroll: true })
-  return true
+  for (const sel of where === 'top' ? ['.top button:not([disabled])'] : PLAYER_FIRST) {
+    const el = player?.querySelector<HTMLElement>(sel)
+    if (el) { el.focus({ preventScroll: true }); return true }
+  }
+  return false
 }
 
 function onKey(e: KeyboardEvent) {
@@ -141,6 +145,12 @@ function onKey(e: KeyboardEvent) {
     // buttons: the player uses it first if one is selected.
     if (target.matches('.player:not(.mini)') && !target.querySelector('.dvd-layer .hit')) {
       if (focusPlayerControls()) e.preventDefault()
+      return
+    }
+    // In a book the same: OK brings up its toolbar.
+    if ((target === document.body || target.matches('.reader')) && document.querySelector('.reader')) {
+      const bar = document.querySelector<HTMLElement>('.reader-bar button:not([disabled])')
+      if (bar) { e.preventDefault(); bar.focus({ preventScroll: true }) }
       return
     }
     if (target.tagName === 'SELECT') { e.preventDefault(); openList(target as HTMLSelectElement); return }
@@ -156,6 +166,15 @@ function onKey(e: KeyboardEvent) {
     // In the player, arrows drive DVD menus and seeking unless a control has focus.
     if (target?.closest('.player:not(.mini)') && !target.closest(PLAYER_CONTROLS) && !target.closest('[role=dialog]')) return
     if (target?.closest('.picker-grid')) return // the tile picker has its own grid navigation
+    // In a book, arrows turn pages and scroll unless focus is on its toolbars.
+    const reader = document.querySelector('.reader')
+    if (reader) {
+      const bar = target?.closest('.reader-bar, .reader-foot, [role=dialog], .rd-panel')
+      if (!bar) return
+      if (move(dir)) { e.preventDefault(); e.stopImmediatePropagation(); return } // or the page would turn too
+      if (dir === 'up' || dir === 'down') { (target as HTMLElement).blur(); e.preventDefault(); e.stopImmediatePropagation() }
+      return
+    }
     const left = move(dir)
     if (left || target?.tagName === 'SELECT') e.preventDefault()
     return

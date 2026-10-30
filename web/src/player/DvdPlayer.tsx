@@ -370,8 +370,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     if (!target || target.n === cur.n) {
       // Past the disc's own buttons: on to the player's (a remote has no other
       // way to reach Play movie or Resume). Up or down from there comes back.
-      if (dir === 'up') focusPlayerControls('top')
-      else if (dir === 'down') focusPlayerControls()
+      focusPlayerControls(dir === 'up' || dir === 'left' ? 'top' : 'first')
       return
     }
     if (target.auto) { pressButton(target.n); return }

@@ -84,6 +84,31 @@ Each plugin and app folder carries what its own repository needs:
 
 `scripts/mirror.sh` publishes the folders and their wikis.
 
+### Releasing the Go modules
+
+WittyDisc, WittyDVD and WittyBluray are versioned Go modules, so anyone can
+`go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest` without this repository.
+In here, `go.work` builds them against each other's local source, and the server's `go.mod`
+points at the same folders with `replace` directives. The engines' own `go.mod` files require
+released versions only, which is what their mirrors are built from.
+
+`scripts/mirror.sh <Repository> <vX.Y.Z>` publishes a module and tags what it published. It
+refuses when the folder has uncommitted changes, when its `go.mod` has a `replace` directive, or
+when the module does not build and pass its tests on its own (`GOWORK=off`). Tags never move.
+WittyDisc goes first, because the engines require it:
+
+```bash
+scripts/mirror.sh WittyDisc v0.2.0
+(cd modules/wittydvd && GOWORK=off go get github.com/wittywilla/wittydisc@v0.2.0 && GOWORK=off go mod tidy)
+(cd modules/wittybluray && GOWORK=off go get github.com/wittywilla/wittydisc@v0.2.0 && GOWORK=off go mod tidy)
+git commit -am "WittyDVD and WittyBluray require WittyDisc v0.2.0"
+scripts/mirror.sh WittyDVD v0.2.0
+scripts/mirror.sh WittyBluray v0.2.0
+```
+
+An engine whose code has not changed since its last release needs no new tag. Versions stay
+below v1 while the APIs settle, so a minor version may change them.
+
 ### Rules every plugin follows
 
 1. **No reaching into the host.** A plugin imports only its own files, its declared libraries

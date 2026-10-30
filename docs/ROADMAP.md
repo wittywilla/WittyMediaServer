@@ -14,6 +14,9 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   over-under to 2D or anaglyph) are in. Still to do: test on retail discs (BD-J, MVC 3D, UHD
   HDR); MVC 3D decoding.
 - [x] **WittyDisc** (`modules/wittydisc`): the disc image reader both engines share.
+- [x] **Versioned module releases:** WittyDisc, WittyDVD and WittyBluray are tagged on their
+  repositories, so `go get` and `go install` work outside a WittyMediaServer checkout
+  (MODULES.md, *Releasing the Go modules*).
 - [ ] **DVD playback sometimes stuck on the first warning screen** (Shrek 2): confirm fixed, or
   fix.
 - [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.
@@ -72,8 +75,6 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 
 - [ ] **New screenshots** at 1920×1080 for the README (the layout, separate guides and download
   link are done; the pictures still show the earlier interface).
-- [ ] **Versioned module releases:** tag WittyDisc, WittyDVD and WittyBluray and drop the local
-  `replace` directives, so `go get` and `go install` work outside a WittyMediaServer checkout.
 - [ ] **Publish the GitHub wikis** of WittyInk, WittyEbook, WittyPDF, WittyComics and WittyReader
   (the pages are written in each `wiki/` folder; each wiki needs its first page saved on
   github.com before `scripts/mirror.sh` can push).

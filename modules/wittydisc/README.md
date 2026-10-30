@@ -33,6 +33,10 @@ WittyDisc is the reader under [WittyDVD](https://github.com/wittywilla/WittyDVD)
 
 ## Use
 
+```bash
+go get github.com/wittywilla/wittydisc@latest
+```
+
 ```go
 import "github.com/wittywilla/wittydisc/isofs"
 

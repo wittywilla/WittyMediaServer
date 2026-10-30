@@ -14,8 +14,10 @@ FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
 ARG VERSION=dev
 ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
+# The server builds the disc engines from local source through the replace directives in go.mod,
+# so go.work isn't needed here; their go.mod files must be present too.
+ENV GOWORK=off
 COPY go.mod go.sum ./
-# WittyDisc, WittyDVD and WittyBluray are local modules (replace directives): their go.mod files must be present too.
 COPY modules/wittydisc/go.mod modules/wittydisc/
 COPY modules/wittydvd/go.mod modules/wittydvd/
 COPY modules/wittybluray/go.mod modules/wittybluray/

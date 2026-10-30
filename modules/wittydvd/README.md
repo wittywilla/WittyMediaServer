@@ -46,14 +46,12 @@ to play, when, and what to draw over them*.
 ## Quick start
 
 ```bash
-git clone https://github.com/wittywilla/WittyMediaServer
-cd WittyMediaServer/modules/wittydvd
-go build ./cmd/wittydvd
-./wittydvd info SHREK_2.ISO
+go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest
+wittydvd info SHREK_2.ISO
 ```
 
-> Versioned releases for `go get` are on the way; until then, build inside a WittyMediaServer checkout,
-> where WittyDisc sits beside it.
+Needs Go 1.26 or newer; the tool lands in `$(go env GOPATH)/bin`. To use the library in your own
+program: `go get github.com/wittywilla/wittydvd@latest`.
 
 ## The command-line tool
 

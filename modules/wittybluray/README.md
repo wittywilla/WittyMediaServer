@@ -48,14 +48,12 @@ bytes to play, when, and what to draw over them*.
 ## Quick start
 
 ```bash
-git clone https://github.com/wittywilla/WittyMediaServer
-cd WittyMediaServer/modules/wittybluray
-go build ./cmd/wittybluray
-./wittybluray info THE_LORAX.iso
+go install github.com/wittywilla/wittybluray/cmd/wittybluray@latest
+wittybluray info THE_LORAX.iso
 ```
 
-> Versioned releases for `go get` are on the way; until then, build inside a WittyMediaServer checkout,
-> where WittyDisc sits beside it.
+Needs Go 1.26 or newer; the tool lands in `$(go env GOPATH)/bin`. To use the library in your own
+program: `go get github.com/wittywilla/wittybluray@latest`.
 
 ## The command-line tool
 

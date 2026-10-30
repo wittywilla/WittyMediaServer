@@ -5,6 +5,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Disc engines as Go modules
+
+- **WittyDisc, WittyDVD and WittyBluray v0.1.0**: tagged on their own repositories, so
+  `go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest` (or `…/wittybluray/cmd/wittybluray`)
+  works without a WittyMediaServer checkout. In this repository a `go.work` builds them from
+  local source; `scripts/mirror.sh <Repository> <vX.Y.Z>` publishes and tags a release.
+
 ### WittyDVD
 
 - **Angles work**: interleaved multi-angle blocks are read per angle, so intros no longer flicker

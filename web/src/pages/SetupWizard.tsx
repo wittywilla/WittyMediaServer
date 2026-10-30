@@ -1,30 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, setToken, type Library, type User } from '../api'
 import { Brand, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconAnime, IconAudio, IconBook, IconCheck, IconDisc, IconFilm, IconFolder, IconTv } from '../icons'
+import { IconAudio, IconBook, IconCheck, IconDisc, IconFolder, IconPalette, IconPlug, IconTv, IconUsers, libIcon } from '../icons'
+import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 import { useApp } from '../state'
+import { applyTheme, type ThemeMeta } from '../theme'
 import { AddProfile } from './Profiles'
 
-// The first-run setup: welcome → account → libraries → metadata → done.
-// Every step after the account can be skipped and changed later in Settings.
-// It resumes where it left off after a reload (the account step is then
-// already done).
+// The first-run setup: welcome → account → your media → metadata agents →
+// discs → look → ready. Every step after the account can be skipped and
+// changed later in Settings. It resumes where it left off after a reload (the
+// account step is then already done).
 
-type Step = 'welcome' | 'account' | 'libraries' | 'metadata' | 'done'
+type Step = 'welcome' | 'account' | 'libraries' | 'metadata' | 'playback' | 'look' | 'done'
 const STEPS: { id: Step; label: string }[] = [
-  { id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Your account' }, { id: 'libraries', label: 'Your media' },
-  { id: 'metadata', label: 'Posters & info' }, { id: 'done', label: 'Ready' },
+  { id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Account' }, { id: 'libraries', label: 'Your media' },
+  { id: 'metadata', label: 'Information' }, { id: 'playback', label: 'Discs' }, { id: 'look', label: 'Look' }, { id: 'done', label: 'Ready' },
 ]
 
 const LIB_TYPES = [
-  { type: 'movies', name: 'Movies', icon: <IconFilm />, hint: 'Films, DVD and Blu-ray images (.iso) and disc folders' },
-  { type: 'shows', name: 'TV Shows', icon: <IconTv />, hint: 'One folder per show, with season folders inside' },
-  { type: 'music', name: 'Music', icon: <IconAudio />, hint: 'Albums by artist; tags and covers are read from the files' },
-  { type: 'audiobooks', name: 'Audiobooks', icon: <IconBook />, hint: 'One folder per book; resumes where you stopped' },
-  { type: 'books', name: 'Books & manga', icon: <IconBook />, hint: 'EPUB, PDF and CBZ comics; manga reads right to left' },
-  { type: 'anime', name: 'Anime', icon: <IconAnime />, hint: 'Series with AniList information; also collects anime found in your TV shows' },
-  { type: 'videos', name: 'Home videos', icon: <IconDisc />, hint: 'Your own recordings and other videos, no online lookup' },
+  { type: 'movies', name: 'Movies & discs', hint: 'Films, plus DVD and Blu-ray images and folders that play with their real menus' },
+  { type: 'shows', name: 'TV shows', hint: 'One folder per show, with season folders inside' },
+  { type: 'anime', name: 'Anime', hint: 'Series with AniList information; also collects anime found in your TV shows' },
+  { type: 'music', name: 'Music', hint: 'Albums by artist; tags and covers are read from the files' },
+  { type: 'audiobooks', name: 'Audiobooks', hint: 'One folder per book; picks up where you stopped' },
+  { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by name; a folder is only for episodes you download' },
+  { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
+  { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
+]
+
+const FEATURES = [
+  { icon: <IconTv />, title: 'Movies & TV', text: 'Posters, plots and “continue watching” on every screen.' },
+  { icon: <IconDisc />, title: 'DVDs & Blu-rays', text: 'Disc images play with their real menus, like a disc player.' },
+  { icon: <IconAudio />, title: 'Music & podcasts', text: 'Albums, audiobooks that remember your place, and shows you follow.' },
+  { icon: <IconBook />, title: 'Books & comics', text: 'Read EPUB, PDF and manga with highlights, notes and a pen.' },
+  { icon: <IconUsers />, title: 'Everyone at home', text: 'Profiles with their own progress, and Kids profiles by age.' },
+  { icon: <IconPalette />, title: 'Yours', text: 'Themes, your server’s name, and nothing leaves your home.' },
 ]
 
 export default function SetupWizard({ resume }: { resume: boolean }) {
@@ -35,6 +47,12 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
   const [added, setAdded] = useState<Library[]>([])
   const [addKids, setAddKids] = useState(false)
   const [kidsAdded, setKidsAdded] = useState(false)
+  const [keys, setKeys] = useState(0)
+  // Addresses other devices at home can open (this one may be "localhost").
+  const [lan, setLan] = useState<string[] | null>(null)
+  useEffect(() => { if (step === 'done') api.get<{ lanUrls?: string[] }>('/system').then((s) => setLan(s.lanUrls || [])).catch(() => setLan([])) }, [step])
+  const here = /^(localhost|127\.|\[::1\])/.test(location.hostname) ? '' : location.origin
+  const addrs = here ? [here] : lan || []
 
   const finish = async () => {
     try { await api.put('/settings', { setupDone: '1', ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* ignore */ }
@@ -42,6 +60,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
     await refreshLibraries()
     setOnboarding(false)
   }
+  const go = (s: Step) => { setStep(s); window.scrollTo({ top: 0 }) }
 
   return (
     <div className="oobe">
@@ -56,38 +75,38 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
               </li>
             ))}
           </ol>
+          <div className="oobe-step-count" aria-hidden="true">Step {idx + 1} of {STEPS.length} · {STEPS[idx].label}</div>
         </header>
 
         <main className="oobe-card" key={step}>
           {step === 'welcome' && (
             <section>
               <h1>Welcome to your media server</h1>
-              <p className="lead">Let's get your movies, shows and discs ready to watch on every screen in your home. It takes about three minutes.</p>
-              <ul className="oobe-points">
-                <li><b>1.</b> Create your account</li>
-                <li><b>2.</b> Show us where your media is</li>
-                <li><b>3.</b> Optionally connect free services for posters and descriptions</li>
-              </ul>
+              <p className="lead">Everything you own — films, shows, discs, music, books — in one place, on every screen in your home. Setup takes about three minutes, and every step can be changed later.</p>
+              <div className="oobe-features">
+                {FEATURES.map((f) => <div key={f.title} className="oobe-feature"><span className="ic">{f.icon}</span><b>{f.title}</b><span>{f.text}</span></div>)}
+              </div>
               <label className="oobe-field">Give your server a name <span className="muted">(optional, shown in the corner)</span>
                 <input className="input" value={serverName} onChange={(e) => setServerName(e.target.value)} placeholder="e.g. The Living Room Cinema" maxLength={40} />
               </label>
-              <div className="oobe-actions"><span /><button className="btn primary big" autoFocus onClick={() => setStep('account')}>Get started</button></div>
+              <div className="oobe-actions"><span /><button className="btn primary big" autoFocus onClick={() => go('account')}>Get started</button></div>
             </section>
           )}
 
-          {step === 'account' && <AccountStep onBack={() => setStep('welcome')} onDone={(u, tok) => {
+          {step === 'account' && <AccountStep onBack={() => go('welcome')} onDone={(u, tok) => {
             setToken(tok)
             setOnboarding(true) // keep the wizard open after signing in
             setUser(u)
-            setStep('libraries')
+            go('libraries')
           }} />}
 
-          {step === 'libraries' && (
-            <LibrariesStep added={added} onAdded={(l) => setAdded((a) => [...a, l])}
-              onNext={() => setStep('metadata')} />
-          )}
+          {step === 'libraries' && <LibrariesStep added={added} onAdded={(l) => setAdded((a) => [...a, l])} onNext={() => go('metadata')} />}
 
-          {step === 'metadata' && <MetadataStep onBack={() => setStep('libraries')} onNext={() => setStep('done')} />}
+          {step === 'metadata' && <MetadataStep onBack={() => go('libraries')} onNext={(n) => { setKeys(n); go('playback') }} />}
+
+          {step === 'playback' && <PlaybackStep onBack={() => go('metadata')} onNext={() => go('look')} />}
+
+          {step === 'look' && <LookStep onBack={() => go('playback')} onNext={() => go('done')} />}
 
           {step === 'done' && (
             <section className="oobe-done">
@@ -95,17 +114,36 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
               <h1>You're all set</h1>
               <p className="lead">
                 {added.length
-                  ? `Your ${added.length === 1 ? 'library is' : `${added.length} libraries are`} being scanned now. Posters and titles appear as each item is found.`
-                  : 'You can add libraries any time in Settings → Libraries.'}
+                  ? `Your ${added.length === 1 ? 'library is' : `${added.length} libraries are`} being scanned now. Titles and posters appear as each one is found.`
+                  : 'Add your first library any time from Settings → Libraries.'}
               </p>
-              <p className="muted">Open this server from your TV, phone or another computer at the same address you're using now.</p>
-              <div className="oobe-kids">
-                {kidsAdded
-                  ? <span><IconCheck size={16} /> Kids profile added</span>
-                  : <><span>Do children watch too? A Kids profile only shows titles for their age.</span><button type="button" className="btn" onClick={() => setAddKids(true)}>Add a Kids profile</button></>}
+              <ul className="oobe-summary">
+                <li className={added.length ? 'ok' : ''}><IconCheck size={16} /> {added.length ? `${added.length} ${added.length === 1 ? 'library' : 'libraries'} added` : 'No libraries yet'}</li>
+                <li className="ok"><IconCheck size={16} /> TV and movie information with no API key needed{keys ? `, plus ${keys} key${keys === 1 ? '' : 's'}` : ''}</li>
+                <li className="ok"><IconCheck size={16} /> Discs, playback and look chosen</li>
+              </ul>
+              <div className="oobe-next">
+                <div className="oobe-next-card">
+                  <IconTv size={22} />
+                  <b>Watch on every screen at home</b>
+                  <span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>
+                  {addrs.length > 0 ? addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>) : <span className="muted">This server only accepts connections from this computer. Start it with a network address to use it from other devices.</span>}
+                  <small className="oobe-disclaimer">Your server runs in your home, so it works only on your home network. Watching away from home needs remote access set up first.</small>
+                </div>
+                <div className="oobe-next-card">
+                  <IconUsers size={22} />
+                  <b>Add the family</b>
+                  <span>{kidsAdded ? 'Kids profile added. Add more in Settings → Profiles.' : 'A Kids profile only shows titles for their age.'}</span>
+                  {!kidsAdded && <button type="button" className="btn sm ghost" onClick={() => setAddKids(true)}>Add a Kids profile</button>}
+                </div>
+                <div className="oobe-next-card">
+                  <IconPlug size={22} />
+                  <b>Make it smarter</b>
+                  <span>Add custom metadata agents, transcoding and more in Settings whenever you like.</span>
+                </div>
               </div>
               {addKids && <AddProfile admin initialKind="kids" onClose={() => setAddKids(false)} onDone={() => { setAddKids(false); setKidsAdded(true) }} />}
-              <div className="oobe-actions"><span /><button className="btn primary big" autoFocus onClick={finish}>Start watching</button></div>
+              <div className="oobe-actions oobe-finish"><button className="btn primary big" autoFocus onClick={finish}>Start watching</button></div>
             </section>
           )}
         </main>
@@ -121,7 +159,7 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
   const [pw2, setPw2] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const strength = pw.length >= 12 ? 'Strong' : pw.length >= 8 ? 'Good' : pw.length >= 4 ? 'Short (fine for a PIN at home)' : ''
+  const level = pw.length >= 12 ? 3 : pw.length >= 8 ? 2 : pw.length >= 4 ? 1 : 0
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr('')
@@ -135,12 +173,12 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
   return (
     <form onSubmit={submit}>
       <h1>Create your account</h1>
-      <p className="lead">This is the administrator: the account that manages libraries, users and settings. You can add family profiles later.</p>
+      <p className="lead">This is the administrator: the account that manages libraries, people and settings. You'll add family profiles later.</p>
       <div className="oobe-form">
         <label className="oobe-field">Your name<input className="input" autoFocus required value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>
         <label className="oobe-field">Password
           <input className="input" type="password" required minLength={4} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" aria-describedby="pw-strength" />
-          <span id="pw-strength" className="muted" style={{ fontSize: 12 }}>{strength || 'At least 4 characters'}</span>
+          <span className={'oobe-strength l' + level} id="pw-strength"><i /><i /><i /><span>{['At least 4 characters', 'Short — fine for a PIN at home', 'Good', 'Strong'][level]}</span></span>
         </label>
         <label className="oobe-field">Type it again<input className="input" type="password" required value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
       </div>
@@ -169,41 +207,43 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
       setType(null); setPaths([]); setName('')
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
+  const addPath = (p: string) => { if (p.trim()) setPaths((x) => [...new Set([...x, p.trim()])]); setManual('') }
   return (
     <section>
       <h1>Where is your media?</h1>
-      <p className="lead">Pick a kind of media, then the folder it's in. Add as many as you like; each becomes a library.</p>
+      <p className="lead">Pick a kind of media, then the folder it's in. Add as many as you like; each becomes a library you can browse.</p>
       {added.length > 0 && (
         <ul className="oobe-added" aria-label="Libraries added">
-          {added.map((l) => <li key={l.id}><IconCheck size={16} /> <b>{l.name}</b> <span className="muted">{l.paths.join(', ')}</span></li>)}
+          {added.map((l) => <li key={l.id}><IconCheck size={16} /> <b>{l.name}</b> <span className="muted">{l.paths.join(', ') || 'no folder'}</span></li>)}
         </ul>
       )}
       {!type ? (
         <div className="oobe-types">
           {LIB_TYPES.map((x) => (
-            <button key={x.type} type="button" className="oobe-type" onClick={() => setType(x.type)}>
-              <span className="ic">{x.icon}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
+            <button key={x.type} type="button" className="oobe-type" onClick={() => { setType(x.type); setName('') }}>
+              <span className="ic">{libIcon(x.type)}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
             </button>
           ))}
         </div>
       ) : (
         <div className="oobe-lib">
-          <div className="oobe-lib-head"><span className="ic">{t!.icon}</span><b>{t!.name}</b><button type="button" className="linkish" onClick={() => { setType(null); setPaths([]) }}>Change</button></div>
+          <div className="oobe-lib-head"><span className="ic">{libIcon(t!.type)}</span><b>{t!.name}</b><button type="button" className="linkish" onClick={() => { setType(null); setPaths([]) }}>Choose another kind</button></div>
           <label className="oobe-field">Library name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t!.name} /></label>
           <div className="oobe-paths">
             {paths.map((p) => <div key={p} className="oobe-path"><IconFolder /> <span>{p}</span><button type="button" className="btn sm ghost" onClick={() => setPaths(paths.filter((x) => x !== p))} aria-label={`Remove ${p}`}>Remove</button></div>)}
           </div>
           <div className="field-row">
-            <ChooseFolderButton className={'btn ' + (paths.length ? '' : 'primary')} label={paths.length ? 'Add another folder…' : 'Choose folder…'} onPick={(p) => setPaths((x) => [...new Set([...x, p])])} />
+            <ChooseFolderButton className={'btn ' + (paths.length ? '' : 'primary')} label={paths.length ? 'Add another folder…' : 'Choose folder…'} onPick={addPath} />
             <input className="input" placeholder="…or type a path, e.g. D:\Movies" aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && manual.trim()) { e.preventDefault(); setPaths((x) => [...new Set([...x, manual.trim()])]); setManual('') } }} />
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPath(manual) } }} />
           </div>
+          {type === 'podcasts' && <p className="muted oobe-hint">No folder? That's fine: podcasts stream from the web, and you can follow shows once setup is done.</p>}
           {err && <div className="error" role="alert">{err}</div>}
-          <div className="oobe-actions"><span /><button type="button" className="btn primary" disabled={!paths.length || busy} onClick={add}>{busy ? 'Adding…' : `Add ${name.trim() || t!.name}`}</button></div>
+          <div className="oobe-actions"><span /><button type="button" className="btn primary" disabled={(!paths.length && type !== 'podcasts') || busy} onClick={add}>{busy ? 'Adding…' : `Add ${name.trim() || t!.name}`}</button></div>
         </div>
       )}
       <div className="oobe-actions">
-        <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background.' : 'You can also do this later.'}</span>
+        <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background.' : 'You can also do this later in Settings.'}</span>
         <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>
       </div>
     </section>
@@ -212,11 +252,11 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
 
 const PROVIDERS = [
   {
-    id: 'tmdb', name: 'The Movie Database (TMDB)', for: 'Movies and discs', key: 'tmdbKey',
+    id: 'tmdb', name: 'The Movie Database (TMDB)', for: 'Movies, discs and TV', key: 'tmdbKey',
     steps: [
       <>Create a free account at <a href="https://www.themoviedb.org/signup" target="_blank" rel="noreferrer">themoviedb.org</a>.</>,
       <>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Settings → API</a> and ask for a key (choose “Personal use”).</>,
-      <>Copy the <b>API Key</b> (or the longer <b>API Read Access Token</b>) and paste it below.</>,
+      <>Copy the <b>API Key</b> and paste it below.</>,
     ],
     note: 'This product uses the TMDB API but is not endorsed or certified by TMDB.',
   },
@@ -231,9 +271,10 @@ const PROVIDERS = [
   },
 ] as const
 
-function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: number) => void }) {
   const [keys, setKeys] = useState<Record<string, string>>({})
   const [state, setState] = useState<Record<string, { ok?: boolean; msg?: string; busy?: boolean }>>({})
+  const [open, setOpen] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const test = async (p: (typeof PROVIDERS)[number]) => {
     setState((s) => ({ ...s, [p.id]: { busy: true } }))
@@ -248,39 +289,136 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
     for (const [k, v] of Object.entries(keys)) if (v.trim()) body[k] = v.trim()
     try { if (Object.keys(body).length) await api.put('/settings', body) } catch { /* keys can be added later */ }
     setSaving(false)
-    onNext()
+    onNext(PROVIDERS.filter((p) => keys[p.key]?.trim()).length)
   }
   const any = Object.values(keys).some((v) => v.trim())
   return (
     <section>
-      <h1>Posters, plots and cast</h1>
-      <p className="lead">Your server already looks up <b>TV shows on TVmaze</b> and <b>movie facts on Wikidata</b>, with no API key needed. For movie posters and the best matches, add a free API key from the services below; each takes about two minutes. Your files never leave this computer, only their names are looked up.</p>
-      <div className="oobe-builtin" role="note">
-        <span><IconCheck size={16} /> TV: TVmaze, no API key needed</span>
-        <span><IconCheck size={16} /> Movies: Wikidata facts and ratings, no API key needed</span>
+      <h1>Media Indexers and Metadata Agents</h1>
+      <p className="lead">Agents find titles, posters, plots and ratings for your media. These work already, with no API key needed. Your files never leave this computer: only their names are looked up.</p>
+      <div className="oobe-agents">
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>TVmaze</b><span>TV shows</span><em>No API key needed</em></div>
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>Wikidata &amp; Wikipedia</b><span>Movies</span><em>No API key needed</em></div>
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>AniList</b><span>Anime</span><em>No API key needed</em></div>
       </div>
+      <h2 className="oobe-sub">Optional: posters and the best matches</h2>
+      <p className="muted oobe-hint">Add a free API key from these services. Each takes about two minutes, and you can do it later in Settings.</p>
       <div className="oobe-providers">
         {PROVIDERS.map((p) => {
           const st = state[p.id] || {}
+          const shown = open === p.id || !!keys[p.key]
           return (
             <div key={p.id} className={'oobe-provider' + (st.ok ? ' ok' : '')}>
-              <div className="op-head"><b>{p.name}</b><span className="pill">{p.for}</span>{st.ok && <span className="op-ok"><IconCheck size={14} /> Connected</span>}</div>
-              <ol className="op-steps">{p.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
-              <div className="field-row">
-                <input className="input" aria-label={`${p.name} key`} placeholder="Paste your key" value={keys[p.key] || ''} spellCheck={false} autoComplete="off"
-                  onChange={(e) => { setKeys((k) => ({ ...k, [p.key]: e.target.value })); setState((s) => ({ ...s, [p.id]: {} })) }} />
-                {'pinKey' in p && <input className="input pin" aria-label="Subscriber PIN" placeholder="PIN (optional)" value={keys[p.pinKey] || ''} onChange={(e) => setKeys((k) => ({ ...k, [p.pinKey]: e.target.value }))} />}
-                <button type="button" className="btn" disabled={!keys[p.key]?.trim() || st.busy} onClick={() => test(p)}>{st.busy ? 'Checking…' : 'Test'}</button>
-              </div>
-              {st.msg && !st.ok && <div className="error" role="alert">{st.msg}</div>}
-              <div className="muted op-note">{p.note}</div>
+              <button type="button" className="op-head" onClick={() => setOpen(open === p.id ? null : p.id)} aria-expanded={shown}>
+                <b>{p.name}</b><span className="pill">{p.for}</span>
+                {st.ok ? <span className="op-ok"><IconCheck size={14} /> Connected</span> : <span className="op-add">{shown ? 'Hide' : 'Add a key'}</span>}
+              </button>
+              {shown && (
+                <>
+                  <ol className="op-steps">{p.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                  <div className="field-row">
+                    <input className="input" aria-label={`${p.name} key`} placeholder="Paste your key" value={keys[p.key] || ''} spellCheck={false} autoComplete="off"
+                      onChange={(e) => { setKeys((k) => ({ ...k, [p.key]: e.target.value })); setState((s) => ({ ...s, [p.id]: {} })) }} />
+                    {'pinKey' in p && <input className="input pin" aria-label="Subscriber PIN" placeholder="PIN (optional)" value={keys[p.pinKey] || ''} onChange={(e) => setKeys((k) => ({ ...k, [p.pinKey]: e.target.value }))} />}
+                    <button type="button" className="btn" disabled={!keys[p.key]?.trim() || st.busy} onClick={() => test(p)}>{st.busy ? 'Checking…' : 'Test'}</button>
+                  </div>
+                  {st.msg && !st.ok && <div className="error" role="alert">{st.msg}</div>}
+                  <div className="muted op-note">{p.note}</div>
+                </>
+              )}
             </div>
           )
         })}
       </div>
+      <p className="muted oobe-hint">Have your own catalogue? Add <b>custom agents</b> later in Settings → Metadata agents.</p>
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={onBack}>Back</button>
-        <button type="button" className={'btn big ' + (any ? 'primary' : 'ghost')} disabled={saving} onClick={save}>{any ? 'Save and continue' : 'Skip for now'}</button>
+        <button type="button" className="btn primary big" disabled={saving} onClick={save}>{any ? 'Save and continue' : 'Continue'}</button>
+      </div>
+    </section>
+  )
+}
+
+function PlaybackStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const [start, setStart] = useState('menu')
+  const [fx, setFx] = useState(true)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { setStart(s.dvdStart || 'menu'); setFx(s.insertFx !== '0') }).catch(() => {}) }, [])
+  const save = async () => {
+    setBusy(true)
+    try { await api.put('/settings', { dvdStart: start, insertFx: fx ? '1' : '0' }) } catch { /* can be changed later */ }
+    setBusy(false)
+    onNext()
+  }
+  return (
+    <section>
+      <h1>DVDs and Blu-rays</h1>
+      <p className="lead">Disc images play like they would in a disc player. When someone presses play on a disc, what should happen?</p>
+      <div className="oobe-choices" role="radiogroup" aria-label="When a disc starts">
+        <button type="button" role="radio" aria-checked={start === 'menu'} className={'oobe-choice' + (start === 'menu' ? ' on' : '')} onClick={() => setStart('menu')}>
+          <span className="oobe-choice-pic menu" aria-hidden="true"><i /><i /><i /></span>
+          <b>Show the disc menu</b><span>Studio intros, then the menu with its buttons, chapters and extras.</span>
+        </button>
+        <button type="button" role="radio" aria-checked={start === 'title'} className={'oobe-choice' + (start === 'title' ? ' on' : '')} onClick={() => setStart('title')}>
+          <span className="oobe-choice-pic film" aria-hidden="true"><i /></span>
+          <b>Play the film straight away</b><span>Skip intros and menus. The menu is still one button away.</span>
+        </button>
+      </div>
+      <label className="oobe-toggle">
+        <input type="checkbox" checked={fx} onChange={(e) => setFx(e.target.checked)} />
+        <span><b>Disc insert animation</b><small>A tray slides in when a disc starts, with drive sounds.</small></span>
+      </label>
+      <div className="oobe-actions">
+        <button type="button" className="btn ghost" onClick={onBack}>Back</button>
+        <button type="button" className="btn primary big" disabled={busy} onClick={save}>Continue</button>
+      </div>
+    </section>
+  )
+}
+
+function LookStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const { serverTheme, setServerTheme } = useApp()
+  const [themes, setThemes] = useState<ThemeMeta[]>([])
+  const [pick, setPick] = useState(serverTheme)
+  const nav = useNavStyle()
+  useEffect(() => { api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {}) }, [])
+  const choose = (id: string) => { setPick(id); applyTheme(id) }
+  const save = async () => {
+    try { await api.put('/settings', { theme: pick }); setServerTheme(pick) } catch { /* can be changed later */ }
+    onNext()
+  }
+  // A handful of looks to start from; every theme is in Settings → Appearance.
+  const featured = ['default', 'dark', 'oled', 'light', 'dark-blue', 'dark-green', 'light-pink', 'dark-gold']
+  const shown = themes.filter((t) => featured.includes(t.id)).sort((a, b) => featured.indexOf(a.id) - featured.indexOf(b.id))
+  const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left']]
+  return (
+    <section>
+      <h1>Make it yours</h1>
+      <p className="lead">Pick a look for everyone. It changes right away; people can pick their own later in Settings → Appearance, where there are more themes.</p>
+      <div className="oobe-themes" role="radiogroup" aria-label="Theme">
+        {shown.map((t) => (
+          <button key={t.id} type="button" role="radio" aria-checked={pick === t.id} className={'oobe-theme' + (pick === t.id ? ' on' : '')} onClick={() => choose(t.id)}>
+            <span className="oobe-theme-pic" style={{ background: t.preview.bg }}>
+              <i className="bar" style={{ background: t.preview.surface }} />
+              <i className="card" style={{ background: t.preview.surface }} /><i className="card" style={{ background: t.preview.surface }} /><i className="card" style={{ background: t.preview.surface }} />
+              <i className="btn" style={{ background: t.preview.accent }} />
+            </span>
+            <b>{t.name.replace(/^WittyMediaServer /, '')}</b>
+          </button>
+        ))}
+      </div>
+      <h2 className="oobe-sub">Navigation on this device</h2>
+      <div className="oobe-choices two" role="radiogroup" aria-label="Navigation">
+        {navOpts.map(([v, l, d]) => (
+          <button key={v} type="button" role="radio" aria-checked={nav === v} className={'oobe-choice small' + (nav === v ? ' on' : '')} onClick={() => setNavStyle(v)}>
+            <span className={'layout-pic pic-' + v} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
+            <b>{l}</b><span>{d}</span>
+          </button>
+        ))}
+      </div>
+      <div className="oobe-actions">
+        <button type="button" className="btn ghost" onClick={onBack}>Back</button>
+        <button type="button" className="btn primary big" onClick={save}>Continue</button>
       </div>
     </section>
   )

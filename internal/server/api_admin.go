@@ -2,6 +2,7 @@ package server
 
 import (
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -69,6 +70,7 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, map[string]any{
+		"lanUrls":     s.lanURLs(r),
 		"version":     s.Version,
 		"go":          runtime.Version(),
 		"os":          runtime.GOOS,
@@ -117,4 +119,40 @@ func (s *Server) spa() http.Handler {
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(b)
 	})
+}
+
+// lanURLs are the addresses other devices on the home network can open
+// (this machine's private IPv4 addresses, on the port this request used);
+// none when the server only listens on this machine.
+func (s *Server) lanURLs(r *http.Request) []string {
+	if h, _, err := net.SplitHostPort(s.Cfg.Listen); err == nil && h != "" && h != "0.0.0.0" && h != "::" {
+		if ip := net.ParseIP(h); ip == nil || ip.IsLoopback() {
+			return []string{}
+		}
+	}
+	_, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		port = ""
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	out := []string{}
+	for _, a := range addrs {
+		ipn, ok := a.(*net.IPNet)
+		if !ok || ipn.IP.To4() == nil || !ipn.IP.IsPrivate() {
+			continue
+		}
+		host := ipn.IP.String()
+		if port != "" {
+			host = net.JoinHostPort(host, port)
+		}
+		out = append(out, scheme+"://"+host)
+	}
+	return out
 }

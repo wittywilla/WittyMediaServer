@@ -6,7 +6,7 @@ const { app, BaseWindow, WebContentsView, ipcMain, net, session, shell } = requi
 const os = require('os')
 const path = require('path')
 const { normalizeAddress } = require('./connect/address.js')
-const { judge, newNonce } = require('./identity.js')
+const { judge, judgeMissing, fingerprintOf, newNonce } = require('./identity.js')
 const { startDiscovery } = require('./discover.js')
 const state = require('./state.js')
 
@@ -22,6 +22,7 @@ const stateFile = () => path.join(app.getPath('userData'), 'state.json')
 let saved = {}
 let win, bar, content
 let server = '' // the origin the content view may show
+let lastServer = ''
 let stopDiscovery = null
 
 const isConnectPage = (url) => {
@@ -65,6 +66,7 @@ function showConnect(query) {
 function showServer(url) {
   endDiscovery()
   server = new URL(url).origin
+  lastServer = server
   bar.webContents.send('server', url)
   content.webContents.loadURL(url)
 }
@@ -80,12 +82,12 @@ async function identify(url) {
   const nonce = newNonce()
   try {
     const res = await postJson(url + API + '/identity', { nonce })
-    if (res.status === 404) return { state: 'none' } // a server older than this check
+    if (res.status === 404) return { state: judgeMissing(url, saved.recent) }
     if (!res.ok) return { state: 'bad' }
     const answer = await res.json()
     const result = judge(answer, nonce, url, saved.recent)
     if (result === 'bad') return { state: 'bad' }
-    return { state: result, serverId: answer.serverId, publicKey: answer.publicKey, fingerprint: String(answer.fingerprint || '') }
+    return { state: result, serverId: answer.serverId, publicKey: answer.publicKey, fingerprint: fingerprintOf(answer.publicKey) }
   } catch {
     return { state: 'unreachable' }
   }
@@ -107,6 +109,13 @@ async function probe(url) {
       identity: { state: identity.state, fingerprint: identity.fingerprint || '' },
     }
   } catch { return { error: 'unreachable' } }
+}
+
+// Sign-ins made for the old key must never reach whoever holds the new one.
+async function forgetSignIn(url) {
+  const { origin } = new URL(url)
+  await session.defaultSession.cookies.remove(origin, SESSION_COOKIE)
+  await session.defaultSession.clearStorageData({ origin, storages: ['cookies', 'localstorage'] })
 }
 
 function rememberServer(url, name, identity) {
@@ -156,9 +165,12 @@ function guardContent(wc) {
   wc.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' } })
   const stay = (e, url) => {
     if (isConnectPage(url)) return
-    try { if (server && new URL(url).origin === server) return } catch { /* falls through */ }
+    let origin = ''
+    try { origin = new URL(url).origin } catch { /* not a web address */ }
+    if (server && origin === server) return
     e.preventDefault()
-    openOutside(url)
+    // A load still under way when someone pressed Change server isn't a link to open elsewhere.
+    if (origin !== lastServer) openOutside(url)
   }
   wc.on('will-navigate', stay)
   wc.on('will-redirect', stay)
@@ -210,7 +222,10 @@ ipcMain.handle('open-server', async (e, s) => {
   const identity = await identify(found.url)
   if (identity.state === 'bad') return false
   // Another key at a known server is only ever accepted because the person said so.
-  if (identity.state === 'different' && !(s && s.trust === true)) return false
+  if (identity.state === 'different') {
+    if (!(s && s.trust === true)) return false
+    await forgetSignIn(found.url)
+  }
   rememberServer(found.url, found.name, identity)
   showServer(found.url)
   return true

@@ -34,8 +34,21 @@ function judge(answer, nonce, url, saved) {
   return known.publicKey === answer.publicKey ? 'same' : 'different'
 }
 
+// A short form of the key for people to compare, worked out here rather than
+// believed from the answer: a look-alike could claim any fingerprint it liked.
+function fingerprintOf(publicKey) {
+  const hash = crypto.createHash('sha256').update(Buffer.from(String(publicKey), 'base64')).digest('hex').toUpperCase()
+  return `${hash.slice(0, 4)}-${hash.slice(4, 8)}-${hash.slice(8, 12)}`
+}
+
+// A server with no identity route. Only a server we hold no key for can be an
+// older one; for a known server this may be something avoiding the check.
+function judgeMissing(url, saved) {
+  return (saved || []).some((s) => s.publicKey && s.url === url) ? 'bad' : 'none'
+}
+
 function newNonce() {
   return crypto.randomBytes(32).toString('base64')
 }
 
-module.exports = { signatureValid, judge, newNonce, signedBytes }
+module.exports = { signatureValid, judge, judgeMissing, fingerprintOf, newNonce, signedBytes }

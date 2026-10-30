@@ -343,7 +343,7 @@ func shortcut(lnk, target, dir, icon string) error {
 	if err := os.MkdirAll(filepath.Dir(lnk), 0o755); err != nil {
 		return err
 	}
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
+	cmd := exec.Command(systemFile(`WindowsPowerShell\v1.0\powershell.exe`), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
@@ -430,6 +430,16 @@ func stopRunning(dir string) {
 		kill(pid)
 	}
 	time.Sleep(time.Second)
+}
+
+// systemFile is a program in Windows' own folder, by its full path: never one
+// found through PATH or next to this setup, wherever it was downloaded to.
+func systemFile(name string) string {
+	dir, err := windows.GetSystemDirectory()
+	if err != nil {
+		dir = filepath.Join(os.Getenv("SystemRoot"), "System32")
+	}
+	return filepath.Join(dir, name)
 }
 
 // ---------------------------------------------------------------- uninstall
@@ -544,10 +554,12 @@ func uninstallFinish(dir string) error {
 
 	// This copy in the temp folder deletes itself once it has exited.
 	// cmd.exe has its own quoting rules, so its command line is given as is.
+	// Programs by their full path: cmd.exe looks in the current folder first, and
+	// this one runs in the temp folder, where anything may have been left.
 	self, _ := os.Executable()
-	del := exec.Command("cmd.exe")
+	del := exec.Command(systemFile("cmd.exe"))
 	del.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW,
-		CmdLine: `cmd.exe /d /c ping -n 3 127.0.0.1 >nul & del /f /q "` + self + `"`}
+		CmdLine: `cmd.exe /d /c "` + systemFile("PING.EXE") + `" -n 3 127.0.0.1 >nul & del /f /q "` + self + `"`}
 	_ = del.Start()
 	return nil
 }

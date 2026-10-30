@@ -14,7 +14,11 @@ spec:
       labels: { app: wms }
     spec:
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: wms
           image: ghcr.io/wittywilla/wittymediaserver:latest
@@ -42,8 +46,10 @@ spec:
           resources:
             requests: { cpu: "500m", memory: "256Mi" }
             limits: { cpu: "4", memory: "2Gi" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
           # For Intel/AMD VAAPI add:
-          # securityContext: { privileged: false }
           # resources.limits: { gpu.intel.com/i915: 1 }
           # For NVIDIA: resources.limits: { nvidia.com/gpu: 1 }
       volumes:

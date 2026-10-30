@@ -6,7 +6,7 @@
 FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json* ./
-RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY web/ ./
 # WittyIntegratedFileBrowser's web half lives beside its Go half.
 COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/

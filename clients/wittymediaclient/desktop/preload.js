@@ -5,10 +5,15 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 if (location.protocol === 'file:') {
   contextBridge.exposeInMainWorld('wittyClient', {
-    supportsDiscovery: false,
+    supportsDiscovery: true,
+    startDiscovery: (onServers) => {
+      ipcRenderer.on('servers', (_e, servers) => onServers(servers))
+      ipcRenderer.send('discover-start')
+    },
     probe: (url) => ipcRenderer.invoke('probe', url),
     recent: () => ipcRenderer.invoke('recent'),
     open: (server) => ipcRenderer.invoke('open-server', server),
+    redeem: (url, code) => ipcRenderer.invoke('redeem', url, code),
   })
 } else {
   const report = () => {

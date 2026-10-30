@@ -63,3 +63,4 @@ button:focus, input:focus { outline: 3px solid var(--text); outline-offset: 2px;
 }
 .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
 .pad button { text-align: center; }
+.fingerprint { font-size: 0.8rem; margin-top: 0.75rem; }

@@ -3,19 +3,26 @@
 // connect screen and then the server's web UI, which has no access to Node or
 // to the app beyond reporting its theme colours.
 const { app, BaseWindow, WebContentsView, ipcMain, net, session, shell } = require('electron')
+const os = require('os')
 const path = require('path')
 const { normalizeAddress } = require('./connect/address.js')
+const { judge, newNonce } = require('./identity.js')
+const { startDiscovery } = require('./discover.js')
 const state = require('./state.js')
 
 const TITLE_BAR = 32
 const CONNECT_PAGE = path.join(__dirname, 'connect', 'index.html')
 const STATUS_TIMEOUT_MS = 5000
+const API = '/api/v1' // the contract: docs/CLIENT-API.md
+const SESSION_COOKIE = 'wms_token'
+const SESSION_DAYS = 90
 const COLOUR = /^(#[0-9a-fA-F]{3,8}|rgba?\([\d\s.,%/]+\))$/
 
 const stateFile = () => path.join(app.getPath('userData'), 'state.json')
 let saved = {}
 let win, bar, content
 let server = '' // the origin the content view may show
+let stopDiscovery = null
 
 const isConnectPage = (url) => {
   try { return new URL(url).protocol === 'file:' && path.normalize(decodeURIComponent(new URL(url).pathname)).endsWith(path.join('connect', 'index.html')) } catch { return false }
@@ -43,16 +50,45 @@ function layout() {
 
 let htmlFullScreen = false
 
+function endDiscovery() {
+  if (stopDiscovery) stopDiscovery()
+  stopDiscovery = null
+}
+
 function showConnect(query) {
+  endDiscovery()
   server = ''
   bar.webContents.send('server', '')
   content.webContents.loadFile(CONNECT_PAGE, { query })
 }
 
 function showServer(url) {
+  endDiscovery()
   server = new URL(url).origin
   bar.webContents.send('server', url)
   content.webContents.loadURL(url)
+}
+
+const fetchJson = (url, options) =>
+  net.fetch(url, { credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(STATUS_TIMEOUT_MS), ...options })
+
+const postJson = (url, body) =>
+  fetchJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+
+// Has the server at this address proved it holds the key we remember for it?
+async function identify(url) {
+  const nonce = newNonce()
+  try {
+    const res = await postJson(url + API + '/identity', { nonce })
+    if (res.status === 404) return { state: 'none' } // a server older than this check
+    if (!res.ok) return { state: 'bad' }
+    const answer = await res.json()
+    const result = judge(answer, nonce, url, saved.recent)
+    if (result === 'bad') return { state: 'bad' }
+    return { state: result, serverId: answer.serverId, publicKey: answer.publicKey, fingerprint: String(answer.fingerprint || '') }
+  } catch {
+    return { state: 'unreachable' }
+  }
 }
 
 // Asks an address whether it is a WittyMediaServer. In the main process, so no
@@ -61,13 +97,59 @@ async function probe(url) {
   const r = normalizeAddress(url)
   if (r.error) return { error: r.error }
   try {
-    const res = await net.fetch(r.url + '/api/status', {
-      credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
-    })
+    const res = await fetchJson(r.url + '/api/status')
     const data = await res.json()
     if (data.name !== 'WittyMediaServer') return { error: 'not-server' }
-    return { ok: true, url: r.url, version: String(data.version || ''), name: String(data.brandName || data.name) }
+    const identity = await identify(r.url)
+    return {
+      ok: true, url: r.url, version: String(data.version || ''), name: String(data.brandName || data.name),
+      setupRequired: data.setupRequired === true,
+      identity: { state: identity.state, fingerprint: identity.fingerprint || '' },
+    }
   } catch { return { error: 'unreachable' } }
+}
+
+function rememberServer(url, name, identity) {
+  saved = state.remember(saved, { url, name, serverId: identity.serverId, publicKey: identity.publicKey, fingerprint: identity.fingerprint })
+  state.save(stateFile(), saved)
+}
+
+// A code typed on this device. The sign-in goes straight into the browser
+// session as the server's own HttpOnly cookie, so no page script can read it.
+async function redeem(url, code) {
+  const found = await probe(url)
+  if (found.error) return { error: 'unreachable' }
+  const identity = await identify(found.url)
+  if (identity.state === 'different' || identity.state === 'bad') return { error: 'identity' }
+  let res, data
+  try {
+    res = await postJson(found.url + API + '/pair/redeem', {
+      code: String(code), device: `${os.hostname()} (WittyMedia)`.slice(0, 60), platform: process.platform === 'win32' ? 'Windows' : 'Linux',
+    })
+    data = await res.json()
+  } catch { return { error: 'unreachable' } }
+  if (!res.ok || !data.token) return { message: String(data.error || ''), reason: String(data.reason || '') }
+  await session.defaultSession.cookies.set({
+    url: found.url, name: SESSION_COOKIE, value: data.token, httpOnly: true, sameSite: 'lax',
+    secure: found.url.startsWith('https:'), expirationDate: Date.now() / 1000 + SESSION_DAYS * 86400,
+  })
+  rememberServer(found.url, found.name, identity)
+  showServer(found.url)
+  return { ok: true }
+}
+
+// What the last run was using, if it still is who it was.
+async function startUp() {
+  const url = saved.server && !normalizeAddress(saved.server).error ? saved.server : ''
+  if (!url) return showConnect()
+  const identity = await identify(url)
+  if (identity.state === 'unreachable') return showConnect({ lost: '1' })
+  if (identity.state === 'different' || identity.state === 'bad') return showConnect({ mismatch: url })
+  if (identity.state === 'new') {
+    const known = (saved.recent || []).find((s) => s.url === url)
+    rememberServer(url, known ? known.name : 'WittyMediaServer', identity)
+  }
+  return showServer(url)
 }
 
 function guardContent(wc) {
@@ -113,24 +195,32 @@ function createWindow() {
   win.on('leave-full-screen', layout)
   win.on('maximize', () => bar.webContents.send('maximized', true))
   win.on('unmaximize', () => bar.webContents.send('maximized', false))
-  win.on('closed', () => { state.save(stateFile(), saved); app.quit() })
+  win.on('closed', () => { endDiscovery(); state.save(stateFile(), saved); app.quit() })
 
-  bar.webContents.loadFile(path.join(__dirname, 'titlebar', 'index.html')).then(() => {
-    const start = saved.server && !normalizeAddress(saved.server).error ? saved.server : ''
-    if (start) showServer(start); else showConnect()
-  })
+  bar.webContents.loadFile(path.join(__dirname, 'titlebar', 'index.html')).then(startUp)
 }
 
 ipcMain.handle('probe', (e, url) => (fromConnect(e) ? probe(String(url)) : { error: 'invalid' }))
-ipcMain.handle('recent', (e) => (fromConnect(e) ? saved.recent || [] : []))
+ipcMain.handle('recent', (e) => (fromConnect(e) ? (saved.recent || []).map(({ url, name }) => ({ url, name })) : []))
+ipcMain.handle('redeem', (e, url, code) => (fromConnect(e) ? redeem(String(url), String(code)) : { error: 'invalid' }))
 ipcMain.handle('open-server', async (e, s) => {
   if (!fromConnect(e)) return false
   const found = await probe(String(s && s.url))
   if (found.error) return false
-  saved = state.remember(saved, { url: found.url, name: found.name })
-  state.save(stateFile(), saved)
+  const identity = await identify(found.url)
+  if (identity.state === 'bad') return false
+  // Another key at a known server is only ever accepted because the person said so.
+  if (identity.state === 'different' && !(s && s.trust === true)) return false
+  rememberServer(found.url, found.name, identity)
   showServer(found.url)
   return true
+})
+
+ipcMain.on('discover-start', (e) => {
+  if (!fromConnect(e) || process.env.WMC_NO_DISCOVERY === '1') return
+  endDiscovery()
+  const page = e.sender
+  stopDiscovery = startDiscovery((servers) => { if (!page.isDestroyed()) page.send('servers', servers) })
 })
 
 // Theme colours from the server's page: checked strictly, since a page decides them.

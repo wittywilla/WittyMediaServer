@@ -32,5 +32,16 @@
   "usePassword": "Use a password instead",
   "useCode": "Sign in with a code",
   "nextEpisodeIn": "Next episode in",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "foundServers": "On your network",
+  "codeTitle": "Enter the security code",
+  "codeHint": "On a phone or computer signed in to this server, open your name, choose Sign in a TV, then press Get a number.",
+  "codeLabel": "Security code",
+  "codeEntered": "digits entered",
+  "codeDelete": "Delete",
+  "fingerprintLabel": "Server fingerprint",
+  "identityTitle": "This isn't the server you used before",
+  "identityHint": "A different machine is answering at this address. It could be your server after a reinstall, or a look-alike. Only trust it if you know why it changed.",
+  "identityTrust": "This is my server, trust it",
+  "identityBad": "This server couldn't prove who it is, so nothing was sent to it."
 }

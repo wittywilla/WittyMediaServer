@@ -10,7 +10,7 @@
   "scripts": {
     "sync": "node scripts/sync-shared.mjs",
     "start": "npm run sync && electron .",
-    "test": "node --test ../shared/connect/address.test.js test/state.test.js",
+    "test": "npm run sync && node --test ../shared/connect/address.test.js test/state.test.js test/connect.test.js",
     "package:win": "npm run sync && electron-builder --win",
     "package:linux": "npm run sync && electron-builder --linux"
   },
@@ -21,11 +21,39 @@
   "build": {
     "appId": "com.wittywilla.wittymediaclient",
     "productName": "WittyMedia",
-    "directories": { "output": "out" },
-    "files": ["main.js", "preload.js", "state.js", "titlebar/**", "connect/**"],
+    "directories": {
+      "output": "out"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "state.js",
+      "identity.js",
+      "discover.js",
+      "titlebar/**",
+      "connect/**"
+    ],
     "publish": null,
-    "win": { "target": ["nsis", "portable"] },
-    "linux": { "target": ["AppImage", "deb"], "category": "AudioVideo", "maintainer": "WittyWilla" },
-    "nsis": { "oneClick": true, "perMachine": false }
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo",
+      "maintainer": "WittyWilla"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
+  },
+  "dependencies": {
+    "multicast-dns": "7.2.5"
   }
 }

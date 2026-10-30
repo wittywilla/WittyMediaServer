@@ -58,7 +58,7 @@ export type PlayInfo = {
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number }
 export type DvdMenu = {
   width: number; height: number; aspect: '4:3' | '16:9'; buttons: DvdButton[]; selected: number
-  overlayUrl?: string; highlightUrl?: string; buttonsFromSec?: number; hasHighlights: boolean
+  overlayUrl?: string; highlightUrl?: string; buttonsFromSec?: number; buttonsUntilSec?: number; hasHighlights: boolean
   forcedAction?: number; actionAtSec?: number; inTitle?: boolean; popup?: boolean; closed?: boolean
 }
 export type DvdTrack = { n: number; language: string; codec?: string; channels?: number; purpose?: string }

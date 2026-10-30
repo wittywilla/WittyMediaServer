@@ -37,9 +37,13 @@ type MenuPicture struct {
 	DefaultButton  int
 	Normal         *RGBA // sub-picture as shown with nothing selected
 	ButtonsFromSec float64
-	HasHighlights  bool
-	Scrambled      bool
-	NoButtons      bool
+	// ButtonsUntilSec is when the buttons stop working, measured like
+	// ButtonsFromSec: the earlier of the highlight end (HLI_E_PTM) and the
+	// end of button selection (BTN_SL_E_PTM). 0 = until the cell ends.
+	ButtonsUntilSec float64
+	HasHighlights   bool
+	Scrambled       bool
+	NoButtons       bool
 	// ForcedSelect is the button the disc highlights when the menu appears
 	// (FOSL_BTNN); it wins over SPRM8. 0 = none.
 	ForcedSelect int
@@ -158,6 +162,19 @@ func ScanMenu(rd SectorReader, first, last uint32, o MenuScanOptions) (*MenuPict
 	}
 	if havePTM && hliPCI.HLStartPTM > startPTM {
 		pic.ButtonsFromSec = float64(hliPCI.HLStartPTM-startPTM) / 90000
+	}
+	if havePTM {
+		// After the highlight ends the buttons are gone; after selection
+		// ends the player ignores the viewer (0xffffffff: never).
+		var until uint32
+		for _, v := range []uint32{hliPCI.HLEndPTM, hliPCI.SelectEndPTM} {
+			if v != 0 && v != 0xffffffff && v > startPTM && (until == 0 || v < until) {
+				until = v
+			}
+		}
+		if until != 0 {
+			pic.ButtonsUntilSec = float64(until-startPTM) / 90000
+		}
 	}
 
 	// Read from a couple of VOBUs before the highlight VOBU so we catch the

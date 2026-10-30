@@ -256,8 +256,13 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     const v = video.current
     if (!v) return
     const onTime = () => {
-      if (pres?.menu?.buttonsFromSec && !showButtons && v.currentTime >= pres.menu.buttonsFromSec) setShowButtons(true)
       const m = pres?.menu
+      // The disc's buttons work from buttonsFromSec until buttonsUntilSec
+      // (when its highlight or button selection ends); a looping clip
+      // brings them back when it starts over.
+      const t = v.currentTime
+      const on = (!m?.buttonsFromSec || t >= m.buttonsFromSec) && (!m?.buttonsUntilSec || t < m.buttonsUntilSec)
+      if (on !== showButtons && (on || m?.buttonsUntilSec)) setShowButtons(on)
       if (m?.forcedAction && m.actionAtSec && v.currentTime >= m.actionAtSec && forcedDone.current !== pres!.serial) {
         forcedDone.current = pres!.serial
         pressButton(m.forcedAction)
@@ -634,6 +639,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
                 <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: item.disc?.mainTitle || 1 })}><IconPlay /> Play movie</button>
                 {pres?.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
                 {pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
+                {/* A picture held until the viewer acts, with nothing to press: a player's Play key goes on. */}
+                {pres?.media?.type === 'still' && pres.media.stillSec < 0 && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Continue</button>}
                 <button className={'btn sm remote-toggle' + (prefs.remote ? ' primary' : '')} onClick={() => setRemote(!prefs.remote)} aria-pressed={prefs.remote} title="Show or hide the on-screen remote (r)"><IconRemote /> <span>Remote</span></button>
                 <button className="ibtn" onClick={() => setSettingsOpen((o) => !o)} title="Viewing settings"><IconSettings /></button>
                 <button className="ibtn" onClick={() => toggleFullscreen(root.current)} title="Fullscreen (f)">⛶</button>

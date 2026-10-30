@@ -59,7 +59,10 @@ type Menu struct {
 	OverlayURL     string       `json:"overlayUrl,omitempty"`
 	HighlightURL   string       `json:"highlightUrl,omitempty"` // template with {n}
 	ButtonsFromSec float64      `json:"buttonsFromSec,omitempty"`
-	HasHighlights  bool         `json:"hasHighlights"`
+	// ButtonsUntilSec is when the disc's buttons stop working (highlight or
+	// button selection ends) before the clip does; 0 = while the clip shows.
+	ButtonsUntilSec float64 `json:"buttonsUntilSec,omitempty"`
+	HasHighlights   bool    `json:"hasHighlights"`
 	// ForcedAction is a button the disc activates by itself ActionAtSec into
 	// the clip (when button selection ends). 0 = none.
 	ForcedAction int     `json:"forcedAction,omitempty"`
@@ -824,6 +827,11 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 		ForcedAction: pic.ForcedAction, ActionAtSec: pic.ActionAtSec, InTitle: st.Domain == wittydvd.DomainVTS}
 	if pic.Aspect > 1.5 {
 		menu.Aspect = "16:9"
+	}
+	// Most discs end the highlight with the cell (then a still holds it);
+	// only an earlier end takes the buttons away.
+	if u := pic.ButtonsUntilSec; u > 0 && m.Type == "hls" && !loop && u < st.CellDuration-0.5 {
+		menu.ButtonsUntilSec = u
 	}
 	for _, b := range pic.Buttons {
 		if b.Inert {

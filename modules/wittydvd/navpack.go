@@ -36,9 +36,12 @@ type ButtonGroup struct {
 
 // PCI is the parsed presentation control information of a NAV pack.
 type PCI struct {
-	NavLBN         uint32
-	VOBUStartPTM   uint32
-	VOBUEndPTM     uint32
+	NavLBN       uint32
+	VOBUStartPTM uint32
+	VOBUEndPTM   uint32
+	// SeqEndPTM is the end of the video when this VOBU ends a video
+	// sequence (sequence_end_code): a still picture the player holds.
+	SeqEndPTM      uint32
 	HLStatus       int // 0 none, 1 new, 2 same, 3 same but commands differ
 	HLStartPTM     uint32
 	HLEndPTM       uint32
@@ -58,9 +61,18 @@ type DSI struct {
 	SCR     uint32
 	LBN     uint32
 	VOBUEnd uint32 // relative end address: VOBU spans LBN..LBN+VOBUEnd
-	VOBID   int
-	CellID  int
+	// FirstRefEnd is the relative end of the VOBU's first reference
+	// picture; 0 when the VOBU carries no video at all (audio-only VOBUs
+	// after a cell's picture has ended).
+	FirstRefEnd uint32
+	VOBID       int
+	CellID      int
+	// NoVideoAhead is set when the VOBU search information says no later
+	// VOBU of the cell carries video (sri_nvwv = 0xbfffffff).
+	NoVideoAhead bool
 }
+
+const dsiNextVideo = 0xea // VOBU_SRI: next VOBU with video
 
 // packet is a PES packet pulled out of a pack.
 type packet struct {
@@ -177,6 +189,7 @@ func ParsePCI(b []byte) *PCI {
 		NavLBN:         binary.BigEndian.Uint32(b[0:]),
 		VOBUStartPTM:   binary.BigEndian.Uint32(b[0x0c:]),
 		VOBUEndPTM:     binary.BigEndian.Uint32(b[0x10:]),
+		SeqEndPTM:      binary.BigEndian.Uint32(b[0x14:]),
 		HLStatus:       int(binary.BigEndian.Uint16(b[pciHLISS:]) & 3),
 		HLStartPTM:     binary.BigEndian.Uint32(b[pciHLISPTM:]),
 		HLEndPTM:       binary.BigEndian.Uint32(b[pciHLIEPTM:]),
@@ -250,13 +263,18 @@ func ParseDSI(b []byte) *DSI {
 	if len(b) < 0x20 {
 		return nil
 	}
-	return &DSI{
-		SCR:     binary.BigEndian.Uint32(b[0:]),
-		LBN:     binary.BigEndian.Uint32(b[4:]),
-		VOBUEnd: binary.BigEndian.Uint32(b[8:]),
-		VOBID:   int(binary.BigEndian.Uint16(b[0x18:])),
-		CellID:  int(b[0x1b]),
+	d := &DSI{
+		SCR:         binary.BigEndian.Uint32(b[0:]),
+		LBN:         binary.BigEndian.Uint32(b[4:]),
+		VOBUEnd:     binary.BigEndian.Uint32(b[8:]),
+		FirstRefEnd: binary.BigEndian.Uint32(b[0x0c:]),
+		VOBID:       int(binary.BigEndian.Uint16(b[0x18:])),
+		CellID:      int(b[0x1b]),
 	}
+	if len(b) >= dsiNextVideo+4 {
+		d.NoVideoAhead = binary.BigEndian.Uint32(b[dsiNextVideo:]) == 0xbfffffff
+	}
+	return d
 }
 
 // NavPack is the PCI+DSI found at the start of a VOBU.

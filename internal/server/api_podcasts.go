@@ -180,7 +180,7 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 		writeErr(w, 400, "bad episode address")
 		return
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/0.3 (podcasts)")
+	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	if rg := r.Header.Get("Range"); rg != "" {
 		req.Header.Set("Range", rg)
 	}

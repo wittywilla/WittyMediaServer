@@ -137,6 +137,7 @@ Declare these on `:root`.
 | `--accent` | `#8b6cff` | primary buttons, active tabs/chips, progress bars, selected items, focus rings, DVD menu fallback highlight |
 | `--accent-2` | `#6a4df0` | hover/pressed state of accent buttons |
 | `--accent-fg` | `#fff` | text and icons on accent backgrounds |
+| `--accent-text` | `--accent` | the accent as text (links, highlighted words, the active item); keep it readable on `--bg`, `--bg-2` and `--bg-3` |
 | `--accent-rgb` | `139 108 255` | `--accent` as R G B for glows: `rgb(var(--accent-rgb) / .25)`. **Keep it in sync with `--accent`** |
 | `--brand-accent` | `var(--accent)` | the highlighted "Media" in the default name |
 | `--danger` | `#ff5c6c` | errors, delete buttons |
@@ -347,7 +348,9 @@ Set both the variables and the colour scheme:
 ```
 
 Use accents dark enough for white text (`--accent-fg: #fff`), or set `--accent-fg` to a dark
-colour for yellow/lime accents. Titles over artwork carry a text shadow; the built-in light themes
+colour for yellow/lime accents. Aim for WCAG AA contrast: 4.5:1 for `--fg-3` and `--accent-text` on every
+surface, and for `--accent-fg` on `--accent`; the built-in themes all pass, as
+`python scripts/theme-contrast.py` checks. Titles over artwork carry a text shadow; the built-in light themes
 soften it with `.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255,255,255,.6) }`.
 
 ## Installing, updating and removing
@@ -397,4 +400,4 @@ Their sources live in [`themes/`](../themes) in the repository; each `theme.css`
 variable with a comment and is a good template.
 
 ---
-<sub>WittyMediaServer 0.3.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.4.0-alpha documentation</sub>

@@ -123,7 +123,7 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/0.3 (podcasts)")
+	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -360,7 +360,7 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/0.3 (podcasts)")
+	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
 		return err

@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
   <img alt="Platforms" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8.svg">
-  <img alt="Version 0.3.0-alpha" src="https://img.shields.io/badge/version-0.3.0--alpha-orange.svg">
+  <img alt="Version 0.4.0-alpha" src="https://img.shields.io/badge/version-0.4.0--alpha-orange.svg">
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
   <br><sub>A real DVD's animated menu, played in the browser and driven with the on-screen remote.</sub>
 </p>
 
-> **Alpha.** Version 0.3.0-alpha is usable every day but still changing quickly. Back up your data
+> **Alpha.** Version 0.4.0-alpha is usable every day but still changing quickly. Back up your data
 > folder before upgrading, and please report anything that goes wrong.
 
 ## Highlights
@@ -85,11 +85,17 @@ your own.
 
 ## Screenshots
 
-| Home | A title |
+| Home | A library |
 |:---:|:---:|
-| ![Home page with featured titles and rows](docs/screenshots/home.png) | ![A title's page with its poster, details and buttons](docs/screenshots/detail.png) |
-| **A DVD's still menu** | **A DVD's animated menu** |
-| ![A DVD language menu with a highlighted button](docs/screenshots/dvd-language-menu.png) | ![A DVD's animated main menu](docs/screenshots/dvd-main-menu.png) |
+| ![Home: a featured title, your libraries as tiles and what to watch next](docs/screenshots/home.png) | ![A DVD and Blu-ray library with format badges, filters and genres](docs/screenshots/library.png) |
+| **A disc's page** | **Scenes, while watching** |
+| ![A DVD's page with Insert DVD, Resume and Main menu, its details and the disc's facts](docs/screenshots/detail.png) | ![The player's scene picker: every scene as a picture with its time, the one playing marked](docs/screenshots/scenes.png) |
+| **A DVD's still menu** | **A DVD's animated menu, with the remote** |
+| ![A DVD language menu with a highlighted button](docs/screenshots/dvd-language-menu.png) | ![A DVD's animated main menu with the on-screen remote](docs/screenshots/dvd-main-menu.png) |
+| **Music, docked beside the library** | **Setup** |
+| ![An album with the full player docked on the right and the queue below](docs/screenshots/music.png) | ![The setup wizard's welcome page](docs/screenshots/setup.png) |
+| **Choosing folders from any device** | **Themes and layout** |
+| ![The built-in folder browser: drives, your folders and folders in your libraries](docs/screenshots/file-browser.png) | ![Settings, Appearance: layouts and themes](docs/screenshots/settings.png) |
 
 ## Get started
 
@@ -205,4 +211,4 @@ owners.
 
 ---
 
-<p align="center"><sub>WittyMediaServer 0.3.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>
+<p align="center"><sub>WittyMediaServer 0.4.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>

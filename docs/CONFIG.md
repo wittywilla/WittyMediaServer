@@ -136,4 +136,4 @@ unless you send a file yourself, for example with a bug report.
 Sign-in tokens, passwords, API keys and PINs are removed from every log line automatically.
 
 ---
-<sub>WittyMediaServer 0.3.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.4.0-alpha documentation</sub>

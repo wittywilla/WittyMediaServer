@@ -28,7 +28,7 @@ import (
 
 // version is stamped by the release scripts (-X main.version=...); this is
 // the default for source builds.
-var version = "0.3.0-alpha"
+var version = "0.4.0-alpha"
 
 // trayExe is this program's path when it started (an update renames the
 // running file to *.old and puts the new version at this path).

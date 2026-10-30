@@ -27,7 +27,7 @@ You do **not** need to install FFmpeg, a database or anything else: the download
 ## 2. Download and start
 
 1. Open the **Releases** page of the project on GitHub and download the archive for your system,
-   e.g. `wittymediaserver-0.3.0-alpha-windows-amd64.zip`.
+   e.g. `wittymediaserver-0.4.0-alpha-windows-amd64.zip`.
 2. Unzip it anywhere (for example `Documents\WittyMediaServer`).
 3. Start it:
    - **Windows**: double-click `WittyMediaServer.exe`. If SmartScreen warns about an unknown
@@ -148,4 +148,4 @@ On phones you can choose *Add to Home Screen* to get an app-like icon.
 - [Troubleshooting](TROUBLESHOOTING.md)
 
 ---
-<sub>WittyMediaServer 0.3.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.4.0-alpha documentation</sub>

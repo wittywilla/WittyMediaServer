@@ -5,8 +5,8 @@
   A thin wrapper around scripts/build-release.sh (the single source of truth for targets, FFmpeg
   sources and packaging), run with Git for Windows' bash. Install Git for Windows, Go and Node.js.
 .EXAMPLE
-  scripts\build-release.ps1 -Version 0.3.0-alpha
-  scripts\build-release.ps1 -Version 0.3.0-alpha -Targets windows/amd64,linux/arm64
+  scripts\build-release.ps1 -Version 0.4.0-alpha
+  scripts\build-release.ps1 -Version 0.4.0-alpha -Targets windows/amd64,linux/arm64
   scripts\build-release.ps1 -SkipFFmpeg
 #>
 param(

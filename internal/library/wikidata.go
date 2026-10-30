@@ -22,7 +22,7 @@ type Wikidata struct {
 	Client *http.Client
 }
 
-const wikiUA = "WittyMediaServer/0.3 (https://github.com/wittywilla/WittyMediaServer)"
+const wikiUA = "WittyMediaServer/0.4 (https://github.com/wittywilla/WittyMediaServer)"
 
 // One request at a time with a short gap, as the Wikimedia API asks.
 var wikiGate = struct {

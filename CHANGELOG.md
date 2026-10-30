@@ -3,7 +3,57 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## Unreleased
+## 0.4.0-alpha
+
+0.3.0-alpha was never published as a release, so this is the first release with everything in it
+as well (see its section below).
+
+### Player
+
+- **Scenes**: the Scenes button opens every scene as a picture with its time and name, like the
+  disc page, with the one playing now marked.
+- **Next moves on**: on the last scene, or in a short clip such as a warning or a trailer, Next goes
+  on to what the disc plays next instead of starting the clip again.
+- **No black flash** when a disc moves from one clip to the next (a menu to the next screen, Far Far
+  Away Idol's show to its vote, a vote to its answer): the last picture stays up until the next
+  clip has one.
+- **Forced captions** can be turned off in the viewing settings, for one disc or everything.
+- The disc remote fits its own edges with every engine name (WittyBluray was cut off).
+
+### DVDs
+
+- **Researched against the DVD-Video specification and the quirks real discs have**
+  ([DVD-QUIRKS.md](docs/DVD-QUIRKS.md)): random and shuffle program chains, parental blocks, menu
+  language fallback, junk cells used as structural protection, cells without NAV packs, every
+  sub-picture control sequence with colour regions (CHG_COLCON), buttons that end when the disc ends
+  them, and reserved bits in jump targets. Copy protection is still never decrypted.
+- Clips that hold their last picture (menus, games, credits) are never restarted part-way, which
+  left empty segments: Far Far Away Idol's credits and their music no longer race by.
+
+### Libraries and setup
+
+- **Built-in folder browser** (WittyIntegratedFileBrowser): choose the server's folders from any
+  device, with drives and free space, your folders, a path you can type, filtering, several folders
+  at once and full keyboard and screen-reader support. Read-only.
+- **Folders of the same kind** join that kind's library or become a new, named one: set the default
+  in setup and in *Settings → Libraries*, and choose either way when adding. Setup and Settings
+  show how many libraries there are.
+- **Server name and logo**: a Rename window with a live preview and a logo upload.
+- Setup: a centred welcome, and no Continue button while you choose a folder.
+
+### Accessibility
+
+- All 20 themes meet WCAG 2.2 AA contrast for text and buttons; a new `--accent-text` colours
+  links and highlighted words (see [THEMES.md](docs/THEMES.md)).
+- Dialogs keep the keyboard while open and give focus back; page changes are announced; settings
+  controls are named by their rows; the player says Play/Pause, reads its timeline, speaks what
+  changes and lists its keys under **?**.
+
+### Fixes
+
+- Pictures load when the browser holds another server's (or an expired) sign-in cookie.
+- The docked music player no longer moves the profile button; the profile's name shows beside it.
+
 
 ### Updates
 

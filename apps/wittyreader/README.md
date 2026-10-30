@@ -1,65 +1,54 @@
-# WittyReader
+<p align="center">
+  <img src="public/icon.svg" width="88" alt="">
+</p>
 
-**Read and annotate books, PDFs and comics on your own device.** WittyReader is a reading app
-for EPUB books, PDFs and CBZ comics, with highlights, notes and handwriting with pen pressure.
-Nothing is uploaded: your library, reading positions and notes stay on this device.
+<h1 align="center">WittyReader</h1>
 
-📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
+<p align="center">
+  <b>Read and annotate books, PDFs and comics — on your own device.</b><br>
+  Highlights, notes and a pen with pressure. Nothing is uploaded: your library and notes stay with you.
+</p>
 
-> This repository is a read-only mirror of `apps/wittyreader` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="Installable app" src="https://img.shields.io/badge/installs%20as-an%20app-8b6cff.svg">
+  <img alt="Works offline" src="https://img.shields.io/badge/works-offline-success.svg">
+  <img alt="No uploads" src="https://img.shields.io/badge/uploads-none-informational.svg">
+</p>
 
-## What it does
+<p align="center">
+  <a href="#run-it">Run it</a> ·
+  <a href="wiki/Getting-started.md">Getting started</a> ·
+  <a href="wiki/Privacy-and-security.md">Privacy</a> ·
+  <a href="wiki/Home.md"><b>Full guide</b></a>
+</p>
 
-### Your library
+> Read-only mirror of `apps/wittyreader` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
 
-- **Add books:** the **Add books** button, **Ctrl+O**, dragging files onto the window, or, once
-  installed, your system's **Open with** menu. Add several at once; a single file opens straight
-  away.
-- **A shelf of covers**, with each book's format and how far you've read, most recent first.
-- **Covers and titles are read from the files themselves:**
-  - EPUB: title, author, year and cover;
-  - PDF: title, author and the first page as the cover;
-  - comics: series, issue, writer, year and reading direction from `ComicInfo.xml`, with the
-    first page as the cover.
-- **No duplicates:** adding the same file again finds the copy already in your library.
-- **Per book (⋯):** continue reading, export notes, or remove the book and its notes from the
-  device.
+## Highlights
 
-### Reading
+| | Your library | |
+|---|---|---|
+| ➕ | **Add books your way** | the **Add books** button, Ctrl+O, drag and drop, or your system's *Open with* once installed |
+| ▶️ | **Continue reading** | the book you're in, front and centre, with your progress |
+| 🔎 | **Find anything** | search, filter by books, PDFs or comics, and sort by recent, added, title or author |
+| 🖼️ | **Covers and titles from the files** | EPUB metadata and covers, PDF first pages, comic `ComicInfo.xml`; books without a cover get one of their own |
+| ♻️ | **No duplicates** | adding the same file again finds the copy you have |
 
-- **Books (EPUB),** with [WittyEbook](https://github.com/wittywilla/WittyEbook):
-  - book view, typography, page colours, brightness and night light;
-  - time left, footnote pop-ups and exact resume.
-- **PDFs,** with [WittyPDF](https://github.com/wittywilla/WittyPDF):
-  - zoom, one or two pages, dark pages;
-  - contents, thumbnails, search and exact resume.
-- **Comics and manga (CBZ),** with [WittyComics](https://github.com/wittywilla/WittyComics):
-  - pages, spreads or a vertical strip;
-  - either reading direction, remembered per comic.
+| | Reading | |
+|---|---|---|
+| 📖 | **Books (EPUB)** | with [WittyEbook](https://github.com/wittywilla/WittyEbook): book view, typography, page colours, night light, time left |
+| 📄 | **PDFs** | with [WittyPDF](https://github.com/wittywilla/WittyPDF): zoom, dark pages, outline, thumbnails, search |
+| 💬 | **Comics and manga (CBZ)** | with [WittyComics](https://github.com/wittywilla/WittyComics): pages, spreads, strips, either direction |
+| ✍️ | **Study tools** | from [WittyInk](https://github.com/wittywilla/WittyInk): highlights, notes, bookmarks, citations, read aloud, a pen with pressure |
 
-### Study tools and handwriting (from [WittyInk](https://github.com/wittywilla/WittyInk))
-
-- **Highlights** in any colour with **notes** and **colour meanings**, **bookmarks**,
-  **search**, **citations**, **read aloud** and **Markdown export**.
-- **Handwriting:**
-  - pen, pencil, highlighter and eraser, with **pen pressure** and pencil tilt;
-  - 54 colours, palm rejection, undo and redo.
-
-### Your notes, portable
-
-- **Export** a book's notes (highlights, notes, bookmarks and handwriting) to a file, and
-  **import** them on another device.
-- In each book, **Export** in the notes panel saves a readable Markdown summary.
-
-### Private and safe
-
-- **On the device:** books, positions and notes live in this browser's storage. The only outside
-  request is a dictionary look-up, off until you turn it on.
-- **Books can't run code:** EPUB chapters are shown in a sandbox with scripts blocked. PDF
-  scripts and forms are off. The app itself runs under a strict security policy.
-- **Works offline** after the first visit, and **installs as an app**.
+| | Private and portable | |
+|---|---|---|
+| 🔒 | **On the device** | books, positions and notes live in this browser; the only outside request is a dictionary look-up, off until you turn it on |
+| 🛡️ | **Books can't run code** | EPUB files are sandboxed with scripts blocked; PDF scripts and forms are off; the app runs under a strict security policy |
+| 📦 | **Notes go with you** | export a book's notes to a file and import them on another device, or save a readable Markdown summary |
+| ✈️ | **Offline** | works offline after the first visit, and installs as an app |
 
 ## Run it
 
@@ -71,18 +60,27 @@ npm run dev        # http://localhost:5180
 npm run build      # the finished app, in dist/
 ```
 
-`dist/` is a plain static site: host it on any web server over **https**, or open it from
-`localhost`. Browsers only allow the offline service worker, which also shows EPUBs, on secure
-addresses. See
+`dist/` is a plain static site: host it on any web server over **https**, or open it from `localhost`.
+Browsers only allow the offline service worker, which also shows EPUBs, on secure addresses. See
 [Hosting and building](wiki/Hosting-and-building.md).
 
-Desktop builds that open in their own window are planned.
+| Guide | |
+|---|---|
+| [Getting started](wiki/Getting-started.md) | adding books and finding your way |
+| [Your library](wiki/Your-library.md) · [Reading](wiki/Reading.md) | the shelf, and every reading tool |
+| [Notes and backups](wiki/Notes-and-backups.md) | exporting and importing notes |
+| [Privacy and security](wiki/Privacy-and-security.md) · [Troubleshooting](wiki/Troubleshooting.md) | |
 
-## License
+## The Witty family
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+| Project | Role |
+|---|---|
+| **WittyReader** | this app: the readers, on your own device |
+| [WittyEbook](https://github.com/wittywilla/WittyEbook) · [WittyPDF](https://github.com/wittywilla/WittyPDF) · [WittyComics](https://github.com/wittywilla/WittyComics) · [WittyInk](https://github.com/wittywilla/WittyInk) | the readers and their shared tools |
+| [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the same readers, plus films, TV, discs and music, served to your whole home |
 
-You're welcome to use, change and share WittyReader. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyReader, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen.
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyReader, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.

@@ -1,36 +1,41 @@
-# WittyComics
+<h1 align="center">WittyComics</h1>
 
-**A reader for comics, manga and webtoons.** WittyComics shows one page at a time, a two-page
-spread, or one long vertical strip, in either reading direction.
+<p align="center">
+  <b>A reader for comics, manga and webtoons.</b><br>
+  One page, a two-page spread or one long strip, in either reading direction.
+</p>
 
-It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
-libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="React 18+" src="https://img.shields.io/badge/React-18%2B-61dafb.svg">
+  <img alt="CBZ" src="https://img.shields.io/badge/reads-CBZ%20·%20manga%20·%20webtoons-8b6cff.svg">
+</p>
 
-📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#use">Use</a> ·
+  <a href="wiki/Reading-comics.md">Reading comics</a> ·
+  <a href="wiki/Home.md"><b>Full guide</b></a>
+</p>
 
-> This repository is a read-only mirror of `web/src/modules/wittycomics` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+> Read-only mirror of `web/src/modules/wittycomics` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
 
-## What it does
+Runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
+[WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-- **Three layouts:**
-  - **Page:** one page at a time.
-  - **Spread:** two pages side by side, with the cover on its own so the pairs line up as printed.
-  - **Scroll:** every page in one long vertical strip, for webtoons.
-- **Either reading direction:** left to right, or right to left for manga. The arrow keys, taps
-  and swipes all follow the direction you choose.
-- **Fit to height or width**, for a whole page on screen or tall pages read top to bottom.
-- **Controls:**
-  - tap the right or left third to turn, and the middle for the bars;
-  - swipe on touch screens;
-  - arrow keys, Space and Page Up/Down, Home and End;
-  - a page slider that runs in the reading direction.
-- **Smooth reading:** the next three pages are fetched ahead.
-- **Remembered per book:** layout, direction and fit, so a manga stays right to left. The first
-  time a book opens, the app can suggest a direction, for example from a comic's `ComicInfo.xml`
-  or a "Manga" folder.
-- **Resumes** at the page you were on, synced across devices in WittyMediaServer.
+## Highlights
+
+| | | |
+|---|---|---|
+| 📄 | **Page, Spread or Scroll** | one page; two side by side with the cover alone so pairs line up as printed; or one vertical strip for webtoons |
+| ↔️ | **Either direction** | left to right, or right to left for manga; arrows, taps, swipes and the slider all follow it |
+| 🔍 | **Fit height or width** | a whole page on screen, or tall pages read top to bottom |
+| 👆 | **Easy to turn** | tap the outer thirds, swipe, or use arrows, Space, Page Up/Down, Home and End; tap the middle for the bars |
+| ⚡ | **Smooth** | the next three pages are fetched ahead |
+| 💾 | **Remembered per book** | layout, direction and fit, so a manga stays right to left; resumes on the same page |
+
+The settings live in one **Reading** panel behind the gear button, so the bar stays clean on phones.
 
 ## Install
 
@@ -38,8 +43,8 @@ libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
 npm install github:wittywilla/WittyComics
 ```
 
-TypeScript and React source, for a bundler such as Vite with `@vitejs/plugin-react`. Needs React
-18 or newer. WittyInk (the reader host) is installed with it.
+TypeScript and React source, for a bundler such as Vite with `@vitejs/plugin-react`. Needs React 18
+or newer. [WittyInk](https://github.com/wittywilla/WittyInk) is installed with it.
 
 ## Use
 
@@ -50,15 +55,20 @@ import WittyComics from '@wittywilla/wittycomics'
 <HostContext.Provider value={host}><WittyComics /></HostContext.Provider>
 ```
 
-The host's `comic` field lists the pages: `{ pages: number, pageUrl: (n) => string }`. Set
-`reading` to `rtl` (manga) or `webtoon` (vertical strip) to choose the first layout. See
-[Embedding](wiki/Embedding.md).
+The host's `comic` field lists the pages: `{ pages: number, pageUrl: (n) => string }`. Set `reading`
+to `rtl` (manga) or `webtoon` (vertical strip) to choose the first layout, for example from a comic's
+`ComicInfo.xml`. See [Embedding](wiki/Embedding.md).
 
-## License
+## The Witty family
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+| Project | Role |
+|---|---|
+| [WittyInk](https://github.com/wittywilla/WittyInk) | what the readers share |
+| [WittyEbook](https://github.com/wittywilla/WittyEbook) · [WittyPDF](https://github.com/wittywilla/WittyPDF) · **WittyComics** | the book, PDF and comic readers |
+| [WittyReader](https://github.com/wittywilla/WittyReader) · [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the apps they run in |
 
-You're welcome to use, change and share WittyComics. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyComics, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen.
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyComics, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.

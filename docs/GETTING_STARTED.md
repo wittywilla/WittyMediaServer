@@ -38,7 +38,7 @@ You do **not** need to install FFmpeg, a database or anything else: the download
    WittyMediaServer**. Your browser opens `http://localhost:9797`.
 
 > Prefer Docker or want it to run as a background service? See
-> [Installation](../README.md#installation) in the README.
+> [Installing](INSTALL.md).
 
 ## 3. Create your account
 
@@ -110,18 +110,21 @@ Keyboard: `Space` pause · `←`/`→` skip 10 s · `f` fullscreen · `r` remote
 
 ## 8. Watch on other devices
 
-Any phone, tablet, laptop or smart-TV browser on the same network can open the server:
+Any phone, tablet, laptop or smart-TV browser on the **same home network** (the same Wi-Fi or
+cable network) can open the server:
 
-1. Find the server computer's local address — on Windows run `ipconfig` and look for
-   *IPv4 Address* (e.g. `192.168.1.20`); on macOS: *System Settings → Network*.
+1. Find the server computer's address. The last step of the setup wizard and *Settings → About & legal*
+   show it; or on Windows run `ipconfig` and look for *IPv4 Address* (e.g. `192.168.1.20`); on macOS:
+   *System Settings → Network*.
 2. On the other device open `http://192.168.1.20:9797`.
 3. If it doesn't load, allow WittyMediaServer through the computer's firewall (Windows asks the
    first time it starts — tick *Private networks*).
 
 On phones you can choose *Add to Home Screen* to get an app-like icon.
 
-Watching from outside your home needs a reverse proxy with HTTPS or a VPN — see
-[Reverse proxy](../README.md#reverse-proxy).
+> **Home network only, until you set up remote access.** The server runs on your own computer, so
+> it can't be reached from outside your home by default. To watch away from home, set up a VPN or a
+> reverse proxy with HTTPS first: see [At home and away](INSTALL.md#at-home-and-away).
 
 ## Glossary
 
@@ -142,7 +145,7 @@ Watching from outside your home needs a reverse proxy with HTTPS or a VPN — se
 - [Metadata, NFO files and artwork](METADATA.md)
 - [Transcoding and hardware encoders](TRANSCODING.md)
 - [Themes and the custom name](THEMES.md)
-- [Troubleshooting](../README.md#troubleshooting--faq)
+- [Troubleshooting](TROUBLESHOOTING.md)
 
 ---
 <sub>WittyMediaServer 0.2.0-alpha documentation</sub>

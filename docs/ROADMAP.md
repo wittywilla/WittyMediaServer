@@ -70,8 +70,10 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 
 ## 5. Documentation and quality
 
-- [ ] **README rewrite** for newcomers, with 1920×1080 screenshots taken after everything above,
-  an easy "download the latest version" link, and separate pages for the dense sections.
+- [ ] **New screenshots** at 1920×1080 for the README (the layout, separate guides and download
+  link are done; the pictures still show the earlier interface).
+- [ ] **Versioned module releases:** tag WittyDisc, WittyDVD and WittyBluray and drop the local
+  `replace` directives, so `go get` and `go install` work outside a WittyMediaServer checkout.
 - [ ] **Publish the GitHub wikis** of WittyInk, WittyEbook, WittyPDF, WittyComics and WittyReader
   (the pages are written in each `wiki/` folder; each wiki needs its first page saved on
   github.com before `scripts/mirror.sh` can push).
@@ -92,4 +94,9 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   accessibility.
 - Config file (portable mode), custom metadata location, opt-in logging with categories, a
   custom log folder and an open-folder link.
-- First run: default browser opens, native folder picker, metadata setup.
+- First run: default browser opens, native folder picker, a seven-step wizard (media, metadata
+  agents, discs, look) that says plainly the server is for the home network until remote access is set up.
+- Settings redesign (grouped pages, section cards, a save bar); custom metadata agents.
+- Security audit: cross-site protection, artwork and feed file-read and SSRF fixes, sandboxed book
+  files, fuzz-tested disc parsers, a hardened desktop client.
+- READMEs for every repository in one layout, with installing, reference and troubleshooting guides.

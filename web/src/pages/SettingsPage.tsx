@@ -247,6 +247,7 @@ function About() {
       {sys && (
         <Section title="This server">
           <dl className="set-facts">
+            <div className="wide"><dt>Open it on other devices at home</dt><dd className="mono">{(sys.lanUrls || []).length ? sys.lanUrls.join('  ·  ') : 'This server only accepts connections from this computer'}</dd></div>
             <div><dt>Version</dt><dd>{sys.version}</dd></div>
             <div><dt>System</dt><dd>{sys.os} / {sys.arch}</dd></div>
             <div><dt>Computer</dt><dd>{sys.hostname}</dd></div>

@@ -1,70 +1,46 @@
-# WittyInk
+<h1 align="center">WittyInk</h1>
 
-**The study and handwriting toolkit behind the Witty readers.** WittyInk is what
-[WittyEbook](https://github.com/wittywilla/WittyEbook), [WittyPDF](https://github.com/wittywilla/WittyPDF)
-and [WittyComics](https://github.com/wittywilla/WittyComics) share. It contains:
+<p align="center">
+  <b>The study and handwriting toolkit behind the Witty readers.</b><br>
+  Highlights, notes, bookmarks, definitions and citations, a pen with pressure, and the panels and pop-ups every reader shares.
+</p>
 
-- the **reader host** interface that connects a reader to the app around it;
-- highlights, notes, bookmarks, definitions, citations and export;
-- **handwriting with pen pressure**.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="React 18+" src="https://img.shields.io/badge/React-18%2B-61dafb.svg">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-source-3178c6.svg">
+</p>
 
-The readers run inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#building-blocks">Building blocks</a> ·
+  <a href="wiki/Home.md"><b>Full guide</b></a>
+</p>
+
+> Read-only mirror of `web/src/modules/wittyink` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
+
+WittyInk is what [WittyEbook](https://github.com/wittywilla/WittyEbook), [WittyPDF](https://github.com/wittywilla/WittyPDF)
+and [WittyComics](https://github.com/wittywilla/WittyComics) share. The readers run inside
+[WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
 [WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
+## Highlights
 
-> This repository is a read-only mirror of `web/src/modules/wittyink` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+| | For readers | |
+|---|---|---|
+| 🖍️ | **Highlights in any colour** | four quick colours, 18 more, or any you pick; edit by clicking a highlight |
+| 🏷️ | **Colour meanings** | name what each colour means (“Definition”, “Question”); shown in filters and exports, the same in every book |
+| 📝 | **Notes panel** | every highlight, note, bookmark and handwritten page, filtered by kind, colour or text |
+| 📖 | **Definitions & citations** | pronunciation and examples; citations as *“quote” (Author, Title (Year), p. 12)* |
+| 📤 | **Markdown export** | all notes, grouped by chapter or page, with your colour meanings |
+| ✍️ | **Pen with pressure** | pen, pencil (tilt widens it, with grain), highlighter, eraser; 36 ink and 18 highlighter colours |
+| 🖐️ | **Palm rejection** | after the first pen touch, fingers turn pages instead of drawing |
+| ↩️ | **Undo and redo** | Ctrl+Z / Ctrl+Y, up to 200 steps, for highlights and handwriting |
 
-## What it does
-
-### Highlights and notes
-
-- **Select text** to get a toolbar with:
-  - four quick highlight colours, and **+** for 18 more or any colour you pick;
-  - **Note**, **Define**, **Copy**, **Cite**, **Search** and **Read aloud**.
-- **Colour meanings:** name what each colour means to you ("Definition", "Question",
-  "Quote for essay"). The names show on highlights, in filters and in exports, and are the same
-  in every book.
-- **Edit a highlight** by clicking it: change its colour, write or edit its note, copy a
-  citation, or remove it.
-- **Notes panel:**
-  - lists every highlight, note, bookmark and handwritten page, in reading order;
-  - filters by kind (all, highlights, notes, bookmarks, handwriting), by colour or by any text;
-  - jumps straight to any entry.
-- **Citations** are copied in the form *"quote" (Author, Title (Year), Chapter or p. 12)*.
-- **Definitions** show pronunciation, parts of speech and examples, with a link to Wiktionary.
-  The app hosting the reader decides where they come from.
-- **Export** all notes as Markdown, grouped by chapter or page, including your colour meanings.
-- **Undo and redo** (Ctrl+Z, Ctrl+Y) for highlights and handwriting, up to 200 steps.
-
-### Handwriting
-
-- **Tools:** pen, pencil, highlighter and eraser.
-- **Pen pressure** sets the line width as you write. **Pencil** lines widen when the pen is
-  tilted and have a light grain.
-- **Colours:** 36 ink colours, 18 highlighter colours, any custom colour, and your recent colours.
-- **Thickness and opacity:** six thickness presets per tool, plus a slider for exact thickness
-  and opacity.
-- **Palm rejection:** the first time a pen touches the page, fingers stop drawing, so a resting
-  hand leaves no marks. Fingers still turn and move pages.
-- **Write any time:** a pen can write without opening the tools first.
-- **Erasing:** use the eraser tool, the pen's eraser end, or its side button.
-- **Highlighter that snaps to text**, where the reader supports it (WittyEbook).
-- **Remembered per device:** every tool's colour, thickness and opacity.
-
-### For developers
-
-- **`ReaderHost`:** the single interface between a reader and the app. It covers book
-  information, the saved position, notes storage, file locations, an optional dictionary,
-  messages and closing. The same reader saves to a server in one app and to the device in
-  another.
-- **Building blocks** you can use in your own reader: `useAnnotations` (notes with undo),
-  `NotesPanel`, `SelectionBar`, `HighlightEditor`, `Define`, `InkBar`, `InkStroke`, the stroke
-  geometry, `cite` and `exportNotes`.
-- **`kit.css`:** an optional small stylesheet (colours, buttons, inputs) for apps without their
-  own design system.
+The pen's eraser end and side button erase; every tool's colour, thickness and opacity is remembered
+on each device.
 
 ## Install
 
@@ -72,10 +48,12 @@ The readers run inside [WittyMediaServer](https://github.com/wittywilla/WittyMed
 npm install github:wittywilla/WittyInk
 ```
 
-WittyInk ships as TypeScript and React source, for a bundler that compiles both, such as
-[Vite](https://vite.dev) with `@vitejs/plugin-react`. Needs React 18 or newer.
+TypeScript and React source, for a bundler that compiles both, such as [Vite](https://vite.dev) with
+`@vitejs/plugin-react`. Needs React 18 or newer.
 
 ## Quick start
+
+A reader talks to the app around it through one interface, the `ReaderHost`:
 
 ```tsx
 import { HostContext, type ReaderHost } from '@wittywilla/wittyink'
@@ -96,14 +74,33 @@ const host: ReaderHost = {
 <HostContext.Provider value={host}><WittyEbook /></HostContext.Provider>
 ```
 
-The guide's [Reader host](wiki/Reader-host.md) page
-explains every field.
+The same reader saves to a server in one app and to the device in another.
+[Reader host](wiki/Reader-host.md) explains every field.
 
-## License
+## Building blocks
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+| Part | What it is |
+|---|---|
+| `useAnnotations` | the book's notes, with undo and redo |
+| `Sheet`, `Field`, `Range` | the side panel (header, scrolling body, backdrop), a settings row, a filled slider |
+| `NotesPanel`, `SelectionBar`, `HighlightEditor`, `Define` | the notes list, the toolbar over selected text, the highlight editor, definitions |
+| `InkBar`, `InkStroke`, stroke geometry | the pen toolbar and strokes with pressure |
+| `cite`, `exportNotes` | citations and Markdown export |
+| icons | one consistent icon set, drawn the same on every system |
+| `reader.css`, `kit.css` | the shared reader chrome; an optional small kit (colours, buttons, inputs) for apps without their own |
 
-You're welcome to use, change and share WittyInk. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyInk, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen.
+[Building blocks](wiki/Building-blocks.md) and [Styling](wiki/Styling.md) have the details.
+
+## The Witty family
+
+| Project | Role |
+|---|---|
+| **WittyInk** | what the readers share |
+| [WittyEbook](https://github.com/wittywilla/WittyEbook) · [WittyPDF](https://github.com/wittywilla/WittyPDF) · [WittyComics](https://github.com/wittywilla/WittyComics) | the book, PDF and comic readers |
+| [WittyReader](https://github.com/wittywilla/WittyReader) · [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the apps they run in |
+
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyInk, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.

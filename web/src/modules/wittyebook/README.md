@@ -1,68 +1,49 @@
-# WittyEbook
+<h1 align="center">WittyEbook</h1>
 
-**A reader for reflowable ebooks, built for long and careful reading.** WittyEbook opens EPUB
-books (EPUB 2 and 3). It gives you a book-like page you can set to your own taste, the study
-tools serious readers need, and handwriting with pen pressure.
+<p align="center">
+  <b>An ebook reader built for long and careful reading.</b><br>
+  EPUB 2 and 3, a book-like page set to your taste, the study tools serious readers need, and a pen with pressure.
+</p>
 
-It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
-libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="React 18+" src="https://img.shields.io/badge/React-18%2B-61dafb.svg">
+  <img alt="EPUB 2 and 3" src="https://img.shields.io/badge/EPUB-2%20·%203-8b6cff.svg">
+</p>
 
-📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#use">Use</a> ·
+  <a href="wiki/Keyboard-shortcuts.md">Keyboard shortcuts</a> ·
+  <a href="wiki/Home.md"><b>Full guide</b></a>
+</p>
 
-> This repository is a read-only mirror of `web/src/modules/wittyebook` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+> Read-only mirror of `web/src/modules/wittyebook` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
 
-## What it does
+Runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
+[WittyReader](https://github.com/wittywilla/WittyReader) app.
 
-### Reading
+## Highlights
 
-- **Layouts:** **Book view** (two pages side by side with a spine), **One page**, **Scroll**, or
-  **Auto**, which uses book view when the window is wide.
-- **Turning pages:** tap or click the outer edges, swipe, or use the arrow keys, Space and Page
-  Up/Down. Turns have a light animation (switched off if your system asks for reduced motion).
-- **Progress:** a slider across the whole book, the percentage read, and **time left** in the
-  chapter and the book, worked out from your own reading speed.
-- **Exact resume:** the reading position is a place in the text, so the book reopens on the same
-  words on any screen, at any font size. In WittyMediaServer it follows you to every device.
-- **Contents** from the book's own table of contents, including sections inside chapters.
-- **Footnotes open in a pop-up** instead of taking you away from the page. Links within the book
-  go to the right place, and web links open in a new tab.
+| | Reading | |
+|---|---|---|
+| 📖 | **Book view** | two pages side by side with a soft fold, one page, or scrolling; *Auto* picks for the screen |
+| 🎯 | **Exact resume** | the place is a spot in the text, so the book reopens on the same words at any size, on any device |
+| ⏱️ | **Time left** | in the chapter and the book, from your own reading speed |
+| 🔤 | **Your typography** | five font choices, 60–250 % size, line spacing, margins, justification with hyphenation |
+| 🌙 | **Comfortable at night** | light, sepia, dark and black pages, brightness, and a warm night light |
+| 🦶 | **Footnotes in a pop-up** | read a note without leaving the page |
 
-### Text and display
+| | Study tools (from [WittyInk](https://github.com/wittywilla/WittyInk)) | |
+|---|---|---|
+| 🖍️ | **Highlights and notes** | tied to the words, so they survive layout changes; colour meanings; Markdown export |
+| 🔎 | **Search the book** | snippets with the match marked; the passage flashes when you jump to it |
+| ✍️ | **Pen with pressure** | pen, pencil, highlighter, eraser; strokes stay with their words; a highlighter line over text becomes a highlight |
+| 🔊 | **Read aloud** | paragraph by paragraph, turning pages and chapters |
 
-- **Fonts:** the publisher's font, serif, sans-serif, an extra-readable font, or monospace.
-- **Text size:** 60 to 250 %.
-- **Line spacing, margins**, and **justification with hyphenation**.
-- **Page colours:** light, sepia, dark and black.
-- **Brightness** and a warm **night light**, layered over the page without changing the book.
-- **Remembered** on each device, for every book.
-
-### Study tools (from [WittyInk](https://github.com/wittywilla/WittyInk))
-
-- **Highlights** in any colour, with **notes** and **colour meanings**. Highlights are tied to
-  the words, not the page, so they survive font and layout changes.
-- **Selection toolbar:** highlight, note, define, copy, cite, search, read aloud.
-- **Notes panel:** filters by kind, colour or text; jump to any entry; **export to Markdown**.
-- **Bookmarks** with a ribbon on the page.
-- **Search the whole book**, with snippets; the match flashes when you jump to it.
-- **Definitions** (when the app provides a dictionary), and **citations** with the chapter.
-- **Read aloud**, paragraph by paragraph, turning pages and chapters as it goes.
-- **Undo and redo.**
-
-### Handwriting
-
-- **Tools:** pen, pencil, highlighter and eraser, with **pen pressure**, pencil tilt, 36 ink and
-  18 highlighter colours, thickness and opacity.
-- **Palm rejection**, and a pen that writes at any time.
-- **Highlighter that snaps to text:** a highlighter line across text becomes a real highlight
-  covering whole words.
-- **Strokes stay with their words** when the text reflows.
-
-### Safe with any book
-
-Chapters are shown in a sandboxed frame where **no script can run**. A strict
-Content-Security-Policy blocks scripts, plugins and forms. Links never navigate the frame.
+**Safe with any book:** chapters show in a sandbox where no script can run, under a strict content
+policy, and links never navigate the page away.
 
 ## Install
 
@@ -70,8 +51,8 @@ Content-Security-Policy blocks scripts, plugins and forms. Links never navigate 
 npm install github:wittywilla/WittyEbook
 ```
 
-TypeScript and React source, for a bundler such as Vite with `@vitejs/plugin-react`. Needs React
-18 or newer. WittyInk is installed with it.
+TypeScript and React source, for a bundler such as Vite with `@vitejs/plugin-react`. Needs React 18
+or newer. [WittyInk](https://github.com/wittywilla/WittyInk) is installed with it.
 
 ## Use
 
@@ -82,15 +63,26 @@ import WittyEbook from '@wittywilla/wittyebook'
 <HostContext.Provider value={host}><WittyEbook /></HostContext.Provider>
 ```
 
-The host's `epub` field supplies the book: its chapters, contents and word counts, where each
-chapter is loaded from, and search. See
-[Embedding](wiki/Embedding.md).
+The host's `epub` field supplies the book: its chapters, contents and word counts, where each chapter
+is loaded from, and search. See [Embedding](wiki/Embedding.md).
 
-## License
+| Guide | |
+|---|---|
+| [Reading and layout](wiki/Reading-and-layout.md) | layouts, turning pages, progress, time left |
+| [Text and display](wiki/Text-and-display.md) | fonts, sizes, page colours, brightness |
+| [Study tools](wiki/Study-tools.md) | highlights, notes, search, definitions, handwriting |
+| [Keyboard shortcuts](wiki/Keyboard-shortcuts.md) | every key |
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+## The Witty family
 
-You're welcome to use, change and share WittyEbook. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyEbook, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen.
+| Project | Role |
+|---|---|
+| [WittyInk](https://github.com/wittywilla/WittyInk) | what the readers share |
+| **WittyEbook** · [WittyPDF](https://github.com/wittywilla/WittyPDF) · [WittyComics](https://github.com/wittywilla/WittyComics) | the book, PDF and comic readers |
+| [WittyReader](https://github.com/wittywilla/WittyReader) · [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the apps they run in |
+
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyEbook, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.

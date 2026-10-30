@@ -1,68 +1,52 @@
-# WittyPDF
+<h1 align="center">WittyPDF</h1>
 
-**A PDF reader for papers, textbooks and scans, with the study tools and handwriting serious
-readers need.** WittyPDF draws pages with [pdf.js](https://mozilla.github.io/pdf.js/), keeps the
-text selectable, and lets you highlight, annotate and write on any page.
+<p align="center">
+  <b>A PDF reader for papers, textbooks and scans.</b><br>
+  Selectable text, zoom and night pages, with the same highlights, notes and pen as the other Witty readers.
+</p>
 
-It runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) (your books
-libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="React 18+" src="https://img.shields.io/badge/React-18%2B-61dafb.svg">
+  <img alt="pdf.js" src="https://img.shields.io/badge/renders%20with-pdf.js-e44d26.svg">
+</p>
 
-📖 **[Read the full guide](wiki/Home.md)** in the `wiki` folder.
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#use">Use</a> ·
+  <a href="wiki/Performance-and-security.md">Performance & security</a> ·
+  <a href="wiki/Home.md"><b>Full guide</b></a>
+</p>
 
-> This repository is a read-only mirror of `web/src/modules/wittypdf` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+> Read-only mirror of `web/src/modules/wittypdf` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
 
-## What it does
+Runs inside [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) and the
+[WittyReader](https://github.com/wittywilla/WittyReader) app. Pages are drawn with
+[pdf.js](https://mozilla.github.io/pdf.js/).
 
-### Viewing
+## Highlights
 
-- **Pages in a continuous scroll**, one or two across.
-- **Zoom:** fit width, fit page, or steps from 50 to 400 %, with Ctrl + scroll, **+** and **−**.
-- **Page colours:** as printed, sepia, or **dark** (light text on dark pages, for night reading).
-- **Selectable text** on every page with a text layer.
+| | Viewing and getting around | |
+|---|---|---|
+| 📄 | **Continuous pages** | one or two across, fit width, fit page, or 50–400 % (Ctrl + scroll, + and −) |
+| 🌙 | **Dark pages** | light text on dark pages for night reading, or sepia |
+| 🗂️ | **Outline and thumbnails** | the document's own contents, nested, and page thumbnails |
+| 🔎 | **Search** | the whole document, with results arriving while long files are searched |
+| 🎯 | **Exact resume** | the page and how far down it, synced across devices in WittyMediaServer |
 
-### Getting around
+| | Study tools (from [WittyInk](https://github.com/wittywilla/WittyInk)) | |
+|---|---|---|
+| 🖍️ | **Highlights and notes** | boxes over the text, line by line, even across pages; colour meanings; Markdown export by page |
+| 📚 | **Citations with page numbers** | *“quote” (Author, Title (Year), p. 12)* |
+| ✍️ | **Pen with pressure** | pen, pencil, highlighter, eraser; strokes stay exactly where drawn at any zoom |
+| 🔊 | **Read aloud** | moving on through the pages |
 
-- **Contents:** the document's own outline, nested, jumping to the exact spot.
-- **Page thumbnails**, drawn as you scroll the list.
-- **Search across the whole document**, with results appearing while long documents are searched.
-- **Go to page**, a page slider, previous and next buttons, and Home and End.
-- **Exact resume:** the page and how far down it you were, synced across devices in
-  WittyMediaServer.
-
-### Study tools (from [WittyInk](https://github.com/wittywilla/WittyInk))
-
-- **Highlights:**
-  - drawn as boxes over the selected text, line by line, even across pages;
-  - any colour, with **notes** and **colour meanings**;
-  - click a highlight to edit it.
-- **Selection toolbar:** highlight, note, define, copy, cite, search, read aloud.
-- **Notes panel:** filters by kind, colour or text; jump to any entry; **export to Markdown**,
-  grouped by page.
-- **Citations with page numbers:** *"quote" (Author, Title (Year), p. 12)*.
-- **Bookmarks**, **definitions** (when the app provides a dictionary) and **read aloud**,
-  sentence by sentence, moving on through the pages.
-- **Undo and redo.**
-
-### Handwriting
-
-- **Tools:** pen, pencil, highlighter and eraser, with **pen pressure** and pencil tilt.
-- **Colours and sizes:** 36 ink and 18 highlighter colours, thickness and opacity.
-- **Palm rejection:** fingers move the page while the pen writes. The pen also writes at any time.
-- **Strokes stay exactly where you drew them** at any zoom.
-
-### Light and safe
-
-- **Light on low-end hardware:**
-  - pdf.js loads only when a PDF is opened;
-  - only the pages near the screen are drawn;
-  - page images are size-capped and given back when they scroll away;
-  - large files stream in parts when the server supports it.
-- **Safe with any PDF:** PDF scripts never run, XFA forms are off, and fonts are never compiled
-  with `eval`.
-- **Wide support:** uses pdf.js's build for older browsers, so TV web views and older devices
-  work.
+| | Light and safe | |
+|---|---|---|
+| 🪶 | **Low-end friendly** | pdf.js loads only when needed; only nearby pages are drawn; page images are released as they scroll away; large files stream in parts |
+| 🔒 | **Safe with any PDF** | PDF scripts never run, XFA forms are off, fonts are never compiled with `eval` |
+| 📺 | **Older devices** | uses pdf.js's build for older browsers, so TV web views work |
 
 ## Install
 
@@ -70,8 +54,12 @@ libraries) and the [WittyReader](https://github.com/wittywilla/WittyReader) app.
 npm install github:wittywilla/WittyPDF
 ```
 
-TypeScript and React source, for **Vite** with `@vitejs/plugin-react` (the pdf.js worker is
-included with Vite's `?url` import). Needs React 18 or newer. Load it lazily:
+TypeScript and React source, for **Vite** with `@vitejs/plugin-react` (the pdf.js worker comes with
+Vite's `?url` import). Needs React 18 or newer.
+
+## Use
+
+Load it lazily, so pdf.js is only downloaded when a PDF is opened:
 
 ```tsx
 import { lazy, Suspense } from 'react'
@@ -83,13 +71,20 @@ const WittyPDF = lazy(() => import('@wittywilla/wittypdf'))
 </HostContext.Provider>
 ```
 
-The host's `pdf` field is what to open: `{ url }`, or `{ data }` for a file already in memory.
+The host's `pdf` field is what to open: `{ url }`, or `{ data }` for a file already in memory. See
+[Embedding](wiki/Embedding.md).
 
-## License
+## The Witty family
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+| Project | Role |
+|---|---|
+| [WittyInk](https://github.com/wittywilla/WittyInk) | what the readers share |
+| [WittyEbook](https://github.com/wittywilla/WittyEbook) · **WittyPDF** · [WittyComics](https://github.com/wittywilla/WittyComics) | the book, PDF and comic readers |
+| [WittyReader](https://github.com/wittywilla/WittyReader) · [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the apps they run in |
 
-You're welcome to use, change and share WittyPDF. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyPDF, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen. The text-layer styles are adapted from pdf.js (Apache-2.0, Mozilla Foundation).
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyPDF, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+The text-layer styles are adapted from pdf.js (Apache-2.0, Mozilla Foundation).

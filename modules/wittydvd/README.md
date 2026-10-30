@@ -1,135 +1,153 @@
-# WittyDVD
+<h1 align="center">WittyDVD</h1>
 
-**A DVD-Video engine in pure Go.** WittyDVD reads a DVD image or `VIDEO_TS` folder and plays it
-the way a hardware player does: the first-play program, the menus with their highlighted buttons,
-the titles, chapters, angles, audio and subtitle streams, and every command the disc's program
-runs in between. It is an original implementation of the public DVD-Video navigation model; no
-code from libdvdnav or libdvdread is used.
+<p align="center">
+  <b>A DVD-Video engine in pure Go.</b><br>
+  Plays a disc image the way a DVD player does: first-play, menus with highlighted buttons, titles, chapters and every command in between.
+</p>
 
-WittyDVD is the disc engine of [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer)
-and the coming WittyMediaPlayer, and a library and command-line tool for anyone building a
-player.
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
+  <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8.svg">
+  <img alt="No cgo" src="https://img.shields.io/badge/cgo-none-success.svg">
+  <img alt="Fuzzed" src="https://img.shields.io/badge/parsers-fuzz%20tested-8b6cff.svg">
+</p>
 
-> This repository is a read-only mirror of `modules/wittydvd` in
-> [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), where development happens.
-> Please open issues and pull requests there.
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#the-command-line-tool">Command-line tool</a> ·
+  <a href="#using-the-library">Library</a> ·
+  <a href="#design">Design</a> ·
+  <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/DVD.md">DVD guide</a>
+</p>
+
+> Read-only mirror of `modules/wittydvd` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
+> where development happens. Please open issues and pull requests there.
+
+WittyDVD is the DVD engine of [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer), and a
+library and tool for anyone building a player. It is an original implementation of the public
+DVD-Video navigation model.
 
 ## What it does
 
-- **Reads discs without mounting them:** `.iso` and `.img` images (UDF and ISO 9660 "bridge"
-  discs) and `VIDEO_TS` folders, through [WittyDisc](https://github.com/wittywilla/WittyDisc),
-  which finds each file's byte extents in the image so a player can hand the raw VOB ranges
-  straight to a decoder such as FFmpeg.
-- **Parses the disc's program:** the VMG and VTS IFO files: titles, program chains (PGCs),
-  programs and cells, menu language units, audio and sub-picture attributes, palettes, parental
-  levels and region codes.
-- **Runs the disc's commands:** a virtual machine with the 16 general and 24 system registers,
-  links, jumps and calls, comparisons, arithmetic and the navigation timer.
-- **Navigates like a player:** first play, menus and titles, resume points, still frames, menu
-  loops, up buttons, chapter skipping, and the title, root, subtitle, audio, angle and chapter
-  menu keys.
-- **Reads NAV packs:** button positions, colours and links (PCI) and the cell's timing and
-  seamless-branching information (DSI), including interleaved multi-angle cells.
-- **Decodes sub-pictures:** the run-length-coded sub-picture units used for menu highlights and
-  subtitles, rendered to RGBA with the disc's palette and highlight colours, cropped to the
-  button or line.
-- **Refuses scrambled discs** (CSS) and never decrypts anything.
-- **A command-line tool,** `wittydvd`, that reports everything above and simulates a run through
-  a disc's menus, for diagnosing discs that misbehave (its output contains no video or artwork,
-  so it is safe to attach to a bug report).
+| | Capability | Details |
+|---|---|---|
+| 💿 | **Reads discs without mounting** | `.iso`/`.img` images (UDF and ISO 9660 bridge discs) and `VIDEO_TS` folders, through [WittyDisc](https://github.com/wittywilla/WittyDisc), which gives each file's byte ranges for a decoder such as FFmpeg |
+| 📋 | **Parses the disc's program** | VMG and VTS IFO tables: titles, program chains, programs and cells, menu languages, audio and sub-picture attributes, palettes, parental levels, regions |
+| ⚙️ | **Runs the disc's commands** | a virtual machine with 16 general and 24 system registers: links, jumps, calls, comparisons, arithmetic, the navigation timer |
+| 🧭 | **Navigates like a player** | first play, menus and titles, resume points, stills, menu loops, chapter skipping, and the title, root, audio, subtitle, angle and chapter menu keys |
+| 🔘 | **Reads NAV packs** | button positions, colours and links (PCI), cell timing and seamless branching (DSI), interleaved multi-angle cells |
+| 🖼️ | **Decodes sub-pictures** | menu highlights and subtitles rendered to RGBA with the disc's palette, cropped to the button or line |
+| 🔒 | **Refuses scrambled discs** | CSS-protected images are detected and refused; nothing is ever decrypted |
+| 🛠️ | **Diagnoses discs** | the `wittydvd` tool reports all of the above and simulates a run through the menus |
 
-What it leaves to the player: decoding and showing the video and audio. WittyDVD tells a player
-*which bytes to play, when, and what to draw over them*; WittyMediaServer feeds those bytes to
-FFmpeg and shows the result in the browser with the button and subtitle layers on top.
+**What it leaves to the player:** decoding the video and audio. WittyDVD tells a player *which bytes
+to play, when, and what to draw over them*.
+
+## Quick start
+
+```bash
+git clone https://github.com/wittywilla/WittyMediaServer
+cd WittyMediaServer/modules/wittydvd
+go build ./cmd/wittydvd
+./wittydvd info SHREK_2.ISO
+```
+
+> Versioned releases for `go get` are on the way; until then, build inside a WittyMediaServer checkout,
+> where WittyDisc sits beside it.
 
 ## The command-line tool
 
-```bash
-wittydvd info   SHREK_2.ISO            # titles, menus, languages, first-play program
-wittydvd walk   SHREK_2.ISO 1          # simulate inserting the disc and pressing button 1
-wittydvd crawl  SHREK_2.ISO            # press every button of every menu; report dead ends
-wittydvd pgc    SHREK_2.ISO vtsm 12 26 # the commands of one program chain
-wittydvd render SHREK_2.ISO out/       # save the first menu's highlight images
-wittydvd disc ls SHREK_2.ISO           # list the files inside the image
-```
+| Command | What it shows |
+|---|---|
+| `wittydvd info <disc>` | titles, menus, languages and the first-play program |
+| `wittydvd walk <disc> [button…]` | simulates inserting the disc, then pressing menu buttons by number |
+| `wittydvd crawl <disc>` | presses every button of every menu and reports dead ends |
+| `wittydvd pgc <disc> fp\|vmgm\|vtsm\|vts <vts> <pgcn>` | the commands of one program chain |
+| `wittydvd render <disc> <dir>` | the first menu's highlight pictures |
+| `wittydvd disc ls <disc>` | the files inside the image |
 
-Build it with `go build ./cmd/wittydvd`. The same commands are built into WittyMediaServer as
-`wms dvd …`.
+The output holds no video or artwork, so it's safe to attach to a bug report. The same commands are
+built into WittyMediaServer as `wms dvd …`.
 
 ## Using the library
-
-```bash
-go get github.com/wittywilla/wittydvd
-```
 
 ```go
 import "github.com/wittywilla/wittydvd"
 
-o, err := wittydvd.Open("SHREK_2.ISO")   // an image or a VIDEO_TS folder
+o, err := wittydvd.Open("SHREK_2.ISO")     // an image or a VIDEO_TS folder
 if err != nil { return err }
 defer o.Close()
 
-for _, t := range o.Disc.Titles() {        // titles with their length, chapters, angles, streams
-    fmt.Println(t.Number, t.Duration, len(t.Chapters))
-}
-
 nav := wittydvd.NewNav(o.Disc, wittydvd.NavOptions{})
-step := nav.Start()                        // what to show first: a menu, a title cell, or stop
+step := nav.Start()                          // a menu, a title cell, or stop
 for step.Kind != wittydvd.StepStop {
     switch step.Kind {
     case wittydvd.StepMenu:
         rd, _ := o.Reader(wittydvd.SpaceFor(step.Domain, step.VTS))
-        pic, _ := wittydvd.ScanMenu(rd, step.FirstSector, step.LastSector, wittydvd.MenuScanOptions{Palette: step.Palette})
-        // pic has the buttons, their rectangles and highlight artwork; show the cell's video
-        // under it, then:
+        pic, _ := wittydvd.ScanMenu(rd, step.FirstSector, step.LastSector,
+            wittydvd.MenuScanOptions{Palette: step.Palette})
+        _ = pic                              // buttons, rectangles, highlight artwork
         step = nav.PressButton(1, nil)
     case wittydvd.StepTitle:
         ext, _ := o.CellExtents(wittydvd.SpaceFor(step.Domain, step.VTS), step.Cell)
-        // play these byte ranges, then:
+        _ = ext                              // play these byte ranges, then:
         step = nav.CellEnded()
     }
 }
 ```
 
-The navigator also offers `MenuKey`, `GoUp`, `OpenMenu`, `Resume`, `PlayTitle`, `NextChapter`,
-`PrevChapter`, `SetAudio`, `SetSubpicture`, `SetAngle`, `Tick` (for the navigation timer) and
-`Clone` (to explore a disc without disturbing the live session). `CellSubpictures` returns a
-cell's subtitle units, and `DecodeSPU` and `SPU.Render` turn them into images.
+<details>
+<summary><b>The navigator at a glance</b></summary>
 
-Requirements: Go 1.26 or newer, no cgo. Its only dependency is WittyDisc, the disc image
-reader.
+| Call | Does |
+|---|---|
+| `Start`, `CellEnded` | first play; what comes after a cell |
+| `PressButton`, `MenuKey`, `GoUp`, `OpenMenu` | menu interaction |
+| `PlayTitle`, `NextChapter`, `PrevChapter`, `Resume` | titles and chapters |
+| `SetAudio`, `SetSubpicture`, `SetAngle` | streams |
+| `Tick` | the navigation timer |
+| `Clone` | explore a disc without disturbing the live session |
+| `CellSubpictures`, `DecodeSPU`, `SPU.Render` | subtitles as images |
+
+</details>
+
+Requirements: Go 1.26 or newer, no cgo. Its only dependency is WittyDisc.
 
 ## Design
 
-```
-disc image ──► WittyDisc (UDF / ISO 9660) ──► ifo.go (IFO parser) ──► nav.go + vm.go ──► Step: what to show
-                                                                      │                   ├─ menu: cell video + buttons
-                                                                      │                   └─ title: cell video + subtitles
-                                                                      └─ navpack.go (PCI/DSI), spu.go, menu.go, subtitles.go
+```mermaid
+flowchart LR
+  I[Disc image] --> D[WittyDisc<br/>UDF · ISO 9660]
+  D --> P[ifo.go<br/>IFO parser]
+  P --> N[nav.go + vm.go<br/>navigator + VM]
+  N --> S{Step}
+  S -->|menu| M[cell video + buttons<br/>menu.go · navpack.go · spu.go]
+  S -->|title| T[cell video + subtitles<br/>subtitles.go]
 ```
 
 | File | What it does |
 |---|---|
-| `open.go` | Opens images and folders; title summaries; sector readers for each VOB address space |
-| `ifo.go` | VMG and VTS IFO parsing: titles, PGCs, cells, menus, attributes |
-| `vm.go` | Registers, instruction decoding and the command interpreter |
-| `nav.go` | The navigator: first play, menus, titles, resume, stills, keys |
-| `navpack.go` | NAV packs (PCI and DSI) and a pack scanner over VOB sectors |
-| `interleave.go` | Cell sector ranges, including interleaved multi-angle blocks |
-| `spu.go` | Sub-picture decoding and rendering |
-| `menu.go` | Menu scanning: buttons, highlight pictures, default button |
-| `subtitles.go` | A cell's subtitle sub-pictures |
-| `cli/` | The `info`, `walk`, `crawl`, `pgc`, `render`, `disc ls` and `disc cat` commands |
+| `open.go` | opens images and folders; title summaries; readers for each VOB address space |
+| `ifo.go` | VMG and VTS IFO parsing |
+| `vm.go` | registers, instruction decoding, the interpreter |
+| `nav.go` | first play, menus, titles, resume, stills, keys |
+| `navpack.go`, `interleave.go` | NAV packs (PCI, DSI); cell ranges including multi-angle blocks |
+| `spu.go`, `menu.go`, `subtitles.go` | sub-pictures, menu buttons and highlights, subtitles |
+| `cli/` | the command-line tool |
 
-Everything is written from the public DVD-Video structure and is careful with untrusted input:
-IFO reads are size-bounded, and malformed tables, commands and sub-pictures are refused rather
-than trusted.
+**Safe with untrusted discs:** reads are size-bounded, malformed tables, commands and sub-pictures are
+refused rather than trusted, and the parsers are fuzz-tested.
 
-## License
+## The Witty family
 
-Apache-2.0, the same licence as [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-Copyright 2026 WittyWilla and contributors.
+| Project | Role |
+|---|---|
+| [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer) | the media server these engines power |
+| **WittyDVD** · [WittyBluray](https://github.com/wittywilla/WittyBluray) | the DVD and Blu-ray engines |
+| [WittyDisc](https://github.com/wittywilla/WittyDisc) | disc image reader |
 
-You're welcome to use, change and share WittyDVD. If you redistribute it or build on it, the licence
-asks you to keep the [NOTICE](NOTICE) file's attribution, *"WittyDVD, developed by WittyWilla"*, in
-your own NOTICE file, documentation or About screen.
+## Licence
+
+**Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
+Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
+attribution, *“WittyDVD, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.

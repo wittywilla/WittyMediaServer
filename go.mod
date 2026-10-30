@@ -8,6 +8,7 @@ require (
 	github.com/wittywilla/wittydisc v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
+	github.com/wittywilla/wittyphotos v0.1.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.61.0
@@ -33,3 +34,6 @@ replace github.com/wittywilla/wittybluray => ./modules/wittybluray
 
 // Not released yet: built from this repository's copy.
 replace github.com/wittywilla/wittyintegratedfilebrowser => ./modules/wittyintegratedfilebrowser
+
+// Not released yet: built from this repository's copy.
+replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos

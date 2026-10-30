@@ -60,7 +60,7 @@ export default function HomePage() {
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
       { id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> },
       { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
-      { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items, shows: forYou.shows }} /> : null) },
+      { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items || [], shows: forYou.shows || [] }} /> : null) },
     ]
     const next = byKey('nextup')
     if (next) list.push(hub(next))

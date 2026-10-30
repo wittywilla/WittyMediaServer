@@ -81,6 +81,29 @@ your own.
 
 </td>
 </tr>
+<tr>
+<td valign="top">
+
+### 📷 Photos
+A timeline, albums, a **map that works offline**, slideshows, uploads and links to share, with
+EXIF and RAW previews. Scanning reads only file headers, so large collections stay quick.
+
+</td>
+<td valign="top">
+
+### 📱 Creator videos
+Vertical videos with a **For You page worked out on your own server**, and creators' videos by
+channel with subscriptions and comments, from files you already have.
+
+</td>
+<td valign="top">
+
+### 🔀 Collections & more
+**Smart playlists** across every library, music videos and concerts, internet radio, a year in
+review, and playback speed on everything.
+
+</td>
+</tr>
 </table>
 
 ## Screenshots
@@ -124,6 +147,9 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
 | 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |
 | 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
+| 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
+| 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CHANNELS.md) | folder layouts, sidecar files, For You, channels, concerts |
+| 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations by address, what each profile's year looked like |
 | ⚙️ | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |

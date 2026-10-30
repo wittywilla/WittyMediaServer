@@ -363,7 +363,7 @@ func (s *Store) RecommendForYou(ctx context.Context, userID int64, access *Acces
 	}
 	rows.Close()
 	if len(genres) == 0 {
-		return nil, nil, "", nil
+		return []*Item{}, []*Show{}, "", nil
 	}
 	score := func(gs []string, id int64, rating *float64) float64 {
 		v := 0.0

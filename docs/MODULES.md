@@ -33,6 +33,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
+| **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, no dependencies, fuzz-tested | WittyMediaServer |
 
 ### Server libraries
 
@@ -47,7 +48,7 @@ The server's libraries carry the name where it reads naturally:
 | Books, PDFs and comics | **WittyEbook**, **WittyPDF**, **WittyComics** |
 | Photos | **WittyPhotos** |
 | Vertical videos | **WittyShorts** |
-| Creator videos | **WittyChannels** |
+| Creator videos, music videos and concerts | **WittyChannels** |
 | Live TV and DVR | **WittyTV** |
 
 The plumbing underneath (accounts, transcoding, metadata, settings, logging) keeps plain
@@ -71,6 +72,7 @@ modules/                    Go plugins
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
   wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
+  wittyphotos/              → github.com/wittywilla/WittyPhotos
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer

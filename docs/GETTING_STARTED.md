@@ -78,6 +78,9 @@ Tips:
    - **Movies** — films and DVD images, with movie posters from TMDB.
    - **TV shows** — series organised by show and season, with data from TheTVDB.
    - **Other videos** — home videos and anything else; no online lookups.
+   - And more: music, audiobooks, podcasts, books and comics, [photos](PHOTOS.md),
+     [vertical videos](SHORTS.md), [creator videos, music videos and concerts](CHANNELS.md), and
+     [internet radio](COLLECTIONS.md#internet-radio).
 4. Click **Browse…**, open the folder with your videos, and click **Use this folder**.
 5. **Save & scan**. Titles appear within seconds; posters and details fill in as the scan goes.
 

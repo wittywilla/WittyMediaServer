@@ -3,6 +3,42 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### New libraries
+
+- **WittyPhotos**: a gallery with a timeline, albums, favourites, folders and a map. JPEG, PNG, GIF, WebP,
+  BMP, TIFF, HEIC, AVIF, JPEG XL, camera RAW (shown by the preview the camera stored) and clips, with live
+  photos and RAW+JPEG pairs grouped. Scanning reads only file headers; thumbnails are made when first looked
+  at. Uploads from any device, slideshows, and a clearly marked placeholder for the local AI. The map needs
+  nothing online; an online map is an opt-in setting. See [PHOTOS.md](docs/PHOTOS.md).
+- **WittyShorts**: vertical videos, one at a time, with likes, comments, sharing, creators, custom metadata
+  and a For You page worked out from what each profile did on this server, and nothing else. See
+  [SHORTS.md](docs/SHORTS.md).
+- **WittyChannels**: creator videos already on disk, with a home, subscriptions, channel pages, playlists and a
+  watch page with comments and up next. Reads the sidecar files video archivers leave, including saved
+  comments. See [CHANNELS.md](docs/CHANNELS.md).
+- **Music videos and concerts**: by artist, with recordings of 20 minutes or more under Concerts and their
+  chapters as a setlist.
+- **Internet radio**: stations by stream address or M3U/PLS playlist, relayed by the server, which contacts a
+  station only while someone is listening. See [COLLECTIONS.md](docs/COLLECTIONS.md).
+
+### New everywhere
+
+- **Collections and smart playlists** across libraries, with Watch later and Play all.
+- **Links for people without an account**, for pictures, clips and albums: with an end date, showing only
+  what they name, with EXIF and locations left out unless downloads are allowed. Only a fingerprint of a link
+  is stored. Listed and ended in Settings, Sharing & photos.
+- **Your year**: time, days, and top titles, shows, artists, creators and genres, from each profile's own record
+  on the server. **Recommended for you** on the home page, from the same record.
+- **Playback speed on every media type**: music, audiobooks, podcasts and vertical videos join video and discs,
+  up to the server's limit. Each kind of listening keeps its own speed, and < and > step through them.
+- **Chapters from video files** in the player, for every video library.
+- The **WittyPhotos** engine (`modules/wittyphotos`): EXIF, picture sizes and RAW previews in pure Go, fuzz-tested.
+
+Everything new has JSON routes, plays through standard HLS or direct files, and works with a D-pad, for the
+coming TV apps.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

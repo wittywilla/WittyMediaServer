@@ -414,7 +414,7 @@ func TestSidecars(t *testing.T) {
 	if safeWebURL("javascript:alert(1)") != "" || safeWebURL("data:text/html,x") != "" || safeWebURL("https://a.example/") == "" {
 		t.Error("only web addresses may become links")
 	}
-	if got := platformName("YoutubeTab", ""); got != "Youtube" {
+	if got := platformName("SomeSiteTab", ""); got != "SomeSite" {
 		t.Errorf("platform %q", got)
 	}
 	if got := platformName("generic", "GenericThing"); got != "GenericThing" {

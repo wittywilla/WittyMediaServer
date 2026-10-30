@@ -27,6 +27,7 @@ Run `go version -m wms` on a binary for the exact module list and versions.
 | React, React DOM | MIT |
 | react-router-dom | MIT |
 | hls.js | Apache-2.0 |
+| The map's outline of the world's land (`web/public/world-land.txt`, loaded only when the photo map is opened), made from [Natural Earth](https://www.naturalearthdata.com) 1:110m land via world-atlas (ISC) | Public domain |
 | pdf.js (pdfjs-dist; loaded only when a PDF is opened) | Apache-2.0 |
 | Vite, TypeScript (build only) | MIT / Apache-2.0 |
 

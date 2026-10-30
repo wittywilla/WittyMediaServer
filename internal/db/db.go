@@ -132,6 +132,9 @@ var migrations = []string{
 	   color TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '',
 	   created_at INTEGER NOT NULL);
 	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
+	// 10: games: which console a library holds (or auto), and each game's console.
+	`ALTER TABLE libraries ADD COLUMN console TEXT;
+	 ALTER TABLE items ADD COLUMN console TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittyplay"
 )
 
 func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
@@ -26,9 +27,27 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 }
 
 type libraryBody struct {
-	Name  string   `json:"name"`
-	Type  string   `json:"type"`
-	Paths []string `json:"paths"`
+	Name    string   `json:"name"`
+	Type    string   `json:"type"`
+	Console string   `json:"console"` // games libraries
+	Paths   []string `json:"paths"`
+}
+
+func (s *Server) validateLibrary(b *libraryBody) error {
+	if err := b.validate(); err != nil {
+		return err
+	}
+	if b.Type != "games" {
+		b.Console = ""
+		return nil
+	}
+	if b.Console == "" {
+		b.Console = wittyplay.Auto
+	}
+	if !wittyplay.ValidLibraryConsole(b.Console, s.testingGames()) {
+		return errors.New("unknown console")
+	}
+	return nil
 }
 
 func (b *libraryBody) validate() error {
@@ -37,7 +56,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books":
+	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "games":
 	case "":
 		b.Type = "movies"
 	default:
@@ -70,7 +89,7 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if err := b.validate(); err != nil {
+	if err := s.validateLibrary(&b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
@@ -78,6 +97,13 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if b.Console != "" {
+		if err := s.Store.SetLibraryConsole(r.Context(), lib.ID, b.Console); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		lib.Console = b.Console
 	}
 	s.Scanner.Start(lib.ID)
 	writeJSON(w, 201, lib)
@@ -94,7 +120,7 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if err := b.validate(); err != nil {
+	if err := s.validateLibrary(&b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
@@ -103,6 +129,11 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if err := s.Store.SetLibraryConsole(r.Context(), id, b.Console); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	lib.Console = b.Console
 	s.Scanner.Start(lib.ID) // folders may have been added
 	writeJSON(w, 200, lib)
 }

@@ -171,6 +171,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+	s.gameRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

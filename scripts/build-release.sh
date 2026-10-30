@@ -180,6 +180,10 @@ for t in "${TARGETS[@]}"; do
   ext=""; [ "$os" = windows ] && ext=".exe"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/wms$ext" ./cmd/wms
   build_tray "$out" "$os" "$arch"
+  # The separate process that runs games (docs/GAMING.md). FreeBSD's cgo-free
+  # build needs one package compiled with the standard library's privileges.
+  host_flags=(); [ "$os" = freebsd ] && host_flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std")
+  (cd modules/wittyplay && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$OLDPWD/$out/wittyplay-host$ext" ./cmd/wittyplay-host)
   if [ "${SKIP_FFMPEG:-}" != "1" ]; then
     if ! bundle_ffmpeg "$out" "$os" "$arch"; then
       echo "   !! no FFmpeg bundled for $t (wms will use ffmpeg from PATH on that machine)" >&2

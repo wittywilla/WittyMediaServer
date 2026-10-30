@@ -124,6 +124,8 @@ type candidate struct {
 	kind  string
 	size  int64
 	mtime int64
+	// console: games, the console this file was sorted into.
+	console string
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -194,6 +196,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverAudio
 		case lib.Type == "books":
 			find = discoverBooks
+		case lib.Type == "games":
+			find = func(root string) ([]candidate, error) { return discoverGames(root, lib.Console) }
 		}
 		c, err := find(root)
 		if err != nil {
@@ -224,6 +228,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				return s.indexAudio(ctx, lib, c, covers)
 			case lib.Type == "books":
 				return s.indexBook(ctx, lib, c)
+			case lib.Type == "games":
+				return s.indexGame(ctx, lib, c)
 			}
 			return s.index(ctx, lib, c)
 		})

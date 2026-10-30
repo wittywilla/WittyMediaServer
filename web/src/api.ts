@@ -55,14 +55,16 @@ export type PlayInfo = {
   type: 'direct' | 'hls'; url: string; durationSec: number; audio: Track[]; subtitles: Track[]
   audioIndex: number; subtitleIndex: number; container: string
 }
-export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number }
+export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {
   width: number; height: number; aspect: '4:3' | '16:9'; buttons: DvdButton[]; selected: number
   overlayUrl?: string; highlightUrl?: string; buttonsFromSec?: number; buttonsUntilSec?: number; hasHighlights: boolean
   forcedAction?: number; actionAtSec?: number; inTitle?: boolean; popup?: boolean; closed?: boolean
+  userTimeoutSec?: number; soundUrl?: string; inEffect?: { url: string; sec: number }[]
 }
 export type DvdTrack = { n: number; language: string; codec?: string; channels?: number; purpose?: string }
 export type DvdTitle = {
+  locks?: string[]
   ttn: number; chapter: number; durationSec: number; startSec: number; chapters: number[]
   audio: DvdTrack[]; subtitles: DvdTrack[]; audioStream: number; subtitleStream: number; wide: boolean
   frameW: number; frameH: number; aspect: '4:3' | '16:9'; subtitlesUrl: string; forcedStream: number
@@ -74,9 +76,10 @@ export type DiscTitleView = { ttn: number; label: string; durationSec: number; c
 export type DiscMenuView = { kind: string; vts: number; label: string }
 export type DiscView = { main: DiscTitleView | null; extras: DiscTitleView[]; menus: DiscMenuView[] }
 export type DiscLabels = { titles: Record<string, string>; chapters: Record<string, Record<string, string>> }
-export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string }
+export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string
+  text?: string; color?: string; outline?: string; size?: number; halign?: number; valign?: number; bold?: boolean; italic?: boolean }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
-export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean }
 export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number }
 
 const TOKEN_KEY = 'wms.token'

@@ -51,7 +51,7 @@ func (d *Disc) SubtitlesIn(clip string, pid uint16, stc int, from, to uint32) (*
 	if e, ok := c.EntryAt(c.VideoPID(), stc, lead); ok {
 		start = e.SPN
 	}
-	if f, t, ok := c.stcRange(stc); ok {
+	if f, t, ok := c.STCRange(stc); ok {
 		if start < f {
 			start = f
 		}

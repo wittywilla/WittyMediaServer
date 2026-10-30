@@ -141,7 +141,7 @@ func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
 		return EPEntry{}, false
 	}
 	entries := m.Entries
-	if from, to, found := c.stcRange(stc); found {
+	if from, to, found := c.STCRange(stc); found {
 		lo := sort.Search(len(entries), func(j int) bool { return entries[j].SPN >= from })
 		hi := sort.Search(len(entries), func(j int) bool { return entries[j].SPN >= to })
 		if lo < hi {
@@ -155,9 +155,9 @@ func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
 	return entries[k-1], true
 }
 
-// stcRange is the source packets of a time base; found is false when the
+// STCRange is the source packets of a time base; found is false when the
 // clip has only one, or no such number.
-func (c *Clip) stcRange(stc int) (from, to uint32, found bool) {
+func (c *Clip) STCRange(stc int) (from, to uint32, found bool) {
 	if stc < 0 || len(c.STC) < 2 {
 		return 0, 0, false
 	}

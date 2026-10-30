@@ -139,6 +139,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/dvd/{sid}", a(s.handleDVDClose))
 	m.Handle("GET /api/dvd/{sid}/menu/{serial}/overlay.png", a(s.handleDVDOverlay))
 	m.Handle("GET /api/dvd/{sid}/menu/{serial}/highlight/{n}", a(s.handleDVDHighlight))
+	m.Handle("GET /api/dvd/{sid}/menu/{serial}/effect/{n}", a(s.handleDVDEffect))
+	m.Handle("GET /api/dvd/{sid}/sound/{n}", a(s.handleDVDSound))
 	m.Handle("GET /api/dvd/{sid}/still/{name}", a(s.handleDVDStill))
 	m.Handle("GET /api/dvd/{sid}/subs", a(s.handleDVDSubs))
 	m.Handle("GET /api/dvd/{sid}/sub/{name}", a(s.handleDVDSub))

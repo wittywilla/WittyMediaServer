@@ -20,6 +20,16 @@ type SubEvent struct {
 	H      int     `json:"h"`
 	Forced bool    `json:"forced,omitempty"`
 	URL    string  `json:"url"`
+	// Text subtitles carry words instead of a picture (URL is empty): X, Y, W
+	// and H are the region, and the player sets the type.
+	Text    string `json:"text,omitempty"`
+	Color   string `json:"color,omitempty"`
+	Outline string `json:"outline,omitempty"`
+	Size    int    `json:"size,omitempty"`
+	HAlign  int    `json:"halign,omitempty"` // 1 left, 2 centre, 3 right
+	VAlign  int    `json:"valign,omitempty"` // 1 top, 2 middle, 3 bottom
+	Bold    bool   `json:"bold,omitempty"`
+	Italic  bool   `json:"italic,omitempty"`
 }
 
 type subPic struct {

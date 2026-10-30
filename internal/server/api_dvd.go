@@ -213,6 +213,45 @@ func (s *Server) handleDVDHighlight(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(png)
 }
 
+// handleDVDEffect serves one frame of a menu page's transition.
+func (s *Server) handleDVDEffect(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.dvdSession(w, r).(interface {
+		EffectPNG(serial, n int) ([]byte, bool)
+	})
+	if !ok {
+		return
+	}
+	serial, _ := strconv.Atoi(r.PathValue("serial"))
+	n, _ := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".png"))
+	png, found := sess.EffectPNG(serial, n)
+	if !found {
+		writeErr(w, 404, "no effect")
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	_, _ = w.Write(png)
+}
+
+// handleDVDSound serves a button sound as WAV.
+func (s *Server) handleDVDSound(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.dvdSession(w, r).(interface {
+		SoundWAV(id int) ([]byte, bool)
+	})
+	if !ok {
+		return
+	}
+	n, _ := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".wav"))
+	wav, found := sess.SoundWAV(n)
+	if !found {
+		writeErr(w, 404, "no sound")
+		return
+	}
+	w.Header().Set("Content-Type", "audio/wav")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	_, _ = w.Write(wav)
+}
+
 func (s *Server) handleDVDStill(w http.ResponseWriter, r *http.Request) {
 	sess := s.dvdSession(w, r)
 	if sess == nil {

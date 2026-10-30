@@ -29,14 +29,19 @@ import (
 
 // Spec describes one transcode.
 type Spec struct {
-	ID            string
-	InputArgs     []string // input options and -i
-	Duration      float64  // total seconds (required)
-	VideoFilter   string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
-	AudioIndex    int      // ffmpeg audio stream index (a:N), -1 = no audio
-	AudioChannels int      // 0 = keep (max 6)
-	SubtitleIndex int      // s:N to burn in, -1 = none
-	AudioCodec    string   // aac (default) | mp3
+	ID          string
+	InputArgs   []string // input options and -i
+	Duration    float64  // total seconds (required)
+	VideoFilter string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
+	AudioIndex  int      // ffmpeg audio stream index (a:N), -1 = no audio
+	// AudioInput is the input (of those InputArgs opens) that has the audio;
+	// 0 = the same one as the video. With a second input every input seeks,
+	// and Duration limits the output, since the picture may be an endless
+	// generated one or the sound may loop.
+	AudioInput    int
+	AudioChannels int    // 0 = keep (max 6)
+	SubtitleIndex int    // s:N to burn in, -1 = none
+	AudioCodec    string // aac (default) | mp3
 	SegmentSec    float64
 	MaxHeight     int    // 0 = source
 	VideoBitrate  string // e.g. "8M"; empty = quality mode
@@ -316,13 +321,22 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			args = append(args, "-hwaccel", "auto")
 		}
 	}
-	if start > 0 {
-		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+	if start > 0 && sp.AudioInput > 0 {
+		for _, a := range sp.InputArgs {
+			if a == "-i" {
+				args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+			}
+			args = append(args, a)
+		}
+	} else {
+		if start > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+		}
+		args = append(args, sp.InputArgs...)
 	}
-	args = append(args, sp.InputArgs...)
 	args = append(args, "-map", "0:v:0")
 	if sp.AudioIndex >= 0 {
-		args = append(args, "-map", fmt.Sprintf("0:a:%d?", sp.AudioIndex))
+		args = append(args, "-map", fmt.Sprintf("%d:a:%d?", sp.AudioInput, sp.AudioIndex))
 	}
 	args = append(args, "-map_metadata", "-1", "-map_chapters", "-1")
 
@@ -385,7 +399,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	} else {
 		args = append(args, "-an")
 	}
-	if sp.HoldLastFrame && sp.Duration > start {
+	if (sp.HoldLastFrame || sp.AudioInput > 0) && sp.Duration > start {
 		args = append(args, "-t", strconv.FormatFloat(sp.Duration-start, 'f', 3, 64))
 	}
 	args = append(args, sp.Quality.OutputArgs...)

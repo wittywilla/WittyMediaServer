@@ -125,6 +125,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const apply = (p: Presentation) => {
     const prev = presRef.current
+    if (p.pause != null) { const v = video.current; if (v) { if (p.pause) v.pause(); else v.play().catch(() => {}) } }
     // Same screen, same stream: only the highlight (or a message) changed.
     if (p.serial === serialRef.current && p.media?.url === urlRef.current) {
       presRef.current = p
@@ -194,6 +195,18 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // A Blu-ray's button sounds: loaded on first use, then played at once.
+  const sounds = useRef(new Map<string, HTMLAudioElement>())
+  const playSound = useCallback((id?: number) => {
+    const tpl = presRef.current?.menu?.soundUrl
+    if (!id || !tpl) return
+    const url = mediaUrl(tpl.replace('{id}', String(id - 1)))
+    let a = sounds.current.get(url)
+    if (!a) { a = new Audio(url); sounds.current.set(url, a) }
+    a.currentTime = 0
+    a.play().catch(() => {})
+  }, [])
+
   const pos = () => video.current?.currentTime || 0
   const titleMenu = () => act({ type: 'menu', menu: 'title', positionSec: pres?.kind === 'title' ? pos() : 0 })
   const rootMenu = () => act({ type: 'menu', menu: 'root', positionSec: pres?.kind === 'title' ? pos() : 0 })
@@ -238,7 +251,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const buttons = menu?.buttons || []
   // Presses carry the playhead: a Blu-ray pop-up menu's buttons read the
   // current chapter and time from the player's registers.
-  const pressButton = useCallback((n: number) => act({ type: 'press', button: n, positionSec: presRef.current?.kind === 'title' ? video.current?.currentTime || 0 : 0 }), [act])
+  const pressButton = useCallback((n: number) => {
+    playSound(presRef.current?.menu?.buttons.find((b) => b.n === n)?.soundPress)
+    return act({ type: 'press', button: n, positionSec: presRef.current?.kind === 'title' ? video.current?.currentTime || 0 : 0 })
+  }, [act, playSound])
 
   // Clip ended -> tell the navigator (after any still time). Also used by the
   // stall watchdog below, so it reports each clip at most once.
@@ -368,9 +384,34 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     const target = buttons.find((b) => b.n === next)
     if (!target || target.n === cur.n) return
     if (target.auto) { pressButton(target.n); return }
+    playSound(target.soundSelect)
     setSelected(target.n)
     selectQuiet(target.n)
-  }, [inMenu, buttons, selected, pressButton, selectQuiet])
+  }, [inMenu, buttons, selected, pressButton, selectQuiet, playSound])
+
+  // A pop-up closes by itself when the disc says no key has come for long enough.
+  useEffect(() => {
+    const secs = menu?.userTimeoutSec
+    if (!popupOpen || !secs) return
+    const t = setTimeout(() => setPopupOpen(false), secs * 1000)
+    return () => clearTimeout(t)
+  }, [popupOpen, menu?.userTimeoutSec, selected])
+
+  // A menu page's opening transition, picture by picture.
+  const [effect, setEffect] = useState<string | null>(null)
+  const effectFrames = pres?.kind !== 'title' || popupOpen ? menu?.inEffect : undefined
+  useEffect(() => {
+    if (!effectFrames?.length) { setEffect(null); return }
+    let i = 0, t: ReturnType<typeof setTimeout>
+    const step = () => {
+      if (i >= effectFrames.length) { setEffect(null); return }
+      setEffect(mediaUrl(effectFrames[i].url))
+      t = setTimeout(step, Math.max(16, effectFrames[i].sec * 1000))
+      i++
+    }
+    step()
+    return () => clearTimeout(t)
+  }, [effectFrames])
 
   useEffect(() => {
     const layer = stage.current?.querySelector('.dvd-layer')
@@ -384,13 +425,17 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const isFeature = !!title && (disc?.main?.ttn ?? item.disc?.mainTitle) === title.ttn
   const titleName = discTitle?.label || (isFeature ? 'Feature presentation' : title ? `Title ${title.ttn}` : '')
 
-  const seek = (t: number) => { const v = video.current; if (v) v.currentTime = Math.max(0, t) }
+  // What the disc forbids here, as a disc player would (viewers can opt out).
+  const locked = (what: string) => prefs.discLocks && !!title?.locks?.includes(what)
+  const seek = (t: number) => { const v = video.current; if (v && !locked('seek') && !locked('chapter')) v.currentTime = Math.max(0, t) }
   // Next on the last scene (or in a one-scene clip such as a warning or
   // trailer) moves on to what the disc plays next, like a disc player,
   // instead of starting the scene again.
   const seekChapter = (dir: 1 | -1) => {
     const v = video.current
-    if (!v) return
+    if (!v || locked('skip')) return
+    // A slideshow's first picture and earlier: the disc's previous item.
+    if (dir === -1 && chapters.length <= 1 && v.currentTime < 3) { act({ type: 'key', key: 'prev' }); return }
     const cur = Math.max(0, chapters.filter((c) => c <= v.currentTime + 1).length - 1)
     if (dir === 1 && cur >= chapters.length - 1) { act({ type: 'ended' }); return }
     if (!chapters.length) return
@@ -430,7 +475,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title])
 
-  const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } v.paused ? v.play().catch(() => {}) : v.pause() }
+  const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } if (v.paused) v.play().catch(() => {}); else if (!locked('pause')) v.pause() }
   const setRemote = (on: boolean) => view.update({ remote: on }, view.scope)
   const back = () => chrome.minimize()
 
@@ -448,15 +493,15 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       case 'angle': if ((title?.angles || 1) > 1) setPicker('angle'); break
       case 'prev': pres?.kind === 'title' ? seekChapter(-1) : act({ type: 'chapter', chapter: -1 }); break
       case 'next': pres?.kind === 'title' ? seekChapter(1) : act({ type: 'chapter', chapter: 1 }); break
-      case 'rew': if (v) v.currentTime = Math.max(0, v.currentTime - 10); break
-      case 'ff': if (v) v.currentTime += 30; break
+      case 'rew': if (v && !locked('seek')) v.currentTime = Math.max(0, v.currentTime - 10); break
+      case 'ff': if (v && !locked('seek')) v.currentTime += 30; break
       case 'play': setStopped(false); v?.play().catch(() => {}); break
       case 'pause': v?.pause(); break
       case 'stop': v?.pause(); setStopped(true); break
       default:
         if (k.startsWith('digit')) {
           const d = Number(k.slice(5))
-          if (inMenu) { if (buttons.some((b) => b.n === d)) pressButton(d) } else if (d >= 1 && chapters[d - 1] != null) seek(chapters[d - 1])
+          if (inMenu) { const b = buttons.find((x) => (x.num ?? x.n) === d); if (b) pressButton(b.n) } else if (d >= 1 && chapters[d - 1] != null) seek(chapters[d - 1])
         }
     }
   }
@@ -486,7 +531,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           if ((e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .remote-bar, .view-settings')) break
           if (inMenu) { e.preventDefault(); move(e.key.replace('Arrow', '').toLowerCase() as any) }
           else if (v && pres?.kind === 'title' && !(e.target as HTMLElement)?.closest?.('.bottom, .top, .remote')) {
-            e.preventDefault(); if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10
+            e.preventDefault(); if (!locked('seek')) { if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10 }
           }
           break
         case 'Enter': if (inMenu) { e.preventDefault(); pressButton(selected) } break
@@ -559,7 +604,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
         {frozen && !lingerStill && pres?.media?.type === 'hls' && <img className="still frozen" src={frozen} alt="" style={{ objectFit }} />}
         {menu && rect && scale && (pres?.kind !== 'title' || (hasPopup && popupOpen)) && (
           <div className="dvd-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
-            {menu.overlayUrl && <img src={mediaUrl(menu.overlayUrl)} alt="" />}
+            {effect ? <img src={effect} alt="" /> : menu.overlayUrl && <img src={mediaUrl(menu.overlayUrl)} alt="" />}
             {/* Every highlight is loaded up front and only shown/hidden, so moving
                 the selection never waits for an image (no flicker). */}
             {inMenu && menu.highlightUrl && buttons.filter((b) => b.lit).map((b) => (
@@ -594,7 +639,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => chrome.close()}>Back</button></div></div>}
       {pres?.kind === 'stop' && !err && !mini && (
         <div className="overlay-msg"><div className="box">
-          <div style={{ marginBottom: 10 }}>{pres.scrambled ? 'This disc is CSS-scrambled and cannot be played.' : pres.reason || 'Playback stopped.'}</div>
+          <div style={{ marginBottom: 10 }}>{pres.scrambled && !isBluray(item) ? 'This disc is CSS-scrambled and cannot be played.' : pres.reason || 'Playback stopped.'}</div>
           <button className="btn" onClick={(e) => { e.stopPropagation(); titleMenu() }}>Title menu</button>{' '}
           <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: item.disc?.mainTitle || 1 }) }}>Play movie</button>{' '}
           <button className="btn ghost" onClick={() => chrome.close()}>Back</button>
@@ -626,7 +671,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
               onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}
               audio={audioOpts} subtitles={subOpts} onAudio={switchAudio} onSubtitle={switchSub}
               onPick={setPicker} angles={title?.angles || 1}
-              showSeek={prefs.seekBar} showChapterMarks={prefs.chapterMarks}
+              showSeek={prefs.seekBar && !locked('seek')} showChapterMarks={prefs.chapterMarks}
               remoteOn={prefs.remote} onRemote={() => setRemote(!prefs.remote)} onSettings={() => setSettingsOpen((o) => !o)}
               onFullscreen={() => toggleFullscreen(root.current)} />
           )}
@@ -719,7 +764,7 @@ function SubtitleLayer({ video, title, rect, size = 1, stageH = 0, clear = 0, fo
       if (t - w * W > W * 0.7) load(w + 1)
       const evs = cache.current.get(`${stream}:${w}`)
       const now = Array.isArray(evs) ? evs.filter((e) => e.start <= t && e.end > t && (!forcedOnly || e.forced)) : []
-      setActive((prev) => (prev.length === now.length && prev.every((p, i) => p.url === now[i].url) ? prev : now))
+      setActive((prev) => (prev.length === now.length && prev.every((p, i) => p.url === now[i].url && p.start === now[i].start) ? prev : now))
     }
     upd()
     v.addEventListener('timeupdate', upd)
@@ -735,6 +780,12 @@ function SubtitleLayer({ video, title, rect, size = 1, stageH = 0, clear = 0, fo
       {active.map((e) => {
         const w = e.w * sx * size, h = e.h * sy * size
         const cx = (e.x + e.w / 2) * sx, bottom = (e.y + e.h) * sy
+        if (e.text != null) {
+          // Text subtitles: the disc's words and place, in the browser's type.
+          return <div key={`${e.start}-${e.y}`} className="sub-text" style={{ position: 'absolute', left: e.x * sx, top: e.y * sy, width: e.w * sx, height: e.h * sy, display: 'flex', whiteSpace: 'pre-line',
+            justifyContent: e.halign === 1 ? 'flex-start' : e.halign === 3 ? 'flex-end' : 'center', alignItems: e.valign === 1 ? 'flex-start' : e.valign === 2 ? 'center' : 'flex-end', textAlign: e.halign === 1 ? 'left' : e.halign === 3 ? 'right' : 'center',
+            fontSize: (e.size || 42) * sy * size, fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : undefined, color: e.color || '#fff', textShadow: `0 0 3px ${e.outline || '#000'}, 0 0 3px ${e.outline || '#000'}` }}>{e.text}</div>
+        }
         return <img key={e.url} src={mediaUrl(e.url)} alt="" style={{ left: cx - w / 2, top: bottom - h, width: w, height: h }} />
       })}
     </div>

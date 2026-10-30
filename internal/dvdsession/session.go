@@ -37,6 +37,9 @@ type Presentation struct {
 	// TimerSec is set while the disc's navigation timer runs; the client
 	// sends a "tick" action when it expires.
 	TimerSec float64 `json:"timerSec,omitempty"`
+	// Pause is set when a disc's button froze or released the picture
+	// (Blu-ray STILL_ON and STILL_OFF): true = hold, false = go on.
+	Pause *bool `json:"pause,omitempty"`
 }
 
 // Media describes the picture/sound for the current step.
@@ -75,6 +78,18 @@ type Menu struct {
 	// button ran POPUP_OFF).
 	Popup  bool `json:"popup,omitempty"`
 	Closed bool `json:"closed,omitempty"`
+	// UserTimeoutSec closes a pop-up when no key has been pressed for so long.
+	UserTimeoutSec float64 `json:"userTimeoutSec,omitempty"`
+	// SoundURL is a template with {id} for the buttons' sounds.
+	SoundURL string `json:"soundUrl,omitempty"`
+	// InEffect is a page's opening transition, frame by frame.
+	InEffect []EffectFrame `json:"inEffect,omitempty"`
+}
+
+// EffectFrame is one picture of a page transition.
+type EffectFrame struct {
+	URL string  `json:"url"`
+	Sec float64 `json:"sec"`
 }
 
 type ButtonView struct {
@@ -94,6 +109,12 @@ type ButtonView struct {
 	// the highlight URL takes ?f=N for frame N.
 	Frames int     `json:"frames,omitempty"`
 	FPS    float64 `json:"fps,omitempty"`
+	// Num is the number key that presses it, when that is not N (Blu-ray
+	// buttons have their own numbers).
+	Num int `json:"num,omitempty"`
+	// SoundSelect and SoundPress are sound ids + 1 (0 = silent).
+	SoundSelect int `json:"soundSelect,omitempty"`
+	SoundPress  int `json:"soundPress,omitempty"`
 }
 
 // TitleView describes feature playback.
@@ -121,6 +142,10 @@ type TitleView struct {
 	// alternate versions of the picture (e.g. English or Dutch on-screen text).
 	Angle  int `json:"angle"`
 	Angles int `json:"angles"`
+	// Locks names what the disc forbids here: "seek", "chapter", "pause",
+	// "audio", "subtitle", "angle". The player honours them unless the viewer
+	// turned that off.
+	Locks []string `json:"locks,omitempty"`
 }
 
 type Track struct {

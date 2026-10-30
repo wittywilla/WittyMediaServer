@@ -14,9 +14,10 @@ export type ViewPrefs = {
   stereo: 'off' | 'sbs' | 'ou'    // the video is 3D: two views side by side, or one over the other
   stereoOut: '2d' | 'anaglyph'    // how to show 3D video: one eye's view flat, or red/cyan for anaglyph glasses
   forcedSubs: boolean      // discs: show forced captions (signs, foreign-language lines) while subtitles are off
+  discLocks: boolean       // discs: obey a disc's bans on seeking and skipping, as a disc player does
 }
 
-export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true }
+export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true, discLocks: true }
 
 const GLOBAL = 'wms.view'
 const itemKey = (id: number) => `wms.view.item.${id}`

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
+import { albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
 import AddLibrary from '../components/AddLibrary'
 import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
@@ -175,18 +175,6 @@ function HomeProblem({ offline, message, retry }: { offline: boolean; message: s
   )
 }
 
-// Songs of one album arrive one by one: a row shows the album once.
-function byAlbum(items: Item[]) {
-  const seen = new Set<string>()
-  const out: Item[] = []
-  for (const it of items) {
-    if (it.kind !== 'audio' || !it.album) { out.push(it); continue }
-    const key = (it.albumArtist || it.artist || '') + '|' + it.album
-    if (!seen.has(key)) { seen.add(key); out.push({ ...it, title: it.album }) }
-  }
-  return out
-}
-
 function HubRow({ hub }: { hub: Hub }) {
   if (!hub.items.length && !(hub.shows || []).length) return null
   return (
@@ -196,7 +184,7 @@ function HubRow({ hub }: { hub: Hub }) {
         {hub.libraryId && <Link to={`/library/${hub.libraryId}`}>See all <IconRight /></Link>}
       </div>
       <CardRow>
-        {byAlbum(hub.items).map((it) => <ItemCard key={it.id} item={it} />)}
+        {albumsOnce(hub.items).map((it) => <ItemCard key={it.id} item={it} />)}
         {(hub.shows || []).map((s) => <ShowCard key={'s' + s.id} show={s} />)}
       </CardRow>
     </section>

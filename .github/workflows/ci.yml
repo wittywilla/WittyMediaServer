@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 22
       - run: cd web && npm ci --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
+      - name: Theme contrast and design tokens
+        run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...

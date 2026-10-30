@@ -1,6 +1,6 @@
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, episodeLabel, fmtRuntime, fmtTime, getPrefs, posterUrl, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, SeenBadge, Spinner } from '../components/common'
@@ -119,7 +119,7 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
             <tr key={e.id} onClick={() => nav(`/item/${e.id}`)}>
               <td className="thumb-cell">{e.poster ? <img src={posterUrl(e)} alt="" loading="lazy" /> : <span />}</td>
               <td className="num">{episodeLabel(e).replace(/^S\d+ \u00b7 /, '') || '\u2013'}</td>
-              <td>{e.title}</td>
+              <td><Link to={`/item/${e.id}`} onClick={(ev) => ev.stopPropagation()}>{e.title}</Link></td>
               <td className="muted">{e.aired || ''}</td>
               <td>{e.runtimeSec ? fmtTime(e.runtimeSec) : ''}</td>
               <td className="muted">{state}</td>
@@ -137,14 +137,15 @@ function EpisodeRow({ ep }: { ep: Item }) {
   const pct = ep.progress && ep.progress.durationSec > 0 && !ep.progress.watched ? Math.min(100, (ep.progress.positionSec / ep.progress.durationSec) * 100) : 0
   return (
     <div className="episode" onClick={() => nav(`/item/${ep.id}`)}>
-      <div className="thumb" onClick={(e) => { e.stopPropagation(); nav(`/play/${ep.id}`) }}>
+      {/* Real controls inside the clickable row: a remote or keyboard can reach both. */}
+      <button type="button" className="thumb" aria-label={`Play ${ep.title}`} onClick={(e) => { e.stopPropagation(); nav(`/play/${ep.id}`) }}>
         {ep.poster && <img src={posterUrl(ep)} alt="" loading="lazy" />}
-        <div className="play"><span><IconPlay /></span></div>
-        {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}
+        <span className="play"><span><IconPlay /></span></span>
+        {pct > 0 && <span className="progress"><i style={{ width: pct + '%' }} /></span>}
         {ep.progress?.watched && <SeenBadge />}
-      </div>
+      </button>
       <div className="info">
-        <div className="t"><span className="num">{episodeLabel(ep)}</span> {ep.title}</div>
+        <Link className="t" to={`/item/${ep.id}`} onClick={(e) => e.stopPropagation()}><span className="num">{episodeLabel(ep)}</span> {ep.title}</Link>
         <div className="sub">{[ep.aired, fmtRuntime(ep.runtimeSec)].filter(Boolean).join(' · ')}</div>
         {ep.overview && <p>{ep.overview}</p>}
       </div>

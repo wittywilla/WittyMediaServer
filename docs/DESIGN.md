@@ -16,6 +16,7 @@ All of it lives in `web/src/styles.css` (tokens first, then shared parts). Page-
 - [Accessibility](#accessibility)
 - [Screens and input](#screens-and-input)
 - [Adding a page](#adding-a-page)
+- [Native apps and ten feet](#native-apps-and-ten-feet)
 - [What the audit found](#what-the-audit-found)
 
 ## Principles
@@ -193,7 +194,7 @@ The bar is WCAG 2.2 AA.
   surfaces (`--fg`, `--fg-2`, `--fg-3`, `--accent-text`, `--danger`, `--ok`, `--warn`), `--accent-fg` on
   `--accent`, and `--control-line` 3:1. Run it after changing a theme, use `--fix` to correct one, and
   bump the theme's version in `theme.json`.
-- **Focus**: `:focus-visible` gets a 2px ring in `--focus`, 3px for controllers. Cards ring the
+- **Focus**: `:focus-visible` gets a ring in `--focus`, 2px wide, 3px at ten feet. Cards ring the
   poster, not the text. `scroll-padding` keeps a focused thing clear of the bars.
 - **Targets** are at least 24px (WCAG 2.5.8); a small mark gets an invisible bigger box around it
   (see `.hero .dots button` and `.tip`).
@@ -213,8 +214,7 @@ The bar is WCAG 2.2 AA.
 | 1100, 1700 and up | bigger posters |
 | 2200 and up | everything zoomed 1.25 (4K TVs) |
 
-Touch makes every control taller automatically. A controller (`html.using-controller`, set in
-`tv.ts`) raises the base size by a fifth and enlarges the focus ring and the focused poster.
+Touch makes every control taller automatically. [Ten feet](#native-apps-and-ten-feet) has its own rules.
 
 Check a new page at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in one dark and one
 light theme.
@@ -248,8 +248,44 @@ light theme.
    only: no raw `px` font sizes, colours or radii. Name classes with a short prefix (`gm-row`).
 6. **Do the three page states** (loading, empty, error) and the five control states.
 7. **Name things**: `aria-label` on icon buttons, a `.modal` with an `h2` for any dialog.
-8. **Check** it at four widths, with the keyboard, in a dark and a light theme. `npm run build` must
+8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so
+   the native apps get the same behaviour; components only lay it out.
+9. **Check** it at four widths, with the keyboard, in a dark and a light theme. `npm run build` must
    stay green.
+
+## Native apps and ten feet
+
+The Apple TV and Android TV apps use the same design. The CSS is the single source, and
+`python scripts/design-tokens.py` writes it out as plain data for them:
+
+| File | Holds |
+|---|---|
+| `themes/tokens.json` | type scale, spacing, shape, depth, motion, control and card sizes, focus, the ten-foot rules |
+| `themes/<id>/theme.json` | `colors`: every colour of that theme, already worked out, as `#rrggbb` or `#rrggbbaa`; `radius` |
+
+Sizes are CSS pixels at normal scale: use them as dp or pt. Times are milliseconds, tracking is in em,
+and radii are multiples of the theme's `radius`. Run the script after changing `styles.css` or a
+theme; `--check` (in CI) fails when the files are out of date. Don't edit them by hand.
+
+**The ten-foot rules**, which apply to every screen, on any client:
+
+- **Everything can be reached and used with a D-pad.** Up, down, left, right and OK: no action needs
+  a pointer. Build with real `a`, `button` and `input` elements, so `tv.ts` can move between them; a
+  click handler on a `div` can't be reached.
+- **Nothing is hover-only.** Hover may decorate, but the thing it reveals must also appear on focus
+  (`:focus-visible` beside `:hover`), or not be needed. Row arrows are the mouse's extra way along a
+  row; a remote moves card by card.
+- **Focus is always obvious**: a 3px ring and a slightly larger poster, in a colour that reads on
+  every surface. Exactly one thing has it. Moving it must never scroll it out of sight or clip it.
+- **Large targets**: at least 48 at ten feet, and spaced so that focus moves predictably.
+- **Readable from the sofa**: the base text grows by a quarter, and no text below `--text-2xs` at
+  that scale. Keep lines short; long passages are for the small screen.
+- **Clear of the edge**: the side margin grows, because TVs can crop the picture's edge.
+- **Back always works**: every view has a way out with the Back button, and dialogs close with it.
+
+In the web app these apply through `html.using-controller` (a controller in use, set in `tv.ts`) and
+`@media (pointer: none)` (a device with no pointer, like a TV browser). To try it, connect a controller, or
+add the class in the browser's developer tools.
 
 ## What the audit found
 

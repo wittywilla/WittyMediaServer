@@ -198,3 +198,16 @@ export const langName = (code?: string) => {
   try { const n = names?.of(c); if (n) return n } catch { /* not a language code */ }
   return code.toUpperCase()
 }
+
+// albumsOnce: the home page's rows list recently added songs one by one; a row
+// shows each album once, under the album's name.
+export function albumsOnce(items: Item[]): Item[] {
+  const seen = new Set<string>()
+  const out: Item[] = []
+  for (const it of items) {
+    if (it.kind !== 'audio' || !it.album) { out.push(it); continue }
+    const key = (it.albumArtist || it.artist || '') + '|' + it.album
+    if (!seen.has(key)) { seen.add(key); out.push({ ...it, title: it.album }) }
+  }
+  return out
+}

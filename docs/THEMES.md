@@ -121,6 +121,9 @@ under `.player`.
 
 ## Variables reference
 
+Built-in themes also carry their colours as plain data in `theme.json` for the native apps
+(`colors`, written by `scripts/design-tokens.py`). A theme you make yourself doesn't need them.
+
 Declare these on `:root`. The sizes, spacing and motion the interface is built from are design
 tokens that themes can override too, for example `--card-w` or `--text-base`: see [DESIGN.md](DESIGN.md).
 Hover, selected and tinted colours are worked out from the colours below.

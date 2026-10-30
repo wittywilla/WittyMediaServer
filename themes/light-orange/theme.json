@@ -11,5 +11,37 @@
     "surface": "#eaeaed",
     "text": "#15171c",
     "accent": "#be480a"
-  }
+  },
+  "colors": {
+    "bg": "#f4f2f3",
+    "bg2": "#fffcfa",
+    "bg3": "#eaeaed",
+    "bg4": "#dadce3",
+    "fg": "#15171c",
+    "fg2": "#4a5160",
+    "fg3": "#626a78",
+    "accent": "#be480a",
+    "accentHover": "#c2410c",
+    "accentFg": "#ffffff",
+    "accentText": "#b7450a",
+    "brandAccent": "#b7450a",
+    "danger": "#ca2536",
+    "ok": "#11784f",
+    "warn": "#995c00",
+    "border": "#15171c1a",
+    "borderStrong": "#15171c33",
+    "controlLine": "#828791",
+    "hover": "#15171c12",
+    "pressed": "#15171c1f",
+    "accentSoft": "#be480a24",
+    "accentLine": "#be480a73",
+    "okSoft": "#11784f21",
+    "warnSoft": "#995c0021",
+    "dangerSoft": "#ca25361c",
+    "focus": "#b7450a",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10
 }

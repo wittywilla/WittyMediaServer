@@ -283,7 +283,6 @@ func TestAdminRoutes(t *testing.T) {
 	}
 }
 
-// Requests naming a track that doesn't exist used to panic the handler.
 func TestSettingsRefuseFFmpegEscapes(t *testing.T) {
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "admin", "adult", true, "")

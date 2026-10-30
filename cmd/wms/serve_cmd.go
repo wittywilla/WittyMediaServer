@@ -151,6 +151,7 @@ func cmdServe(args []string) int {
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 15 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 	ln, err := listen(cfg.Listen)
 	if err != nil {

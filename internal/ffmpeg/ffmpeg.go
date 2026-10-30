@@ -174,7 +174,17 @@ func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
 	return t.probe(ctx, FileInput(path))
 }
 
+// probeSlots limits how many ffprobe processes run at once: anyone signed in
+// can ask for a title's details as often as they like.
+var probeSlots = make(chan struct{}, max(4, runtime.NumCPU()))
+
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
+	select {
+	case probeSlots <- struct{}{}:
+		defer func() { <-probeSlots }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 	args := []string{"-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"}
 	args = append(args, input...)
 	cmd := Command(ctx, t.FFprobe, args...)

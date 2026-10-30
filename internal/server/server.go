@@ -51,6 +51,7 @@ type Server struct {
 
 	setupCode     string
 	setupCodeOnce sync.Once
+	audioSlots    chan struct{} // audio transcodes running at once
 }
 
 type ctxKey int
@@ -179,12 +180,30 @@ func (s *Server) Handler() http.Handler {
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
 
-	return s.logging(s.headers(s.cors(s.csrf(m))))
+	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
+	return s.limits(s.logging(s.headers(s.cors(s.csrf(m)))))
 }
 
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
+
+// Limits on what a client can make the server hold on to while it sends a
+// request: uploads (a theme, a logo) are the largest bodies there are.
+const (
+	maxRequestBody  = 32 << 20
+	requestBodyTime = 2 * time.Minute
+)
+
+func (s *Server) limits(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+			_ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(requestBodyTime))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func (s *Server) logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -212,7 +231,8 @@ type statusWriter struct {
 	code int
 }
 
-func (w *statusWriter) WriteHeader(c int) { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (w *statusWriter) WriteHeader(c int)           { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 func (w *statusWriter) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()

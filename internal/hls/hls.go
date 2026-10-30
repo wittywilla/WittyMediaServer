@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
@@ -70,8 +71,10 @@ type Session struct {
 	mu       sync.Mutex
 	job      *job
 	lastUsed time.Time
+	used     atomic.Int64 // lastUsed as Unix nanoseconds, for the manager to read without taking mu
 	tools    *ffmpeg.Tools
 	log      *slog.Logger
+	m        *Manager
 }
 
 // Manager owns sessions and the temp directory.
@@ -81,11 +84,31 @@ type Manager struct {
 	log     *slog.Logger
 	mu      sync.Mutex
 	session map[string]*Session
-	max     int
+	max     int // FFmpeg processes running at once
+
+	// running is every FFmpeg process. jobMu is taken after a session's mu,
+	// never before it.
+	jobMu   sync.Mutex
+	running map[*job]*Session
 }
 
+// ErrBusy: as many transcodes as the server allows are all being watched.
+var ErrBusy = errors.New("the server is busy with other streams")
+
+const (
+	// maxSessions caps known streams; each has a folder, usually with segments.
+	maxSessions = 200
+	// A stream nobody asked anything of for this long gives way to a new one.
+	// (A player asks for a segment every few seconds, and FFmpeg picks up from
+	// wherever it asks next.)
+	evictAfter = 8 * time.Second
+)
+
 func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {
-	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max}
+	if max < 1 {
+		max = 1
+	}
+	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max, running: map[*job]*Session{}}
 	_ = os.RemoveAll(root)
 	_ = os.MkdirAll(root, 0o755)
 	go m.sweep()
@@ -125,16 +148,61 @@ func (m *Manager) Ensure(spec Spec) *Session {
 	if s, ok := m.session[spec.ID]; ok {
 		return s
 	}
+	if len(m.session) >= maxSessions {
+		m.dropOldestLocked()
+	}
 	if spec.SegmentSec <= 0 {
 		spec.SegmentSec = 4
 		if spec.LowLatency {
 			spec.SegmentSec = 2
 		}
 	}
-	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID)}
+	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m}
+	s.used.Store(time.Now().UnixNano())
 	_ = os.MkdirAll(s.Dir, 0o755)
 	m.session[spec.ID] = s
 	return s
+}
+
+// dropOldestLocked ends the least recently used stream. Call with m.mu held.
+func (m *Manager) dropOldestLocked() {
+	var oldest *Session
+	var id string
+	for k, s := range m.session {
+		if oldest == nil || s.used.Load() < oldest.used.Load() {
+			oldest, id = s, k
+		}
+	}
+	if oldest != nil {
+		oldest.stop()
+		_ = os.RemoveAll(oldest.Dir)
+		delete(m.session, id)
+	}
+}
+
+// admitLocked makes room for one more FFmpeg process, stopping the one that
+// has gone unused longest if it must. Call with m.jobMu held.
+func (m *Manager) admitLocked(self *Session) bool {
+	if len(m.running) < m.max {
+		return true
+	}
+	var oldest *job
+	var at int64
+	now := time.Now().UnixNano()
+	for j, s := range m.running {
+		used := s.used.Load()
+		if s != self && now-used > int64(evictAfter) && (oldest == nil || used < at) {
+			oldest, at = j, used
+		}
+	}
+	if oldest == nil {
+		return false
+	}
+	if oldest.cmd.Process != nil {
+		_ = oldest.cmd.Process.Kill()
+	}
+	delete(m.running, oldest)
+	return true
 }
 
 // Stop ends and deletes a session.
@@ -192,8 +260,10 @@ func (s *Session) Playlist(segURL func(n int) string) []byte {
 }
 
 func (s *Session) touch() {
+	now := time.Now()
+	s.used.Store(now.UnixNano())
 	s.mu.Lock()
-	s.lastUsed = time.Now()
+	s.lastUsed = now
 	s.mu.Unlock()
 }
 
@@ -405,12 +475,25 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), lastSeg: fromSeg - 1}
 	cmd.Stderr = &j.stderr
 	s.log.Info("ffmpeg start", "cat", "ffmpeg", "hls", s.Spec.ID, "from", fromSeg, "args", strings.Join(args, " "))
-	if err := cmd.Start(); err != nil {
+	s.m.jobMu.Lock()
+	if !s.m.admitLocked(s) {
+		s.m.jobMu.Unlock()
+		return nil, ErrBusy
+	}
+	err := cmd.Start()
+	if err == nil {
+		s.m.running[j] = s
+	}
+	s.m.jobMu.Unlock()
+	if err != nil {
 		return nil, err
 	}
 	s.job = j
 	go func() {
 		j.err = cmd.Wait()
+		s.m.jobMu.Lock()
+		delete(s.m.running, j)
+		s.m.jobMu.Unlock()
 		close(j.done)
 		if j.err != nil && !strings.Contains(j.err.Error(), "killed") && !strings.Contains(j.err.Error(), "exit status 255") {
 			s.log.Warn("ffmpeg exited", "err", j.err, "stderr", tail(j.stderr.String(), 800))
@@ -462,6 +545,9 @@ func (s *Session) stopLocked() {
 	}
 	j := s.job
 	s.job = nil
+	s.m.jobMu.Lock()
+	delete(s.m.running, j)
+	s.m.jobMu.Unlock()
 	if !j.finished() && j.cmd.Process != nil {
 		_ = j.cmd.Process.Kill()
 	}

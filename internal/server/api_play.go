@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -135,6 +136,11 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, "the server is busy; try again in a moment")
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -280,6 +286,11 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, err := sess.Segment(r.Context(), n)
+	if errors.Is(err, hls.ErrBusy) {
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, err.Error())
+		return
+	}
 	if err != nil {
 		s.Log.Warn("segment", "id", id, "n", n, "err", err)
 		writeErr(w, 500, err.Error())

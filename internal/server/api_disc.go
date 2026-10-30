@@ -224,7 +224,11 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	defer o.Close()
 	ts := o.Disc.Title(ttn)
 	if ts == nil || len(ts.Cells) == 0 {
-		return fmt.Errorf("no such title")
+		return errNoPicture
+	}
+	// Only chapters that exist get a file: the address is the viewer's to choose.
+	if n < 0 || n > len(ts.Chapters) {
+		return errNoPicture
 	}
 	// A few seconds into the chapter skips fades from black.
 	at := ts.Duration * 0.1

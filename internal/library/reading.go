@@ -44,6 +44,9 @@ var (
 // maxInk caps one stroke's JSON (a long, dense pen stroke is ~20 KB).
 const maxInk = 256 << 10
 
+// maxAnnotationsPerBook keeps one account from filling the disk with notes.
+const maxAnnotationsPerBook = 20000
+
 func clip(s string, n int) string {
 	if r := []rune(s); len(r) > n {
 		return string(r[:n])
@@ -85,6 +88,11 @@ func (s *Store) SaveAnnotation(ctx context.Context, userID int64, a *Annotation)
 	}
 	a.Quote, a.Prefix, a.Suffix, a.Note = clip(a.Quote, 4000), clip(a.Prefix, 200), clip(a.Suffix, 200), clip(a.Note, 10000)
 	if a.ID == 0 {
+		var n int
+		_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM annotations WHERE user_id = ? AND item_id = ?`, userID, a.ItemID).Scan(&n)
+		if n >= maxAnnotationsPerBook {
+			return errors.New("this book has as many notes as it can hold")
+		}
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO annotations(user_id, item_id, kind, chapter, pos, quote, prefix, suffix, color, note, data, created_at)
 			VALUES(?,?,?,?,?,?,?,?,?,?,?,strftime('%s','now'))`, userID, a.ItemID, a.Kind, a.Chapter, a.Pos, a.Quote, a.Prefix, a.Suffix, a.Color, a.Note, a.Data)
 		if err != nil {
@@ -114,22 +122,33 @@ var (
 	spaceRe = regexp.MustCompile(`\s+`)
 )
 
-// chapterText is the readable text of an XHTML chapter.
-func chapterText(zr *zip.Reader, name string) string {
+// bookBudget is how much text one request unpacks from a book. A real book
+// comes nowhere near it; a crafted archive can repeat a tiny, highly compressed
+// chapter thousands of times and otherwise unpack hundreds of gigabytes.
+const bookBudget = 64 << 20
+
+// chapterText is the readable text of an XHTML chapter. It takes what it reads
+// off budget, and is empty once that has run out.
+func chapterText(zr *zip.Reader, name string, budget *int64) string {
+	if *budget <= 0 {
+		return ""
+	}
 	f, err := zr.Open(name)
 	if err != nil {
 		return ""
 	}
 	defer f.Close()
-	b, _ := io.ReadAll(io.LimitReader(f, 16<<20))
+	b, _ := io.ReadAll(io.LimitReader(f, min(16<<20, *budget)))
+	*budget -= int64(len(b))
 	return strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(tagRe.ReplaceAllString(string(b), " ")), " "))
 }
 
 // WordCounts is the number of words in each chapter (for "time left").
 func WordCounts(zr *zip.Reader, spine []string) []int {
 	out := make([]int, len(spine))
+	budget := int64(bookBudget)
 	for i, name := range spine {
-		out[i] = len(strings.FieldsFunc(chapterText(zr, name), unicode.IsSpace))
+		out[i] = len(strings.FieldsFunc(chapterText(zr, name, &budget), unicode.IsSpace))
 	}
 	return out
 }
@@ -150,8 +169,9 @@ func SearchBook(zr *zip.Reader, spine []string, q string) []SearchHit {
 	}
 	lq := strings.ToLower(q)
 	hits := []SearchHit{}
+	budget := int64(bookBudget)
 	for ci, name := range spine {
-		text := chapterText(zr, name)
+		text := chapterText(zr, name, &budget)
 		low := strings.ToLower(text)
 		from := 0
 		for len(hits) < 200 {

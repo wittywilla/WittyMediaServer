@@ -231,10 +231,23 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle}})
 	m.mu.Lock()
+	// Each session holds a disc open and its parsed structure in memory.
+	if len(m.sessions) >= maxSessions {
+		var oldest *Session
+		for _, x := range m.sessions {
+			if oldest == nil || x.lastUsed().Before(oldest.lastUsed()) {
+				oldest = x
+			}
+		}
+		oldest.Close()
+		delete(m.sessions, oldest.ID)
+	}
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
 	return s, nil
 }
+
+const maxSessions = 32
 
 // Get fetches a session.
 func (m *Manager) Get(id string) *Session {

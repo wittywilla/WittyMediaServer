@@ -20,8 +20,8 @@ Sources are applied in this order; later ones only fill gaps:
 | 3 | Local artwork | `poster.jpg`, `<name>-poster.jpg`, `folder.jpg`, `fanart.jpg`, `season01-poster.jpg`, `<episode>-thumb.jpg` |
 | 4 | File and folder names | `Shrek (2001).mkv`, `Show - S01E02 - Title.mkv`, `SHREK.ISO` (disc label) |
 | 5 | **TMDB** (movies) / **TheTVDB** (TV), if you added a key | overview, genres, rating, network, posters, backdrops, episode titles |
-| 6 | **TVmaze** (TV) without a TheTVDB key — built in, no key | overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
-| 7 | **Wikidata** + Wikipedia (movies) without a TMDB key — built in, no key | year, genres, US rating, runtime, plot summary (no posters) |
+| 6 | **TVmaze** (TV) until you add a TheTVDB API key — built in, no API key needed | overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
+| 7 | **Wikidata** + Wikipedia (movies) until you add a TMDB API key — built in, no API key needed | year, genres, US rating, runtime, plot summary (no posters) |
 | 8 | Generated thumbnail | a frame 20 % into the video |
 
 **Works out of the box.** TV shows and movies get information without any account or key.

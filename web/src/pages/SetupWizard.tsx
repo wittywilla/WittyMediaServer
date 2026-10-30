@@ -254,10 +254,10 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
   return (
     <section>
       <h1>Posters, plots and cast</h1>
-      <p className="lead">Your server already looks up <b>TV shows on TVmaze</b> and <b>movie facts on Wikidata</b>, no setup needed. For movie posters and the best matches, add a free key from the services below; each takes about two minutes. Your files never leave this computer, only their names are looked up.</p>
+      <p className="lead">Your server already looks up <b>TV shows on TVmaze</b> and <b>movie facts on Wikidata</b>, with no API key needed. For movie posters and the best matches, add a free API key from the services below; each takes about two minutes. Your files never leave this computer, only their names are looked up.</p>
       <div className="oobe-builtin" role="note">
-        <span><IconCheck size={16} /> TV: TVmaze, built in</span>
-        <span><IconCheck size={16} /> Movies: Wikidata facts and ratings, built in</span>
+        <span><IconCheck size={16} /> TV: TVmaze, no API key needed</span>
+        <span><IconCheck size={16} /> Movies: Wikidata facts and ratings, no API key needed</span>
       </div>
       <div className="oobe-providers">
         {PROVIDERS.map((p) => {

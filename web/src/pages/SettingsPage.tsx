@@ -125,29 +125,33 @@ function ServerSettings() {
   if (!s) return null
   const up = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setS({ ...s, [k]: e.target.type === 'checkbox' ? ((e.target as HTMLInputElement).checked ? '1' : '0') : e.target.value })
   const save = async () => { setS(await api.put('/settings', s)); getPrefs(true); setSaved(true); setTimeout(() => setSaved(false), 2000) }
-  const check = (k: string, label: React.ReactNode) => (
-    <label style={{ flexDirection: 'row', alignItems: 'center', display: 'flex', gap: 10 }}>
-      <input type="checkbox" checked={s[k] === '1'} onChange={up(k)} /> {label}
+  // A setting you turn on or off: its name, then what it does underneath.
+  const check = (k: string, title: React.ReactNode, desc?: React.ReactNode, badge?: string) => (
+    <label className="opt">
+      <input type="checkbox" checked={s[k] === '1'} onChange={up(k)} />
+      <span><b>{title}</b>{badge && <span className="opt-badge">{badge}</span>}{desc && <small>{desc}</small>}</span>
     </label>
   )
   return (
     <div className="panel">
       <h2>Server</h2>
       <div className="form">
-        <label>TMDB API key <span className="muted">(optional — enables posters, overviews and ratings; this product uses the TMDB API but is not endorsed by TMDB)</span>
+        <h3 className="section-title" style={{ margin: 0 }}>Movie and TV information</h3>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>Titles, posters, plots and ratings come from these services. The ones marked <b>No API key needed</b> work straight away; the others need a free API key from their website.</p>
+        {check('tvmaze', 'TVmaze for TV shows', 'Used for TV shows until you add a TheTVDB API key. Data shared under CC BY-SA 4.0.', 'No API key needed')}
+        {check('wikidata', 'Wikidata and Wikipedia for movies', 'Facts, ratings and plots for movies until you add a TMDB API key. No posters.', 'No API key needed')}
+        <label>TMDB API key <span className="muted">Optional. Adds movie and TV posters, plots and ratings. Free at themoviedb.org. This product uses the TMDB API but is not endorsed by TMDB.</span>
           <input className="input" value={s.tmdbKey || ''} onChange={up('tmdbKey')} placeholder="Paste your API key (v3)" />
         </label>
         <div className="row2">
-          <label>TheTVDB API key <span className="muted">(TV libraries — free at thetvdb.com/api-information; metadata provided by TheTVDB)</span>
+          <label>TheTVDB API key <span className="muted">Optional. Detailed TV episode information. Free at thetvdb.com. Metadata provided by TheTVDB.</span>
             <input className="input" value={s.tvdbKey || ''} onChange={up('tvdbKey')} placeholder="Paste your v4 API key" />
           </label>
-          <label>TheTVDB subscriber PIN <span className="muted">(only for user-supported keys)</span>
-            <input className="input" value={s.tvdbPin || ''} onChange={up('tvdbPin')} placeholder="optional" />
+          <label>TheTVDB subscriber PIN <span className="muted">Only if your TheTVDB key came with one.</span>
+            <input className="input" value={s.tvdbPin || ''} onChange={up('tvdbPin')} placeholder="Optional" />
           </label>
         </div>
-        {check('tvmaze', <>Use <b>TVmaze</b> for TV shows when there is no TheTVDB key <span className="muted">(free, no key; data shared under CC BY-SA 4.0)</span></>)}
-        {check('wikidata', <>Use <b>Wikidata</b> and Wikipedia for movie facts and ratings when there is no TMDB key <span className="muted">(free, no key; no posters)</span></>)}
-        {check('saveMetadata', <>Save metadata and artwork next to media files <span className="muted">(standard NFO + poster.jpg/fanart.jpg that other media servers read too; existing NFOs are backed up as .nfo.bak)</span></>)}
+        {check('saveMetadata', 'Save information and artwork next to your media files', 'Writes standard NFO files and poster.jpg / fanart.jpg that other media servers can read too. Existing NFO files are kept as .nfo.bak.')}
         <div className="muted" style={{ fontSize: 13 }}>Encoders, direct play, resolution and quality are under <NavLink to="/settings/transcoding">Transcoding</NavLink>.</div>
         <h3 className="section-title" style={{ margin: '8px 0 0' }}>Anime</h3>
         <label>Anime kept in TV libraries appears in <span className="muted">(shows with the genre “Anime”; needs an Anime library)</span>
@@ -182,16 +186,16 @@ function ServerSettings() {
             Most browsers also mute sound above 4×.
           </div>
         )}
-        <h3 className="section-title" style={{ margin: '8px 0 0' }}>WittyDVD</h3>
-        <label>When a DVD is inserted
+        <h3 className="section-title" style={{ margin: '8px 0 0' }}>DVDs and Blu-rays</h3>
+        <label>When a DVD or Blu-ray is inserted
           <select className="select" value={s.dvdStart || 'menu'} onChange={up('dvdStart')}>
-            <option value="menu">Start with the disc menu (like a DVD player)</option><option value="title">Skip menus and play the main feature</option>
+            <option value="menu">Start with the disc menu (like a disc player)</option><option value="title">Skip menus and play the main feature</option>
           </select>
         </label>
-        {check('insertFx', <>Insert DVD effect <span className="muted">(tray animation when a disc starts; each disc can override this in its Disc settings)</span></>)}
-        <div style={{ marginLeft: 28, opacity: s.insertFx === '0' ? 0.5 : 1 }}>{check('insertSound', <>Play the drive sounds with it <span className="muted">(tray motor and disc spin-up)</span></>)}</div>
+        {check('insertFx', 'Disc insert effect', 'A tray animation when a DVD or Blu-ray starts. Each disc can change this in its Disc settings.')}
+        <div style={{ marginLeft: 28, opacity: s.insertFx === '0' ? 0.5 : 1 }}>{check('insertSound', 'Drive sounds', 'The tray motor and the disc spinning up, with the animation.')}</div>
         <div className="row2">
-          <label>Preferred DVD menu language<input className="input" value={s.menuLanguage || ''} onChange={up('menuLanguage')} placeholder="en" /></label>
+          <label>Preferred disc menu language<input className="input" value={s.menuLanguage || ''} onChange={up('menuLanguage')} placeholder="en" /></label>
           <label>Preferred audio language<input className="input" value={s.audioLanguage || ''} onChange={up('audioLanguage')} placeholder="en" /></label>
         </div>
         <label>Preferred subtitle language<input className="input" value={s.subtitleLanguage || ''} onChange={up('subtitleLanguage')} placeholder="leave empty for none" /></label>
@@ -265,7 +269,8 @@ function About() {
             <div className="fact"><div className="k">Data directory</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.dataDir}</div></div>
             <div className="fact"><div className="k">FFmpeg</div><div className="v" style={{ wordBreak: 'break-all', fontWeight: 400 }}>{sys.ffmpegInfo}<br /><span className="muted">{sys.ffmpeg}</span></div></div>
             <div className="fact"><div className="k">H.264 encoders</div><div className="v">{(sys.encoders || []).join(', ') || 'none'}{(sys.hardware || []).some((h: any) => h.working) && <><br /><span className="muted">Working hardware: {(sys.hardware || []).filter((h: any) => h.working).map((h: any) => h.label).join(', ')}</span></>}</div></div>
-            <div className="fact"><div className="k">Open DVD sessions</div><div className="v">{sys.dvdSessions}</div></div>
+            <div className="fact"><div className="k">Open DVDs</div><div className="v">{sys.dvdSessions}</div></div>
+            <div className="fact"><div className="k">Open Blu-rays</div><div className="v">{sys.blurays ?? 0}</div></div>
           </div>
         </div>
       )}

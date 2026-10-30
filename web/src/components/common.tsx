@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { episodeLabel, fmtRuntime, isDisc, posterUrl, showPosterUrl, type Item, type Show } from '../api'
+import { episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, showPosterUrl, type Item, type Show } from '../api'
 import { IconPlay } from '../icons'
 
 export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-')
@@ -16,7 +16,7 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
         {gen && !wide && <div className="blur" style={{ backgroundImage: `url(${posterUrl(item)})` }} />}
         {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <div className="ph">{item.title}</div>}
         {gen && !wide && <div className="cap">{item.title}</div>}
-        {isDisc(item) && <span className="badge disc">DVD</span>}
+        {isDisc(item) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <span className="badge" style={{ left: 'auto', right: 8 }}>✓</span>}
         <div className="play"><span><IconPlay /></span></div>
         {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}

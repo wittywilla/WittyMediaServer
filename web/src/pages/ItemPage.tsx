@@ -40,7 +40,7 @@ export default function ItemPage() {
   return (
     <>
       <div className="detail-hero">
-        <div className="bg" style={{ backgroundImage: `url(${backdropUrl(it)})` }} />
+        <div className="bg" style={backdropUrl(it) ? { backgroundImage: `url(${backdropUrl(it)})` } : undefined} />
         <div className="shade" />
       </div>
       <div className="detail">
@@ -148,11 +148,11 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
           <label>When this disc is inserted
             <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>
               <option value="">Server default ({def})</option>
-              <option value="menu" disabled={!item.disc?.hasMenus}>Start with the disc menu (like a DVD player)</option>
+              <option value="menu" disabled={!item.disc?.hasMenus}>Start with the disc menu (like a {discName(item)} player)</option>
               <option value="title">Skip menus and play the main feature</option>
             </select>
           </label>
-          <label>Insert DVD effect (tray animation and sound)
+          <label>Insert {discName(item)} effect (tray animation and sound)
             <select className="select" value={insertFx} onChange={(e) => setInsertFx(e.target.value as Item['insertFx'])}>
               <option value="">Server default ({prefs?.insertFx === false ? 'off' : 'on'})</option>
               <option value="on">On for this disc</option>

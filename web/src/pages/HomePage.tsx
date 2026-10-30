@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, backdropUrl, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
+import { api, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
 import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconAnime, IconDisc, IconFilm, IconInfo, IconRefresh, IconTv } from '../icons'
 import { toast, useApp } from '../state'
@@ -147,7 +147,7 @@ function Shuffle() {
     <section className="hub">
       <div className="hub-head"><h2>Can't decide?</h2></div>
       <div className="shuffle">
-        <div className="shuffle-art" style={{ backgroundImage: `url(${backdropUrl(it)})` }} />
+        <div className="shuffle-art" style={backdropUrl(it) ? { backgroundImage: `url(${backdropUrl(it)})` } : undefined} />
         <img className="shuffle-poster" src={posterUrl(it)} alt="" loading="lazy" />
         <div className="shuffle-info">
           <h3>{it.title}</h3>
@@ -176,7 +176,7 @@ function Hero({ items }: { items: Home['featured'] }) {
   if (!it) return null
   return (
     <div className="hero">
-      {items.map((x, k) => <div key={x.id} className="bg" style={{ backgroundImage: `url(${backdropUrl(x)})`, opacity: k === i ? 1 : 0 }} />)}
+      {items.map((x, k) => <div key={x.id} className="bg" style={{ backgroundImage: backdropUrl(x) ? `url(${backdropUrl(x)})` : undefined, opacity: k === i ? 1 : 0 }} />)}
       <div className="shade" />
       <div className="info">
         <h1>{it.title}</h1>
@@ -185,7 +185,7 @@ function Hero({ items }: { items: Home['featured'] }) {
           {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
           {it.contentRating && <span>{it.contentRating}</span>}
           {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
-          {isDisc(it) && <span>DVD · interactive menus</span>}
+          {isDisc(it) && <span>{discName(it)}{it.disc?.hasMenus !== false ? ' · interactive menus' : ''}</span>}
           {it.genres.slice(0, 3).map((g) => <span key={g}>{g}</span>)}
         </div>
         {it.overview && <p>{it.overview}</p>}

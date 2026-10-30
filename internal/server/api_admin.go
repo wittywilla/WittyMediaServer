@@ -81,6 +81,7 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"hardware":    hwList,
 		"hwTested":    hwDone,
 		"dvdSessions": s.DVD.Count(),
+		"blurays":     s.BD.Count(),
 	})
 }
 

@@ -17,7 +17,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
-	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 // playInfo tells the client how to play a regular video item.
@@ -144,7 +143,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
-	pr, err := s.Tools.ProbeFile(pctx, it.Path)
+	pr, err := s.probeOnce(pctx, it.Path)
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		w.Header().Set("Retry-After", "5")
 		writeErr(w, 503, "the server is busy; try again in a moment")
@@ -155,6 +154,12 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := playInfo{DurationSec: pr.Duration(), Container: it.Container, AudioIndex: qInt(r, "audio", 0), SubIndex: qInt(r, "subtitle", -1)}
+	if n := len(pr.Audio()); info.AudioIndex < 0 || info.AudioIndex >= max(n, 1) {
+		info.AudioIndex = 0
+	}
+	if info.SubIndex >= len(pr.Subtitles()) || info.SubIndex < -1 {
+		info.SubIndex = -1
+	}
 	for i, a := range pr.Audio() {
 		info.Audio = append(info.Audio, trackInfo{Index: i, Language: a.Tags["language"], Title: a.Tags["title"], Codec: a.CodecName, Channels: a.Channels})
 	}
@@ -195,7 +200,6 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	qh := sha1.Sum([]byte(fmt.Sprint(q)))
-	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, s.audioCodec(r), hex.EncodeToString(qh[:3]))
 	var vf string
 	if v != nil && (v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt") {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
@@ -204,6 +208,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") {
 		channels = 6
 	}
+	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-c%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, channels, s.audioCodec(r), hex.EncodeToString(qh[:3]))
 	audioIdx := info.AudioIndex
 	if len(info.Audio) == 0 {
 		audioIdx = -1
@@ -221,6 +226,36 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
 	writeJSON(w, 200, info)
+}
+
+// probeOnce keeps what ffprobe said about the files played last: starting
+// FFprobe takes a moment on a small machine, far longer on a sleeping network
+// drive, and every change of audio or subtitle track asks again.
+func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, errors.New("the file is missing")
+	}
+	key := fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())
+	s.probes.Lock()
+	pr := s.probes.m[key]
+	s.probes.Unlock()
+	if pr != nil {
+		return pr, nil
+	}
+	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	pr, err = s.Tools.ProbeFile(pctx, path)
+	if err != nil {
+		return nil, err
+	}
+	s.probes.Lock()
+	if s.probes.m == nil || len(s.probes.m) >= 64 {
+		s.probes.m = map[string]*ffmpeg.Probe{}
+	}
+	s.probes.m[key] = pr
+	s.probes.Unlock()
+	return pr, nil
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
@@ -252,6 +287,9 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	// The type comes from this list, never from what the file's first bytes
 	// look like: a "movie" that is really a web page stays a download.
 	w.Header().Set("Content-Type", mediaType(it.Path))
+	if strings.EqualFold(filepath.Ext(it.Path), ".pdf") {
+		w.Header().Del("Content-Security-Policy") // the browser's own viewer may show it in a tab; PDFs can't run scripts on this site
+	}
 	w.Header().Set("Accept-Ranges", "bytes")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
@@ -282,6 +320,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
 	}
+	sess.See(auth.TokenFrom(r))
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
 	// A player that had to put its token in the playlist's address can't send
@@ -309,11 +348,15 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad segment")
 		return
 	}
+	sess.See(auth.TokenFrom(r))
 	p, err := sess.Segment(r.Context(), n)
 	if errors.Is(err, hls.ErrBusy) {
 		w.Header().Set("Retry-After", "5")
 		writeErr(w, 503, err.Error())
 		return
+	}
+	if errors.Is(err, context.Canceled) {
+		return // the viewer moved on
 	}
 	if err != nil {
 		s.Log.Warn("segment", "id", id, "n", n, "err", err)
@@ -325,9 +368,8 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
+// DELETE /api/hls/{id}: this viewer is done (another device may still watch).
 func (s *Server) handleHLSStop(w http.ResponseWriter, r *http.Request) {
-	s.HLS.Stop(r.PathValue("id"))
+	s.HLS.Leave(r.PathValue("id"), auth.TokenFrom(r))
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
-
-var _ = library.Item{}

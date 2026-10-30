@@ -56,7 +56,7 @@ func (s *Server) handleArtists(w http.ResponseWriter, r *http.Request) {
 // empty strings, meaning "no album" / "unknown artist").
 func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	iq := library.ItemQuery{LibraryID: int64(qInt(r, "library", 0)), Kind: "audio", Sort: "track", Access: s.access(r)}
+	iq := library.ItemQuery{LibraryID: int64(qInt(r, "library", 0)), Kind: "audio", Sort: "track", Access: s.access(r), Brief: true}
 	if q.Has("album") {
 		v := q.Get("album")
 		iq.Album = &v
@@ -79,6 +79,10 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
 	writeJSON(w, 200, s.forViewer(r, items...))
 }
+
+// audioSlots: audio conversions at once. They are far lighter than video, but
+// each is a process, started by any signed-in account.
+var audioSlots = make(chan struct{}, 8)
 
 // GET /api/items/{id}/stream?start=SEC: plays an audio file. Formats every
 // browser understands are sent as they are (with seeking); others are

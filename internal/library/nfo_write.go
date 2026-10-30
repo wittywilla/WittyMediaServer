@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// Metadata is saved next to the media in the standard NFO/artwork layout that Kodi and other media servers
-// (local media assets) read it, so a library can move between servers:
+// Metadata is saved next to the media in the standard NFO/artwork layout that
+// other media software reads, so a library can move between servers:
 //
 //	Movie in its own folder:    movie folder/<name>.nfo, poster.jpg, fanart.jpg
 //	Movies sharing a folder:    <name>.nfo, <name>-poster.jpg, <name>-fanart.jpg
@@ -126,6 +126,8 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	return writeBeside(dst, b)
 }
 
+// writeNFO replaces a file beside the media in one step, so a crash or a full
+// disk can't leave someone's NFO cut short.
 func writeNFO(path string, doc any) error {
 	if old, err := readPlain(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
 		if _, err := os.Lstat(path + ".bak"); os.IsNotExist(err) {

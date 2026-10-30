@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
 import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
@@ -15,6 +15,9 @@ const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
 const RadioLibrary = lazy(() => import('./RadioLibrary'))
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
+// Items load a page at a time as the viewer scrolls: a library of thousands
+// must not cost its whole list (and that many cards) on an old TV or phone.
+const PAGE = 120
 
 export default function LibraryPage() {
   const { id } = useParams()
@@ -49,9 +52,16 @@ function VideoLibrary() {
   const [total, setTotal] = useState(0)
   const [genres, setGenres] = useState<string[]>([])
   const [scan, setScan] = useState<any>(null)
+  const listKey = `${id}|${sort}|${desc}|${genre}|${network}|${shelf}|${isShows}`
+  const shownKey = useRef('')
+  const listUrl = () => {
+    const filter = shelf === 'discs' ? '&kind=disc' : shelf ? `&kind=disc&discContent=${shelf}` : ''
+    return `/items?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}${filter}&limit=${PAGE}`
+  }
 
   useEffect(() => {
-    setItems(null); setShows(null)
+    // A rescan refreshes the list in place; the spinner is for a different list.
+    if (shownKey.current !== listKey) { setItems(null); setShows(null); shownKey.current = listKey }
     if (isShows) {
       api.get<{ items: Item[] }>(`/items?library=${id}&kind=disc&sort=title`).then((r) => setShowDiscs(r.items)).catch(() => setShowDiscs([]))
       api.get<{ shows: Show[]; total: number }>(`/shows?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}&network=${encodeURIComponent(network)}`)
@@ -60,9 +70,8 @@ function VideoLibrary() {
       api.get<{ name: string; shows: number }[]>(`/shows/networks?library=${id}`).then(setNetworks).catch(() => {})
       return
     }
-    const filter = shelf === 'discs' ? '&kind=disc' : shelf ? `&kind=disc&discContent=${shelf}` : ''
-    api.get<{ items: Item[]; total: number }>(`/items?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}${filter}`)
-      .then((r) => { setItems(r.items); setTotal(r.total) })
+    api.get<{ items: Item[]; total: number }>(listUrl())
+      .then((r) => { if (shownKey.current === listKey) { setItems(r.items); setTotal(r.total) } })
     Promise.all([
       api.get<{ total: number }>(`/items?library=${id}&kind=disc&limit=1`),
       api.get<{ total: number }>(`/items?library=${id}&kind=disc&discContent=tv&limit=1`),
@@ -82,6 +91,27 @@ function VideoLibrary() {
     poll()
     return () => clearTimeout(t)
   }, [id])
+
+  // The next page, when the end of the list comes near.
+  const more = useRef<HTMLDivElement | null>(null)
+  const loaded = items?.length ?? 0
+  const hasMore = !isShows && loaded > 0 && loaded < total
+  useEffect(() => {
+    const el = more.current
+    if (!el || !hasMore) return
+    let busy = false
+    const key = listKey
+    const io = new IntersectionObserver((es) => {
+      if (!es.some((e) => e.isIntersecting) || busy) return
+      busy = true
+      api.get<{ items: Item[]; total: number }>(`${listUrl()}&offset=${loaded}`)
+        .then((r) => { if (shownKey.current === key) { setItems((cur) => [...(cur || []), ...r.items]); setTotal(r.total) } })
+        .catch(() => {})
+        .finally(() => { busy = false })
+    }, { rootMargin: '800px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loaded, listKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
   const rescan = async () => { await api.post(`/libraries/${id}/scan`); toast('Scan started'); setScan({ phase: 'starting' }) }
@@ -131,7 +161,7 @@ function VideoLibrary() {
           : <EmptyState title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organise episodes as Show/Season 1/Show - S01E01 - Title.mkv and rescan.'} />)
         : items.length === 0
         ? <EmptyState title={scan ? 'Scanning…' : 'No items'} text={scan ? 'Items appear as they are found.' : 'Nothing matched. Check the library folders in Settings.'} />
-        : <div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div>}
+        : <><div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div>{hasMore && <div ref={more} style={{ minHeight: 1 }}><Spinner /></div>}</>}
     </>
   )
 }

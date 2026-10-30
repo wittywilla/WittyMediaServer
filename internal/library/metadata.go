@@ -106,7 +106,7 @@ func SortTitle(t string) string {
 }
 
 // ---------------------------------------------------------------------------
-// Sidecars: Kodi NFO and <name>.metadata.json
+// Sidecars: NFO files and <name>.metadata.json
 // ---------------------------------------------------------------------------
 
 type nfoMovie struct {
@@ -375,7 +375,7 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 	}
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("tmdb: %w", withoutURL(err)) // the address holds the API key, and errors end up in logs
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -506,6 +506,16 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		it.Backdrop = tmdbImage + "w1280" + m.BackdropPath
 	}
 	return nil
+}
+
+// withoutURL drops the request address from an HTTP client error, leaving
+// what went wrong.
+func withoutURL(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
+	}
+	return err
 }
 
 // Check verifies the key with a cheap request (used by the setup wizard).

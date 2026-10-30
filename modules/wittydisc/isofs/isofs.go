@@ -15,7 +15,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"sync"
 )
 
 const Sector = 2048
@@ -49,7 +48,6 @@ type Disc struct {
 	f     image
 	size  int64
 	files map[string]*File // upper-cased path -> file
-	mu    sync.Mutex
 
 	walked   map[int64]bool // directories already read while indexing
 	dirBytes int64
@@ -112,6 +110,11 @@ func (d *Disc) ReadFile(p string, max int64) ([]byte, error) {
 	}
 	if n < 0 {
 		return nil, fmt.Errorf("isofs: %s has a negative size", p)
+	}
+	// Sizes come from the image: nothing bigger than the image itself can be
+	// in it, whatever a directory entry says.
+	if n > d.size {
+		n = d.size
 	}
 	buf := make([]byte, n)
 	got, err := d.ReadAtFile(f, buf, 0)
@@ -257,7 +260,7 @@ func (d *Disc) indexISO9660() error {
 		case 1:
 			if root == nil {
 				root = append([]byte(nil), b[156:190]...)
-				d.Label = strings.TrimSpace(string(b[40:72]))
+				d.Label = strings.Trim(string(b[40:72]), " \x00")
 			}
 		case 2:
 			// Joliet supplementary descriptor - prefer it for long names, but
@@ -677,6 +680,9 @@ func (d *Disc) walkUDFDir(ctx *udfCtx, icb longAD, prefix string, depth int) err
 	if ent.inline != nil {
 		data = ent.inline
 	} else {
+		if ent.size < 0 || ent.size > 16<<20 {
+			return errors.New("UDF: directory too large")
+		}
 		data = make([]byte, ent.size)
 		tmp := &File{Size: ent.size, Extents: ent.extents}
 		if _, err := d.ReadAtFile(tmp, data, 0); err != nil && !errors.Is(err, io.EOF) {

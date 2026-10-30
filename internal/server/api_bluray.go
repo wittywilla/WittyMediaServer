@@ -111,7 +111,7 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 		return errNoPicture
 	}
 	// A few seconds into the chapter skips fades from black.
-	item, at := 0, pl.Items[0].In+uint32(minf(90, d.PlaylistDuration(pl)*0.1)*45000)
+	item, at := 0, pl.Items[0].In+uint32(min(90, d.PlaylistDuration(pl)*0.1)*45000)
 	chapters := 0
 	for _, m := range pl.Marks {
 		if m.Type != 1 {
@@ -121,6 +121,9 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 		if chapters == n {
 			item, at = m.Item, m.Time+6*45000
 		}
+	}
+	if n < 0 || n > chapters {
+		return errNoTitle // only real chapters: every other number would be one more picture on disk
 	}
 	if item >= len(pl.Items) {
 		item = 0
@@ -154,7 +157,7 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	for _, x := range ext {
 		a, b := off, off+x.Length
 		off = b
-		lo, hi := max64(a, from), min64(b, to)
+		lo, hi := max(a, from), min(b, to)
 		if hi > lo {
 			cut = append(cut, wittydvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
 		}
@@ -182,18 +185,4 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 		return errNoPicture
 	}
 	return nil
-}
-
-func max64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min64(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -152,9 +152,8 @@ func (a *Access) ItemClause() (string, []any) {
 	}
 	for _, g := range a.BlockGenres {
 		// An episode counts its show's genres too, as AllowsItem does.
-		cond = append(cond, "('|' || IFNULL(i.genres,'') || '|') NOT LIKE ?",
-			"('|' || IFNULL((SELECT sh.genres FROM shows sh WHERE sh.id = i.show_id),'') || '|') NOT LIKE ?")
-		args = append(args, "%|"+g+"|%", "%|"+g+"|%")
+		cond = append(cond, "('|' || IFNULL(i.genres,'') || '|' || IFNULL((SELECT sh.genres FROM shows sh WHERE sh.id = i.show_id),'') || '|') NOT LIKE ?")
+		args = append(args, "%|"+g+"|%")
 	}
 	return "(i.id NOT IN (" + ids(a.BlockItems) + ") AND IFNULL(i.show_id, 0) NOT IN (" + ids(a.BlockShows) + ") AND (" +
 		"i.id IN (" + ids(a.AllowItems) + ") OR IFNULL(i.show_id, 0) IN (" + ids(a.AllowShows) + ") OR (" + strings.Join(cond, " AND ") + ")))", args
@@ -182,6 +181,11 @@ func (a *Access) ShowClause() (string, []any) {
 		args = append(args, "%|"+g+"|%")
 	}
 	return "(s.id NOT IN (" + ids(a.BlockShows) + ") AND (s.id IN (" + ids(a.AllowShows) + ") OR (" + strings.Join(cond, " AND ") + ")))", args
+}
+
+// AllowsLibrary reports whether the account may open a library at all.
+func (a *Access) AllowsLibrary(id int64) bool {
+	return a == nil || len(a.Libraries) == 0 || has(a.Libraries, id)
 }
 
 func has(v []int64, n int64) bool {

@@ -15,6 +15,8 @@ or session tokens) to an issue.
 | **A DVD or Blu-ray menu shows no buttons** | Run `wms dvd walk disc.iso` or `wms bluray walk disc.iso` and attach the output to an issue (never the disc image). |
 | **Seeking in a DVD title lands slightly off** | DVD video is seeked by estimated bit-rate, then FFmpeg decodes forward to the exact point; on very high-bitrate discs this can take a second. |
 | **A title is named strangely** | Rename the file (`Title (Year).ext`), or use **Edit** on its page. Titles named by an earlier faulty parse are corrected on the next scan. |
+| **Everything from one drive is still listed while it is away** | That's on purpose: a library folder that can't be reached, or is empty (an unmounted drive looks like that), keeps its items until it is back. Files really deleted from a folder that is there disappear at the next scan. |
+| **A video waits and the log says the server is busy** | As many transcodes run as *maxTranscodes* allows, all with someone watching. Raise it in [wms.json](CONFIG.md) if the machine can take it. |
 | **Posters are missing** | Add a free TMDB key, or a custom agent, in *Settings → Metadata agents*, then **Refresh** the title. |
 | **Where is my data?** | The data folder (see [CONFIG.md](CONFIG.md)): `wms.db` is the database, `cache/images` the artwork, `transcode/` is temporary. |
 | **Can I use an LGPL-only FFmpeg?** | Yes: nothing requires GPL parts. Point `WMS_FFMPEG` at an LGPL build with `libopenh264` or a hardware encoder. |

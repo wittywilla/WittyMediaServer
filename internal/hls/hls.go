@@ -7,7 +7,6 @@
 package hls
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -19,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -66,8 +66,34 @@ type job struct {
 	cmd      *exec.Cmd
 	done     chan struct{}
 	err      error
-	stderr   bytes.Buffer
-	lastSeg  int
+	stderr   tailBuffer
+	lastSeg  atomic.Int64 // the newest finished segment, kept current by watch
+	stopped  atomic.Bool  // ended on purpose: how it exits says nothing
+}
+
+// tailBuffer keeps the end of what is written to it: FFmpeg can warn for
+// every frame of a damaged file for hours, and only the end explains a failure.
+type tailBuffer struct {
+	mu sync.Mutex
+	b  []byte
+}
+
+const stderrTail = 16 << 10
+
+func (t *tailBuffer) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.b = append(t.b, p...)
+	if len(t.b) > 2*stderrTail {
+		t.b = append(t.b[:0], t.b[len(t.b)-stderrTail:]...)
+	}
+	return len(p), nil
+}
+
+func (t *tailBuffer) String() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return string(t.b)
 }
 
 // Session is a running or idle transcode.
@@ -81,6 +107,14 @@ type Session struct {
 	tools    *ffmpeg.Tools
 	log      *slog.Logger
 	m        *Manager
+	// lastAsked is the newest segment a viewer asked for; FFmpeg rests once it
+	// is far ahead of this.
+	lastAsked atomic.Int64
+	prunedTo  int
+	lastPrune time.Time
+	// viewers: who has been watching lately (several accounts can share one
+	// stream), so one of them leaving doesn't end it for the others.
+	viewers map[string]time.Time
 }
 
 // Manager owns sessions and the temp directory.
@@ -92,52 +126,125 @@ type Manager struct {
 	session map[string]*Session
 	max     int // FFmpeg processes running at once
 
-	// running is every FFmpeg process. jobMu is taken after a session's mu,
-	// never before it.
-	jobMu   sync.Mutex
-	running map[*job]*Session
 }
 
-// ErrBusy: as many transcodes as the server allows are all being watched.
-var ErrBusy = errors.New("the server is busy with other streams")
+// ErrBusy: as many transcodes are running as the server allows
+// (-max-transcodes), and all of them have someone watching.
+var ErrBusy = errors.New("this server is busy with other streams; try again in a moment")
 
 const (
 	// maxSessions caps known streams; each has a folder, usually with segments.
 	maxSessions = 200
-	// A stream nobody asked anything of for this long gives way to a new one.
-	// (A player asks for a segment every few seconds, and FFmpeg picks up from
-	// wherever it asks next.)
-	evictAfter = 8 * time.Second
+	// A viewer who has asked for nothing for this long gives up their place
+	// when someone else needs to start a transcode (they restart on return).
+	yieldAfter = 20 * time.Second
+	pauseAfter = 90 * time.Second
+	// Finished segments stay this long after the last request, for a viewer
+	// who comes back; the session itself is kept longer (it costs next to
+	// nothing), so a film paused for hours still plays when resumed.
+	cleanAfter  = 10 * time.Minute
+	forgetAfter = 24 * time.Hour
+	// A fast machine can convert a film at many times its speed, taking every
+	// core and disk space for parts nobody may watch. FFmpeg stops when it is
+	// this many segments ahead of the viewer and starts again as they near it.
+	maxAheadSegs = 90
+	wakeSegs     = 30
+	// Segments the viewer passed this long ago are removed.
+	keepBehindSegs = 150
+	pruneEvery     = 30 * time.Second
 )
+
+// sessionDirRe matches the folders this package makes (see the IDs in
+// api_play.go, dvdsession and bdsession).
+var sessionDirRe = regexp.MustCompile(`^(v|dvd|bd)-[0-9a-zA-Z-]+$`)
 
 func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {
 	if max < 1 {
 		max = 1
 	}
-	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max, running: map[*job]*Session{}}
-	_ = os.RemoveAll(root)
+	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max}
+	cleanRoot(root)
 	_ = os.MkdirAll(root, 0o755)
 	go m.sweep()
 	return m
 }
 
+// cleanRoot removes what an earlier run left: only folders of the kind this
+// package makes. The transcode folder is the owner's choice and could hold
+// anything else.
+func cleanRoot(root string) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() && sessionDirRe.MatchString(e.Name()) {
+			_ = os.RemoveAll(filepath.Join(root, e.Name()))
+		}
+	}
+}
+
 func (m *Manager) sweep() {
 	for range time.Tick(30 * time.Second) {
-		m.mu.Lock()
-		for id, s := range m.session {
-			s.mu.Lock()
-			idle := time.Since(s.lastUsed)
-			s.mu.Unlock()
-			if idle > 10*time.Minute {
-				s.stop()
-				_ = os.RemoveAll(s.Dir)
-				delete(m.session, id)
-			} else if idle > 90*time.Second {
-				s.pause()
+		m.sweepOnce()
+	}
+}
+
+func (m *Manager) sweepOnce() {
+	var clean []*Session
+	m.mu.Lock()
+	for id, s := range m.session {
+		s.mu.Lock()
+		idle := time.Since(s.lastUsed)
+		s.mu.Unlock()
+		switch {
+		case idle > forgetAfter:
+			clean = append(clean, s)
+			delete(m.session, id)
+		case idle > cleanAfter:
+			clean = append(clean, s)
+		case idle > pauseAfter:
+			s.pause()
+		}
+	}
+	m.mu.Unlock()
+	for _, s := range clean { // waiting for FFmpeg to go must not hold up other streams
+		s.stopAndClean()
+	}
+}
+
+// makeRoom is called before starting FFmpeg for session s. When the limit is
+// reached, the transcode nobody has asked anything of for the longest time
+// gives way; if everyone is watching, s has to wait.
+func (m *Manager) makeRoom(s *Session) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	running := 0
+	var oldest *Session
+	var oldestUsed time.Time
+	for _, o := range m.session {
+		if o == s {
+			continue
+		}
+		o.mu.Lock()
+		active, used := o.job != nil && !o.job.finished(), o.lastUsed
+		o.mu.Unlock()
+		if active {
+			running++
+			if oldest == nil || used.Before(oldestUsed) {
+				oldest, oldestUsed = o, used
 			}
 		}
-		m.mu.Unlock()
 	}
+	if running < m.max {
+		return nil
+	}
+	if time.Since(oldestUsed) > yieldAfter {
+		m.log.Info("transcode limit reached: pausing an idle stream", "cat", "ffmpeg", "hls", oldest.Spec.ID, "idle", time.Since(oldestUsed).Round(time.Second))
+		oldest.stop()
+		return nil
+	}
+	return ErrBusy
 }
 
 // Get returns a session by id.
@@ -163,7 +270,7 @@ func (m *Manager) Ensure(spec Spec) *Session {
 			spec.SegmentSec = 2
 		}
 	}
-	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m}
+	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
 	_ = os.MkdirAll(s.Dir, 0o755)
 	m.session[spec.ID] = s
@@ -186,51 +293,54 @@ func (m *Manager) dropOldestLocked() {
 	}
 }
 
-// admitLocked makes room for one more FFmpeg process, stopping the one that
-// has gone unused longest if it must. Call with m.jobMu held.
-func (m *Manager) admitLocked(self *Session) bool {
-	if len(m.running) < m.max {
-		return true
-	}
-	var oldest *job
-	var at int64
-	now := time.Now().UnixNano()
-	for j, s := range m.running {
-		used := s.used.Load()
-		if s != self && now-used > int64(evictAfter) && (oldest == nil || used < at) {
-			oldest, at = j, used
-		}
-	}
-	if oldest == nil {
-		return false
-	}
-	if oldest.cmd.Process != nil {
-		_ = oldest.cmd.Process.Kill()
-	}
-	delete(m.running, oldest)
-	return true
-}
-
 // Stop ends and deletes a session.
 func (m *Manager) Stop(id string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if s, ok := m.session[id]; ok {
-		s.stop()
-		_ = os.RemoveAll(s.Dir)
-		delete(m.session, id)
+	s, ok := m.session[id]
+	delete(m.session, id)
+	m.mu.Unlock()
+	if ok {
+		s.stopAndClean()
+	}
+}
+
+// Leave says one viewer (any string that tells devices apart) is done with a
+// stream; it stops when nobody else has used it lately.
+func (m *Manager) Leave(id, viewer string) {
+	s := m.Get(id)
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	delete(s.viewers, viewer)
+	others := false
+	for _, seen := range s.viewers {
+		others = others || time.Since(seen) < pauseAfter
+	}
+	s.mu.Unlock()
+	if !others {
+		m.Stop(id)
 	}
 }
 
 // StopAll ends every session (shutdown).
 func (m *Manager) StopAll() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	for id, s := range m.session {
-		s.stop()
-		_ = os.RemoveAll(s.Dir)
-		delete(m.session, id)
+	all := m.session
+	m.session = map[string]*Session{}
+	m.mu.Unlock()
+	for _, s := range all {
+		s.stopAndClean()
 	}
+}
+
+// See records who is using a stream.
+func (s *Session) See(viewer string) {
+	s.mu.Lock()
+	s.viewers[viewer] = time.Now()
+	s.lastUsed = time.Now()
+	s.used.Store(s.lastUsed.UnixNano())
+	s.mu.Unlock()
 }
 
 // SegmentCount is the number of segments for the duration.
@@ -282,12 +392,13 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	if n < 0 || n >= s.SegmentCount() {
 		return "", errors.New("segment out of range")
 	}
+	s.lastAsked.Store(int64(n))
 	p := s.segPath(n)
 	if fileReady(p) {
+		s.prune(n)
+		s.wake(n)
 		return p, nil
 	}
-	s.mu.Lock()
-	j := s.job
 	// A stream that holds its last frame (DVD menus and interactive clips) is
 	// never entered part-way: such clips often carry a second of video and
 	// then minutes of sound over that one picture (a credits card, a game
@@ -295,23 +406,13 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	// segments come out empty. It is converted from the start, which is
 	// quick for these short, simple clips, and later segments wait for it.
 	from := n
-	ahead := n > j.lastProducedOr(-1)+6
 	if s.Spec.HoldLastFrame {
-		from, ahead = 0, false
+		from = 0
 	}
-	needStart := j == nil || j.finished() || n < j.startSeg || ahead
-	if needStart {
-		if j != nil {
-			s.stopLocked()
-		}
-		var err error
-		j, err = s.startLocked(from)
-		if err != nil {
-			s.mu.Unlock()
-			return "", err
-		}
+	j, err := s.ensureJob(n, from)
+	if err != nil {
+		return "", err
 	}
-	s.mu.Unlock()
 
 	deadline := time.Now().Add(60 * time.Second)
 	for time.Now().Before(deadline) {
@@ -336,15 +437,84 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	return "", errors.New("timed out waiting for segment")
 }
 
+// wantsStart: the running job (if any) won't reach segment n soon.
+func (s *Session) wantsStart(n int) bool {
+	j := s.job
+	if j == nil || j.finished() || n < j.startSeg {
+		return true
+	}
+	return !s.Spec.HoldLastFrame && n > int(j.lastSeg.Load())+6
+}
+
+// ensureJob returns a job that will produce segment n, starting FFmpeg at
+// segment from if there is none.
+func (s *Session) ensureJob(n, from int) (*job, error) {
+	s.mu.Lock()
+	if !s.wantsStart(n) {
+		defer s.mu.Unlock()
+		return s.job, nil
+	}
+	s.stopLocked()
+	s.mu.Unlock()
+	// Without the session's lock: makeRoom looks at the other sessions.
+	if err := s.m.makeRoom(s); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.wantsStart(n) { // another request for this stream got here first
+		return s.job, nil
+	}
+	s.stopLocked()
+	return s.startLocked(from)
+}
+
+// wake starts FFmpeg again when it rested (see maxAheadSegs, and pause) and
+// the viewer is nearing the end of what is ready.
+func (s *Session) wake(n int) {
+	if s.Spec.HoldLastFrame {
+		return
+	}
+	s.mu.Lock()
+	idle := s.job == nil // a job that ended by itself reached the end, or failed
+	s.mu.Unlock()
+	if !idle {
+		return
+	}
+	for i, end := n+1, min(n+wakeSegs, s.SegmentCount()); i < end; i++ {
+		if !fileReady(s.segPath(i)) {
+			if _, err := s.ensureJob(i, i); err != nil {
+				s.log.Debug("resume failed", "err", err)
+			}
+			return
+		}
+	}
+}
+
+// prune removes segments far behind the viewer, so a long film doesn't fill a
+// small disk with what was watched an hour ago.
+func (s *Session) prune(n int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if time.Since(s.lastPrune) < pruneEvery {
+		return
+	}
+	s.lastPrune = time.Now()
+	for ; s.prunedTo < n-keepBehindSegs; s.prunedTo++ {
+		_ = os.Remove(s.segPath(s.prunedTo))
+	}
+}
+
 // Warm starts FFmpeg on the first segment in the background (if nothing has
 // been produced yet) so a stream the viewer is about to see is ready sooner.
 func (s *Session) Warm() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.job != nil || fileReady(s.segPath(0)) {
+	busy := s.job != nil || fileReady(s.segPath(0))
+	s.mu.Unlock()
+	if busy {
 		return
 	}
-	if _, err := s.startLocked(0); err != nil {
+	if _, err := s.ensureJob(0, 0); err != nil {
 		s.log.Debug("warm failed", "err", err)
 	}
 }
@@ -363,18 +533,9 @@ func (j *job) finished() bool {
 	}
 }
 
-func (j *job) lastProduced() int { return j.lastSeg }
-
-// lastProducedOr is lastProduced for a job that may not exist.
-func (j *job) lastProducedOr(none int) int {
-	if j == nil {
-		return none
-	}
-	return j.lastSeg
-}
-
 func (s *Session) startLocked(fromSeg int) (*job, error) {
 	sp := s.Spec
+	_ = os.MkdirAll(s.Dir, 0o755) // the segments of an idle session may have been cleaned up
 	start := float64(fromSeg) * sp.SegmentSec
 	// Damaged discs and rips often carry runs of broken audio frames; ffmpeg
 	// would abort once 2/3 of the frames failed to decode and leave the
@@ -490,30 +651,18 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		filepath.Join(s.Dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
 	)
 	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
-	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), lastSeg: fromSeg - 1}
+	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{})}
+	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
 	s.log.Info("ffmpeg start", "cat", "ffmpeg", "hls", s.Spec.ID, "from", fromSeg, "args", strings.Join(args, " "))
-	s.m.jobMu.Lock()
-	if !s.m.admitLocked(s) {
-		s.m.jobMu.Unlock()
-		return nil, ErrBusy
-	}
-	err := cmd.Start()
-	if err == nil {
-		s.m.running[j] = s
-	}
-	s.m.jobMu.Unlock()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 	s.job = j
 	go func() {
 		j.err = cmd.Wait()
-		s.m.jobMu.Lock()
-		delete(s.m.running, j)
-		s.m.jobMu.Unlock()
 		close(j.done)
-		if j.err != nil && !strings.Contains(j.err.Error(), "killed") && !strings.Contains(j.err.Error(), "exit status 255") {
+		if j.err != nil && !j.stopped.Load() {
 			s.log.Warn("ffmpeg exited", "err", j.err, "stderr", tail(j.stderr.String(), 800))
 		}
 	}()
@@ -530,12 +679,22 @@ func (s *Session) watch(j *job) {
 			return
 		case <-time.After(250 * time.Millisecond):
 		}
-		for n := j.lastSeg + 1; n < s.SegmentCount(); n++ {
+		for n := int(j.lastSeg.Load()) + 1; n < s.SegmentCount(); n++ {
 			if fileReady(s.segPath(n)) {
-				j.lastSeg = n
+				j.lastSeg.Store(int64(n))
 			} else {
 				break
 			}
+		}
+		// Far enough ahead of the viewer: rest (wake starts it again).
+		if !s.Spec.HoldLastFrame && j.lastSeg.Load()-s.lastAsked.Load() > maxAheadSegs {
+			s.mu.Lock()
+			if s.job == j {
+				s.log.Debug("resting: far ahead of the viewer", "cat", "ffmpeg", "at", j.lastSeg.Load())
+				s.stopLocked()
+			}
+			s.mu.Unlock()
+			return
 		}
 	}
 }
@@ -563,10 +722,8 @@ func (s *Session) stopLocked() {
 	}
 	j := s.job
 	s.job = nil
-	s.m.jobMu.Lock()
-	delete(s.m.running, j)
-	s.m.jobMu.Unlock()
 	if !j.finished() && j.cmd.Process != nil {
+		j.stopped.Store(true)
 		_ = j.cmd.Process.Kill()
 	}
 }
@@ -575,6 +732,24 @@ func (s *Session) stop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stopLocked()
+}
+
+// stopAndClean ends FFmpeg and removes the segments. It waits for the process
+// to go: an open file can't be deleted on Windows, and a process that is
+// still writing would put files back in the folder.
+func (s *Session) stopAndClean() {
+	s.mu.Lock()
+	j := s.job
+	s.stopLocked()
+	s.prunedTo = 0
+	s.mu.Unlock()
+	if j != nil {
+		select {
+		case <-j.done:
+		case <-time.After(3 * time.Second):
+		}
+	}
+	_ = os.RemoveAll(s.Dir)
 }
 
 // pause stops FFmpeg but keeps produced segments so playback can resume.

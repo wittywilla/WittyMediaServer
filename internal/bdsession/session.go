@@ -15,6 +15,7 @@ import (
 	"image"
 	"image/png"
 	"log/slog"
+	"maps"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -62,14 +63,33 @@ func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, l
 
 func (m *Manager) sweep() {
 	for range time.Tick(time.Minute) {
-		m.mu.Lock()
-		for id, s := range m.sessions {
+		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
 			if time.Since(s.lastUsed()) > 30*time.Minute {
-				s.Close()
-				delete(m.sessions, id)
+				m.CloseSession(id)
 			}
 		}
-		m.mu.Unlock()
+	}
+}
+
+func (m *Manager) list() map[string]*Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return maps.Clone(m.sessions)
+}
+
+// maxSessions bounds the open discs (each keeps a file and its parsed
+// structure); the one left alone longest makes way.
+const maxSessions = 16
+
+func (m *Manager) makeRoom() {
+	var oldest *Session
+	if all := m.list(); len(all) >= maxSessions {
+		for _, o := range all {
+			if oldest == nil || o.lastUsed().Before(oldest.lastUsed()) {
+				oldest = o
+			}
+		}
+		m.CloseSession(oldest.ID)
 	}
 }
 
@@ -163,6 +183,7 @@ func randomID() string {
 
 // Open opens a disc for a viewer.
 func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error) {
+	m.makeRoom()
 	d, err := wittybluray.Open(path)
 	if err != nil {
 		return nil, err
@@ -177,29 +198,16 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		s.nav.SetAngle(prefs.Angle)
 	}
 	m.mu.Lock()
-	// Each session holds a disc open and its parsed structure in memory.
-	if len(m.sessions) >= maxSessions {
-		var oldest *Session
-		for _, x := range m.sessions {
-			if oldest == nil || x.lastUsed().Before(oldest.lastUsed()) {
-				oldest = x
-			}
-		}
-		oldest.Close()
-		delete(m.sessions, oldest.ID)
-	}
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
 	return s, nil
 }
 
-const maxSessions = 32
-
 // Get finds a session.
 func (m *Manager) Get(id string) *Session {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	s := m.sessions[id]
+	m.mu.Unlock()
 	if s != nil {
 		s.touch()
 	}
@@ -209,10 +217,11 @@ func (m *Manager) Get(id string) *Session {
 // CloseSession ends a session.
 func (m *Manager) CloseSession(id string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if s := m.sessions[id]; s != nil {
+	s := m.sessions[id]
+	delete(m.sessions, id)
+	m.mu.Unlock()
+	if s != nil {
 		s.Close()
-		delete(m.sessions, id)
 	}
 }
 

@@ -21,17 +21,6 @@ func newTVScan() *tvScan {
 	return &tvScan{shows: map[string]*Show{}, episodes: map[int64]map[[2]int]EpisodeMeta{}}
 }
 
-func (s *Scanner) tvdb() *TVDB {
-	if s.TVDBKey == nil {
-		return nil
-	}
-	key, pin := s.TVDBKey()
-	if key == "" {
-		return nil
-	}
-	return &TVDB{Key: key, PIN: pin}
-}
-
 // SeriesSource is an online TV metadata service.
 type SeriesSource interface {
 	Name() string // stored as the show's provider: "tvdb", "tvmaze"
@@ -127,8 +116,11 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		return err
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Poster != "" && !existing.Missing &&
-		existing.ShowID != nil && *existing.ShowID == sh.ID && (sh.Provider == "" || existing.Provider == sh.Provider) {
+	sameFile := err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size
+	if sameFile && existing.Poster != "" && existing.ShowID != nil && *existing.ShowID == sh.ID && !s.tvInfoNew(ctx, existing, sh, tv) {
+		if existing.Missing {
+			return s.Store.restore(ctx, existing.ID)
+		}
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime, ShowID: &sh.ID}
@@ -144,8 +136,11 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		}
 	}
 	it.Title = ref.Title
-	switch c.kind {
-	case "video":
+	switch {
+	case sameFile && existing.RuntimeSec > 0: // already read: no need to start ffprobe
+		it.RuntimeSec, it.Container, it.VideoCodec, it.Width, it.Height = existing.RuntimeSec, existing.Container, existing.VideoCodec, existing.Width, existing.Height
+		it.AudioLangs, it.SubLangs, it.IntroStart, it.IntroEnd, it.Disc = existing.AudioLangs, existing.SubLangs, existing.IntroStart, existing.IntroEnd, existing.Disc
+	case c.kind == "video":
 		s.probeVideo(ctx, it)
 	default:
 		s.probeDisc(ctx, it)
@@ -207,6 +202,17 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 	return s.Store.upsertItem(ctx, it)
 }
 
+// tvInfoNew: the show's service knows this episode, and it was not filled in
+// from there yet. An episode the service has never heard of stays as it is
+// (it must not be read again on every scan).
+func (s *Scanner) tvInfoNew(ctx context.Context, it *Item, sh *Show, tv *tvScan) bool {
+	if sh.Provider == "" || it.Provider == sh.Provider || it.Season == nil || it.Episode == nil {
+		return false
+	}
+	_, known := s.tvEpisodes(ctx, sh, tv)[[2]int{*it.Season, *it.Episode}]
+	return known
+}
+
 // applyEpisodeMeta fills an episode from TheTVDB. Titles parsed from file
 // names are replaced (they are approximations); NFO/sidecar values are kept.
 func applyEpisodeMeta(it *Item, provider string, eps map[[2]int]EpisodeMeta, keepText bool) {
@@ -265,6 +271,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 	if err != nil {
 		sh = &Show{LibraryID: lib.ID, Path: ref.ShowDir, Title: ref.Show, Year: ref.ShowYear}
 	}
+	before := *sh
 	base := filepath.Base(ref.ShowDir)
 	if p := findArt(ref.ShowDir, "poster", "folder", "cover", "show", base); p != "" {
 		sh.Poster = p
@@ -286,7 +293,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		} else {
 			applySeriesMeta(sh, t.Name(), meta, fromNFO, false)
 		}
-		if err := s.Store.UpsertShow(ctx, sh); err != nil {
+		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}
 		if meta != nil {
@@ -294,12 +301,33 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 				_ = s.Store.SetSeasonPoster(ctx, sh.ID, n, p, false)
 			}
 		}
-	} else if err := s.Store.UpsertShow(ctx, sh); err != nil {
+	} else if err := s.saveShow(ctx, sh, &before); err != nil {
 		return nil, err
 	}
 	s.saveShowOnScan(ctx, sh)
 	tv.shows[ref.ShowDir] = sh
 	return sh, nil
+}
+
+// saveShow stores a show a scan looked at, if anything changed. Its pictures'
+// addresses carry the time it last changed, so a needless save on every scan
+// would make every browser fetch them again.
+func (s *Scanner) saveShow(ctx context.Context, sh, before *Show) error {
+	if sh.ID != 0 && showFacts(sh) == showFacts(before) {
+		return nil
+	}
+	return s.Store.UpsertShow(ctx, sh)
+}
+
+func showFacts(sh *Show) [13]string {
+	year, rating := "", ""
+	if sh.Year != nil {
+		year = strconv.Itoa(*sh.Year)
+	}
+	if sh.Rating != nil {
+		rating = strconv.FormatFloat(*sh.Rating, 'f', -1, 64)
+	}
+	return [13]string{sh.Title, sh.SortTitle, year, sh.Overview, joinList(sh.Genres), rating, sh.ContentRating, sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID}
 }
 
 func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]int]EpisodeMeta {
@@ -406,7 +434,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	return s.Store.Show(ctx, showID, 0)
 }
 
-// Kodi tvshow.nfo / episode NFO.
+// tvshow.nfo and episode NFO files.
 
 type nfoShow struct {
 	XMLName   xml.Name `xml:"tvshow"`

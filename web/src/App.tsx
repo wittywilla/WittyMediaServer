@@ -7,16 +7,8 @@ import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import { Brand, BrandMark, Spinner, UpdateDot, VersionTag } from './components/common'
-import LibraryPage from './pages/LibraryPage'
-import ItemPage from './pages/ItemPage'
-import ShowPage from './pages/ShowPage'
-import { AlbumPage } from './pages/AudioLibrary'
 import { AudioProvider } from './audio/player'
-import ReaderPage from './pages/Reader'
-import SettingsPage from './pages/SettingsPage'
-import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
-import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 
@@ -26,6 +18,16 @@ const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
+// Every other page comes when it is opened: the first screen a phone or an
+// old TV has to load stays small. The player has its own (hls.js is large).
+const LibraryPage = lazy(() => import('./pages/LibraryPage'))
+const ItemPage = lazy(() => import('./pages/ItemPage'))
+const ShowPage = lazy(() => import('./pages/ShowPage'))
+const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
+const ReaderPage = lazy(() => import('./pages/Reader'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const SearchPage = lazy(() => import('./pages/SearchPage'))
+const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 
 export default function App() {
   useDialogs()
@@ -55,15 +57,15 @@ function Shell() {
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
-  if (!user) return setupRequired ? <SetupWizard resume={false} /> : <AuthPage />
-  if (onboarding && user.isAdmin) return <SetupWizard resume />
+  if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard resume={false} /></Suspense> : <AuthPage />
+  if (onboarding && user.isAdmin) return <Suspense fallback={<Spinner />}><SetupWizard resume /></Suspense>
   // The player lives outside the page routes (see PlayerDock) so it can keep
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
   return (
     <AudioProvider>
-      {isReader ? <Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+      {isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )
@@ -79,6 +81,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
       <div className="main">
         <TopBar onMenu={() => setNavOpen((o) => !o)} showMenu={side} topNav={style !== 'side'} />
         <main className="content" id="main" tabIndex={-1}>
+          <Suspense fallback={<Spinner />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/library/:id" element={<LibraryPage />} />
@@ -94,6 +97,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </main>
       </div>
       <TabBar onLibraries={() => setNavOpen(true)} />

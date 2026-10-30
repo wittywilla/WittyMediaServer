@@ -7,7 +7,6 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ func (s *Server) handlePodcasts(w http.ResponseWriter, r *http.Request) {
 		a := s.access(r)
 		out := ps[:0]
 		for _, p := range ps {
-			if a != nil && len(a.Libraries) > 0 && !slices.Contains(a.Libraries, p.LibraryID) {
+			if a != nil && !a.AllowsLibrary(p.LibraryID) {
 				continue
 			}
 			p.URL = "" // a private feed's address is a password

@@ -16,9 +16,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      # The newest patch release, not the minimum go.mod names: every Go patch
+      # fixes security problems in the standard library that binaries ship with.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: go.mod
+          go-version: "1.27.x"
+          check-latest: true
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
@@ -27,6 +30,12 @@ jobs:
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
       - run: go test ./... -count=1
+      # Transcodes, disc sessions and scans run concurrently; only this finds data races.
+      - name: Race detector
+        run: CGO_ENABLED=1 go test -race -count=1 ./internal/...
+      - name: Known vulnerabilities (reported, does not stop the build)
+        continue-on-error: true
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       # go.work builds the modules against each other's local source.
       - name: WittyDisc, WittyDVD, WittyBluray and WittyIntegratedFileBrowser modules (their own go.mod)
         run: |

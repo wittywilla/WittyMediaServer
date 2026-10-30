@@ -67,9 +67,6 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("ffmpeg", "path", tools.FFmpeg, "version", tools.Version)
-	// Find out which hardware encoders really work here (for Settings).
-	go tools.ProbeHardware(context.Background())
-
 	database, err := db.Open(cfg.DataDir)
 	if err != nil {
 		log.Error("database", "err", err)
@@ -95,10 +92,21 @@ func cmdServe(args []string) int {
 		}
 	}
 
+	// Find out which hardware encoders really work here, if any are to be used.
+	{
+		ctx := context.Background()
+		if database.GetSetting(ctx, "hwEncoders", "") != "" || database.GetSetting(ctx, "hwAccel", "0") == "1" {
+			tools.StartHardwareProbe()
+		}
+	}
+
 	store := &library.Store{DB: database}
 	// Parental controls need the minimum age of titles saved before they existed.
 	if err := store.BackfillAges(context.Background()); err != nil {
 		log.Warn("rating ages", "err", err)
+	}
+	if err := store.ResetScanning(context.Background()); err != nil {
+		log.Warn("scan flags", "err", err)
 	}
 	tmdbKey := func() string { return database.GetSetting(context.Background(), "tmdbKey", "") }
 	scanner := library.NewScanner(store, tools, cfg.CacheDir, tmdbKey, log)
@@ -219,18 +227,22 @@ func cmdServe(args []string) int {
 		case <-ctx.Done():
 		}
 	}()
+	stopped := make(chan struct{})
 	go func() {
+		defer close(stopped)
 		<-ctx.Done()
 		log.Info("shutting down")
-		hlsMgr.StopAll()
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = httpServer.Shutdown(sctx)
+		_ = httpServer.Close() // long streams: their contexts end, and their FFmpeg with them
+		hlsMgr.StopAll()
 	}()
 	if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("serve", "err", err)
 		return 1
 	}
+	<-stopped // Serve returns as soon as shutdown begins: don't close the database under it
 	if restarting.Load() {
 		return relaunch(cfg, log)
 	}

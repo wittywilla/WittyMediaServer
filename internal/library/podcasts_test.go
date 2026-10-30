@@ -3,10 +3,12 @@ package library
 import (
 	"context"
 	"encoding/xml"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 const testFeed = `<?xml version="1.0"?>
@@ -48,6 +50,34 @@ func TestFeedParsing(t *testing.T) {
 
 // Feeds and episodes may only come from the internet, never from this
 // machine or the local network.
+func TestPublicIP(t *testing.T) {
+	cases := map[string]bool{
+		"8.8.8.8": true, "1.1.1.1": true, "2606:4700:4700::1111": true,
+		"127.0.0.1": false, "::1": false, "10.0.0.1": false, "172.16.0.1": false, "192.168.1.1": false, "169.254.169.254": false,
+		"0.0.0.0": false, "0.1.2.3": false, "100.64.0.1": false, "100.127.255.1": false, "198.18.0.1": false, "224.0.0.1": false, "240.0.0.1": false,
+		"fc00::1": false, "fe80::1": false, "ff02::1": false, "::ffff:127.0.0.1": false, "::ffff:192.168.1.1": false, "64:ff9b::7f00:1": false, "::": false,
+	}
+	for s, want := range cases {
+		if got := internetAddr(net.ParseIP(s)); got != want {
+			t.Errorf("%s: got %v, want %v", s, got, want)
+		}
+	}
+	if internetAddr(nil) {
+		t.Error("an unreadable address counts as public")
+	}
+}
+
+func TestSafeNameEmptyAndLong(t *testing.T) {
+	for _, s := range []string{"..", "...", " . ", ""} {
+		if got := safeName(s); got != "Episode" {
+			t.Errorf("safeName(%q) = %q", s, got)
+		}
+	}
+	if got := safeName(strings.Repeat("é", 100)); !utf8.ValidString(got) || len(got) > 120 {
+		t.Errorf("cut inside a character: %q", got)
+	}
+}
+
 func TestSafeClientRefusesLocal(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(testFeed)) }))
 	defer srv.Close()

@@ -100,6 +100,16 @@ files or reach the network (`-i`, output names, `-vf`, `-filter_complex`, `-atta
 when you save, because a web account must not be able to read or change files on the machine that
 way. The full list is `expertOptions` in `internal/ffmpeg/encoders.go`.
 
+## How much a transcode costs
+
+The server stops FFmpeg once it is 6 minutes ahead of the viewer and starts it again as they near
+that point, so a fast machine doesn't convert a whole film for someone who stops after a minute.
+Segments more than 10 minutes behind the viewer are removed, so a long film stays small on disk.
+FFmpeg stops 90 seconds after the last request (a paused player), and when the player closes.
+
+The transcode folder (`transcodeDir`) is cleaned at every start, of the stream folders the server
+made itself; anything else in it stays.
+
 ## Which profile for which machine
 
 | Machine | Encoder | Profile | Max resolution | Notes |

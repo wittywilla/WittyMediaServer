@@ -172,6 +172,16 @@ func (s *Server) handleMetadataTest(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- sign-in limits
 
+// loginSlots: password checks running at once.
+var loginSlots = make(chan struct{}, 2)
+
+// ipFailLimit: wrong passwords from one address, over all names, before that
+// address has to slow down (it can't try one password on every account).
+const ipFailLimit = 30
+
+// maxLoginEntries bounds the limiter's memory whatever a flood sends.
+const maxLoginEntries = 10000
+
 // loginLimiter slows down password guessing: after 5 failures for one name
 // from one address, each further attempt waits longer (up to 15 minutes).
 // One address trying many names (one common password against every account)

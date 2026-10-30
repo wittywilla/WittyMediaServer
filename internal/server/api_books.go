@@ -31,19 +31,13 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 		}
 		out["pages"] = len(pages)
 	case "epub":
-		zr, done, err := library.OpenArchive(it.Path)
-		if err != nil {
-			writeErr(w, 500, "cannot open this book")
-			return
-		}
-		defer done()
-		info, err := library.ReadEPUB(zr)
+		info, words, err := library.ArchiveEPUB(it.Path)
 		if err != nil {
 			writeErr(w, 422, err.Error())
 			return
 		}
 		out["spine"], out["toc"] = info.Spine, info.TOC
-		out["words"] = library.WordCounts(zr, info.Spine) // for "time left" in the chapter and the book
+		out["words"] = words // for "time left" in the chapter and the book
 	}
 	writeJSON(w, 200, out)
 }

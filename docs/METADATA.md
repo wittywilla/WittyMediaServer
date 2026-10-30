@@ -1,6 +1,6 @@
 # Metadata, NFO files and artwork
 
-WittyMediaServer reads and writes metadata in the standard **NFO and artwork** formats that Kodi and most other media servers
+WittyMediaServer reads and writes metadata in the standard **NFO and artwork** formats that most other media software
 already use, so you can move an existing library in — or out — without re-tagging anything.
 
 - [Where metadata comes from](#where-metadata-comes-from)
@@ -16,7 +16,7 @@ Sources are applied in this order; later ones only fill gaps:
 | # | Source | Example |
 |---|---|---|
 | 1 | `<file>.metadata.json` next to the file | `{"title":"Shrek","year":2001,"overview":"…","genres":["Animation"],"poster":"https://…"}` |
-| 2 | Kodi-style NFO | `Shrek (2001).nfo`, `movie.nfo`, `tvshow.nfo`, episode `<name>.nfo` |
+| 2 | NFO file | `Shrek (2001).nfo`, `movie.nfo`, `tvshow.nfo`, episode `<name>.nfo` |
 | 3 | Local artwork | `poster.jpg`, `<name>-poster.jpg`, `folder.jpg`, `fanart.jpg`, `season01-poster.jpg`, `<episode>-thumb.jpg` |
 | 4 | File and folder names | `Shrek (2001).mkv`, `Show - S01E02 - Title.mkv`, `SHREK.ISO` (disc label) |
 | 5 | **Custom agents** you added, in their order (movies, home videos, books) | anything your own service knows: see [Custom agents](#custom-agents) |
@@ -88,6 +88,10 @@ default), the server writes these files in the standard layout other media serve
 | TV show | `tvshow.nfo`, `poster.jpg`, `fanart.jpg`, `season01-poster.jpg`… in the show folder |
 | Episode | `<name>.nfo` (`<episodedetails>`), `<name>-thumb.jpg` |
 
+Artwork saved this way is always a real picture from the internet, the image cache or your own
+disk: a sidecar file or a feed can't make the server copy another kind of file here, or fetch
+something from your local network.
+
 Scans only write metadata for items that have no NFO yet; your own NFOs are never touched by a
 scan, and if you edit an item whose NFO you wrote by hand, the original is kept as `<name>.nfo.bak`.
 Mount media read-only (Docker `:ro`) and turn the option off if you prefer the server not to write.
@@ -107,7 +111,7 @@ saving on, the NFO is rewritten at once (a hand-written NFO is kept as `.nfo.bak
 
 ## Coming from another media server
 
-- **Servers that use NFO files (and Kodi)**: point a library at the same folders. Existing NFOs
+- **Software that uses NFO files**: point a library at the same folders. Existing NFOs
   and artwork are read as-is, including TMDB/TheTVDB ids, so matches are exact.
 - **Servers that keep metadata in their own database**: local artwork (`poster.jpg`,
   `fanart.jpg`) is still read, and WittyMediaServer matches by the usual folder/file naming

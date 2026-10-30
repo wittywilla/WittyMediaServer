@@ -11,7 +11,7 @@ import (
 )
 
 func TestRadioRelay(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	ctx := context.Background()
 	lib, err := ts.s.Store.CreateLibrary(ctx, "Radio", "radio", nil)
 	if err != nil {

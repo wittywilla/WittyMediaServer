@@ -85,7 +85,10 @@ var trackPrefixRe = regexp.MustCompile(`^(\d{1,3})(?:[ ._-]+|\.\s*)(.+)$`)
 
 func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, covers map[string]string) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing {
+	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+		if existing.Missing {
+			return s.Store.restore(ctx, existing.ID)
+		}
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: "audio", Path: c.path, SizeBytes: c.size, MTime: c.mtime}

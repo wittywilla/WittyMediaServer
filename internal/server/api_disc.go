@@ -187,6 +187,10 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "disc not found")
 		return
 	}
+	if it.Disc != nil && it.Disc.Scrambled {
+		writeErr(w, 404, errNoPicture.Error()) // protected discs are never read
+		return
+	}
 	h := sha1.Sum([]byte(it.Path))
 	out := filepath.Join(s.Cfg.ImagesDir, fmt.Sprintf("dvdthumb-%s-%d-%d.jpg", hex.EncodeToString(h[:8]), ttn, n))
 	if st, err := os.Stat(out); err != nil || st.Size() == 0 {
@@ -197,7 +201,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		}
 		err := s.makeDiscThumb(r.Context(), it, ttn, n, out)
 		<-thumbSlots
-		if err == errNoPicture {
+		if err == errNoPicture || err == errNoTitle {
 			writeErr(w, 404, err.Error())
 			return
 		}
@@ -240,7 +244,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 		if n < len(ts.Chapters) {
 			end = ts.Chapters[n]
 		}
-		at = ts.Chapters[n-1] + minf(6, (end-ts.Chapters[n-1])/3)
+		at = ts.Chapters[n-1] + min(6, (end-ts.Chapters[n-1])/3)
 	}
 	cell := ts.Cells[0]
 	for _, c := range ts.Cells {
@@ -280,11 +284,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	return nil
 }
 
-var errNoPicture = errors.New("no picture in this title")
-
-func minf(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-	return b
-}
+var (
+	errNoPicture = errors.New("no picture in this title")
+	errNoTitle   = errors.New("no such title or chapter")
+)

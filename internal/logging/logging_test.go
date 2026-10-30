@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -62,6 +63,20 @@ func TestCategoriesAndRedaction(t *testing.T) {
 		if strings.Contains(out, not) {
 			t.Errorf("%q should not be in the log", not)
 		}
+	}
+}
+
+// An HTTP client's error quotes the address it asked, API key and all, and it
+// reaches the log as an error value rather than text.
+func TestErrorValuesAreRedacted(t *testing.T) {
+	l, err := New(t.TempDir(), slog.LevelInfo, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	slog.New(l.Handler()).Warn("lookup failed", "err", errors.New(`Get "https://api.example.com/3/search?api_key=abc123&query=x": timeout`))
+	if got := read(t, l); strings.Contains(got, "abc123") || !strings.Contains(got, "timeout") {
+		t.Fatalf("log: %s", got)
 	}
 }
 

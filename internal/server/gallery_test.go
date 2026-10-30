@@ -21,9 +21,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-// testServer is the whole API on a real database, with no FFmpeg: pictures go
+// galleryServer is the whole API on a real database, with no FFmpeg: pictures go
 // through everything but making thumbnails.
-type testServer struct {
+type galleryServer struct {
 	t       *testing.T
 	s       *Server
 	h       http.Handler
@@ -35,7 +35,7 @@ type testServer struct {
 	lib     *library.Library
 }
 
-func newTestServer(t *testing.T) *testServer {
+func newGalleryServer(t *testing.T) *galleryServer {
 	t.Helper()
 	dir := t.TempDir()
 	d, err := db.Open(dir)
@@ -48,7 +48,7 @@ func newTestServer(t *testing.T) *testServer {
 	store := &library.Store{DB: d}
 	scanner := library.NewScanner(store, nil, filepath.Join(dir, "cache"), func() string { return "" }, log)
 	s := &Server{Cfg: &config.Config{ImagesDir: filepath.Join(dir, "images")}, DB: d, Log: log, Store: store, Scanner: scanner, Auth: &auth.Service{DB: d}}
-	ts := &testServer{t: t, s: s, h: s.Handler()}
+	ts := &galleryServer{t: t, s: s, h: s.Handler()}
 	lib, err := store.CreateLibrary(ctx, "Photos", "photos", []string{t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +72,7 @@ func newTestServer(t *testing.T) *testServer {
 	return ts
 }
 
-func (ts *testServer) do(method, path, token string, body any) *httptest.ResponseRecorder {
+func (ts *galleryServer) do(method, path, token string, body any) *httptest.ResponseRecorder {
 	ts.t.Helper()
 	var rd io.Reader
 	if body != nil {
@@ -97,7 +97,7 @@ func tinyJPEG(t *testing.T) []byte {
 	return b.Bytes()
 }
 
-func (ts *testServer) upload(token, name string, content []byte) *httptest.ResponseRecorder {
+func (ts *galleryServer) upload(token, name string, content []byte) *httptest.ResponseRecorder {
 	ts.t.Helper()
 	var b bytes.Buffer
 	mw := multipart.NewWriter(&b)
@@ -123,7 +123,7 @@ type uploadReply struct {
 	} `json:"files"`
 }
 
-func (ts *testServer) uploadOK(token, name string) int64 {
+func (ts *galleryServer) uploadOK(token, name string) int64 {
 	ts.t.Helper()
 	w := ts.upload(token, name, tinyJPEG(ts.t))
 	var r uploadReply
@@ -135,7 +135,7 @@ func (ts *testServer) uploadOK(token, name string) int64 {
 }
 
 func TestUploadRules(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
 	// It is now in the library, in the profile's own folder.
 	it, err := ts.s.Store.Item(context.Background(), id)
@@ -208,7 +208,7 @@ func TestUploadRules(t *testing.T) {
 }
 
 func TestGalleryAccess(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
 	idp := itoa(id)
 	lib := itoa(ts.lib.ID)
@@ -260,7 +260,7 @@ func TestGalleryAccess(t *testing.T) {
 }
 
 func TestLikesAndComments(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
 	idp := itoa(id)
 	if w := ts.do("PUT", "/api/items/"+idp+"/reaction", ts.adult, map[string]any{"value": 5}); w.Code != 400 {
@@ -300,7 +300,7 @@ func TestLikesAndComments(t *testing.T) {
 }
 
 func TestAlbums(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
 	lib := ts.lib.ID
 	if w := ts.do("POST", "/api/photos/albums", ts.adult, map[string]any{"libraryId": lib, "name": "  "}); w.Code != 400 {
@@ -344,7 +344,7 @@ func TestAlbums(t *testing.T) {
 }
 
 func TestPublicLinks(t *testing.T) {
-	ts := newTestServer(t)
+	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
 	other := ts.uploadOK(ts.adult, "other.jpg")
 	if w := ts.do("POST", "/api/shares", ts.kid, map[string]any{"kind": "item", "id": id}); w.Code != 403 {

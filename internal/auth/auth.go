@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -123,7 +124,12 @@ func (s *Service) HashStoredTokens(ctx context.Context) error {
 	return nil
 }
 
-var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("not a password"), bcrypt.DefaultCost)
+// dummyHash is made when first needed: this slow on purpose, it would add up
+// to a second to every start and every command on a small machine.
+var dummyHash = sync.OnceValue(func() []byte {
+	h, _ := bcrypt.GenerateFromPassword([]byte("not a password"), bcrypt.DefaultCost)
+	return h
+})
 
 func (s *Service) UserCount(ctx context.Context) int {
 	var n int
@@ -279,7 +285,7 @@ func (s *Service) Login(ctx context.Context, name, password, device string, allo
 	if errors.Is(err, sql.ErrNoRows) {
 		// The same work as a real check, so the time taken doesn't tell
 		// which account names exist.
-		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		return "", nil, ErrInvalid
 	}
 	if err != nil {

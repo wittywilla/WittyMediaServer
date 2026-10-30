@@ -137,6 +137,14 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, "The server is busy. Try again in a moment.")
 		return
 	}
+	// Checking a password is deliberately slow; a flood of attempts must not
+	// take all of a small machine's processor.
+	select {
+	case loginSlots <- struct{}{}:
+		defer func() { <-loginSlots }()
+	case <-r.Context().Done():
+		return
+	}
 	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, s.profilesVisible(r))
 	<-passwordSlots
 	if err != nil {
@@ -152,7 +160,9 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	s.Auth.Logout(r.Context(), auth.TokenFrom(r))
+	for _, tok := range auth.Tokens(r) { // a stale token can sit in front of the live one
+		s.Auth.Logout(r.Context(), tok)
+	}
 	http.SetCookie(w, &http.Cookie{Name: auth.CookieName, Value: "", Path: "/", MaxAge: -1})
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

@@ -2,14 +2,18 @@ package server
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
@@ -35,6 +39,40 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// map provider's address for the photo map; nothing else ever contacts one.
 	"uploads": "1", "uploadMaxMb": "4096", "shareLinks": "1", "mapTiles": ""}
 
+// settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
+// would otherwise only show up as every transcode failing.
+var settingChecks = map[string]func(string) bool{
+	"crf":            intBetween(0, 51),
+	"maxHeight":      intBetween(0, 4320),
+	"maxSpeed":       floatBetween(1, 16),
+	"x264Preset":     oneOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"),
+	"qualityMode":    oneOf("easy", "advanced", "expert"),
+	"qualityProfile": oneOf("speed", "balanced", "quality"),
+	"audioCodec":     oneOf("aac", "mp3"),
+	"maxBitrate":     bitrateRe.MatchString,
+	"audioBitrate":   bitrateRe.MatchString,
+}
+
+var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)
+
+func intBetween(lo, hi int) func(string) bool {
+	return func(v string) bool {
+		n, err := strconv.Atoi(v)
+		return err == nil && n >= lo && n <= hi
+	}
+}
+
+func floatBetween(lo, hi float64) func(string) bool {
+	return func(v string) bool {
+		f, err := strconv.ParseFloat(v, 64)
+		return err == nil && f >= lo && f <= hi
+	}
+}
+
+func oneOf(list ...string) func(string) bool {
+	return func(v string) bool { return slices.Contains(list, v) }
+}
+
 // secretSettings are masked when read back.
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
 
@@ -57,6 +95,12 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
 		return
+	}
+	for k, v := range in {
+		if check := settingChecks[k]; check != nil && v != "" && !check(strings.TrimSpace(v)) {
+			writeErr(w, 400, "that value is not valid for "+k)
+			return
+		}
 	}
 	for _, k := range settingKeys {
 		v, ok := in[k]
@@ -126,6 +170,7 @@ func checkSetting(k, v string) error {
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 	host, _ := os.Hostname()
+	s.Tools.StartHardwareProbe() // Settings is asking: it shows which ones work
 	hwList, hwDone := s.Tools.HardwareStatus()
 	var encoders []string
 	for _, e := range []string{"libx264", "libopenh264", "h264_nvenc", "h264_qsv", "h264_amf", "h264_vaapi", "h264_videotoolbox"} {
@@ -163,8 +208,16 @@ func (s *Server) spa() http.Handler {
 			st, _ := f.Stat()
 			f.Close()
 			if st != nil && !st.IsDir() {
-				if strings.HasPrefix(p, "assets/") {
+				if ct := webTypes[path.Ext(p)]; ct != "" {
+					w.Header().Set("Content-Type", ct)
+				}
+				if !strings.HasPrefix(p, "assets/") {
+					w.Header().Set("Cache-Control", "no-cache") // the page names the assets of this version
+				} else {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+					if s.serveGzipped(w, r, p) {
+						return
+					}
 				}
 				fileServer.ServeHTTP(w, r)
 				return
@@ -183,6 +236,47 @@ func (s *Server) spa() http.Handler {
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(b)
 	})
+}
+
+// webTypes are the types of the client's files, whatever this machine says:
+// a Windows registry entry can make .js "text/plain", and browsers then refuse
+// to run it (the server sends nosniff) and show a blank page.
+var webTypes = map[string]string{
+	".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+	".html": "text/html; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json",
+	".png": "image/png", ".wasm": "application/wasm",
+}
+
+// serveGzipped sends the compressed copy made at build time (web/vite.config.ts),
+// to browsers that take it. The main script goes from 1.2 MB to 380 KB, which a
+// phone away from home notices, at no cost to the server's processor.
+func (s *Server) serveGzipped(w http.ResponseWriter, r *http.Request, name string) bool {
+	if !acceptsGzip(r.Header.Get("Accept-Encoding")) {
+		return false
+	}
+	f, err := s.Web.Open(name + ".gz")
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	rs, ok := f.(io.ReadSeeker)
+	if !ok {
+		return false
+	}
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Vary", "Accept-Encoding")
+	http.ServeContent(w, r, "", time.Time{}, rs)
+	return true
+}
+
+func acceptsGzip(header string) bool {
+	for _, part := range strings.Split(header, ",") {
+		enc, q, _ := strings.Cut(strings.TrimSpace(part), ";")
+		if strings.EqualFold(strings.TrimSpace(enc), "gzip") {
+			return strings.ReplaceAll(strings.TrimSpace(q), " ", "") != "q=0"
+		}
+	}
+	return false
 }
 
 // lanURLs are the addresses other devices on the home network can open

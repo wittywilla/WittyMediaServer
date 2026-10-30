@@ -17,6 +17,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 )
 
 // Podcasts: a podcasts library holds subscriptions (RSS feeds). Every
@@ -73,7 +74,7 @@ var notInternet = func() []netip.Prefix {
 	for _, c := range []string{
 		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24",
 		"192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
-		"::/128", "::1/128", "100::/64", "2001::/32", "2001:db8::/32", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+		"::/128", "::1/128", "100::/64", "2001::/32", "2001:db8::/32", "64:ff9b:1::/48", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
 	} {
 		out = append(out, netip.MustParsePrefix(c))
 	}
@@ -273,6 +274,11 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 			image = webURL(im.URL)
 		}
 	}
+	// Episodes already stored, in one read: a library can hold many thousands.
+	known, err := s.Store.podcastEpisodeIDs(ctx, p.LibraryID)
+	if err != nil {
+		return err
+	}
 	desc := plain(ch.Description)
 	if _, err := s.Store.DB.ExecContext(ctx, `UPDATE podcasts SET title=?, author=?, image=?, description=?, last_checked=? WHERE id=?`,
 		ch.Title, ch.Author, image, desc, time.Now().Unix(), p.ID); err != nil {
@@ -286,9 +292,11 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 		if webURL(e.Enclosure.URL) == "" {
 			continue // no episode, or not on the web
 		}
-		if existing, err := s.Store.podcastEpisode(ctx, p, e); err == nil && existing != nil {
+		guid := firstNonEmpty(e.GUID, e.Enclosure.URL)
+		if known[guid] || known[e.Enclosure.URL] {
 			continue // already known (it may be downloaded: keep its file path)
 		}
+		known[guid] = true
 		it := &Item{LibraryID: p.LibraryID, Kind: "audio", Path: e.Enclosure.URL, Title: strings.TrimSpace(e.Title), Album: p.Title, AlbumArtist: p.Author, Artist: p.Author,
 			Overview: plain(firstNonEmpty(e.Summary, e.Description)), Aired: parsePub(e.PubDate), RuntimeSec: parseDuration(e.Duration), Poster: firstNonEmpty(webURL(e.Image.Href), image),
 			Provider: "podcast", ProviderID: firstNonEmpty(e.GUID, e.Enclosure.URL), VideoCodec: codecForMime(e.Enclosure.Type, e.Enclosure.URL)}
@@ -299,7 +307,8 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 			it.ContentRating = "TV-MA" // explicit episodes are hidden from Kids and Guest profiles
 		}
 		if err := s.Store.upsertItem(ctx, it); err != nil {
-			return err
+			// One bad entry (the same file listed twice) must not hide the rest.
+			s.Log.Info("podcast episode skipped", "cat", "library", "podcast", p.Title, "episode", it.Title, "err", err)
 		}
 	}
 	if p.AutoDownload > 0 {
@@ -332,11 +341,23 @@ func codecForMime(mime, u string) string {
 	return "mp3"
 }
 
-// podcastEpisode finds an episode already stored for a podcast (by GUID).
-func (s *Store) podcastEpisode(ctx context.Context, p *Podcast, e rssItem) (*Item, error) {
-	guid := firstNonEmpty(e.GUID, e.Enclosure.URL)
-	return scanItem(s.DB.QueryRowContext(ctx, `SELECT `+itemCols+` FROM items i WHERE i.library_id = ? AND i.provider = 'podcast' AND i.provider_id = ? AND IFNULL(i.album, '') = ?`,
-		p.LibraryID, guid, p.Title))
+// podcastEpisodeIDs lists what identifies the podcast episodes of a library:
+// their GUIDs and web addresses. A feed that renames itself keeps its episodes.
+func (s *Store) podcastEpisodeIDs(ctx context.Context, libraryID int64) (map[string]bool, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT IFNULL(provider_id, ''), path FROM items WHERE library_id = ? AND provider = 'podcast'`, libraryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var id, path string
+		if err := rows.Scan(&id, &path); err != nil {
+			return nil, err
+		}
+		out[id], out[path] = true, true
+	}
+	return out, rows.Err()
 }
 
 // Podcast loads one subscription.
@@ -388,9 +409,11 @@ var unsafeName = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]+`)
 func safeName(s string) string {
 	s = strings.TrimSpace(unsafeName.ReplaceAllString(s, " "))
 	s = strings.TrimRight(s, ". ")
-	if len(s) > 120 {
-		s = strings.ToValidUTF8(strings.TrimRight(s[:120], ". "), "")
+	for len(s) > 120 { // cut between characters, not inside one
+		_, n := utf8.DecodeLastRuneInString(s)
+		s = s[:len(s)-n]
 	}
+	s = strings.TrimRight(s, ". ")
 	if s == "" {
 		s = "Episode"
 	}
@@ -401,7 +424,6 @@ func safeName(s string) string {
 	return s
 }
 
-var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])($|\.)`)
 
 // Download saves an episode into the library's first folder:
 // <folder>/<podcast>/<date> <title>.<ext>, and the item then plays from disk.

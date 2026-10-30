@@ -145,6 +145,10 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 	id, _ := pathInt(r, "id")
+	if !s.access(r).AllowsLibrary(id) {
+		writeErr(w, 404, "library not found")
+		return
+	}
 	out := s.Scanner.Snapshot(id)
 	if out != nil && !userFrom(r).IsAdmin {
 		out.Current = "" // the file being scanned may be one this account can't see
@@ -172,6 +176,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Genre:     r.URL.Query().Get("genre"),
 		Kind:      r.URL.Query().Get("kind"),
 		Access:    s.access(r),
+		Brief:     true,
 		// noEpisodes=1: movies and discs only (the Shuffle widget)
 		NoEpisodes: qBool(r, "noEpisodes"),
 		Watchable:  qBool(r, "watchable"),
@@ -204,7 +209,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 		it.NextID = next // playing a list through
 	}
 	if it.IntroEnd == nil && it.ShowID != nil {
-		if sh, err := s.Store.Show(r.Context(), *it.ShowID, 0); err == nil {
+		if sh, err := s.Store.ShowFacts(r.Context(), *it.ShowID); err == nil {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
 		}
 	}
@@ -374,10 +379,16 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	acc := s.access(r)
 	cont, _ := s.Store.ContinueWatching(ctx, u.ID, 20)
 	cont = s.filterItems(ctx, acc, cont)
+	hidePaths(r, cont...)
 	libs, err := s.visibleLibraries(ctx, acc)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if !u.IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{}
+		}
 	}
 	type hub struct {
 		Key     string          `json:"key"`
@@ -410,6 +421,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if next := s.nextUp(r, libs); len(next) > 0 {
+		hidePaths(r, next...)
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next up", Items: next})
 	}
 	for _, l := range libs {
@@ -420,21 +432,27 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			if err != nil || len(shows) == 0 {
 				continue
 			}
+			if !u.IsAdmin {
+				for _, sh := range shows {
+					sh.Path = ""
+				}
+			}
 			id := l.ID
 			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
-		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc})
+		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true, Brief: true})
 		if err != nil || len(items) == 0 {
 			continue
 		}
 		_ = s.Store.AttachProgress(ctx, u.ID, items)
+		hidePaths(r, items...)
 		id := l.ID
 		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, Access: acc})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, Access: acc, NoTotal: true, Brief: true})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -468,13 +486,13 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 // nextUp offers the next episode of each show the user has started.
 func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item {
 	ctx, uid, acc := r.Context(), userFrom(r).ID, s.access(r)
-	var out []*library.Item
+	var started []int64
 	seen := map[int64]bool{} // anime can be listed by a TV and an anime library
 	for _, l := range libs {
 		if l.Type != "shows" && l.Type != "anime" {
 			continue
 		}
-		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc})
+		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc, Started: true})
 		if err != nil {
 			continue
 		}
@@ -486,18 +504,12 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 			if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
 				continue // finished, or never started
 			}
-			eps, err := s.Store.Episodes(ctx, sh.ID, acc)
-			if err != nil {
-				continue
-			}
-			_ = s.Store.AttachProgress(ctx, uid, eps)
-			if n := library.NextUp(eps); n != nil && (n.Progress == nil || n.Progress.PositionSec <= 60) {
-				out = append(out, n)
-			}
-			if len(out) >= 20 {
-				return out
-			}
+			started = append(started, sh.ID)
 		}
+	}
+	out, err := s.Store.NextUpItems(ctx, uid, started, acc, 20)
+	if err != nil {
+		s.Log.Warn("next up", "err", err)
 	}
 	return out
 }
@@ -646,21 +658,32 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	}
 	tmp := f.Name()
 	defer os.Remove(tmp)
+	defer f.Close()
 	// A picture bigger than the limit is refused rather than cut short.
-	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteArt+1))
-	if cerr := f.Close(); err == nil {
-		err = cerr
+	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteImage+1))
+	if err == nil {
+		_, err = f.Seek(0, io.SeekStart)
 	}
 	if err != nil {
+		return "", errors.New("artwork fetch failed")
+	}
+	// Only whole pictures stay in the cache: anything else would be kept and
+	// refused again on every request.
+	if n > maxRemoteImage || imageType(f, p) == "" {
+		return "", errors.New("artwork fetch failed: not a picture")
+	}
+	f.Close()
+	if err := os.Rename(tmp, p); err != nil {
+		// Someone else's copy arrived first and is being read (Windows).
+		if st, serr := os.Stat(p); serr == nil && st.Size() > 0 {
+			return p, nil
+		}
 		return "", err
 	}
-	if n > maxRemoteArt {
-		return "", errors.New("artwork too large")
-	}
-	return p, os.Rename(tmp, p)
+	return p, nil
 }
 
-const maxRemoteArt = 20 << 20
+const maxRemoteImage = 20 << 20
 
 // ---------------------------------------------------------------------------
 // Progress

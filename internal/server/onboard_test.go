@@ -18,7 +18,7 @@ func TestLoginLimiter(t *testing.T) {
 	r := httptest.NewRequest("POST", "/api/login", nil)
 	r.RemoteAddr = "192.168.1.20:5000"
 	k := l.key(r, "Alice")
-	if l.key(r, " alice ") != k {
+	if k2 := l.key(r, " alice "); k2 != k {
 		t.Fatal("names should match regardless of case and spaces")
 	}
 	for i := 0; i < 5; i++ {

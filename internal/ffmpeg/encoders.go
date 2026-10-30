@@ -44,14 +44,23 @@ type hwState struct {
 	mu     sync.Mutex
 	status map[string]*HWStatus
 	done   bool
+	once   sync.Once
 }
 
 var hw = &hwState{status: map[string]*HWStatus{}}
 
 const vaapiDevice = "/dev/dri/renderD128"
 
+// StartHardwareProbe test-encodes in the background, once. It starts with the
+// server only if hardware encoding is switched on, else when Settings first
+// asks: on a small machine every test is a process that starts up, looks for
+// a device and fails.
+func (t *Tools) StartHardwareProbe() {
+	hw.once.Do(func() { go t.ProbeHardware(context.Background()) })
+}
+
 // ProbeHardware test-encodes a few frames with every compiled hardware
-// encoder. It runs once in the background at start-up.
+// encoder.
 func (t *Tools) ProbeHardware(ctx context.Context) {
 	for _, e := range HWEncoders {
 		st := &HWStatus{HWEncoder: e, Compiled: t.Encoders[e.Name]}

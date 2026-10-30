@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+import { gzipSync } from 'node:zlib'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // The reader modules' versions, from their package.json files, for
@@ -13,8 +14,26 @@ const webModules = readdirSync(modulesDir).flatMap((d) => {
   } catch { return [] }
 })
 
+// Writes a .gz beside each script and stylesheet: the server sends these to
+// browsers that take them, with no compressing work of its own (see spa() in
+// internal/server).
+function precompress(): Plugin {
+  return {
+    name: 'precompress',
+    apply: 'build',
+    closeBundle() {
+      const dir = fileURLToPath(new URL('./dist/assets/', import.meta.url))
+      for (const f of readdirSync(dir)) {
+        if (!/\.(js|mjs|css)$/.test(f)) continue
+        const raw = readFileSync(dir + f)
+        if (raw.length > 1024) writeFileSync(dir + f + '.gz', gzipSync(raw, { level: 9 }))
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), precompress()],
   define: { __WEB_MODULES__: JSON.stringify(webModules) },
   // Plugins (src/modules/*) are imported by their package names, as in their
   // own repositories (docs/MODULES.md).

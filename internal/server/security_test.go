@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -65,8 +66,85 @@ func TestRedactQuery(t *testing.T) {
 	if strings.Contains(got, "abcdef") || !strings.Contains(got, "start=10") {
 		t.Fatalf("redactQuery = %q", got)
 	}
+	if got := redactQuery("%74oken=abcdef0123"); strings.Contains(got, "abcdef") {
+		t.Fatalf("an escaped parameter name got through: %q", got)
+	}
 	if got := tokenRe.ReplaceAllString(`GET /api/x?token=abc123&f=1 failed`, "token=REDACTED"); strings.Contains(got, "abc123") {
 		t.Fatalf("client log not redacted: %q", got)
+	}
+}
+
+// Nothing under /api may run as a page on this site; the rest of the site has
+// the app's own policy.
+func TestHeadersSetPolicyForAPI(t *testing.T) {
+	var s Server
+	h := s.headers(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("<script>alert(1)</script>"))
+	}))
+	for path, want := range map[string]string{"/api/items/1/stream": apiCSP, "/": appCSP} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		if got := w.Header().Get("Content-Security-Policy"); got != want {
+			t.Errorf("%s: policy %q", path, got)
+		}
+	}
+	if strings.Contains(apiCSP, "script-src") || !strings.Contains(apiCSP, "default-src 'none'") {
+		t.Errorf("apiCSP allows scripts: %s", apiCSP)
+	}
+}
+
+func TestWebFilesAndGzip(t *testing.T) {
+	web := fstest.MapFS{
+		"index.html":        {Data: []byte("<html>")},
+		"assets/a-1.js":     {Data: []byte("console.log(1)")},
+		"assets/a-1.js.gz":  {Data: []byte("gz")},
+		"assets/plain-1.js": {Data: []byte("console.log(2)")},
+	}
+	s := &Server{Web: web}
+	h := s.spa()
+	get := func(path, enc string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", path, nil)
+		if enc != "" {
+			r.Header.Set("Accept-Encoding", enc)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	w := get("/assets/a-1.js", "br, gzip")
+	if w.Header().Get("Content-Encoding") != "gzip" || w.Body.String() != "gz" || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/javascript") {
+		t.Errorf("gzip: %v %q", w.Header(), w.Body)
+	}
+	if w := get("/assets/a-1.js", "gzip;q=0"); w.Header().Get("Content-Encoding") != "" || w.Body.String() != "console.log(1)" {
+		t.Errorf("a browser refusing gzip got %q", w.Body)
+	}
+	if w := get("/assets/plain-1.js", "gzip"); w.Header().Get("Content-Encoding") != "" || w.Body.String() != "console.log(2)" {
+		t.Errorf("no compressed copy: %q", w.Body)
+	}
+	if w := get("/", ""); w.Header().Get("Cache-Control") != "no-cache" {
+		t.Errorf("the page may be cached: %v", w.Header())
+	}
+	if w := get("/assets/a-1.js", ""); !strings.Contains(w.Header().Get("Cache-Control"), "immutable") {
+		t.Errorf("hashed assets: %v", w.Header())
+	}
+	if w := get("/library/3", ""); !strings.Contains(w.Body.String(), "<html>") {
+		t.Errorf("an app address gets the page: %q", w.Body)
+	}
+}
+
+func TestSettingChecks(t *testing.T) {
+	for k, vals := range map[string]map[string]bool{
+		"crf":        {"21": true, "51": true, "99": false, "abc": false, "-1": false},
+		"x264Preset": {"veryfast": true, "--evil": false, "fast fast": false},
+		"maxBitrate": {"8M": true, "2500k": true, "1.5M": true, "8 M": false, "-i": false},
+		"maxSpeed":   {"4": true, "0.5": false, "NaN": false},
+	} {
+		for v, want := range vals {
+			if got := settingChecks[k](v); got != want {
+				t.Errorf("%s=%q: got %v", k, v, got)
+			}
+		}
 	}
 }
 

@@ -94,7 +94,10 @@ func parseComicName(name string) (series string, number string, year *int) {
 
 func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing {
+	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+		if existing.Missing {
+			return s.Store.restore(ctx, existing.ID)
+		}
 		return nil
 	}
 	it := &Item{LibraryID: lib.ID, Kind: "book", Path: c.path, SizeBytes: c.size, MTime: c.mtime}
@@ -547,20 +550,41 @@ func applyArchiveMeta(it *Item, p string, title bool) {
 // ---------------------------------------------------------------- open archives
 
 // Archives stay open briefly so a reader turning pages does not re-read the
-// zip directory for every page.
+// zip directory for every page. They close once nobody has read them for a
+// while: an open file can't be renamed or deleted on Windows.
 var archiveCache = struct {
 	sync.Mutex
-	m map[string]*cachedArchive
+	m       map[string]*cachedArchive
+	sweeper sync.Once
 }{m: map[string]*cachedArchive{}}
+
+const archiveIdle = 2 * time.Minute
 
 type cachedArchive struct {
 	zr      *zip.ReadCloser
 	mtime   time.Time
 	used    time.Time
 	pages   []string
-	epub    *EPUBInfo
 	readers int
-	stale   bool // replaced: close when the last reader is done
+	// Closed once the last reader is done, when the file changed meanwhile.
+	stale bool
+	// Parsed once: the contents and word counts of an EPUB (reading every
+	// chapter to count its words takes a moment on a small machine).
+	epub  *EPUBInfo
+	words []int
+}
+
+func sweepArchives() {
+	for range time.Tick(archiveIdle / 2) {
+		archiveCache.Lock()
+		for k, c := range archiveCache.m {
+			if c.readers == 0 && time.Since(c.used) > archiveIdle {
+				c.zr.Close()
+				delete(archiveCache.m, k)
+			}
+		}
+		archiveCache.Unlock()
+	}
 }
 
 // OpenArchive returns an open archive (call the release func when done).
@@ -569,11 +593,21 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	archiveCache.sweeper.Do(func() { go sweepArchives() })
 	archiveCache.Lock()
 	defer archiveCache.Unlock()
-	if c := archiveCache.m[p]; c != nil && c.mtime.Equal(st.ModTime()) {
-		c.used, c.readers = time.Now(), c.readers+1
-		return &c.zr.Reader, func() { release(c) }, nil
+	cur := archiveCache.m[p]
+	if cur != nil && cur.mtime.Equal(st.ModTime()) {
+		cur.used, cur.readers = time.Now(), cur.readers+1
+		return &cur.zr.Reader, func() { release(cur) }, nil
+	}
+	if cur != nil { // the file was replaced
+		delete(archiveCache.m, p)
+		if cur.readers == 0 {
+			cur.zr.Close()
+		} else {
+			cur.stale = true
+		}
 	}
 	zr, err := zip.OpenReader(p)
 	if err != nil {
@@ -609,11 +643,38 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 
 func release(c *cachedArchive) {
 	archiveCache.Lock()
+	defer archiveCache.Unlock()
 	c.readers--
 	if c.stale && c.readers == 0 {
 		c.zr.Close()
 	}
+}
+
+// ArchiveEPUB is ReadEPUB and WordCounts for a cached archive.
+func ArchiveEPUB(p string) (*EPUBInfo, []int, error) {
+	zr, done, err := OpenArchive(p)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer done()
+	archiveCache.Lock()
+	c := archiveCache.m[p]
+	if c != nil && c.epub != nil {
+		defer archiveCache.Unlock()
+		return c.epub, c.words, nil
+	}
 	archiveCache.Unlock()
+	info, err := ReadEPUB(zr)
+	if err != nil {
+		return nil, nil, err
+	}
+	words := WordCounts(zr, info.Spine)
+	if c != nil {
+		archiveCache.Lock()
+		c.epub, c.words = info, words
+		archiveCache.Unlock()
+	}
+	return info, words, nil
 }
 
 // ArchivePages is ComicPages for a cached archive.

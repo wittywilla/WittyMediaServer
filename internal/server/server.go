@@ -48,6 +48,10 @@ type Server struct {
 	mux        *http.ServeMux
 	logins     loginLimiter
 	clientLogs clientLogLimiter
+	probes     struct {
+		sync.Mutex
+		m map[string]*ffmpeg.Probe
+	}
 
 	setupCode     string
 	setupCodeOnce sync.Once
@@ -331,7 +335,8 @@ func (w *statusWriter) Flush() {
 // redactQuery hides session tokens (media URLs carry one) so logs, which
 // people attach to bug reports, never hold a working login.
 func redactQuery(q string) string {
-	if !strings.Contains(q, "token=") {
+	// "%" too: %74oken=... decodes to the same parameter when signing in.
+	if !strings.Contains(q, "token") && !strings.Contains(q, "%") {
 		return q
 	}
 	v, err := url.ParseQuery(q)

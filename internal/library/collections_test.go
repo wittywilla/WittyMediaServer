@@ -211,7 +211,7 @@ func TestRadioStations(t *testing.T) {
 		t.Errorf("no name: %+v %v", noName, err)
 	}
 	// A scan of the library must not mark stations as missing.
-	if err := s.markMissing(ctx, lib.ID, map[string]bool{}); err != nil {
+	if err := s.markMissing(ctx, lib.ID, map[string]bool{}, nil); err != nil {
 		t.Fatal(err)
 	}
 	items, _, err := s.Items(ctx, ItemQuery{LibraryID: lib.ID, Kind: "radio"})

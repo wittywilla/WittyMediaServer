@@ -29,10 +29,16 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
       hls.loadSource(abs)
       hls.attachMedia(v)
       hls.on(Hls.Events.MANIFEST_PARSED, () => { if (!destroyed) optsRef.current.onReady?.() })
+      // A stream the server no longer has (it restarted) would be retried for
+      // ever behind a spinner; a busy server (503) is worth waiting for.
+      let gone = 0
+      hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad()
-        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError()
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
+          else hls.startLoad()
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError()
         else optsRef.current.onError?.(data.details || 'playback error')
       })
       return () => { destroyed = true; hls.destroy(); hlsRef.current = null }

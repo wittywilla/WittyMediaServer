@@ -2,6 +2,9 @@ package library
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,6 +57,42 @@ func TestSaveItemMetadataRoundTrip(t *testing.T) {
 	p, b, n := ArtPaths(&Item{Kind: "video", Path: media})
 	if !strings.HasSuffix(p, "Shrek (2001)-poster.jpg") || !strings.HasSuffix(b, "Shrek (2001)-fanart.jpg") || !strings.HasSuffix(n, "Shrek (2001).nfo") {
 		t.Fatalf("shared-folder paths: %s %s %s", p, b, n)
+	}
+}
+
+var testJPEG = append([]byte{0xff, 0xd8, 0xff, 0xe0, 0, 16, 'J', 'F', 'I', 'F', 0}, make([]byte, 40)...)
+
+// Sidecar files and feeds name artwork; saving metadata must not turn that
+// into a copy of any file on the machine, or a fetch from the local network.
+func TestLoadImageOnlyPictures(t *testing.T) {
+	dir := t.TempDir()
+	images := filepath.Join(dir, "images")
+	if err := os.MkdirAll(images, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	secret := filepath.Join(dir, "wms.db")
+	if err := os.WriteFile(secret, []byte("SQLite format 3 and everyone's data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := &Scanner{ImagesDir: images, Log: slog.Default()}
+	ctx := context.Background()
+	if _, err := s.LoadImage(ctx, secret); err == nil {
+		t.Error("a file that is no picture was read as artwork")
+	}
+	if _, err := s.LoadImage(ctx, "cache:../wms.db"); err == nil {
+		t.Error("a cache name left the cache")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(testJPEG) }))
+	defer srv.Close()
+	if _, err := s.LoadImage(ctx, srv.URL+"/x.jpg"); err == nil {
+		t.Error("artwork was fetched from this machine")
+	}
+	pic := filepath.Join(dir, "p.jpg")
+	if err := os.WriteFile(pic, testJPEG, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.LoadImage(ctx, pic); err != nil {
+		t.Errorf("a real picture was refused: %v", err)
 	}
 }
 

@@ -52,7 +52,7 @@ export default function Profiles() {
 
       {!restricted && users.length > 0 && (
         <div className="panel">
-          <h2>{user?.isAdmin ? 'Profiles' : 'Kids profiles you manage'}</h2>
+          <h2>{user?.isAdmin ? 'Everyone on this server' : 'Kids profiles you manage'}</h2>
           <div className="list">
             {users.map((u) => (
               <div className="list-item" key={u.id}>

@@ -187,6 +187,12 @@ button { cursor: pointer; }
 .detail .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .detail h1 { font-size: 36px; margin: 0 0 6px; line-height: 1.1; overflow-wrap: anywhere; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
 .detail .tagline { color: var(--fg-2); font-style: italic; margin-bottom: 8px; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 13.5px; font-weight: 600; color: var(--fg-3); text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.crumbs a { color: var(--fg-2); }
+.crumbs a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.back-link { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 12px 0 6px; margin: 4px 0 14px -6px; border-radius: 999px; color: var(--fg-2); font-weight: 600; font-size: 14px; transition: background .15s, color .15s; }
+.back-link:hover { background: var(--bg-3); color: var(--fg); }
+.back-link svg { fill: currentColor; }
 .detail .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--fg-2); font-size: 14px; margin-bottom: 18px; align-items: center; }
 .detail .meta .pill { border: 1px solid var(--fg-3); border-radius: 4px; padding: 0 6px; font-size: 12px; }
 .detail .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }

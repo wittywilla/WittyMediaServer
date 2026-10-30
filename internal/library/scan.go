@@ -41,6 +41,8 @@ type Scanner struct {
 	WikidataOn func() bool
 	// AnimeTitles: english | romaji | native titles for anime libraries.
 	AnimeTitles func() string
+	// Agents returns the custom metadata agents, in the order they run.
+	Agents func() []Agent
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -292,7 +294,8 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		it.SortTitle = SortTitle(it.Title)
 	}
 
-	// Online metadata.
+	// Online metadata: the owner's own agents first, then the built-in ones.
+	s.applyAgents(ctx, it, lib.Type)
 	if key := s.TMDBKey(); key != "" && lib.Type != "videos" && (it.Overview == "" || it.Poster == "") {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {

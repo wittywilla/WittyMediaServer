@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, mediaUrl, type Album, type Artist, type Item, type Library } from '../api'
 import { useAudio, type AudioMode } from '../audio/player'
-import { EmptyState, Placeholder, Spinner } from '../components/common'
+import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
 import { IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin } from './Podcasts'
@@ -128,6 +128,7 @@ export function AlbumPage() {
   const coverId = tracks.find((t) => t.poster)?.id
   return (
     <div className="album-page">
+      <BackLink to={`/library/${libId}`} label={lib?.name || (books ? 'Audiobooks' : 'Music')} />
       <div className="album-head">
         <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={cover(coverId)} alt="" /> : <Placeholder title={tracks[0]?.album || 'Unknown'} sub={tracks[0]?.albumArtist || tracks[0]?.artist || undefined} />}</div>
         <div className="album-meta">

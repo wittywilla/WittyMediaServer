@@ -148,6 +148,7 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 	if it.Poster == "" {
 		it.Poster = findArt(dir, stem, "cover", "folder", "__ia_thumb")
 	}
+	s.applyAgents(ctx, it, "books")
 	return s.Store.upsertItem(ctx, it)
 }
 

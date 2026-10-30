@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, mediaUrl, posterUrl, type Item } from '../api'
-import { IconClose, IconExpand, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
+import { IconClose, IconDown, IconExpand, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
 import { setSpeed } from '../player/Controls'
 
 // The audio player: music, audiobooks and podcasts. One <audio> element for
@@ -49,7 +49,24 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const offset = useRef(0) // where a converted stream started
   const current = queue[index] || null
   const loc = useLocation()
+  const nav = useNavigate()
   const books = mode !== 'music'
+
+  // On phones the full player is a screen of its own: Back (the button, Esc,
+  // or the phone's Back) returns to the page underneath. On wider screens it
+  // is a panel beside the library, which stays usable, so browsing doesn't
+  // close it.
+  const docked = () => window.matchMedia('(min-width: 1000px)').matches
+  const openFull = () => { setFull(true); if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '') }
+  const closeFull = () => { if (history.state?.wmsAudioFull) history.back(); else setFull(false) }
+  useEffect(() => {
+    if (!full) return
+    const pop = () => setFull(false)
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFull() }
+    window.addEventListener('popstate', pop)
+    window.addEventListener('keydown', esc)
+    return () => { window.removeEventListener('popstate', pop); window.removeEventListener('keydown', esc) }
+  }, [full]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start (or switch) the track.
   useEffect(() => {
@@ -145,10 +162,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     enqueue: (items) => setQueue((q) => [...q, ...items]),
     toggle: () => { const a = audio.current; if (a) a.paused ? a.play().catch(() => {}) : a.pause() },
     next, prev,
-    stop: () => { audio.current?.pause(); setQueue([]); setFull(false) },
+    stop: () => { audio.current?.pause(); setQueue([]); if (history.state?.wmsAudioFull) history.back(); setFull(false) },
   }), [queue, index, current, mode, playing, next, prev])
 
   const dur = current?.runtimeSec || 0
+  // The album (or audiobook, or podcast) the track belongs to.
+  const albumUrl = current?.album ? `/album/${current.libraryId}?artist=${encodeURIComponent(current.albumArtist || current.artist || '')}&album=${encodeURIComponent(current.album)}` : ''
+  const goAlbum = () => {
+    if (docked()) { nav(albumUrl); return } // the panel stays open beside it
+    const wasFull = !!history.state?.wmsAudioFull
+    setFull(false)
+    nav(albumUrl, { replace: wasFull })
+  }
   return (
     <Ctx.Provider value={ctx}>
       {children}
@@ -156,14 +181,28 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         onTimeUpdate={() => setTime(position())} />
       {current && !loc.pathname.startsWith('/play/') && (
         <div className={'audio-bar' + (full ? ' full' : '')} role="region" aria-label="Now playing">
+          {full && (
+            <div className="ab-top">
+              <button className="btn ghost sm ab-back" onClick={closeFull} title="Close (Esc)">{docked() ? <><IconClose /> Close</> : <><IconDown /> Back</>}</button>
+              <span className="ab-top-title">Now playing</span>
+              {albumUrl ? <button className="btn ghost sm" onClick={goAlbum}>{books ? 'Go to book' : 'Go to album'}</button> : <span />}
+            </div>
+          )}
           {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined }} />}
-          <button className="ab-art" onClick={() => setFull(!full)} aria-label={full ? 'Smaller player' : 'Show the full player'}>
+          <button className="ab-art" onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
             {current.poster ? <img src={posterUrl(current)} alt="" /> : <span>♪</span>}
           </button>
-          <div className="ab-info">
-            <div className="ab-title">{current.title}</div>
-            <div className="ab-sub">{[current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
-          </div>
+          {full ? (
+            <div className="ab-info">
+              <div className="ab-title">{current.title}</div>
+              <div className="ab-sub">{[current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+            </div>
+          ) : (
+            <button className="ab-info" onClick={openFull} title="Show the full player">
+              <div className="ab-title">{current.title}</div>
+              <div className="ab-sub">{[current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+            </button>
+          )}
           <div className="ab-ctl">
             {books && <button className="ibtn" onClick={() => seek(Math.max(0, position() - 15))} aria-label="Back 15 seconds">↺15</button>}
             <button className="ibtn" onClick={prev} aria-label="Previous"><IconPrev /></button>
@@ -194,17 +233,26 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
               </select>
             )}
             <span className="muted ab-count">{index + 1} / {queue.length}</span>
-            <button className="ibtn" onClick={() => setFull(!full)} aria-label={full ? 'Smaller player' : 'Full player'}><IconExpand /></button>
-            <button className="ibtn" onClick={ctx.stop} aria-label="Stop and close"><IconClose /></button>
+            {!full && <button className="ibtn" onClick={openFull} aria-label="Full player" title="Full player"><IconExpand /></button>}
+            {full
+              ? <button className="btn sm ghost" onClick={ctx.stop} title="Stop playing and close the player"><IconStop /> Stop</button>
+              : <button className="ibtn" onClick={ctx.stop} aria-label="Stop playing" title="Stop playing"><IconClose /></button>}
           </div>
           {full && (
-            <ol className="ab-queue" aria-label="Queue">
-              {queue.map((q, i) => (
-                <li key={q.id + '-' + i} className={i === index ? 'on' : ''}>
-                  <button onClick={() => setIndex(i)}><span className="muted">{q.track ?? i + 1}</span> {q.title}<span className="muted">{fmtTime(q.runtimeSec)}</span></button>
-                </li>
-              ))}
-            </ol>
+            <section className="ab-queue-wrap" aria-label="Queue">
+              <div className="ab-queue-head"><span>{books ? 'Chapters' : 'Up next'}</span><span className="muted">{queue.length} {queue.length === 1 ? 'track' : 'tracks'}</span></div>
+              <ol className="ab-queue">
+                {queue.map((q, i) => (
+                  <li key={q.id + '-' + i} className={i === index ? 'on' : ''}>
+                    <button onClick={() => setIndex(i)} aria-current={i === index ? 'true' : undefined}>
+                      <span className="ab-q-n">{i === index && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : (q.track ?? i + 1)}</span>
+                      <span className="ab-q-t"><b>{q.title}</b>{q.artist && q.artist !== current.artist && <small>{q.artist}</small>}</span>
+                      <span className="ab-q-d">{fmtTime(q.runtimeSec)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
         </div>
       )}

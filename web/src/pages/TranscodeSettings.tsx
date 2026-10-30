@@ -42,8 +42,7 @@ export default function TranscodeSettings() {
   const crf = Number(s.crf || 21)
   return (
     <div className="panel transcode">
-      <h2>Transcoding</h2>
-      <p className="muted" style={{ marginTop: -6 }}>How videos are converted for browsers that cannot play the original file. <a href={GUIDE} target="_blank" rel="noreferrer">Read the transcoding guide</a> for hardware recommendations.</p>
+      <p className="muted" style={{ marginTop: 0 }}>Not sure what to pick? The defaults suit most machines; <a href={GUIDE} target="_blank" rel="noreferrer">the transcoding guide</a> explains each choice and recommends hardware.</p>
       <div className="form">
         <h3 className="section-title">Playback</h3>
         <label className="check">

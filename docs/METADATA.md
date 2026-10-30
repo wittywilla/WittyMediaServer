@@ -19,24 +19,66 @@ Sources are applied in this order; later ones only fill gaps:
 | 2 | Kodi-style NFO | `Shrek (2001).nfo`, `movie.nfo`, `tvshow.nfo`, episode `<name>.nfo` |
 | 3 | Local artwork | `poster.jpg`, `<name>-poster.jpg`, `folder.jpg`, `fanart.jpg`, `season01-poster.jpg`, `<episode>-thumb.jpg` |
 | 4 | File and folder names | `Shrek (2001).mkv`, `Show - S01E02 - Title.mkv`, `SHREK.ISO` (disc label) |
-| 5 | **TMDB** (movies) / **TheTVDB** (TV), if you added a key | overview, genres, rating, network, posters, backdrops, episode titles |
-| 6 | **TVmaze** (TV) until you add a TheTVDB API key — built in, no API key needed | overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
-| 7 | **Wikidata** + Wikipedia (movies) until you add a TMDB API key — built in, no API key needed | year, genres, US rating, runtime, plot summary (no posters) |
-| 8 | Generated thumbnail | a frame 20 % into the video |
+| 5 | **Custom agents** you added, in their order (movies, home videos, books) | anything your own service knows: see [Custom agents](#custom-agents) |
+| 6 | **TMDB** (movies) / **TheTVDB** (TV), if you added a key | overview, genres, rating, network, posters, backdrops, episode titles |
+| 7 | **TVmaze** (TV) until you add a TheTVDB API key — built in, no API key needed | overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
+| 8 | **Wikidata** + Wikipedia (movies) until you add a TMDB API key — built in, no API key needed | year, genres, US rating, runtime, plot summary (no posters) |
+| 9 | Generated thumbnail | a frame 20 % into the video |
 
 **Works out of the box.** TV shows and movies get information without any account or key.
 TVmaze data is shared under CC BY-SA 4.0, Wikidata is public domain, Wikipedia text is CC BY-SA
-4.0; each title page links to its source. Turn either off in *Settings → Server*. Adding a TMDB or
+4.0; each title page links to its source. Turn either off in *Settings → Metadata agents*. Adding a TMDB or
 TheTVDB key later upgrades titles the next time they are scanned or refreshed.
 
 TVmaze and Wikidata do not always have a **content rating**, which Kids and Guest profiles rely
 on. Set one under **Edit → Content rating** on any movie or show (a show's rating covers its
 episodes).
 
+## Custom agents
+
+A custom agent is a web service of your own that the server asks about titles the built-in agents
+don't know: a family archive, a club's catalogue, a script you wrote. Add one in
+**Settings → Metadata agents → Custom agents**.
+
+| Field | What it is |
+|---|---|
+| **Address** | A URL template. `{title}`, `{year}` and `{type}` (`movie`, `video` or `book`) are filled in, e.g. `https://archive.local/lookup?title={title}&year={year}` |
+| **API key header** | Optional, sent with every request, e.g. `Authorization: Bearer abc123` (stored on the server, never shown again) |
+| **Use it for** | Movies, Home videos and/or Books libraries |
+
+Agents run in the order listed, before TMDB, TheTVDB, TVmaze and Wikidata, and only fill in what is
+still empty: information inside your files, NFO files and your own edits always win. When an
+agent answers, **Refresh** on a title uses it instead of the built-in agents. **Try it** in the
+agent's dialog looks a title up without changing anything.
+
+The agent answers with JSON, either one object, a list, or `{"results": [...]}` (the first entry
+is used). Every field is optional:
+
+```json
+{
+  "id": "lx-2012",
+  "title": "The Lorax",
+  "year": 2012,
+  "overview": "A boy searches for the one thing that will win the girl of his dreams…",
+  "tagline": "Meet the original force of nature.",
+  "genres": ["Animation", "Family"],
+  "rating": 6.4,
+  "contentRating": "PG",
+  "studio": "Illumination",
+  "runtimeMinutes": 86,
+  "poster": "https://archive.local/art/lorax.jpg",
+  "backdrop": "https://archive.local/art/lorax-wide.jpg"
+}
+```
+
+Answer `404` when you don't know a title. Pictures are downloaded when the title is scanned: a
+picture on the agent's own server is fetched like the agent (it may be on your network); any other
+picture is fetched from the internet only. Only real pictures (JPEG, PNG, WebP, GIF) are kept.
+
 ## What is saved next to your media
 
-With *Settings → Server → Save metadata and artwork next to media files* on (the default) (*Settings → Server → Save metadata and artwork next to
-media files*, on by default), in the standard layout that Kodi and other media servers read:
+With *Settings → Metadata agents → Save information and artwork next to your media* on (the
+default), the server writes these files in the standard layout other media servers read too:
 
 | Media | Written |
 |---|---|

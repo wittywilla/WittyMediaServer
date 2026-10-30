@@ -34,9 +34,9 @@ from your preferred languages.
 *Disc settings* on a DVD's page (administrators):
 
 - **When this disc is inserted**: start with the disc menu, or skip menus and play the feature.
-  The server-wide default is under *Settings → Server → WittyDVD*.
+  The server-wide default is under *Settings → Playback & discs → DVDs and Blu-rays*.
 - **Insert DVD effect**: the tray animation and synthesized drive sound, on or off for this disc;
-  the default is also under *Settings → Server*. Click the animation to skip it.
+  the default is also under *Settings → Playback & discs*. Click the animation to skip it.
 
 ## The remote and keyboard
 
@@ -72,7 +72,7 @@ it fades while you're not moving the mouse.
   instant and they look exactly like on a DVD player. **Forced** subtitles (for alien languages,
   signs…) show even when subtitles are off.
 - Choices made in the disc's own menus (language / setup menus) are honoured.
-- Preferred languages for discs that don't choose: *Settings → Server*.
+- Preferred languages for discs that don't choose: *Settings → Playback & discs*.
 
 ## Interactive extras and games
 

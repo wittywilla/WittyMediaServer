@@ -271,7 +271,16 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		it.Backdrop = *b.Backdrop
 	}
 	if b.Refresh {
-		if key := s.DB.GetSetting(r.Context(), "tmdbKey", ""); key != "" {
+		// The owner's own agents first; they fill only what is empty.
+		if lib, err := s.Store.Library(r.Context(), it.LibraryID); err == nil && it.ShowID == nil {
+			if strings.HasPrefix(it.Provider, "agent:") {
+				it.Provider, it.ProviderID, it.Overview, it.Genres = "", "", "", nil
+			}
+			s.Scanner.ApplyAgents(r.Context(), it, lib.Type)
+		}
+		if strings.HasPrefix(it.Provider, "agent:") {
+			// An agent answered: it takes the place of the built-in ones.
+		} else if key := s.DB.GetSetting(r.Context(), "tmdbKey", ""); key != "" {
 			t := &library.TMDB{Key: key}
 			it.Provider, it.ProviderID = "", ""
 			it.Overview, it.Poster, it.Backdrop = "", "", ""

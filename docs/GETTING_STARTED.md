@@ -87,7 +87,7 @@ library page after adding files.
 ## 6. Optional: posters and descriptions
 
 Without any setup you get titles from file names and a still frame as the poster. For real
-posters, descriptions and ratings, add free API keys under **Settings → Server**:
+posters, descriptions and ratings, add free API keys under **Settings → Metadata agents**:
 
 - **Movies**: a TMDB key — sign up at [themoviedb.org](https://www.themoviedb.org/signup), then
   *Settings → API* → create a key and copy the "API Key (v3 auth)".

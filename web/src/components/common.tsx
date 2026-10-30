@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom'
 import { episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, showPosterUrl, type Item, type Show } from '../api'
-import { IconPlay } from '../icons'
+import { IconLeft, IconPlay } from '../icons'
+
+// The way back up: the library (or show) a page belongs to.
+export function BackLink({ to, label }: { to: string; label: string }) {
+  return <Link to={to} className="back-link"><IconLeft size={18} /><span>{label}</span></Link>
+}
 
 export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-')
 

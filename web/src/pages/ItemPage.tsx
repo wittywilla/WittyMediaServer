@@ -12,7 +12,7 @@ import { toast, useApp } from '../state'
 export default function ItemPage() {
   const { id } = useParams()
   const nav = useNavigate()
-  const { user } = useApp()
+  const { user, libraries } = useApp()
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState(false)
@@ -52,6 +52,10 @@ export default function ItemPage() {
           </div>
         </div>
         <div>
+          {/* Where this belongs: its library, or its show and season. */}
+          {it.showId == null && libraries.find((l) => l.id === it.libraryId) && (
+            <div className="crumbs"><Link to={`/library/${it.libraryId}`}>{libraries.find((l) => l.id === it.libraryId)!.name}</Link></div>
+          )}
           {it.showId != null && (
             <div className="crumbs">
               <Link to={`/show/${it.showId}`}>{it.showTitle}</Link>

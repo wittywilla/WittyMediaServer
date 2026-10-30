@@ -36,50 +36,107 @@
 .tl-d { font-variant-numeric: tabular-nums; font-size: 13px; }
 
 /* ---------------------------------------------------------------- audio bar */
-.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 45; display: grid; grid-template-columns: 48px 1fr auto; grid-template-areas: "art info ctl" "seek seek seek";
-  gap: 4px 10px; align-items: center; padding: 8px 10px; border-radius: 14px; background: rgb(var(--bg-rgb) / .94); border: 1px solid var(--border);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--shadow); }
-.ab-art { grid-area: art; width: 48px; height: 48px; border-radius: 8px; overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); font-size: 20px; }
+/* The bar: compact, centred, always within reach. On phones the full player
+   is a screen of its own; from 1000 px it is a panel docked on the right and
+   the library stays usable beside it. Theme colours only. */
+.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 45; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "art info ctl" "seek seek seek";
+  gap: 4px 12px; align-items: center; padding: 8px 10px; border-radius: 16px; background: rgb(var(--bg-rgb) / .94); border: 1px solid var(--border);
+  backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 18px 44px rgba(0,0,0,.4); }
+.ab-art { grid-area: art; width: 48px; height: 48px; border-radius: 10px; overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); font-size: 20px; cursor: pointer; transition: transform .15s; }
+.ab-art:hover { transform: scale(1.04); }
 .ab-art img { width: 100%; height: 100%; object-fit: cover; }
-.ab-info { grid-area: info; min-width: 0; }
-.ab-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-info { grid-area: info; min-width: 0; text-align: left; background: none; border: 0; padding: 4px 8px; margin: -4px -8px; border-radius: 10px; color: inherit; font: inherit; }
+button.ab-info { cursor: pointer; }
+button.ab-info:hover { background: var(--bg-3); }
+.ab-title { font-weight: 650; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ab-sub { color: var(--fg-2); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ab-ctl { grid-area: ctl; display: flex; align-items: center; gap: 0; }
-.ab-ctl .ibtn { color: var(--fg); width: 38px; height: 38px; font-size: 11px; font-weight: 700; }
+.ab-ctl { grid-area: ctl; display: flex; align-items: center; gap: 2px; }
+.ab-ctl .ibtn { color: var(--fg); width: 38px; height: 38px; font-size: 11px; font-weight: 700; border-radius: 50%; }
+.ab-ctl .ibtn:hover { background: var(--bg-3); }
 .ab-ctl .ibtn svg { fill: currentColor; }
-.ab-ctl .ibtn.big { width: 46px; height: 46px; background: var(--accent); color: #fff; }
-.ab-seek { grid-area: seek; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 11.5px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
-.ab-seek input { width: 100%; accent-color: var(--accent); }
+.ab-ctl .ibtn.big { width: 44px; height: 44px; background: var(--accent); color: var(--accent-fg); box-shadow: 0 6px 16px rgb(var(--accent-rgb) / .35); }
+.ab-ctl .ibtn.big:hover { background: var(--accent-2); }
+.ab-seek { grid-area: seek; display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; align-items: center; font-size: 11.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.ab-seek span:last-child { text-align: right; }
+.ab-seek input { width: 100%; accent-color: var(--accent); height: 18px; margin: 0; }
 .ab-extra { display: none; }
+.ab-extra .btn svg, .ab-top .btn svg { width: 16px; height: 16px; fill: currentColor; }
 .select.sm { padding: 4px 8px; font-size: 13px; height: 32px; }
-/* Phones: keep the bar compact (prev/next hidden), above the tab bar. */
+/* Phones: the bar stays compact (previous and next live in the full player), above the tab bar. */
 @media (max-width: 700px) {
   .audio-bar { bottom: calc(70px + env(safe-area-inset-bottom)); }
   .audio-bar:not(.full) .ab-ctl .ibtn:not(.big) { display: none; }
   .app:has(~ .audio-bar) .content, .audio-bar ~ .app .content { padding-bottom: 200px; }
 }
 @media (min-width: 701px) {
-  .audio-bar { left: 50%; transform: translateX(-50%); width: min(1100px, calc(100% - 32px)); grid-template-columns: 52px minmax(140px, 1fr) auto minmax(220px, 1.4fr) auto;
-    grid-template-areas: "art info ctl seek extra"; }
-  .ab-extra { display: flex; align-items: center; gap: 6px; grid-area: extra; }
-  .ab-extra .ibtn { width: 34px; height: 34px; color: var(--fg); }
+  .audio-bar { left: 50%; transform: translateX(-50%); width: min(880px, calc(100% - 32px)); grid-template-columns: 52px minmax(140px, 1fr) auto minmax(180px, 1.2fr) auto;
+    grid-template-areas: "art info ctl seek extra"; padding: 8px 12px 8px 8px; }
+  .ab-art { width: 52px; height: 52px; }
+  .ab-extra { display: flex; align-items: center; gap: 2px; grid-area: extra; }
+  .ab-extra .ibtn { width: 34px; height: 34px; color: var(--fg-2); border-radius: 50%; }
+  .ab-extra .ibtn:hover { color: var(--fg); background: var(--bg-3); }
   .ab-extra .ibtn svg { width: 18px; height: 18px; fill: currentColor; }
+  .audio-bar:not(.full) .ab-extra .btn.sm, .audio-bar:not(.full) .ab-count { display: none; }
   .ab-count { font-size: 12px; white-space: nowrap; }
+  /* Room under the page for the bar, so the last row is never hidden. */
+  .app:has(~ .audio-bar) .content { padding-bottom: 120px; }
 }
-/* Full player ("Now playing"). */
-.audio-bar.full { inset: 0; transform: none; width: auto; border-radius: 0; z-index: 70; grid-template-columns: 1fr; grid-template-areas: "big" "info" "seek" "ctl" "extra" "queue";
-  align-content: start; justify-items: center; gap: 14px; padding: max(24px, env(safe-area-inset-top)) 20px 20px; overflow-y: auto; }
+
+/* ---------------------------------------------------------------- full player */
+/* A column (not a grid: a long queue must never squeeze into the controls). */
+.audio-bar.full { inset: 0; transform: none; width: auto; border-radius: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: max(14px, env(safe-area-inset-top)) 20px 24px; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg); border: 0; animation: ab-up .25s cubic-bezier(.2,.8,.2,1); }
+@keyframes ab-up { from { opacity: 0; transform: translateY(24px); } }
 .audio-bar.full .ab-art { display: none; }
-.ab-art-big { grid-area: big; width: min(70vw, 360px); aspect-ratio: 1; border-radius: 16px; background: var(--bg-3) center / cover; box-shadow: var(--shadow); }
-.audio-bar.full .ab-info { text-align: center; }
-.audio-bar.full .ab-title { font-size: 22px; white-space: normal; }
-.audio-bar.full .ab-seek { width: min(90vw, 560px); }
-.audio-bar.full .ab-ctl .ibtn { display: grid !important; }
-.audio-bar.full .ab-extra { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.ab-queue { grid-area: queue; list-style: none; padding: 0; margin: 0; width: min(90vw, 560px); display: grid; }
-.ab-queue button { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; width: 100%; text-align: left; padding: 8px; border-radius: 8px; background: none; border: 0; color: var(--fg); }
-.ab-queue li.on button { color: var(--accent); font-weight: 700; }
-.ab-queue button:hover { background: var(--bg-2); }
+.audio-bar.full > * { flex: none; }
+.audio-bar.full .ab-top { order: 1; } .audio-bar.full .ab-art-big { order: 2; } .audio-bar.full .ab-info { order: 3; }
+.audio-bar.full .ab-seek { order: 4; } .audio-bar.full .ab-ctl { order: 5; } .audio-bar.full .ab-extra { order: 6; } .audio-bar.full .ab-queue-wrap { order: 7; }
+.ab-top { grid-area: top; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; max-width: 560px; }
+.ab-top > :first-child { justify-self: start; }
+.ab-top > :last-child { justify-self: end; }
+.ab-top-title { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-3); }
+.ab-art-big { grid-area: big; width: min(78vw, 340px); aspect-ratio: 1; border-radius: 18px; background: var(--bg-3) center / cover; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.audio-bar.full .ab-info { text-align: center; margin: 0; width: 100%; max-width: 560px; }
+.audio-bar.full .ab-title { font-size: 21px; font-weight: 700; white-space: normal; letter-spacing: -.01em; }
+.audio-bar.full .ab-sub { font-size: 14px; white-space: normal; margin-top: 2px; }
+.audio-bar.full .ab-seek { width: 100%; max-width: 560px; }
+.audio-bar.full .ab-ctl { gap: 10px; }
+.audio-bar.full .ab-ctl .ibtn { display: grid !important; width: 46px; height: 46px; }
+.audio-bar.full .ab-ctl .ibtn svg { width: 26px; height: 26px; }
+.audio-bar.full .ab-ctl .ibtn.big { width: 62px; height: 62px; }
+.audio-bar.full .ab-ctl .ibtn.big svg { width: 30px; height: 30px; }
+.audio-bar.full .ab-extra { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.ab-queue-wrap { grid-area: queue; width: 100%; max-width: 560px; margin-top: 4px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--border); overflow: hidden; }
+.ab-queue-head { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px 8px; font-weight: 650; font-size: 14px; }
+.ab-queue-head .muted { font-size: 12.5px; font-weight: 500; }
+.ab-queue { list-style: none; padding: 0 6px 6px; margin: 0; display: grid; }
+.ab-queue button { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px; background: none; border: 0; color: var(--fg); cursor: pointer; }
+.ab-queue button:hover { background: var(--bg-3); }
+.ab-queue li.on button { background: rgb(var(--accent-rgb) / .12); }
+.ab-queue li.on b { color: var(--accent); }
+.ab-q-n { color: var(--fg-3); font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: center; }
+.ab-q-t { min-width: 0; display: grid; }
+.ab-q-t b { font-weight: 550; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-q-t small { color: var(--fg-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-q-d { color: var(--fg-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+/* Playing: three little bars. */
+.ab-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.ab-eq b { width: 3px; background: var(--accent); border-radius: 1px; animation: ab-eq .9s ease-in-out infinite; }
+.ab-eq b:nth-child(2) { animation-delay: -.3s; } .ab-eq b:nth-child(3) { animation-delay: -.6s; }
+@keyframes ab-eq { 0%, 100% { height: 30%; } 50% { height: 100%; } }
+@media (prefers-reduced-motion: reduce) { .audio-bar.full, .ab-eq b { animation: none; } .ab-eq b { height: 70%; } }
+
+/* Wide screens: the full player is a panel on the right, the size of the
+   phone view, and the page moves over to keep the library in view. */
+@media (min-width: 1000px) {
+  .audio-bar.full { inset: 76px 16px 16px auto; width: 380px; border-radius: 20px; z-index: 30; padding: 14px 16px 16px; gap: 14px;
+    background: var(--bg-2); border: 1px solid var(--border); box-shadow: -12px 0 40px rgba(0,0,0,.3); animation: ab-in .25s cubic-bezier(.2,.8,.2,1); }
+  @keyframes ab-in { from { opacity: 0; transform: translateX(24px); } }
+  .audio-bar.full .ab-art-big { width: 100%; max-width: 300px; border-radius: 16px; }
+  .audio-bar.full .ab-title { font-size: 18px; }
+  .audio-bar.full .ab-queue-wrap { background: var(--bg); }
+  .app:has(~ .audio-bar.full) .main { padding-right: 404px; transition: padding .25s; }
+}
 
 /* podcasts */
 .track-list li { display: flex; align-items: center; gap: 6px; }

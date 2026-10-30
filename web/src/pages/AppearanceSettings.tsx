@@ -120,7 +120,7 @@ function LayoutPanel() {
   return (
     <div className="panel">
       <h2>Layout</h2>
-      <p className="muted" style={{ marginTop: -6 }}>Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize</b> on the home page.</p>
+      <p className="muted" style={{ marginTop: -6 }}>Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</p>
       <div className="layout-opts" role="radiogroup" aria-label="Navigation">
         {opts.map(([v, label, hint]) => (
           <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>

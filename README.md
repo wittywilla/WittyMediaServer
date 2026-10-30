@@ -236,7 +236,7 @@ media.example.com {
    *TV shows* (TheTVDB metadata) or *Other videos* (no lookups), and pick one or more folders
    with the built-in browser.
    The scan starts immediately; items appear as they are found.
-4. Optional: *Settings → Server* — paste a free [TMDB API key](https://www.themoviedb.org/settings/api)
+4. Optional: *Settings → Metadata agents* — paste a free [TMDB API key](https://www.themoviedb.org/settings/api)
    for movie posters, overviews, ratings and backdrops, and a [TheTVDB v4 API key](https://thetvdb.com/api-information)
    for TV shows; choose a maximum transcode height; enable hardware encoding or low-power mode;
    set preferred DVD menu/audio/subtitle languages, what *Insert DVD* starts with, and the
@@ -272,7 +272,7 @@ Kodi read (`.nfo`, `poster.jpg`, `fanart.jpg`, …). ➡ Details: **[docs/METADA
 
 ## TV shows
 
-Add a library of type **TV shows** (and a free TheTVDB key under *Settings → Server* for posters,
+Add a library of type **TV shows** (and a free TheTVDB key under *Settings → Metadata agents* for posters,
 plots, networks and genres). Episodes named like `Show/Season 01/Show - S01E01 - Title.mkv`,
 `1x01` or `S01E01E02` are all understood. Show pages offer a **Cards** or compact **Playlist**
 layout (per show, with a server-wide default), and the player adds **Skip intro**, **Watch

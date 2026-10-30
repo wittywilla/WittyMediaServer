@@ -73,7 +73,7 @@ function LibraryChannels() {
   }
   const groups = (['network', 'classic', 'era', 'genre', 'show'] as const).map((g) => ({ g, items: (sug || []).filter((s) => s.group === g && !s.exists) })).filter((x) => x.items.length)
   return (
-    <Section title="Channels from your library" desc="They run all the time, like real TV: tune in and you join the programme part-way through. FFmpeg only runs while someone is watching."
+    <Section title="Channels from your library" desc="They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching."
       actions={<Link className="btn sm primary" to="new"><IconPlus /> New channel</Link>}>
       {list && list.length > 0 && (
         <ul className="tvs-list">
@@ -368,7 +368,7 @@ function GuideSources() {
             <li key={s.id} className="tvs-item">
               <div className="tvs-item-text">
                 <b>{s.name}</b>
-                <span>{s.lastFetch ? `${s.programmes} programmes · read ${new Date(s.lastFetch * 1000).toLocaleString()}` : 'Not read yet'}</span>
+                <span>{s.lastFetch ? `${s.programmes} listings · read ${new Date(s.lastFetch * 1000).toLocaleString()}` : 'Not read yet'}</span>
                 {s.lastError && <span className="tvs-error" role="alert">{s.lastError}</span>}
               </div>
               <button className="btn sm ghost" onClick={() => void refresh(s)} aria-label={`Read ${s.name} again`}><IconRefresh /></button>

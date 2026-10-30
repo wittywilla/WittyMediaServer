@@ -153,7 +153,7 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
   const save = async () => {
     try { onSaved(await api.put<Item>(`/items/${item.id}`, { playMode, insertFx, discContent: content })) } catch (e: any) { setErr(e.message) }
   }
-  const guessed = !item.disc?.contentManual && item.disc?.content === 'tv' ? 'TV series' : 'film'
+  const guessed = !item.disc?.contentManual && item.disc?.content === 'tv' ? 'TV series' : 'movie'
   const def = prefs?.dvdStart === 'title' ? 'main feature' : 'disc menu'
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -163,10 +163,10 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
           <label>What’s on this disc
             <select className="select" value={content} onChange={(e) => setContent(e.target.value)}>
               <option value="">Work it out from the name ({item.disc?.contentManual ? 'automatic' : guessed})</option>
-              <option value="movie">A film</option>
+              <option value="movie">A movie</option>
               <option value="tv">Episodes of a TV series</option>
             </select>
-            <span className="hint">Sorts the disc under Films or TV series in its library. Discs of a series aren’t looked up as films.</span>
+            <span className="hint">Sorts the disc under Movies or TV series in its library. Discs of a series aren’t looked up as movies.</span>
           </label>
           <label>When this disc is inserted
             <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>

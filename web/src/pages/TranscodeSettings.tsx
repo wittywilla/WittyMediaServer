@@ -148,7 +148,7 @@ export default function TranscodeSettings() {
           <input className="input" inputMode="numeric" value={s.dvdRegion || ''} onChange={(e) => set('dvdRegion', e.target.value)} />
         </label>
         <label>Blu-ray region
-          <Tip>Blu-rays check the region in their own program, and a disc for another region shows its own message instead of the film. Pick the region your discs are from.</Tip>
+          <Tip>Blu-rays check the region in their own program, and a disc for another region shows its own message instead of the movie. Pick the region your discs are from.</Tip>
           <select className="input" value={s.blurayRegion || '1'} onChange={(e) => set('blurayRegion', e.target.value)}>
             <option value="1">A: Americas, East and South-East Asia</option>
             <option value="2">B: Europe, Africa, Oceania, Middle East</option>

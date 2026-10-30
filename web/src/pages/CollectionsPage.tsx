@@ -27,7 +27,7 @@ export default function CollectionsPage() {
         {canPost(user) && <button className="btn sm primary" onClick={() => setMaking(true)}><IconPlus /> New</button>}
       </div>
       {list.length === 0 ? (
-        <EmptyState title="No collections yet" text="Gather films, shows, albums and more from any library, or save a rule, such as unwatched films from the 90s, as a smart playlist that keeps itself up to date." />
+        <EmptyState title="No collections yet" text="Gather movies, shows, albums and more from any library, or save a rule, such as unwatched films from the 90s, as a smart playlist that keeps itself up to date." />
       ) : (
         <div className="gal-album-grid">
           {list.map((c) => (

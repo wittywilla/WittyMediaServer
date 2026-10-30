@@ -92,7 +92,7 @@ export default function ReviewPage() {
           <div className="rv-grid">
             <TopList title="What you spent it on" list={r.byType.map((e) => ({ ...e, name: TYPE_NAMES[e.name] || e.name }))} />
             <TopList title="Shows" list={r.topShows} link={(e) => (e.showId ? `/show/${e.showId}` : null)} />
-            <TopList title="Films and videos" list={r.topTitles} link={(e) => (e.id ? `/item/${e.id}` : null)} />
+            <TopList title="Movies and videos" list={r.topTitles} link={(e) => (e.id ? `/item/${e.id}` : null)} />
             <TopList title="Artists" list={r.topArtists} />
             <TopList title="Creators" list={r.topCreators} />
             <TopList title="Genres" list={r.topGenres} />

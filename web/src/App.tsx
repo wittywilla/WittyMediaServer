@@ -166,7 +166,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
       )}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
-        <input aria-label="Search" type="search" placeholder="Search movies, shows, episodes…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label="Search" type="search" placeholder="Search your libraries…" value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
       {!topNav && <div className="spacer" />}
       <ProfileMenu />

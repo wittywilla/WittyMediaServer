@@ -98,9 +98,9 @@ export default function SettingsPage() {
 // ---------------------------------------------------------------- libraries
 
 const TYPES: { v: string; label: string; hint: string }[] = [
-  { v: 'movies', label: 'Movies', hint: 'Film files; disc images of films can go here too' },
+  { v: 'movies', label: 'Movies', hint: 'Movie files; disc images of movies can go here too' },
   { v: 'shows', label: 'TV shows', hint: 'Series in season folders; disc images of a series too' },
-  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of films and series, with their menus' },
+  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of movies and series, with their menus' },
   { v: 'anime', label: 'Anime', hint: 'Series with AniList information' },
   { v: 'music', label: 'Music', hint: 'Albums and songs' },
   { v: 'audiobooks', label: 'Audiobooks', hint: 'Books to listen to, by chapter' },
@@ -112,7 +112,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
   { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
   { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
-  { v: 'commercials', label: 'Commercials', hint: 'Your own adverts and bumpers for TV channels; they stay out of Home and search' },
+  { v: 'commercials', label: 'Commercials', hint: 'Your own ads and bumpers for TV channels; they stay out of Home and search' },
   { v: 'games', label: 'Games', hint: 'Your own game files, by console, played in the browser' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t

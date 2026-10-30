@@ -114,6 +114,11 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 		next = &n.ID
 	}
 	s.showsForViewer(r, sh)
+	if !userFrom(r).IsAdmin {
+		for i := range seasons {
+			seasons[i].Poster = artForViewer(seasons[i].Poster)
+		}
+	}
 	writeJSON(w, 200, map[string]any{"show": sh, "seasons": seasons, "episodes": s.forViewer(r, eps...), "nextUpId": next})
 }
 

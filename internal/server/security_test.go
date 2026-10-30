@@ -202,7 +202,7 @@ func TestServerPathsHiddenFromOtherAccounts(t *testing.T) {
 		t.Fatal(err)
 	}
 	lib := ts.library(t, "movies", dir)
-	it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(dir, "m.mp4"), ContentRating: "G"})
+	it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(dir, "m.mp4"), ContentRating: "G", Poster: filepath.Join(dir, "poster.jpg"), Backdrop: filepath.Join(dir, "fanart.jpg")})
 	_, admin := ts.user(t, "admin", "adult", true, "")
 	_, adult := ts.user(t, "adult", "adult", false, "")
 	for _, target := range []string{"/api/libraries", "/api/items", fmt.Sprintf("/api/items/%d", it.ID), "/api/home"} {

@@ -77,9 +77,10 @@ func (s *Server) visibleShow(r *http.Request, id int64) (*library.Show, error) {
 func (s *Server) forViewer(r *http.Request, items ...*library.Item) []*library.Item {
 	if !userFrom(r).IsAdmin {
 		for _, it := range items {
-			if !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
+			if !isWeb(it.Path) {
 				it.Path = ""
 			}
+			it.Poster, it.Backdrop = artForViewer(it.Poster), artForViewer(it.Backdrop)
 		}
 	}
 	return items
@@ -89,9 +90,21 @@ func (s *Server) showsForViewer(r *http.Request, shows ...*library.Show) []*libr
 	if !userFrom(r).IsAdmin {
 		for _, sh := range shows {
 			sh.Path = ""
+			sh.Poster, sh.Backdrop = artForViewer(sh.Poster), artForViewer(sh.Backdrop)
 		}
 	}
 	return shows
+}
+
+func isWeb(s string) bool { return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") }
+
+// artForViewer: the page asks the server for pictures and only needs to know
+// whether there is one, so a picture beside the media doesn't name its folder.
+func artForViewer(v string) string {
+	if v == "" || isWeb(v) || strings.HasPrefix(v, "cache:") {
+		return v
+	}
+	return "local"
 }
 
 // visibleLibraries drops libraries an account may not open.

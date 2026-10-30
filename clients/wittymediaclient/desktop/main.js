@@ -217,7 +217,7 @@ ipcMain.handle('open-server', async (e, s) => {
 })
 
 ipcMain.on('discover-start', (e) => {
-  if (!fromConnect(e) || process.env.WMC_NO_DISCOVERY === '1') return
+  if (!fromConnect(e)) return
   endDiscovery()
   const page = e.sender
   stopDiscovery = startDiscovery((servers) => { if (!page.isDestroyed()) page.send('servers', servers) })

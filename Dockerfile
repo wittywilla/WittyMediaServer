@@ -24,6 +24,7 @@ COPY modules/wittydisc/go.mod modules/wittydisc/
 COPY modules/wittydvd/go.mod modules/wittydvd/
 COPY modules/wittybluray/go.mod modules/wittybluray/
 COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
+COPY modules/wittytuner/go.mod modules/wittytuner/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

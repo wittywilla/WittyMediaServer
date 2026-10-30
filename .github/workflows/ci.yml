@@ -21,18 +21,19 @@ jobs:
       - run: go vet ./...
       - run: go test ./... -count=1
       # go.work builds the modules against each other's local source.
-      - name: WittyDisc, WittyDVD, WittyBluray and WittyIntegratedFileBrowser modules (their own go.mod)
+      - name: WittyDisc, WittyDVD, WittyBluray, WittyIntegratedFileBrowser and WittyTuner modules (their own go.mod)
         run: |
           (cd modules/wittydisc && go vet ./... && go test ./... -count=1)
           (cd modules/wittydvd && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittydvd)
           (cd modules/wittybluray && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittybluray)
           (cd modules/wittyintegratedfilebrowser && go vet ./... && go test ./... -count=1)
+          (cd modules/wittytuner && go vet ./... && go test ./... -count=1)
       # What `go install …@version` sees: released dependencies only. Fails while an engine relies
       # on WittyDisc changes that are not released yet, which only matters for the next release.
       - name: Modules build on their own (GOWORK=off)
         continue-on-error: true
         run: |
-          for m in wittydisc wittydvd wittybluray wittyintegratedfilebrowser; do (cd modules/$m && GOWORK=off go build ./...) || exit 1; done
+          for m in wittydisc wittydvd wittybluray wittyintegratedfilebrowser wittytuner; do (cd modules/$m && GOWORK=off go build ./...) || exit 1; done
       - name: Cross-compile every release platform
         run: |
           for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do

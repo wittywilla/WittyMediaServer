@@ -33,6 +33,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
+| **WittyTuner** | TV tuners and IPTV behind one interface: network tuners, M3U playlists and streams, Linux DVB, V4L2 and other capture cards, SAT>IP, external backends, a custom command. Also reads XMLTV and the guide data in broadcasts. Refuses encrypted channels | WittyMediaServer |
 
 ### Server libraries
 
@@ -71,6 +72,7 @@ modules/                    Go plugins
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
   wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
+  wittytuner/               → github.com/wittywilla/WittyTuner
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer

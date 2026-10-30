@@ -6,4 +6,5 @@ use (
 	./modules/wittydisc
 	./modules/wittydvd
 	./modules/wittyintegratedfilebrowser
+	./modules/wittytuner
 )

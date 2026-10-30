@@ -473,7 +473,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .form .input, .form .select { width: 100%; color: var(--fg); font-weight: 400; }
 .hint { font-size: var(--text-xs); font-weight: 400; color: var(--fg-3); line-height: 1.45; }
 .field-row { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
-.field-row .input { flex: 1 1 160px; min-width: 0; }
+.field-row .input { flex: 1 1 240px; min-width: 0; }
 .field-row .btn { flex: none; }
 /* A setting turned on or off: the box, its name (and a badge), and what it does. */
 .opt { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-1) 0; cursor: pointer; }

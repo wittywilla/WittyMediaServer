@@ -55,4 +55,4 @@ export const IconPlus = (p: P) => <S {...p} d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z
 export const IconPlug = (p: P) => <S {...p} d="M16 7V3h-2v4h-4V3H8v4H6v6l4 4v4h4v-4l4-4V7z" />
 export const IconLibrary = (p: P) => <S {...p} d="M4 6H2v14a2 2 0 002 2h14v-2H4zm16-4H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zm-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z" />
 // The icon for a kind of library.
-export const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' || type === 'books' ? <IconBook /> : <IconDisc />)
+export const libIcon = (type: string) => (type === 'photos' ? <IconImage /> : type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' || type === 'books' ? <IconBook /> : <IconDisc />)

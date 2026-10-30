@@ -411,6 +411,8 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",
 		"maxSpeed":    maxSpeed(s.DB.GetSetting(ctx, "maxSpeed", "4")),
 		"clientLogs":  s.Logs != nil && s.Logs.On("client"),
+		"shareLinks":  s.DB.GetSetting(ctx, "shareLinks", "1") == "1",
+		"uploads":     s.DB.GetSetting(ctx, "uploads", "1") == "1",
 	})
 }
 

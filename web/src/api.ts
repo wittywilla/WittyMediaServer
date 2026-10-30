@@ -46,14 +46,14 @@ export type Show = {
 }
 export type Season = { number: number; title: string; overview: string; poster: string; episodeCount: number; unwatched: number }
 export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
-export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean; insertSound?: boolean }
+export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean; insertSound?: boolean; shareLinks?: boolean; uploads?: boolean }
 export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'tvmaze' | 'anilist' | 'current' }
 export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }
 export type Track = { index: number; language: string; title?: string; codec: string; channels?: number }
 export type PlayInfo = {
   type: 'direct' | 'hls'; url: string; durationSec: number; audio: Track[]; subtitles: Track[]
-  audioIndex: number; subtitleIndex: number; container: string
+  audioIndex: number; subtitleIndex: number; container: string; chapters?: { start: number; title: string }[]
 }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number }
 export type DvdMenu = {

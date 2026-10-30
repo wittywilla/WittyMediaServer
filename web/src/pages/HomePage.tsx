@@ -195,6 +195,7 @@ function HubRow({ hub }: { hub: Hub }) {
 const NOUNS: Record<string, [string, string]> = {
   movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
   music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
+  photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'],
 }
 function LibraryTiles() {
   const { libraries, user } = useApp()

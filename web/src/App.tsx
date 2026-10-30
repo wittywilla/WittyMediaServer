@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api } from './api'
@@ -19,6 +19,8 @@ import AuthPage from './pages/AuthPage'
 import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
+
+const SharedPage = lazy(() => import('./pages/SharedPage'))
 
 export default function App() {
   useDialogs()
@@ -45,6 +47,8 @@ function Shell() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+  // A link someone was sent: no account, no app around it.
+  if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (!user) return setupRequired ? <SetupWizard resume={false} /> : <AuthPage />
   if (onboarding && user.isAdmin) return <SetupWizard resume />

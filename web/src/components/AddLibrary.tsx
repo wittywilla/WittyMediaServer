@@ -17,6 +17,7 @@ export const LIB_TYPES = [
   { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by RSS feed or search a free directory; add episode files you already have' },
   { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
+  { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; nothing leaves this server' },
 ]
 
 // What each kind of library expects in its folder, shown once it's chosen.
@@ -24,6 +25,7 @@ const FOLDER_HINT: Record<string, string> = {
   movies: 'Disc images (.iso) and VIDEO_TS or BDMV folders in here are listed as DVDs and Blu-rays, and you can mark each one as a film or a TV series.',
   shows: 'Disc images of a series are listed with the show’s discs and keep their menus.',
   discs: 'Only DVD and Blu-ray images and folders are picked up. Each disc is sorted as a film or a TV series from its name; you can change that on the disc’s page.',
+  photos: 'Every picture and clip in here and in folders below it. Thumbnails are made when first looked at, so even a large collection scans quickly. Your files are never changed; uploads are saved in an Uploads folder inside it.',
 }
 
 export type Grouping = 'combine' | 'separate'

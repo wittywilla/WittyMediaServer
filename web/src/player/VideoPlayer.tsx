@@ -206,6 +206,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             </div>
           )}
           <Controls video={video} duration={duration} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
+            chapters={info?.chapters?.map((c) => c.start)} chapterNames={info?.chapters?.map((c) => c.title)}
             audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}

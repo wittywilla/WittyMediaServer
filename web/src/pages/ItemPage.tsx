@@ -25,6 +25,11 @@ export default function ItemPage() {
   if (err) return <div className="error">{err}</div>
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />
+  // Pictures and creator videos have their own places.
+  const libType = libraries.find((l) => l.id === it.libraryId)?.type
+  if (libType === 'photos') return <Navigate replace to={`/library/${it.libraryId}?view=${it.id}`} />
+  if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
+  if (libType === 'channels') return <Navigate replace to={`/watch/${it.id}`} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)

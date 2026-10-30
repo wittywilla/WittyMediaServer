@@ -132,6 +132,82 @@ var migrations = []string{
 	   color TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '',
 	   created_at INTEGER NOT NULL);
 	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
+	// 10: WittyPhotos: what EXIF says about each picture (photos are items),
+	// and albums. Times are the clock on the wall where the picture was taken,
+	// stored as if it were UTC, so a photo stays in its month wherever it is viewed.
+	`CREATE TABLE IF NOT EXISTS photo_meta (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   taken_at INTEGER NOT NULL, ym INTEGER NOT NULL, folder TEXT NOT NULL DEFAULT '',
+	   make TEXT, model TEXT, lens TEXT, fnumber REAL, exposure TEXT, iso INTEGER, focal REAL,
+	   orientation INTEGER NOT NULL DEFAULT 0, lat REAL, lon REAL, alt REAL,
+	   raw INTEGER NOT NULL DEFAULT 0, motion TEXT);
+	 CREATE INDEX IF NOT EXISTS photo_time ON photo_meta(library_id, taken_at DESC, item_id DESC);
+	 CREATE INDEX IF NOT EXISTS photo_ym ON photo_meta(library_id, ym);
+	 CREATE INDEX IF NOT EXISTS photo_geo ON photo_meta(library_id, lat, lon) WHERE lat IS NOT NULL;
+	 CREATE TABLE IF NOT EXISTS photo_albums (
+	   id INTEGER PRIMARY KEY, library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+	   cover_item INTEGER REFERENCES items(id) ON DELETE SET NULL, shared INTEGER NOT NULL DEFAULT 0,
+	   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE INDEX IF NOT EXISTS photo_albums_lib ON photo_albums(library_id, name);
+	 CREATE TABLE IF NOT EXISTS photo_album_items (
+	   album_id INTEGER NOT NULL REFERENCES photo_albums(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   added_at INTEGER NOT NULL, PRIMARY KEY(album_id, item_id));
+	 CREATE INDEX IF NOT EXISTS photo_album_items_item ON photo_album_items(item_id);`,
+	// 11: what viewers do with items, per account: likes and favourites,
+	// comments, what was watched and for how long, and links that share an item
+	// or album with someone without an account (only a hash of the link is kept).
+	`CREATE TABLE IF NOT EXISTS item_reactions (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   value INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(user_id, item_id));
+	 CREATE INDEX IF NOT EXISTS item_reactions_item ON item_reactions(item_id, value);
+	 CREATE TABLE IF NOT EXISTS item_comments (
+	   id INTEGER PRIMARY KEY, item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, parent_id INTEGER REFERENCES item_comments(id) ON DELETE CASCADE,
+	   author TEXT NOT NULL DEFAULT '', body TEXT NOT NULL, imported INTEGER NOT NULL DEFAULT 0,
+	   likes INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, edited_at INTEGER);
+	 CREATE INDEX IF NOT EXISTS item_comments_item ON item_comments(item_id, created_at);
+	 CREATE TABLE IF NOT EXISTS item_stats (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   plays INTEGER NOT NULL DEFAULT 0, seconds REAL NOT NULL DEFAULT 0, completes INTEGER NOT NULL DEFAULT 0,
+	   skips INTEGER NOT NULL DEFAULT 0, last_at INTEGER NOT NULL, PRIMARY KEY(user_id, item_id));
+	 CREATE INDEX IF NOT EXISTS item_stats_item ON item_stats(item_id);
+	 CREATE INDEX IF NOT EXISTS item_stats_user ON item_stats(user_id, last_at DESC);
+	 CREATE TABLE IF NOT EXISTS play_log (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   day INTEGER NOT NULL, seconds REAL NOT NULL, PRIMARY KEY(user_id, item_id, day));
+	 CREATE INDEX IF NOT EXISTS play_log_user_day ON play_log(user_id, day);
+	 CREATE TABLE IF NOT EXISTS share_links (
+	   id INTEGER PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE,
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   kind TEXT NOT NULL, target_id INTEGER NOT NULL, title TEXT NOT NULL,
+	   allow_download INTEGER NOT NULL DEFAULT 0, expires_at INTEGER, views INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+	 CREATE INDEX IF NOT EXISTS share_links_user ON share_links(user_id, created_at DESC);`,
+	// 12: WittyShorts and WittyChannels: creators, what a creator video has on
+	// top of an item, and who follows whom.
+	`CREATE TABLE IF NOT EXISTS creators (
+	   id INTEGER PRIMARY KEY, library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   key TEXT NOT NULL, name TEXT NOT NULL, handle TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
+	   avatar TEXT NOT NULL DEFAULT '', banner TEXT NOT NULL DEFAULT '', platform TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
+	   folder TEXT NOT NULL DEFAULT '', added_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, UNIQUE(library_id, key));
+	 CREATE TABLE IF NOT EXISTS video_meta (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   creator_id INTEGER REFERENCES creators(id) ON DELETE SET NULL,
+	   platform TEXT NOT NULL DEFAULT '', source_url TEXT NOT NULL DEFAULT '', upload_date TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '',
+	   orig_views INTEGER NOT NULL DEFAULT 0, orig_likes INTEGER NOT NULL DEFAULT 0, vertical INTEGER NOT NULL DEFAULT 0,
+	   playlist TEXT NOT NULL DEFAULT '', custom TEXT NOT NULL DEFAULT '', edited INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS video_meta_lib ON video_meta(library_id, upload_date DESC);
+	 CREATE INDEX IF NOT EXISTS video_meta_creator ON video_meta(creator_id, upload_date DESC);
+	 CREATE TABLE IF NOT EXISTS creator_subs (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   creator_id INTEGER NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+	   created_at INTEGER NOT NULL, PRIMARY KEY(user_id, creator_id));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -352,6 +352,9 @@ type ItemQuery struct {
 	Access *Access
 	// Watchable: movies, videos and discs only (no music, books or podcasts).
 	Watchable bool
+	// NoGallery leaves out photo, vertical video and creator libraries, which
+	// are not what the home page's hero or Shuffle are for.
+	NoGallery bool
 	// Audio: one album (by album artist and album title).
 	Album       *string
 	AlbumArtist *string
@@ -428,6 +431,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.Watchable {
 		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')")
+	}
+	if q.Watchable || q.NoGallery {
+		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type IN ('photos', 'shorts', 'channels'))")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

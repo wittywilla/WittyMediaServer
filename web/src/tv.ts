@@ -16,6 +16,9 @@
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
 const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next'
+// The player that fills the screen. A player inside a page (.inline) is just a
+// part of that page.
+const FULL_PLAYER = '.player:not(.mini):not(.inline)'
 
 type Dir = 'up' | 'down' | 'left' | 'right'
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
@@ -42,7 +45,7 @@ function scopeOf(el: Element | null): ParentNode {
   if (dialog) return dialog
   const openDialog = document.querySelector('.picker-backdrop, .modal-backdrop .modal, .view-settings')
   if (openDialog) return openDialog
-  const player = document.querySelector('.player:not(.mini)')
+  const player = document.querySelector(FULL_PLAYER)
   if (player) return player
   return document
 }
@@ -50,7 +53,7 @@ function scopeOf(el: Element | null): ParentNode {
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
-  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest('.player:not(.mini)') && !el.closest(PLAYER_CONTROLS)))
+  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)))
   const cands = all.map((el) => ({ el, r: el.getBoundingClientRect() })).filter((c) => visible(c.el, c.r))
   if (!cands.length) return false
   if (!cur || cur === document.body || !cands.some((c) => c.el === cur)) {
@@ -78,7 +81,7 @@ function move(dir: Dir): boolean {
   }
   if (!best) {
     // Leaving the player's controls upwards hands the arrows back to the player.
-    if (cur.closest('.player') && (dir === 'up' || dir === 'down')) { (cur.closest('.player') as HTMLElement).focus(); return true }
+    if (cur.closest(FULL_PLAYER) && (dir === 'up' || dir === 'down')) { (cur.closest(FULL_PLAYER) as HTMLElement).focus(); return true }
     return false
   }
   focus(best)
@@ -103,13 +106,13 @@ function onKey(e: KeyboardEvent) {
   if (dir) {
     if (typing(target) || target?.closest('[role=slider], input[type=range]')) return
     // In the player, arrows drive DVD menus and seeking unless a control has focus.
-    if (target?.closest('.player:not(.mini)') && !target.closest(PLAYER_CONTROLS) && !target.closest('[role=dialog]')) return
+    if (target?.closest(FULL_PLAYER) && !target.closest(PLAYER_CONTROLS) && !target.closest('[role=dialog]')) return
     if (target?.closest('.picker-grid')) return // the tile picker has its own grid navigation
     if (move(dir)) e.preventDefault()
     return
   }
   if (e.key === 'GoBack' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing(target))) {
-    if (document.querySelector('.player:not(.mini)') || document.querySelector('[role=dialog], .modal')) return // handled there
+    if (document.querySelector(FULL_PLAYER) || document.querySelector('[role=dialog], .modal')) return // handled there
     e.preventDefault()
     window.history.back()
   }

@@ -103,6 +103,26 @@ type Stream struct {
 	Tags        map[string]string `json:"tags"`
 	Disposition map[string]int    `json:"disposition"`
 	Duration    string            `json:"duration"`
+	SideData    []struct {
+		Rotation float64 `json:"rotation"`
+	} `json:"side_data_list"`
+}
+
+// DisplaySize is the picture's size as shown: phones store upright video as a
+// sideways frame with a rotation to apply.
+func (s *Stream) DisplaySize() (w, h int) {
+	w, h = s.Width, s.Height
+	rot := s.Tags["rotate"]
+	turned := rot == "90" || rot == "270" || rot == "-90"
+	for _, d := range s.SideData {
+		if r := int(d.Rotation) % 180; r == 90 || r == -90 {
+			turned = true
+		}
+	}
+	if turned {
+		w, h = h, w
+	}
+	return w, h
 }
 
 type Format struct {
@@ -285,6 +305,44 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg still: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
+// ImageThumb makes a JPEG of a picture, at most width pixels along its longer
+// side, upright according to its EXIF orientation (1 to 8; 0 means as stored).
+// shrink halves a JPEG that many times while decoding (0 to 3). Rotation is
+// always done here rather than by FFmpeg, whose handling differs by version.
+func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width, shrink int, out string) error {
+	args := []string{"-hide_banner", "-loglevel", "error", "-y", "-noautorotate", "-threads", "1"}
+	if shrink > 0 {
+		args = append(args, "-lowres", strconv.Itoa(shrink))
+	}
+	args = append(args, FileInput(path)...)
+	vf := ""
+	switch orientation {
+	case 2:
+		vf = "hflip,"
+	case 3:
+		vf = "hflip,vflip,"
+	case 4:
+		vf = "vflip,"
+	case 5:
+		vf = "transpose=0,"
+	case 6:
+		vf = "transpose=1,"
+	case 7:
+		vf = "transpose=3,"
+	case 8:
+		vf = "transpose=2,"
+	}
+	vf += fmt.Sprintf("scale='min(%d,iw)':'min(%d,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuvj420p", width, width)
+	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "4", "-update", "1", out)
+	cmd := Command(ctx, t.FFmpeg, args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg image: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return nil
 }

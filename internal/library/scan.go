@@ -124,6 +124,8 @@ type candidate struct {
 	kind  string
 	size  int64
 	mtime int64
+	// motion: the clip of a live photo (photos libraries).
+	motion string
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -194,6 +196,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverAudio
 		case lib.Type == "books":
 			find = discoverBooks
+		case lib.Type == "photos":
+			find = discoverPhotos
+		case IsCreatorLibrary(lib.Type):
+			find = discoverCreatorVideos
 		}
 		c, err := find(root)
 		if err != nil {
@@ -208,6 +214,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	keep := map[string]bool{}
 	tv := newTVScan()
 	covers := map[string]string{} // audio: one cover per folder+album
+	creators := newCreatorScan()
 	for i, c := range all {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -224,6 +231,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				return s.indexAudio(ctx, lib, c, covers)
 			case lib.Type == "books":
 				return s.indexBook(ctx, lib, c)
+			case lib.Type == "photos":
+				return s.indexPhoto(ctx, lib, c)
+			case IsCreatorLibrary(lib.Type):
+				return s.indexCreatorVideo(ctx, lib, c, creators)
 			}
 			return s.index(ctx, lib, c)
 		})
@@ -348,7 +359,8 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	it.RuntimeSec = p.Duration()
 	it.Container = strings.Split(p.Format.FormatName, ",")[0]
 	if v := p.Video(); v != nil {
-		it.VideoCodec, it.Width, it.Height = v.CodecName, v.Width, v.Height
+		it.VideoCodec = v.CodecName
+		it.Width, it.Height = v.DisplaySize()
 	}
 	for _, a := range p.Audio() {
 		it.AudioLangs = append(it.AudioLangs, orUnd(a.Tags["language"]))

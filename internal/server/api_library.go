@@ -37,7 +37,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books":
+	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "photos", "shorts", "channels":
 	case "":
 		b.Type = "movies"
 	default:
@@ -331,7 +331,11 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Tagline != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh || b.ContentRating != nil
-	if metaEdit && s.saveMeta(r) {
+	gallery := false
+	if lib, err := s.Store.Library(r.Context(), it.LibraryID); err == nil {
+		gallery = library.IsGalleryLibrary(lib.Type) // their edits stay in the database
+	}
+	if metaEdit && !gallery && s.saveMeta(r) {
 		if err := s.Scanner.SaveItemMetadata(r.Context(), it); err != nil {
 			s.Log.Warn("save metadata", "path", it.Path, "err", err)
 		}
@@ -409,7 +413,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, Access: acc})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -491,6 +495,14 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		if src == "" {
 			src = it.Poster
 		}
+	}
+	if src == library.LazyPoster {
+		width := qInt(r, "w", 480)
+		if backdrop {
+			width = 1920
+		}
+		s.serveThumb(w, r, it, width)
+		return
 	}
 	s.serveArtSrc(w, r, src)
 }
@@ -636,6 +648,7 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.logWatched(r, id, p)
 	if err := s.Store.SetProgress(r.Context(), userFrom(r).ID, id, p); err != nil {
 		writeErr(w, 500, err.Error())
 		return

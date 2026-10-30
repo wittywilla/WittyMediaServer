@@ -172,6 +172,57 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
 
+	// WittyPhotos
+	m.Handle("GET /api/photos/months", a(s.handlePhotoMonths))
+	m.Handle("GET /api/photos/list", a(s.handlePhotoList))
+	m.Handle("GET /api/photos/folders", a(s.handlePhotoFolders))
+	m.Handle("GET /api/photos/map", a(s.handlePhotoMap))
+	m.Handle("GET /api/photos/ai", a(s.handlePhotoAI))
+	m.Handle("GET /api/photos/albums", a(s.handlePhotoAlbums))
+	m.Handle("POST /api/photos/albums", a(s.handleCreateAlbum))
+	m.Handle("PUT /api/photos/albums/{id}", a(s.handleUpdateAlbum))
+	m.Handle("DELETE /api/photos/albums/{id}", a(s.handleDeleteAlbum))
+	m.Handle("POST /api/photos/albums/{id}/items", a(s.handleAlbumAdd))
+	m.Handle("DELETE /api/photos/albums/{id}/items", a(s.handleAlbumRemove))
+	m.Handle("GET /api/photos/{id}", a(s.handlePhotoDetail))
+	m.Handle("GET /api/items/{id}/image", a(s.handleItemImage))
+	m.Handle("GET /api/items/{id}/original", a(s.handleOriginal))
+	m.Handle("GET /api/items/{id}/motion", a(s.handleMotion))
+	m.Handle("POST /api/libraries/{id}/upload", a(s.handleUpload))
+
+	// WittyShorts and WittyChannels
+	m.Handle("GET /api/creators", a(s.handleCreators))
+	m.Handle("GET /api/creators/{id}", a(s.handleCreator))
+	m.Handle("PUT /api/creators/{id}", s.requireAdmin(s.handleUpdateCreator))
+	m.Handle("GET /api/creators/{id}/art/{kind}", a(s.handleCreatorArt))
+	m.Handle("PUT /api/creators/{id}/subscribe", a(s.handleSubscribe2))
+	m.Handle("GET /api/videos", a(s.handleVideos))
+	m.Handle("GET /api/videos/feed", a(s.handleVideoFeed))
+	m.Handle("GET /api/videos/tags", a(s.handleVideoTags))
+	m.Handle("GET /api/videos/{id}", a(s.handleVideo))
+	m.Handle("PUT /api/videos/{id}", s.requireAdmin(s.handleEditVideo))
+	m.Handle("GET /api/videos/{id}/related", a(s.handleVideoRelated))
+
+	// On any item: likes, comments and views
+	m.Handle("PUT /api/items/{id}/reaction", a(s.handleReaction))
+	m.Handle("POST /api/items/{id}/view", a(s.handleView))
+	m.Handle("GET /api/items/{id}/comments", a(s.handleComments))
+	m.Handle("POST /api/items/{id}/comments", a(s.handleAddComment))
+	m.Handle("PUT /api/comments/{cid}", a(s.handleEditComment))
+	m.Handle("DELETE /api/comments/{cid}", a(s.handleDeleteComment))
+
+	// Links that share with someone without an account
+	m.Handle("GET /api/shares", a(s.handleShares))
+	m.Handle("POST /api/shares", a(s.handleCreateShare))
+	m.Handle("DELETE /api/shares/{id}", a(s.handleDeleteShare))
+	m.HandleFunc("GET /api/share/{token}", s.handleShareOpen)
+	m.HandleFunc("GET /api/share/{token}/image/{id}", s.handleShareImage)
+	m.HandleFunc("GET /api/share/{token}/original/{id}", s.handleShareOriginal)
+	m.HandleFunc("GET /api/share/{token}/play/{id}", s.handleSharePlay)
+	m.HandleFunc("GET /api/share/{token}/file/{id}", s.handleShareFile)
+	m.HandleFunc("GET /api/share/{token}/hls/{id}/playlist.m3u8", s.handleShareHLSPlaylist)
+	m.HandleFunc("GET /api/share/{token}/hls/{id}/seg/{n}", s.handleShareHLSSegment)
+
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
 
@@ -199,7 +250,7 @@ func (s *Server) logging(next http.Handler) http.Handler {
 		if p := clientIP(r); p != nil {
 			ip = p.String()
 		}
-		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", r.URL.Path, "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds())
+		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", redactPath(r.URL.Path), "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds())
 	})
 }
 

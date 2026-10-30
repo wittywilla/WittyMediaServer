@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
 import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
@@ -8,6 +8,9 @@ import { toast } from '../state'
 import AudioLibrary from './AudioLibrary'
 import BooksLibrary from './Books'
 
+// Loaded when opened: most servers have only some of these libraries.
+const PhotosLibrary = lazy(() => import('./photos/PhotosLibrary'))
+
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
 export default function LibraryPage() {
@@ -16,6 +19,7 @@ export default function LibraryPage() {
   const lib = libraries.find((l) => String(l.id) === id)
   if (lib && AUDIO.includes(lib.type)) return <AudioLibrary key={lib.id} lib={lib} />
   if (lib?.type === 'books') return <BooksLibrary key={lib.id} lib={lib} />
+  if (lib?.type === 'photos') return <Suspense fallback={<Spinner />}><PhotosLibrary key={lib.id} lib={lib} /></Suspense>
   return <VideoLibrary />
 }
 

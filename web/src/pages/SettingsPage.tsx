@@ -90,6 +90,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'podcasts', label: 'Podcasts', hint: 'RSS feeds you follow, plus episode files; the folder holds downloads' },
   { v: 'books', label: 'Books & comics', hint: 'EPUB, PDF, comics and manga' },
   { v: 'videos', label: 'Home videos', hint: 'Your own videos; nothing is looked up online' },
+  { v: 'photos', label: 'Photos', hint: 'A timeline, albums and a map of your pictures' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
 

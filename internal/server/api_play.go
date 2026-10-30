@@ -27,6 +27,13 @@ type playInfo struct {
 	AudioIndex  int         `json:"audioIndex"`
 	SubIndex    int         `json:"subtitleIndex"`
 	Container   string      `json:"container"`
+	Chapters    []chapter   `json:"chapters,omitempty"`
+}
+
+// chapter is a named point in a video, from the file.
+type chapter struct {
+	Start float64 `json:"start"`
+	Title string  `json:"title"`
 }
 
 type trackInfo struct {
@@ -121,6 +128,11 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	for i, st := range pr.Subtitles() {
 		info.Subtitles = append(info.Subtitles, trackInfo{Index: i, Language: st.Tags["language"], Title: st.Tags["title"], Codec: st.CodecName})
+	}
+	for _, c := range pr.Chapters {
+		if at, err := strconv.ParseFloat(c.Start, 64); err == nil {
+			info.Chapters = append(info.Chapters, chapter{Start: at, Title: c.Tags["title"]})
+		}
 	}
 	if info.Audio == nil {
 		info.Audio = []trackInfo{}

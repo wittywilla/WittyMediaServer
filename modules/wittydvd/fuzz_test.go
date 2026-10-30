@@ -12,6 +12,7 @@ func FuzzParsers(f *testing.F) {
 	f.Add(testVTS([3]int{2, 1, 1<<2 | 1}, [3]int{1, 2, 3<<2 | 1}), uint8(1))
 	f.Add(make([]byte, 0x3d4), uint8(2))
 	f.Add([]byte{0x00, 0x20, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x01, 0xff}, uint8(4))
+	f.Add(spuUnit(spuPix, append([]byte{0, 0}, spuSetup(0x07, 0x00, 16, 0x00, 0x14, 0x10, 0x15, 0x00, 0x0c, 0x00, 0x30, 0x00, 0x80, 0x0f, 0xff, 0xff, 0xff, 0x01, 0xff)...), []byte{0, 9, 0x02, 0xff}), uint8(4))
 	f.Fuzz(func(t *testing.T, b []byte, which uint8) {
 		switch which % 5 {
 		case 0:
@@ -25,6 +26,11 @@ func FuzzParsers(f *testing.F) {
 			_ = ScanSectors(b, 0)
 		case 4:
 			if s, err := DecodeSPU(b); err == nil && s != nil {
+				var pal [16]uint32
+				_ = s.Render(pal, nil)
+			}
+			frames, _ := DecodeSPUFrames(b)
+			for _, s := range frames {
 				var pal [16]uint32
 				_ = s.Render(pal, nil)
 			}

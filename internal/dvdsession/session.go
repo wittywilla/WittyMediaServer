@@ -196,7 +196,7 @@ type Session struct {
 	// seekTo is the exact title position to restart a rebuilt stream at
 	// (after an audio change).
 	seekTo  float64
-	subPics map[string]*subPic
+	subPics map[string][]*subPic // per sub-picture unit, one per picture it shows
 }
 
 type playingTitle struct {
@@ -224,7 +224,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	s := &Session{
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
-		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string]*subPic{},
+		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
 	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle}})
 	m.mu.Lock()

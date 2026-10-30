@@ -28,38 +28,157 @@ type SPU struct {
 	Pixels        []byte // one code (0..3) per pixel
 	Color         [4]int
 	Contrast      [4]int
-	Forced        bool
-	StartSec      float64
-	StopSec       float64 // <0 when absent
-	Truncated     bool
+	// ColCon are CHG_COLCON regions: other colours and contrasts for parts
+	// of the picture (karaoke wipes, two-colour subtitles, menu artwork).
+	ColCon    []ColConLines
+	Forced    bool
+	StartSec  float64
+	StopSec   float64 // <0 when absent
+	Truncated bool
+}
+
+// ColConLines is one CHG_COLCON line range: from each column rightwards (to
+// the next one) pixels take that entry's colours and contrasts.
+type ColConLines struct {
+	FirstLine, LastLine int
+	Columns             []ColConColumn
+}
+
+// ColConColumn is one pixel-control entry of a CHG_COLCON line range.
+type ColConColumn struct {
+	Column   int
+	Color    [4]int
+	Contrast [4]int
 }
 
 func spuErr(f string, a ...any) error { return fmt.Errorf("%w: %s", ErrSPU, fmt.Sprintf(f, a...)) }
 
-// DecodeSPU decodes one sub-picture unit.
+// spuState is the display state a sub-picture unit's control sequences build
+// up; each sequence (DCSQ) changes it at its own time.
+type spuState struct {
+	on, forced        bool
+	color, contrast   [4]int
+	x, y, w, h        int
+	top, bot          int
+	haveArea, havePix bool
+	colcon            []ColConLines
+}
+
+// parseColCon parses the parameter area of a CHG_COLCON command: line
+// control entries (first line, entry count, last line), each followed by
+// its pixel control entries, ended by 0x0fffffff.
+func parseColCon(b []byte) []ColConLines {
+	var out []ColConLines
+	for p := 0; p+4 <= len(b) && len(out) < 64; {
+		ln := binary.BigEndian.Uint32(b[p:])
+		p += 4
+		if ln == 0x0fffffff {
+			break
+		}
+		l := ColConLines{FirstLine: int(ln>>16) & 0xfff, LastLine: int(ln) & 0xfff}
+		for n := int(ln>>12) & 0xf; n > 0 && p+6 <= len(b); n-- {
+			l.Columns = append(l.Columns, ColConColumn{
+				Column: int(binary.BigEndian.Uint16(b[p:])) & 0xfff, Color: nibbles(b[p+2 : p+4]), Contrast: nibbles(b[p+4 : p+6]),
+			})
+			p += 6
+		}
+		out = append(out, l)
+	}
+	return out
+}
+
+// DecodeSPU decodes one sub-picture unit as it first appears: the state at
+// its first start-display command (or, for units that never start, the
+// state they leave), with StopSec the time it next changes or stops.
 func DecodeSPU(unit []byte) (*SPU, error) {
+	frames, last, err := decodeSPU(unit)
+	if err != nil {
+		return nil, err
+	}
+	if len(frames) > 0 {
+		return frames[0], nil
+	}
+	return last, nil
+}
+
+// DecodeSPUFrames decodes every picture a sub-picture unit shows over time.
+// A unit carries a chain of display control sequences, each applied at its
+// own delay: subtitles that change colour, move, blink or show another part
+// of the bitmap come out as one SPU per state, each with its own start and
+// stop time (StopSec < 0: shown until the next unit replaces it).
+func DecodeSPUFrames(unit []byte) ([]*SPU, error) {
+	frames, _, err := decodeSPU(unit)
+	return frames, err
+}
+
+func decodeSPU(unit []byte) ([]*SPU, *SPU, error) {
 	if len(unit) < 4 {
-		return nil, spuErr("unit shorter than header")
+		return nil, nil, spuErr("unit shorter than header")
 	}
 	size := int(binary.BigEndian.Uint16(unit))
 	tableAt := int(binary.BigEndian.Uint16(unit[2:]))
 	if size < 4 || size > len(unit) {
-		return nil, spuErr("size %d vs %d bytes", size, len(unit))
+		return nil, nil, spuErr("size %d vs %d bytes", size, len(unit))
 	}
 	if tableAt < 4 || tableAt+4 > size {
-		return nil, spuErr("control table outside unit")
+		return nil, nil, spuErr("control table outside unit")
 	}
-	s := &SPU{StopSec: -1, StartSec: -1}
 	var (
-		haveArea, havePix bool
-		topOff, botOff    int
+		st       spuState
+		frames   []*SPU
+		cur      *SPU
+		firstSTP = -1.0
+		lastAt   float64
+		bitmaps  = map[[6]int]*SPU{}
 	)
+	snapshot := func(at float64) (*SPU, error) {
+		if !st.haveArea {
+			return nil, spuErr("no display area")
+		}
+		if !st.havePix {
+			return nil, spuErr("no pixel data address")
+		}
+		if st.w <= 0 || st.h <= 0 || st.w > 4096 || st.h > 4096 {
+			return nil, spuErr("display area %dx%d", st.w, st.h)
+		}
+		if st.top >= size || st.bot >= size {
+			return nil, spuErr("pixel data outside unit")
+		}
+		k := [6]int{st.x, st.y, st.w, st.h, st.top, st.bot}
+		bm := bitmaps[k]
+		if bm == nil {
+			bm = &SPU{X: st.x, Y: st.y, Width: st.w, Height: st.h, Pixels: make([]byte, st.w*st.h)}
+			endOf := func(start int) int {
+				end := size
+				for _, v := range []int{st.top, st.bot, tableAt} {
+					if v > start && v < end {
+						end = v
+					}
+				}
+				return end
+			}
+			t1 := decodeField(unit, st.top, endOf(st.top), bm.Pixels, st.w, st.h, 0)
+			t2 := decodeField(unit, st.bot, endOf(st.bot), bm.Pixels, st.w, st.h, 1)
+			bm.Truncated = t1 || t2
+			if len(bitmaps) < 16 {
+				bitmaps[k] = bm
+			}
+		}
+		f := *bm
+		f.Color, f.Contrast, f.ColCon, f.Forced = st.color, st.contrast, st.colcon, st.forced
+		f.StartSec, f.StopSec = at, -1
+		return &f, nil
+	}
 	seen := map[int]bool{}
 	at := tableAt
 	for n := 0; at+4 <= size && !seen[at] && n < 64; n++ {
 		seen[at] = true
-		delay := float64(binary.BigEndian.Uint16(unit[at:])) * 1024 / 90000
+		// Sequences come in time order; a delay that goes back counts as
+		// "together with the previous one".
+		delay := max(float64(binary.BigEndian.Uint16(unit[at:]))*1024/90000, lastAt)
+		lastAt = delay
 		next := int(binary.BigEndian.Uint16(unit[at+2:]))
+		changed, stop := false, false
 		p := at + 4
 	cmds:
 		for p < size {
@@ -69,55 +188,68 @@ func DecodeSPU(unit []byte) (*SPU, error) {
 			case spuCMDEND:
 				break cmds
 			case spuFSTADSP, spuSTADSP:
-				if s.StartSec < 0 {
-					s.StartSec = delay
-					s.Forced = op == spuFSTADSP
+				if st.on && st.forced != (op == spuFSTADSP) {
+					changed = true
 				}
+				st.on, st.forced = true, op == spuFSTADSP
 			case spuSTPDSP:
-				if s.StopSec < 0 {
-					s.StopSec = delay
+				stop, st.on = true, false
+				if firstSTP < 0 {
+					firstSTP = delay
 				}
 			case spuSETCOLOR:
 				if p+2 > size {
-					return nil, spuErr("SET_COLOR overrun")
+					return nil, nil, spuErr("SET_COLOR overrun")
 				}
-				s.Color = nibbles(unit[p : p+2])
+				st.color, changed = nibbles(unit[p:p+2]), true
 				p += 2
 			case spuSETCONTR:
 				if p+2 > size {
-					return nil, spuErr("SET_CONTR overrun")
+					return nil, nil, spuErr("SET_CONTR overrun")
 				}
-				s.Contrast = nibbles(unit[p : p+2])
+				st.contrast, changed = nibbles(unit[p:p+2]), true
 				p += 2
 			case spuSETDAREA:
 				if p+6 > size {
-					return nil, spuErr("SET_DAREA overrun")
+					return nil, nil, spuErr("SET_DAREA overrun")
 				}
 				a := int(unit[p])<<16 | int(unit[p+1])<<8 | int(unit[p+2])
 				b := int(unit[p+3])<<16 | int(unit[p+4])<<8 | int(unit[p+5])
-				s.X, s.Y = a>>12, b>>12
-				s.Width, s.Height = (a&0xfff)-s.X+1, (b&0xfff)-s.Y+1
-				haveArea = true
+				st.x, st.y = a>>12, b>>12
+				st.w, st.h = (a&0xfff)-st.x+1, (b&0xfff)-st.y+1
+				st.haveArea, changed = true, true
 				p += 6
 			case spuSETDSPXA:
 				if p+4 > size {
-					return nil, spuErr("SET_DSPXA overrun")
+					return nil, nil, spuErr("SET_DSPXA overrun")
 				}
-				topOff = int(binary.BigEndian.Uint16(unit[p:]))
-				botOff = int(binary.BigEndian.Uint16(unit[p+2:]))
-				havePix = true
+				st.top = int(binary.BigEndian.Uint16(unit[p:]))
+				st.bot = int(binary.BigEndian.Uint16(unit[p+2:]))
+				st.havePix, changed = true, true
 				p += 4
 			case spuCHGCOLCON:
 				if p+2 > size {
-					return nil, spuErr("CHG_COLCON overrun")
+					return nil, nil, spuErr("CHG_COLCON overrun")
 				}
 				l := int(binary.BigEndian.Uint16(unit[p:]))
 				if l < 2 || p+l > size {
-					return nil, spuErr("CHG_COLCON size")
+					return nil, nil, spuErr("CHG_COLCON size")
 				}
+				st.colcon, changed = parseColCon(unit[p+2:p+l]), true
 				p += l
 			default:
 				break cmds
+			}
+		}
+		if cur != nil && (stop || changed) {
+			cur.StopSec, cur = delay, nil
+		}
+		if st.on && cur == nil {
+			// A start before the area or pixel address is known shows from
+			// the sequence that completes them.
+			if f, err := snapshot(delay); err == nil {
+				cur = f
+				frames = append(frames, f)
 			}
 		}
 		if next == at {
@@ -125,32 +257,17 @@ func DecodeSPU(unit []byte) (*SPU, error) {
 		}
 		at = next
 	}
-	if !haveArea {
-		return nil, spuErr("no display area")
+	if len(frames) > 0 {
+		return frames, nil, nil
 	}
-	if !havePix {
-		return nil, spuErr("no pixel data address")
+	// Never shown (menu artwork without a start command, or a unit that only
+	// stops): the state it leaves.
+	last, err := snapshot(-1)
+	if err != nil {
+		return nil, nil, err
 	}
-	if s.Width <= 0 || s.Height <= 0 || s.Width > 4096 || s.Height > 4096 {
-		return nil, spuErr("display area %dx%d", s.Width, s.Height)
-	}
-	if topOff >= size || botOff >= size {
-		return nil, spuErr("pixel data outside unit")
-	}
-	s.Pixels = make([]byte, s.Width*s.Height)
-	endOf := func(start int) int {
-		end := size
-		for _, v := range []int{topOff, botOff, tableAt} {
-			if v > start && v < end {
-				end = v
-			}
-		}
-		return end
-	}
-	t1 := decodeField(unit, topOff, endOf(topOff), s.Pixels, s.Width, s.Height, 0)
-	t2 := decodeField(unit, botOff, endOf(botOff), s.Pixels, s.Width, s.Height, 1)
-	s.Truncated = t1 || t2
-	return s, nil
+	last.StopSec = firstSTP
+	return nil, last, nil
 }
 
 // decodeField expands the RLE for one interlaced field (rows firstRow, +2, ...).
@@ -269,7 +386,11 @@ func (s *SPU) Render(palette [16]uint32, look *Look) *RGBA {
 // RenderRect paints the part of the SPU inside the given frame rectangle
 // (inclusive, frame coordinates) with the look. Pixels outside the SPU stay
 // transparent. Result coordinates are the clipped rectangle.
+//
+// With the SPU's own look, CHG_COLCON regions recolour their part of the
+// picture; a button's look (a highlight) replaces them inside the button.
 func (s *SPU) RenderRect(palette [16]uint32, look *Look, x0, y0, x1, y1 int) *RGBA {
+	colcon := look == nil && len(s.ColCon) > 0
 	if look == nil {
 		look = &Look{Color: s.Color, Contrast: s.Contrast}
 	}
@@ -291,11 +412,23 @@ func (s *SPU) RenderRect(palette [16]uint32, look *Look, x0, y0, x1, y1 int) *RG
 	w, h := x1-x0+1, y1-y0+1
 	out := &RGBA{X: x0, Y: y0, Width: w, Height: h, Pix: make([]byte, w*h*4)}
 	t := codeTable(palette, *look)
+	var tables map[ColConColumn]*[4][4]uint8
+	if colcon {
+		tables = map[ColConColumn]*[4][4]uint8{}
+	}
 	for y := 0; y < h; y++ {
 		sy := y0 + y - s.Y
+		var cols []ColConColumn
+		if colcon {
+			cols = s.colConRow(y0 + y)
+		}
 		for x := 0; x < w; x++ {
 			sx := x0 + x - s.X
-			c := t[s.Pixels[sy*s.Width+sx]]
+			tt := &t
+			if cols != nil {
+				tt = colConTable(palette, cols, x0+x, tables, &t)
+			}
+			c := tt[s.Pixels[sy*s.Width+sx]]
 			if c[3] == 0 {
 				continue
 			}
@@ -304,6 +437,38 @@ func (s *SPU) RenderRect(palette [16]uint32, look *Look, x0, y0, x1, y1 int) *RG
 		}
 	}
 	return out
+}
+
+// colConRow returns the CHG_COLCON pixel controls for frame line y (the
+// first line range that covers it), nil when there are none.
+func (s *SPU) colConRow(y int) []ColConColumn {
+	for i := range s.ColCon {
+		if l := &s.ColCon[i]; y >= l.FirstLine && y <= l.LastLine && len(l.Columns) > 0 {
+			return l.Columns
+		}
+	}
+	return nil
+}
+
+// colConTable is the colour table for frame column x on a CHG_COLCON line:
+// the last pixel control that starts at or left of x, else the unit's own.
+func colConTable(palette [16]uint32, cols []ColConColumn, x int, cache map[ColConColumn]*[4][4]uint8, own *[4][4]uint8) *[4][4]uint8 {
+	k := -1
+	for i, c := range cols {
+		if c.Column <= x {
+			k = i
+		}
+	}
+	if k < 0 {
+		return own
+	}
+	t := cache[cols[k]]
+	if t == nil {
+		v := codeTable(palette, Look{Color: cols[k].Color, Contrast: cols[k].Contrast})
+		t = &v
+		cache[cols[k]] = t
+	}
+	return t
 }
 
 // Crop returns the bitmap trimmed to its visible pixels (zero size when

@@ -47,6 +47,10 @@ type Scanner struct {
 	SaveMeta func() bool
 	Log      *slog.Logger
 
+	// slot lets one library scan at a time: a small machine has one disk and a
+	// few cores to spare, and the periodic rescan starts every library at once.
+	slot chan struct{}
+
 	mu      sync.Mutex
 	running map[int64]context.CancelFunc
 	// Progress for the UI.
@@ -63,7 +67,7 @@ type ScanProgress struct {
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log, running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log, slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
 }
 
 // Start scans a library in the background (no-op if already scanning).
@@ -183,11 +187,28 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.Store.setScanning(ctx, libraryID, true)
 	defer s.Store.setScanning(context.Background(), libraryID, false)
+	if s.slot != nil {
+		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "waiting" })
+		select {
+		case s.slot <- struct{}{}:
+			defer func() { <-s.slot }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	s.Log.Info("scan start", "library", lib.Name)
 
 	var all []candidate
+	var offline []string
 	for _, root := range lib.Paths {
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
+		// A drive or share that is away (an unmounted mount point reads as an
+		// empty folder) is not the same as every file having been deleted.
+		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
+			s.Log.Warn("library folder is empty or can't be reached; keeping its items", "library", lib.Name, "folder", root, "err", err)
+			offline = append(offline, root)
+			continue
+		}
 		find := discover
 		switch {
 		case IsAudioLibrary(lib.Type):
@@ -233,22 +254,34 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			s.Log.Info("indexed", "cat", "library", "library", lib.Name, "path", c.path)
 		}
 	}
-	if err := s.Store.markMissing(ctx, libraryID, keep); err != nil {
+	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err
 	}
+	s.Store.DB.Optimize(ctx)
 	s.Log.Info("scan done", "library", lib.Name, "items", len(all))
 	return nil
 }
 
 func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Poster != "" && !existing.Missing {
+	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+		// The file is what it was. Its details and anyone's edits stay; only a
+		// picture may still be found (it needs no second look at the file or
+		// the internet, and a broken file must not cost that on every scan).
+		if existing.Missing {
+			if err := s.Store.restore(ctx, existing.ID); err != nil {
+				return err
+			}
+		}
+		if existing.Poster == "" {
+			s.findPoster(ctx, existing, c)
+		}
 		s.fixParsedTitle(ctx, existing, c.kind)
 		s.fillDiscContent(ctx, existing, lib.Type)
-		return nil // unchanged
+		return nil
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime}
 	if existing != nil {
@@ -326,7 +359,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		}
 	}
 	// Generated thumbnail as the last resort.
-	if it.Poster == "" {
+	if it.Poster == "" && (it.Disc == nil || !it.Disc.Scrambled) {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
 		} else {
@@ -335,6 +368,25 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	}
 	s.saveOnScan(ctx, it)
 	return s.Store.upsertItem(ctx, it)
+}
+
+// findPoster looks once more for a picture for an unchanged item without one:
+// a file put beside it since, else a frame from it.
+func (s *Scanner) findPoster(ctx context.Context, it *Item, c candidate) {
+	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
+	dir := filepath.Dir(c.path)
+	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
+		base, dir = filepath.Base(c.path), c.path
+	}
+	p, _ := localArtwork(dir, base)
+	if p == "" && (it.Disc == nil || !it.Disc.Scrambled) {
+		p, _ = s.thumbnail(ctx, it)
+	}
+	if p != "" {
+		if err := s.Store.setPoster(ctx, it.ID, p); err != nil {
+			s.Log.Warn("poster", "path", it.Path, "err", err)
+		}
+	}
 }
 
 func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
@@ -392,7 +444,8 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 			return
 		}
 		// Not a video disc: fall back to probing it as a plain file.
-		if _, e2 := isofs.Open(it.Path); e2 == nil {
+		if d, e2 := isofs.Open(it.Path); e2 == nil {
+			d.Close()
 			it.Kind = "unsupported-disc"
 		} else {
 			it.Kind = "video"

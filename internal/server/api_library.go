@@ -22,6 +22,11 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if !userFrom(r).IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{}
+		}
+	}
 	writeJSON(w, 200, libs)
 }
 
@@ -137,12 +142,16 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 	id, _ := pathInt(r, "id")
+	if !s.access(r).AllowsLibrary(id) {
+		writeErr(w, 404, "library not found")
+		return
+	}
 	out := s.Scanner.Snapshot(id)
 	writeJSON(w, 200, map[string]any{"scanning": out != nil, "progress": out})
 }
 
 func (s *Server) handleGenres(w http.ResponseWriter, r *http.Request) {
-	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)))
+	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -173,6 +182,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
+	hidePaths(r, items...)
 	writeJSON(w, 200, map[string]any{"items": items, "total": total})
 }
 
@@ -190,10 +200,11 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, []*library.Item{it})
 	it.NextID = s.Store.NextEpisode(r.Context(), it)
 	if it.IntroEnd == nil && it.ShowID != nil {
-		if sh, err := s.Store.Show(r.Context(), *it.ShowID, 0); err == nil {
+		if sh, err := s.Store.ShowFacts(r.Context(), *it.ShowID); err == nil {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
 		}
 	}
+	hidePaths(r, it)
 	writeJSON(w, 200, it)
 }
 
@@ -213,6 +224,10 @@ func (s *Server) handleRecommend(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	hidePaths(r, rec)
+	if show != nil && !userFrom(r).IsAdmin {
+		show.Path = ""
 	}
 	writeJSON(w, 200, map[string]any{"item": rec, "show": show})
 }
@@ -349,10 +364,16 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	acc := s.access(r)
 	cont, _ := s.Store.ContinueWatching(ctx, u.ID, 20)
 	cont = s.filterItems(ctx, acc, cont)
+	hidePaths(r, cont...)
 	libs, err := s.visibleLibraries(ctx, acc)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if !u.IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{}
+		}
 	}
 	type hub struct {
 		Key     string          `json:"key"`
@@ -385,6 +406,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if next := s.nextUp(r, libs); len(next) > 0 {
+		hidePaths(r, next...)
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next up", Items: next})
 	}
 	for _, l := range libs {
@@ -395,21 +417,27 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			if err != nil || len(shows) == 0 {
 				continue
 			}
+			if !u.IsAdmin {
+				for _, sh := range shows {
+					sh.Path = ""
+				}
+			}
 			id := l.ID
 			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
-		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc})
+		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true})
 		if err != nil || len(items) == 0 {
 			continue
 		}
 		_ = s.Store.AttachProgress(ctx, u.ID, items)
+		hidePaths(r, items...)
 		id := l.ID
 		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc, NoTotal: true})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -425,6 +453,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = s.Store.AttachProgress(ctx, u.ID, featured)
+	hidePaths(r, featured...)
 	writeJSON(w, 200, map[string]any{"hubs": hubs, "featured": featured, "libraries": libs})
 }
 
@@ -439,7 +468,7 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 		if l.Type != "shows" && l.Type != "anime" {
 			continue
 		}
-		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc})
+		shows, err := s.Store.Shows(ctx, library.ShowQuery{LibraryID: l.ID, UserID: uid, Access: acc, Started: true})
 		if err != nil {
 			continue
 		}
@@ -543,7 +572,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Cache-Control", "private, max-age=86400") // pictures are behind a sign-in: no shared caches
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 
@@ -552,16 +581,14 @@ func (s *Server) inLibraries(ctx context.Context, path string) bool {
 	if !filepath.IsAbs(path) {
 		return false
 	}
-	libs, err := s.Store.Libraries(ctx)
+	roots, err := s.Store.LibraryRoots(ctx)
 	if err != nil {
 		return false
 	}
 	clean := filepath.Clean(path)
-	for _, l := range libs {
-		for _, p := range l.Paths {
-			if rel, err := filepath.Rel(p, clean); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
-				return true
-			}
+	for _, p := range roots {
+		if rel, err := filepath.Rel(p, clean); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
+			return true
 		}
 	}
 	return false
@@ -589,7 +616,15 @@ func imageType(f io.ReadSeeker, name string) string {
 // internet only (a feed or catalogue must not reach devices on this network).
 func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	h := sha1.Sum([]byte(u))
-	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
+	// The name's extension comes from an address someone else wrote: only a
+	// plain one is kept (Windows would read "a.jpg:x" as a hidden stream).
+	ext := strings.ToLower(filepath.Ext(strings.Split(u, "?")[0]))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".avif":
+	default:
+		ext = ""
+	}
+	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+ext)
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}
@@ -607,19 +642,37 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	if res.StatusCode != 200 {
 		return "", errors.New("artwork fetch failed: " + res.Status)
 	}
-	tmp := p + ".tmp"
-	f, err := os.Create(tmp)
+	// A file of its own: a page often asks for the same picture twice at once.
+	f, err := os.CreateTemp(s.Cfg.ImagesDir, "r-*.tmp")
 	if err != nil {
 		return "", err
 	}
-	if _, err := io.Copy(f, io.LimitReader(res.Body, 20<<20)); err != nil {
-		f.Close()
-		os.Remove(tmp)
-		return "", err
+	defer os.Remove(f.Name())
+	defer f.Close()
+	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteImage+1))
+	if err == nil {
+		_, err = f.Seek(0, io.SeekStart)
+	}
+	if err != nil {
+		return "", errors.New("artwork fetch failed")
+	}
+	// Only whole pictures stay in the cache: anything else would be kept and
+	// refused again on every request.
+	if n > maxRemoteImage || imageType(f, p) == "" {
+		return "", errors.New("artwork fetch failed: not a picture")
 	}
 	f.Close()
-	return p, os.Rename(tmp, p)
+	if err := os.Rename(f.Name(), p); err != nil {
+		// Someone else's copy arrived first and is being read (Windows).
+		if st, serr := os.Stat(p); serr == nil && st.Size() > 0 {
+			return p, nil
+		}
+		return "", err
+	}
+	return p, nil
 }
+
+const maxRemoteImage = 20 << 20
 
 // ---------------------------------------------------------------------------
 // Progress
@@ -629,6 +682,10 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
+		return
+	}
+	if _, err := s.visibleItem(r, id); err != nil {
+		writeErr(w, 404, "item not found")
 		return
 	}
 	var p library.Progress

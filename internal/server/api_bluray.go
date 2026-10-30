@@ -98,7 +98,7 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 		pl = d.MainPlaylist()
 	}
 	if pl == nil || len(pl.Items) == 0 {
-		return fmt.Errorf("no such playlist")
+		return errNoTitle
 	}
 	// A few seconds into the chapter skips fades from black.
 	item, at := 0, pl.Items[0].In+uint32(minf(90, d.PlaylistDuration(pl)*0.1)*45000)
@@ -111,6 +111,9 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 		if chapters == n {
 			item, at = m.Item, m.Time+6*45000
 		}
+	}
+	if n < 0 || n > chapters {
+		return errNoTitle // only real chapters: every other number would be one more picture on disk
 	}
 	if item >= len(pl.Items) {
 		item = 0

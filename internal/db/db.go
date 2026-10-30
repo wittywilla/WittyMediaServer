@@ -4,8 +4,10 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -16,7 +18,10 @@ type DB struct {
 }
 
 func Open(dataDir string) (*DB, error) {
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", filepath.ToSlash(filepath.Join(dataDir, "wms.db")))
+	// The path is escaped: "file:" names are URIs, so a folder with # or % in
+	// its name would otherwise open a different file.
+	name := strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23").Replace(filepath.ToSlash(filepath.Join(dataDir, "wms.db")))
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", name)
 	sdb, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -25,6 +30,7 @@ func Open(dataDir string) (*DB, error) {
 	// serialises writers. Keep the pool small but never 1: nested queries
 	// (a row cursor plus a lookup) would deadlock on a single connection.
 	sdb.SetMaxOpenConns(6)
+	sdb.SetMaxIdleConns(3) // opening one means reading the schema again
 	sdb.SetConnMaxLifetime(0)
 	d := &DB{sdb}
 	if err := d.migrate(context.Background()); err != nil {
@@ -132,26 +138,63 @@ var migrations = []string{
 	   color TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '',
 	   created_at INTEGER NOT NULL);
 	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
+	// 10: indexes for what the main pages ask: pages of a library by title
+	// (NOCASE, as they sort) or newest first, library and show totals without
+	// reading each row, and removing items without scanning all progress.
+	`DROP INDEX IF EXISTS items_lib;
+	 DROP INDEX IF EXISTS items_show;
+	 CREATE INDEX IF NOT EXISTS items_lib_title ON items(library_id, sort_title COLLATE NOCASE);
+	 CREATE INDEX IF NOT EXISTS items_lib_added ON items(library_id, added_at);
+	 CREATE INDEX IF NOT EXISTS items_lib_missing ON items(library_id, missing);
+	 CREATE INDEX IF NOT EXISTS items_added ON items(added_at);
+	 CREATE INDEX IF NOT EXISTS items_show_totals ON items(show_id, missing, season, added_at);
+	 CREATE INDEX IF NOT EXISTS progress_item ON progress(item_id);
+	 CREATE INDEX IF NOT EXISTS progress_recent ON progress(user_id, watched, updated_at);
+	 CREATE INDEX IF NOT EXISTS annotations_item ON annotations(item_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {
 	var version int
-	_ = d.QueryRowContext(ctx, `SELECT version FROM schema LIMIT 1`).Scan(&version)
+	if err := d.QueryRowContext(ctx, `SELECT version FROM schema LIMIT 1`).Scan(&version); err != nil {
+		// No schema table or row: a new database. Anything else (busy, damaged)
+		// must not be mistaken for that.
+		if !errors.Is(err, sql.ErrNoRows) && !strings.Contains(err.Error(), "no such table") {
+			return fmt.Errorf("reading the schema version: %w", err)
+		}
+	}
 	for i := version; i < len(migrations); i++ {
-		if _, err := d.ExecContext(ctx, migrations[i]); err != nil {
+		if err := d.applyMigration(ctx, i); err != nil {
 			return fmt.Errorf("migration %d: %w", i+1, err)
 		}
 	}
-	if version == 0 {
-		if _, err := d.ExecContext(ctx, `INSERT INTO schema(version) VALUES (?)`, len(migrations)); err != nil {
-			return err
-		}
-	} else if version < len(migrations) {
-		if _, err := d.ExecContext(ctx, `UPDATE schema SET version = ?`, len(migrations)); err != nil {
-			return err
-		}
-	}
 	return nil
+}
+
+// applyMigration runs one step and records it in one transaction: a crash or
+// a failure part-way leaves the database as it was, not half changed (ALTER
+// TABLE can't be run twice, so a half-done step would stop every later start).
+func (d *DB) applyMigration(ctx context.Context, i int) error {
+	tx, err := d.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, migrations[i]); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM schema`); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO schema(version) VALUES (?)`, i+1); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Optimize lets SQLite refresh its query statistics; cheap, and done after a
+// scan has changed a lot of rows.
+func (d *DB) Optimize(ctx context.Context) {
+	_, _ = d.ExecContext(ctx, `PRAGMA optimize`)
 }
 
 func Now() int64 { return time.Now().Unix() }

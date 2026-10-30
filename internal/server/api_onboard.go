@@ -145,6 +145,16 @@ func (s *Server) handleMetadataTest(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- sign-in limits
 
+// loginSlots: password checks running at once.
+var loginSlots = make(chan struct{}, 2)
+
+// ipFailLimit: wrong passwords from one address, over all names, before that
+// address has to slow down (it can't try one password on every account).
+const ipFailLimit = 30
+
+// maxLoginEntries bounds the limiter's memory whatever a flood sends.
+const maxLoginEntries = 10000
+
 // loginLimiter slows down password guessing: after 5 failures for one name
 // from one address, each further attempt waits longer (up to 15 minutes).
 type loginLimiter struct {
@@ -158,12 +168,18 @@ type attempts struct {
 	until time.Time
 }
 
-func (l *loginLimiter) key(r *http.Request, name string) string {
+// keys are the counters a sign-in attempt adds to: this name from this
+// address, and this address over all names.
+func (l *loginLimiter) keys(r *http.Request, name string) (nameKey, ipKey string) {
 	ip := "?"
 	if p := clientIP(r); p != nil {
 		ip = p.String()
 	}
-	return ip + "|" + strings.ToLower(strings.TrimSpace(name))
+	name = strings.ToLower(strings.TrimSpace(name))
+	if len(name) > 64 { // no account has a longer name; the key must stay small
+		name = name[:64]
+	}
+	return ip + "|" + name, ip
 }
 
 // wait returns how long the caller must wait before trying again (0 = go).
@@ -176,7 +192,7 @@ func (l *loginLimiter) wait(k string) time.Duration {
 	return 0
 }
 
-func (l *loginLimiter) fail(k string) {
+func (l *loginLimiter) fail(k string, limit int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.m == nil {
@@ -184,11 +200,14 @@ func (l *loginLimiter) fail(k string) {
 	}
 	now := time.Now()
 	// Forget stale entries so the map cannot grow without bound.
-	if len(l.m) > 10000 {
+	if len(l.m) > maxLoginEntries {
 		for key, a := range l.m {
 			if now.Sub(a.last) > 30*time.Minute {
 				delete(l.m, key)
 			}
+		}
+		if len(l.m) > maxLoginEntries { // all recent: a flood. Start over.
+			clear(l.m)
 		}
 	}
 	a := l.m[k]
@@ -198,8 +217,8 @@ func (l *loginLimiter) fail(k string) {
 	}
 	a.fails++
 	a.last = now
-	if a.fails >= 5 {
-		d := 30 * time.Second << min(a.fails-5, 5)
+	if a.fails >= limit {
+		d := 30 * time.Second << min(a.fails-limit, 5)
 		a.until = now.Add(min(d, 15*time.Minute))
 	}
 }

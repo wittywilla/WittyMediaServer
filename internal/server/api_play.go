@@ -56,7 +56,7 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 	ctx := r.Context()
 	get := func(k, def string) string { return s.DB.GetSetting(ctx, k, def) }
 	maxHeight, _ = strconv.Atoi(get("maxHeight", "0"))
-	if v := qInt(r, "maxHeight", 0); v > 0 {
+	if v := qInt(r, "maxHeight", 0); v >= 144 && v <= 4320 { // each value is a transcode of its own
 		maxHeight = v
 	}
 	enabled := get("hwEncoders", "")
@@ -116,6 +116,12 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := playInfo{DurationSec: pr.Duration(), Container: it.Container, AudioIndex: qInt(r, "audio", 0), SubIndex: qInt(r, "subtitle", -1)}
+	if n := len(pr.Audio()); info.AudioIndex < 0 || info.AudioIndex >= max(n, 1) {
+		info.AudioIndex = 0
+	}
+	if info.SubIndex >= len(pr.Subtitles()) || info.SubIndex < -1 {
+		info.SubIndex = -1
+	}
 	for i, a := range pr.Audio() {
 		info.Audio = append(info.Audio, trackInfo{Index: i, Language: a.Tags["language"], Title: a.Tags["title"], Codec: a.CodecName, Channels: a.Channels})
 	}
@@ -143,7 +149,6 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	qh := sha1.Sum([]byte(fmt.Sprint(q)))
-	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, s.audioCodec(r), hex.EncodeToString(qh[:3]))
 	var vf string
 	if v != nil && (v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt") {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
@@ -152,6 +157,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") {
 		channels = 6
 	}
+	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-c%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, channels, s.audioCodec(r), hex.EncodeToString(qh[:3]))
 	audioIdx := info.AudioIndex
 	if len(info.Audio) == 0 {
 		audioIdx = -1
@@ -188,7 +194,14 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
-	st, _ := f.Stat()
+	st, err := f.Stat()
+	if err != nil || st.IsDir() {
+		writeErr(w, 404, "file missing")
+		return
+	}
+	if strings.EqualFold(filepath.Ext(it.Path), ".pdf") {
+		w.Header().Del("Content-Security-Policy") // the browser's own viewer may show it in a tab; PDFs can't run scripts on this site
+	}
 	w.Header().Set("Accept-Ranges", "bytes")
 	http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
 }

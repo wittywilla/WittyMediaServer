@@ -218,7 +218,8 @@ func (w *statusWriter) Flush() {
 // redactQuery hides session tokens (media URLs carry one) so logs, which
 // people attach to bug reports, never hold a working login.
 func redactQuery(q string) string {
-	if !strings.Contains(q, "token=") {
+	// "%" too: %74oken=... decodes to the same parameter when signing in.
+	if !strings.Contains(q, "token") && !strings.Contains(q, "%") {
 		return q
 	}
 	v, err := url.ParseQuery(q)
@@ -241,7 +242,9 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "SAMEORIGIN")
-		if !strings.HasPrefix(r.URL.Path, "/api/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			h.Set("Content-Security-Policy", apiCSP)
+		} else {
 			h.Set("Content-Security-Policy", appCSP)
 		}
 		next.ServeHTTP(w, r)
@@ -253,6 +256,11 @@ func (s *Server) headers(next http.Handler) http.Handler {
 const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
 	"media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// apiCSP: nothing the API answers may run as a page on this site, whatever a
+// file or a remote server claims it is. Answers that have to be shown as a
+// document (book chapters, pictures, theme files) set their own policy.
+const apiCSP = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; media-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
 // token. Cookies are never honoured across origins, so a page elsewhere on

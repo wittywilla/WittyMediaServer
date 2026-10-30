@@ -53,8 +53,10 @@ type Season struct {
 	Unwatched    int    `json:"unwatched"`
 }
 
-const showCols = `s.id, s.library_id, s.path, s.title, s.sort_title, s.year, s.overview, s.genres, s.rating, s.content_rating,
-	s.network, s.status, s.poster, s.backdrop, s.provider, s.provider_id, s.added_at, s.updated_at, s.intro_start, s.intro_end, IFNULL(s.view, ''),
+const showFields = `s.id, s.library_id, s.path, s.title, s.sort_title, s.year, s.overview, s.genres, s.rating, s.content_rating,
+	s.network, s.status, s.poster, s.backdrop, s.provider, s.provider_id, s.added_at, s.updated_at, s.intro_start, s.intro_end, IFNULL(s.view, ''),`
+
+const showCols = showFields + `
 	(SELECT COUNT(*) FROM items i WHERE i.show_id = s.id AND i.missing = 0),
 	(SELECT COUNT(DISTINCT i.season) FROM items i WHERE i.show_id = s.id AND i.missing = 0),
 	(SELECT COUNT(*) FROM items i WHERE i.show_id = s.id AND i.missing = 0 AND NOT EXISTS
@@ -101,6 +103,8 @@ type ShowQuery struct {
 	// HideAnime leaves anime out (TV libraries when anime goes to the anime
 	// library only).
 	HideAnime bool
+	// Started: only shows with an episode UserID has watched.
+	Started bool
 }
 
 const animeGenre = "('|' || IFNULL(s.genres,'') || '|') LIKE '%|Anime|%'"
@@ -124,6 +128,10 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	if q.HideAnime {
 		where = append(where, "NOT "+animeGenre)
 	}
+	if q.Started {
+		where = append(where, "s.id IN (SELECT i.show_id FROM progress p JOIN items i ON i.id = p.item_id WHERE p.user_id = ? AND p.watched = 1 AND i.show_id IS NOT NULL)")
+		args = append(args, q.UserID)
+	}
 	if q.Search != "" {
 		where = append(where, "(s.title LIKE ? OR s.overview LIKE ?)")
 		like := "%" + q.Search + "%"
@@ -140,7 +148,7 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	order := "s.sort_title COLLATE NOCASE"
 	switch q.Sort {
 	case "added":
-		order = "(SELECT IFNULL(MAX(i.added_at), 0) FROM items i WHERE i.show_id = s.id AND i.missing = 0)"
+		order = "t.added"
 	case "year":
 		order = "IFNULL(s.year, 0)"
 	case "rating":
@@ -153,8 +161,14 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	if limit <= 0 {
 		limit = 10000
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+showCols+` FROM shows s WHERE `+strings.Join(where, " AND ")+
-		` ORDER BY `+order+`, s.id LIMIT ?`, append(args, limit)...)
+	// The totals are read once for all shows, not four subqueries per show.
+	// Only shows that have episodes are listed.
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+showFields+` t.n, t.seasons, t.n - IFNULL(w.n, 0), t.added FROM shows s
+		JOIN (SELECT show_id, COUNT(*) n, COUNT(DISTINCT season) seasons, MAX(added_at) added FROM items
+			WHERE show_id IS NOT NULL AND missing = 0 GROUP BY show_id) t ON t.show_id = s.id
+		LEFT JOIN (SELECT i.show_id, COUNT(*) n FROM progress p JOIN items i ON i.id = p.item_id
+			WHERE p.user_id = ? AND p.watched = 1 AND i.missing = 0 AND i.show_id IS NOT NULL GROUP BY i.show_id) w ON w.show_id = s.id
+		WHERE `+strings.Join(where, " AND ")+` ORDER BY `+order+`, s.id LIMIT ?`, append(args, limit)...)
 	if err != nil {
 		return nil, err
 	}
@@ -165,9 +179,7 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 		if err != nil {
 			return nil, err
 		}
-		if sh.EpisodeCount > 0 {
-			out = append(out, sh)
-		}
+		out = append(out, sh)
 	}
 	return out, rows.Err()
 }
@@ -178,6 +190,24 @@ func (s *Store) Show(ctx context.Context, id, userID int64) (*Show, error) {
 		return nil, ErrNotFound
 	}
 	return sh, err
+}
+
+// ShowFacts loads a show without its episode counts: all that artwork and
+// access checks need, for every picture a page shows.
+func (s *Store) ShowFacts(ctx context.Context, id int64) (*Show, error) {
+	sh, err := scanShow(s.DB.QueryRowContext(ctx, `SELECT `+showFields+` 0, 0, 0, 0 FROM shows s WHERE s.id = ?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return sh, err
+}
+
+// EpisodePoster is the artwork of a show's first episode that has any.
+func (s *Store) EpisodePoster(ctx context.Context, showID int64) string {
+	var p sql.NullString
+	_ = s.DB.QueryRowContext(ctx, `SELECT poster FROM items WHERE show_id = ? AND missing = 0 AND IFNULL(poster, '') <> ''
+		ORDER BY IFNULL(season, 0), IFNULL(episode, 0) LIMIT 1`, showID).Scan(&p)
+	return p.String
 }
 
 func (s *Store) showByPath(ctx context.Context, libraryID int64, path string) (*Show, error) {
@@ -317,7 +347,7 @@ func (s *Store) SetSeasonPoster(ctx context.Context, showID int64, n int, poster
 
 // Episodes lists a show's episodes in order.
 func (s *Store) Episodes(ctx context.Context, showID int64, access *Access) ([]*Item, error) {
-	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode", Access: access})
+	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode", Access: access, NoTotal: true})
 	return items, err
 }
 
@@ -350,9 +380,22 @@ func (s *Store) NextEpisode(ctx context.Context, it *Item) *int64 {
 	if it.ShowID == nil {
 		return nil
 	}
-	eps, err := s.Episodes(ctx, *it.ShowID, nil)
+	// Only the numbers: this runs for every episode page and player start.
+	rows, err := s.DB.QueryContext(ctx, `SELECT id, season, episode FROM items WHERE show_id = ? AND missing = 0
+		ORDER BY IFNULL(season, 0), IFNULL(episode, 0), id`, *it.ShowID)
 	if err != nil {
 		return nil
+	}
+	defer rows.Close()
+	var eps []*Item
+	for rows.Next() {
+		var e Item
+		var season, episode sql.NullInt64
+		if rows.Scan(&e.ID, &season, &episode) != nil {
+			return nil
+		}
+		e.Season, e.Episode = nullInt(season), nullInt(episode)
+		eps = append(eps, &e)
 	}
 	sort.SliceStable(eps, func(i, j int) bool { return episodeKey(eps[i]) < episodeKey(eps[j]) })
 	for i, e := range eps {
@@ -416,7 +459,7 @@ func (s *Store) Recommend(ctx context.Context, userID int64, it *Item, access *A
 		_ = s.AttachProgress(ctx, userID, eps)
 		return NextUp(eps), best, nil
 	}
-	items, _, err := s.Items(ctx, ItemQuery{LibraryID: it.LibraryID, NoEpisodes: true, Sort: "rating", Desc: true, Limit: 500, Access: access})
+	items, _, err := s.Items(ctx, ItemQuery{LibraryID: it.LibraryID, NoEpisodes: true, Sort: "rating", Desc: true, Limit: 500, Access: access, NoTotal: true})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -488,9 +531,10 @@ type Network struct {
 
 // Networks lists the networks of the shows in a library (0 = all), with the
 // genres that appear on each.
-func (s *Store) Networks(ctx context.Context, libraryID int64) ([]Network, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, IFNULL(network, ''), IFNULL(genres, '') FROM shows
-		WHERE missing = 0 AND (? = 0 OR library_id = ?) ORDER BY network COLLATE NOCASE, sort_title COLLATE NOCASE`, libraryID, libraryID)
+func (s *Store) Networks(ctx context.Context, libraryID int64, access *Access) ([]Network, error) {
+	c, a := access.ShowClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT s.id, IFNULL(s.network, ''), IFNULL(s.genres, '') FROM shows s
+		WHERE s.missing = 0 AND (? = 0 OR s.library_id = ?) AND `+c+` ORDER BY s.network COLLATE NOCASE, s.sort_title COLLATE NOCASE`, append([]any{libraryID, libraryID}, a...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -538,8 +582,9 @@ func containsFold(list []string, v string) bool {
 }
 
 // ShowGenres lists the genres used by shows in a library.
-func (s *Store) ShowGenres(ctx context.Context, libraryID int64) ([]string, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT genres FROM shows WHERE missing = 0 AND library_id = ?`, libraryID)
+func (s *Store) ShowGenres(ctx context.Context, libraryID int64, access *Access) ([]string, error) {
+	c, a := access.ShowClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT s.genres FROM shows s WHERE s.missing = 0 AND (? = 0 OR s.library_id = ?) AND `+c, append([]any{libraryID, libraryID}, a...)...)
 	if err != nil {
 		return nil, err
 	}

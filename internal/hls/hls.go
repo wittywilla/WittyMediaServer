@@ -287,8 +287,6 @@ func (j *job) finished() bool {
 	}
 }
 
-func (j *job) lastProduced() int { return j.lastSeg }
-
 // lastProducedOr is lastProduced for a job that may not exist.
 func (j *job) lastProducedOr(none int) int {
 	if j == nil {

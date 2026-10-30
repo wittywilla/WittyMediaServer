@@ -63,13 +63,18 @@ func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if !userFrom(r).IsAdmin {
+		for _, sh := range shows {
+			sh.Path = ""
+		}
+	}
 	writeJSON(w, 200, map[string]any{"shows": shows, "total": len(shows)})
 }
 
 // handleNetworks lists TV networks with their shows and genres:
 // GET /api/shows/networks?library=N
 func (s *Server) handleNetworks(w http.ResponseWriter, r *http.Request) {
-	n, err := s.Store.Networks(r.Context(), int64(qInt(r, "library", 0)))
+	n, err := s.Store.Networks(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -78,7 +83,7 @@ func (s *Server) handleNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleShowGenres(w http.ResponseWriter, r *http.Request) {
-	g, err := s.Store.ShowGenres(r.Context(), int64(qInt(r, "library", 0)))
+	g, err := s.Store.ShowGenres(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -112,6 +117,10 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 	var next *int64
 	if n := library.NextUp(eps); n != nil {
 		next = &n.ID
+	}
+	hidePaths(r, eps...)
+	if !userFrom(r).IsAdmin {
+		sh.Path = ""
 	}
 	writeJSON(w, 200, map[string]any{"show": sh, "seasons": seasons, "episodes": eps, "nextUpId": next})
 }
@@ -205,8 +214,8 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	sh, err := s.Store.Show(r.Context(), id, 0)
-	if err != nil {
+	sh, err := s.Store.ShowFacts(r.Context(), id)
+	if err != nil || !s.access(r).AllowsShow(sh) {
 		writeErr(w, 404, "show not found")
 		return
 	}
@@ -226,14 +235,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 	}
 	if src == "" {
 		// No artwork yet (no TheTVDB key, no local files): use an episode still.
-		if eps, err := s.Store.Episodes(r.Context(), id, nil); err == nil {
-			for _, e := range eps {
-				if e.Poster != "" {
-					src = e.Poster
-					break
-				}
-			}
-		}
+		src = s.Store.EpisodePoster(r.Context(), id)
 	}
 	s.serveArtSrc(w, r, src)
 }

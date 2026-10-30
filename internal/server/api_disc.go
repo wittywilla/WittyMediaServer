@@ -187,6 +187,10 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "disc not found")
 		return
 	}
+	if it.Disc != nil && it.Disc.Scrambled {
+		writeErr(w, 404, errNoPicture.Error()) // protected discs are never read
+		return
+	}
 	h := sha1.Sum([]byte(it.Path))
 	out := filepath.Join(s.Cfg.ImagesDir, fmt.Sprintf("dvdthumb-%s-%d-%d.jpg", hex.EncodeToString(h[:8]), ttn, n))
 	if st, err := os.Stat(out); err != nil || st.Size() == 0 {
@@ -197,7 +201,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		}
 		err := s.makeDiscThumb(r.Context(), it, ttn, n, out)
 		<-thumbSlots
-		if err == errNoPicture {
+		if err == errNoPicture || err == errNoTitle {
 			writeErr(w, 404, err.Error())
 			return
 		}
@@ -206,7 +210,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Cache-Control", "public, max-age=604800")
+	w.Header().Set("Cache-Control", "private, max-age=604800")
 	http.ServeFile(w, r, out)
 }
 
@@ -223,8 +227,9 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	}
 	defer o.Close()
 	ts := o.Disc.Title(ttn)
-	if ts == nil || len(ts.Cells) == 0 {
-		return fmt.Errorf("no such title")
+	// Only real chapters: every other number would be one more picture on disk.
+	if ts == nil || len(ts.Cells) == 0 || n < 0 || n > len(ts.Chapters) {
+		return errNoTitle
 	}
 	// A few seconds into the chapter skips fades from black.
 	at := ts.Duration * 0.1
@@ -276,7 +281,10 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	return nil
 }
 
-var errNoPicture = errors.New("no picture in this title")
+var (
+	errNoPicture = errors.New("no picture in this title")
+	errNoTitle   = errors.New("no such title or chapter")
+)
 
 func minf(a, b float64) float64 {
 	if a < b {

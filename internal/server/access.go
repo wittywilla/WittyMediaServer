@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -50,7 +51,7 @@ func (s *Server) visibleItem(r *http.Request, id int64) (*library.Item, error) {
 	}
 	var sh *library.Show
 	if it.ShowID != nil {
-		sh, _ = s.Store.Show(r.Context(), *it.ShowID, 0)
+		sh, _ = s.Store.ShowFacts(r.Context(), *it.ShowID)
 	}
 	if !a.AllowsItem(it, sh) {
 		return nil, library.ErrNotFound
@@ -88,6 +89,20 @@ func (s *Server) visibleLibraries(ctx context.Context, a *library.Access) ([]lib
 	return out, nil
 }
 
+// hidePaths: where files live on the server is for administrators (the
+// folders can name people). Web addresses of podcast episodes stay: the
+// player and the download button read them.
+func hidePaths(r *http.Request, items ...*library.Item) {
+	if u := userFrom(r); u != nil && u.IsAdmin {
+		return
+	}
+	for _, it := range items {
+		if it != nil && !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
+			it.Path = ""
+		}
+	}
+}
+
 // filterItems drops items an account may not see (small lists only, such
 // as Continue Watching; large lists are filtered in SQL).
 func (s *Server) filterItems(ctx context.Context, a *library.Access, items []*library.Item) []*library.Item {
@@ -98,7 +113,7 @@ func (s *Server) filterItems(ctx context.Context, a *library.Access, items []*li
 	for _, it := range items {
 		var sh *library.Show
 		if it.ShowID != nil {
-			sh, _ = s.Store.Show(ctx, *it.ShowID, 0)
+			sh, _ = s.Store.ShowFacts(ctx, *it.ShowID)
 		}
 		if a.AllowsItem(it, sh) {
 			out = append(out, it)

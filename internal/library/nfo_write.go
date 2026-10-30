@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// Metadata is saved next to the media in the standard NFO/artwork layout that Kodi and other media servers
-// (local media assets) read it, so a library can move between servers:
+// Metadata is saved next to the media in the standard NFO/artwork layout that
+// other media software reads, so a library can move between servers:
 //
 //	Movie in its own folder:    movie folder/<name>.nfo, poster.jpg, fanart.jpg
 //	Movies sharing a folder:    <name>.nfo, <name>-poster.jpg, <name>-fanart.jpg
@@ -63,12 +63,35 @@ func soleMedia(dir, p string) bool {
 }
 
 // LoadImage reads an artwork reference: a URL, a "cache:" name or a path.
+// References can come from sidecar files and feeds the owner doesn't control,
+// so web addresses are fetched from the internet only, cache names stay in
+// the cache, and what comes back must be a picture: a poster.jpg that is
+// really a copy of the database or a page from the local network is refused.
 func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
+	b, err := s.loadRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	switch http.DetectContentType(b) {
+	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp":
+		return b, nil
+	}
+	if len(b) > 12 && string(b[4:8]) == "ftyp" { // AVIF and relatives
+		return b, nil
+	}
+	return nil, errors.New("not a picture")
+}
+
+func (s *Scanner) loadRef(ctx context.Context, ref string) ([]byte, error) {
 	switch {
 	case ref == "":
 		return nil, errors.New("no image")
 	case strings.HasPrefix(ref, "cache:"):
-		return os.ReadFile(filepath.Join(s.ImagesDir, strings.TrimPrefix(ref, "cache:")))
+		name := strings.TrimPrefix(ref, "cache:")
+		if name == "" || name != filepath.Base(name) {
+			return nil, errors.New("bad cache name")
+		}
+		return os.ReadFile(filepath.Join(s.ImagesDir, name))
 	case isRemote(ref):
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
@@ -76,7 +99,7 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		res, err := http.DefaultClient.Do(req)
+		res, err := SafeClient.Do(req)
 		if err != nil {
 			return nil, err
 		}
@@ -85,6 +108,13 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 			return nil, fmt.Errorf("image fetch: %s", res.Status)
 		}
 		return io.ReadAll(io.LimitReader(res.Body, 20<<20))
+	}
+	st, err := os.Stat(ref)
+	if err != nil {
+		return nil, err
+	}
+	if st.Size() > 20<<20 { // the same limit as a download; only pictures are wanted here
+		return nil, errors.New("image too large")
 	}
 	return os.ReadFile(ref)
 }
@@ -105,6 +135,8 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	return os.Rename(tmp, dst)
 }
 
+// writeNFO replaces a file beside the media in one step, so a crash or a full
+// disk can't leave someone's NFO cut short.
 func writeNFO(path string, doc any) error {
 	if old, err := os.ReadFile(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
 		if _, err := os.Stat(path + ".bak"); os.IsNotExist(err) {
@@ -118,7 +150,15 @@ func writeNFO(path string, doc any) error {
 	out := []byte(xml.Header + nfoMarker + "\n")
 	out = append(out, b...)
 	out = append(out, '\n')
-	return os.WriteFile(path, out, 0o644)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, out, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 type nfoUniqueID struct {

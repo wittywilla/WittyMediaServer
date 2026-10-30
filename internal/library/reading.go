@@ -151,6 +151,9 @@ func SearchBook(zr *zip.Reader, spine []string, q string) []SearchHit {
 	lq := strings.ToLower(q)
 	hits := []SearchHit{}
 	for ci, name := range spine {
+		if len(hits) >= 200 {
+			break
+		}
 		text := chapterText(zr, name)
 		low := strings.ToLower(text)
 		from := 0

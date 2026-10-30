@@ -100,6 +100,9 @@ func cmdServe(args []string) int {
 	if err := store.BackfillAges(context.Background()); err != nil {
 		log.Warn("rating ages", "err", err)
 	}
+	if err := store.ResetScanning(context.Background()); err != nil {
+		log.Warn("scan flags", "err", err)
+	}
 	tmdbKey := func() string { return database.GetSetting(context.Background(), "tmdbKey", "") }
 	scanner := library.NewScanner(store, tools, cfg.CacheDir, tmdbKey, log)
 	scanner.ImagesDir = cfg.ImagesDir

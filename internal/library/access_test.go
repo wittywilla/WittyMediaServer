@@ -7,6 +7,44 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 )
 
+// Lists are filtered in SQL, single items in Go; both must give one answer.
+// An episode of a blocked-genre show was listed while refusing to play.
+func TestItemClauseCountsShowGenres(t *testing.T) {
+	d, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	st := &Store{DB: d}
+	lib, err := st.CreateLibrary(ctx, "TV", "shows", []string{"/t"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh := &Show{LibraryID: lib.ID, Path: "/t/a", Title: "A", Genres: []string{"Horror"}}
+	if err := st.UpsertShow(ctx, sh); err != nil {
+		t.Fatal(err)
+	}
+	ep := &Item{LibraryID: lib.ID, Kind: "video", Path: "/t/a/1.mkv", Title: "One", SortTitle: "One", ShowID: &sh.ID}
+	if err := st.upsertItem(ctx, ep); err != nil {
+		t.Fatal(err)
+	}
+	a := &Access{MaxAge: NoAgeLimit, BlockGenres: []string{"Horror"}}
+	if a.AllowsItem(ep, sh) {
+		t.Fatal("the Go check allows it")
+	}
+	items, _, err := st.Items(ctx, ItemQuery{LibraryID: lib.ID, Access: a})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("the list shows %d episodes of a blocked show", len(items))
+	}
+	if g, err := st.Genres(ctx, 0, &Access{Libraries: []int64{lib.ID + 1}}); err != nil || len(g) != 0 {
+		t.Fatalf("genres of a library the account can't open: %v %v", g, err)
+	}
+}
+
 func TestAgeFor(t *testing.T) {
 	cases := map[string]int{"G": 0, "PG-13": 13, "pg13": 13, "US:R": 17, "TV-Y7": 7, "TV-MA": 17, "12A": 12, "FSK 16": 16, "de/12": 12, "16+": 16}
 	for in, want := range cases {

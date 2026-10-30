@@ -233,6 +233,8 @@ func (s *Service) issue(ctx context.Context, userID int64, device string) (strin
 	}
 	tok := hex.EncodeToString(b)
 	now := time.Now()
+	// Sessions nobody came back to would otherwise stay forever.
+	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, now.Unix())
 	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device) VALUES(?,?,?,?,?)`, tok, userID, now.Unix(), now.Add(tokenTTL).Unix(), device); err != nil {
 		return "", nil, err
 	}

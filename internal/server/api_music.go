@@ -58,6 +58,7 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
+	hidePaths(r, items...)
 	writeJSON(w, 200, items)
 }
 

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 )
 
 // Podcasts: a podcasts library holds subscriptions (RSS feeds). Every
@@ -48,8 +49,7 @@ var SafeClient = &http.Client{
 			if err != nil {
 				return err
 			}
-			ip := net.ParseIP(host)
-			if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+			if !publicIP(net.ParseIP(host)) {
 				return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
 			}
 			return nil
@@ -64,6 +64,33 @@ var SafeClient = &http.Client{
 		}
 		return nil
 	},
+}
+
+// notPublic are the address ranges that are not the internet, beyond those
+// net.IP names: shared address space (carrier NAT, and mesh VPNs that reach
+// every device of the owner), benchmarking and protocol ranges, and the
+// translated forms of IPv4 addresses.
+var notPublic = func() []*net.IPNet {
+	var out []*net.IPNet
+	for _, c := range []string{"0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "240.0.0.0/4",
+		"64:ff9b::/96", "64:ff9b:1::/48", "100::/64", "2001:db8::/32", "2002::/16", "fec0::/10"} {
+		_, n, _ := net.ParseCIDR(c)
+		out = append(out, n)
+	}
+	return out
+}()
+
+// publicIP reports whether an address is on the internet.
+func publicIP(ip net.IP) bool {
+	if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsInterfaceLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+		return false
+	}
+	for _, n := range notPublic {
+		if n.Contains(ip) {
+			return false
+		}
+	}
+	return true
 }
 
 // webURL keeps a feed's address only when it is a web address: a feed must
@@ -213,6 +240,11 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 			image = webURL(im.URL)
 		}
 	}
+	// Episodes already stored, in one read: a library can hold many thousands.
+	known, err := s.Store.podcastEpisodeIDs(ctx, p.LibraryID)
+	if err != nil {
+		return err
+	}
 	desc := plain(ch.Description)
 	if _, err := s.Store.DB.ExecContext(ctx, `UPDATE podcasts SET title=?, author=?, image=?, description=?, last_checked=? WHERE id=?`,
 		ch.Title, ch.Author, image, desc, time.Now().Unix(), p.ID); err != nil {
@@ -223,9 +255,11 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 		if webURL(e.Enclosure.URL) == "" {
 			continue // no episode, or not on the web
 		}
-		if existing, err := s.Store.podcastEpisode(ctx, p, e); err == nil && existing != nil {
+		guid := firstNonEmpty(e.GUID, e.Enclosure.URL)
+		if known[guid] || known[e.Enclosure.URL] {
 			continue // already known (it may be downloaded: keep its file path)
 		}
+		known[guid] = true
 		it := &Item{LibraryID: p.LibraryID, Kind: "audio", Path: e.Enclosure.URL, Title: strings.TrimSpace(e.Title), Album: p.Title, AlbumArtist: p.Author, Artist: p.Author,
 			Overview: plain(firstNonEmpty(e.Summary, e.Description)), Aired: parsePub(e.PubDate), RuntimeSec: parseDuration(e.Duration), Poster: firstNonEmpty(webURL(e.Image.Href), image),
 			Provider: "podcast", ProviderID: firstNonEmpty(e.GUID, e.Enclosure.URL), VideoCodec: codecForMime(e.Enclosure.Type, e.Enclosure.URL)}
@@ -236,7 +270,8 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 			it.ContentRating = "TV-MA" // explicit episodes are hidden from Kids and Guest profiles
 		}
 		if err := s.Store.upsertItem(ctx, it); err != nil {
-			return err
+			// One bad entry (the same file listed twice) must not hide the rest.
+			s.Log.Info("podcast episode skipped", "cat", "library", "podcast", p.Title, "episode", it.Title, "err", err)
 		}
 	}
 	if p.AutoDownload > 0 {
@@ -269,11 +304,23 @@ func codecForMime(mime, u string) string {
 	return "mp3"
 }
 
-// podcastEpisode finds an episode already stored for a podcast (by GUID).
-func (s *Store) podcastEpisode(ctx context.Context, p *Podcast, e rssItem) (*Item, error) {
-	guid := firstNonEmpty(e.GUID, e.Enclosure.URL)
-	return scanItem(s.DB.QueryRowContext(ctx, `SELECT `+itemCols+` FROM items i WHERE i.library_id = ? AND i.provider = 'podcast' AND i.provider_id = ? AND IFNULL(i.album, '') = ?`,
-		p.LibraryID, guid, p.Title))
+// podcastEpisodeIDs lists what identifies the podcast episodes of a library:
+// their GUIDs and web addresses. A feed that renames itself keeps its episodes.
+func (s *Store) podcastEpisodeIDs(ctx context.Context, libraryID int64) (map[string]bool, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT IFNULL(provider_id, ''), path FROM items WHERE library_id = ? AND provider = 'podcast'`, libraryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var id, path string
+		if err := rows.Scan(&id, &path); err != nil {
+			return nil, err
+		}
+		out[id], out[path] = true, true
+	}
+	return out, rows.Err()
 }
 
 // Podcast loads one subscription.
@@ -325,9 +372,11 @@ var unsafeName = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]+`)
 func safeName(s string) string {
 	s = strings.TrimSpace(unsafeName.ReplaceAllString(s, " "))
 	s = strings.TrimRight(s, ". ")
-	if len(s) > 120 {
-		s = s[:120]
+	for len(s) > 120 { // cut between characters, not inside one
+		_, n := utf8.DecodeLastRuneInString(s)
+		s = s[:len(s)-n]
 	}
+	s = strings.TrimRight(s, ". ")
 	if s == "" {
 		s = "Episode"
 	}

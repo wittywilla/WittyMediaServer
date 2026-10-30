@@ -22,6 +22,15 @@ func (s *Server) handlePodcasts(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if a := s.access(r); a != nil {
+		out := ps[:0]
+		for _, p := range ps {
+			if a.AllowsLibrary(p.LibraryID) {
+				out = append(out, p)
+			}
+		}
+		ps = out
+	}
 	writeJSON(w, 200, ps)
 }
 
@@ -190,11 +199,18 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 		return
 	}
 	defer res.Body.Close()
-	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"} {
+	for _, h := range []string{"Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"} {
 		if v := res.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}
 	}
+	// The answer comes from whoever hosts the feed, on this site's address: it
+	// is sound, whatever it says it is, and never a page that could run here.
+	ct := strings.ToLower(res.Header.Get("Content-Type"))
+	if !strings.HasPrefix(ct, "audio/") && !strings.HasPrefix(ct, "video/") {
+		ct = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", ct)
 	w.WriteHeader(res.StatusCode)
 	_, _ = io.Copy(w, res.Body)
 }

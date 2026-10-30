@@ -118,6 +118,14 @@ var agentClient = &http.Client{
 		if len(via) >= 4 || (req.URL.Scheme != "http" && req.URL.Scheme != "https") {
 			return errors.New("too many or unsafe redirects")
 		}
+		// The agent's API key is for the agent: another host never sees it.
+		if !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+			for k := range req.Header {
+				if k != "Accept" && k != "User-Agent" {
+					req.Header.Del(k)
+				}
+			}
+		}
 		return nil
 	},
 }

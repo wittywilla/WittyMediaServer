@@ -57,8 +57,31 @@ func TestRedactQuery(t *testing.T) {
 	if strings.Contains(got, "abcdef") || !strings.Contains(got, "start=10") {
 		t.Fatalf("redactQuery = %q", got)
 	}
+	if got := redactQuery("%74oken=abcdef0123"); strings.Contains(got, "abcdef") {
+		t.Fatalf("an escaped parameter name got through: %q", got)
+	}
 	if got := tokenRe.ReplaceAllString(`GET /api/x?token=abc123&f=1 failed`, "token=REDACTED"); strings.Contains(got, "abc123") {
 		t.Fatalf("client log not redacted: %q", got)
+	}
+}
+
+// Nothing under /api may run as a page on this site; the rest of the site has
+// the app's own policy.
+func TestHeadersSetPolicyForAPI(t *testing.T) {
+	var s Server
+	h := s.headers(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("<script>alert(1)</script>"))
+	}))
+	for path, want := range map[string]string{"/api/items/1/stream": apiCSP, "/": appCSP} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		if got := w.Header().Get("Content-Security-Policy"); got != want {
+			t.Errorf("%s: policy %q", path, got)
+		}
+	}
+	if strings.Contains(apiCSP, "script-src") || !strings.Contains(apiCSP, "default-src 'none'") {
+		t.Errorf("apiCSP allows scripts: %s", apiCSP)
 	}
 }
 

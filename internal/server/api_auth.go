@@ -90,16 +90,25 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	k := s.logins.key(r, c.Name)
-	if d := s.logins.wait(k); d > 0 {
+	k, ipKey := s.logins.keys(r, c.Name)
+	if d := max(s.logins.wait(k), s.logins.wait(ipKey)); d > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 		writeErr(w, 429, fmt.Sprintf("Too many wrong passwords. Try again in %d seconds.", int(d.Seconds())+1))
 		return
 	}
+	// Checking a password is deliberately slow; a flood of attempts must not
+	// take all of a small machine's processor.
+	select {
+	case loginSlots <- struct{}{}:
+		defer func() { <-loginSlots }()
+	case <-r.Context().Done():
+		return
+	}
 	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, s.profilesVisible(r))
 	if err != nil {
-		s.logins.fail(k)
-		writeErr(w, 401, err.Error())
+		s.logins.fail(k, 5)
+		s.logins.fail(ipKey, ipFailLimit)
+		writeErr(w, 401, "invalid name or password")
 		return
 	}
 	s.logins.ok(k)
@@ -108,7 +117,9 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	s.Auth.Logout(r.Context(), auth.TokenFrom(r))
+	for _, tok := range auth.Tokens(r) { // a stale token can sit in front of the live one
+		s.Auth.Logout(r.Context(), tok)
+	}
 	http.SetCookie(w, &http.Cookie{Name: auth.CookieName, Value: "", Path: "/", MaxAge: -1})
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

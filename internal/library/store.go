@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -138,22 +139,33 @@ var ErrNotFound = errors.New("not found")
 // Libraries
 // ---------------------------------------------------------------------------
 
+const libraryCols = `l.id, l.name, l.type, l.created_at, l.last_scan_at, l.scanning,
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0)`
+
+func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
+	var l Library
+	var scanning int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount); err != nil {
+		return nil, err
+	}
+	l.Scanning = scanning != 0
+	l.Paths = []string{}
+	return &l, nil
+}
+
 func (s *Store) Libraries(ctx context.Context) ([]Library, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT l.id, l.name, l.type, l.created_at, l.last_scan_at, l.scanning,
-		(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0) FROM libraries l ORDER BY l.name`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+libraryCols+` FROM libraries l ORDER BY l.name`)
 	if err != nil {
 		return nil, err
 	}
-	var out []Library
+	out := []Library{}
 	for rows.Next() {
-		var l Library
-		var scanning int
-		if err := rows.Scan(&l.ID, &l.Name, &l.Type, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount); err != nil {
+		l, err := scanLibrary(rows)
+		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		l.Scanning = scanning != 0
-		out = append(out, l)
+		out = append(out, *l)
 	}
 	err = rows.Err()
 	rows.Close()
@@ -161,13 +173,26 @@ func (s *Store) Libraries(ctx context.Context) ([]Library, error) {
 		return nil, err
 	}
 	// Fetch paths after the cursor is closed so we never hold two connections.
+	byID := make(map[int64]*Library, len(out))
 	for i := range out {
-		out[i].Paths, _ = s.libraryPaths(ctx, out[i].ID)
+		byID[out[i].ID] = &out[i]
 	}
-	if out == nil {
-		out = []Library{}
+	roots, err := s.DB.QueryContext(ctx, `SELECT library_id, path FROM library_paths ORDER BY id`)
+	if err != nil {
+		return nil, err
 	}
-	return out, nil
+	defer roots.Close()
+	for roots.Next() {
+		var id int64
+		var p string
+		if err := roots.Scan(&id, &p); err != nil {
+			return nil, err
+		}
+		if l := byID[id]; l != nil {
+			l.Paths = append(l.Paths, p)
+		}
+	}
+	return out, roots.Err()
 }
 
 func (s *Store) libraryPaths(ctx context.Context, id int64) ([]string, error) {
@@ -187,17 +212,43 @@ func (s *Store) libraryPaths(ctx context.Context, id int64) ([]string, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) Library(ctx context.Context, id int64) (*Library, error) {
-	libs, err := s.Libraries(ctx)
+// LibraryRoots lists every library's folders (what artwork paths are checked
+// against, for each picture a page shows).
+func (s *Store) LibraryRoots(ctx context.Context) ([]string, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT path FROM library_paths`)
 	if err != nil {
 		return nil, err
 	}
-	for i := range libs {
-		if libs[i].ID == id {
-			return &libs[i], nil
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
 		}
+		out = append(out, p)
 	}
-	return nil, ErrNotFound
+	return out, rows.Err()
+}
+
+func (s *Store) Library(ctx context.Context, id int64) (*Library, error) {
+	l, err := scanLibrary(s.DB.QueryRowContext(ctx, `SELECT `+libraryCols+` FROM libraries l WHERE l.id = ?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if l.Paths, err = s.libraryPaths(ctx, id); err != nil {
+		return nil, err
+	}
+	return l, nil
+}
+
+// ResetScanning clears flags left by a server that stopped during a scan.
+func (s *Store) ResetScanning(ctx context.Context) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE libraries SET scanning = 0 WHERE scanning <> 0`)
+	return err
 }
 
 func (s *Store) CreateLibrary(ctx context.Context, name, typ string, paths []string) (*Library, error) {
@@ -350,6 +401,8 @@ type ItemQuery struct {
 	NoEpisodes bool
 	// Access limits the result to what a Kids/Guest profile may see.
 	Access *Access
+	// NoTotal skips counting all matches, for callers that only want the list.
+	NoTotal bool
 	// Watchable: movies, videos and discs only (no music, books or podcasts).
 	Watchable bool
 	// Audio: one album (by album artist and album title).
@@ -468,8 +521,10 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	order += ", i.id"
 	w := strings.Join(where, " AND ")
 	var total int
-	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM items i WHERE `+w, args...).Scan(&total); err != nil {
-		return nil, 0, err
+	if !q.NoTotal {
+		if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM items i WHERE `+w, args...).Scan(&total); err != nil {
+			return nil, 0, err
+		}
 	}
 	limit := q.Limit
 	if limit <= 0 {
@@ -617,8 +672,11 @@ func (s *Store) retitle(ctx context.Context, id int64, title string) error {
 	return err
 }
 
-func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[string]bool) error {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, path FROM items WHERE library_id = ?`, libraryID)
+// markMissing hides the items of a library that a scan did not find. Items
+// under a folder that could not be reached at all (offline: a drive or a
+// network share that is away) are left alone: they are not gone.
+func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[string]bool, offline []string) error {
+	rows, err := s.DB.QueryContext(ctx, `SELECT id, path FROM items WHERE library_id = ? AND missing = 0`, libraryID)
 	if err != nil {
 		return err
 	}
@@ -631,21 +689,50 @@ func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[strin
 			return err
 		}
 		// Podcast episodes that were not downloaded live at their web address.
-		if !keep[p] && !strings.HasPrefix(p, "http://") && !strings.HasPrefix(p, "https://") {
+		if !keep[p] && !strings.HasPrefix(p, "http://") && !strings.HasPrefix(p, "https://") && !underAny(p, offline) {
 			gone = append(gone, id)
 		}
 	}
 	rows.Close()
+	if len(gone) == 0 {
+		return nil
+	}
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	for _, id := range gone {
-		if _, err := s.DB.ExecContext(ctx, `UPDATE items SET missing = 1 WHERE id = ?`, id); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE items SET missing = 1 WHERE id = ?`, id); err != nil {
 			return err
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
-func (s *Store) Genres(ctx context.Context, libraryID int64) ([]string, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT genres FROM items WHERE missing = 0 AND (? = 0 OR library_id = ?)`, libraryID, libraryID)
+func underAny(p string, roots []string) bool {
+	for _, r := range roots {
+		if rel, err := filepath.Rel(r, p); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}
+
+// restore shows an item again whose file is back, unchanged.
+func (s *Store) restore(ctx context.Context, id int64) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE items SET missing = 0 WHERE id = ?`, id)
+	return err
+}
+
+func (s *Store) setPoster(ctx context.Context, id int64, poster string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE items SET poster = ?, updated_at = ? WHERE id = ?`, poster, db.Now(), id)
+	return err
+}
+
+func (s *Store) Genres(ctx context.Context, libraryID int64, access *Access) ([]string, error) {
+	c, a := access.ItemClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT i.genres FROM items i WHERE i.missing = 0 AND (? = 0 OR i.library_id = ?) AND `+c, append([]any{libraryID, libraryID}, a...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -693,11 +780,19 @@ func (s *Store) AttachProgress(ctx context.Context, userID int64, items []*Item)
 	if len(items) == 0 || userID == 0 {
 		return nil
 	}
-	byID := map[int64]*Item{}
+	byID := make(map[int64]*Item, len(items))
 	for _, it := range items {
 		byID[it.ID] = it
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT item_id, position_sec, duration_sec, watched, disc_title, updated_at FROM progress WHERE user_id = ?`, userID)
+	q := `SELECT item_id, position_sec, duration_sec, watched, disc_title, updated_at FROM progress WHERE user_id = ?`
+	if len(items) <= 500 { // a page of items: only their rows, not everything this account ever played
+		list := make([]int64, 0, len(items))
+		for id := range byID {
+			list = append(list, id)
+		}
+		q += ` AND item_id IN (` + ids(list) + `)`
+	}
+	rows, err := s.DB.QueryContext(ctx, q, userID)
 	if err != nil {
 		return err
 	}

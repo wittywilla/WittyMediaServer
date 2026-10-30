@@ -79,7 +79,7 @@ func (m *Manager) list() map[string]*Session {
 // structure); the one left alone longest makes way.
 const maxSessions = 16
 
-func (m *Manager) add(s *Session) {
+func (m *Manager) makeRoom() {
 	var oldest *Session
 	if all := m.list(); len(all) >= maxSessions {
 		for _, o := range all {
@@ -89,9 +89,6 @@ func (m *Manager) add(s *Session) {
 		}
 		m.CloseSession(oldest.ID)
 	}
-	m.mu.Lock()
-	m.sessions[s.ID] = s
-	m.mu.Unlock()
 }
 
 // Session is one viewer's disc.
@@ -167,6 +164,7 @@ func randomID() string {
 
 // Open opens a disc for a viewer.
 func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error) {
+	m.makeRoom()
 	d, err := wittybluray.Open(path)
 	if err != nil {
 		return nil, err
@@ -179,7 +177,9 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	if prefs.Angle > 0 {
 		s.nav.SetAngle(prefs.Angle)
 	}
-	m.add(s)
+	m.mu.Lock()
+	m.sessions[s.ID] = s
+	m.mu.Unlock()
 	return s, nil
 }
 

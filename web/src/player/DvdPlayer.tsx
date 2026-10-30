@@ -53,6 +53,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   // The previous still image stays up until the next clip has a frame, so
   // pressing a menu button never flashes black.
   const [lingerStill, setLingerStill] = useState<string | null>(null)
+  // The last frame of the previous clip, shown over the video until the next
+  // clip draws its first picture (see freeze).
+  const [frozen, setFrozen] = useState<string | null>(null)
   const [disc, setDisc] = useState<DiscView | null>(null)
   const pendingSeek = useRef<number | null>(startAt ?? null)
   const stillTimer = useRef<any>(null)
@@ -99,8 +102,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   // Chapter and title names from the disc page.
   useEffect(() => { api.get<DiscView>(`/items/${item.id}/disc`).then(setDisc).catch(() => {}) }, [item.id])
 
-  // freeze keeps the last picture on screen while the next clip loads: the
-  // current frame becomes the video's poster until the new stream has one.
+  // freeze keeps the last picture on screen while the next clip loads. The
+  // browser starts the new clip (and its sound) before its decoder has drawn
+  // a picture, up to a second later; the frame stays on top until then, so
+  // switching clips (menu to menu, a vote to its answer) never flashes black.
   const freeze = () => {
     const v = video.current
     if (!v) return
@@ -112,7 +117,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       c.width = v.videoWidth
       c.height = v.videoHeight
       c.getContext('2d')!.drawImage(v, 0, 0)
-      v.poster = c.toDataURL('image/jpeg', 0.85)
+      const frame = c.toDataURL('image/jpeg', 0.85)
+      v.poster = frame
+      setFrozen(frame)
     } catch { /* ignore */ }
   }
 
@@ -207,16 +214,25 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     onError: (m) => setErr(m),
   })
 
-  // Drop the lingering still (and frozen poster) once the new clip has a frame.
+  // Drop the lingering still and frozen frame once the new clip has drawn a
+  // picture: "playing" comes before that, so wait for the first presented
+  // frame (with a time limit, in case the browser never reports one).
   useEffect(() => {
     const v = video.current
     if (!v) return
-    const shown = () => { setLingerStill(null); v.removeAttribute('poster') }
+    let limit: ReturnType<typeof setTimeout>
+    const clear = () => { clearTimeout(limit); setLingerStill(null); setFrozen(null); v.removeAttribute('poster') }
+    const shown = () => {
+      clearTimeout(limit)
+      limit = setTimeout(clear, 2500)
+      if ('requestVideoFrameCallback' in v) v.requestVideoFrameCallback(() => clear())
+      else clear()
+    }
     v.addEventListener('playing', shown)
     v.addEventListener('seeked', shown)
-    return () => { v.removeEventListener('playing', shown); v.removeEventListener('seeked', shown) }
+    return () => { clearTimeout(limit); v.removeEventListener('playing', shown); v.removeEventListener('seeked', shown) }
   }, [])
-  useEffect(() => { if (pres?.media?.type !== 'hls') setLingerStill(null) }, [pres])
+  useEffect(() => { if (pres?.media?.type !== 'hls') { setLingerStill(null); setFrozen(null) } }, [pres])
 
   const menu = pres?.menu
   const buttons = menu?.buttons || []
@@ -535,6 +551,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
         {prefs.stereo !== 'off' && rect && <StereoLayer video={video} rect={rect} mode={prefs.stereo} out={prefs.stereoOut} />}
         {pres?.media?.type === 'still' && <img className="still" src={mediaUrl(pres.media.url!)} alt="" />}
         {lingerStill && <img className="still" src={mediaUrl(lingerStill)} alt="" />}
+        {frozen && !lingerStill && pres?.media?.type === 'hls' && <img className="still frozen" src={frozen} alt="" style={{ objectFit }} />}
         {menu && rect && scale && (pres?.kind !== 'title' || (hasPopup && popupOpen)) && (
           <div className="dvd-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
             {menu.overlayUrl && <img src={mediaUrl(menu.overlayUrl)} alt="" />}

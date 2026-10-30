@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 func TestCSRF(t *testing.T) {
@@ -82,6 +83,45 @@ func TestHeadersSetPolicyForAPI(t *testing.T) {
 	}
 	if strings.Contains(apiCSP, "script-src") || !strings.Contains(apiCSP, "default-src 'none'") {
 		t.Errorf("apiCSP allows scripts: %s", apiCSP)
+	}
+}
+
+func TestWebFilesAndGzip(t *testing.T) {
+	web := fstest.MapFS{
+		"index.html":        {Data: []byte("<html>")},
+		"assets/a-1.js":     {Data: []byte("console.log(1)")},
+		"assets/a-1.js.gz":  {Data: []byte("gz")},
+		"assets/plain-1.js": {Data: []byte("console.log(2)")},
+	}
+	s := &Server{Web: web}
+	h := s.spa()
+	get := func(path, enc string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", path, nil)
+		if enc != "" {
+			r.Header.Set("Accept-Encoding", enc)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	w := get("/assets/a-1.js", "br, gzip")
+	if w.Header().Get("Content-Encoding") != "gzip" || w.Body.String() != "gz" || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/javascript") {
+		t.Errorf("gzip: %v %q", w.Header(), w.Body)
+	}
+	if w := get("/assets/a-1.js", "gzip;q=0"); w.Header().Get("Content-Encoding") != "" || w.Body.String() != "console.log(1)" {
+		t.Errorf("a browser refusing gzip got %q", w.Body)
+	}
+	if w := get("/assets/plain-1.js", "gzip"); w.Header().Get("Content-Encoding") != "" || w.Body.String() != "console.log(2)" {
+		t.Errorf("no compressed copy: %q", w.Body)
+	}
+	if w := get("/", ""); w.Header().Get("Cache-Control") != "no-cache" {
+		t.Errorf("the page may be cached: %v", w.Header())
+	}
+	if w := get("/assets/a-1.js", ""); !strings.Contains(w.Header().Get("Cache-Control"), "immutable") {
+		t.Errorf("hashed assets: %v", w.Header())
+	}
+	if w := get("/library/3", ""); !strings.Contains(w.Body.String(), "<html>") {
+		t.Errorf("an app address gets the page: %q", w.Body)
 	}
 }
 

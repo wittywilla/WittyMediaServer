@@ -306,6 +306,8 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end,
 	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, '')`
 
+var itemColsBrief = strings.Replace(itemCols, "i.disc_json", "CASE WHEN json_valid(i.disc_json) THEN json_remove(i.disc_json, '$.titles') END", 1)
+
 func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var it Item
 	var overview, tagline, genres, contentRating, studio, poster, backdrop, container, vcodec, audio, subs, discJSON, provider, providerID sql.NullString
@@ -403,6 +405,9 @@ type ItemQuery struct {
 	Access *Access
 	// NoTotal skips counting all matches, for callers that only want the list.
 	NoTotal bool
+	// Brief leaves a disc's list of titles and chapters out: only its own page
+	// reads them, and they can be most of what a list of discs weighs.
+	Brief bool
 	// Watchable: movies, videos and discs only (no music, books or podcasts).
 	Watchable bool
 	// Audio: one album (by album artist and album title).
@@ -530,7 +535,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if limit <= 0 {
 		limit = 10000
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+itemCols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	cols := itemCols
+	if q.Brief {
+		cols = itemColsBrief
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}

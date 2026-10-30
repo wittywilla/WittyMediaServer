@@ -170,6 +170,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Genre:     r.URL.Query().Get("genre"),
 		Kind:      r.URL.Query().Get("kind"),
 		Access:    s.access(r),
+		Brief:     true,
 		// noEpisodes=1: movies and discs only (the Shuffle widget)
 		NoEpisodes: qBool(r, "noEpisodes"),
 		Watchable:  qBool(r, "watchable"),
@@ -426,7 +427,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
-		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true})
+		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true, Brief: true})
 		if err != nil || len(items) == 0 {
 			continue
 		}
@@ -437,7 +438,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc, NoTotal: true})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, Access: acc, NoTotal: true, Brief: true})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)

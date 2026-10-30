@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
-import DvdPlayer from './DvdPlayer'
-import VideoPlayer from './VideoPlayer'
+
+const DvdPlayer = lazy(() => import('./DvdPlayer'))
+const VideoPlayer = lazy(() => import('./VideoPlayer'))
+const loading = <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
 
 type Playing = { id: string; search: string }
 
@@ -55,7 +57,7 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   useEffect(() => { api.get<Item>(`/items/${id}`).then(setItem).catch((e) => setErr(e.message)) }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   if (err) return <div className="player"><div className="overlay-msg"><div className="box">{err}<br /><BackButton /></div></div></div>
-  if (!item || !prefs) return <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
+  if (!item || !prefs) return loading
   const startParam = params.get('start')
   const startAt = startParam != null ? Number(startParam) : null
   if (isDisc(item)) {
@@ -66,9 +68,9 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
     const chapter = params.get('chapter') ? Number(params.get('chapter')) : undefined
     const menu = params.get('menu') || undefined
     const menuVts = params.get('menuVts') ? Number(params.get('menuVts')) : undefined
-    return <DvdPlayer item={item} mode={mode} ttn={ttn} chapter={chapter} startAt={startAt} insert={params.get('insert') === '1'} menu={menu} menuVts={menuVts} />
+    return <Suspense fallback={loading}><DvdPlayer item={item} mode={mode} ttn={ttn} chapter={chapter} startAt={startAt} insert={params.get('insert') === '1'} menu={menu} menuVts={menuVts} /></Suspense>
   }
-  return <VideoPlayer item={item} startAt={startAt} />
+  return <Suspense fallback={loading}><VideoPlayer item={item} startAt={startAt} /></Suspense>
 }
 
 function BackButton() {

@@ -38,7 +38,7 @@ func (s *Server) handleArtists(w http.ResponseWriter, r *http.Request) {
 // empty strings, meaning "no album" / "unknown artist").
 func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	iq := library.ItemQuery{LibraryID: int64(qInt(r, "library", 0)), Kind: "audio", Sort: "track", Access: s.access(r)}
+	iq := library.ItemQuery{LibraryID: int64(qInt(r, "library", 0)), Kind: "audio", Sort: "track", Access: s.access(r), Brief: true}
 	if q.Has("album") {
 		v := q.Get("album")
 		iq.Album = &v

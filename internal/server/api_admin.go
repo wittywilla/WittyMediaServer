@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"time"
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
@@ -105,8 +107,16 @@ func (s *Server) spa() http.Handler {
 			st, _ := f.Stat()
 			f.Close()
 			if st != nil && !st.IsDir() {
-				if strings.HasPrefix(p, "assets/") {
+				if ct := webTypes[path.Ext(p)]; ct != "" {
+					w.Header().Set("Content-Type", ct)
+				}
+				if !strings.HasPrefix(p, "assets/") {
+					w.Header().Set("Cache-Control", "no-cache") // the page names the assets of this version
+				} else {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+					if s.serveGzipped(w, r, p) {
+						return
+					}
 				}
 				fileServer.ServeHTTP(w, r)
 				return
@@ -125,6 +135,47 @@ func (s *Server) spa() http.Handler {
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(b)
 	})
+}
+
+// webTypes are the types of the client's files, whatever this machine says:
+// a Windows registry entry can make .js "text/plain", and browsers then refuse
+// to run it (the server sends nosniff) and show a blank page.
+var webTypes = map[string]string{
+	".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+	".html": "text/html; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json",
+	".png": "image/png", ".wasm": "application/wasm",
+}
+
+// serveGzipped sends the compressed copy made at build time (web/vite.config.ts),
+// to browsers that take it. The main script goes from 1.2 MB to 380 KB, which a
+// phone away from home notices, at no cost to the server's processor.
+func (s *Server) serveGzipped(w http.ResponseWriter, r *http.Request, name string) bool {
+	if !acceptsGzip(r.Header.Get("Accept-Encoding")) {
+		return false
+	}
+	f, err := s.Web.Open(name + ".gz")
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	rs, ok := f.(io.ReadSeeker)
+	if !ok {
+		return false
+	}
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Vary", "Accept-Encoding")
+	http.ServeContent(w, r, "", time.Time{}, rs)
+	return true
+}
+
+func acceptsGzip(header string) bool {
+	for _, part := range strings.Split(header, ",") {
+		enc, q, _ := strings.Cut(strings.TrimSpace(part), ";")
+		if strings.EqualFold(strings.TrimSpace(enc), "gzip") {
+			return strings.ReplaceAll(strings.TrimSpace(q), " ", "") != "q=0"
+		}
+	}
+	return false
 }
 
 // lanURLs are the addresses other devices on the home network can open

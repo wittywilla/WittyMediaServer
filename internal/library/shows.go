@@ -347,7 +347,7 @@ func (s *Store) SetSeasonPoster(ctx context.Context, showID int64, n int, poster
 
 // Episodes lists a show's episodes in order.
 func (s *Store) Episodes(ctx context.Context, showID int64, access *Access) ([]*Item, error) {
-	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode", Access: access, NoTotal: true})
+	items, _, err := s.Items(ctx, ItemQuery{ShowID: showID, Sort: "episode", Access: access, NoTotal: true, Brief: true})
 	return items, err
 }
 

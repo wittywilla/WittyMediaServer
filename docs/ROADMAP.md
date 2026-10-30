@@ -54,6 +54,10 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   custom server URL in the clients; a greyed-out hosted relay marked as a future paid service.
 - [ ] **WittyMediaRemoteMedia:** the basics of a NAS agent (UGREEN, Synology, Docker) that
   shares folders with a server. Own repository.
+- [x] **The server's side of the clients:** [the client API](CLIENT-API.md) with versioning and
+  capabilities, playback profiles for Apple TV and Android TV (direct, remux or transcode), stream
+  tokens, TV sign-in with a code, themes as data, and D-pad navigation on every page. Not yet tried
+  on real TVs.
 - [ ] **WittyMediaClient** (own repository): a themed, frameless desktop client (no File/View
   menus; fully themeable; Windows 7 and up), Android TV (and a server build for Android TV /
   NVIDIA Shield), Apple TV with the current themes; TV remotes, every kind of game controller,

@@ -128,6 +128,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |
 | 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |
+| 📡 | [Client API](docs/CLIENT-API.md) · [OpenAPI](docs/openapi.json) | for apps and tools: TV sign-in, playback profiles, stream tokens, disc menus |
 | ❓ | [Troubleshooting](docs/TROUBLESHOOTING.md) | the common problems and their fixes |
 | 🧩 | [Modules & apps](docs/MODULES.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) | how the pieces fit, and what's next |
 

@@ -54,6 +54,9 @@ same tools ship on their own as `wittydvd` and `wittybluray`.
 
 ## HTTP API
 
+**Writing an app or a tool?** [CLIENT-API.md](CLIENT-API.md) is the guide, with every route, and
+[openapi.json](openapi.json) the same thing for machines.
+
 Everything is under `/api` and answers JSON. Sign in with `POST /api/login` and send the token as
 `Authorization: Bearer <token>` (or `X-WMS-Token`). Media URLs that a page can't add headers to
 (images, video) take `?token=`.
@@ -111,6 +114,7 @@ flowchart LR
 | `internal/library` | libraries, scanning, TV shows, music, books, metadata (NFO, TMDB, TheTVDB, TVmaze, Wikidata, AniList, custom agents), watch state |
 | `internal/dvdsession`, `internal/bdsession` | one viewer's DVD or Blu-ray: presentations, menus, subtitles, streams |
 | `internal/hls`, `internal/ffmpeg` | on-demand HLS with instant seeking; FFmpeg discovery, probing and encoders |
+| `internal/playback` | how a file plays on each kind of client: direct, remux or transcode, and which tracks |
 | `internal/auth`, `internal/db`, `internal/config`, `internal/logging`, `internal/themes` | accounts, storage, configuration, logs, themes |
 | `modules/wittydisc`, `modules/wittydvd`, `modules/wittybluray` | the disc engines, each its own Go module and repository |
 | `web/` | the web app; `web/src/modules/*` holds the reader plugins (WittyInk, WittyEbook, WittyPDF, WittyComics) |

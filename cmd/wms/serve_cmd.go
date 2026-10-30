@@ -252,6 +252,11 @@ func cmdServe(args []string) int {
 		defer close(stopped)
 		<-ctx.Done()
 		log.Info("shutting down")
+		hlsMgr.StopAllLive()
+		hlsMgr.StopAll()
+		if srv.TV != nil {
+			srv.TV.Close()
+		}
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)

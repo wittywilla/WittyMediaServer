@@ -97,6 +97,7 @@ type Stream struct {
 	ID          string            `json:"id"`
 	CodecType   string            `json:"codec_type"`
 	CodecName   string            `json:"codec_name"`
+	PixFmt      string            `json:"pix_fmt"`
 	Width       int               `json:"width"`
 	Height      int               `json:"height"`
 	Channels    int               `json:"channels"`
@@ -110,7 +111,6 @@ type Stream struct {
 	// For playback decisions.
 	Profile       string           `json:"profile"`
 	Level         int              `json:"level"`
-	PixFmt        string           `json:"pix_fmt"`
 	ColorTransfer string           `json:"color_transfer"`
 	BitRate       string           `json:"bit_rate"`
 	BitsPerSample string           `json:"bits_per_raw_sample"`
@@ -201,6 +201,11 @@ func FileInput(path string) []string {
 // ProbeFile runs ffprobe on a regular media file.
 func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
 	return t.probe(ctx, FileInput(path))
+}
+
+// ProbeInput runs ffprobe on input options built by the caller (a TV stream).
+func (t *Tools) ProbeInput(ctx context.Context, input []string) (*Probe, error) {
+	return t.probe(ctx, input)
 }
 
 // probeSlots limits how many ffprobe processes run at once: anyone signed in

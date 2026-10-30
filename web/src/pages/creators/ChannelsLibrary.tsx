@@ -10,7 +10,7 @@ import '../../creators.css'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
-// channel. Everything comes from files the owner already has (docs/CHANNELS.md).
+// channel. Everything comes from files the owner already has (docs/CREATOR-VIDEOS.md).
 
 const TABS: [string, string][] = [['home', 'Home'], ['latest', 'Latest'], ['subs', 'Subscriptions'], ['channels', 'Channels'], ['history', 'History'], ['liked', 'Liked']]
 // Music videos and concerts use the same pages: an artist is a channel, and

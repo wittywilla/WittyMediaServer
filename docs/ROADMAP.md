@@ -35,21 +35,18 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   placeholder is in); batch rotate and edit.
 - [x] **WittyShorts** ([SHORTS.md](SHORTS.md)): vertical videos with likes, comments, sharing, creators,
   custom metadata and a For You page from local data alone.
-- [x] **WittyChannels** ([CHANNELS.md](CHANNELS.md)): creator videos with a web-video-style interface, for
+- [x] **WittyChannels** ([CREATOR-VIDEOS.md](CREATOR-VIDEOS.md)): creator videos with a web-video-style interface, for
   collections already on disk.
-- [x] **Music videos and concerts** ([CHANNELS.md](CHANNELS.md#music-videos-and-concerts)), **internet radio**,
+- [x] **Music videos and concerts** ([CREATOR-VIDEOS.md](CREATOR-VIDEOS.md#music-videos-and-concerts)), **internet radio**,
   **collections and smart playlists**, **Your year** and **recommendations** ([COLLECTIONS.md](COLLECTIONS.md)).
 - [ ] **Watch together:** a shared, synchronised player across profiles and devices. Best built with
   remote access in place, so it can be tested across real networks.
-- [ ] **WittyTV (Live TV and DVR):**
-  - channels made from the libraries: by network, by show type, custom; DVDs can play on a
-    channel (without remote features); server-managed and the same for every user;
-  - an early-2000s cable/satellite guide interface;
-  - IPTV import, HDHomeRun and other tuners;
-  - DVR, disabled for library channels (with a disclaimer); recordings in their own folder by
-    default, with an admin toggle to put them in the show's folder;
-  - guide metadata, with any key requirements in the setup wizard;
-  - per-user access toggles for Live TV, library channels and tuner channels.
+- [x] **WittyTV (Live TV and DVR):** channels from the libraries (networks, eras, rules, timetables,
+  commercials), the classic and streaming guides with a movable live preview, IPTV and every kind of
+  tuner through WittyTuner, guide data, DVR. See [CHANNELS.md](CHANNELS.md).
+  - [ ] Try the tuner drivers on real hardware.
+  - [ ] Windows BDA tuning; DiSEqC; commercial breaks inside programmes; a viewer and a recording
+    sharing one tuner; disk-space checks and clean-up for recordings.
 - [x] **Playback speed on every media type:** up to 4×, higher by a server setting with a
   warning about hardware and preferred codecs; pitch preserved. Video, discs, music, audiobooks,
   podcasts and vertical videos; each kind of listening remembers its own speed.

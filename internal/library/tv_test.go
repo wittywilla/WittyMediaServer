@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -120,5 +121,20 @@ func TestTVDBClient(t *testing.T) {
 	}
 	if logins != 1 {
 		t.Fatalf("logged in %d times; the token should be reused", logins)
+	}
+}
+
+func TestCommercialsKeepSmallFiles(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "Soda Ad.mp4"), []byte("tiny"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c, err := discoverClips(dir)
+	if err != nil || len(c) != 1 {
+		t.Fatalf("a small commercial should be found: %v %+v", err, c)
+	}
+	c, err = discover(dir)
+	if err != nil || len(c) != 0 {
+		t.Fatalf("elsewhere, tiny videos are samples: %v %+v", err, c)
 	}
 }

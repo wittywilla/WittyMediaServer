@@ -151,6 +151,28 @@ turn it on in the new **Settings → Remote Access**, and nothing phones home.
   segments, when that is how the playlist was fetched.
 - Over HTTPS, the web app no longer puts its sign-in token in media addresses, where a reverse proxy
   would log it. The version is hidden from visitors on the internet who aren't signed in.
+### TV channels and live TV
+
+See [CHANNELS.md](docs/CHANNELS.md).
+
+- **Channels from your library** that run all the time: tune in part-way through a programme, as on
+  real TV. One click makes one from a TV network, an era, a genre or a show. Rules, day parts and a
+  full weekly timetable are there for whoever wants them, and moving between them loses nothing.
+- **As it aired**: shows in the day and time they first aired, where the metadata knows it.
+- **Commercials libraries**, as many as you like. Each channel uses a whole library or only the videos
+  you tick. Each library can be shown in the menus or kept out of the way.
+- **A guide with a look of your choosing**: a bulky classic cable or satellite box, or clean streaming
+  rows, with a line at the current time down all channels and a live preview you can put anywhere.
+- **Live TV** through the new **WittyTuner** module: IPTV playlists and streams, network tuners, Linux
+  DVB, capture cards, SAT>IP, external backends and a custom command. Most drivers have not been tried
+  on real hardware yet, and say so.
+- **Encrypted and copy-protected channels are detected and refused**, never decrypted. Every channel
+  shows whether it is clear or encrypted, with a help page, and the same station from a clear source
+  is offered when there is one.
+- **Unencrypted ATSC 3.0** tunes, plays and records. The bundled FFmpeg has no AC-4 decoder, so channels
+  with AC-4 sound play silently for now, and say so.
+- **Guide data** from XMLTV and from the broadcasts themselves, and **recording** of live channels.
+- One stream per channel however many are watching, and FFmpeg runs only while someone is.
 
 ## 0.4.0-alpha
 

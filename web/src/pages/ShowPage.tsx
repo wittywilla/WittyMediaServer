@@ -156,7 +156,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
 
 function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onClose: () => void; onSaved: () => void }) {
   const mmss = (v?: number) => (v != null ? fmtTime(v) : '')
-  const [f, setF] = useState({ title: show.title, year: show.year ? String(show.year) : '', overview: show.overview, genres: (show.genres || []).join(', '), tvdbId: '', contentRating: show.contentRating || '',
+  const [f, setF] = useState({ title: show.title, year: show.year ? String(show.year) : '', overview: show.overview, genres: (show.genres || []).join(', '), tvdbId: '', contentRating: show.contentRating || '', network: show.network || '',
     introStart: mmss(show.introStart), introEnd: mmss(show.introEnd) })
   const secs = (s: string) => { if (!s.trim()) return -1; const p = s.trim().split(':').map(Number); return p.reduce((a, x) => a * 60 + (x || 0), 0) }
   const [err, setErr] = useState('')
@@ -165,7 +165,7 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
     setBusy(true)
     try {
       await api.put(`/shows/${show.id}`, f.tvdbId ? { tvdbId: f.tvdbId } : {
-        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean), contentRating: f.contentRating,
+        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean), contentRating: f.contentRating, network: f.network,
         introStart: Math.max(0, secs(f.introStart)), introEnd: secs(f.introEnd),
       })
       onSaved()
@@ -184,6 +184,7 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
           <label>Overview<textarea className="input" rows={5} value={f.overview} onChange={up('overview')} /></label>
           <label>Genres (comma separated)<input className="input" value={f.genres} onChange={up('genres')} /></label>
           <RatingField tv value={f.contentRating} onChange={(v) => setF({ ...f, contentRating: v })} />
+          <label>Network<input className="input" value={f.network} onChange={up('network')} placeholder="The network it first aired on" /></label>
           <div className="row2">
             <label>Intro starts at <span className="muted">(m:ss)</span><input className="input" value={f.introStart} onChange={up('introStart')} placeholder="0:00" /></label>
             <label>Intro ends at <span className="muted">(m:ss — empty: no Skip intro)</span><input className="input" value={f.introEnd} onChange={up('introEnd')} placeholder="1:05" /></label>

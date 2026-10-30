@@ -146,10 +146,11 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🌍 | [Remote access](docs/REMOTE.md) | watching away from home: Tailscale, NetBird, port forwarding, HTTPS, keeping it safe |
 | 💿 | [DVDs](docs/DVD.md) · [Blu-rays](docs/BLURAY.md) | inserting discs, menus, the remote, audio and subtitles, 3D, 4K and HDR |
 | 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
+| 📡 | [Channels and live TV](docs/CHANNELS.md) | channels from your library, the guide, tuners, IPTV, recording |
 | 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |
 | 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
 | 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
-| 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CHANNELS.md) | folder layouts, sidecar files, For You, channels, concerts |
+| 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |
 | 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations by address, what each profile's year looked like |
 | ⚙️ | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
@@ -169,6 +170,7 @@ repository:
 | [**WittyDVD**](https://github.com/wittywilla/WittyDVD) | DVD-Video engine: the disc's virtual machine, menus, highlights and subtitles |
 | [**WittyBluray**](https://github.com/wittywilla/WittyBluray) | Blu-ray engine: HDMV navigation, interactive menus, pop-ups, subtitles, 4K/HDR |
 | [**WittyDisc**](https://github.com/wittywilla/WittyDisc) | Reads ISO 9660 and UDF disc images without mounting them |
+| [**WittyTuner**](https://github.com/wittywilla/WittyTuner) | TV tuners and IPTV behind one interface; encrypted channels are refused |
 | [**WittyInk**](https://github.com/wittywilla/WittyInk) | What the readers share: highlights, notes, pen with pressure, panels |
 | [**WittyEbook**](https://github.com/wittywilla/WittyEbook) · [**WittyPDF**](https://github.com/wittywilla/WittyPDF) · [**WittyComics**](https://github.com/wittywilla/WittyComics) | The book, PDF and comic readers |
 | [**WittyReader**](https://github.com/wittywilla/WittyReader) | A standalone reading app built from those readers, that keeps everything on your device |

@@ -22,10 +22,17 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	// Administrators get every library, for Settings; the menus leave out
+	// hidden ones themselves. Nobody else has any use for those.
 	if !userFrom(r).IsAdmin {
+		shown := make([]library.Library, 0, len(libs))
 		for i := range libs {
-			libs[i].Paths = []string{} // how this machine's folders are laid out is the admin's business
+			if !libs[i].Hidden() {
+				libs[i].Paths = []string{} // how this machine's folders are laid out is the admin's business
+				shown = append(shown, libs[i])
+			}
 		}
+		libs = shown
 	}
 	writeJSON(w, 200, libs)
 }
@@ -42,7 +49,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "photos", "shorts", "channels", "musicvideos", "radio":
+	case "movies", "discs", "shows", "anime", "videos", "commercials", "music", "audiobooks", "podcasts", "books", "photos", "shorts", "channels", "musicvideos", "radio":
 	case "":
 		b.Type = "movies"
 	default:
@@ -444,6 +451,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next up", Items: next})
 	}
 	for _, l := range libs {
+		if l.Hidden() {
+			continue
+		}
 		if l.Type == "shows" || l.Type == "anime" {
 			sq := library.ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: u.ID, Access: acc}
 			s.animeQuery(ctx, &sq)

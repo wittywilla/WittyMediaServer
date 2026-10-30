@@ -135,3 +135,11 @@ func TestWithCap(t *testing.T) {
 		t.Errorf("no limit: %+v", q)
 	}
 }
+
+func TestParseDecoders(t *testing.T) {
+	out := "Decoders:\n V..... = Video\n ------\n VFS..D hevc                 HEVC\n A....D ac3                  AC-3\n"
+	got := parseDecoders(out)
+	if !got["hevc"] || !got["ac3"] || got["ac4"] || got["="] {
+		t.Fatalf("%v", got)
+	}
+}

@@ -44,6 +44,10 @@ func Open(dataDir string) (*DB, error) {
 	for _, suffix := range []string{"", "-wal", "-shm"} {
 		_ = os.Chmod(filepath.Join(dataDir, "wms.db"+suffix), 0o600)
 	}
+	if err := d.migrateWittyTV(context.Background()); err != nil {
+		sdb.Close()
+		return nil, err
+	}
 	return d, nil
 }
 

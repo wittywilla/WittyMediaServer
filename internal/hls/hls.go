@@ -164,7 +164,7 @@ type Manager struct {
 	mu      sync.Mutex
 	session map[string]*Session
 	max     int // FFmpeg processes running at once
-
+	live    liveRegistry
 }
 
 // ErrBusy: as many transcodes are running as the server allows

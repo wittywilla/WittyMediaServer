@@ -18,6 +18,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/channels"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
@@ -25,6 +26,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
@@ -53,6 +55,10 @@ type Server struct {
 	Discovery interface{ Refresh() }
 	HTTPS     *remote.HTTPS   // the HTTPS port; nil until StartRemote
 	Mapper    *portmap.Keeper // automatic port mapping; nil until StartRemote
+	// Channels and Live TV (see api_channels.go, api_tuners.go).
+	Channels *channels.Store
+	TV       *livetv.Manager
+	silent   sync.Map // tuner channels whose sound can't be decoded here
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -309,6 +315,8 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/share/{token}/file/{id}", s.handleShareFile)
 	m.HandleFunc("GET /api/share/{token}/hls/{id}/playlist.m3u8", s.handleShareHLSPlaylist)
 	m.HandleFunc("GET /api/share/{token}/hls/{id}/seg/{n}", s.handleShareHLSSegment)
+
+	s.channelRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

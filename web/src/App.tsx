@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
-import { api } from './api'
-import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconSearch, IconSettings, IconUsers, libIcon } from './icons'
+import { api, inMainMenus } from './api'
+import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -30,6 +30,12 @@ const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const SetupWizard = lazy(() => import('./pages/SetupWizard'))
+// TV is its own part of the app, loaded when someone goes there.
+const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
+const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
+const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
+const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
+const tvFallback = <div className="center"><div className="spinner" /></div>
 
 export default function App() {
   useDialogs()
@@ -66,9 +72,11 @@ function Shell() {
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
+  const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   return (
     <AudioProvider>
-      {isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+      {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
+        : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )
@@ -98,6 +106,9 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/pair" element={<PairPage />} />
+            <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
+            <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
+            <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -118,8 +129,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       <aside className="sidebar" aria-label="Main navigation" aria-hidden={!open} inert={!open || undefined}>
         <Link to="/" className="brand"><BrandMark /><Brand name={brandName} /></Link>
         <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
+        <NavLink to="/tv" className="nav-link"><IconTv /> TV guide</NavLink>
         <div className="nav-section">Libraries</div>
-        {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
+        {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-link muted" style={{ fontSize: 13 }}>No libraries yet</div>}
         {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
         <div className="nav-section">Manage</div>
@@ -143,7 +155,8 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
       {topNav && (
         <nav className="topnav" aria-label="Libraries">
           <NavLink to="/" end className="topnav-link"><IconHome /> <span>Home</span></NavLink>
-          {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
+          <NavLink to="/tv" className="topnav-link"><IconTv /> <span>TV guide</span></NavLink>
+          {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
           {libraries.length > 0 && <NavLink to="/collections" className="topnav-link"><IconLibrary /> <span>Collections</span></NavLink>}
         </nav>
       )}
@@ -199,6 +212,7 @@ function TabBar({ onLibraries }: { onLibraries: () => void }) {
   return (
     <nav className="tabbar" aria-label="Main">
       <NavLink to="/" end><IconHome /><span>Home</span></NavLink>
+      <NavLink to="/tv"><IconTv /><span>TV</span></NavLink>
       <NavLink to="/search"><IconSearch /><span>Search</span></NavLink>
       <button type="button" onClick={onLibraries}><IconFilm /><span>Libraries</span></button>
       <NavLink to="/settings" className="tab-upd"><IconSettings /><span>You</span><UpdateDot /></NavLink>

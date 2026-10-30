@@ -31,6 +31,7 @@ MIRRORS=(
   "modules/wittybluray         WittyBluray"
   "modules/wittyintegratedfilebrowser WittyIntegratedFileBrowser"
   "modules/wittyphotos         WittyPhotos"
+  "modules/wittytuner          WittyTuner"
 )
 
 TAG=${2:-}

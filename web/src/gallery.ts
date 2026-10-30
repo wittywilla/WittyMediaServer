@@ -2,7 +2,7 @@ import { api, mediaUrl, serverBase, type Library } from './api'
 
 // What the photo, vertical video and creator libraries share: their JSON types,
 // the addresses of their pictures, and small helpers. The rules themselves live
-// on the server, behind the JSON API (docs/PHOTOS.md, SHORTS.md, CHANNELS.md).
+// on the server, behind the JSON API (docs/PHOTOS.md, SHORTS.md, CREATOR-VIDEOS.md).
 
 export type Photo = {
   id: number; libraryId: number; kind: 'photo' | 'video'; title: string; takenAt: number; width: number; height: number

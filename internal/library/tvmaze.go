@@ -107,6 +107,10 @@ type mazeShow struct {
 	WebChannel *struct {
 		Name string `json:"name"`
 	} `json:"webChannel"`
+	Schedule struct {
+		Time string   `json:"time"`
+		Days []string `json:"days"`
+	} `json:"schedule"`
 	Image *mazeImage `json:"image"`
 }
 
@@ -164,7 +168,8 @@ func (t *TVMaze) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 		return nil, err
 	}
 	m := &SeriesMeta{ID: strconv.Itoa(sh.ID), Title: sh.Name, Year: yearOf(sh.Premiered), Overview: plain(sh.Summary),
-		Genres: sh.Genres, Rating: sh.Rating.Average, Poster: sh.Image.best(), SeasonPosters: map[int]string{}}
+		Genres: sh.Genres, Rating: sh.Rating.Average, Poster: sh.Image.best(), SeasonPosters: map[int]string{},
+		AirDays: sh.Schedule.Days, AirTime: sh.Schedule.Time}
 	switch sh.Status {
 	case "Running":
 		m.Status = "Continuing"

@@ -139,6 +139,7 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 		TVDBID   string    `json:"tvdbId"`
 		// ContentRating applies to every episode without its own rating.
 		ContentRating *string `json:"contentRating"`
+		Network       *string `json:"network"`
 		Refresh       bool    `json:"refresh"`
 		// Intro range in seconds; a negative end clears it.
 		IntroStart *float64 `json:"introStart"`
@@ -165,6 +166,9 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Year != nil {
 		sh.Year = b.Year
+	}
+	if b.Network != nil {
+		sh.Network = strings.TrimSpace(*b.Network)
 	}
 	if b.ContentRating != nil {
 		sh.ContentRating = strings.TrimSpace(*b.ContentRating)

@@ -11,7 +11,7 @@ import (
 
 // WittyShorts and WittyChannels: creators, videos, the For You feed, likes and
 // comments. Likes, comments and views work on any item an account may see.
-// See docs/SHORTS.md and docs/CHANNELS.md.
+// See docs/SHORTS.md and docs/CREATOR-VIDEOS.md.
 
 var creatorLibraries = []string{"shorts", "channels", "musicvideos"}
 

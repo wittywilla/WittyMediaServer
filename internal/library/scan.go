@@ -134,7 +134,12 @@ type candidate struct {
 
 // discover lists playable things under a root: video files, disc images and
 // VIDEO_TS folders (a folder containing VIDEO_TS becomes one item).
-func discover(root string) ([]candidate, error) {
+func discover(root string) ([]candidate, error) { return discoverVideos(root, true) }
+
+// discoverClips is for commercials: short, small files are the whole point.
+func discoverClips(root string) ([]candidate, error) { return discoverVideos(root, false) }
+
+func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	var out []candidate
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -172,7 +177,7 @@ func discover(root string) ([]candidate, error) {
 		case ext == ".iso" || ext == ".img":
 			out = append(out, candidate{path: p, kind: "dvd-iso", size: st.Size(), mtime: st.ModTime().Unix()})
 		case videoExts[ext]:
-			if strings.HasPrefix(strings.ToLower(name), "sample") || st.Size() < 5<<20 {
+			if skipSamples && (strings.HasPrefix(strings.ToLower(name), "sample") || st.Size() < 5<<20) {
 				return nil
 			}
 			out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix()})
@@ -221,6 +226,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverPhotos
 		case IsCreatorLibrary(lib.Type):
 			find = discoverCreatorVideos
+		case lib.Type == CommercialsType:
+			find = discoverClips
 		}
 		c, err := find(root)
 		if err != nil {
@@ -357,7 +364,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	// Discs of TV series are not looked up as films (they keep their name,
 	// disc label and agents' answers).
 	s.applyAgents(ctx, it, lib.Type)
-	movieLike := lib.Type != "videos" && (it.Disc == nil || it.Disc.Content != "tv")
+	movieLike := lib.Type != "videos" && lib.Type != CommercialsType && (it.Disc == nil || it.Disc.Content != "tv")
 	if key := s.TMDBKey(); key != "" && movieLike && (it.Overview == "" || it.Poster == "") {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {

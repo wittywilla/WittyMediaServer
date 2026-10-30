@@ -21,7 +21,15 @@ type Library struct {
 	LastScanAt *int64   `json:"lastScanAt"`
 	Scanning   bool     `json:"scanning"`
 	ItemCount  int      `json:"itemCount"`
+	// ShowMain: a commercials library also appears in the menus, Home and
+	// search. Off by default; channels can use it either way.
+	ShowMain bool `json:"showMain"`
 }
+
+// CommercialsType is a library of the owner's own adverts and bumpers for
+// channels. They are titles to schedule, not to browse, so they stay out of
+// Home, search and everything else that looks across libraries.
+const CommercialsType = "commercials"
 
 type Item struct {
 	ID            int64     `json:"id"`
@@ -157,15 +165,16 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0)`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
-	var scanning int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount); err != nil {
+	var scanning, showMain int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
+	l.ShowMain = showMain != 0
 	l.Paths = []string{}
 	return &l, nil
 }
@@ -298,6 +307,25 @@ func (s *Store) UpdateLibrary(ctx context.Context, id int64, name, typ string, p
 	}
 	return s.Library(ctx, id)
 }
+
+// SetLibraryShowMain says whether a commercials library shows in the main menus.
+func (s *Store) SetLibraryShowMain(ctx context.Context, id int64, on bool) error {
+	v := 0
+	if on {
+		v = 1
+	}
+	res, err := s.DB.ExecContext(ctx, `UPDATE libraries SET show_main = ? WHERE id = ? AND type = ?`, v, id, CommercialsType)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// Hidden reports whether a library stays out of the main menus.
+func (l *Library) Hidden() bool { return l.Type == CommercialsType && !l.ShowMain }
 
 func (s *Store) DeleteLibrary(ctx context.Context, id int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM libraries WHERE id = ?`, id)
@@ -489,6 +517,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.LibraryID != 0 {
 		where = append(where, "i.library_id = ?")
 		args = append(args, q.LibraryID)
+	} else {
+		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type = '"+CommercialsType+"' AND show_main = 0)")
 	}
 	if q.Search != "" {
 		where = append(where, "(i.title LIKE ? OR i.overview LIKE ?)")

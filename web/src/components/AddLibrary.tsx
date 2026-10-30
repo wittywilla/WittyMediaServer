@@ -22,6 +22,7 @@ export const LIB_TYPES = [
   { type: 'musicvideos', name: 'Music videos & concerts', hint: 'Music videos and live recordings by artist, with setlists from their chapters' },
   { type: 'radio', name: 'Internet radio', hint: 'Stations you add by their stream address or an M3U or PLS playlist; no folder needed' },
   { type: 'channels', name: 'Creator videos', hint: 'Your archive of creators’ videos, laid out by channel with subscriptions, comments and up next' },
+  { type: 'commercials', name: 'Commercials', hint: 'Your own adverts and bumpers to play between programmes on TV channels. Have as many of these as you like' },
 ]
 
 // What each kind of library expects in its folder, shown once it's chosen.

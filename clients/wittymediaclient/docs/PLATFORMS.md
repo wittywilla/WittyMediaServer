@@ -6,13 +6,14 @@ stay honest: **written** does not mean **works**.
 | Word | Meaning |
 |---|---|
 | **Ran** | Run for real on this development machine, against a real server, with automated checks. |
+| **Compiled** | It builds and its unit tests pass, but it has never been started on a device or emulator. Expect problems at run time. |
 | **Written** | The code exists but has never been compiled, let alone run on a device. Expect mistakes. |
 | **Not started** | Nothing exists yet. |
 | **Blocked** | Needs something only the owner can get. |
 
-**One exception to "never compiled" on Android:** its non-screen code (address rules, API layer and data
-models) has compiled on a plain JVM with the app's own library versions, and its 9 tests pass, including
-all the shared address cases. That says nothing about the screens, the player or the app as a whole.
+The whole Android app compiles, in debug and in the shrunk release form, with 9 unit tests passing,
+including all the shared address cases. Only the address rules and data handling have actually been
+executed: none of its screens, its player or its focus handling has ever run.
 
 ## Platforms
 
@@ -20,9 +21,9 @@ all the shared address cases. That says nothing about the screens, the player or
 |---|---|---|
 | Windows 10 and later | **Ran** | From source and as a packaged app. Installers are configured but not built yet. |
 | Linux | **Written** | Same code as Windows and CI packages it, but it has never been launched. |
-| Android TV, Google TV | **Written** | Never compiled. |
-| Fire TV | **Written** | Never compiled. Needs Fire OS 6 or later: the first Fire TV Sticks are too old for Compose. |
-| Android phones, tablets | **Written** | Never compiled. |
+| Android TV, Google TV | **Compiled** | Never run. |
+| Fire TV | **Compiled** | Never run. Needs Fire OS 6 or later: the first Fire TV Sticks are too old for Compose. |
+| Android phones, tablets | **Compiled** | Never run. |
 | Apple TV | **Written** | Never compiled. Needs a Mac to install. |
 | iPhone, iPad | **Written** | Never compiled. Needs a Mac to install. |
 | Mac | **Written** | Never compiled. |
@@ -36,14 +37,14 @@ all the shared address cases. That says nothing about the screens, the player or
 
 | Step | Desktop | Android | Apple |
 |---|---|---|---|
-| Type an address, with the shared rules | Ran | Written | Written |
-| Refuse plain HTTP to a public address | Ran | Written | Written |
+| Type an address, with the shared rules | Ran | Compiled | Written |
+| Refuse plain HTTP to a public address | Ran | Compiled | Written |
 | **Find servers on the network** | **Not started** | **Not started** | **Not started** |
 | **Security code typed on the device** | **Not started** | **Not started** | **Not started** |
 | Check the server's identity before sending a sign-in | **Not started** | **Not started** | **Not started** |
-| TV shows a code, approved on a phone | Not needed | Written | Written |
-| Password and profiles | Ran, through the web interface | Written | Written |
-| Remember the server | Ran | Written | Written |
+| TV shows a code, approved on a phone | Not needed | Compiled | Written |
+| Password and profiles | Ran, through the web interface | Compiled | Written |
+| Remember the server | Ran | Compiled | Written |
 
 Finding servers and the security code are the owner's main requirement, and **neither works yet on
 any client**. The server side is being built on the `client-contract` branch. Client work starts when
@@ -53,10 +54,10 @@ that lands, because it can't be tested until then.
 
 | Feature | Desktop | Android | Apple |
 |---|---|---|---|
-| Home, libraries, shows, item pages | Ran | Written | Written |
-| Video with resume | Ran | Written | Written |
-| Audio and subtitle tracks | Web interface; not checked here | Written | Written |
-| Skip intro, next episode countdown | Web interface; not checked here | Written | Written |
+| Home, libraries, shows, item pages | Ran | Compiled | Written |
+| Video with resume | Ran | Compiled | Written |
+| Audio and subtitle tracks | Web interface; not checked here | Compiled | Written |
+| Skip intro, next episode countdown | Web interface; not checked here | Compiled | Written |
 | Themes | Ran, including the title bar | Colours from the server's theme only, no picker | Colours from the server's theme only, no picker |
 | Search | Web interface; not checked here | Not started | Not started |
 | Music, audiobooks, podcasts | Web interface; not checked here | Not started | Not started |

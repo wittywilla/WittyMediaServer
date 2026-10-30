@@ -18,7 +18,7 @@ android {
     }
 
     // The theme, wording and test data every client shares.
-    sourceSets.getByName("main").assets.srcDir("../../shared/data")
+    sourceSets.getByName("main").assets.directories.add("../../shared/data")
 
     buildTypes {
         getByName("release") {

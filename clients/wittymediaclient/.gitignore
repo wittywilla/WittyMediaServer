@@ -8,3 +8,4 @@ android/local.properties
 apple/*.xcodeproj/
 apple/.build/
 apple/DerivedData/
+android/.kotlin/

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, fmtTime, mediaUrl, posterUrl, type Item } from '../api'
+import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
 import { IconClose, IconDown, IconExpand, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
-import { setSpeed } from '../player/Controls'
+import { setSpeed, SPEEDS } from '../player/Controls'
 
 // The audio player: music, audiobooks and podcasts. One <audio> element for
 // the whole app, a queue, and a bar along the bottom that keeps playing
@@ -44,6 +44,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeat] = useState<Repeat>('off')
   const [time, setTime] = useState(0)
   const [rate, setRate] = useState(1)
+  const [maxSpeed, setMaxSpeed] = useState(4)
   const [sleepAt, setSleepAt] = useState<number | 'chapter' | null>(null)
   const [full, setFull] = useState(false)
   const offset = useRef(0) // where a converted stream started
@@ -51,6 +52,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const loc = useLocation()
   const nav = useNavigate()
   const books = mode !== 'music'
+  useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
+  // Each kind of listening keeps its own speed: 1.5× for audiobooks needn't
+  // apply to the next album.
+  const speedKey = 'wms.speed.' + mode
+  const changeRate = (r: number) => {
+    setRate(r)
+    if (audio.current) setSpeed(audio.current, r)
+    try { localStorage.setItem(speedKey, String(r)) } catch { /* private window */ }
+  }
+  useEffect(() => {
+    let r = 1
+    try { r = Number(localStorage.getItem(speedKey)) || 1 } catch { /* private window */ }
+    setRate(r)
+    if (audio.current) setSpeed(audio.current, r)
+  }, [speedKey])
 
   // On phones the full player is a screen of its own: Back (the button, Esc,
   // or the phone's Back) returns to the page underneath. On wider screens it
@@ -156,6 +172,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, next, prev])
 
+  // "<" and ">" step through the speeds, as in the video player.
+  useEffect(() => {
+    if (!current) return
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.key !== '<' && e.key !== '>') || document.querySelector('.player:not(.mini):not(.inline), .player.inline')) return
+      const list = SPEEDS.filter((s) => s <= maxSpeed)
+      const i = list.indexOf(rate)
+      const next = list[Math.max(0, Math.min(list.length - 1, (i < 0 ? list.indexOf(1) : i) + (e.key === '>' ? 1 : -1)))]
+      if (next) changeRate(next)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   const ctx = useMemo<AudioCtx>(() => ({
     queue, index, current, mode, playing,
     play: (items, start = 0, m = 'music') => { setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) audio.current?.play() },
@@ -218,11 +249,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           <div className="ab-extra">
             {!books && <button className={'btn sm ' + (shuffle ? 'primary' : 'ghost')} onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>Shuffle</button>}
             {!books && <button className={'btn sm ' + (repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => setRepeat(repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off')}>Repeat{repeat === 'one' ? ' 1' : ''}</button>}
-            {books && (
-              <select className="select sm" aria-label="Speed" value={rate} onChange={(e) => { const r = Number(e.target.value); setRate(r); if (audio.current) setSpeed(audio.current, r) }}>
-                {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3].map((r) => <option key={r} value={r}>{r}×</option>)}
-              </select>
-            )}
+            <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
+              {SPEEDS.filter((r) => r <= maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
+            </select>
             {books && (
               <select className="select sm" aria-label="Sleep timer" value={sleepAt === null ? '' : sleepAt === 'chapter' ? 'chapter' : 'set'}
                 onChange={(e) => { const v = e.target.value; setSleepAt(v === '' ? null : v === 'chapter' ? 'chapter' : v === 'set' ? sleepAt : Date.now() + Number(v) * 60000) }}>

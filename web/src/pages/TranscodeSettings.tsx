@@ -186,7 +186,7 @@ function BDJSettings({ s, set, saved }: { s: Record<string, string>; set: (k: st
       {status && <div className="muted" style={{ fontSize: 13 }}>{status.version ? `Java ${status.version} found: ${status.path}` : `Java not usable: ${status.error}`}</div>}
       <label>Java location <span className="muted">(optional)</span>
         <Tip>Leave empty to find Java by itself (JAVA_HOME, the PATH, the usual folders). Otherwise the Java folder, or the java program inside it.</Tip>
-        <input className="input mono" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\\Program Files\\Eclipse Adoptium\\jdk-21" />
+        <input className="input mono" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\Program Files\Eclipse Adoptium\jdk-21" />
       </label>
     </>
   )

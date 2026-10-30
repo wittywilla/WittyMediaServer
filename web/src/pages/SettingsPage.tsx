@@ -45,7 +45,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, licence and credits' },
+    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
   ] },
 ]
 
@@ -57,7 +57,7 @@ export default function SettingsPage() {
   return (
     <div className="set-shell">
       <nav className="set-nav" aria-label="Settings">
-        <h1 className="set-nav-title">Settings</h1>
+        <div className="set-nav-title">Settings</div>
         {groups.map((g) => (
           <div key={g.title} className="set-nav-group">
             <div className="set-nav-head">{g.title}</div>
@@ -69,7 +69,7 @@ export default function SettingsPage() {
           </div>
         ))}
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
-          <VersionTag version={version} /><span>Version and modules ›</span>
+          <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>
       </nav>
       <main className="set-main">
@@ -178,7 +178,7 @@ function Libraries() {
                 <span className={'set-lib-icon t-' + l.type}>{libIcon(l.type)}</span>
                 <div className="set-lib-title">
                   <b>{l.name}</b>
-                  <span>{typeLabel(l.type)} · {l.itemCount} {l.itemCount === 1 ? 'item' : 'items'}</span>
+                  <span>{l.name === typeLabel(l.type) ? '' : `${typeLabel(l.type)} · `}{l.itemCount.toLocaleString()} {l.itemCount === 1 ? 'item' : 'items'}</span>
                 </div>
                 {l.scanning && <span className="set-pill live">Scanning…</span>}
               </div>
@@ -332,7 +332,7 @@ function About() {
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the licence, and the services it relies on." />
+      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the license, and the services it relies on." />
       <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
@@ -370,14 +370,14 @@ function About() {
           </dl>
         </Section>
       )}
-      <Section title="Licence">
+      <Section title="License">
         <div className="set-prose">
-          <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the licence and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
+          <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the license and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
         </div>
       </Section>
       <Section title="Your media, your responsibility">
         <div className="set-prose">
-          <p>WittyMediaServer organises and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
+          <p>WittyMediaServer organizes and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
           <p><b>No circumvention.</b> Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused, and only unprotected content plays.</p>
         </div>
       </Section>

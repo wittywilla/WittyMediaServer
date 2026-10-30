@@ -49,14 +49,14 @@ export default function GamingSettings() {
       <PageHead title="Gaming" desc="Games run on this server, one separate boxed-in program for each game, and stream to the browser." />
       <Section title="This server">
         <dl className="gaming-facts">
-          <dt>Game runner</dt><dd>{st.runner || <b>Missing from this install</b>}</dd>
+          <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see the gaming guide).</span></>}</dd>
           <dt>Encoders</dt><dd>{st.encoders.join(', ') || 'None found'}</dd>
           <dt>Games running</dt><dd>{st.running}</dd>
           <dt>Cores folder</dt><dd><code>{st.coresDir}</code></dd>
           <dt>BIOS folder</dt><dd><code>{st.systemDir}</code></dd>
         </dl>
       </Section>
-      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own licence and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own.">
+      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own.">
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
         <div className="gaming-consoles">
           {st.consoles.map((c) => (
@@ -69,7 +69,7 @@ export default function GamingSettings() {
                     const have = installed.get(core.id)
                     return (
                       <li key={core.id}>
-                        <span className="gaming-core"><b>{core.name}</b>{i === 0 && <span className="muted"> · recommended</span>}<small className="muted">Licence: {core.license}{have && have.source !== 'installed' ? ` · found in ${have.source === 'retroarch' ? 'your RetroArch folder' : 'a system folder'}` : ''}</small></span>
+                        <span className="gaming-core"><span><b>{core.name}</b>{i === 0 && <span className="pill gaming-rec">Recommended</span>}</span><small className="muted">License: {core.license}{have && have.source !== 'installed' ? ` · found in ${have.source === 'retroarch' ? 'your RetroArch folder' : 'a system folder'}` : ''}</small></span>
                         {have
                           ? have.source === 'installed'
                             ? <button className="btn sm ghost" disabled={!!busy} onClick={() => remove(core.id, core.name)} aria-label={`Remove ${core.name}`}>{busy === core.id ? 'Removing…' : 'Remove'}</button>
@@ -90,7 +90,7 @@ export default function GamingSettings() {
           <>
             <h3>Other cores found</h3>
             <ul className="gaming-extra">
-              {extra.map((c) => <li key={c.id}><b>{c.name}</b> <small className="muted">{c.license || 'Licence unknown'}{c.nonCommercial ? ': non-commercial use only' : ''}</small></li>)}
+              {extra.map((c) => <li key={c.id}><b>{c.name}</b> <small className="muted">{c.license || 'License unknown'}{c.nonCommercial ? ': non-commercial use only' : ''}</small></li>)}
             </ul>
           </>
         )}
@@ -133,7 +133,7 @@ export default function GamingSettings() {
           <div className="modal" role="dialog" aria-label={`Install ${confirm.name}`} onClick={(e) => e.stopPropagation()}>
             <h2>Install {confirm.name}?</h2>
             <p>This downloads a program from <b>buildbot.libretro.com</b>, the libretro project’s build server, and runs it on this server in a boxed-in process whenever someone plays.</p>
-            <p>Its licence is <b>{confirm.license}</b>. The core is its authors’ work and stays a separate program from this server.</p>
+            <p>Its license is <b>{confirm.license}</b>. The core is its authors’ work and stays a separate program from this server.</p>
             <div className="actions">
               <button className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button>
               <button className="btn primary" onClick={install}>Install</button>

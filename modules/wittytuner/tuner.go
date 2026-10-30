@@ -243,7 +243,7 @@ func Drivers(env Env) []Driver {
 			d.Note = "Runs a program on the server, so it is off until the server is started with WMS_TUNER_COMMANDS=1."
 		}
 		if !d.Available && d.Note == "" {
-			d.Note = "Needs " + strings.Join(d.Platforms, " or ") + "."
+			d.Note = "Needs " + strings.Join(platformNames(d.Platforms), " or ") + "."
 		}
 	}
 	slices.SortStableFunc(out, func(a, b Driver) int { return rank(a) - rank(b) })
@@ -383,4 +383,17 @@ func noScan(s Source, ctx context.Context, progress func(Progress)) ([]Channel, 
 func guarded(r io.ReadCloser) *Stream {
 	g := mpegts.NewGuard(r)
 	return &Stream{Reader: g, Guard: g}
+}
+
+// platformNames turns GOOS values into the names people know.
+func platformNames(goos []string) []string {
+	names := map[string]string{"darwin": "macOS", "linux": "Linux", "windows": "Windows", "freebsd": "FreeBSD"}
+	out := make([]string, len(goos))
+	for i, g := range goos {
+		out[i] = g
+		if n, ok := names[g]; ok {
+			out[i] = n
+		}
+	}
+	return out
 }

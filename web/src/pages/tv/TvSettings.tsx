@@ -361,7 +361,7 @@ function GuideSources() {
   const remove = async (s: EPGSource) => { try { await api.del(`/epg/sources/${s.id}`); void load() } catch (e: any) { toast(e.message) } }
   const refresh = async (s: EPGSource) => { try { await api.post(`/epg/sources/${s.id}/refresh`); toast('Reading the guide…'); setTimeout(() => void load(), 2500) } catch (e: any) { toast(e.message) } }
   return (
-    <Section title="Guide data" desc="Programme listings for tuner and IPTV channels, in XMLTV format, refreshed by themselves. Broadcasts also carry their own, read while a channel is on. Library channels make their own schedule. Matched by guide id, then by name.">
+    <Section title="Guide data" desc="Listings for tuner and IPTV channels, in XMLTV format, refreshed by themselves. Broadcasts also carry their own, read while a channel is on. Library channels make their own schedule. Matched by guide id, then by name.">
       {list && list.length > 0 && (
         <ul className="tvs-list">
           {list.map((s) => (
@@ -410,7 +410,7 @@ function Options() {
           <option value="cable">Cable blue</option><option value="satellite">Satellite black and amber</option><option value="theme">The server's theme</option>
         </select>
       </Row>
-      <Row label="Pass H.264 through" desc="Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when programmes change.">
+      <Row label="Pass H.264 through" desc="Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when shows change.">
         <Switch checked={s.tvCopyVideo === '1'} label="Pass H.264 through" onChange={(v) => void set('tvCopyVideo', v ? '1' : '0')} />
       </Row>
       <Row label="Pause buffer, library channels (minutes)" desc="How far back viewers can pause and rewind. Kept on disk only while someone is watching.">

@@ -468,6 +468,8 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .form label:has(> .tip) { grid-template-columns: auto 1fr; }
 .form label:has(> .tip) > :not(.tip) { grid-column: 1 / -1; }
 .form label > .tip { justify-self: start; margin-left: 0; }
+.form label:has(> .tip):has(> .muted) { grid-template-columns: auto auto 1fr; }
+.form label:has(> .tip):has(> .muted) > .muted { grid-column: auto; }
 .form > .seg, .set-form > .seg { justify-self: start; max-width: 100%; }
 .form .row2 { align-items: end; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--sp-3); }
 .form .input, .form .select { width: 100%; color: var(--fg); font-weight: 400; }

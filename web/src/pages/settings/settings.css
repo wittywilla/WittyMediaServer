@@ -5,7 +5,7 @@
 
 /* ---------------------------------------------------------------- menu */
 .set-nav { position: sticky; top: 80px; display: grid; gap: 18px; padding-bottom: 24px; }
-.set-nav-title { margin: 0 0 2px var(--sp-3); font-size: var(--page-title); letter-spacing: var(--tracking-display); }
+.set-nav-title { margin: 0 0 2px var(--sp-3); font-size: var(--page-title); font-weight: var(--weight-heading); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
 .set-nav-group { display: grid; gap: 2px; }
 .set-nav-head { padding: 0 var(--sp-3) 6px; font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
 .set-nav-link { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); border-radius: var(--r-md); color: var(--fg-2); font-weight: 500; font-size: var(--text-md); transition: background var(--dur-2), color var(--dur-2); }

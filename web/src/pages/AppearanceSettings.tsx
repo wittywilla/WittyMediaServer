@@ -76,12 +76,11 @@ export default function AppearanceSettings() {
                 <span className="sw-text" style={{ background: t.preview.text }} />
               </button>
               <div className="theme-info">
-                <div className="t">{t.name} {t.id === serverTheme && <span className="pill">default</span>}</div>
+                <div className="t"><span>{t.name}</span> {t.id === serverTheme && <span className="pill">default</span>}<a className="btn sm ghost square theme-dl" href={mediaUrl(`/api/themes/${t.id}/download`)} onClick={(e) => e.stopPropagation()} title="Download this theme as a ZIP, as a starting point for your own" aria-label={`Download the ${t.name} theme`}><IconDownload /></a></div>
                 <div className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</div>
                 <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>{mine === t.id ? 'In use here' : 'Use here'}</button>
                   {user?.isAdmin && t.id !== serverTheme && <button className="btn sm ghost" onClick={() => makeDefault(t.id)}>Make default</button>}
-                  <a className="btn sm ghost square" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a ZIP, as a starting point for your own" aria-label={`Download the ${t.name} theme as a ZIP`}><IconDownload /></a>
                   {user?.isAdmin && !t.builtin && <button className="btn sm danger" onClick={() => remove(t)}>Remove</button>}
                 </div>
               </div>
@@ -103,7 +102,7 @@ export default function AppearanceSettings() {
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
             <button className="btn" onClick={() => setNaming(true)}>Rename…</button>
           </div>
-          <p className="small-note">Shown in the corner, on the sign-in page and in the browser tab. The licence notice in Settings, About always remains.</p>
+          <p className="small-note">Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.</p>
           {naming && <BrandDialog name={brandName} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </div>
       )}

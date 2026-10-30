@@ -648,4 +648,3 @@ func (s *Server) handleClearProgress(w http.ResponseWriter, r *http.Request) {
 	_ = s.Store.ClearProgress(r.Context(), userFrom(r).ID, id)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
-

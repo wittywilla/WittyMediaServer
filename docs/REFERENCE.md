@@ -54,6 +54,8 @@ same tools ship on their own as `wittydvd` and `wittybluray`.
 
 ## HTTP API
 
+The newer libraries' routes are listed in their own guides: [photos](PHOTOS.md#for-apps-apple-tv-android-tv-and-others), [vertical and creator videos](SHORTS.md#for-apps), and [collections, radio and Your year](COLLECTIONS.md).
+
 Everything is under `/api` and answers JSON. Sign in with `POST /api/login` and send the token as
 `Authorization: Bearer <token>` (or `X-WMS-Token`). Media URLs that a page can't add headers to
 (images, video) take `?token=`.

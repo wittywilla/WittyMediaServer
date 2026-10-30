@@ -180,8 +180,13 @@ function HomeProblem({ offline, message, retry }: { offline: boolean; message: s
   )
 }
 
+// Pictures and creator videos are wide; a poster's shape would crop them.
+const WIDE_LIBRARIES = ['photos', 'channels', 'musicvideos']
+
 function HubRow({ hub }: { hub: Hub }) {
+  const { libraries } = useApp()
   if (!hub.items.length && !(hub.shows || []).length) return null
+  const wideRow = WIDE_LIBRARIES.includes(libraries.find((l) => l.id === hub.libraryId)?.type || '')
   return (
     <section className="hub">
       <div className="hub-head">
@@ -189,7 +194,7 @@ function HubRow({ hub }: { hub: Hub }) {
         {hub.libraryId && <Link to={`/library/${hub.libraryId}`}>See all ›</Link>}
       </div>
       <div className="row">
-        {hub.items.map((it) => <ItemCard key={it.id} item={it} />)}
+        {hub.items.map((it) => (wideRow ? <ItemCard key={it.id} item={it} wide /> : <ItemCard key={it.id} item={it} />))}
         {(hub.shows || []).map((s) => <ShowCard key={'s' + s.id} show={s} />)}
       </div>
     </section>

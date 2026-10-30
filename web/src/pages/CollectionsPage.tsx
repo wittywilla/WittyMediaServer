@@ -175,7 +175,7 @@ function CollectionDialog({ collection, onClose, onSaved }: { collection?: Colle
             </div>
             <div className="col-preview" aria-live="polite">
               {preview && <b>{preview.count} {preview.count === 1 ? 'match' : 'matches'}</b>}
-              <div className="col-preview-row">{preview?.items.slice(0, 8).map((it) => <img key={it.id} src={posterUrl(it)} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div>
+              <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={posterUrl(it)} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div>
             </div>
           </fieldset>
         )}

@@ -539,3 +539,13 @@ func TestExtractAppendedZip(t *testing.T) {
 		t.Fatal("not extracted")
 	}
 }
+
+func cmpInt(a, b int) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	}
+	return 0
+}

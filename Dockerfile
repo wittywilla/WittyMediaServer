@@ -25,6 +25,7 @@ COPY modules/wittydisc/go.mod modules/wittydisc/
 COPY modules/wittydvd/go.mod modules/wittydvd/
 COPY modules/wittybluray/go.mod modules/wittybluray/
 COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
+COPY modules/wittymodule/go.mod modules/wittymodule/
 COPY modules/wittyphotos/go.mod modules/wittyphotos/
 COPY modules/wittytuner/go.mod modules/wittytuner/
 COPY modules/wittyplay/go.mod modules/wittyplay/go.sum modules/wittyplay/

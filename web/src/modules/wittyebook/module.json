@@ -1,0 +1,10 @@
+{
+  "id": "wittyebook",
+  "name": "WittyEbook",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyEbook",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x"
+}

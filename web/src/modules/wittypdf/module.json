@@ -1,0 +1,10 @@
+{
+  "id": "wittypdf",
+  "name": "WittyPDF",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyPDF",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x"
+}

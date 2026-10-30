@@ -3,6 +3,7 @@ package wittyphotos
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"image"
 	"image/jpeg"
 	"math"
@@ -276,4 +277,29 @@ func FuzzParse(f *testing.F) {
 		_, _ = Parse(b)
 		_, _ = previewRange(b)
 	})
+}
+
+// The manifest tells the server which files are RAW without starting the helper,
+// so it must list exactly what IsRaw knows.
+func TestManifestListsRawExtensions(t *testing.T) {
+	var m struct {
+		Capabilities struct {
+			RawExtensions []string `json:"rawExtensions"`
+		} `json:"capabilities"`
+	}
+	if err := json.Unmarshal(ManifestJSON, &m); err != nil {
+		t.Fatal(err)
+	}
+	listed := map[string]bool{}
+	for _, e := range m.Capabilities.RawExtensions {
+		listed[e] = true
+		if !rawExts[e] {
+			t.Errorf("the manifest lists %s, which IsRaw doesn't know", e)
+		}
+	}
+	for e := range rawExts {
+		if !listed[e] {
+			t.Errorf("IsRaw knows %s, which the manifest doesn't list", e)
+		}
+	}
 }

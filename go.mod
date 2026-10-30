@@ -12,7 +12,8 @@ require (
 	github.com/wittywilla/wittydisc v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
-	github.com/wittywilla/wittyphotos v0.1.0
+	github.com/wittywilla/wittymodule v0.1.0
+	github.com/wittywilla/wittyphotos v0.2.0
 	github.com/wittywilla/wittytuner v0.1.0
 	github.com/wittywilla/wittyplay v0.1.0
 	golang.org/x/crypto v0.58.0
@@ -61,6 +62,7 @@ replace github.com/wittywilla/wittybluray => ./modules/wittybluray
 replace github.com/wittywilla/wittyintegratedfilebrowser => ./modules/wittyintegratedfilebrowser
 
 // Not released yet: built from this repository's copy.
+replace github.com/wittywilla/wittymodule => ./modules/wittymodule
 replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos
 replace github.com/wittywilla/wittytuner => ./modules/wittytuner
 replace github.com/wittywilla/wittyplay => ./modules/wittyplay

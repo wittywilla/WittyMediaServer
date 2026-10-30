@@ -355,7 +355,12 @@ func TestSwapRefusesProtected(t *testing.T) {
 	writeFile(t, filepath.Join(staged, "library", "x.db"), []byte("EVIL"))
 	// The owner keeps the library in <program>/library (wms.json dataDir).
 	writeFile(t, filepath.Join(dir, "library", "x.db"), []byte("precious"))
-	if _, err := Swap(dir, staged, []string{filepath.Join(dir, "LIBRARY")}); err == nil {
+	// Where file names ignore case (Windows, macOS), LIBRARY is the same folder.
+	protect := "library"
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		protect = "LIBRARY"
+	}
+	if _, err := Swap(dir, staged, []string{filepath.Join(dir, protect)}); err == nil {
 		t.Fatal("wrote into a protected folder")
 	}
 	if readFile(t, filepath.Join(dir, "wms.exe")) != "old wms" || readFile(t, filepath.Join(dir, "library", "x.db")) != "precious" {

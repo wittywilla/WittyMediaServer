@@ -15,6 +15,7 @@ import { AudioProvider } from './audio/player'
 import ReaderPage from './pages/Reader'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
+import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
 import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
@@ -32,7 +33,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired, onboarding } = useApp()
+  const { user, loading, setupRequired, onboarding, needServer } = useApp()
   const loc = useLocation()
   const [navOpen, setNavOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches)
   const isMobile = () => !window.matchMedia('(min-width: 901px)').matches
@@ -46,6 +47,7 @@ function Shell() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
   if (loading) return <div className="center"><div className="spinner" /></div>
+  if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <SetupWizard resume={false} /> : <AuthPage />
   if (onboarding && user.isAdmin) return <SetupWizard resume />
   // The player lives outside the page routes (see PlayerDock) so it can keep

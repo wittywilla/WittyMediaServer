@@ -715,9 +715,9 @@ func (s *Session) preset(menu bool) string {
 
 func (s *Session) codecTag() string {
 	if s.prefs.AudioCodec == "mp3" {
-		return "-mp3"
+		return "-mp3" + s.prefs.Tag
 	}
-	return ""
+	return s.prefs.Tag
 }
 
 // audioFor picks the audio stream for the first item: the register's

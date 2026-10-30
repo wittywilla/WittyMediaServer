@@ -1,0 +1,87 @@
+/* Settings: Remote Access and Sign-in & security. Colours come from the theme;
+   every state is also said in words, never by colour alone. The words keep the
+   normal text colour and only icons take --ok and --danger, which are too light
+   for small text on panels in the light themes. */
+
+.rem-status, .rem-advanced { padding: 20px 22px; }
+.rem-status { border-left: 4px solid var(--bg-4); }
+.rem-status.ok { border-left-color: var(--ok); }
+.rem-status.problem { border-left-color: var(--danger); }
+.rem-status.waiting { border-left-color: var(--accent); }
+.rem-status-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.rem-status-head h2 { margin: 0 0 4px; font-size: 20px; }
+.rem-status-head p { margin: 0; color: var(--fg-2); max-width: 60ch; }
+
+.rem-badge { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; background: var(--bg-3); color: var(--fg-2); flex: none; }
+.rem-badge svg { width: 14px; height: 14px; }
+.rem-badge.ok, .rem-badge.problem { color: var(--fg); }
+.rem-badge.ok svg { color: var(--ok); }
+.rem-badge.problem svg { color: var(--danger); }
+
+.rem-routes { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.rem-routes li { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 12px 14px; border-radius: 10px; background: var(--bg-3); }
+.rem-route-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.rem-routes small { color: var(--fg-2); font-size: 12.5px; }
+.rem-you { margin: 14px 0 0; font-size: 13.5px; color: var(--fg-2); }
+
+.rem-copy { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rem-copy code { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+
+.rem-notices { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.rem-notices li { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--bg-3); font-size: 14px; }
+.rem-notices li.warn { border: 1px solid var(--danger); }
+.rem-notices a { font-weight: 600; }
+.rem-notice-icon { flex: none; color: var(--fg-2); }
+.rem-notices li.warn .rem-notice-icon { color: var(--danger); }
+
+.rem-methods { display: grid; gap: 8px; }
+.rem-method { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--bg-4); cursor: pointer; }
+.rem-method.on { border-color: var(--accent); background: rgb(var(--accent-rgb) / .08); }
+.rem-method > input { margin-top: 4px; flex: none; }
+.rem-method > span { display: grid; gap: 3px; min-width: 0; }
+.rem-method small { color: var(--fg-2); font-size: 13px; line-height: 1.45; }
+.rem-method.disabled { cursor: not-allowed; opacity: .6; border-style: dashed; }
+
+.rem-steps { margin-top: 18px; }
+.rem-steps > ol, .rem-test ol { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+.rem-steps li { line-height: 1.5; }
+.rem-steps code, .rem-test code, .rem-note code { overflow-wrap: anywhere; }
+.rem-done { display: inline-flex; vertical-align: -2px; margin-right: 6px; color: var(--ok); }
+.rem-note { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--bg-3); font-size: 13.5px; line-height: 1.5; color: var(--fg-2); }
+.rem-note.warn { color: var(--fg); border: 1px solid var(--danger); }
+.rem-note .rem-badge { margin-right: 6px; }
+.rem-subrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 0; font-size: 13px; }
+.rem-form { margin: 12px 0 4px; }
+.rem-form .check-row { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+.rem-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.rem-pre { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: var(--bg-3); font-size: 13px; overflow-x: auto; }
+
+.rem-test { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px; align-items: flex-start; }
+.rem-test > div { flex: 1 1 260px; min-width: 0; display: grid; gap: 8px; }
+.rem-test small { font-size: 12.5px; }
+.rem-qr { flex: none; border-radius: 8px; max-width: 100%; height: auto; }
+.rem-result { display: flex; gap: 8px; margin: 6px 0 0; padding: 10px 12px; border-radius: 8px; font-weight: 600; background: var(--bg-3); }
+.rem-result svg { flex: none; }
+.rem-result.ok svg { color: var(--ok); }
+.rem-key { font-size: 14px; letter-spacing: .04em; }
+
+.rem-check { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+.rem-check li { display: grid; gap: 2px; padding: 8px 12px; border-radius: 8px; background: var(--bg-3); border-left: 3px solid var(--bg-4); font-size: 13.5px; }
+.rem-check li.ok { border-left-color: var(--ok); }
+.rem-check li.fail { border-left-color: var(--danger); }
+.rem-check li.warn { border-left-color: var(--accent); }
+
+.rem-sessions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rem-sessions li { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 8px; background: var(--bg-3); }
+.rem-sessions li > div { min-width: 0; flex: 1 1 240px; }
+.rem-sessions small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--fg-2); overflow-wrap: anywhere; }
+.rem-sessions .set-pill, .rem-sessions .set-badge { margin-left: 8px; }
+.rem-text.warn { font-weight: 700; }
+
+.rem-recovery { padding: 14px; margin-bottom: 12px; border-radius: 10px; border: 1px solid var(--accent); }
+.rem-recovery p { margin: 4px 0 10px; color: var(--fg-2); }
+.rem-recovery ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+
+.rem-advanced > summary { cursor: pointer; padding: 2px 0; }
+.rem-advanced > summary h2 { display: inline; font-size: inherit; margin: 0; }
+.rem-advanced .set-form { margin-top: 14px; }

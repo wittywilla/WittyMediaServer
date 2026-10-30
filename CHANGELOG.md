@@ -3,6 +3,47 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### Remote access
+
+Reach your server from outside your home ([REMOTE.md](docs/REMOTE.md)). Everything is off until you
+turn it on in the new **Settings → Remote Access**, and nothing phones home.
+
+- **A clear status:** whether the server can be reached, from where and how, based on what it has
+  really seen.
+- **Guided steps** for Tailscale, NetBird, forwarding a port, your own reverse proxy and a rented
+  server. A hosted relay is shown greyed out as a possible future paid service; it doesn't exist.
+- **A test with your own phone:** a QR code and a secret address; no outside service is involved.
+- **HTTPS** without a restart, with Let's Encrypt or your own certificate (renewals are picked up by
+  themselves), beside the home port.
+- **Automatic port mapping** with UPnP or NAT-PMP, off by default. It only ever opens the HTTPS port,
+  and closes it again. It also says when your provider shares addresses, so forwarding can't work.
+- **Limits for viewers away from home:** highest resolution and most data per stream. Every encoder is
+  told in the way it really obeys, direct play and direct downloads keep to them too, and playback at
+  home is never affected.
+- **The apps** ask for a server address: the mobile app has a screen for it, and the desktop app warns
+  about unencrypted addresses outside a private network.
+
+### Security
+
+- **Connections from outside your home network are now refused until Remote Access is on.** Servers
+  with `publicUrl` set count as on. Behind a reverse proxy, list it under the new trusted proxies
+  (Settings, `trustedProxies` or `WMS_TRUSTED_PROXIES`). Forwarded headers are believed from nobody else.
+- **Unencrypted connections from the internet are refused** or sent to the HTTPS address.
+- **Two-factor sign-in:** optional codes from an authenticator app, with recovery codes, under the new
+  **Settings → Sign-in & security**. `wms reset-2fa` is the way back for an administrator.
+- **Your devices:** see where each account is signed in, and sign any of them out.
+- **Sign-in limits** now also cover one address trying many names and one name tried from many
+  addresses (away from home only, so nobody can lock you out at home), and how many passwords are
+  checked at once. Changing a password counts too. Wrong tries and locks are shown in Settings.
+- **Weak administrator passwords** are warned about when remote access is on.
+- **Other websites** can no longer read the server's answers without a sign-in token, such as the list
+  of profiles of a server on your network.
+- Fixed: with *Show profiles outside your home* on, password-free profiles could sign in from outside.
+- Over HTTPS, the web app no longer puts its sign-in token in media addresses, where a reverse proxy
+  would log it. The version is hidden from visitors on the internet who aren't signed in.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

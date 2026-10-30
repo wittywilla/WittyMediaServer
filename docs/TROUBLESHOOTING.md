@@ -8,7 +8,8 @@ or session tokens) to an issue.
 |---|---|
 | **The tray says “Stopped — address already in use”** | Another copy (or the installed service) uses port 9797. Stop it, or start the tray with `-listen :9798`. |
 | **Other devices at home can't open the server** | Use this computer's network address, not `localhost` (the setup wizard and *Settings → About* show it). Check that the server listens on every network card (`-listen :9797`, the default) and that the firewall allows the port. |
-| **It doesn't work away from home** | That's expected: the server is on your home network only until you set up remote access. See [At home and away](INSTALL.md#at-home-and-away). |
+| **It doesn't work away from home** | That's expected: the server is on your home network only until you turn on *Settings → Remote Access*. See [Remote access](REMOTE.md), which also has [its own troubleshooting](REMOTE.md#when-it-doesnt-work). |
+| **"This server is only available on its home network"** | Remote Access is off and the server sees you as outside. Turn it on from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [REMOTE.md](REMOTE.md#a-reverse-proxy-you-already-run). |
 | **“ffmpeg not found”** | Keep `bin/ffmpeg` next to the program, install FFmpeg on `PATH`, or set `WMS_FFMPEG`. *Settings → About* shows which one is used. |
 | **Video stalls or has no sound in one browser** | Some Chromium builds lack AAC. Set *Settings → Transcoding → Stream audio codec* to MP3. |
 | **“This disc is CSS-scrambled” / “encrypted (AACS)”** | The image is still protected. WittyMediaServer never decrypts anything; make a decrypted image of a disc you own with a tool that is legal where you live. |

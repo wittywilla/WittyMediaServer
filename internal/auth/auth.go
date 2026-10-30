@@ -27,6 +27,8 @@ type User struct {
 	HasPassword bool   `json:"hasPassword"`
 	// Restrictions is the account's library.Access as JSON ("" = none).
 	Restrictions string `json:"-"`
+	// TwoFactor: signing in also needs a code from an authenticator app.
+	TwoFactor bool `json:"twoFactor"`
 }
 
 // Kinds of accounts.
@@ -36,22 +38,24 @@ const (
 	KindGuest = "guest"
 )
 
-const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, '')`
+const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, ''), totp_on`
 
 type scanner interface{ Scan(...any) error }
 
 func scanUser(r scanner) (*User, error) {
 	var u User
-	var admin int
-	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions); err != nil {
+	var admin, totp int
+	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions, &totp); err != nil {
 		return nil, err
 	}
 	u.IsAdmin = admin != 0
+	u.TwoFactor = totp != 0
 	return &u, nil
 }
 
 type Service struct {
-	DB *db.DB
+	DB  *db.DB
+	act activity
 }
 
 var ErrInvalid = errors.New("invalid name or password")
@@ -108,6 +112,9 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
+	if hash != "" {
+		s.markWeak(ctx, id, name, password)
+	}
 	return s.User(ctx, id)
 }
 
@@ -154,8 +161,13 @@ func (s *Service) SetPassword(ctx context.Context, id int64, password string) er
 	if err != nil {
 		return err
 	}
-	_, err = s.DB.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, string(hash), id)
-	return err
+	if _, err = s.DB.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, string(hash), id); err != nil {
+		return err
+	}
+	if u, err := s.User(ctx, id); err == nil {
+		s.markWeak(ctx, id, u.Name, password)
+	}
+	return nil
 }
 
 // CheckPassword reports whether password is the account's current one.
@@ -172,6 +184,12 @@ func (s *Service) CheckPassword(ctx context.Context, id int64, password string) 
 func (s *Service) EndSessions(ctx context.Context, id int64, keep string) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND token <> ?`, id, keep)
 	return err
+}
+
+// CheckTwoFactor is the second step of a sensitive change: true when the
+// account has none, or code is right.
+func (s *Service) CheckTwoFactor(ctx context.Context, u *User, code string) bool {
+	return !u.TwoFactor || s.CheckCode(ctx, u.ID, code)
 }
 
 func (s *Service) DeleteUser(ctx context.Context, id int64) error {
@@ -204,9 +222,16 @@ func (s *Service) Users(ctx context.Context) ([]User, error) {
 // password-free Kids/Guest profiles (the server only allows it on the home
 // network); adults always need their password.
 func (s *Service) Login(ctx context.Context, name, password, device string, allowNoPassword bool) (string, *User, error) {
+	return s.LoginCode(ctx, name, password, "", device, allowNoPassword)
+}
+
+// LoginCode is Login with the code of an account that has two-factor sign-in.
+// Whether an account has it is only revealed after the right password.
+func (s *Service) LoginCode(ctx context.Context, name, password, code, device string, allowNoPassword bool) (string, *User, error) {
 	var id int64
-	var hash, kind string
-	err := s.DB.QueryRowContext(ctx, `SELECT id, password_hash, kind FROM users WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name)).Scan(&id, &hash, &kind)
+	var hash, kind, realName string
+	var totp int
+	err := s.DB.QueryRowContext(ctx, `SELECT id, password_hash, kind, name, totp_on FROM users WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name)).Scan(&id, &hash, &kind, &realName, &totp)
 	if errors.Is(err, sql.ErrNoRows) {
 		// The same work as a real check, so the time taken doesn't tell
 		// which account names exist.
@@ -222,6 +247,16 @@ func (s *Service) Login(ctx context.Context, name, password, device string, allo
 		}
 	} else if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return "", nil, ErrInvalid
+	} else {
+		s.markWeak(ctx, id, realName, password)
+	}
+	if totp != 0 {
+		if strings.TrimSpace(code) == "" {
+			return "", nil, ErrCodeNeeded
+		}
+		if !s.CheckCode(ctx, id, code) {
+			return "", nil, ErrCodeWrong
+		}
 	}
 	return s.issue(ctx, id, device)
 }
@@ -242,6 +277,7 @@ func (s *Service) issue(ctx context.Context, userID int64, device string) (strin
 
 // Logout revokes a token.
 func (s *Service) Logout(ctx context.Context, token string) {
+	s.forget(token)
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, token)
 }
 

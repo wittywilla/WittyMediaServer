@@ -132,6 +132,17 @@ var migrations = []string{
 	   color TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '',
 	   created_at INTEGER NOT NULL);
 	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
+	// 10: remote access: two-factor sign-in, whether a password is weak
+	// (NULL = not known yet), and each session's latest address and use.
+	`ALTER TABLE users ADD COLUMN password_weak INTEGER;
+	 ALTER TABLE users ADD COLUMN totp_secret TEXT;
+	 ALTER TABLE users ADD COLUMN totp_on INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE users ADD COLUMN totp_last INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE users ADD COLUMN recovery_codes TEXT;
+	 ALTER TABLE sessions ADD COLUMN last_seen INTEGER;
+	 ALTER TABLE sessions ADD COLUMN last_ip TEXT;
+	 ALTER TABLE sessions ADD COLUMN last_where TEXT;
+	 ALTER TABLE sessions ADD COLUMN last_via TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

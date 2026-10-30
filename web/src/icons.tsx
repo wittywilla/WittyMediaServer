@@ -56,3 +56,5 @@ export const IconPlug = (p: P) => <S {...p} d="M16 7V3h-2v4h-4V3H8v4H6v6l4 4v4h4
 export const IconLibrary = (p: P) => <S {...p} d="M4 6H2v14a2 2 0 002 2h14v-2H4zm16-4H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zm-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z" />
 // The icon for a kind of library.
 export const libIcon = (type: string) => (type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' || type === 'podcasts' ? <IconAudio /> : type === 'audiobooks' || type === 'books' ? <IconBook /> : <IconDisc />)
+export const IconGlobe = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.9 9h-3.4a15.7 15.7 0 00-1.4-6 8 8 0 014.8 6zM12 4c.9 1.2 2 3.7 2.4 7H9.6C10 7.7 11.1 5.2 12 4zM8.9 5a15.7 15.7 0 00-1.4 6H4.1a8 8 0 014.8-6zM4.1 13h3.4a15.7 15.7 0 001.4 6 8 8 0 01-4.8-6zm7.9 7c-.9-1.2-2-3.7-2.4-7h4.8c-.4 3.3-1.5 5.8-2.4 7zm3.1-1a15.7 15.7 0 001.4-6h3.4a8 8 0 01-4.8 6z" />
+export const IconLock = (p: P) => <S {...p} d="M18 8h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zM9 6a3 3 0 016 0v2H9zm3 11a2 2 0 110-4 2 2 0 010 4z" />

@@ -67,6 +67,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),
 		Angle:            b.Angle,
+		Tag:              s.capTag(r),
 	}
 	if b.Wide != nil {
 		prefs.Wide = *b.Wide

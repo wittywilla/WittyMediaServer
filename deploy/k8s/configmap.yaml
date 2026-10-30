@@ -6,4 +6,8 @@ metadata:
 data:
   WMS_LOG: "info"
   WMS_MAX_TRANSCODES: "4"
+  # Reaching it from outside the cluster's network is refused until this is set
+  # (see docs/REMOTE.md). List your ingress controller's addresses, so that the
+  # address of whoever is visiting is known:
   # WMS_PUBLIC_URL: "https://media.example.com"
+  # WMS_TRUSTED_PROXIES: "10.244.0.0/16"

@@ -90,6 +90,13 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 			q.Preset, q.CRF, q.AudioRate = "veryfast", 21, "192k"
 		}
 	}
+	// The limits for viewers away from home always win.
+	if h, rate := s.remoteCaps(r); h > 0 || rate != "" {
+		if h > 0 && (maxHeight == 0 || h < maxHeight) {
+			maxHeight = h
+		}
+		q = q.WithCap(rate)
+	}
 	return q, maxHeight
 }
 
@@ -135,7 +142,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	browserFriendly := v != nil && (v.CodecName == "h264" || v.CodecName == "vp9" || v.CodecName == "av1") &&
 		(ext == ".mp4" || ext == ".m4v" || ext == ".mov" || ext == ".webm")
 	audioOK := len(info.Audio) == 0 || info.Audio[0].Codec == "aac" || info.Audio[0].Codec == "mp3" || info.Audio[0].Codec == "opus" || info.Audio[0].Codec == "vorbis"
-	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight == 0 || v.Height <= maxHeight) {
+	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight == 0 || v.Height <= maxHeight) && s.fitsCap(r, it.SizeBytes, pr.Duration()) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
@@ -149,7 +156,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
 	}
 	channels := 2
-	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") {
+	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") && q.CapRate == "" {
 		channels = 6
 	}
 	audioIdx := info.AudioIndex
@@ -165,6 +172,8 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	reason := "browser cannot play the file as is"
 	if !directPlay {
 		reason = "direct play is off"
+	} else if browserFriendly && q.CapRate != "" {
+		reason = "over the limit for viewers away from home"
 	}
 	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
@@ -190,7 +199,7 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	st, _ := f.Stat()
 	w.Header().Set("Accept-Ranges", "bytes")
-	http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, filepath.Base(it.Path), st.ModTime(), f)
 }
 
 // ---------------------------------------------------------------------------
@@ -229,7 +238,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "video/mp2t")
 	w.Header().Set("Cache-Control", "no-store")
-	http.ServeFile(w, r, p)
+	http.ServeFile(s.capWriter(w, r), r, p)
 }
 
 func (s *Server) handleHLSStop(w http.ResponseWriter, r *http.Request) {

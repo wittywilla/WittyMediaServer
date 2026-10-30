@@ -6,10 +6,13 @@ services:
     restart: unless-stopped
     ports:
       - "9797:9797"
+      # - "9443:9443"                # only if you use Settings → Remote Access with HTTPS
     environment:
       - WMS_LOG=info
       # - WMS_MAX_TRANSCODES=4
+      # Behind your own reverse proxy (see docs/REMOTE.md):
       # - WMS_PUBLIC_URL=https://media.example.com
+      # - WMS_TRUSTED_PROXIES=172.18.0.2
     volumes:
       - wms-config:/config
       # Mount your media read-only wherever you like; add them as library folders in the UI.

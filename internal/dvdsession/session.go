@@ -139,9 +139,12 @@ type Prefs struct {
 	Wide             bool           // viewer has a 16:9 display
 	Quality          ffmpeg.Quality // encoder + quality profile from Settings
 	MaxHeight        int
-	AudioCodec       string // aac | mp3
-	LowPower         bool   // cheaper deinterlacing and encoder presets
-	Angle            int    // remembered camera angle for this disc (0 = disc default)
+	// Tag keeps streams apart in their IDs: a viewer with limits can't be
+	// handed the unlimited stream of the same disc.
+	Tag        string
+	AudioCodec string // aac | mp3
+	LowPower   bool   // cheaper deinterlacing and encoder presets
+	Angle      int    // remembered camera angle for this disc (0 = disc default)
 }
 
 // Manager owns sessions.
@@ -1210,7 +1213,7 @@ func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) {
 
 func (s *Session) codecTag() string {
 	if s.prefs.AudioCodec == "mp3" {
-		return "-mp3"
+		return "-mp3" + s.prefs.Tag
 	}
-	return ""
+	return s.prefs.Tag
 }

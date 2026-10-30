@@ -20,7 +20,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
     const start = optsRef.current.startAt?.()
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({
-        xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = true },
+        xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
         maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
         fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
         startPosition: start != null && start > 0.5 ? start : -1, lowLatencyMode: false,

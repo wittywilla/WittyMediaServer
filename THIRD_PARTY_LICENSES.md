@@ -15,8 +15,8 @@ WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the 
 | Module | Licence |
 |---|---|
 | modernc.org/sqlite (and its modernc.org/libc family) | BSD-3-Clause |
-| golang.org/x/crypto | BSD-3-Clause |
-| github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp (transitive) | BSD / MIT |
+| golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it) | BSD-3-Clause |
+| github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/net, golang.org/x/text (transitive) | BSD / MIT |
 
 Run `go version -m wms` on a binary for the exact module list and versions.
 

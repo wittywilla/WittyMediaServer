@@ -1,7 +1,9 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 
-export type User = { id: number; name: string; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
+export type User = { id: number; name: string; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
+// A device signed in to an account.
+export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean }
 // What an account may see (null = no limits). maxAge -1 = no age limit.
 export type Access = {
   maxAge: number; allowUnrated: boolean; libraries: number[]; blockGenres: string[]
@@ -89,9 +91,18 @@ export const setToken = (t: string) => (t ? localStorage.setItem(TOKEN_KEY, t) :
 export const serverBase = (): string =>
   ((window as any).WMS_SERVER as string | undefined) || localStorage.getItem(SERVER_KEY) || ''
 export const setServerBase = (url: string) => (url ? localStorage.setItem(SERVER_KEY, url.replace(/\/+$/, '')) : localStorage.removeItem(SERVER_KEY))
+// The app's pages came with the app, not from a server (the mobile app).
+export const isNativeShell = () => !!(window as any).Capacitor || window.location.protocol === 'file:'
+// "192.168.1.10:9797" means http://192.168.1.10:9797; a name on its own is
+// taken to be an address on the internet, so https.
+export function normalizeServer(input: string): string {
+  const v = input.trim().replace(/\/+$/, '')
+  if (!v || /^[a-z][a-z0-9+.-]*:\/\//i.test(v)) return v
+  return (/^[\d.]+(:\d+)?$|^\[|^localhost\b|:\d+$/i.test(v) ? 'http://' : 'https://') + v
+}
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message) }
+  constructor(public status: number, message: string, public data?: any) { super(message) }
 }
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -104,12 +115,12 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
   } catch {
     // The browser's own wording ("Failed to fetch") means nothing to people.
-    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and this device is on the same network.")
+    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
   }
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
-  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText)
+  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
   return data as T
 }
 
@@ -121,20 +132,24 @@ export const api = {
 }
 
 // Media URLs that go through <img>/<video>: append the token so native
-// wrappers without cookies still work.
+// wrappers without cookies still work. Over HTTPS in a browser the cookie is
+// enough, and a sign-in has no business in addresses, which end up in the logs
+// of any reverse proxy on the way.
 export function mediaUrl(path: string): string {
   const full = path.startsWith('http') ? path : serverBase() + path
   const tok = getToken()
-  if (!tok) return full
+  if (!tok || (!serverBase() && window.location.protocol === 'https:')) return full
   return full + (full.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok)
 }
+// mediaUrl with something more in its query.
+const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }
 
-export const posterUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/poster`) + `&v=${it.updatedAt}`
+export const posterUrl = (it: Item) => mediaUrlQ(`/api/items/${it.id}/poster`, `v=${it.updatedAt}`)
 // '' when the item has no picture at all (nothing to ask the server for).
-export const backdropUrl = (it: Item) => (it.backdrop || it.poster ? mediaUrl(`/api/items/${it.id}/backdrop`) + `&v=${it.updatedAt}` : '')
-export const showPosterUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/poster`) + `&v=${s.updatedAt}`
-export const showBackdropUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/backdrop`) + `&v=${s.updatedAt}`
-export const seasonPosterUrl = (s: Show, n: number) => mediaUrl(`/api/shows/${s.id}/art/season`) + `&n=${n}&v=${s.updatedAt}`
+export const backdropUrl = (it: Item) => (it.backdrop || it.poster ? mediaUrlQ(`/api/items/${it.id}/backdrop`, `v=${it.updatedAt}`) : '')
+export const showPosterUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/poster`, `v=${s.updatedAt}`)
+export const showBackdropUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/backdrop`, `v=${s.updatedAt}`)
+export const seasonPosterUrl = (s: Show, n: number) => mediaUrlQ(`/api/shows/${s.id}/art/season`, `n=${n}&v=${s.updatedAt}`)
 export const artPreviewUrl = (src: string) => mediaUrl(`/api/artwork/preview?src=${encodeURIComponent(src)}`)
 
 // Episode label, e.g. "S2 · E15–16".

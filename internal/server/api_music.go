@@ -84,6 +84,7 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found") // a downloaded episode lives in its library
 		return
 	}
+	w = s.capWriter(w, r)
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
 		w.Header().Set("Cache-Control", "private, max-age=3600")
 		http.ServeFile(w, r, it.Path)

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api, setToken, type Library, type User } from './api'
+import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
 type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandLogo?: string; theme?: string; update?: string }
@@ -25,6 +25,8 @@ type AppState = {
   setOnboarding: (v: boolean) => void
   // The browser runs on the server itself, so the system folder picker can open.
   pickerLocal: boolean
+  // The mobile app has no server yet, or can't reach it.
+  needServer: boolean
   // A newer version found by the server's update check (admins only; '' = none).
   update: string
   setUpdate: (v: string) => void
@@ -45,6 +47,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [onboarding, setOnboarding] = useState(false)
   const [pickerLocal, setPickerLocal] = useState(false)
   const [update, setUpdate] = useState('')
+  const [needServer, setNeedServer] = useState(isNativeShell() && !serverBase())
   const setBrandName = (n: string) => { setBrand(n); applyBrand(n) }
   const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id) }
 
@@ -53,6 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (needServer) { setLoading(false); return }
     api.get<Status>('/status').then(async (s) => {
       setSetup(s.setupRequired)
       setOnboarding(!!s.onboarding)
@@ -65,7 +69,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       applyTheme(deviceTheme() || s.theme || 'default')
       setUserState(s.user)
       if (s.user) await refreshLibraries()
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => { if (isNativeShell()) setNeedServer(true) }).finally(() => setLoading(false))
   }, [refreshLibraries])
 
   const setUser = (u: User | null) => {
@@ -74,7 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, update, setUpdate }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate }}>{children}</Ctx.Provider>
 }
 
 // Tiny toast helper.

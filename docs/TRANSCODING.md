@@ -31,8 +31,9 @@ settings under **Settings → Transcoding** and which choices suit which hardwar
 - the video is not taller than *Maximum resolution*.
 
 Direct play costs no CPU and keeps the original quality. Turn it off to force every file through
-the transcoder — useful to cap bandwidth for remote viewers with a *bitrate cap*, or to compare
-quality profiles.
+the transcoder — useful to cap bandwidth with a *bitrate cap* (for viewers away from home, use the
+limits in *Settings → Remote Access*, which leave playback at home alone), or to compare quality
+profiles.
 
 ## Hardware encoders
 

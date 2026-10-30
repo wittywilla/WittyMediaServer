@@ -50,10 +50,10 @@ toolchain:
 
 | File | What it holds | Used by |
 |---|---|---|
-| `shared/themes.json` | All server themes as plain colour values, generated from `themes/*/theme.css` by `shared/scripts/build-themes.mjs` | Native clients, connect screen |
-| `shared/input-map.json` | What each remote and controller button means | All clients |
-| `shared/connection-cases.json` | Test vectors: what a typed address normalises to, and which addresses are refused | Tests on every client |
-| `shared/strings.en.json` | Wording of the connection flow, so every client says the same plain thing | All clients |
+| `shared/data/themes.json` | All server themes as plain colour values, generated from `themes/*/theme.css` by `shared/scripts/build-themes.mjs` | Native clients, connect screen |
+| `shared/data/input-map.json` | What each remote and controller button means | All clients |
+| `shared/data/connection-cases.json` | Test vectors: what a typed address normalises to, and which addresses are refused | Tests on every client |
+| `shared/data/strings.en.json` | Wording of the connection flow, so every client says the same plain thing | All clients |
 | `shared/connect/` | The connect screen (HTML, CSS, JS, no framework) | Desktop, webOS, Tizen |
 
 API models are written by hand per language because they are short, and checked against one set of
@@ -86,7 +86,7 @@ mDNS/DNS-SD as the primary transport, because of the Apple row below.
 
 ### Addresses and transport security
 
-A typed address is normalised the same way everywhere (`shared/connection-cases.json`): add
+A typed address is normalised the same way everywhere (`shared/data/connection-cases.json`): add
 `http://` if there's no scheme, add port 9797 only if the user gave neither a scheme nor a port, and
 strip trailing slashes and paths. The app then confirms it really is a WittyMediaServer through
 `GET /api/status` before saving anything.
@@ -139,7 +139,7 @@ to private addresses and labelled as unsupported. See [OWNER-STEPS.md](OWNER-STE
 
 ## Input
 
-Every client follows `shared/input-map.json`.
+Every client follows `shared/data/input-map.json`.
 
 - **TV remotes:** D-pad moves focus, centre confirms, Back goes back one level and never quits from
   the middle of a flow. Focus is always visible and is restored when returning to a screen.
@@ -154,7 +154,7 @@ Every client follows `shared/input-map.json`.
 ## Themes
 
 `/api/themes` and `/api/status` name the active theme. Native clients read colours from
-`shared/themes.json`, which is bundled, and fall back to the default theme for a custom theme uploaded
+`shared/data/themes.json`, which is bundled, and fall back to the default theme for a custom theme uploaded
 to a server, whose CSS they can't apply yet. Shells show themes exactly, because they display the
 server's own page, and the desktop's title bar reads its colours from that page's CSS variables.
 

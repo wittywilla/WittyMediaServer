@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The TV launcher's 16:9 tile. A plain play mark until the owner supplies artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#0f1115" android:pathData="M0,0h320v180H0z" />
+    <path android:fillColor="#7955ff" android:pathData="M135,50 L195,90 L135,130 Z" />
+</vector>

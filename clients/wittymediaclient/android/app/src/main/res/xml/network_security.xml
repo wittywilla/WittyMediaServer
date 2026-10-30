@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home servers run on plain HTTP and these rules can't name "private addresses only",
+     so cleartext stays on and net/Address.kt refuses plain HTTP to public addresses. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

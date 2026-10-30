@@ -1,5 +1,5 @@
 // Package isofs reads files out of optical disc images (ISO 9660 and UDF)
-// without mounting them. It is part of WittyDVD. DVD-Video discs are UDF/ISO 9660 "bridge" discs, so
+// without mounting them. It is WittyDisc, shared by WittyDVD and WittyBluray. DVD-Video discs are UDF/ISO 9660 "bridge" discs, so
 // UDF is tried first and ISO 9660 is the fallback.
 //
 // Files are described as byte extents inside the image. That lets callers hand
@@ -153,13 +153,17 @@ type fileReader struct {
 func (r *fileReader) ReadAt(p []byte, off int64) (int, error) { return r.d.ReadAtFile(r.f, p, off) }
 
 func (d *Disc) index() error {
-	if err := d.indexUDF(); err == nil && len(d.files) > 0 {
+	udfErr := d.indexUDF()
+	if udfErr == nil && len(d.files) > 0 {
 		d.Format = "udf"
 		return nil
 	}
+	if udfErr == nil {
+		udfErr = errors.New("no files")
+	}
 	d.files = map[string]*File{}
 	if err := d.indexISO9660(); err != nil {
-		return fmt.Errorf("isofs: not a readable UDF or ISO 9660 image: %w", err)
+		return fmt.Errorf("isofs: not a readable UDF (%v) or ISO 9660 (%v) image", udfErr, err)
 	}
 	d.Format = "iso9660"
 	return nil
@@ -280,7 +284,8 @@ func (d *Disc) walkISODir(rec []byte, prefix string, depth int) error {
 }
 
 // ---------------------------------------------------------------------------
-// UDF (ECMA-167 / OSTA UDF 1.02+ as used by DVD-Video)
+// UDF (ECMA-167 / OSTA UDF 1.02 as used by DVD-Video, and UDF 2.50 with a
+// metadata partition as used by Blu-ray)
 // ---------------------------------------------------------------------------
 
 type udfPartition struct {
@@ -289,8 +294,22 @@ type udfPartition struct {
 	length int64
 }
 
+// udfMap is one partition map of the logical volume. Partition reference
+// numbers in long_ads index the map list. A type 1 map is a physical
+// partition. A type 2 "metadata partition" (UDF 2.50, Blu-ray) is a file
+// whose extents hold the directory structures, so its blocks are looked up
+// in that file.
+type udfMap struct {
+	typ        byte
+	partition  uint16 // the physical partition number
+	metaFile   uint32 // type 2: the metadata file's block in that partition
+	metaMirror uint32 // type 2: its mirror, used when the main copy is unreadable
+	extents    []Extent
+}
+
 type udfCtx struct {
 	parts  []udfPartition
+	maps   []udfMap
 	fsdLoc longAD
 }
 
@@ -347,15 +366,65 @@ func (d *Disc) indexUDF() error {
 			// Logical volume contents use is a long_ad to the file set descriptor.
 			ctx.fsdLoc = readLongAD(b[248:264])
 			gotLVD = true
-			// Partition maps: we only support type 1 (physical) maps which is
-			// all DVD-Video uses; the partition reference number is the index
-			// into the map list which for type-1 maps equals the partition number.
+			// Partition maps: type 1 (physical, all DVD-Video uses) and type 2
+			// metadata partitions (Blu-ray). Sparable and virtual partitions
+			// belong to rewritable media and are not something a video disc
+			// image uses; they are left unresolved.
+			mapsLen := int(binary.LittleEndian.Uint32(b[264:268]))
+			nMaps := int(binary.LittleEndian.Uint32(b[268:272]))
+			for off, n := 440, 0; n < nMaps && n < 16 && off+2 <= len(b) && off < 440+mapsLen; n++ {
+				typ, l := b[off], int(b[off+1])
+				if l < 2 || off+l > len(b) {
+					break
+				}
+				m := udfMap{typ: typ}
+				switch {
+				case typ == 1 && l >= 6:
+					m.partition = binary.LittleEndian.Uint16(b[off+4 : off+6])
+				case typ == 2 && l >= 64 && strings.HasPrefix(string(b[off+5:off+28]), "*UDF Metadata Partition"):
+					m.partition = binary.LittleEndian.Uint16(b[off+38 : off+40])
+					m.metaFile = binary.LittleEndian.Uint32(b[off+40 : off+44])
+					m.metaMirror = binary.LittleEndian.Uint32(b[off+44 : off+48])
+				default:
+					m.typ = 0
+				}
+				ctx.maps = append(ctx.maps, m)
+				off += l
+			}
 		case 8: // Terminating descriptor
 			i = 1 << 20
 		}
 	}
 	if !gotLVD || len(ctx.parts) == 0 {
 		return errors.New("UDF volume descriptors incomplete")
+	}
+	// Metadata partitions: read the file that holds their blocks (the mirror
+	// if the main copy is unreadable) before anything on them is looked up.
+	for i := range ctx.maps {
+		m := &ctx.maps[i]
+		if m.typ != 2 {
+			continue
+		}
+		physRef := uint16(0)
+		for j, pm := range ctx.maps {
+			if pm.typ == 1 && pm.partition == m.partition {
+				physRef = uint16(j)
+			}
+		}
+		var err error
+		for _, loc := range []uint32{m.metaFile, m.metaMirror} {
+			var fe *udfEntry
+			if fe, err = d.readUDFEntry(ctx, longAD{block: loc, part: physRef}); err == nil && len(fe.extents) > 0 {
+				m.extents = fe.extents
+				break
+			}
+			if err == nil {
+				err = errors.New("empty metadata file")
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("UDF metadata partition: %w", err)
+		}
 	}
 	// File set descriptor
 	fsdSec, err := ctx.abs(ctx.fsdLoc.part, ctx.fsdLoc.block)
@@ -373,13 +442,94 @@ func (d *Disc) indexUDF() error {
 	return d.walkUDFDir(ctx, rootICB, "", 0)
 }
 
-func (c *udfCtx) abs(partRef uint16, block uint32) (int64, error) {
-	for _, p := range c.parts {
-		if p.number == partRef || len(c.parts) == 1 {
-			return p.start + int64(block), nil
+func (c *udfCtx) physical(number uint16) (*udfPartition, error) {
+	for i := range c.parts {
+		if c.parts[i].number == number || len(c.parts) == 1 {
+			return &c.parts[i], nil
 		}
 	}
-	return 0, fmt.Errorf("UDF partition %d not found", partRef)
+	return nil, fmt.Errorf("UDF partition %d not found", number)
+}
+
+// abs turns a partition reference number and a logical block into an
+// absolute sector of the image.
+func (c *udfCtx) abs(partRef uint16, block uint32) (int64, error) {
+	if int(partRef) >= len(c.maps) {
+		// No usable map table: reference numbers equal partition numbers.
+		p, err := c.physical(partRef)
+		if err != nil {
+			return 0, err
+		}
+		return p.start + int64(block), nil
+	}
+	m := &c.maps[partRef]
+	if m.typ == 2 {
+		off := int64(block) * Sector
+		for _, e := range m.extents {
+			if off < e.Length {
+				return (e.Offset + off) / Sector, nil
+			}
+			off -= e.Length
+		}
+		return 0, fmt.Errorf("UDF: block %d outside the metadata partition", block)
+	}
+	if m.typ != 1 {
+		return 0, fmt.Errorf("UDF: partition map %d is of an unsupported type", partRef)
+	}
+	p, err := c.physical(m.partition)
+	if err != nil {
+		return 0, err
+	}
+	return p.start + int64(block), nil
+}
+
+// udfExtents collects a file's extents from its allocation descriptors,
+// following "next extent of descriptors" entries (type 3) into further
+// descriptor blocks, as large files have.
+func (d *Disc) udfExtents(ctx *udfCtx, e *udfEntry, ads []byte, long bool, partRef uint16, depth int) error {
+	if depth > 64 {
+		return errors.New("UDF: allocation descriptor chain too long")
+	}
+	size := 8
+	if long {
+		size = 16
+	}
+	for i := 0; i+size <= len(ads); i += size {
+		raw := binary.LittleEndian.Uint32(ads[i : i+4])
+		if raw == 0 {
+			break
+		}
+		typ, l := raw>>30, raw&0x3fffffff
+		pos, part := uint32(0), partRef
+		if long {
+			ad := readLongAD(ads[i : i+16])
+			pos, part = ad.block, ad.part
+		} else {
+			pos = binary.LittleEndian.Uint32(ads[i+4 : i+8])
+		}
+		s, err := ctx.abs(part, pos)
+		if err != nil {
+			return err
+		}
+		switch typ {
+		case 0, 1: // recorded, or allocated but not recorded (reads as zeros)
+			e.extents = append(e.extents, Extent{Offset: s * Sector, Length: int64(l)})
+		case 3: // the next block of allocation descriptors
+			b, err := d.sector(s)
+			if err != nil {
+				return err
+			}
+			if binary.LittleEndian.Uint16(b[0:2]) != 258 {
+				return errors.New("UDF: bad allocation extent descriptor")
+			}
+			n := int(binary.LittleEndian.Uint32(b[20:24]))
+			if 24+n > len(b) {
+				return errors.New("UDF: allocation extent descriptor overrun")
+			}
+			return d.udfExtents(ctx, e, b[24:24+n], long, part, depth+1)
+		}
+	}
+	return nil
 }
 
 // udfEntry is a parsed (extended) file entry.
@@ -433,40 +583,9 @@ func (d *Disc) readUDFEntry(ctx *udfCtx, icb longAD) (*udfEntry, error) {
 	}
 	ads := b[adStart : adStart+int(adLen)]
 	switch flags & 7 {
-	case 0: // short_ad
-		for i := 0; i+8 <= len(ads); i += 8 {
-			l := binary.LittleEndian.Uint32(ads[i : i+4])
-			if l == 0 {
-				break
-			}
-			typ := l >> 30
-			l &= 0x3fffffff
-			if typ != 0 && typ != 1 { // 0 = recorded, 1 = allocated not recorded (zeros); 3 = chain (unsupported)
-				continue
-			}
-			pos := binary.LittleEndian.Uint32(ads[i+4 : i+8])
-			s, err := ctx.abs(partRef, pos)
-			if err != nil {
-				return nil, err
-			}
-			e.extents = append(e.extents, Extent{Offset: s * Sector, Length: int64(l)})
-		}
-	case 1: // long_ad
-		for i := 0; i+16 <= len(ads); i += 16 {
-			raw := binary.LittleEndian.Uint32(ads[i : i+4])
-			if raw == 0 {
-				break
-			}
-			typ := raw >> 30
-			ad := readLongAD(ads[i : i+16])
-			if typ != 0 && typ != 1 {
-				continue
-			}
-			s, err := ctx.abs(ad.part, ad.block)
-			if err != nil {
-				return nil, err
-			}
-			e.extents = append(e.extents, Extent{Offset: s * Sector, Length: int64(ad.length)})
+	case 0, 1: // short_ad or long_ad
+		if err := d.udfExtents(ctx, e, ads, flags&7 == 1, partRef, 0); err != nil {
+			return nil, err
 		}
 	case 3: // embedded
 		e.inline = append([]byte(nil), ads...)

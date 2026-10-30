@@ -29,6 +29,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyEbook** | Reflowable books (EPUB; more formats later): book view, typography, study tools | WittyMediaServer, WittyReader |
 | **WittyPDF** | PDFs: selectable text, zoom, outline, thumbnails, search, study tools | WittyMediaServer, WittyReader |
 | **WittyComics** | Comics and manga: pages, spreads, vertical strips, either reading direction | WittyMediaServer, WittyReader |
+| **WittyDisc** | Reads DVD and Blu-ray disc images (UDF 1.02 and 2.50, ISO 9660) without mounting them | WittyDVD, WittyBluray |
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
 
@@ -65,6 +66,7 @@ web/src/modules/            web plugins (React)
   wittypdf/                 → github.com/wittywilla/WittyPDF
   wittycomics/              → github.com/wittywilla/WittyComics
 modules/                    Go plugins
+  wittydisc/                → github.com/wittywilla/WittyDisc
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
 apps/

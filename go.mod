@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	fyne.io/systray v1.12.2
+	github.com/wittywilla/wittydisc v0.0.0
 	github.com/wittywilla/wittydvd v0.0.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sys v0.49.0
@@ -23,3 +24,5 @@ require (
 )
 
 replace github.com/wittywilla/wittydvd => ./modules/wittydvd
+
+replace github.com/wittywilla/wittydisc => ./modules/wittydisc

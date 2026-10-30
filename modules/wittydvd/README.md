@@ -17,8 +17,9 @@ player.
 ## What it does
 
 - **Reads discs without mounting them:** `.iso` and `.img` images (UDF and ISO 9660 "bridge"
-  discs) and `VIDEO_TS` folders. The `isofs` package finds each file's byte extents in the image,
-  so a player can hand the raw VOB ranges straight to a decoder such as FFmpeg.
+  discs) and `VIDEO_TS` folders, through [WittyDisc](https://github.com/wittywilla/WittyDisc),
+  which finds each file's byte extents in the image so a player can hand the raw VOB ranges
+  straight to a decoder such as FFmpeg.
 - **Parses the disc's program:** the VMG and VTS IFO files: titles, program chains (PGCs),
   programs and cells, menu language units, audio and sub-picture attributes, palettes, parental
   levels and region codes.
@@ -95,20 +96,20 @@ The navigator also offers `MenuKey`, `GoUp`, `OpenMenu`, `Resume`, `PlayTitle`, 
 `Clone` (to explore a disc without disturbing the live session). `CellSubpictures` returns a
 cell's subtitle units, and `DecodeSPU` and `SPU.Render` turn them into images.
 
-Requirements: Go 1.26 or newer, no cgo, no other dependencies.
+Requirements: Go 1.26 or newer, no cgo. Its only dependency is WittyDisc, the disc image
+reader.
 
 ## Design
 
 ```
-disc image ──► isofs (UDF / ISO 9660) ──► ifo.go (IFO parser) ──► nav.go + vm.go ──► Step: what to show
-                                                                  │                   ├─ menu: cell video + buttons
-                                                                  │                   └─ title: cell video + subtitles
-                                                                  └─ navpack.go (PCI/DSI), spu.go, menu.go, subtitles.go
+disc image ──► WittyDisc (UDF / ISO 9660) ──► ifo.go (IFO parser) ──► nav.go + vm.go ──► Step: what to show
+                                                                      │                   ├─ menu: cell video + buttons
+                                                                      │                   └─ title: cell video + subtitles
+                                                                      └─ navpack.go (PCI/DSI), spu.go, menu.go, subtitles.go
 ```
 
 | File | What it does |
 |---|---|
-| `isofs/` | ISO 9660 and UDF reader: files as byte extents, no mounting |
 | `open.go` | Opens images and folders; title summaries; sector readers for each VOB address space |
 | `ifo.go` | VMG and VTS IFO parsing: titles, PGCs, cells, menus, attributes |
 | `vm.go` | Registers, instruction decoding and the command interpreter |
@@ -118,7 +119,7 @@ disc image ──► isofs (UDF / ISO 9660) ──► ifo.go (IFO parser) ──
 | `spu.go` | Sub-picture decoding and rendering |
 | `menu.go` | Menu scanning: buttons, highlight pictures, default button |
 | `subtitles.go` | A cell's subtitle sub-pictures |
-| `cli/` | The `info`, `walk`, `crawl`, `pgc`, `render` and `disc ls` commands |
+| `cli/` | The `info`, `walk`, `crawl`, `pgc`, `render`, `disc ls` and `disc cat` commands |
 
 Everything is written from the public DVD-Video structure and is careful with untrusted input:
 IFO reads are size-bounded, and malformed tables, commands and sub-pictures are refused rather

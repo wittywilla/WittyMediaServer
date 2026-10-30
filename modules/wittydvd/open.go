@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wittywilla/wittydvd/isofs"
+	"github.com/wittywilla/wittydisc/isofs"
 )
 
 // MaxIFOBytes bounds how much of an IFO we read.

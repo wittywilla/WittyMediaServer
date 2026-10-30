@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittydvd"
-	"github.com/wittywilla/wittydvd/isofs"
+	"github.com/wittywilla/wittydisc/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 

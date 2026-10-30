@@ -2,18 +2,40 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 
-	"github.com/wittywilla/wittydvd/isofs"
+	"github.com/wittywilla/wittydisc/isofs"
 )
 
-// Disc runs the disc subcommands: ls.
+// Disc runs the disc subcommands: ls, cat.
 func Disc(args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: disc ls <image.iso>")
+		fmt.Fprintln(os.Stderr, "usage: disc ls <image.iso>\n       disc cat <image.iso> <path-in-image>   (the file's bytes on stdout)")
 		return 2
 	}
 	switch args[0] {
+	case "cat":
+		if len(args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: disc cat <image.iso> <path-in-image>")
+			return 2
+		}
+		d, err := isofs.Open(args[1])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		defer d.Close()
+		f, ok := d.Find(args[2])
+		if !ok || f.IsDir {
+			fmt.Fprintln(os.Stderr, "not a file in this image:", args[2])
+			return 1
+		}
+		if _, err := io.Copy(os.Stdout, io.NewSectionReader(d.Reader(f), 0, f.Size)); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
 	case "ls":
 		d, err := isofs.Open(args[1])
 		if err != nil {

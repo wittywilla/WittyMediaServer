@@ -91,7 +91,6 @@ func (s *Server) Handler() http.Handler {
 	// Authenticated
 	a := s.requireUser
 	m.Handle("GET /api/me", a(s.handleMe))
-	m.Handle("POST /api/stream-token", a(s.handleStreamToken))
 	m.Handle("GET /api/me/ui", a(s.handleGetUI))
 	m.Handle("PUT /api/me/ui", a(s.handlePutUI))
 	m.Handle("GET /api/home", a(s.handleHome))

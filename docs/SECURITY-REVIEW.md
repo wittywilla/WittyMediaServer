@@ -157,11 +157,9 @@ hashed now, and existing sessions are converted at start. A `?token=` worked on 
 works only on media routes, and only for reading, so a token leaked from a media link can't change
 anything or read settings.
 
-Players that can't send a header (native TV players, for one) still have a safe way in: **stream
-tokens**, from `streamUrl` in play info or `POST /api/stream-token`. Each opens one title or stream,
-only for reading, for up to 6 hours, and ends when its session does. An HLS playlist opened with a
-token in its address gives its segments a stream token, so the session's own token never appears in
-a playlist. A session token in a media address still works, for existing clients.
+A session token in a media address still works, for existing clients. An HLS playlist opened that way
+names its segments with a **stream token** that opens only that stream, only for reading, for up to
+6 hours, and ends with its session, so the session's own token never appears in a playlist.
 
 ### 16. Things other accounts could see
 
@@ -269,8 +267,7 @@ These matter once a server is reachable from outside, and that work is the right
 - **The token is in `localStorage` and in the web UI's media addresses.** A script running on the site
   could read it, and addresses appear in browser history. They exist because cookies are shared between
   servers on one host (ports don't separate them), so a cookie alone can break when two run side by
-  side. The script policy, the route limits and log redaction reduce the risk. The web UI could move to
-  stream tokens; new native clients should start with them.
+  side. The script policy, the route limits and log redaction reduce the risk.
 - **Artwork may load from any `https:` address**, needed for podcast search results. Theme CSS could
   use this to call out, but only an administrator installs themes.
 - **API keys are stored as they are** in the database, protected by file permissions. Encrypting them

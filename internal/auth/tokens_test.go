@@ -204,24 +204,3 @@ func TestStreamTokenScope(t *testing.T) {
 		t.Error("a stream token outlived its session")
 	}
 }
-
-func TestStreamScope(t *testing.T) {
-	for path, want := range map[string]string{
-		"/api/items/5/stream":          "/api/items/5/",
-		"/api/items/5/poster":          "/api/items/5/",
-		"/api/shows/3/art/poster":      "/api/shows/3/art/",
-		"/api/hls/v-1/playlist.m3u8":   "/api/hls/v-1/",
-		"/api/dvd/abc/still/x.png":     "/api/dvd/abc/",
-		"/api/items/5":                 "",
-		"/api/items/5/annotations":     "",
-		"/api/users":                   "",
-		"/api/logs/files/wms-1.log":    "",
-		"/api/artwork/preview":         "",
-		"/api/hls/../users/x":          "",
-		"https://evil.test/api/hls/x/": "",
-	} {
-		if got := StreamScope(path); got != want {
-			t.Errorf("%s: %q, want %q", path, got, want)
-		}
-	}
-}

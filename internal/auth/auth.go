@@ -339,16 +339,15 @@ func (s *Service) resolveStored(ctx context.Context, stored string) (*User, erro
 	return s.User(ctx, userID)
 }
 
-// Stream tokens are for players that can't send a header (native TV players
-// fetching HLS, for one) and so have to carry a credential in the address.
-// Addresses end up in logs and players' caches, so instead of the session's
-// own token they carry one that opens a single title or stream, only for
-// reading, for a few hours, and only while the session it came from lasts:
-// signing out or changing a password ends it too.
+// Stream tokens keep a session's token out of HLS playlists. A player that had
+// to put its token in a playlist's address can't send one with the segments
+// either, so the playlist names them with a stream token: it opens that one
+// stream, only for reading, for a few hours, and only while the session it came
+// from lasts, so a playlist in a player's cache or a log is worth little.
 const (
 	streamPrefix = "st1."
 	// StreamTokenTTL is long enough for a long film with a pause in it. A
-	// player that outlasts it gets 401 and asks for a new one.
+	// player that outlasts it gets 401 and opens the playlist again.
 	StreamTokenTTL = 6 * time.Hour
 )
 
@@ -361,18 +360,6 @@ var streamKey = func() []byte {
 	}
 	return b
 }()
-
-var streamScopeRe = regexp.MustCompile(`^/api/(items/\d+/|shows/\d+/art/|hls/[^/]+/|dvd/[^/]+/)`)
-
-// StreamScope is what a stream token for this media address may open: the
-// title, show or stream it belongs to, or "" if it isn't one a token can be
-// made for.
-func StreamScope(path string) string {
-	if strings.Contains(path, "..") || !mediaRoute.MatchString(path) {
-		return ""
-	}
-	return streamScopeRe.FindString(path)
-}
 
 // IsStreamToken tells stream tokens from session tokens.
 func IsStreamToken(tok string) bool { return strings.HasPrefix(tok, streamPrefix) }

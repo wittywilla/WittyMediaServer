@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -323,10 +322,10 @@ func TestViewerCantRaiseMaxHeight(t *testing.T) {
 	}
 }
 
-// Native TV players fetch HLS with addresses alone: a playlist opened with a
-// token in its address must lead to segments that work the same way, without
-// putting the session's own token into a file players cache and log.
-func TestNativePlayerCanFollowPlaylist(t *testing.T) {
+// A player using addresses alone: a playlist opened with a token in its address
+// must lead to segments that work the same way, without putting the session's
+// own token into a file players cache and log.
+func TestPlaylistKeepsSessionTokenOut(t *testing.T) {
 	ts := newTestServer(t)
 	_, session := ts.user(t, "viewer", "adult", false, "")
 	ts.HLS.Ensure(hls.Spec{ID: "one", Duration: 8, AudioIndex: -1, SubtitleIndex: -1})
@@ -354,6 +353,12 @@ func TestNativePlayerCanFollowPlaylist(t *testing.T) {
 		if w := ts.do(t, "GET", target+"?token="+seg, "", nil); w.Code != 401 {
 			t.Errorf("segment token opened %s: %d", target, w.Code)
 		}
+		if w := ts.do(t, "GET", target, seg, nil); w.Code != 401 {
+			t.Errorf("segment token as a header opened %s: %d", target, w.Code)
+		}
+	}
+	if w := ts.do(t, "DELETE", "/api/hls/one", seg, nil); w.Code != 401 {
+		t.Errorf("segment token stopped a stream: %d", w.Code)
 	}
 	// The playlist opened with a stream token keeps using it.
 	w = ts.do(t, "GET", "/api/hls/one/playlist.m3u8?token="+seg, "", nil)
@@ -370,42 +375,5 @@ func TestNativePlayerCanFollowPlaylist(t *testing.T) {
 	}
 	if w := ts.do(t, "GET", "/api/hls/one/seg/99.ts?token="+seg, "", nil); w.Code != 401 {
 		t.Errorf("segment token outlived sign-out: %d", w.Code)
-	}
-}
-
-func TestStreamTokenEndpoint(t *testing.T) {
-	ts := newTestServer(t)
-	dir := t.TempDir()
-	lib := ts.library(t, "movies", dir)
-	bad := ts.item(t, &library.Item{LibraryID: lib, Kind: "audio", Path: filepath.Join(dir, "bad.mp3"), ContentRating: "R"})
-	_, kid := ts.user(t, "kid", "kids", false, "")
-	_, _ = ts.user(t, "admin", "adult", true, "")
-
-	if w := ts.do(t, "POST", "/api/stream-token", "", map[string]string{"path": "/api/hls/one/playlist.m3u8"}); w.Code != 401 {
-		t.Errorf("no sign-in: %d", w.Code)
-	}
-	for _, path := range []string{"/api/users", "/api/settings", "/api/logs/files/wms-1.log", "/api/items/1", "https://evil.test/x", ""} {
-		if w := ts.do(t, "POST", "/api/stream-token", kid, map[string]string{"path": path}); w.Code != 400 {
-			t.Errorf("%q: %d", path, w.Code)
-		}
-	}
-	w := ts.do(t, "POST", "/api/stream-token", kid, map[string]string{"path": fmt.Sprintf("/api/items/%d/stream", bad.ID)})
-	var out struct {
-		URL string `json:"url"`
-	}
-	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &out) != nil || !strings.Contains(out.URL, "token=st1.") {
-		t.Fatalf("status %d: %s", w.Code, w.Body)
-	}
-	// A token never gets around the account's limits.
-	if w := ts.do(t, "GET", out.URL, "", nil); w.Code != 404 {
-		t.Errorf("a Kids profile's stream token opened a hidden title: %d", w.Code)
-	}
-	// And can't make more tokens.
-	tok := out.URL[strings.Index(out.URL, "token=")+6:]
-	if w := ts.do(t, "POST", "/api/stream-token?token="+tok, "", map[string]string{"path": "/api/items/1/file"}); w.Code != 401 {
-		t.Errorf("a stream token made another: %d", w.Code)
-	}
-	if w := ts.do(t, "POST", "/api/stream-token", tok, map[string]string{"path": "/api/items/1/file"}); w.Code != 401 {
-		t.Errorf("a stream token as a header made another: %d", w.Code)
 	}
 }

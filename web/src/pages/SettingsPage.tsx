@@ -134,7 +134,6 @@ function ServerSettings() {
   )
   return (
     <div className="panel">
-      <h2>Server</h2>
       <div className="form">
         <h3 className="section-title" style={{ margin: 0 }}>Movie and TV information</h3>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>Titles, posters, plots and ratings come from these services. The ones marked <b>No API key needed</b> work straight away; the others need a free API key from their website.</p>

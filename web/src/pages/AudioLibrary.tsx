@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, mediaUrl, type Album, type Artist, type Item, type Library } from '../api'
 import { useAudio, type AudioMode } from '../audio/player'
-import { EmptyState, Spinner } from '../components/common'
+import { EmptyState, Placeholder, Spinner } from '../components/common'
 import { IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin } from './Podcasts'
@@ -54,7 +54,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
         <div className="album-grid">
           {albums.map((a) => (
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">
-              <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <span>{books ? '📖' : '♪'}</span>}</div>
+              <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} sub={a.artist || undefined} />}</div>
               <b>{a.title || 'Unknown album'}</b>
               <span className="muted">{a.artist || (books ? 'Unknown author' : 'Unknown artist')}{a.year ? ` · ${a.year}` : ''}</span>
             </Link>
@@ -129,7 +129,7 @@ export function AlbumPage() {
   return (
     <div className="album-page">
       <div className="album-head">
-        <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={cover(coverId)} alt="" /> : <span>{books ? '📖' : '♪'}</span>}</div>
+        <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={cover(coverId)} alt="" /> : <Placeholder title={tracks[0]?.album || 'Unknown'} sub={tracks[0]?.albumArtist || tracks[0]?.artist || undefined} />}</div>
         <div className="album-meta">
           <span className="muted">{pods ? 'Podcast' : books ? 'Audiobook' : 'Album'}</span>
           <h1>{album || 'Unknown album'}</h1>

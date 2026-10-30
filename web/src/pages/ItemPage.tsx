@@ -1,7 +1,7 @@
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
+import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
@@ -66,7 +66,7 @@ export default function ItemPage() {
             {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
             {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
-            {(it.genres || []).length > 0 && <span>{it.genres.join(', ')}</span>}
+            {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 4).join(', ')}{it.genres.length > 4 ? '…' : ''}</span>}
             {it.studio && <span>{it.studio}</span>}
           </div>
           {disc ? (
@@ -110,12 +110,12 @@ export default function ItemPage() {
           )}
           {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'}, so it can't be played. Make a decrypted image of the disc you own with a tool that is legal where you live, then rescan.</div>}
           <div className="facts">
-            {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
+            {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {codecName(it.videoCodec)}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
             {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
             {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
             <div className="fact"><div className="k">Source</div><div className="v">{disc ? `${discName(it)} ${it.kind.endsWith('-iso') ? 'image' : 'folder'}` : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
             {disc && it.disc && <div className="fact"><div className="k">Disc</div><div className="v">{it.disc.label} · {it.disc.titles.length} titles{it.disc.hasMenus ? ' · menus' : ''}</div></div>}
-            <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>
+            {user?.isAdmin && <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>}
           </div>
 
           {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}

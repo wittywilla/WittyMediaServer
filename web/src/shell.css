@@ -3,17 +3,33 @@
    phones, wider screens add to them. */
 
 /* ---------------------------------------------------------------- top navigation */
-.topnav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 auto; max-width: 60%; }
+/* The links take the room left between the brand and the search; when
+   they don't all fit they scroll, fading out at the edge (never cut off). */
+.topnav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 auto; padding-right: 28px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
 .topnav::-webkit-scrollbar { display: none; }
-.topnav-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; color: var(--fg-2); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.topnav-link { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 999px; color: var(--fg-2); font-weight: 600; font-size: 14px; white-space: nowrap; flex: none; transition: background .15s, color .15s; }
 .topnav-link svg { width: 16px; height: 16px; opacity: .85; }
 .topnav-link:hover { background: var(--bg-3); color: var(--fg); }
 .topnav-link.active { background: var(--fg); color: var(--bg); }
-.top-brand { padding: 0 6px 0 0; font-size: 16px; }
+.top-brand { padding: 0 10px 0 0; font-size: 16px; flex: none; white-space: nowrap; }
 .top-brand img { width: 26px; height: 26px; }
 /* Top-bar mode drops the side menu on wide screens; phones keep it as the drawer behind the Libraries tab. */
 @media (min-width: 901px) { .app.nav-top .sidebar { display: none; } }
-.app.nav-top .topbar .search { max-width: 340px; }
+/* The search sits on the right, next to the account; the account is always
+   at the far right edge, whatever is shown. */
+.app.nav-top .topbar .search { flex: 0 1 300px; min-width: 200px; max-width: 300px; }
+.topbar .profile-menu { margin-left: auto; }
+/* Between tablet and laptop widths the links need the room: the search is a
+   round button that opens across the bar while it is in use. */
+@media (min-width: 701px) and (max-width: 1180px) {
+  .app.nav-top .topbar .search { flex: none; width: 40px; min-width: 40px; }
+  .app.nav-top .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
+  .app.nav-top .topbar .search input::placeholder { color: transparent; }
+  .app.nav-top .topbar .search:focus-within { position: absolute; left: 16px; right: 70px; width: auto; max-width: none; z-index: 3; }
+  .app.nav-top .topbar .search:focus-within input { padding-right: 16px; cursor: text; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .app.nav-top .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
+}
 
 /* ---------------------------------------------------------------- account menu */
 .profile-menu { position: relative; flex: none; }
@@ -42,6 +58,7 @@
   /* On phones the top navigation and side menu button make room for the search. */
   .topnav, .topbar .menu-toggle, .top-brand { display: none; }
   .topbar { gap: 10px; }
+  .app.nav-top .topbar .search, .topbar .search { flex: 1 1 auto; min-width: 0; max-width: none; }
   /* The mini player sits above the tab bar. */
   .player.mini { bottom: calc(70px + env(safe-area-inset-bottom)) !important; }
   .app:has(~ .player.mini) .content { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
@@ -77,7 +94,9 @@
 .pic-both .t { left: 22%; }
 
 /* ---------------------------------------------------------------- home widgets */
-.home-tools { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 8px; flex-wrap: wrap; }
+.home-tools { position: sticky; top: 64px; z-index: 15; display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
+  border-radius: 12px; background: rgb(var(--bg-rgb) / .9); border: 1px solid var(--border); backdrop-filter: blur(10px); }
+.home-foot { display: flex; justify-content: center; padding: 18px 0 4px; }
 .home-tools .muted { font-size: 13px; margin-right: auto; }
 .home .widget.edit { border: 2px dashed var(--bg-4); border-radius: 14px; margin-bottom: 14px; background: rgb(var(--bg-rgb) / .4); }
 .home .widget.edit.dragging { opacity: .4; }

@@ -4,6 +4,18 @@ import { IconPlay } from '../icons'
 
 export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-')
 
+// Artwork for something without a picture: a colour of its own (worked out
+// from its title, so it never changes) with the title set like a cover.
+export function Placeholder({ title, sub }: { title: string; sub?: string }) {
+  let h = 0
+  for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 360
+  return (
+    <div className="ph art-ph" style={{ background: `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))` }} aria-hidden="true">
+      <b>{title}</b>{sub && <small>{sub}</small>}
+    </div>
+  )
+}
+
 // Episodes render as wide stills (16:9) with the show name; `wide` is set
 // automatically for episodes.
 export function ItemCard({ item, wide = item.showId != null }: { item: Item; wide?: boolean }) {
@@ -14,7 +26,7 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
     <Link to={`/item/${item.id}`} className={'card' + (wide ? ' wide' : '')} title={item.title}>
       <div className={'poster' + (gen && !wide ? ' generated' : '')}>
         {gen && !wide && <div className="blur" style={{ backgroundImage: `url(${posterUrl(item)})` }} />}
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <div className="ph">{item.title}</div>}
+        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} sub={item.artist || undefined} />}
         {gen && !wide && <div className="cap">{item.title}</div>}
         {isDisc(item) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <span className="badge" style={{ left: 'auto', right: 8 }}>✓</span>}
@@ -33,7 +45,7 @@ export function ShowCard({ show }: { show: Show }) {
   return (
     <Link to={`/show/${show.id}`} className="card" title={show.title}>
       <div className="poster">
-        <div className="ph">{show.title}</div>
+        <Placeholder title={show.title} />
         {/* The server falls back to an episode still when there is no poster yet. */}
         <img src={showPosterUrl(show)} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
         {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count">{show.unwatched}</span>}

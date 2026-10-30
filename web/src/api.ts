@@ -167,6 +167,9 @@ export const isDisc = (it: Item) => it.kind === 'dvd-iso' || it.kind === 'dvd-fo
 export const isBluray = (it: Item) => it.kind === 'bluray-iso' || it.kind === 'bluray-folder'
 // The kind of disc, for labels: "DVD" or "Blu-ray".
 export const discName = (it: Item) => (isBluray(it) ? 'Blu-ray' : 'DVD')
+// Video codecs by the names people know ("mpeg2video" is MPEG-2).
+const CODECS: Record<string, string> = { h264: 'H.264', hevc: 'HEVC', h265: 'HEVC', mpeg2video: 'MPEG-2', mpeg1video: 'MPEG-1', mpeg4: 'MPEG-4', vc1: 'VC-1', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', prores: 'ProRes' }
+export const codecName = (c?: string) => (c ? CODECS[c.toLowerCase()] || c.toUpperCase() : '')
 
 const LANGS: Record<string, string> = {
   en: 'English', nl: 'Dutch', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ja: 'Japanese',

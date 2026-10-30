@@ -66,15 +66,13 @@ export default function HomePage() {
   const shown = editing ? ordered : ordered.filter((w) => !layout.hidden.includes(w.id))
   return (
     <div className={'home' + (editing ? ' editing' : '')}>
-      <div className="home-tools">
-        {editing ? (
-          <>
-            <span className="muted">Drag widgets, or use the arrows. Hidden widgets stay here until you show them again.</span>
-            <button className="btn sm ghost" onClick={() => save({ order: [], hidden: [] })}>Reset</button>
-            <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
-          </>
-        ) : <button className="btn sm ghost" onClick={() => setEditing(true)} title="Rearrange or hide sections of the home page">Customize</button>}
-      </div>
+      {editing && (
+        <div className="home-tools">
+          <span className="muted">Drag sections, or use the arrows. Hidden sections stay here until you show them again.</span>
+          <button className="btn sm ghost" onClick={() => save({ order: [], hidden: [] })}>Reset</button>
+          <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
+        </div>
+      )}
       {shown.map((w, i) => {
         const body = w.render()
         if (!editing) return body ? <div key={w.id} className="widget">{body}</div> : null
@@ -97,6 +95,12 @@ export default function HomePage() {
         )
       })}
       {!editing && home.hubs.length === 0 && <EmptyState title="Nothing here yet" text="Your libraries are empty or still scanning." />}
+      {/* A page action, not a heading: at the foot of the page. */}
+      {!editing && (
+        <div className="home-foot">
+          <button className="btn sm ghost" onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title="Rearrange or hide sections of the home page">Customize home</button>
+        </div>
+      )}
     </div>
   )
 }

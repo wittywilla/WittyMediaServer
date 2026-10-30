@@ -142,7 +142,12 @@ button { cursor: pointer; }
 .card .poster.generated img { object-fit: contain; position: relative; z-index: 1; }
 .card .poster.generated .blur { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(14px) brightness(.55); }
 .card .poster.generated .cap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 26px 8px 8px; font-size: 13px; font-weight: 700; text-align: center; background: linear-gradient(0deg, rgba(0,0,0,.85), transparent); text-shadow: 0 1px 4px #000; }
-.detail .poster.generated img { object-fit: contain; background: #000; }
+.detail .poster.generated { position: relative; }
+.detail .poster.generated img { object-fit: contain; position: relative; z-index: 1; filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
+.detail .poster.generated .blur { position: absolute; inset: -24px; background-size: cover; background-position: center; filter: blur(18px) brightness(.5) saturate(1.2); }
+.admin-tools { display: flex; gap: 6px; }
+.btn.square { width: 40px; height: 40px; padding: 0; justify-content: center; }
+.btn.square svg { width: 18px; height: 18px; }
 .card .title { margin-top: 8px; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .sub { color: var(--fg-3); font-size: 12px; }
 
@@ -220,7 +225,7 @@ button { cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { text-align: center; color: var(--fg-3); padding: 60px 20px; }
 .empty h3 { color: var(--fg); margin: 10px 0 6px; }
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-4); padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow); z-index: 100; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow); z-index: 100; }
 .modal-backdrop { position: fixed; inset: 0; background: var(--overlay); display: grid; place-items: center; z-index: 60; padding: 20px; }
 .modal { background: var(--bg-2); border-radius: 12px; padding: 22px; width: 100%; max-width: 640px; max-height: 90vh; overflow: auto; box-shadow: var(--shadow); }
 .modal h2 { margin-top: 0; }

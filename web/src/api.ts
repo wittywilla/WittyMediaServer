@@ -173,5 +173,17 @@ const LANGS: Record<string, string> = {
   cs: 'Czech', hu: 'Hungarian', el: 'Greek', tr: 'Turkish', he: 'Hebrew', ar: 'Arabic', hi: 'Hindi', th: 'Thai',
   eng: 'English', dut: 'Dutch', nld: 'Dutch', fre: 'French', fra: 'French', ger: 'German', deu: 'German', spa: 'Spanish',
   ita: 'Italian', por: 'Portuguese', jpn: 'Japanese', chi: 'Chinese', zho: 'Chinese', kor: 'Korean', rus: 'Russian', und: 'Unknown',
+  // The older bibliographic codes discs use, which the browser's names don't know.
+  gre: 'Greek', rum: 'Romanian', cze: 'Czech', ice: 'Icelandic', per: 'Persian', baq: 'Basque', slo: 'Slovak', mac: 'Macedonian',
+  alb: 'Albanian', arm: 'Armenian', geo: 'Georgian', bur: 'Burmese', may: 'Malay', wel: 'Welsh', tib: 'Tibetan', mul: 'Several languages', zxx: 'None',
 }
-export const langName = (code?: string) => (code ? LANGS[code.toLowerCase()] || code.toUpperCase() : 'Unknown')
+let names: Intl.DisplayNames | null | undefined
+// Any other code is named by the browser ("cat" is Catalan), or shown as is.
+export const langName = (code?: string) => {
+  if (!code) return 'Unknown'
+  const c = code.toLowerCase()
+  if (LANGS[c]) return LANGS[c]
+  if (names === undefined) try { names = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }) } catch { names = null }
+  try { const n = names?.of(c); if (n) return n } catch { /* not a language code */ }
+  return code.toUpperCase()
+}

@@ -239,6 +239,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Poster != "" && !existing.Missing {
+		s.fixParsedTitle(ctx, existing, c.kind)
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime}
@@ -493,4 +494,24 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 		return "", err
 	}
 	return "cache:" + name, nil
+}
+
+// fixParsedTitle corrects the title of an unchanged item that was named from
+// its file by the earlier, faulty parse ("Dr.Seuss.The.Lorax" became
+// "Dr Seuss The"). Items matched online or retitled by hand keep theirs.
+func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
+	if it.Provider != "" {
+		return
+	}
+	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
+	if kind == "dvd-folder" || kind == "bluray-folder" {
+		base = filepath.Base(it.Path)
+	}
+	title, _ := ParseName(base)
+	if title == it.Title || it.Title != legacyTitle(base) {
+		return
+	}
+	if err := s.Store.retitle(ctx, it.ID, title); err != nil {
+		s.Log.Warn("retitle", "path", it.Path, "err", err)
+	}
 }

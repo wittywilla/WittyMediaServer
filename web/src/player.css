@@ -123,7 +123,8 @@
 @media (prefers-reduced-motion: reduce) { .insert-disc .tray, .insert-disc .disc { animation-duration: .01s; } }
 
 /* ---------------------------------------------------------------- DVD subtitles */
-.sub-layer { position: absolute; z-index: 1; pointer-events: none; }
+.sub-layer { position: absolute; z-index: 1; pointer-events: none; transition: translate .25s ease; }
+.player:not(.controls-hidden) .sub-layer { translate: 0 calc(-1 * var(--lift, 0px)); }
 .sub-layer img { position: absolute; }
 .up-next { position: absolute; right: 24px; bottom: 110px; z-index: 6; background: rgba(20,22,28,.95); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; box-shadow: var(--shadow); }
 
@@ -295,6 +296,23 @@
 
 .remote-toggle svg { width: 16px; height: 16px; }
 @media (max-width: 700px) { .hide-narrow { display: none !important; } .remote-toggle span { display: none; } .player .ctl .time { min-width: 0; } }
+/* Phones: one row of controls that fits. The time sits over the seek bar,
+   chapter steps give way to the chapter list, and long subtitles of the top
+   bar are cut short instead of wrapping. */
+@media (max-width: 560px) {
+  .player .bottom { padding: 18px 10px max(12px, env(safe-area-inset-bottom)); }
+  .player .ctl { gap: 0; position: static; }
+  .player .ctl .ibtn { width: 36px; height: 36px; }
+  .player .ctl .ibtn.big { width: 44px; height: 44px; }
+  .player .ctl .chap-step { display: none; }
+  .player .ctl .time { position: absolute; left: 14px; top: 0; font-size: 11.5px; white-space: nowrap; }
+  .player .ctl .speed-btn { min-width: 0; padding: 4px 8px; }
+  .player .top { padding: max(10px, env(safe-area-inset-top)) 10px 10px; gap: 6px; }
+  .player .top .grow { min-width: 0; }
+  .player .top h2 { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player .top .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+  .remote-bar { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+}
 
 /* Controller / keyboard focus: always visible on the player and on TV. */
 .player button:focus-visible, .player .seek:focus-visible, .player [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -335,7 +353,7 @@
 
 /* ------------------------------------------------ remote docked in the control bar */
 .remote-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 6; display: flex; align-items: center; gap: 4px;
-  max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: 12px; background: rgba(16,18,23,.72);
+  width: max-content; max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: 12px; background: rgba(16,18,23,.72);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity .25s; scrollbar-width: none; }
 .player.controls-hidden .remote-bar { opacity: 0; pointer-events: none; }
 .player.menu-mode .remote-bar { bottom: 70px; }
@@ -359,4 +377,9 @@
 /* 3D video shown through a canvas (one eye, or red/cyan anaglyph); the
    video element keeps playing underneath, invisible. */
 .player canvas.stereo { position: absolute; z-index: 0; pointer-events: none; }
+/* A 3D disc draws its subtitles and menus once per eye too: show the first
+   eye's half, stretched like the picture (clip-path applies before the
+   transform, so the other half never shows or takes clicks). */
+.stage.stereo-ou .sub-layer, .stage.stereo-ou .dvd-layer { transform-origin: 0 0; transform: scaleY(2); clip-path: inset(0 0 50% 0); }
+.stage.stereo-sbs .sub-layer, .stage.stereo-sbs .dvd-layer { transform-origin: 0 0; transform: scaleX(2); clip-path: inset(0 50% 0 0); }
 .player .stereo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }

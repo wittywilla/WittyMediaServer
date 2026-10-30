@@ -522,7 +522,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     <div className={'player dvd' + (mini ? ' mini' : '') + (pres?.kind !== 'title' ? ' menu-mode' : '')} ref={root} tabIndex={-1}
       onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}
       onClick={() => { if (pres?.kind === 'title' && !needClick) togglePlay() }}>
-      <div className="stage" ref={stage}>
+      <div className={'stage' + (prefs.stereo !== 'off' ? ` stereo-${prefs.stereo}` : '')} ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
         <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1 }} />
@@ -552,7 +552,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             ))}
           </div>
         )}
-        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} />}
+        {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize}
+          stageH={stage.current?.clientHeight || 0} clear={prefs.remote && prefs.remoteStyle === 'bar' ? 150 : 104} />}
       </div>
       {/* Announces what is on screen to screen readers. */}
       <div className="sr-only" role="status" aria-live="polite">
@@ -658,7 +659,11 @@ function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onM
 // SubtitleLayer draws the disc's own sub-pictures over the video. Events are
 // fetched in two-minute windows around the playhead. size scales them around
 // their bottom centre (bigger captions grow upwards, like a TV setting).
-function SubtitleLayer({ video, title, rect, size = 1 }: { video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect; size?: number }) {
+// clear: how much of the player's bottom the controls cover when shown
+// (subtitles move up out of their way, and back down when they hide).
+function SubtitleLayer({ video, title, rect, size = 1, stageH = 0, clear = 0 }: {
+  video: React.RefObject<HTMLVideoElement | null>; title: NonNullable<Presentation['title']>; rect: Rect; size?: number; stageH?: number; clear?: number
+}) {
   const stream = title.subtitleStream >= 0 ? title.subtitleStream : title.forcedStream
   const forcedOnly = title.subtitleStream < 0
   const cache = useRef(new Map<string, SubEvent[] | 'loading'>())
@@ -691,8 +696,10 @@ function SubtitleLayer({ video, title, rect, size = 1 }: { video: React.RefObjec
   }, [video, stream, forcedOnly, title.subtitlesUrl])
   if (!active.length || !title.frameW || stream < 0) return null
   const sx = rect.width / title.frameW, sy = rect.height / title.frameH
+  const lowest = Math.max(...active.map((e) => (e.y + e.h) * sy))
+  const lift = stageH ? Math.max(0, clear - (stageH - rect.top - lowest)) : 0
   return (
-    <div className="sub-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
+    <div className="sub-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height, ['--lift' as string]: `${Math.round(lift)}px` }}>
       {active.map((e) => {
         const w = e.w * sx * size, h = e.h * sy * size
         const cx = (e.x + e.w / 2) * sx, bottom = (e.y + e.h) * sy
@@ -715,8 +722,7 @@ function StereoLayer({ video, rect, mode, out }: { video: React.RefObject<HTMLVi
     if (!ctx) return
     const anaglyph = out === 'anaglyph' && 'filter' in ctx
     let stop = false, raf = 0
-    const draw = () => {
-      if (stop) return
+    const paint = () => {
       const W = v.videoWidth, H = v.videoHeight
       if (W && H) {
         if (c.width !== W || c.height !== H) { c.width = W; c.height = H }
@@ -733,11 +739,19 @@ function StereoLayer({ video, rect, mode, out }: { video: React.RefObject<HTMLVi
           ctx.filter = 'none'
         }
       }
+    }
+    const draw = () => {
+      if (stop) return
+      paint()
       const rvfc = (v as any).requestVideoFrameCallback
       if (typeof rvfc === 'function') rvfc.call(v, draw); else raf = requestAnimationFrame(draw)
     }
     draw()
-    return () => { stop = true; cancelAnimationFrame(raf) }
+    // New frames arrive only while playing; a paused or seeked video is
+    // painted once, so switching modes never leaves the picture blank.
+    const evs = ['seeked', 'loadeddata', 'pause'] as const
+    evs.forEach((e) => v.addEventListener(e, paint))
+    return () => { stop = true; cancelAnimationFrame(raf); evs.forEach((e) => v.removeEventListener(e, paint)) }
   }, [video, mode, out])
   return (
     <>

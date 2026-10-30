@@ -30,13 +30,37 @@ var (
 	spacersRe = regexp.MustCompile(`[._]+`)
 	wsRe      = regexp.MustCompile(`\s+`)
 	articles  = []string{"the ", "a ", "an "}
+	// A catalogue number stuck to the title: "8707Dr.Seuss" is "Dr.Seuss".
+	catalogRe = regexp.MustCompile(`^\d{3,}([A-Z][a-z])`)
 )
 
+// isFileExt reports whether ext is the extension of a file a library holds
+// (callers often pass a name without one, and "Dr.Seuss.The.Lorax" must keep
+// its last word).
+func isFileExt(ext string) bool {
+	e := strings.ToLower(ext)
+	_, book := bookExts[e]
+	return videoExts[e] || audioExts[e] || book || e == ".iso" || e == ".img"
+}
+
 // ParseName guesses title and year from a file or folder name.
-func ParseName(name string) (title string, year *int) {
-	n := strings.TrimSuffix(name, filepath.Ext(name))
-	if strings.EqualFold(filepath.Ext(name), ".iso") || strings.EqualFold(filepath.Ext(name), ".img") {
+func ParseName(name string) (title string, year *int) { return parseName(name, true) }
+
+// legacyTitle is what ParseName made of a scanned name before it kept dotted
+// last words and dropped catalogue numbers, so titles it got wrong can be
+// recognised and corrected (and titles someone typed are left alone).
+func legacyTitle(base string) string {
+	t, _ := parseName(strings.TrimSuffix(base, filepath.Ext(base)), false)
+	return t
+}
+
+func parseName(name string, catalog bool) (title string, year *int) {
+	n := name
+	if isFileExt(filepath.Ext(name)) {
 		n = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	if catalog {
+		n = catalogRe.ReplaceAllString(n, "$1")
 	}
 	if m := yearRe.FindStringSubmatch(n); m != nil && strings.TrimSpace(m[1]) != "" {
 		y, _ := strconv.Atoi(m[2])
@@ -49,6 +73,9 @@ func ParseName(name string) (title string, year *int) {
 	n = wsRe.ReplaceAllString(n, " ")
 	if n == "" {
 		n = strings.TrimSuffix(name, filepath.Ext(name))
+		if !isFileExt(filepath.Ext(name)) {
+			n = name
+		}
 	}
 	// DVD rips are often ALL CAPS volume labels.
 	if n == strings.ToUpper(n) && len(n) > 3 {

@@ -123,9 +123,9 @@ export function Controls({ video, duration, chapters = [], chapterNames, onSeek,
         </div>
       )}
       <div className="ctl">
-        {onPrev && <button className="ibtn" onClick={onPrev} title="Previous chapter"><IconPrev /></button>}
+        {onPrev && <button className="ibtn chap-step" onClick={onPrev} title="Previous chapter"><IconPrev /></button>}
         <button className="ibtn big" onClick={toggle} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
-        {onNext && <button className="ibtn" onClick={onNext} title="Next chapter"><IconNext /></button>}
+        {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next chapter"><IconNext /></button>}
         <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute">{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
         <input className="hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume"
           onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ width: 90, accentColor: 'var(--accent)' }} />

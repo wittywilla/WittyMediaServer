@@ -577,6 +577,11 @@ func (s *Store) SetItemPrefs(ctx context.Context, id int64, playMode, insertFX s
 // UpdateItemMeta applies user edits.
 func (s *Store) UpdateItem(ctx context.Context, it *Item) error { return s.upsertItem(ctx, it) }
 
+func (s *Store) retitle(ctx context.Context, id int64, title string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE items SET title = ?, sort_title = ?, updated_at = ? WHERE id = ?`, title, SortTitle(title), db.Now(), id)
+	return err
+}
+
 func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[string]bool) error {
 	rows, err := s.DB.QueryContext(ctx, `SELECT id, path FROM items WHERE library_id = ?`, libraryID)
 	if err != nil {

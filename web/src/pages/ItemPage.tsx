@@ -45,7 +45,11 @@ export default function ItemPage() {
       </div>
       <div className="detail">
         <div>
-          <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')}>{it.poster && <img src={posterUrl(it)} alt="" />}</div>
+          <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')}>
+            {/* A frame from the video: shown whole over a blurred fill of itself. */}
+            {it.poster && isGeneratedArt(it) && <div className="blur" style={{ backgroundImage: `url(${posterUrl(it)})` }} />}
+            {it.poster && <img src={posterUrl(it)} alt="" />}
+          </div>
         </div>
         <div>
           {it.showId != null && (
@@ -75,10 +79,14 @@ export default function ItemPage() {
                 ? <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`)}><IconPlay /> Resume from {fmtTime(resume.positionSec)}</button>
                 : <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&start=0`)}><IconPlay /> Play movie</button>}
               {it.disc?.hasMenus && <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=menu`)}><IconMenu /> Main menu</button>}
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setDiscSettings(true)} title="Disc settings"><IconSettings /> Disc settings</button>}
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
-              {user?.isAdmin && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
+              {user?.isAdmin && (
+                <div className="admin-tools" role="group" aria-label="Manage">
+                  <button className="btn ghost square" onClick={() => setDiscSettings(true)} title="Disc settings" aria-label="Disc settings"><IconSettings /></button>
+                  <button className="btn ghost square" onClick={() => setArt(true)} title="Artwork" aria-label="Artwork"><IconImage /></button>
+                  <button className="btn ghost square" onClick={() => setEdit(true)} title="Edit details" aria-label="Edit details"><IconEdit /></button>
+                  <button className="btn ghost square" onClick={refresh} title="Refresh details from TMDB" aria-label="Refresh details"><IconRefresh /></button>
+                </div>
+              )}
               <div className="disc-hint muted">Insert {discName(it)} starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
             </div>
           ) : (
@@ -100,9 +108,9 @@ export default function ItemPage() {
               shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
             </p>
           )}
-          {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'} and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
+          {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'}, so it can't be played. Make a decrypted image of the disc you own with a tool that is legal where you live, then rescan.</div>}
           <div className="facts">
-            {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
+            {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
             {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
             {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
             <div className="fact"><div className="k">Source</div><div className="v">{disc ? `${discName(it)} ${it.kind.endsWith('-iso') ? 'image' : 'folder'}` : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>

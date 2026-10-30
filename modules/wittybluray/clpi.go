@@ -48,6 +48,8 @@ type ClipStream struct {
 	Rate   int
 	Aspect int // video: 2 = 4:3, 3 = 16:9
 	Lang   string
+	// HEVC video: DynamicRange 0 = SDR, 1 = HDR10, 2 = Dolby Vision; ColorSpace 1 = BT.709, 2 = BT.2020.
+	DynamicRange, ColorSpace int
 }
 
 // EPMap maps presentation times to source packet numbers for one stream.
@@ -164,6 +166,9 @@ func ParseClip(name string, b []byte) (*Clip, error) {
 			case 0x01, 0x02, 0x1b, 0x20, 0x24, 0xea:
 				s.Format, s.Rate = int(r.u8(a)>>4), int(r.u8(a)&15)
 				s.Aspect = int(r.u8(a+1) >> 4)
+				if s.Coding == 0x24 && l >= 5 {
+					s.DynamicRange, s.ColorSpace = int(r.u8(a+2)>>4), int(r.u8(a+2)&15)
+				}
 			case 0x03, 0x04, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0xa1, 0xa2:
 				s.Format, s.Rate = int(r.u8(a)>>4), int(r.u8(a)&15)
 				s.Lang = r.str(a+1, 3)

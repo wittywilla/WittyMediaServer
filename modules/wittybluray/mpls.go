@@ -81,6 +81,10 @@ type Stream struct {
 	Rate      int  // video frame rate (see Index.FrameRate); audio: 1 48 kHz, 4 96 kHz, 5 192 kHz, 12 48/192, 14 48/96
 	Lang      string
 	CharCode  int // text subtitles: character coding
+	// UHD (HEVC) video: DynamicRange 0 = SDR, 1 = HDR10, 2 = Dolby Vision; ColorSpace 1 = BT.709, 2 = BT.2020; HDR10Plus when the stream carries HDR10+ metadata.
+	DynamicRange int
+	ColorSpace   int
+	HDR10Plus    bool
 }
 
 // CodingName is a readable name for the stream's coding.
@@ -314,6 +318,10 @@ func parseStream(r *rd, o int, kind string) (Stream, int) {
 	switch s.Coding {
 	case 0x01, 0x02, 0x1b, 0x20, 0x24, 0xea:
 		s.Format, s.Rate = int(r.u8(a)>>4), int(r.u8(a)&15)
+		if s.Coding == 0x24 && al >= 4 {
+			s.DynamicRange, s.ColorSpace = int(r.u8(a+1)>>4), int(r.u8(a+1)&15)
+			s.HDR10Plus = r.u8(a+2)&0x40 != 0
+		}
 	case 0x03, 0x04, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0xa1, 0xa2:
 		s.Format, s.Rate = int(r.u8(a)>>4), int(r.u8(a)&15)
 		s.Lang = r.str(a+1, 3)

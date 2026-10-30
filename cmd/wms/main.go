@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	bdcli "github.com/wittywilla/wittybluray/cli"
 	"github.com/wittywilla/wittydvd/cli"
 )
 
@@ -16,6 +17,8 @@ func main() {
 			os.Exit(cli.Disc(os.Args[2:]))
 		case "dvd":
 			os.Exit(cli.DVD(os.Args[2:]))
+		case "bluray":
+			os.Exit(bdcli.Bluray(os.Args[2:]))
 		case "config":
 			os.Exit(cmdConfig(os.Args[2:]))
 		case "serve":
@@ -50,6 +53,9 @@ usage:
   wms dvd pgc <image> fp|vmgm|vtsm|vts <vts> <pgcn>
                              disassemble one program chain
   wms dvd render <image> <out-dir>
+  wms bluray info <disc>     Blu-ray titles, program, playlists, clips and streams
+  wms bluray walk <disc> [button…]  simulate inserting a Blu-ray and pressing menu buttons
+  wms bluray render <disc> <out-dir>  save a Blu-ray menu's pages as PNG files
                              write menu overlay/highlight PNGs for the first menu
   wms version`)
 }

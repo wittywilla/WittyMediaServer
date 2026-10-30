@@ -284,7 +284,7 @@ func (m *Menu) Rect(b *Button) image.Rectangle {
 }
 
 // Draw paints one button in a state into img (the menu's full frame).
-func (m *Menu) Draw(img *image.RGBA, page *Page, b *Button, state ButtonState) bool {
+func (m *Menu) Draw(img *image.NRGBA, page *Page, b *Button, state ButtonState) bool {
 	st := b.Normal
 	switch state {
 	case ButtonSelected:
@@ -312,8 +312,8 @@ func (m *Menu) Draw(img *image.RGBA, page *Page, b *Button, state ButtonState) b
 
 // Render draws a whole page with one button selected. Buttons are those
 // Visible returns; the result is transparent where there are no buttons.
-func (m *Menu) Render(page *Page, buttons []*Button, selected int) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, m.Width, m.Height))
+func (m *Menu) Render(page *Page, buttons []*Button, selected int) *image.NRGBA {
+	img := image.NewNRGBA(image.Rect(0, 0, m.Width, m.Height))
 	for _, b := range buttons {
 		state := ButtonNormal
 		if b.ID == selected {

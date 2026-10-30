@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
@@ -109,6 +110,7 @@ func cmdServe(args []string) int {
 	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
+	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 
 	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}
 	if err := themeMgr.Install(builtinthemes.Builtin); err != nil {
@@ -121,7 +123,7 @@ func cmdServe(args []string) int {
 	}
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
-		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
+		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,

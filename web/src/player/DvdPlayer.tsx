@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { api, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent } from '../api'
+import { api, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName, isBluray } from '../api'
 import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
 import { usePlayerChrome } from './chrome'
 import { Controls, useVideoState } from './Controls'
@@ -528,7 +528,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       <div className="sr-only" role="status" aria-live="polite">
         {pres?.kind === 'title' ? `Playing ${titleName}` : pres?.kind === 'menu' ? (inMenu ? `Disc menu, ${buttons.length} options. Use the arrow keys and Enter.` : 'Disc menu loading') : ''}
       </div>
-      {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} onDone={insertDone} sound={insertSound} />}
+      {inserting && !mini && <InsertDisc poster={item.poster ? posterUrl(item) : undefined} title={item.title} label={discName(item)} onDone={insertDone} sound={insertSound} />}
       {spin && !needClick && !inserting && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && !inserting && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {stopped && !mini && <div className="overlay-msg"><div className="box">Stopped · press Play to continue</div></div>}
@@ -543,7 +543,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       )}
 
       {mini ? (
-        <MiniBar item={item} subtitle={pres?.kind === 'title' ? titleName : 'DVD menu'} playing={st.playing} isTitle={pres?.kind === 'title'}
+        <MiniBar item={item} subtitle={pres?.kind === 'title' ? titleName : `${discName(item)} menu`} playing={st.playing} isTitle={pres?.kind === 'title'}
           onPlay={togglePlay} onPrev={() => onRemote('prev')} onNext={() => onRemote('next')}
           onMenu={rootMenu} onTitleMenu={titleMenu} onExpand={chrome.expand} onClose={chrome.close} />
       ) : (
@@ -552,7 +552,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             <button className="ibtn" onClick={back} title="Back (playback continues in the mini player)"><IconBack /></button>
             <div className="grow">
               <h2>{item.title}</h2>
-              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : 'DVD menu') : ''}</div>
+              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
             </div>
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
             <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
@@ -560,7 +560,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           </div>
           {prefs.remote && (prefs.remoteStyle === 'bar'
             ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} />
-            : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} />)}
+            : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={isBluray(item) ? 'WittyBluray' : 'WittyDVD'} />)}
           {pres?.kind === 'title' && (
             <Controls video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
               onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}

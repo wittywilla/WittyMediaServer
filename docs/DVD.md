@@ -140,7 +140,7 @@ When reporting a disc problem, attach the output of `info` and `crawl` — never
 - CSS-scrambled images are refused; make decrypted images of discs you own with a tool that is
   legal where you live.
 - Multi-angle scenes play the first angle (the *Angle* key is reserved).
-- Blu-ray discs are not supported yet.
+- Blu-ray discs have their own engine and page: [BLURAY.md](BLURAY.md).
 
 ---
 <sub>WittyMediaServer 0.2.0-alpha documentation</sub>

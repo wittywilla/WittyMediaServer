@@ -191,7 +191,7 @@ function Hero({ items }: { items: Home['featured'] }) {
         {it.overview && <p>{it.overview}</p>}
         <div className="actions">
           <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
-          {isDisc(it) && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}>DVD menu</button>}
+          {isDisc(it) && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}>Disc menu</button>}
           <Link className="btn ghost" to={`/item/${it.id}`}><IconInfo /> Details</Link>
         </div>
       </div>

@@ -73,7 +73,7 @@ function playDriveSounds() {
   return () => { clearTimeout(end); ctx.close().catch(() => {}) }
 }
 
-export default function InsertDisc({ poster, title, onDone, sound = true }: { poster?: string; title: string; onDone: () => void; sound?: boolean }) {
+export default function InsertDisc({ poster, title, onDone, sound = true, label = 'DVD' }: { poster?: string; title: string; onDone: () => void; sound?: boolean; label?: string }) {
   useEffect(() => {
     const stop = sound ? playDriveSounds() : () => {}
     const t = setTimeout(onDone, DURATION_MS)
@@ -100,7 +100,7 @@ export default function InsertDisc({ poster, title, onDone, sound = true }: { po
         <div className="front">
           <span className="slot" />
           <span className="led" />
-          <span className="front-label">DVD</span>
+          <span className="front-label">{label}</span>
           <span className="front-display">{'LOADING'}</span>
         </div>
       </div>

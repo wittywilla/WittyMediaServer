@@ -20,6 +20,7 @@ MIRRORS=(
   "apps/wittyreader            WittyReader"
   "modules/wittydvd            WittyDVD"
   "modules/wittydisc           WittyDisc"
+  "modules/wittybluray         WittyBluray"
 )
 
 # Publishes a folder's history to a branch without ever rewriting it: if the

@@ -15,7 +15,7 @@ import (
 type Subtitle struct {
 	Start, End uint32 // 45 kHz, in the clip's time base; End 0 = until the next
 	X, Y       int    // on the video frame
-	Image      *image.RGBA
+	Image      *image.NRGBA
 	Forced     bool // the disc wants it shown even with subtitles off (a translation of on-screen text)
 }
 
@@ -146,7 +146,7 @@ func compose(objs []compObject, windows []Window, p Palette, pics map[int]*Objec
 			return nil
 		}
 	}
-	img := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	img := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
 	for _, o := range objs {
 		pic := pics[o.object]
 		if pic == nil {

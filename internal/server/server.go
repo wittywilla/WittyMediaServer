@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
@@ -34,6 +35,7 @@ type Server struct {
 	Auth    *auth.Service
 	HLS     *hls.Manager
 	DVD     *dvdsession.Manager
+	BD      *bdsession.Manager
 	Themes  *themes.Manager
 	Web     fs.FS
 	Version string

@@ -1,7 +1,7 @@
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs } from '../api'
+import { api, backdropUrl, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
@@ -68,8 +68,8 @@ export default function ItemPage() {
           {disc ? (
             <div className="actions disc-actions">
               <button className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}
-                title={start === 'menu' ? 'Start the disc like a DVD player: first-play, intros, then the main menu' : 'Start the disc straight into the main feature'}>
-                <IconDisc /> Insert DVD
+                title={start === 'menu' ? `Start the disc like a ${discName(it)} player: first-play, intros, then the main menu` : 'Start the disc straight into the main feature'}>
+                <IconDisc /> Insert {discName(it)}
               </button>
               {resume
                 ? <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`)}><IconPlay /> Resume from {fmtTime(resume.positionSec)}</button>
@@ -79,7 +79,7 @@ export default function ItemPage() {
               {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
-              <div className="disc-hint muted">Insert DVD starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
+              <div className="disc-hint muted">Insert {discName(it)} starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
             </div>
           ) : (
             <div className="actions">
@@ -100,12 +100,12 @@ export default function ItemPage() {
               shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
             </p>
           )}
-          {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is CSS-scrambled and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
+          {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'} and cannot be played. Decrypt it (e.g. with MakeMKV or DVD Decrypter in ISO mode) and rescan.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {it.videoCodec?.toUpperCase()}{disc && main ? ` · ${main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
             {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
             {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
-            <div className="fact"><div className="k">Source</div><div className="v">{disc ? (it.kind === 'dvd-iso' ? 'DVD image' : 'DVD folder') : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
+            <div className="fact"><div className="k">Source</div><div className="v">{disc ? `${discName(it)} ${it.kind.endsWith('-iso') ? 'image' : 'folder'}` : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
             {disc && it.disc && <div className="fact"><div className="k">Disc</div><div className="v">{it.disc.label} · {it.disc.titles.length} titles{it.disc.hasMenus ? ' · menus' : ''}</div></div>}
             <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>
           </div>

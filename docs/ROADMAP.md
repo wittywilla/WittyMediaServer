@@ -7,9 +7,12 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 
 - [x] **WittyDVD as its own Go module** (`modules/wittydvd`, mirrored to its repository), with the
   `wittydvd` command-line tool.
-- [ ] **WittyBluray engine:** play Blu-ray images with their menus, with feature parity to
-  WittyDVD, including the 3D disc (The Polar Express 3D). Own Go module and repository, with a
-  `wittybluray` tool. Extensive documentation.
+- [x] **WittyBluray engine** (`modules/wittybluray`, mirrored to its repository, with the
+  `wittybluray` tool and [BLURAY.md](BLURAY.md)): images and folders, menus, titles, chapters,
+  audio, subtitles, resume, AACS/BD-J/3D detection, 4K and HDR flags with tone mapping.
+  Still to do: pop-up menus during the film, menu animations, 3D viewing modes for
+  side-by-side/over-under video, and a test on a real UHD HDR disc.
+- [x] **WittyDisc** (`modules/wittydisc`): the disc image reader both engines share.
 - [ ] **DVD playback sometimes stuck on the first warning screen** (Shrek 2): confirm fixed, or
   fix.
 - [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.

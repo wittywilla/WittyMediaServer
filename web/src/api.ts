@@ -20,7 +20,7 @@ export type DiscTitle = {
 export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean }
 export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number }
 export type Item = {
-  id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | string; path: string
+  id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | 'bluray-iso' | 'bluray-folder' | string; path: string
   title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
   rating: number | null; contentRating: string; studio: string; runtimeSec: number
   poster: string; backdrop: string; container: string; videoCodec: string; width: number; height: number
@@ -162,7 +162,10 @@ export function fmtRuntime(sec: number): string {
   return h > 0 ? `${h} h ${m} min` : `${m} min`
 }
 
-export const isDisc = (it: Item) => it.kind === 'dvd-iso' || it.kind === 'dvd-folder'
+export const isDisc = (it: Item) => it.kind === 'dvd-iso' || it.kind === 'dvd-folder' || it.kind === 'bluray-iso' || it.kind === 'bluray-folder'
+export const isBluray = (it: Item) => it.kind === 'bluray-iso' || it.kind === 'bluray-folder'
+// The kind of disc, for labels: "DVD" or "Blu-ray".
+export const discName = (it: Item) => (isBluray(it) ? 'Blu-ray' : 'DVD')
 
 const LANGS: Record<string, string> = {
   en: 'English', nl: 'Dutch', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ja: 'Japanese',

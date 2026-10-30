@@ -98,7 +98,7 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
     <KeyCtx.Provider value={{ enabled, press, pressed }}>
     <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label={label + ' remote'}>
       <div className="remote-head" onPointerDown={startDrag}>
-        <B k="eject" cls="round red" tip={label === 'WittyDVD' ? 'Eject the DVD' : 'Stop and close'}><IconEject size={16} /></B>
+        <B k="eject" cls="round red" tip={label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close'}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
         <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}>{'\u25d0'}</button>
         <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
@@ -187,7 +187,7 @@ export function RemoteBar({ onKey, enabled, disc = true }: { onKey: (k: RemoteKe
       <span className="rb-digits hide-narrow">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={`Button or chapter ${d}`}>{d}</BarKey>)}
       </span>
-      <BarKey k="eject" label={disc ? 'Eject the DVD' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
+      <BarKey k="eject" label={disc ? 'Eject the disc' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
     </div>
     </KeyCtx.Provider>
   )

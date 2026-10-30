@@ -152,6 +152,39 @@ func (n *Nav) PlayTitle(t int) *Step {
 	return n.jumpTitle(t)
 }
 
+// PlayPlaylist plays a playlist directly, outside the disc's program: for
+// "play the movie" from a library, and for discs whose program needs BD-J.
+// When the playlist ends, nothing follows (PlaylistEnded stops).
+func (n *Nav) PlayPlaylist(pl *Playlist, item int, t uint32) *Step {
+	n.st.obj = -1
+	n.st.resume = nil
+	for _, ti := range n.d.Index.Titles {
+		if ti.Object.Kind == ObjectHDMV && n.playsPlaylist(ti.Object.MovieObject, pl.Number) {
+			n.st.title = ti.Number
+			n.st.regs.PSR[PSRTitle] = uint32(ti.Number)
+			break
+		}
+	}
+	if item < 0 || item >= len(pl.Items) {
+		item = 0
+	}
+	return n.playStep(pl, item, t, "")
+}
+
+// playsPlaylist says whether a movie object's commands name the playlist.
+func (n *Nav) playsPlaylist(obj, playlist int) bool {
+	if obj < 0 || obj >= len(n.d.MovieObjects) {
+		return false
+	}
+	for _, c := range n.d.MovieObjects[obj].Commands {
+		in := Decode(c)
+		if in.Group == GroupBranch && in.Sub == 2 && in.Opt <= 2 && in.ImmDst && int(in.Dst) == playlist {
+			return true
+		}
+	}
+	return false
+}
+
 // SetTime tells the navigator where playback is, for resume and the disc's
 // own program (PSR8).
 func (n *Nav) SetTime(item int, t uint32) {

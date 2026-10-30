@@ -52,6 +52,12 @@ var menuLabels = map[string]string{
 
 // GET /api/items/{id}/disc
 func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
+	if id, ok := pathInt(r, "id"); ok {
+		if it, err := s.visibleItem(r, id); err == nil && isBluray(it) {
+			s.handleDiscBluray(w, r, it)
+			return
+		}
+	}
 	it, o, ok := s.openDisc(w, r)
 	if !ok {
 		return
@@ -177,7 +183,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 	ttn, _ := strconv.Atoi(r.PathValue("ttn"))
 	n, _ := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".jpg"))
 	it, err := s.visibleItem(r, id)
-	if err != nil || (it.Kind != "dvd-iso" && it.Kind != "dvd-folder") {
+	if err != nil || !isDiscKind(it) {
 		writeErr(w, 404, "disc not found")
 		return
 	}
@@ -207,6 +213,9 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int, out string) error {
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return nil // made by a parallel request
+	}
+	if isBluray(it) {
+		return s.makeBlurayThumb(ctx, it, ttn, n, out)
 	}
 	o, err := wittydvd.Open(it.Path)
 	if err != nil {

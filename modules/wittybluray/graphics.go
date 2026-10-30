@@ -184,7 +184,7 @@ func decodeRLE(data []byte, w, h int) ([]byte, error) {
 
 // draw paints an object with a palette into img at (x, y), cropped to the
 // object's crop rectangle when cw > 0.
-func draw(img *image.RGBA, o *Object, p *Palette, x, y, cx, cy, cw, ch int) {
+func draw(img *image.NRGBA, o *Object, p *Palette, x, y, cx, cy, cw, ch int) {
 	if cw <= 0 || ch <= 0 {
 		cx, cy, cw, ch = 0, 0, o.Width, o.Height
 	}

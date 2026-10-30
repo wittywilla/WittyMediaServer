@@ -1,12 +1,33 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 )
+
+// Disc sessions: DVDs (WittyDVD) and Blu-rays (WittyBluray) present the
+// same way, so the player, the remote and these endpoints serve both. A
+// session id starting with "bd" belongs to the Blu-ray manager.
+
+// discSession is what the endpoints need from either kind of session.
+type discSession interface {
+	Current() *dvdsession.Presentation
+	Do(ctx context.Context, a dvdsession.Action) *dvdsession.Presentation
+	OverlayPNG(serial int) ([]byte, bool)
+	HighlightPNG(serial, n int) ([]byte, bool)
+	StillPath(name string) (string, bool)
+	Subtitles(ttn, n int, from, to float64) ([]dvdsession.SubEvent, error)
+	SubPNG(name string) ([]byte, bool)
+}
+
+func isDVD(it *library.Item) bool      { return it.Kind == "dvd-iso" || it.Kind == "dvd-folder" }
+func isBluray(it *library.Item) bool   { return it.Kind == "bluray-iso" || it.Kind == "bluray-folder" }
+func isDiscKind(it *library.Item) bool { return isDVD(it) || isBluray(it) }
 
 func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
@@ -19,8 +40,8 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "item not found")
 		return
 	}
-	if it.Kind != "dvd-iso" && it.Kind != "dvd-folder" {
-		writeErr(w, 400, "not a DVD")
+	if !isDiscKind(it) {
+		writeErr(w, 400, "not a disc")
 		return
 	}
 	var b struct {
@@ -50,6 +71,28 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	if b.Wide != nil {
 		prefs.Wide = *b.Wide
 	}
+	ttn := b.TTN
+	if ttn == 0 && it.Disc != nil {
+		ttn = it.Disc.MainTitle
+	}
+	if isBluray(it) {
+		sess, err := s.BD.Open(it.ID, it.Path, prefs)
+		if err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		var p *dvdsession.Presentation
+		switch {
+		case b.Mode == "title":
+			p = sess.PlayTitle(r.Context(), ttn, b.Chapter)
+		case b.Menu != "":
+			p = sess.OpenMenu(r.Context(), b.Menu, b.MenuVTS)
+		default:
+			p = sess.Start(r.Context())
+		}
+		writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": p, "stereo3d": sess.Stereo3D()})
+		return
+	}
 	sess, err := s.DVD.Open(it.ID, it.Path, prefs)
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -57,10 +100,6 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	var p *dvdsession.Presentation
 	if b.Mode == "title" {
-		ttn := b.TTN
-		if ttn == 0 && it.Disc != nil {
-			ttn = it.Disc.MainTitle
-		}
 		if ttn == 0 {
 			ttn = 1
 		}
@@ -82,10 +121,18 @@ func firstNonEmpty(v ...string) string {
 	return ""
 }
 
-func (s *Server) dvdSession(w http.ResponseWriter, r *http.Request) *dvdsession.Session {
-	sess := s.DVD.Get(r.PathValue("sid"))
+func (s *Server) dvdSession(w http.ResponseWriter, r *http.Request) discSession {
+	sid := r.PathValue("sid")
+	if strings.HasPrefix(sid, "bd") {
+		if sess := s.BD.Get(sid); sess != nil {
+			return sess
+		}
+		writeErr(w, 404, "disc session expired; open it again")
+		return nil
+	}
+	sess := s.DVD.Get(sid)
 	if sess == nil {
-		writeErr(w, 404, "DVD session expired; open it again")
+		writeErr(w, 404, "disc session expired; open it again")
 		return nil
 	}
 	return sess
@@ -96,7 +143,7 @@ func (s *Server) handleDVDGet(w http.ResponseWriter, r *http.Request) {
 	if sess == nil {
 		return
 	}
-	writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": sess.Current()})
+	writeJSON(w, 200, map[string]any{"sessionId": r.PathValue("sid"), "presentation": sess.Current()})
 }
 
 func (s *Server) handleDVDAction(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +157,16 @@ func (s *Server) handleDVDAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := sess.Do(r.Context(), a)
-	writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": p})
+	writeJSON(w, 200, map[string]any{"sessionId": r.PathValue("sid"), "presentation": p})
 }
 
 func (s *Server) handleDVDClose(w http.ResponseWriter, r *http.Request) {
-	s.DVD.CloseSession(r.PathValue("sid"))
+	sid := r.PathValue("sid")
+	if strings.HasPrefix(sid, "bd") {
+		s.BD.CloseSession(sid)
+	} else {
+		s.DVD.CloseSession(sid)
+	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

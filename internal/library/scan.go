@@ -145,6 +145,14 @@ func discover(root string) ([]candidate, error) {
 			if strings.EqualFold(name, "VIDEO_TS") {
 				return filepath.SkipDir
 			}
+			if _, err := os.Stat(filepath.Join(p, "BDMV", "index.bdmv")); err == nil {
+				st, _ := d.Info()
+				out = append(out, candidate{path: p, kind: "bluray-folder", mtime: st.ModTime().Unix()})
+				return filepath.SkipDir
+			}
+			if strings.EqualFold(name, "BDMV") {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		ext := strings.ToLower(filepath.Ext(name))
@@ -240,13 +248,13 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	}
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	dir := filepath.Dir(c.path)
-	if c.kind == "dvd-folder" {
+	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
 		base = filepath.Base(c.path)
 		dir = c.path
 	}
 	it.Title, it.Year = ParseName(base)
 	// Folder name is often better than "VIDEO_TS"/"movie.mkv".
-	if parentTitle, parentYear := ParseName(filepath.Base(filepath.Dir(c.path))); c.kind != "dvd-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
+	if parentTitle, parentYear := ParseName(filepath.Base(filepath.Dir(c.path))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
 
@@ -260,7 +268,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 
 	// Sidecars.
 	it.Poster, it.Backdrop = localArtwork(dir, base)
-	if c.kind == "dvd-folder" {
+	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
 		p2, b2 := localArtwork(filepath.Dir(c.path), filepath.Base(c.path))
 		if it.Poster == "" {
 			it.Poster = p2
@@ -358,7 +366,10 @@ func orUnd(s string) string {
 func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 	o, err := wittydvd.Open(it.Path)
 	if err != nil {
-		// Not a DVD-Video image: fall back to probing it as a plain file.
+		if s.probeBluray(ctx, it) {
+			return
+		}
+		// Not a video disc: fall back to probing it as a plain file.
 		if _, e2 := isofs.Open(it.Path); e2 == nil {
 			it.Kind = "unsupported-disc"
 		} else {
@@ -441,6 +452,11 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 	switch it.Kind {
 	case "video":
 		input = []string{"-i", it.Path}
+	case "bluray-iso", "bluray-folder":
+		var err error
+		if input, at, err = s.blurayThumbInput(it, h); err != nil {
+			return "", err
+		}
 	default:
 		o, err := wittydvd.Open(it.Path)
 		if err != nil {

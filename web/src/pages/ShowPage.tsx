@@ -28,7 +28,7 @@ export default function ShowPage() {
   const season = seasonParam != null ? Number(seasonParam) : (episodes.find((e) => e.id === d.nextUpId)?.season ?? seasons.find((s) => s.number > 0)?.number ?? seasons[0]?.number ?? 0)
   const eps = episodes.filter((e) => (e.season ?? -1) === season || (season === -1 && e.season == null))
   const next = episodes.find((e) => e.id === d.nextUpId)
-  const nextResume = next?.progress && !next.progress.watched && next.progress.positionSec > 60 ? next.progress : null
+  const nextResume = next?.progress?.resumeSec ? next.progress : null
   const refresh = async () => {
     try { await api.put(`/shows/${show.id}`, { refresh: true }); await load(); toast('Updated from TheTVDB') } catch (e: any) { toast(e.message) }
   }
@@ -114,12 +114,12 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
       <tbody>
         {eps.map((e) => {
           const p = e.progress
-          const state = p?.watched ? '\u2713' : p && p.positionSec > 60 ? fmtTime(p.positionSec) : ''
+          const state = p?.watched ? '\u2713' : p?.resumeSec ? fmtTime(p.positionSec) : ''
           return (
             <tr key={e.id} onClick={() => nav(`/item/${e.id}`)}>
               <td className="thumb-cell">{e.poster ? <img src={posterUrl(e)} alt="" loading="lazy" /> : <span />}</td>
               <td className="num">{episodeLabel(e).replace(/^S\d+ \u00b7 /, '') || '\u2013'}</td>
-              <td>{e.title}</td>
+              <td><Link to={`/item/${e.id}`} onClick={(ev) => ev.stopPropagation()} style={{ color: 'inherit' }}>{e.title}</Link></td>
               <td className="muted">{e.aired || ''}</td>
               <td>{e.runtimeSec ? fmtTime(e.runtimeSec) : ''}</td>
               <td className="muted">{state}</td>
@@ -137,13 +137,13 @@ function EpisodeRow({ ep }: { ep: Item }) {
   const pct = ep.progress && ep.progress.durationSec > 0 && !ep.progress.watched ? Math.min(100, (ep.progress.positionSec / ep.progress.durationSec) * 100) : 0
   return (
     <div className="episode" onClick={() => nav(`/item/${ep.id}`)}>
-      <div className="thumb" onClick={(e) => { e.stopPropagation(); nav(`/play/${ep.id}`) }}>
+      <div className="thumb" role="button" tabIndex={0} aria-label={`Play ${ep.title}`} onClick={(e) => { e.stopPropagation(); nav(`/play/${ep.id}`) }}>
         {ep.poster && <img src={posterUrl(ep)} alt="" loading="lazy" />}
         <div className="play"><span><IconPlay /></span></div>
         {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}
         {ep.progress?.watched && <span className="badge" style={{ left: 'auto', right: 6 }}>✓</span>}
       </div>
-      <div className="info">
+      <div className="info" role="link" tabIndex={0}>
         <div className="t"><span className="num">{episodeLabel(ep)}</span> {ep.title}</div>
         <div className="sub">{[ep.aired, fmtRuntime(ep.runtimeSec)].filter(Boolean).join(' · ')}</div>
         {ep.overview && <p>{ep.overview}</p>}

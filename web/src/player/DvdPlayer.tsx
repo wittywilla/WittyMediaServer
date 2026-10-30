@@ -9,6 +9,7 @@ import Remote, { RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { discMemory, rememberDisc, useViewPrefs } from './viewPrefs'
+import { focusPlayerControls } from '../tv'
 
 type Props = {
   item: Item; mode: 'menu' | 'title'; ttn?: number; chapter?: number; startAt: number | null; insert?: boolean
@@ -73,7 +74,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   useEffect(() => {
     if (!insert) return
     let cancelled = false
-    getPrefs().then((p) => { if (!cancelled && insertFxOn(item, p)) { holdPlay.current = true; setInsertSound(p.insertSound !== false); setInserting(true) } })
+    getPrefs().then((p) => { if (!cancelled && insertFxOn(item)) { holdPlay.current = true; setInsertSound(p.insertSound !== false); setInserting(true) } })
     return () => { cancelled = true }
   }, [insert, item])
   const insertDone = useCallback(() => {
@@ -158,8 +159,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       if (v && Math.abs(v.currentTime - p.title.startSec) > 1.5) v.currentTime = p.title.startSec
     }
     if (p.kind === 'title') {
-      if (!resumeUsed.current && startAt == null && item.progress && !item.progress.watched && item.progress.positionSec > 60 && item.progress.discTitle === p.title?.ttn) {
-        pendingSeek.current = item.progress.positionSec
+      if (!resumeUsed.current && startAt == null && item.progress?.resumeSec && item.progress.discTitle === p.title?.ttn) {
+        pendingSeek.current = item.progress.resumeSec
       } else if (resumeUsed.current || pendingSeek.current == null) {
         pendingSeek.current = p.title?.startSec || 0
       }
@@ -366,7 +367,13 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     const cur = buttons.find((b) => b.n === selected) || buttons[0]
     const next = cur ? (cur as DvdButton)[dir] : 0
     const target = buttons.find((b) => b.n === next)
-    if (!target || target.n === cur.n) return
+    if (!target || target.n === cur.n) {
+      // Past the disc's own buttons: on to the player's (a remote has no other
+      // way to reach Play movie or Resume). Up or down from there comes back.
+      if (dir === 'up') focusPlayerControls('top')
+      else if (dir === 'down') focusPlayerControls()
+      return
+    }
     if (target.auto) { pressButton(target.n); return }
     setSelected(target.n)
     selectQuiet(target.n)
@@ -471,6 +478,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     }
   }
 
+  // The picture and the disc's menus have the arrow keys until the viewer goes
+  // to the controls.
+  useEffect(() => { if (!mini) root.current?.focus({ preventScroll: true }) }, [mini, root])
+
   // Keyboard and TV remotes. Not while minimized: the app owns the keys then.
   useEffect(() => {
     if (mini) return
@@ -487,7 +498,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           if (inMenu) { e.preventDefault(); move(e.key.replace('Arrow', '').toLowerCase() as any) }
           else if (v && pres?.kind === 'title' && !(e.target as HTMLElement)?.closest?.('.bottom, .top, .remote')) {
             e.preventDefault(); if (e.key === 'ArrowRight') v.currentTime += 10; if (e.key === 'ArrowLeft') v.currentTime -= 10
+            if (e.key === 'ArrowDown') focusPlayerControls()
+            if (e.key === 'ArrowUp') focusPlayerControls('top')
           }
+          // A menu still loading, a warning screen: nothing to choose yet.
+          else if (e.key === 'ArrowDown') focusPlayerControls()
+          else if (e.key === 'ArrowUp') focusPlayerControls('top')
           break
         case 'Enter': if (inMenu) { e.preventDefault(); pressButton(selected) } break
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); togglePlay(); break

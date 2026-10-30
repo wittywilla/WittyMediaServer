@@ -27,7 +27,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const [sub, setSub] = useState(-1)
   const [err, setErr] = useState('')
   const [needClick, setNeedClick] = useState(false)
-  const pendingSeek = useRef<number | null>(startAt ?? (item.progress && !item.progress.watched && item.progress.positionSec > 60 ? item.progress.positionSec : 0))
+  const pendingSeek = useRef<number | null>(startAt ?? item.progress?.resumeSec ?? 0)
   const st = useVideoState(video)
   const remoteOn = prefs.remote
   const setRemoteOn = (on: boolean) => view.update({ remote: on }, view.scope)
@@ -95,6 +95,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     window.addEventListener('beforeunload', send)
     return () => { clearInterval(t); window.removeEventListener('beforeunload', send); send() }
   }, [item.id, info])
+
+  // The picture has the arrow keys until the viewer goes to the controls.
+  useEffect(() => { if (!mini) root.current?.focus({ preventScroll: true }) }, [mini, root])
 
   // Keyboard and TV remotes (not while minimized: the app owns the keys then).
   useEffect(() => {

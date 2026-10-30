@@ -93,6 +93,7 @@ type Stream struct {
 	ID          string            `json:"id"`
 	CodecType   string            `json:"codec_type"`
 	CodecName   string            `json:"codec_name"`
+	PixFmt      string            `json:"pix_fmt"`
 	Width       int               `json:"width"`
 	Height      int               `json:"height"`
 	Channels    int               `json:"channels"`
@@ -168,6 +169,11 @@ func FileInput(path string) []string {
 // ProbeFile runs ffprobe on a regular media file.
 func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
 	return t.probe(ctx, FileInput(path))
+}
+
+// ProbeInput runs ffprobe on input options built by the caller (a TV stream).
+func (t *Tools) ProbeInput(ctx context.Context, input []string) (*Probe, error) {
+	return t.probe(ctx, input)
 }
 
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {

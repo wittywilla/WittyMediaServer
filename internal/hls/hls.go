@@ -82,6 +82,7 @@ type Manager struct {
 	mu      sync.Mutex
 	session map[string]*Session
 	max     int
+	live    liveRegistry
 }
 
 func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {

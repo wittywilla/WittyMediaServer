@@ -36,6 +36,10 @@ type Show struct {
 	IntroEnd   *float64 `json:"introEnd,omitempty"`
 	// View is this show's episode layout: cards | list | "" (server default).
 	View string `json:"view"`
+	// The slot it aired in, set from metadata and saved with the show.
+	// nil = not looked up by this save.
+	airDays []string
+	airTime *string
 	// Aggregates (per user for Unwatched):
 	EpisodeCount int   `json:"episodeCount"`
 	SeasonCount  int   `json:"seasonCount"`
@@ -204,13 +208,25 @@ func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
 		}
 		sh.ID, _ = res.LastInsertId()
 		sh.AddedAt, sh.UpdatedAt = now, now
-		return nil
+		return s.saveAirSlot(ctx, sh)
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE shows SET title=?, sort_title=?, year=?, overview=?, genres=?, rating=?, content_rating=?,
 		network=?, status=?, poster=?, backdrop=?, provider=?, provider_id=?, updated_at=?, missing=0, intro_start=?, intro_end=?, min_age=? WHERE id=?`,
 		sh.Title, sh.SortTitle, sh.Year, sh.Overview, joinList(sh.Genres), sh.Rating, sh.ContentRating,
 		sh.Network, sh.Status, sh.Poster, sh.Backdrop, sh.Provider, sh.ProviderID, now, sh.IntroStart, sh.IntroEnd, AgeFor(sh.ContentRating), sh.ID)
 	sh.UpdatedAt = now
+	if err != nil {
+		return err
+	}
+	return s.saveAirSlot(ctx, sh)
+}
+
+// saveAirSlot stores the slot a show aired in, when metadata has just said.
+func (s *Store) saveAirSlot(ctx context.Context, sh *Show) error {
+	if sh.airTime == nil {
+		return nil
+	}
+	_, err := s.DB.ExecContext(ctx, `UPDATE shows SET air_days = ?, air_time = ? WHERE id = ?`, joinList(sh.airDays), *sh.airTime, sh.ID)
 	return err
 }
 

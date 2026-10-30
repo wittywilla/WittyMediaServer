@@ -60,6 +60,9 @@ type SeriesMeta struct {
 	Poster        string
 	Backdrop      string
 	SeasonPosters map[int]string
+	// The slot it aired in, where the service knows: weekday names and HH:MM.
+	AirDays []string
+	AirTime string
 	// All posters/backgrounds, best first (for the artwork picker).
 	Posters   []string
 	Backdrops []string
@@ -282,13 +285,15 @@ func (t *TVDB) FindSeries(ctx context.Context, name string, year *int) (*SeriesM
 func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 	var out struct {
 		Data struct {
-			ID         flexString `json:"id"`
-			Name       string     `json:"name"`
-			Overview   *string    `json:"overview"`
-			Image      string     `json:"image"`
-			Year       flexString `json:"year"`
-			FirstAired string     `json:"firstAired"`
-			Score      float64    `json:"score"`
+			ID         flexString      `json:"id"`
+			Name       string          `json:"name"`
+			Overview   *string         `json:"overview"`
+			Image      string          `json:"image"`
+			Year       flexString      `json:"year"`
+			FirstAired string          `json:"firstAired"`
+			Score      float64         `json:"score"`
+			AirsTime   string          `json:"airsTime"`
+			AirsDays   map[string]bool `json:"airsDays"`
 			Status     *struct {
 				Name string `json:"name"`
 			} `json:"status"`
@@ -340,6 +345,12 @@ func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 		m.Network = d.OriginalNetwork.Name
 	} else if d.LatestNetwork != nil {
 		m.Network = d.LatestNetwork.Name
+	}
+	m.AirTime = d.AirsTime
+	for _, day := range []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"} {
+		if d.AirsDays[day] {
+			m.AirDays = append(m.AirDays, day)
+		}
 	}
 	for _, g := range d.Genres {
 		m.Genres = append(m.Genres, g.Name)

@@ -16,12 +16,14 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/channels"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -43,6 +45,9 @@ type Server struct {
 	Version string
 	Logs    *logging.Logger
 	Update  *update.Updater // nil: this build can't update itself
+	// Channels and Live TV (see api_channels.go, api_tuners.go).
+	Channels *channels.Store
+	TV       *livetv.Manager
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -171,6 +176,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+
+	s.channelRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

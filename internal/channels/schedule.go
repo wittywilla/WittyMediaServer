@@ -505,11 +505,11 @@ func (g *generator) fill(seg segment, t int64) int64 {
 		end := t + e.Dur
 		if end > seg.end && !seg.soft {
 			switch {
+			case fit == "cut":
+				end = seg.end
 			case fit == "overrun" || e.Dur > blockLen:
 				// A programme longer than the whole block has nowhere else
 				// to go; refusing it would leave the block stuck on it.
-			case fit == "cut":
-				end = seg.end
 			default:
 				alt := p.fitting(seg.end - t)
 				if alt == nil {

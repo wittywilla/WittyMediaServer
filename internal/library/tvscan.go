@@ -342,6 +342,8 @@ func applySeriesMeta(sh *Show, provider string, m *SeriesMeta, keepText, force b
 	if m.Status != "" {
 		sh.Status = m.Status
 	}
+	at := m.AirTime
+	sh.airDays, sh.airTime = m.AirDays, &at
 	if (sh.Poster == "" || isRemote(sh.Poster)) && m.Poster != "" {
 		sh.Poster = m.Poster
 	}

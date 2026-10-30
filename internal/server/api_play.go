@@ -105,7 +105,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if it.Kind != "video" {
-		writeErr(w, 400, "use the dvd endpoints for discs")
+		writeErr(w, 400, "only videos play here: discs use the disc player, and audio its stream")
 		return
 	}
 	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)

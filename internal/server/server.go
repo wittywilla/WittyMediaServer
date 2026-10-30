@@ -306,11 +306,17 @@ func crossOrigin(r *http.Request) bool {
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {
-	u, err := s.Auth.Resolve(r.Context(), auth.TokenFrom(r))
-	if err != nil {
-		return nil
+	// The first token that belongs to a session here wins (a stale cookie
+	// must not hide a valid token).
+	for i, tok := range auth.Tokens(r) {
+		if i >= 4 {
+			break
+		}
+		if u, err := s.Auth.Resolve(r.Context(), tok); err == nil {
+			return u
+		}
 	}
-	return u
+	return nil
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {

@@ -263,16 +263,35 @@ func (s *Service) Resolve(ctx context.Context, token string) (*User, error) {
 
 const CookieName = "wms_token"
 
-// TokenFrom extracts a token from the Authorization header, cookie or query.
+// TokenFrom returns the token a request names most explicitly: the
+// Authorization header, X-WMS-Token, the ?token= of a media address, then
+// the cookie.
 func TokenFrom(r *http.Request) string {
+	if ts := Tokens(r); len(ts) > 0 {
+		return ts[0]
+	}
+	return ""
+}
+
+// Tokens lists every token a request carries, most explicit first.
+// Browsers share cookies between servers on one machine (ports don't
+// separate them), so a request can carry another server's, or an expired,
+// cookie beside its own valid token.
+func Tokens(r *http.Request) []string {
+	var out []string
 	if h := r.Header.Get("Authorization"); strings.HasPrefix(strings.ToLower(h), "bearer ") {
-		return strings.TrimSpace(h[7:])
+		out = append(out, strings.TrimSpace(h[7:]))
 	}
 	if h := r.Header.Get("X-WMS-Token"); h != "" {
-		return h
+		out = append(out, h)
 	}
-	if c, err := r.Cookie(CookieName); err == nil {
-		return c.Value
+	if q := r.URL.Query().Get("token"); q != "" {
+		out = append(out, q)
 	}
-	return r.URL.Query().Get("token")
+	for _, c := range r.Cookies() {
+		if c.Name == CookieName && c.Value != "" {
+			out = append(out, c.Value)
+		}
+	}
+	return out
 }

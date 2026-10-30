@@ -67,7 +67,11 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 - [ ] **WittyMediaClient** (own repository): a themed, frameless desktop client (no File/View
   menus; fully themeable; Windows 7 and up), Android TV (and a server build for Android TV /
   NVIDIA Shield), Apple TV with the current themes; TV remotes, every kind of game controller,
-  screen readers and accessible navigation everywhere.
+  screen readers and accessible navigation everywhere. Started in `clients/wittymediaclient/`:
+  the Windows desktop client runs; Android and Apple apps are written but not yet compiled; finding
+  servers and the security code aren't built. Status: `clients/wittymediaclient/docs/PLATFORMS.md`.
+  Windows 7 needs a decision first (`clients/wittymediaclient/docs/DESIGN.md`). The Android TV server
+  build isn't started.
 - [ ] **WittyReader** desktop builds in their own window.
 
 ## 4. Packaging and setup

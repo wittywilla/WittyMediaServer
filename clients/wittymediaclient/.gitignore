@@ -1,0 +1,11 @@
+node_modules/
+desktop/connect/
+desktop/out/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+apple/*.xcodeproj/
+apple/.build/
+apple/DerivedData/
+android/.kotlin/

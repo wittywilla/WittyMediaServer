@@ -1,0 +1,133 @@
+package com.wittywilla.wittymediaclient.net
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+
+class ApiError(val status: Int, message: String) : Exception(message)
+
+val json = Json {
+    ignoreUnknownKeys = true
+    coerceInputValues = true // a Go nil list arrives as null
+    explicitNulls = false
+}
+
+private val JSON_TYPE = "application/json".toMediaType()
+private const val API = "/api/v1" // the contract: docs/CLIENT-API.md
+
+// One connection to one server. The token only ever goes to that server, in a
+// header, so it stays out of URLs and logs. Redirects from https to http are refused.
+class Api(val base: String, val token: String) {
+    val http: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS) // the first playback request probes the file
+        .followSslRedirects(false)
+        .addInterceptor(Interceptor { chain ->
+            val req = chain.request()
+            val server = Request.Builder().url(base).build().url
+            val same = req.url.host == server.host && req.url.port == server.port && req.url.scheme == server.scheme
+            chain.proceed(if (same && token.isNotEmpty()) req.newBuilder().header("Authorization", "Bearer $token").build() else req)
+        })
+        .build()
+
+    private fun errorText(status: Int, text: String) =
+        runCatching { json.parseToJsonElement(text).jsonObject["error"]?.jsonPrimitive?.content }.getOrNull()
+            ?: "The server answered with an error ($status)."
+
+    private suspend fun raw(method: String, path: String, body: String?): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$base$API$path")
+            .method(method, body?.toRequestBody(JSON_TYPE))
+            .build()
+        http.newCall(request).execute().use { res -> res.code to res.body.string() }
+    }
+
+    private suspend fun call(method: String, path: String, body: String? = null): String {
+        val (status, text) = raw(method, path, body)
+        if (status !in 200..299) throw ApiError(status, errorText(status, text))
+        return text
+    }
+
+    private suspend inline fun <reified T> get(path: String): T = json.decodeFromString(call("GET", path))
+
+    suspend fun capabilities(): Capabilities = get("/capabilities")
+    suspend fun status(): ServerStatus = get("/status")
+    suspend fun profiles(): Profiles = get("/profiles")
+    suspend fun home(): Home = get("/home")
+    suspend fun item(id: Long): Item = get("/items/$id")
+    suspend fun show(id: Long): ShowDetail = get("/shows/$id")
+    suspend fun shows(library: Long): ShowPage = get("/shows?library=$library&sort=title")
+    suspend fun items(library: Long, offset: Int, limit: Int): ItemPage =
+        get("/items?library=$library&offset=$offset&limit=$limit&sort=title")
+
+    suspend fun playback(id: Long, request: PlaybackRequest): Playback =
+        json.decodeFromString(call("POST", "/items/$id/playback", json.encodeToString(request)))
+
+    // Stops the conversion at once when the viewer leaves.
+    suspend fun stopStream(streamId: String) {
+        call("DELETE", "/hls/$streamId")
+    }
+
+    suspend fun login(name: String, password: String, device: String): LoginResult =
+        json.decodeFromString(call("POST", "/login", json.encodeToString(Credentials(name, password, device))))
+
+    suspend fun pairStart(device: String, platform: String): PairStart =
+        json.decodeFromString(call("POST", "/pair/start", json.encodeToString(PairStartRequest(device, platform))))
+
+    // Denied, expired and slow-down are normal answers here, not errors.
+    suspend fun pairPoll(deviceSecret: String): PairPoll {
+        val (status, text) = raw("POST", "/pair/poll", json.encodeToString(PairPollRequest(deviceSecret)))
+        if (status in 200..299 || status == 403 || status == 410 || status == 429) return json.decodeFromString(text)
+        throw ApiError(status, errorText(status, text))
+    }
+
+    suspend fun saveProgress(id: Long, positionSec: Double, durationSec: Double) {
+        call("POST", "/items/$id/progress", json.encodeToString(ProgressReport(positionSec, durationSec)))
+    }
+
+    suspend fun logout() {
+        call("POST", "/logout", "{}")
+    }
+
+    fun posterUrl(it: Item) = "$base$API/items/${it.id}/poster?v=${it.updatedAt}"
+    fun showPosterUrl(s: Show) = "$base$API/shows/${s.id}/art/poster?v=${s.updatedAt}"
+
+    // Addresses in answers start with /api/: the server's address goes in front, nothing else changes.
+    fun mediaUrl(path: String) = base + path
+}
+
+// Asks an address whether it is a WittyMediaServer this app can use.
+sealed interface Probe {
+    data class Found(val status: ServerStatus) : Probe
+    data class Failed(val reason: String) : Probe
+}
+
+suspend fun probeServer(url: String): Probe {
+    val api = Api(url, "")
+    return try {
+        val caps = api.capabilities()
+        when {
+            caps.server != "WittyMediaServer" -> Probe.Failed("not-server")
+            caps.setupRequired -> Probe.Failed("not-set-up")
+            else -> Probe.Found(api.status())
+        }
+    } catch (_: IOException) {
+        Probe.Failed("unreachable")
+    } catch (e: ApiError) {
+        // No /capabilities: an older server, if it says it is one at all.
+        val old = e.status == 404 && runCatching { api.status().name == "WittyMediaServer" }.getOrDefault(false)
+        Probe.Failed(if (old) "server-old" else "not-server")
+    } catch (_: kotlinx.serialization.SerializationException) {
+        Probe.Failed("not-server")
+    }
+}

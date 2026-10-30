@@ -1,0 +1,104 @@
+name: wittymediaclient
+# Builds the WittyMediaClient apps. No secrets are used: every build here is
+# unsigned, or signed with a throwaway debug key, and is only for testing.
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'clients/wittymediaclient/**'
+      - 'themes/**'
+      - '.github/workflows/wittymediaclient.yml'
+  pull_request:
+    paths:
+      - 'clients/wittymediaclient/**'
+      - 'themes/**'
+      - '.github/workflows/wittymediaclient.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: --linux
+            artifact: linux
+          - os: windows-latest
+            target: --win
+            artifact: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Theme data is up to date
+        run: node clients/wittymediaclient/shared/scripts/build-themes.mjs --check
+      - name: Install
+        working-directory: clients/wittymediaclient/desktop
+        run: npm ci --no-audit --no-fund
+      - name: Test
+        working-directory: clients/wittymediaclient/desktop
+        run: npm test
+      - name: Package (unpacked, unsigned)
+        working-directory: clients/wittymediaclient/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run sync && npx electron-builder ${{ matrix.target }} --dir
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wittymedia-desktop-${{ matrix.artifact }}
+          path: clients/wittymediaclient/desktop/out/*-unpacked
+          retention-days: 7
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - uses: gradle/actions/setup-gradle@7296c772c13d12d9871528814b51fb2143c138ef # v6.4.1
+        with:
+          gradle-version: 9.8.2
+      - name: Test and build
+        working-directory: clients/wittymediaclient/android
+        run: gradle --no-daemon testDebugUnitTest assembleSideload
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wittymedia-android-sideload
+          path: clients/wittymediaclient/android/app/build/outputs/apk/sideload/*.apk
+          retention-days: 7
+
+  apple:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the shared package
+        working-directory: clients/wittymediaclient/apple/WittyKit
+        run: swift test
+      - name: Install XcodeGen
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
+          echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
+      - name: Generate the Xcode project
+        working-directory: clients/wittymediaclient/apple
+        run: xcodegen generate
+      # Compile only: nothing is signed, and nothing here can run on a device.
+      - name: Build for Apple TV, iPhone and iPad, and Mac
+        working-directory: clients/wittymediaclient/apple
+        run: |
+          for pair in "WittyMedia-tvOS|generic/platform=tvOS" "WittyMedia-iOS|generic/platform=iOS" "WittyMedia-macOS|generic/platform=macOS"; do
+            scheme=${pair%|*}
+            destination=${pair#*|}
+            echo "== $scheme"
+            xcodebuild -project WittyMedia.xcodeproj -scheme "$scheme" -destination "$destination" \
+              -configuration Debug CODE_SIGNING_ALLOWED=NO build -quiet || exit 1
+          done

@@ -1,0 +1,37 @@
+{
+  "featured": [],
+  "hubs": [
+    {
+      "key": "continue",
+      "title": "Continue watching",
+      "items": [
+        {
+          "id": 11, "libraryId": 1, "kind": "video", "title": "A Sample Film", "sortTitle": "sample film", "year": 2001,
+          "overview": "A film for tests.", "tagline": "", "genres": ["Drama"], "rating": 7.5, "contentRating": "PG",
+          "studio": "", "runtimeSec": 5400.5, "poster": "", "backdrop": "", "container": "mkv", "videoCodec": "h264",
+          "width": 1920, "height": 1080, "audioLangs": ["en"], "subLangs": null, "provider": "", "providerId": "",
+          "sizeBytes": 1000, "addedAt": 1700000000, "updatedAt": 1700000001, "playMode": "", "insertFx": "",
+          "progress": { "positionSec": 912.25, "durationSec": 5400.5, "watched": false, "updatedAt": 1700000002 }
+        }
+      ]
+    },
+    {
+      "key": "recent-2",
+      "title": "Recently added in TV",
+      "libraryId": 2,
+      "items": null,
+      "shows": [
+        {
+          "id": 3, "libraryId": 2, "path": "x", "title": "A Sample Show", "sortTitle": "sample show", "year": null, "overview": "",
+          "genres": null, "rating": null, "contentRating": "", "network": "", "status": "", "poster": "", "backdrop": "",
+          "provider": "", "providerId": "", "addedAt": 1700000000, "updatedAt": 1700000001,
+          "episodeCount": 19, "seasonCount": 1, "unwatched": 19, "lastAddedAt": 1700000000, "view": ""
+        }
+      ]
+    }
+  ],
+  "libraries": [
+    { "id": 1, "name": "Movies", "type": "movies", "paths": ["x"], "createdAt": 1700000000, "lastScanAt": null, "scanning": false, "itemCount": 1 },
+    { "id": 2, "name": "TV", "type": "shows", "paths": ["x"], "createdAt": 1700000000, "lastScanAt": null, "scanning": false, "itemCount": 19 }
+  ]
+}

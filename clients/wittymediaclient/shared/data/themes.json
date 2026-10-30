@@ -1,0 +1,385 @@
+{
+  "defaultTheme": "default",
+  "themes": [
+    {
+      "id": "dark",
+      "name": "Dark",
+      "scheme": "dark",
+      "colours": {
+        "background": "#101114",
+        "panel": "#17191e",
+        "card": "#20232a",
+        "border": "#2b2f38",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#858a99",
+        "accent": "#e4e6eb",
+        "onAccent": "#111214",
+        "accentText": "#e4e6eb",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-blue",
+      "name": "Dark Blue",
+      "scheme": "dark",
+      "colours": {
+        "background": "#12151c",
+        "panel": "#181d26",
+        "card": "#212631",
+        "border": "#2c323f",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#878d9c",
+        "accent": "#1e6ff5",
+        "onAccent": "#ffffff",
+        "accentText": "#488af7",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-gold",
+      "name": "Dark Gold",
+      "scheme": "dark",
+      "colours": {
+        "background": "#181714",
+        "panel": "#1e1e1d",
+        "card": "#272829",
+        "border": "#323436",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#898e9d",
+        "accent": "#eab308",
+        "onAccent": "#1a1400",
+        "accentText": "#eab308",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-green",
+      "name": "Dark Green",
+      "scheme": "dark",
+      "colours": {
+        "background": "#111717",
+        "panel": "#171f20",
+        "card": "#20292c",
+        "border": "#2b3439",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#898e9d",
+        "accent": "#22c55e",
+        "onAccent": "#0e1013",
+        "accentText": "#22c55e",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-orange",
+      "name": "Dark Orange",
+      "scheme": "dark",
+      "colours": {
+        "background": "#181414",
+        "panel": "#1f1c1e",
+        "card": "#282629",
+        "border": "#323137",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#878d9c",
+        "accent": "#f97316",
+        "onAccent": "#0e1013",
+        "accentText": "#f97316",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-pink",
+      "name": "Dark Pink",
+      "scheme": "dark",
+      "colours": {
+        "background": "#181319",
+        "panel": "#1e1b22",
+        "card": "#27242e",
+        "border": "#32303b",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#868c9a",
+        "accent": "#e2177b",
+        "onAccent": "#ffffff",
+        "accentText": "#ed519e",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-purple",
+      "name": "Dark Purple",
+      "scheme": "dark",
+      "colours": {
+        "background": "#14141c",
+        "panel": "#1b1c26",
+        "card": "#242631",
+        "border": "#2e313f",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#878d9c",
+        "accent": "#7955ff",
+        "onAccent": "#ffffff",
+        "accentText": "#9579ff",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-red",
+      "name": "Dark Red",
+      "scheme": "dark",
+      "colours": {
+        "background": "#181316",
+        "panel": "#1f1b1f",
+        "card": "#27242b",
+        "border": "#323038",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#868c9a",
+        "accent": "#eb1515",
+        "onAccent": "#ffffff",
+        "accentText": "#f15757",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "dark-teal",
+      "name": "Dark Teal",
+      "scheme": "dark",
+      "colours": {
+        "background": "#101719",
+        "panel": "#171f23",
+        "card": "#20282e",
+        "border": "#2a343c",
+        "text": "#ececf1",
+        "textSecondary": "#a8adb9",
+        "textHint": "#878d9c",
+        "accent": "#14b8a6",
+        "onAccent": "#0e1013",
+        "accentText": "#14b8a6",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "default",
+      "name": "WittyMediaServer",
+      "scheme": "dark",
+      "colours": {
+        "background": "#0f1115",
+        "panel": "#171a21",
+        "card": "#1f232c",
+        "border": "#2a2f3a",
+        "text": "#e8eaf0",
+        "textSecondary": "#a9afbd",
+        "textHint": "#848b99",
+        "accent": "#7955ff",
+        "onAccent": "#ffffff",
+        "accentText": "#9174ff",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "scheme": "light",
+      "colours": {
+        "background": "#f4f5f8",
+        "panel": "#ffffff",
+        "card": "#eaedf2",
+        "border": "#dadfe7",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#636b7a",
+        "accent": "#6d4fe0",
+        "onAccent": "#ffffff",
+        "accentText": "#6d4fe0",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-blue",
+      "name": "Light Blue",
+      "scheme": "light",
+      "colours": {
+        "background": "#f0f2f8",
+        "panel": "#fbfcff",
+        "card": "#e6eaf2",
+        "border": "#d6dde7",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#2563eb",
+        "onAccent": "#ffffff",
+        "accentText": "#1e5eea",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-gold",
+      "name": "Light Gold",
+      "scheme": "light",
+      "colours": {
+        "background": "#f3f3f4",
+        "panel": "#fefcfb",
+        "card": "#e9ebee",
+        "border": "#d9dde3",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#966319",
+        "onAccent": "#ffffff",
+        "accentText": "#8f5f18",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-green",
+      "name": "Light Green",
+      "scheme": "light",
+      "colours": {
+        "background": "#f0f3f5",
+        "panel": "#fafdfb",
+        "card": "#e6ecef",
+        "border": "#d6dee4",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#117f3a",
+        "onAccent": "#ffffff",
+        "accentText": "#107b38",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-orange",
+      "name": "Light Orange",
+      "scheme": "light",
+      "colours": {
+        "background": "#f4f2f3",
+        "panel": "#fffcfa",
+        "card": "#eaeaed",
+        "border": "#dadce3",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#be480a",
+        "onAccent": "#ffffff",
+        "accentText": "#b7450a",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-pink",
+      "name": "Light Pink",
+      "scheme": "light",
+      "colours": {
+        "background": "#f4f1f5",
+        "panel": "#fefbfc",
+        "card": "#eae9f0",
+        "border": "#dadbe5",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#db2777",
+        "onAccent": "#ffffff",
+        "accentText": "#c7216b",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-purple",
+      "name": "Light Purple",
+      "scheme": "light",
+      "colours": {
+        "background": "#f1f2f8",
+        "panel": "#fcfbfe",
+        "card": "#e8eaf2",
+        "border": "#d8dce7",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#6d4fe0",
+        "onAccent": "#ffffff",
+        "accentText": "#6d4fe0",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-red",
+      "name": "Light Red",
+      "scheme": "light",
+      "colours": {
+        "background": "#f4f1f4",
+        "panel": "#fefbfb",
+        "card": "#eae9ee",
+        "border": "#dadbe3",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#dc2626",
+        "onAccent": "#ffffff",
+        "accentText": "#cd2121",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "light-teal",
+      "name": "Light Teal",
+      "scheme": "light",
+      "colours": {
+        "background": "#eff3f6",
+        "panel": "#fafdfd",
+        "card": "#e6ebf0",
+        "border": "#d6dee5",
+        "text": "#15171c",
+        "textSecondary": "#4a5160",
+        "textHint": "#626a78",
+        "accent": "#0b7a70",
+        "onAccent": "#ffffff",
+        "accentText": "#0b756c",
+        "danger": "#d92d3f",
+        "ok": "#14915f"
+      }
+    },
+    {
+      "id": "oled",
+      "name": "OLED Black",
+      "scheme": "dark",
+      "colours": {
+        "background": "#000000",
+        "panel": "#07080a",
+        "card": "#121317",
+        "border": "#1d1f25",
+        "text": "#f2f3f6",
+        "textSecondary": "#a3a8b4",
+        "textHint": "#777d8d",
+        "accent": "#7955ff",
+        "onAccent": "#ffffff",
+        "accentText": "#8362ff",
+        "danger": "#ff5c6c",
+        "ok": "#3ad29f"
+      }
+    }
+  ]
+}

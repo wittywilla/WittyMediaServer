@@ -1,0 +1,36 @@
+WittyMediaClient
+Copyright 2026 WittyWilla and contributors
+Part of WittyMediaServer: https://github.com/wittywilla/WittyMediaServer
+
+Licensed under the Apache License, Version 2.0. Any redistribution must
+reproduce these notices in a NOTICE file, in documentation, or in an "About"
+display. WittyMediaClient collects no telemetry and contacts nothing except
+the server its user chooses.
+
+Third-party components, by the app that ships them:
+
+Desktop (Windows, Linux)
+  Electron                MIT           https://www.electronjs.org
+    bundles Chromium and FFmpeg. Their licences ship with every build, in
+    LICENSE.electron.txt and LICENSES.chromium.html.
+  electron-builder        MIT           build tool only, not shipped
+
+Android
+  AndroidX: Activity, Core, Lifecycle       Apache-2.0
+  Jetpack Compose                           Apache-2.0
+  AndroidX Media3 (ExoPlayer, HLS, UI)      Apache-2.0
+  Coil                                      Apache-2.0
+  OkHttp, Okio                              Apache-2.0
+  Kotlin, kotlinx.coroutines,
+    kotlinx.serialization                   Apache-2.0
+  JUnit 4                  EPL-1.0          tests only, not shipped
+
+Apple (Apple TV, iPhone, iPad, Mac)
+  Only Apple's own system frameworks ship in the app.
+  XcodeGen                 MIT              build tool only, not shipped
+
+Checked so far: the desktop dependency tree was read from its installed package
+files, and everything in it is under a permissive licence. Nothing from it
+except Electron ships in the app. The Android and Apple entries are from each
+project's published licence and have not been checked against a resolved build,
+which should be done the first time those apps compile.

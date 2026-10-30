@@ -1,0 +1,73 @@
+# XcodeGen turns this file into WittyMedia.xcodeproj (not committed):
+#   brew install xcodegen && cd apple && xcodegen generate
+name: WittyMedia
+options:
+  bundleIdPrefix: com.wittywilla
+  deploymentTarget:
+    iOS: "16.0"
+    tvOS: "16.0"
+    macOS: "13.0"
+  createIntermediateGroups: true
+packages:
+  WittyKit:
+    path: WittyKit
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    PRODUCT_BUNDLE_IDENTIFIER: com.wittywilla.wittymediaclient
+    GENERATE_INFOPLIST_FILE: "YES"
+    INFOPLIST_KEY_CFBundleDisplayName: WittyMedia
+    # Filled in by the owner in Xcode: see docs/OWNER-STEPS.md.
+    DEVELOPMENT_TEAM: ""
+
+targetTemplates:
+  App:
+    type: application
+    scheme: {}
+    sources:
+      - path: App
+      # The themes, wording and test data every client shares.
+      - path: ../shared/data
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: WittyKit
+    info:
+      path: Generated/Info-${target_name}.plist
+      properties:
+        CFBundleDisplayName: WittyMedia
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSLocalNetworkUsageDescription: WittyMedia looks for your WittyMediaServer on your home network.
+        # Plain HTTP only to local addresses. Everything else needs HTTPS.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+
+targets:
+  WittyMedia-tvOS:
+    templates: [App]
+    platform: tvOS
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "3"
+  WittyMedia-iOS:
+    templates: [App]
+    platform: iOS
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+  WittyMedia-macOS:
+    templates: [App]
+    platform: macOS
+    entitlements:
+      path: Generated/WittyMedia-macOS.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        ENABLE_HARDENED_RUNTIME: "YES"

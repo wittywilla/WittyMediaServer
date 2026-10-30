@@ -1,0 +1,11 @@
+{
+  "comment": "A real answer from a throwaway test server, so every client can check its signature code.",
+  "nonce": "bNK2QKapa2xXg7sCyhlLiwIjy985aM/xUDUKzBYASJQ=",
+  "answer": {
+    "algorithm": "ed25519",
+    "fingerprint": "6ABD-A06C-CB92",
+    "publicKey": "ETNweKcsBs/GVCsvdOUSvznsUL93EKstZelyfa67ltA=",
+    "serverId": "59ee889b30b93d5b514d07ca74c31651",
+    "signature": "Jb8qBCZV7hYar6Y3WKoEYrivpJMdqRHb+ZzYqb1Oye/0fTakaudqaECZhM+jQBC67HTYo5Mlrt4dgG59Uc3mAw=="
+  }
+}

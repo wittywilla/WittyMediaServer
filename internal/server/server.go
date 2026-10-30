@@ -48,6 +48,7 @@ type Server struct {
 	logins     loginLimiter
 	clientLogs clientLogLimiter
 	stream     streamTokens
+	pair       pairings
 	subtitles  subtitleFiles
 }
 
@@ -77,6 +78,8 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
 	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
+	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
+	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
 
 	// Authenticated
 	a := s.requireUser
@@ -115,6 +118,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/backdrop", a(s.handleBackdrop))
 	m.Handle("POST /api/items/{id}/progress", a(s.handleProgress))
 	m.Handle("DELETE /api/items/{id}/progress", a(s.handleClearProgress))
+	m.Handle("POST /api/pair/info", a(s.handlePairInfo))
+	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
+	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
 	m.Handle("POST /api/items/{id}/stream-token", a(s.handleStreamToken))

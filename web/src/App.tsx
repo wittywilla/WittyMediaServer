@@ -15,6 +15,7 @@ import { AudioProvider } from './audio/player'
 import ReaderPage from './pages/Reader'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
+import PairPage from './pages/PairPage'
 import AuthPage from './pages/AuthPage'
 import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
@@ -77,6 +78,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/pair" element={<PairPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -160,6 +162,7 @@ function ProfileMenu() {
           <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
           <Link role="menuitem" to="/settings/appearance">Appearance</Link>
           <Link role="menuitem" to="/settings">Settings</Link>
+          {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair">Sign in a TV</Link>}
           <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>
           <button role="menuitem" onClick={signOut}><IconLogout /> Sign out</button>
         </div>

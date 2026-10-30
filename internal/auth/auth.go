@@ -226,6 +226,12 @@ func (s *Service) Login(ctx context.Context, name, password, device string, allo
 	return s.issue(ctx, id, device)
 }
 
+// IssueSession signs an account in on a device that proved itself some other
+// way than a password (TV pairing, approved by someone already signed in).
+func (s *Service) IssueSession(ctx context.Context, userID int64, device string) (string, *User, error) {
+	return s.issue(ctx, userID, device)
+}
+
 func (s *Service) issue(ctx context.Context, userID int64, device string) (string, *User, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

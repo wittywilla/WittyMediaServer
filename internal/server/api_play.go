@@ -157,8 +157,8 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), VideoFilter: vf,
-		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
+		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), VideoFilter: vf,
+		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
@@ -169,6 +169,12 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
 	writeJSON(w, 200, info)
+}
+
+// textBurn: this subtitle stream is text, and this FFmpeg can draw text.
+func (s *Server) textBurn(n int, pr *ffmpeg.Probe) bool {
+	subs := pr.Subtitles()
+	return n >= 0 && n < len(subs) && playback.IsTextSubtitle(subs[n].CodecName) && s.Tools.HasFilter("subtitles")
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {

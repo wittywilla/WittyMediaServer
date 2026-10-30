@@ -36,10 +36,14 @@ type Spec struct {
 	AudioIndex    int      // ffmpeg audio stream index (a:N), -1 = no audio
 	AudioChannels int      // 0 = keep (max 6)
 	SubtitleIndex int      // s:N to burn in, -1 = none
-	AudioCodec    string   // aac (default) | mp3
-	SegmentSec    float64
-	MaxHeight     int    // 0 = source
-	VideoBitrate  string // e.g. "8M"; empty = quality mode
+	// SubtitleText: that stream is text (SubRip, ASS), which the picture-overlay
+	// way of burning in draws nothing for; it goes through the subtitles filter,
+	// which reads Source itself.
+	SubtitleText bool
+	AudioCodec   string // aac (default) | mp3
+	SegmentSec   float64
+	MaxHeight    int    // 0 = source
+	VideoBitrate string // e.g. "8M"; empty = quality mode
 	// Quality is the encoder choice and quality profile from Settings.
 	Quality    ffmpeg.Quality
 	LowLatency bool // menus: tiny segments, zerolatency
@@ -169,11 +173,48 @@ func (m *Manager) Ensure(spec Spec) *Session {
 	}
 	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID)}
 	_ = os.MkdirAll(s.Dir, 0o755)
+	if spec.Growing {
+		m.evictGrowing(maxGrowing - 1)
+	}
 	m.session[spec.ID] = s
 	if spec.Growing {
 		s.Warm()
 	}
 	return s
+}
+
+// maxGrowing limits growing streams at once: each runs FFmpeg until it finishes
+// or expires, needs no request to keep going, and a new one starts at every
+// seek past what exists, so they must not be able to pile up.
+const maxGrowing = 8
+
+// evictGrowing ends the longest-unused growing streams, leaving at most keep.
+// A viewer still on one gets a 404 and opens it again. The caller holds m.mu.
+func (m *Manager) evictGrowing(keep int) {
+	for {
+		n := 0
+		var oldest string
+		var at time.Time
+		for id, s := range m.session {
+			if !s.Spec.Growing {
+				continue
+			}
+			n++
+			s.mu.Lock()
+			used := s.lastUsed
+			s.mu.Unlock()
+			if oldest == "" || used.Before(at) {
+				oldest, at = id, used
+			}
+		}
+		if n <= keep {
+			return
+		}
+		s := m.session[oldest]
+		s.stop()
+		_ = os.RemoveAll(s.Dir)
+		delete(m.session, oldest)
+	}
 }
 
 // Stop ends and deletes a session.
@@ -251,6 +292,9 @@ func (s *Session) segPath(n int) string {
 // growingName is the file FFmpeg writes a growing stream's playlist to.
 const growingName = "ffmpeg-0.m3u8"
 
+// growingTarget is the least target duration a growing playlist announces.
+const growingTarget = 10
+
 // GrowingPlaylist is FFmpeg's playlist as it stands, with segments renamed by
 // segURL (a segment number, or -1 for the fMP4 init segment). It waits until
 // the first segments exist: players give up on a nearly empty playlist.
@@ -282,20 +326,24 @@ func (s *Session) GrowingPlaylist(ctx context.Context, segURL func(n int) string
 
 // rewriteGrowing renames the segments in FFmpeg's playlist and makes players
 // start at its beginning (a playlist that is still growing otherwise starts
-// near its end, as if it were live).
+// near its end, as if it were live). FFmpeg raises the target duration when a
+// long gap between keyframes comes along, which players may refuse in a playlist
+// they already know, so it starts high enough to cover the usual cases.
 func rewriteGrowing(b []byte, segURL func(n int) string) []byte {
 	var out strings.Builder
-	for i, line := range strings.Split(strings.ReplaceAll(string(b), "\r\n", "\n"), "\n") {
+	for _, line := range strings.Split(strings.ReplaceAll(string(b), "\r\n", "\n"), "\n") {
 		switch {
 		case line == "":
 			continue
 		case strings.HasPrefix(line, "#EXT-X-MAP:"):
 			fmt.Fprintf(&out, "#EXT-X-MAP:URI=\"%s\"\n", segURL(-1))
+		case strings.HasPrefix(line, "#EXT-X-TARGETDURATION:"):
+			n, _ := strconv.Atoi(strings.TrimPrefix(line, "#EXT-X-TARGETDURATION:"))
+			fmt.Fprintf(&out, "#EXT-X-TARGETDURATION:%d\n", max(n, growingTarget))
+		case strings.HasPrefix(line, "#EXT-X-VERSION:"):
+			out.WriteString(line + "\n#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
 		case strings.HasPrefix(line, "#"):
 			out.WriteString(line + "\n")
-			if i == 0 {
-				out.WriteString("#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
-			}
 		default:
 			name := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(line, "seg"), ".ts"), ".m4s")
 			if n, err := strconv.Atoi(name); err == nil {
@@ -561,12 +609,15 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.HoldLastFrame {
 			vf = append(vf, fmt.Sprintf("tpad=stop_mode=clone:stop_duration=%.3f", sp.Duration))
 		}
+		if sp.SubtitleIndex >= 0 && sp.SubtitleText {
+			vf = append(vf, textSubtitleFilter(sp.Source, sp.SubtitleIndex, start))
+		}
 		vf = append(vf, "setsar=1", "format="+plan.PixFmt)
 		if plan.Upload != "" {
 			vf = append(vf, plan.Upload)
 		}
-		if sp.SubtitleIndex >= 0 {
-			// Burn bitmap/text subtitles in via a filter graph.
+		if sp.SubtitleIndex >= 0 && !sp.SubtitleText {
+			// Burn bitmap subtitles in via a filter graph.
 			graph := fmt.Sprintf("[0:v:0]%s[v0];[0:s:%d]scale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", strings.Join(vf, ","), sp.SubtitleIndex)
 			args = append(args, "-filter_complex", graph, "-map", "-0:v:0", "-map", "[vout]")
 		} else {
@@ -658,6 +709,23 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	}()
 	go s.watch(j)
 	return j, nil
+}
+
+// textSubtitleFilter draws text subtitles from the file itself. The filter
+// counts from the start of the file while the picture, after a seek, counts from
+// where it started, so the clock is put right around it.
+func textSubtitleFilter(path string, stream int, start float64) string {
+	f := fmt.Sprintf("subtitles='%s':si=%d", escapeFilterPath(path), stream)
+	if start > 0 {
+		f = fmt.Sprintf("setpts=PTS+%.3f/TB,%s,setpts=PTS-STARTPTS", start, f)
+	}
+	return f
+}
+
+// escapeFilterPath writes a path for a quoted value in a filter graph, which is
+// read twice: by the graph, then by the option.
+func escapeFilterPath(p string) string {
+	return strings.NewReplacer(`\`, `\\\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
 }
 
 // watch tracks the newest finished segment so Segment() can decide whether a

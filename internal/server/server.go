@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -47,6 +48,8 @@ type Server struct {
 	mux        *http.ServeMux
 	logins     loginLimiter
 	clientLogs clientLogLimiter
+	gameOnce   sync.Once
+	gameSvc    *gameService
 }
 
 type ctxKey int

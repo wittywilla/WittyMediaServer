@@ -4,11 +4,15 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"errors"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittyplay"
 )
@@ -231,6 +235,9 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 			break
 		}
 	}
+	if existing != nil && existing.Provider != "" {
+		it.Provider, it.ProviderID = existing.Provider, existing.ProviderID
+	}
 	if existing != nil {
 		// Scans never take away what someone chose or a source already found.
 		if it.Poster == "" {
@@ -249,5 +256,101 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 			it.Studio = existing.Studio
 		}
 	}
+	if it.Overview == "" && it.Provider == "" && c.console != wittyplay.TestConsole && (s.WikidataOn == nil || s.WikidataOn()) {
+		wctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		if err := (&Wikidata{Client: SafeClient}).EnrichGame(wctx, it); err != nil && !errors.Is(err, ErrNotFound) {
+			s.Log.Debug("wikidata", "game", it.Title, "err", err)
+		}
+		cancel()
+	}
 	return s.Store.upsertItem(ctx, it)
+}
+
+const wdDeveloper = "P178"
+
+// EnrichGame fills empty fields of a game from Wikidata, which is public domain
+// (CC0): the year, developer, genres and a short summary. Box art is not taken
+// from there, because it is copyrighted. It changes nothing when no video game of
+// that name is found.
+func (w *Wikidata) EnrichGame(ctx context.Context, it *Item) error {
+	var search struct {
+		Search []struct {
+			ID          string `json:"id"`
+			Description string `json:"description"`
+		} `json:"search"`
+	}
+	q := url.Values{"action": {"wbsearchentities"}, "search": {it.Title}, "language": {"en"}, "type": {"item"}, "limit": {"10"}, "format": {"json"}}
+	if err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &search); err != nil {
+		return err
+	}
+	id := ""
+	for _, r := range search.Search {
+		d := strings.ToLower(r.Description)
+		if strings.Contains(d, "video game") && !containsAny(d, "series", "franchise", "character", "company", "soundtrack", "console") {
+			id = r.ID
+			break
+		}
+	}
+	if id == "" {
+		return ErrNotFound
+	}
+	ents, err := w.entities(ctx, []string{id}, "claims|descriptions|sitelinks")
+	if err != nil {
+		return err
+	}
+	e, ok := ents[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if c := e.Claims[wdPublication]; len(c) > 0 && it.Year == nil {
+		if y, err := strconv.Atoi(firstN(c[0].Mainsnak.time(), 4)); err == nil {
+			it.Year = &y
+		}
+	}
+	var refs []string
+	dev := ""
+	if c := e.Claims[wdDeveloper]; len(c) > 0 {
+		dev = c[0].Mainsnak.itemID()
+		refs = append(refs, dev)
+	}
+	for _, c := range e.Claims[wdGenre] {
+		if g := c.Mainsnak.itemID(); g != "" && len(refs) < 6 {
+			refs = append(refs, g)
+		}
+	}
+	if len(refs) > 0 {
+		if names, err := w.entities(ctx, refs, "labels"); err == nil {
+			var genres []string
+			for _, r := range refs {
+				l := names[r].Labels["en"].Value
+				switch {
+				case l == "":
+				case r == dev:
+					if it.Studio == "" {
+						it.Studio = l
+					}
+				default:
+					genres = append(genres, titleCase(strings.TrimSuffix(l, " video game")))
+				}
+			}
+			if len(it.Genres) == 0 {
+				it.Genres = genres
+			}
+		}
+	}
+	if it.Overview == "" {
+		if page := e.Sitelinks["enwiki"].Title; page != "" {
+			var sum struct {
+				Extract string `json:"extract"`
+			}
+			if w.get(ctx, "https://en.wikipedia.org/api/rest_v1/page/summary/"+url.PathEscape(strings.ReplaceAll(page, " ", "_")), &sum) == nil {
+				it.Overview = sum.Extract
+			}
+		}
+		if it.Overview == "" {
+			it.Overview = e.Descriptions["en"].Value
+		}
+	}
+	it.Provider, it.ProviderID = "wikidata", id
+	return nil
 }

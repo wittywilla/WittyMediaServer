@@ -16,9 +16,29 @@ WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the 
 |---|---|
 | modernc.org/sqlite (and its modernc.org/libc family) | BSD-3-Clause |
 | golang.org/x/crypto | BSD-3-Clause |
+| github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, interceptor and others) | MIT |
+| github.com/coder/websocket | ISC |
 | github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp (transitive) | BSD / MIT |
 
 Run `go version -m wms` on a binary for the exact module list and versions.
+
+## The game runner (`wittyplay-host`, a separate program)
+
+| Module | Licence |
+|---|---|
+| github.com/ebitengine/purego | Apache-2.0 |
+| golang.org/x/sys | BSD-3-Clause |
+
+## Games
+
+Libretro cores are **not bundled**. An administrator installs each one on request from the libretro
+project's build server, and it stays a separate file, loaded only by the separate runner. Each core's
+licence is shown before it is installed; they include GPL-2.0, GPL-3.0, AGPL-3.0, MPL-2.0, MIT and Zlib.
+Cores with non-commercial licences are never offered. RetroArch (GPL-3.0) is not bundled, and its
+cores folder is read if present. See `docs/GAMING.md` and `docs/WITTYRETROARCH.md`.
+
+Game metadata comes from Wikidata (CC0) and Wikipedia (CC BY-SA 4.0). Libretro's thumbnail collections
+state no licence, so they are not used. No game or BIOS files are bundled, downloaded or linked.
 
 ## Web client (bundled into the binary)
 

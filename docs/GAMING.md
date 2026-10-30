@@ -47,31 +47,31 @@ Three kinds of process, each doing one job:
    hardware encoder detection the transcoder uses works here too.
 3. **`wms`**: holds the WebRTC connections and writes save files. It never loads a core.
 
-### Why our own frontend rather than running RetroArch
+### Two runners, one protocol
 
-The libretro API is what gives us the games. RetroArch is one program that uses that API, and
-we considered driving it directly:
+"The process that runs a game" is called a **runner**, and it's defined by a protocol rather than by a
+program: length-prefixed messages over a pipe (`modules/wittyplay/ipc`). Two programs can fill that role.
 
-| | RetroArch as a child process | Our own frontend (chosen) |
+| | `wittyplay-host` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
 |---|---|---|
-| Getting frames out | Its recording feature, which muxes and adds several frames of delay | Direct: every frame arrives through the libretro callback |
-| Server with no screen | Needs a display or careful configuration per platform | Nothing to configure: no window, no GPU |
-| Input | Network RetroPad over local UDP | A pipe, read once per frame |
-| Saves per account | Config files per account | Sent to the server over the pipe |
-| Sandbox | Large program with network, menus and updater | About a thousand lines we control, and it cuts itself off from the network before loading a core |
-| Licence | GPLv3, shipped or installed separately | Apache-2.0; cores stay separate files the user chooses to install |
-| Hardware-rendered cores (N64, PSP, Dreamcast) | Works, with a GPU and a display | **Not yet** (see below) |
+| What it is | Our own small libretro frontend | RetroArch with a mode that speaks the protocol |
+| Licence | Apache-2.0 | GPLv3, a separate program |
+| Software-rendered cores | Yes | Yes |
+| Hardware-rendered cores (N64, PSP, Dreamcast) | No | Yes: this is why it would exist |
+| Server with no GPU | Yes | For software-rendered cores |
+| Size and upkeep | About a thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
 
-The cores are the same files RetroArch uses, and a RetroArch install's cores are found and
-offered automatically.
+The server uses WittyRetroArch when it finds one, and the built-in runner otherwise. An admin can choose
+in Settings, Gaming.
 
-### WittyRetroArch, a fork if we need one
+Unmodified RetroArch can't fill this role: its only way to hand frames to another program is its
+recording feature, which muxes and adds several frames of delay, and it needs a display or careful
+configuration on a headless server. So a fork is what makes it usable here.
 
-A GPL fork of RetroArch is allowed for major customisations, under the name **WittyRetroArch**.
-The chosen design does not need one today. The one thing that could justify it is
-hardware-rendered cores, which need a GL or Vulkan context. If we build that fork, it would add
-a frame-export path to RetroArch and run as another separate process behind the same pipe
-protocol. It would stay in its own GPL repository and never be linked into anything Apache.
+Pipes are also what makes the licences work. **[WITTYRETROARCH.md](WITTYRETROARCH.md) explains how GPL
+code and the Apache binaries stay compatible**, what the fork has to do, and what the protocol is.
+
+Cores are the same files RetroArch uses, and a RetroArch install's cores are found and offered automatically.
 
 ### Why no cgo
 
@@ -156,12 +156,12 @@ The player has been kept independent of the transport so that this can be added 
 | The filename, parsed: `Title (Region) (Rev 1)` | | Always |
 | Your own files: `Game.png`, `Game-cover.jpg`, `Game.nfo` beside the ROM | yours | Always first |
 | [Wikidata](https://www.wikidata.org) | CC0 | Title, year, developer, genre, summary (online, the same switch films use) |
-| [libretro-database](https://github.com/libretro/libretro-database) | CC BY-SA 4.0 | Considered: never bundled, attribution needed. Not used yet |
+| [libretro-database](https://github.com/libretro/libretro-database) | CC BY-SA 4.0 | Allowed with attribution, never bundled. Not used yet |
 | [libretro-thumbnails](https://github.com/libretro-thumbnails) | **No licence stated** | **Not used.** With no licence, permission can't be assumed |
 | OpenVGDB | **No licence on the repository** | **Not used** |
 
-With no box art, the library shows a tile made from the game's name and console. After you play
-a game, a frame captured from it can stand in as its picture.
+With no box art, the library shows a tile made from the game's name and console. Saved states
+each show a picture of the game. Wikipedia summaries are CC BY-SA 4.0, as for films.
 
 ## Saves, states and resume
 
@@ -246,7 +246,7 @@ sandboxed.
 | coder/websocket | ISC | Linked into `wms` |
 | ebitengine/purego | Apache-2.0 | Linked into `wittyplay-host` only |
 | libretro API definitions | MIT | The constants and struct layouts only; no libretro code is copied |
-| RetroArch | GPLv3 | Not used or shipped. Its core folder is read if present |
+| RetroArch | GPLv3 | Not shipped. Its core folder is read if present. The fork would be a separate program ([WITTYRETROARCH.md](WITTYRETROARCH.md)) |
 | Libretro cores | Each core's own | **Never bundled.** A separate file, installed on an admin's request, loaded by a separate process |
 | FFmpeg | GPL builds | Already a separate program |
 
@@ -278,12 +278,19 @@ Licences are from the [libretro core-info](https://github.com/libretro/libretro-
 **Listed but not playable yet** because they need hardware rendering: Nintendo 64, PSP, Dreamcast.
 Nintendo DS needs a pointer input for its touch screen, which comes after the first release.
 
-## Fallbacks and limits, in short
+## Limits today
 
-- Software-rendered cores only.
-- No bandwidth adaptation yet: the bitrate is a setting (Auto, Data saver, High), not a live
+- **Software-rendered cores only** with the built-in runner.
+- **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has
+  not been tested end to end yet.
+- **No bandwidth adaptation yet:** the bitrate is a setting (Auto, Data saver, High), not a live
   response to the network.
-- No server-side netplay yet. Several players means several controllers on one device.
+- **No netplay yet.** Several players means several controllers on one device.
+- **Plain http on a home network:** browsers limit some features to secure pages. Firefox hides
+  gamepads, and WebCodecs is unavailable, which leaves WebRTC or JPEG. Reaching the server over
+  https or `localhost` removes both limits.
+- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Gaming, and fill in the public
+  address, or use host networking.
 
 ## Phases
 

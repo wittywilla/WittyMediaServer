@@ -109,6 +109,13 @@ export default function GamingSettings() {
                 <option value="high">High</option>
               </select>
             </label>
+            <label>Game runner
+              <select className="select" value={settings.gamingRunner || 'auto'} onChange={(e) => put({ gamingRunner: e.target.value })}>
+                <option value="auto">Automatic</option>
+                <option value="builtin">Built in</option>
+                <option value="retroarch">WittyRetroArch, when installed</option>
+              </select>
+            </label>
             <label>UDP port for WebRTC
               <input className="input" type="number" min={0} max={65535} defaultValue={settings.gamingUdpPort || ''} placeholder="Any free port" onBlur={(e) => put({ gamingUdpPort: e.target.value })} />
             </label>

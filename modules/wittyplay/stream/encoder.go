@@ -239,11 +239,23 @@ func (e *videoEncoder) stop() {
 func (s *Session) videoLoop() {
 	var feed []byte
 	var hdr ipc.VideoHeader
+	// A paused game makes no frames, but encoders hold on to their output until
+	// they have seen a few, and a viewer arriving now still needs a picture. So
+	// the last frame is repeated, slowly; it compresses to almost nothing.
+	idle := time.NewTicker(50 * time.Millisecond)
+	defer idle.Stop()
 	for {
 		select {
 		case <-s.done:
 			return
 		case <-s.frameReady:
+		case <-idle.C:
+			s.viewMu.Lock()
+			repeat := s.paused && len(s.viewers) > 0
+			s.viewMu.Unlock()
+			if !repeat {
+				continue
+			}
 		}
 		s.frameMu.Lock()
 		if len(s.frame) == 0 {

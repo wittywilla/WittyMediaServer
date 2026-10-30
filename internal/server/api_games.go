@@ -16,7 +16,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
@@ -63,29 +62,24 @@ type gameService struct {
 	dir   string
 }
 
-var (
-	gameOnce sync.Once
-	gameSvc  *gameService
-)
-
 // testingGames: the built-in test console is only offered to developers.
 func (s *Server) testingGames() bool {
 	return (s.Cfg != nil && s.Cfg.Dev) || os.Getenv("WMS_GAMING_TESTCORE") == "1"
 }
 
 func (s *Server) games() *gameService {
-	gameOnce.Do(func() {
+	s.gameOnce.Do(func() {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
-		gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), Client: library.SafeClient},
+		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), Client: library.SafeClient},
 			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
 	})
-	return gameSvc
+	return s.gameSvc
 }
 
 // StopGames saves and ends every game; the server is shutting down.
 func (s *Server) StopGames() {
-	if gameSvc != nil {
-		gameSvc.mgr.StopAll()
+	if s.gameSvc != nil {
+		s.gameSvc.mgr.StopAll()
 	}
 }
 
@@ -192,6 +186,9 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			continue
 		}
 		v := consoleView{Console: c, Installed: []cores.Core{}}
+		if v.Cores == nil {
+			v.Cores = []wittyplay.Core{}
+		}
 		for _, want := range c.Cores {
 			if got, ok := byID[want.ID]; ok {
 				v.Installed = append(v.Installed, got)
@@ -377,10 +374,10 @@ func extractZipEntry(path, entry, out string) error {
 // session finds a session for the account that started it. To anyone else it
 // doesn't exist.
 func (s *Server) session(r *http.Request) *stream.Session {
-	if gameSvc == nil {
+	if s.gameSvc == nil {
 		return nil
 	}
-	sess := gameSvc.mgr.Get(r.PathValue("sid"))
+	sess := s.gameSvc.mgr.Get(r.PathValue("sid"))
 	if sess == nil || sess.UserID() != userFrom(r).ID {
 		return nil
 	}

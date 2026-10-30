@@ -3,6 +3,23 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### Games
+
+- **Games libraries**: add one for a console, or for a folder of many consoles, with several libraries of
+  one console allowed. Zipped games and multi-file games are understood. Bring your own game files.
+- **Play in the browser**: games run on the server, each in its own sandboxed process, and stream with
+  low latency over WebRTC. Where WebRTC can't connect, the player falls back to a WebSocket with WebCodecs,
+  and then to JPEG, without restarting the game.
+- **Every controller**: gamepads with hot-plug and up to four players, a keyboard, and a screen for
+  changing what every button does.
+- **Touch controls**: an on-screen controller per console, with an editor to move, resize, fade or hide
+  each control, saved per console, device and orientation. Android gets haptics.
+- **Saves**: battery saves and nine save-state slots per account with pictures, and a resume state written
+  when you stop.
+- **Settings, Gaming**: install cores on request with each licence shown first, and set up streaming.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

@@ -33,9 +33,8 @@ type viewer struct {
 	events atomic.Pointer[webrtc.DataChannel]
 
 	// WebSocket
-	ws     *websocket.Conn
-	out    chan wsMessage
-	wantPC bool
+	ws  *websocket.Conn
+	out chan wsMessage
 
 	closeOnce sync.Once
 }
@@ -57,6 +56,16 @@ func (s *Session) attach(v *viewer) {
 	s.viewMu.Lock()
 	s.viewers[v] = true
 	s.lastInput = time.Now()
+	// A running encoder's next keyframe may be a second away, and this viewer can
+	// show nothing until then. Starting it again sends one straight away.
+	switch {
+	case v.codec == "h264" && s.h264 != nil:
+		s.h264.stop()
+		s.h264 = nil
+	case v.codec == "vp8" && s.vp8 != nil:
+		s.vp8.stop()
+		s.vp8 = nil
+	}
 	if v.pc != nil {
 		s.startOpusLocked()
 	}

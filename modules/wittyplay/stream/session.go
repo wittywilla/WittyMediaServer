@@ -245,7 +245,6 @@ type Session struct {
 	frameMu    sync.Mutex
 	frame      []byte // the newest frame
 	frameHdr   ipc.VideoHeader
-	frameSeq   uint64
 	frameReady chan struct{}
 
 	viewMu        sync.Mutex
@@ -432,7 +431,6 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			s.frameMu.Lock()
 			s.frame = append(s.frame[:0], data...)
 			s.frameHdr = hdr
-			s.frameSeq++
 			s.frameMu.Unlock()
 			s.signalFrame()
 		case ipc.MsgDupe:

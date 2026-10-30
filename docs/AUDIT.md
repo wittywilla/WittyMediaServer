@@ -115,7 +115,7 @@ Commits: **A** `b9a706b`, **T** `914891c`, **D** `b321f5b`, **W** `57b8c0f`, **C
 | 17 | A crafted disc image could hang a scan (directories containing themselves, exponential within the depth limit) or panic it (negative sizes, lengths wrapping on 32-bit systems, which are release targets). The package had no tests. | D: limits and first tests, with a fuzz target. 30 s clean |
 | 18 | One DVD in 256 opened as "expired": a random session id could start with `bd`, which routes to Blu-ray sessions. | T |
 | 19 | The server exited as soon as shutdown began, closing the database under requests still running. | T |
-| 20 | One slow disc step stalled every other disc: looking up a session held the manager's lock while waiting for that session. Sessions could also close under a running step, and the number of open discs had no limit. | T: separate locks, at most 16 open |
+| 20 | One slow disc step stalled every other disc: looking up a session held the manager's lock while waiting for that session. Sessions could also close under a running step, and the number of open discs had no limit. | T: separate locks, at most 16 open. A DVD session waits for its running step before closing; a Blu-ray session doesn't yet, as the BD-J work changed that function (a read then fails harmlessly) |
 | 21 | Every rescan (each 6 hours) saved every show, changing its pictures' addresses, so every browser fetched all posters again. | A. Test: R |
 | 22 | Items without a poster were read again and looked up online on every scan, and rebuilt from nothing, losing hand edits. Episodes the online service doesn't know were re-probed on every scan. | A |
 | 23 | Scans of all libraries ran at once after each 6-hour tick. | A: one at a time |
@@ -194,8 +194,9 @@ file the server can), point agents at the local network, and choose folders for 
 
 ## Merging
 
-This branch merges into the current `master` without conflicts, and the merged code builds and
-passes its tests (checked for `34549e0`). The other sessions will likely touch `internal/db/db.go`
+This branch merges into `master` without conflicts, and the merged code builds and passes its tests
+(checked at `48250ea`). **BD-J (`48250ea`) arrived after this audit and has not been audited**: it
+runs Java code from disc images on the server, so it deserves its own review. The other sessions will likely touch `internal/db/db.go`
 too: if two branches add a migration, both go at the end of the list, each with its own number.
 `TestEveryRouteChecksWhoIsAsking` will fail for a new public route until it is added to
 `publicRoutes`, which is on purpose.

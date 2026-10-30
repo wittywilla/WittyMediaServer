@@ -217,12 +217,8 @@ func (s *Session) lastUsed() time.Time {
 	return s.last
 }
 
-// Close releases the disc, after any step in progress.
-func (s *Session) Close() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	_ = s.disc.Close()
-}
+// Close releases the disc.
+func (s *Session) Close() { _ = s.disc.Close() }
 
 // Current is the presentation now showing.
 func (s *Session) Current() *Presentation {

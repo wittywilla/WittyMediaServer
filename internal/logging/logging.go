@@ -353,6 +353,12 @@ func redactAttr(_ []string, a slog.Attr) slog.Attr {
 			return slog.String(a.Key, "[hidden]")
 		}
 	}
+	// Errors too: an HTTP client's error quotes the whole address it asked.
+	if a.Value.Kind() == slog.KindAny {
+		if err, ok := a.Value.Any().(error); ok {
+			a = slog.String(a.Key, err.Error())
+		}
+	}
 	if a.Value.Kind() == slog.KindString {
 		if v := a.Value.String(); strings.Contains(v, "=") || strings.Contains(v, "Bearer") {
 			return slog.String(a.Key, Redact(v))

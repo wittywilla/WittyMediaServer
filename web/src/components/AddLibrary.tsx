@@ -18,6 +18,8 @@ export const LIB_TYPES = [
   { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
   { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; nothing leaves this server' },
+  { type: 'shorts', name: 'Vertical videos', hint: 'A feed of short videos with likes, comments and a For You page worked out on this server alone' },
+  { type: 'channels', name: 'Creator videos', hint: 'Your archive of creators’ videos, laid out by channel with subscriptions, comments and up next' },
 ]
 
 // What each kind of library expects in its folder, shown once it's chosen.
@@ -25,6 +27,8 @@ const FOLDER_HINT: Record<string, string> = {
   movies: 'Disc images (.iso) and VIDEO_TS or BDMV folders in here are listed as DVDs and Blu-rays, and you can mark each one as a film or a TV series.',
   shows: 'Disc images of a series are listed with the show’s discs and keep their menus.',
   discs: 'Only DVD and Blu-ray images and folders are picked up. Each disc is sorted as a film or a TV series from its name; you can change that on the disc’s page.',
+  shorts: 'One folder per creator works best. Sidecar files beside a video can add its creator, tags, date and where it came from.',
+  channels: 'One folder per channel, with subfolders as playlists. Sidecar files beside a video add its title, date, description and saved comments, and a picture with its name becomes its thumbnail. Nothing is downloaded or looked up.',
   photos: 'Every picture and clip in here and in folders below it. Thumbnails are made when first looked at, so even a large collection scans quickly. Your files are never changed; uploads are saved in an Uploads folder inside it.',
 }
 

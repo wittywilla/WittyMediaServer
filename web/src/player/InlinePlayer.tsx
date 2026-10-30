@@ -3,6 +3,7 @@ import { api, langName, type PlayInfo } from '../api'
 import { IconPlay } from '../icons'
 import { Controls, setSpeed, useVideoState } from './Controls'
 import { toggleFullscreen, useIdle, useSource } from './hooks'
+import './inline.css'
 
 // A video inside a page rather than filling the screen: the creator pages and
 // the photo viewer. It has the full player's controls (speed, chapters, audio,

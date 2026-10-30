@@ -11,6 +11,7 @@ import LogSettings from './LogSettings'
 import Profiles from './Profiles'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
+import SharingSettings from './settings/Sharing'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
@@ -30,6 +31,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'You', pages: [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
+    { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
@@ -69,6 +71,7 @@ export default function SettingsPage() {
           <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
+          <Route path="sharing" element={<SharingSettings />} />
           <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Nothing is ever sent anywhere." /><LogSettings /></>} />
           <Route path="about" element={<About />} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
@@ -91,6 +94,8 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'books', label: 'Books & comics', hint: 'EPUB, PDF, comics and manga' },
   { v: 'videos', label: 'Home videos', hint: 'Your own videos; nothing is looked up online' },
   { v: 'photos', label: 'Photos', hint: 'A timeline, albums and a map of your pictures' },
+  { v: 'shorts', label: 'Vertical videos', hint: 'A feed of short videos with a For You page' },
+  { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
 

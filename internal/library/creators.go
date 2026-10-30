@@ -493,6 +493,11 @@ func (s *Store) ensureCreator(ctx context.Context, libraryID int64, c creatorRow
 	}
 	var id int64
 	err := s.DB.QueryRowContext(ctx, `SELECT id FROM creators WHERE library_id = ? AND key = ?`, libraryID, c.Key).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		// The same person under another key: a video without a sidecar is named
+		// after its folder, one with a sidecar after the channel's id.
+		err = s.DB.QueryRowContext(ctx, `SELECT id FROM creators WHERE library_id = ? AND (name = ? COLLATE NOCASE OR (folder <> '' AND folder = ?)) ORDER BY id LIMIT 1`, libraryID, c.Name, c.Folder).Scan(&id)
+	}
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, err
 	}

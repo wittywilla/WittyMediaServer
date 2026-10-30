@@ -6,7 +6,7 @@ import { IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, Ico
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
-import { Brand, BrandMark, UpdateDot, VersionTag } from './components/common'
+import { Brand, BrandMark, Spinner, UpdateDot, VersionTag } from './components/common'
 import LibraryPage from './pages/LibraryPage'
 import ItemPage from './pages/ItemPage'
 import ShowPage from './pages/ShowPage'
@@ -21,6 +21,8 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
+const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
+const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
 
 export default function App() {
   useDialogs()
@@ -80,6 +82,8 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
+            <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

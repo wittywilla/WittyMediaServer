@@ -10,6 +10,8 @@ import BooksLibrary from './Books'
 
 // Loaded when opened: most servers have only some of these libraries.
 const PhotosLibrary = lazy(() => import('./photos/PhotosLibrary'))
+const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
+const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
@@ -20,6 +22,8 @@ export default function LibraryPage() {
   if (lib && AUDIO.includes(lib.type)) return <AudioLibrary key={lib.id} lib={lib} />
   if (lib?.type === 'books') return <BooksLibrary key={lib.id} lib={lib} />
   if (lib?.type === 'photos') return <Suspense fallback={<Spinner />}><PhotosLibrary key={lib.id} lib={lib} /></Suspense>
+  if (lib?.type === 'shorts') return <Suspense fallback={<Spinner />}><ShortsLibrary key={lib.id} lib={lib} /></Suspense>
+  if (lib?.type === 'channels') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
   return <VideoLibrary />
 }
 

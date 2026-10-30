@@ -118,10 +118,3 @@
 .gal-public { min-height: 100vh; padding: 24px clamp(14px, 4vw, 48px); background: var(--bg); color: var(--fg); }
 .gal-public-head h1 { margin: 0; font-size: 24px; }
 .gal-public-head p { margin: 4px 0 18px; }
-
-/* A player inside a page */
-.player.inline { position: relative; inset: auto; z-index: auto; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; }
-.player.inline:fullscreen { border-radius: 0; }
-.player.inline .popover { max-height: 70%; overflow-y: auto; }
-.player.inline .ctl .time { min-width: 0; }
-.player.inline.compact .kbd-help { display: none; }

@@ -62,12 +62,24 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(v, "•") { // masked secret sent back unchanged
 			continue
 		}
+		if k == "mapTiles" && !validMapTiles(strings.TrimSpace(v)) {
+			writeErr(w, 400, "the map address must start with https:// and contain {z}, {x} and {y}")
+			return
+		}
 		if err := s.DB.SetSetting(r.Context(), k, strings.TrimSpace(v)); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
 	}
 	s.handleGetSettings(w, r)
+}
+
+// validMapTiles: empty (no online map), or an https address of map squares.
+func validMapTiles(v string) bool {
+	if v == "" {
+		return true
+	}
+	return strings.HasPrefix(v, "https://") && strings.Contains(v, "{z}") && strings.Contains(v, "{x}") && strings.Contains(v, "{y}") && len(v) < 400 && !strings.ContainsAny(v, "\"'<> ")
 }
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {

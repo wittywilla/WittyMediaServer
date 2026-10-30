@@ -21,6 +21,9 @@
 #   FFMPEG_FREEBSD_DIR=   static FreeBSD ffmpeg/ffprobe: <dir>/<arch>/, <dir>/ffmpeg-freebsd-<arch>/
 #                         or (amd64 only) <dir>/ (see scripts/build-ffmpeg-static.sh)
 #   TRAY_DARWIN_DIR=      <dir>/<arch>/WittyMediaServer tray binaries built on a Mac (needs CGO)
+#   WMS_SIGNING_KEY=      release signing key (default ~/.wms-signing/release.key, see
+#                         docs/PUBLISHING.md); signs the checksum list so installs can update
+#   REQUIRE_SIGNING=1     fail when there is no signing key
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -47,6 +50,7 @@ HOSTEXE="$(go env GOEXE)"
 echo "==> building host tools"
 env -u GOOS -u GOARCH go build -o "$TOOLS/pack$HOSTEXE" ./scripts/pack
 env -u GOOS -u GOARCH go build -o "$TOOLS/genicon$HOSTEXE" ./scripts/genicon
+env -u GOOS -u GOARCH go build -o "$TOOLS/wms-sign$HOSTEXE" ./cmd/wms-sign
 
 # fetch <out> <url> [url...]: downloads the first URL that works (cached).
 fetch() {
@@ -171,7 +175,7 @@ for t in "${TARGETS[@]}"; do
     echo "       Stop it and move the data folder out, or build elsewhere: DIST=dist/next $0 $VERSION" >&2
     exit 1
   fi
-  rm -rf "$out" "$out.zip" "$out.tar.gz"; mkdir -p "$out"
+  rm -rf "$out" "$out.zip" "$out.tar.gz" "$out-setup.exe"; mkdir -p "$out"
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/wms$ext" ./cmd/wms
@@ -185,7 +189,9 @@ for t in "${TARGETS[@]}"; do
   fi
   cp README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md CHANGELOG.md "$out/" 2>/dev/null || true
   case "$os" in
-    windows) cp scripts/install.ps1 scripts/uninstall.ps1 scripts/start-wms.cmd "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/icon.ico" ;;
+    windows) cp scripts/install.ps1 scripts/uninstall.ps1 scripts/start-wms.cmd "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/icon.ico"
+             # Per-user installer and uninstaller (also installs an unpacked folder).
+             CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/wms-setup.exe" ./cmd/wms-setup ;;
     darwin)  cp scripts/install.sh "$out/"; make_app_bundle "$out" ;;
     *)       cp scripts/install.sh "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/icon.png" 256
              sed "s|@PREFIX@|/opt/wittymediaserver|g" scripts/wittymediaserver.desktop > "$out/wittymediaserver.desktop" ;;
@@ -194,12 +200,29 @@ for t in "${TARGETS[@]}"; do
   "$TOOLS/pack$HOSTEXE" "$out" "$DIST/$archive"
   ARCHIVES+=("$archive")
   echo "   -> $DIST/$archive"
+  if [ "$os" = windows ]; then
+    # The setup .exe is the installer with the package appended.
+    cat "$out/wms-setup.exe" "$DIST/$archive" > "$DIST/$name-setup.exe"
+    ARCHIVES+=("$name-setup.exe")
+    echo "   -> $DIST/$name-setup.exe"
+  fi
 done
 
 SUM="sha256sum"; command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"
-(cd "$DIST" && $SUM "${ARCHIVES[@]}" > "wittymediaserver-${VERSION}-SHA256SUMS.txt")
+SUMS="wittymediaserver-${VERSION}-SHA256SUMS.txt"
+(cd "$DIST" && $SUM "${ARCHIVES[@]}" > "$SUMS")
+# Sign the checksum list: the in-app updater installs nothing without it.
+rm -f "$DIST/$SUMS.sig"
+KEY="${WMS_SIGNING_KEY:-$HOME/.wms-signing/release.key}"
+if [ -f "$KEY" ]; then
+  "$TOOLS/wms-sign$HOSTEXE" sign -key "$KEY" "$DIST/$SUMS"
+  "$TOOLS/wms-sign$HOSTEXE" verify "$DIST/$SUMS" || { echo "error: the signing key is not the one built into wms (internal/update/keys.go)" >&2; exit 1; }
+else
+  echo "   !! no signing key at $KEY: $SUMS is not signed, and installs can't update to this release from Settings" >&2
+  [ "${REQUIRE_SIGNING:-}" = "1" ] && exit 1
+fi
 echo
-echo "==> built ${#ARCHIVES[@]} archives in $DIST/ (checksums: wittymediaserver-${VERSION}-SHA256SUMS.txt)"
+echo "==> built ${#ARCHIVES[@]} files in $DIST/ (checksums: $SUMS$([ -f "$DIST/$SUMS.sig" ] && echo ", signed"))"
 if [ ${#MISSING[@]} -gt 0 ]; then
   echo "   without bundled FFmpeg: ${MISSING[*]}"
   [ "${STRICT_FFMPEG:-}" = "1" ] && exit 1

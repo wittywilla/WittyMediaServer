@@ -34,6 +34,10 @@ func main() {
 	os.Exit(cmdServe(os.Args[1:]))
 }
 
+// startExe is this program's path when it started: after an update has
+// renamed it to *.old, the system may report the new name instead.
+var startExe, _ = os.Executable()
+
 // version is stamped by the release scripts (-X main.version=...); this is
 // the default for source builds.
 var version = "0.3.0-alpha"

@@ -3,6 +3,38 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### Updates
+
+- **One-click updates**: *Settings → About & legal → Updates* shows the installed and the newest
+  version with its release notes. **Update now** downloads it, verifies it, installs it and
+  restarts; the page reloads by itself. Admins see a dot on *Settings* when an update is out.
+- **Only verified releases install**: each release's checksum list is signed with the project's
+  Ed25519 key, built into the server. The server checks that signature and the package's
+  SHA-256, downloads only from GitHub over HTTPS, and refuses anything that doesn't match.
+- **Your data is never touched**: the new files are swapped in next to the running ones (old
+  programs are set aside and removed on the next start); the data folder, `wms.json` and the other
+  data folders are never written, and a failed install puts every file back.
+- The server looks for new versions twice a day (it only asks GitHub for its list of releases);
+  *Check for updates automatically* turns that off.
+- Copies that can't replace their own files (macOS, Docker, `install.sh` installs owned by root, a
+  read-only program folder) say why and link to the download.
+
+### Windows
+
+- **A setup program** (`…-windows-amd64-setup.exe`): installs for your account without
+  administrator rights, adds a Start menu entry, starts at sign-in and appears in *Installed apps*
+  with an uninstaller that keeps your library. Installed this way, the server updates itself.
+  `wms-setup.exe` in the zip installs an unpacked folder the same way.
+
+### For maintainers
+
+- `cmd/wms-sign` makes the release signing key and signs checksum lists;
+  `scripts/build-release.sh` signs each release (`WMS_SIGNING_KEY`, default
+  `~/.wms-signing/release.key`) and builds the Windows setup. The release workflow signs with the
+  `WMS_SIGNING_KEY` repository secret. See *Signing releases* in `docs/PUBLISHING.md`.
+
 ## 0.3.0-alpha
 
 ### Home

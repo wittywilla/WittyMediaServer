@@ -9,9 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,6 +29,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
+	"github.com/wittywilla/wittymediaserver/internal/update"
 	builtinthemes "github.com/wittywilla/wittymediaserver/themes"
 	"github.com/wittywilla/wittymediaserver/web"
 )
@@ -120,6 +123,20 @@ func cmdServe(args []string) int {
 		log.Warn("themes", "err", err)
 	}
 
+	// Updates: remove what the last update set aside, and get ready to
+	// install the next one. Nothing in the data folders is ever replaced.
+	progDir := config.ProgramDir()
+	update.Cleanup(progDir)
+	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
+	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
+	restartReq := make(chan struct{}, 1)
+	updater.Restart = func() {
+		select {
+		case restartReq <- struct{}{}:
+		default:
+		}
+	}
+
 	webFS := web.Dist()
 	if cfg.Dev {
 		webFS = os.DirFS(filepath.Join("web", "dist"))
@@ -127,6 +144,7 @@ func cmdServe(args []string) int {
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
+		Update: updater,
 	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
@@ -134,7 +152,7 @@ func cmdServe(args []string) int {
 		ReadHeaderTimeout: 15 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-	ln, err := net.Listen("tcp", cfg.Listen)
+	ln, err := listen(cfg.Listen)
 	if err != nil {
 		log.Error("listen", "addr", cfg.Listen, "err", err)
 		return 1
@@ -180,6 +198,16 @@ func cmdServe(args []string) int {
 			os.Exit(0)
 		}()
 	}
+	go updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
+	var restarting atomic.Bool
+	go func() {
+		select {
+		case <-restartReq:
+			restarting.Store(true)
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down")
@@ -192,7 +220,46 @@ func cmdServe(args []string) int {
 		log.Error("serve", "err", err)
 		return 1
 	}
+	if restarting.Load() {
+		return relaunch(cfg, log)
+	}
 	return 0
+}
+
+// relaunch starts the newly installed version after an update. The tray
+// app and systemd start the server again themselves when it exits with
+// update.ExitRestart; otherwise the new program is started here, with the
+// same arguments, before this one exits.
+func relaunch(cfg *config.Config, log *slog.Logger) int {
+	if cfg.WatchStdin || os.Getenv("INVOCATION_ID") != "" {
+		log.Info("restarting for the update")
+		return update.ExitRestart
+	}
+	cmd := exec.Command(startExe, os.Args[1:]...)
+	cmd.Env = append(os.Environ(), "WMS_RESTARTED=1")
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	detach(cmd)
+	if err := cmd.Start(); err != nil {
+		log.Error("could not start the updated server; start it again by hand", "err", err)
+		return update.ExitRestart
+	}
+	log.Info("started the updated server", "pid", cmd.Process.Pid)
+	_ = cmd.Process.Release()
+	return 0
+}
+
+// listen opens the server's port. Right after an update the previous
+// process may still be letting go of it, so keep trying for a while.
+func listen(addr string) (net.Listener, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err == nil || os.Getenv("WMS_RESTARTED") != "1" {
+		return ln, err
+	}
+	for i := 0; i < 40 && err != nil; i++ {
+		time.Sleep(500 * time.Millisecond)
+		ln, err = net.Listen("tcp", addr)
+	}
+	return ln, err
 }
 
 func listenURL(addr string) string {

@@ -23,11 +23,16 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
+	"github.com/wittywilla/wittymediaserver/internal/update"
 )
 
 // version is stamped by the release scripts (-X main.version=...); this is
 // the default for source builds.
 var version = "0.3.0-alpha"
+
+// trayExe is this program's path when it started (an update renames the
+// running file to *.old and puts the new version at this path).
+var trayExe, _ = os.Executable()
 
 type launcher struct {
 	mu         sync.Mutex
@@ -244,6 +249,8 @@ func (l *launcher) start() {
 	l.startedAt = time.Now()
 	go func(c *exec.Cmd) {
 		err := c.Wait()
+		// The server installed an update and asks to be started again.
+		updated := c.ProcessState != nil && c.ProcessState.ExitCode() == update.ExitRestart
 		l.mu.Lock()
 		if l.cmd == c {
 			l.running = false
@@ -257,7 +264,9 @@ func (l *launcher) start() {
 			}
 		}
 		// Give up after repeated immediate failures (bad config, port in use…).
-		if time.Since(l.startedAt) < 10*time.Second {
+		if updated {
+			l.fails = 0
+		} else if time.Since(l.startedAt) < 10*time.Second {
 			l.fails++
 		} else {
 			l.fails = 0
@@ -268,6 +277,11 @@ func (l *launcher) start() {
 		restart := l.wantRun && l.cmd == c
 		l.refreshLocked()
 		l.mu.Unlock()
+		if updated && restart && relaunchTray() == nil {
+			// The new tray app starts the new server.
+			systray.Quit()
+			return
+		}
 		if restart {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
@@ -277,6 +291,22 @@ func (l *launcher) start() {
 		}
 	}(cmd)
 	l.refreshLocked()
+}
+
+// relaunchTray starts the updated tray app with the same arguments.
+func relaunchTray() error {
+	var args []string
+	for _, a := range os.Args[1:] {
+		if a != "-no-autostart" {
+			args = append(args, a)
+		}
+	}
+	cmd := exec.Command(trayExe, args...)
+	cmd.Dir = filepath.Dir(trayExe)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
 }
 
 func (l *launcher) stop() {

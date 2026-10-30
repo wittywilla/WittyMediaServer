@@ -411,6 +411,9 @@ main.content:focus { outline: none; }
 .brand-logo-actions .muted { flex-basis: 100%; }
 
 /* A newer version can be installed (admins): a dot beside Settings. */
+.upd-dot { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .25); flex: none; }
+.tabbar a.tab-upd { position: relative; }
+.tabbar .upd-dot { position: absolute; top: 4px; right: calc(50% - 18px); margin: 0; }
 
 /* People who ask their system for more contrast get stronger secondary
    text and borders. */

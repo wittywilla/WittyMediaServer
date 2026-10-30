@@ -24,6 +24,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
+	"github.com/wittywilla/wittymediaserver/internal/update"
 )
 
 type Server struct {
@@ -41,6 +42,7 @@ type Server struct {
 	Web     fs.FS
 	Version string
 	Logs    *logging.Logger
+	Update  *update.Updater // nil: this build can't update itself
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -166,6 +168,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/logs/files/{name}", s.requireAdmin(s.handleLogFile))
 	m.Handle("POST /api/logs/open", s.requireAdmin(s.handleOpenLogs))
 	m.Handle("POST /api/logs/client", a(s.handleClientLog))
+	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
+	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
+	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

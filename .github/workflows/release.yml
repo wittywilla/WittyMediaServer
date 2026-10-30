@@ -63,23 +63,38 @@ jobs:
         env:
           FFMPEG_FREEBSD_DIR: ${{ github.workspace }}/.tools/ffmpeg-freebsd
           TRAY_DARWIN_DIR: ${{ github.workspace }}/.tools/tray-darwin
+          # The release signing key (repository secret, see docs/PUBLISHING.md).
+          # Without it the release is unsigned and installs can't update to it
+          # from Settings until a .sig is added by hand.
+          SIGNING_KEY: ${{ secrets.WMS_SIGNING_KEY }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          if [ -n "$SIGNING_KEY" ]; then
+            export WMS_SIGNING_KEY="$RUNNER_TEMP/release.key"
+            (umask 077; printf '%s\n' "$SIGNING_KEY" > "$WMS_SIGNING_KEY")
+          else
+            export WMS_SIGNING_KEY="$RUNNER_TEMP/none"
+          fi
           scripts/build-release.sh "$VERSION"
+          rm -f "$RUNNER_TEMP/release.key"
       - uses: actions/upload-artifact@v7
         with:
           name: archives
           path: |
             dist/*.zip
             dist/*.tar.gz
+            dist/*-setup.exe
             dist/*SHA256SUMS.txt
+            dist/*SHA256SUMS.txt.sig
       - uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             dist/*.zip
             dist/*.tar.gz
+            dist/*-setup.exe
             dist/*SHA256SUMS.txt
+            dist/*SHA256SUMS.txt.sig
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
 

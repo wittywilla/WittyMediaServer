@@ -5,8 +5,10 @@ to install first. New to all this? [Getting started](GETTING_STARTED.md) walks t
 command line.
 
 - [Downloads](#downloads)
+- [Windows: the setup](#windows-the-setup)
 - [Desktop: the tray app](#desktop-the-tray-app)
 - [Always on: as a service](#always-on-as-a-service)
+- [Updating](#updating)
 - [Docker](#docker)
 - [Kubernetes](#kubernetes)
 - [At home and away](#at-home-and-away)
@@ -18,7 +20,8 @@ Download the archive for your platform from the **Releases** page.
 
 | Platform | Archive | Notes |
 |---|---|---|
-| Windows 10/11 (x64, ARM64) | `…-windows-amd64.zip`, `…-windows-arm64.zip` | |
+| Windows 10/11 (x64, ARM64) | `…-windows-amd64-setup.exe`, `…-windows-arm64-setup.exe` | installs for your account, no admin needed |
+| | `…-windows-amd64.zip`, `…-windows-arm64.zip` | the same files to unpack and run anywhere |
 | macOS 11+ (Apple Silicon, Intel) | `…-darwin-arm64.tar.gz`, `…-darwin-amd64.tar.gz` | includes `WittyMediaServer.app` (menu-bar app) |
 | Linux x64 / ARM64, incl. Raspberry Pi 4/5 (64-bit) | `…-linux-amd64.tar.gz`, `…-linux-arm64.tar.gz` | static, works on any distribution |
 | Linux ARMv7, Raspberry Pi 2/3/4 (32-bit) | `…-linux-armv7.tar.gz` | static |
@@ -27,7 +30,9 @@ Download the archive for your platform from the **Releases** page.
 | FreeBSD 14+ (ARM64) | `…-freebsd-arm64.tar.gz` | uses FreeBSD's FFmpeg: `pkg install ffmpeg` |
 | Docker | `ghcr.io/wittywilla/wittymediaserver` | amd64, arm64, armv7 |
 
-Each release has a `…-SHA256SUMS.txt` file to check downloads. Every archive looks like this:
+Each release has a `…-SHA256SUMS.txt` file to check downloads, and its signature
+(`…-SHA256SUMS.txt.sig`), which the server checks before it installs an update. Every archive looks
+like this:
 
 ```
 wittymediaserver-<version>-<os>-<arch>/
@@ -35,8 +40,29 @@ wittymediaserver-<version>-<os>-<arch>/
 ├── wms(.exe)                 the server (command line, services, Docker)
 ├── bin/ffmpeg, bin/ffprobe   bundled FFmpeg
 ├── install.sh / install.ps1  service installers
+├── wms-setup.exe             Windows: installs this folder for your account
 └── README, LICENSE, NOTICE, THIRD_PARTY_LICENSES
 ```
+
+## Windows: the setup
+
+Run **`wittymediaserver-<version>-windows-amd64-setup.exe`** (or double-click `wms-setup.exe` in an
+unpacked folder). It needs no administrator rights:
+
+- the program goes to `%LOCALAPPDATA%\Programs\WittyMediaServer`, a folder your account can write,
+  so the server can [update itself](#updating);
+- your library, accounts and settings stay in `%LOCALAPPDATA%\WittyMediaServer`, which installing,
+  updating and removing never touch;
+- it adds **WittyMediaServer** to the Start menu, starts the tray app when you sign in (switch that
+  off from the tray icon), and lists the app under *Settings → Apps → Installed apps*, where
+  **Uninstall** removes the program and keeps your data.
+
+Running a newer setup over an installed copy updates it in place. For scripts: `/S` installs
+silently, `/noautostart` skips starting at sign-in, and `wms-setup.exe /uninstall /S` removes it.
+
+Already running a copy from an unpacked folder with its library in `data\`? Quit it, run the setup,
+and copy the contents of that `data` folder into `%LOCALAPPDATA%\WittyMediaServer` before the first
+start to keep your library.
 
 ## Desktop: the tray app
 
@@ -78,6 +104,37 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 Run either the service or the tray app on a port, not both.
+
+## Updating
+
+Admins see a dot on **Settings** when a newer version is out. *Settings → About & legal → Updates*
+shows the installed and the newest version with its release notes; **Update now** installs it:
+
+1. **Downloading**: the release's checksum list and its signature come from GitHub (only from
+   github.com and its download servers, over HTTPS).
+2. **Verifying**: the checksum list must be signed with the WittyMediaServer release key built into
+   the server, and the downloaded package must match its checksum. Anything else is refused and
+   nothing changes.
+3. **Installing**: the new files are unpacked next to the program and swapped in. Running programs
+   are renamed to `*.old` (Windows allows that) and deleted on the next start. The `data` folder,
+   `wms.json` and any other folder the server keeps data in are never written.
+4. **Restarting**: the tray app starts the new version (systemd does it for the Linux service;
+   otherwise the server starts its successor itself). The page reloads by itself.
+
+The server looks for new versions twice a day (*Check for updates automatically*, on by default;
+**Check now** asks at once). It only fetches GitHub's list of releases: nothing about you or your
+library is sent, and nothing is installed until an admin clicks **Update now**.
+
+In-place updates need a copy installed from a release package in a folder the server can write.
+Otherwise Settings says why and links to the download:
+
+| Installed with | How to update |
+|---|---|
+| Windows setup, an unpacked folder, `install.ps1` (runs as SYSTEM) | **Update now** |
+| Tray app run from *Program Files* by a normal account | run the Windows setup, or `install.ps1` again as administrator |
+| `install.sh` (`/opt/…`, owned by root) | unpack the new archive and run `sudo ./install.sh` again |
+| macOS | download the new version and replace the app |
+| Docker / Kubernetes | pull the new image and recreate the container |
 
 ## Docker
 

@@ -104,3 +104,11 @@ export function BrandMark({ src }: { src?: string }) {
 export function Brand({ name }: { name: string }) {
   return name ? <span className="brand-name">{name}</span> : <span>Witty<b>Media</b>Server</span>
 }
+
+// UpdateDot: admins see that a newer version can be installed (Settings,
+// About & legal, Updates).
+export function UpdateDot() {
+  const { update, user } = useApp()
+  if (!update || !user?.isAdmin) return null
+  return <i className="upd-dot" role="img" aria-label={`Version ${update} is available`} title={`Version ${update} is available: Settings, About & legal`} />
+}

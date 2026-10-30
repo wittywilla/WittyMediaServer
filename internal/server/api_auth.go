@@ -23,7 +23,13 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		libs, _ := s.Store.Libraries(ctx)
 		onboarding = len(libs) == 0
 	}
+	// Admins see a notice when a newer version was found.
+	newer := ""
+	if u != nil && u.IsAdmin && s.Update != nil {
+		newer = s.Update.Available()
+	}
 	writeJSON(w, 200, map[string]any{
+		"update":        newer,
 		"onboarding":    onboarding,
 		"pickerLocal":   onThisMachine(r),
 		"name":          "WittyMediaServer",

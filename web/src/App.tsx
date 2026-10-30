@@ -6,7 +6,7 @@ import { IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, Ico
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
-import { Brand, BrandMark, VersionTag } from './components/common'
+import { Brand, BrandMark, UpdateDot, VersionTag } from './components/common'
 import LibraryPage from './pages/LibraryPage'
 import ItemPage from './pages/ItemPage'
 import ShowPage from './pages/ShowPage'
@@ -100,7 +100,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-link muted" style={{ fontSize: 13 }}>No libraries yet</div>}
         <div className="nav-section">Manage</div>
-        <NavLink to="/settings" className="nav-link"><IconSettings /> Settings</NavLink>
+        <NavLink to="/settings" className="nav-link"><IconSettings /> Settings<UpdateDot /></NavLink>
         <div className="sidebar-footer"><VersionTag version={version} /></div>
       </aside>
     </>
@@ -175,7 +175,7 @@ function TabBar({ onLibraries }: { onLibraries: () => void }) {
       <NavLink to="/" end><IconHome /><span>Home</span></NavLink>
       <NavLink to="/search"><IconSearch /><span>Search</span></NavLink>
       <button type="button" onClick={onLibraries}><IconFilm /><span>Libraries</span></button>
-      <NavLink to="/settings"><IconSettings /><span>You</span></NavLink>
+      <NavLink to="/settings" className="tab-upd"><IconSettings /><span>You</span><UpdateDot /></NavLink>
     </nav>
   )
 }

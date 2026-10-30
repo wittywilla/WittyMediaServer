@@ -258,3 +258,27 @@ func TestApplication(t *testing.T) {
 		t.Error("the process did not end")
 	}
 }
+
+// A disc's JAR is untrusted, and the check reads it without Java.
+func FuzzClassRefs(f *testing.F) {
+	f.Add([]byte{0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 52, 0, 3, 1, 0, 1, 'x', 7, 0, 1})
+	f.Add([]byte{0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 52, 0xff, 0xff, 5})
+	f.Fuzz(func(t *testing.T, b []byte) { _, _ = classRefs(b) })
+}
+
+func TestMissingClasses(t *testing.T) {
+	jar, err := os.ReadFile("testdata/00000.jar")
+	if err != nil {
+		t.Skip("test application not built")
+	}
+	missing, n, err := MissingClasses(jar)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n == 0 || len(missing) != 0 {
+		t.Fatalf("%d classes, missing %v", n, missing)
+	}
+	if _, _, err := MissingClasses([]byte("not a jar")); err == nil {
+		t.Fatal("expected an error")
+	}
+}

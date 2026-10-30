@@ -14,4 +14,11 @@ display of the derivative work.
 WittyBluray is an original implementation of the Blu-ray Disc (HDMV)
 navigation model written from the publicly documented disc structure. It
 contains no code from other players, and it does not decrypt AACS-protected
-discs.
+discs or run BD+. Format details were checked against public documentation and
+the published source of open players, as facts; no code was copied.
+
+bdj/runtime.jar is original code that re-implements the published interfaces
+disc applications link against. It is not a Java runtime, contains no Java
+runtime, and has not been tested for compatibility by any certifying body.
+Java is a trademark of Oracle and/or its affiliates. Blu-ray Disc and BD-J are
+trademarks of the Blu-ray Disc Association.

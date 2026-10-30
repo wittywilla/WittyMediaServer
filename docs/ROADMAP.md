@@ -11,8 +11,10 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   `wittybluray` tool and [BLURAY.md](BLURAY.md)): images and folders, menus, titles, chapters,
   audio, subtitles, resume, AACS/BD-J/3D detection, 4K and HDR flags with tone mapping.
   Pop-up menus during the film, animated highlights and 3D viewing modes (side-by-side /
-  over-under to 2D or anaglyph) are in. Still to do: test on retail discs (BD-J, MVC 3D, UHD
-  HDR); MVC 3D decoding.
+  over-under to 2D or anaglyph) are in, and so are BD-J menus with a Java the server's owner
+  installs. [BLURAY-QUIRKS.md](BLURAY-QUIRKS.md) lists every format feature and its state. Still to
+  do: test on retail discs (BD-J, MVC 3D, UHD HDR); secondary audio and picture-in-picture; MVC 3D
+  decoding.
 - [x] **WittyDisc** (`modules/wittydisc`): the disc image reader both engines share.
 - [x] **Versioned module releases:** WittyDisc, WittyDVD and WittyBluray are tagged on their
   repositories, so `go get` and `go install` work outside a WittyMediaServer checkout

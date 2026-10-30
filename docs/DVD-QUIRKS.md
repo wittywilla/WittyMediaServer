@@ -48,7 +48,7 @@ them.
 | **Next / Prev / GoUp PGC links** | Each PGC names the next, previous and "up" PGC | Used by links and by the RETURN key | `LinkNextPGC`/`PrevPGC`/`GoUpPGC` follow them. RETURN follows GoUp, or resumes the title when there is none. A title PGC with no post-command link continues with its next PGC |
 | **Pre, post and cell commands** | Run around a PGC and after each cell | Cell command after the cell's still time; PGC still after the last cell; then post-commands | Same order (`afterCell`). 70–80 PGCs per test disc have no cells at all: pure "dispatcher" PGCs that run their commands and move on |
 | **Random and shuffle PGCs** | PGC playback mode (byte 0xA3): bit 7 random (0) or shuffle (1), bits 6–0 how many programs to play | Draws programs: random may repeat, shuffle plays each once. Then the post-commands | **New.** Implemented in `pickProgram`. A random title starts with a drawn program; a chosen chapter counts as the first. The PGC still follows whichever program ends the run. The session plays such PGCs cell by cell. None on the test discs; they use `g0 = rnd n` commands instead, which already worked |
-| **Parental management jumps** | `SetTmpPML level, line`: ask to change the parental level, and go to a line if allowed. Discs also compare SPRM 13 | Asks for the PIN when parental control is on | SetTmpPML sets SPRM 13 and jumps (there is no parental lock in WittyMediaServer). *Shrek 2* uses it (VMGM PGC 22) together with an `s13 >= 3` check (PGC 21). For parental *blocks*, see [Regions and parental management](#regions-and-parental-management) |
+| **Parental management jumps** | `SetTmpPML level, line`: ask to change the parental level, and go to a line if allowed. Discs also compare SPRM 13 | Asks for the PIN when parental control is on | SetTmpPML sets SPRM 13 and jumps (the parental level is a setting; there is no PIN). *Shrek 2* uses it (VMGM PGC 22) together with an `s13 >= 3` check (PGC 21). For parental *blocks*, see [Regions and parental management](#regions-and-parental-management) |
 
 ## Cells, stills and VOBUs
 
@@ -86,7 +86,7 @@ them.
 | **Audio stream mapping** | SPRM 1 is a *logical* stream; each PGC's audio control table maps it to a physical stream, or marks it absent | Plays the mapped stream | `titleAudio` maps through `AudioControl`, and streams are pinned by MPEG stream id. Streams that are absent from a title are hidden from the audio menu |
 | **Sub-picture stream mapping** | Each PGC maps a logical sub-picture stream to a physical one per display mode (4:3, wide, letterbox, pan-scan) | Uses the one for its display mode | `subs.go` picks wide (16:9 display) or narrow. Menus inside titles use SPRM 2's stream |
 | **Multi-channel audio** | AC-3/DTS 5.1, LPCM | Downmixes or passes through | Streams with more than 2 channels are encoded as 6 channels; others as stereo |
-| **Karaoke** | Audio application mode 1 with guide melody and vocal channels; SPRM 11 (`SetAMXMD`) says which to mix in | Mixes the selected channels | SPRM 11 is recorded and the application mode is parsed, but all channels are mixed. See [Not handled](#not-handled) |
+| **Karaoke** | Audio application mode 1 with guide melody and vocal channels; SPRM 11 (`SetAMXMD`) says which to mix in | Mixes the selected channels | **New:** the stream is offered with its vocals and as a sing-along of the front channels only. SPRM 11 is recorded and not applied. See [Not handled](#not-handled) |
 
 ## Structure: angles, interleaving, timing, chapters
 
@@ -153,16 +153,21 @@ A frame-rate filter was tried and made no difference, so it was not added.
 
 ## Not handled
 
-- **Karaoke mixing.** SPRM 11 is recorded, but every channel is mixed into the output, so guide
-  vocals cannot be switched off.
-- **User-operation prohibitions** in cells and VOBUs (PCI `VOBU_UOP_CTL`) and in titles are not
-  enforced. Only the PGC's prohibitions of the menu keys are. **Skip** works on warning screens
-  that a player would not let you skip.
+- **Karaoke mixing by the disc.** A karaoke stream is offered twice in the audio picker, with its
+  vocals and as a sing-along of the backing channels only. SPRM 11 is recorded, but the disc's own
+  choice of what to mix is not applied. No karaoke disc has been available to test this on.
+- **User-operation prohibitions in VOBUs** (PCI `VOBU_UOP_CTL`) are not enforced. Those of the PGC
+  are: the player obeys them for seeking, skipping, pausing and stream changes, unless the viewer
+  turns off **Disc restrictions**. **Skip** still works on warning screens that a player would not
+  let you skip.
 - **Seeking into a still-with-sound** inside a long title can start the picture a little late:
   after a seek into the gap, the stream's first picture is the next cell's.
 - **Pan-scan and letterbox conversion.** The browser always shows the full 16:9 frame, so
-  pan-scan vectors and the letterbox button group are not used.
-- **Parental lock.** There is no PIN or level setting; `SetTmpPML` always succeeds.
+  pan-scan vectors and the letterbox button group are not used. Screens today are wide, and the
+  player's **Fill** setting zooms a wide picture on a narrow one.
+- **Parental PIN.** Settings hold a parental level and a country, which pick the right version of a
+  parental block. There is no PIN: `SetTmpPML` always succeeds. Use user accounts to restrict what
+  people can open.
 
 ## Sources
 

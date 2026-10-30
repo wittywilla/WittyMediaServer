@@ -1,12 +1,16 @@
 package server
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/identity"
 )
 
 type pairStarted struct {
@@ -261,6 +265,191 @@ func TestPairingStartValidates(t *testing.T) {
 }
 
 // The TV's secret and the session it collects must never reach the log.
+func getInvite(t *testing.T, ts *testServer, session string, body any) string {
+	t.Helper()
+	w := ts.do(t, "POST", "/api/pair/invite", session, body)
+	if w.Code != 200 {
+		t.Fatalf("invite: %d %s", w.Code, w.Body.String())
+	}
+	b := decode[map[string]any](t, w)
+	if b["expiresInSec"].(float64) != 300 {
+		t.Errorf("invite: %v", b)
+	}
+	return b["code"].(string)
+}
+
+func redeemCode(t *testing.T, ts *testServer, code string) (int, map[string]any) {
+	t.Helper()
+	w := ts.do(t, "POST", "/api/pair/redeem", "", map[string]string{"code": code, "device": "Bedroom TV", "platform": "Android TV"})
+	return w.Code, decode[map[string]any](t, w)
+}
+
+func TestInviteCodeSignsInOnce(t *testing.T) {
+	ts := newTestServer(t)
+	me, session := ts.account(t, "Alex", "adult", false)
+	code := getInvite(t, ts, session, map[string]any{})
+	if len(code) != 6 || cleanInviteCode(code) != code {
+		t.Fatalf("code %q: digits only, six of them", code)
+	}
+	c, b := redeemCode(t, ts, code[:3]+" "+code[3:]) // typed with a space
+	if c != 200 || b["status"] != "approved" {
+		t.Fatalf("redeem: %d %v", c, b)
+	}
+	w := ts.do(t, "GET", "/api/me", b["token"].(string), nil)
+	if w.Code != 200 || decode[map[string]any](t, w)["name"] != me.Name {
+		t.Errorf("me: %d %s", w.Code, w.Body.String())
+	}
+	if c, b := redeemCode(t, ts, code); c != 410 || b["reason"] != "used" || b["token"] != nil || b["error"] == "" {
+		t.Errorf("second use: %d %v", c, b)
+	}
+}
+
+func TestInviteCodeFailuresSayWhy(t *testing.T) {
+	ts := newTestServer(t)
+	_, session := ts.account(t, "Alex", "adult", false)
+	code := getInvite(t, ts, session, map[string]any{})
+	ts.pair.mu.Lock()
+	ts.pair.invites[code].expires = time.Now().Add(-time.Second)
+	ts.pair.mu.Unlock()
+	if c, b := redeemCode(t, ts, code); c != 410 || b["reason"] != "expired" {
+		t.Errorf("expired: %d %v", c, b)
+	}
+	for _, bad := range []string{"", "abc", "12345", "1234567", "12345a"} {
+		if c, b := redeemCode(t, ts, bad); c != 400 || b["reason"] != "wrong-code" || b["error"] == "" {
+			t.Errorf("%q: %d %v", bad, c, b)
+		}
+		ts.logins.ok("192.168.1.50|redeem")
+	}
+}
+
+func TestInviteCodeGuessingIsLimited(t *testing.T) {
+	ts := newTestServer(t)
+	_, session := ts.account(t, "Alex", "adult", false)
+	code := getInvite(t, ts, session, map[string]any{})
+	wrong := "000000"
+	if code == wrong {
+		wrong = "000001"
+	}
+	// By address: five wrong, then even the right one has to wait.
+	for i := 0; i < 5; i++ {
+		if c, _ := redeemCode(t, ts, wrong); c != 400 {
+			t.Fatalf("try %d: %d", i, c)
+		}
+	}
+	w := ts.do(t, "POST", "/api/pair/redeem", "", map[string]string{"code": code})
+	if w.Code != 429 || w.Header().Get("Retry-After") == "" || decode[map[string]any](t, w)["reason"] != "too-many-tries" {
+		t.Errorf("after five: %d %v", w.Code, w.Header())
+	}
+	// For the whole server, whatever address it comes from: open codes are cancelled.
+	var ps pairings
+	in, err := ps.newInvite(1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad := "000000"
+	if in.code == bad {
+		bad = "000001"
+	}
+	for i := 0; i < inviteWrongLimit; i++ {
+		if _, why := ps.redeem(bad); why != redeemWrong {
+			t.Fatalf("try %d: %s", i, why)
+		}
+	}
+	if _, why := ps.redeem(in.code); why != redeemTooMany {
+		t.Errorf("over the limit: %s", why)
+	}
+	ps.wrong = nil
+	if _, why := ps.redeem(in.code); why != redeemExpired {
+		t.Errorf("a code open during the attack must not work afterwards: %s", why)
+	}
+}
+
+func TestInviteCodePermissions(t *testing.T) {
+	ts := newTestServer(t)
+	admin, _ := ts.account(t, "Boss", "adult", true)
+	_, adult := ts.account(t, "Alex", "adult", false)
+	kid, kidTok := ts.account(t, "Sam", "kids", false)
+	other, _ := ts.account(t, "Robin", "adult", false)
+	if w := ts.do(t, "POST", "/api/pair/invite", "", map[string]any{}); w.Code != 401 {
+		t.Errorf("anonymous: %d", w.Code)
+	}
+	if w := ts.do(t, "POST", "/api/pair/invite", kidTok, map[string]any{}); w.Code != 403 {
+		t.Errorf("Kids profile: %d", w.Code)
+	}
+	for _, id := range []int64{admin.ID, other.ID} {
+		if w := ts.do(t, "POST", "/api/pair/invite", adult, map[string]any{"userId": id}); w.Code != 403 {
+			t.Errorf("as account %d: %d", id, w.Code)
+		}
+	}
+	code := getInvite(t, ts, adult, map[string]any{"userId": kid.ID})
+	_, b := redeemCode(t, ts, code)
+	if decode[map[string]any](t, ts.do(t, "GET", "/api/me", b["token"].(string), nil))["name"] != "Sam" {
+		t.Errorf("signed in as someone else: %v", b)
+	}
+	// A new code replaces this person's open one.
+	first := getInvite(t, ts, adult, map[string]any{})
+	second := getInvite(t, ts, adult, map[string]any{})
+	if first != second {
+		if c, _ := redeemCode(t, ts, first); c != 400 {
+			t.Errorf("the replaced code still answered %d", c)
+		}
+	}
+}
+
+func TestIdentityRoute(t *testing.T) {
+	ts := newTestServer(t)
+	nonce := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef"))
+	w := ts.do(t, "POST", "/api/v1/identity", "", map[string]string{"nonce": nonce})
+	if w.Code != 200 {
+		t.Fatalf("identity: %d %s", w.Code, w.Body.String())
+	}
+	b := decode[map[string]string](t, w)
+	if !identity.Verify(b["publicKey"], b["serverId"], nonce, b["signature"]) {
+		t.Errorf("a client couldn't verify this: %v", b)
+	}
+	caps := decode[map[string]any](t, ts.do(t, "GET", "/api/v1/capabilities", "", nil))
+	if caps["serverId"] != b["serverId"] || caps["publicKey"] != b["publicKey"] || caps["fingerprint"] != b["fingerprint"] || caps["serverName"] != "WittyMediaServer" {
+		t.Errorf("capabilities: %v", caps)
+	}
+	for _, bad := range []string{"", "short", "!!!"} {
+		if w := ts.do(t, "POST", "/api/identity", "", map[string]string{"nonce": bad}); w.Code != 400 {
+			t.Errorf("nonce %q: %d", bad, w.Code)
+		}
+	}
+	// The key never leaves: not through settings either, and it can't be set.
+	_, admin := ts.account(t, "Boss", "adult", true)
+	if s := ts.do(t, "GET", "/api/settings", admin, nil).Body.String(); strings.Contains(s, "serverKey") || strings.Contains(s, "serverId") {
+		t.Errorf("settings show the identity: %s", s)
+	}
+	ts.do(t, "PUT", "/api/settings", admin, map[string]string{"serverKey": "x", "serverId": "y"})
+	if ts.DB.GetSetting(context.Background(), "serverId", "") != b["serverId"] {
+		t.Error("settings changed the server's identity")
+	}
+	// The name people chose is what's announced.
+	ts.do(t, "PUT", "/api/settings", admin, map[string]string{"brandName": "Our Films"})
+	if got := ts.DiscoveryInfo(9797); got.Name != "Our Films" || got.ID != b["serverId"] || got.Port != 9797 || got.API != 1 {
+		t.Errorf("discovery info: %+v", got)
+	}
+}
+
+func TestSettingsTellDiscovery(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.account(t, "Boss", "adult", true)
+	var told int
+	ts.Discovery = refreshFunc(func() { told++ })
+	if v := decode[map[string]string](t, ts.do(t, "GET", "/api/settings", admin, nil))["lanDiscovery"]; v != "1" {
+		t.Errorf("default: %q", v)
+	}
+	ts.do(t, "PUT", "/api/settings", admin, map[string]string{"lanDiscovery": "0"})
+	if told != 1 || ts.DB.GetSetting(context.Background(), "lanDiscovery", "1") != "0" {
+		t.Errorf("told %d", told)
+	}
+}
+
+type refreshFunc func()
+
+func (f refreshFunc) Refresh() { f() }
+
 func TestPairingLogsNoSecrets(t *testing.T) {
 	ts := newTestServer(t)
 	var log strings.Builder

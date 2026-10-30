@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,10 +17,14 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 )
 
-// TV sign-in. Typing a password with a remote is miserable, so the TV asks for
-// a short code and shows it; someone already signed in on a phone or computer
-// types it at /pair, sees which device is asking, and approves. The TV polls
-// with a long secret only it knows, and collects its sign-in once.
+// Signing a device in with a code. A device on the network can't attach by
+// itself: someone already signed in on a phone or computer has to agree, in one
+// of two ways, for whichever end is easier to type on:
+//
+//   - the device shows a code, and it's typed at /pair, where the person sees
+//     which device is asking and approves. The device polls with a long secret
+//     only it knows, and collects its sign-in once (start, poll, info, approve);
+//   - /pair shows 6 digits, and they're typed on the device (invite, redeem).
 //
 // Everything is held in memory for ten minutes at most: a restart simply asks
 // for a new code. Codes use 20 consonants (no vowels, so no words; nothing that
@@ -33,7 +39,25 @@ const (
 	pairStartsPerIP  = 12              // codes started from one address per window
 	pairStartsWindow = 10 * time.Minute
 	pairAlphabet     = "BCDFGHJKLMNPQRSTVWXZ"
+
+	inviteTTL = 5 * time.Minute
+	// inviteKeep: how long a finished code is remembered, to say why it failed.
+	inviteKeep = 10 * time.Minute
+	// Six digits are few, so guessing is limited twice: by address (s.logins),
+	// and for the whole server, where passing the limit also cancels open codes.
+	inviteWrongLimit  = 30
+	inviteWrongWindow = 5 * time.Minute
+	inviteMaxOpen     = 16
 )
+
+// invite is a code made to be typed on the device.
+type invite struct {
+	code    string
+	by      int64 // who asked for it
+	userID  int64 // who the device signs in as
+	expires time.Time
+	used    bool
+}
 
 type pairing struct {
 	code     string
@@ -53,6 +77,212 @@ type pairings struct {
 	byCode   map[string]*pairing
 	bySecret map[string]*pairing
 	starts   map[string][]time.Time
+	invites  map[string]*invite
+	wrong    []time.Time // wrong codes typed lately, from anywhere
+}
+
+// newInvite makes a 6-digit code; a person has one open at a time.
+func (ps *pairings) newInvite(by, userID int64) (*invite, error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	now := time.Now()
+	if ps.invites == nil {
+		ps.invites = map[string]*invite{}
+	}
+	open := 0
+	for c, in := range ps.invites {
+		switch {
+		case now.After(in.expires.Add(inviteKeep)):
+			delete(ps.invites, c)
+		case !in.used && now.Before(in.expires) && in.by == by:
+			delete(ps.invites, c)
+		case !in.used && now.Before(in.expires):
+			open++
+		}
+	}
+	if open >= inviteMaxOpen {
+		return nil, errPairBusy
+	}
+	in := &invite{by: by, userID: userID, expires: now.Add(inviteTTL)}
+	for {
+		n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+		if err != nil {
+			return nil, err
+		}
+		in.code = fmt.Sprintf("%06d", n.Int64())
+		if ps.invites[in.code] == nil {
+			break
+		}
+	}
+	ps.invites[in.code] = in
+	return in, nil
+}
+
+// Why a typed code didn't work. Part of the API: apps may word it their own way.
+const (
+	redeemWrong   = "wrong-code"
+	redeemExpired = "expired"
+	redeemUsed    = "used"
+	redeemTooMany = "too-many-tries"
+)
+
+// redeem uses a code, once. It answers who signs in, or why not.
+func (ps *pairings) redeem(code string) (int64, string) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	now := time.Now()
+	keep := ps.wrong[:0]
+	for _, t := range ps.wrong {
+		if now.Sub(t) < inviteWrongWindow {
+			keep = append(keep, t)
+		}
+	}
+	ps.wrong = keep
+	if len(ps.wrong) >= inviteWrongLimit {
+		return 0, redeemTooMany
+	}
+	in := ps.invites[code]
+	switch {
+	case in == nil:
+		ps.wrong = append(ps.wrong, now)
+		if len(ps.wrong) >= inviteWrongLimit {
+			// Someone is working through the numbers: no open code stays guessable.
+			for _, x := range ps.invites {
+				x.expires = now.Add(-time.Second)
+			}
+		}
+		return 0, redeemWrong
+	case in.used:
+		return 0, redeemUsed
+	case now.After(in.expires):
+		return 0, redeemExpired
+	}
+	in.used = true
+	return in.userID, ""
+}
+
+var redeemFailures = map[string]struct {
+	status int
+	msg    string
+}{
+	redeemWrong:   {400, "That code isn't right. Check the number on your phone or computer and try again."},
+	redeemExpired: {410, "That code has expired. Codes last five minutes: get a new one on your phone or computer."},
+	redeemUsed:    {410, "That code has already been used. Get a new one on your phone or computer."},
+	redeemTooMany: {429, "Too many wrong codes. Wait a few minutes and try again."},
+}
+
+func redeemFailed(w http.ResponseWriter, reason string, wait time.Duration) {
+	f := redeemFailures[reason]
+	body := map[string]any{"error": f.msg, "reason": reason}
+	if reason == redeemTooMany {
+		secs := int(wait.Seconds()) + 1
+		if wait <= 0 {
+			secs = int(inviteWrongWindow.Seconds())
+		}
+		w.Header().Set("Retry-After", strconv.Itoa(secs))
+		body["retryAfterSec"] = secs
+	}
+	writeJSON(w, f.status, body)
+}
+
+// cleanInviteCode undoes how people type digits; "" if it can't be a code.
+func cleanInviteCode(s string) string {
+	s = strings.NewReplacer(" ", "", "-", "").Replace(strings.TrimSpace(s))
+	if len(s) != 6 {
+		return ""
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return ""
+		}
+	}
+	return s
+}
+
+// POST /api/pair/invite {userId}: 6 digits to type on the device, for this
+// account or a Kids or Guest profile it manages.
+func (s *Server) handlePairInvite(w http.ResponseWriter, r *http.Request) {
+	me := userFrom(r)
+	if !mayPair(me) {
+		writeErr(w, 403, "this profile can't sign devices in")
+		return
+	}
+	var b struct {
+		UserID int64 `json:"userId"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "expected a JSON body")
+		return
+	}
+	target, ok := s.pairTarget(r, me, b.UserID)
+	if !ok {
+		writeErr(w, 403, "you can't sign a device in as that profile")
+		return
+	}
+	in, err := s.pair.newInvite(me.ID, target.ID)
+	if errors.Is(err, errPairBusy) {
+		w.Header().Set("Retry-After", "60")
+		writeErr(w, 429, "Too many codes are waiting to be used. Try again in a few minutes.")
+		return
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"code": in.code, "expiresInSec": int(inviteTTL.Seconds()), "user": target})
+}
+
+// POST /api/pair/redeem {code, device, platform} (public): a device typing the
+// digits gets its sign-in straight away.
+func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Code     string `json:"code"`
+		Device   string `json:"device"`
+		Platform string `json:"platform"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "expected a JSON body")
+		return
+	}
+	k := s.logins.key(r, "redeem")
+	if d := s.logins.wait(k); d > 0 {
+		redeemFailed(w, redeemTooMany, d)
+		return
+	}
+	code := cleanInviteCode(b.Code)
+	userID, reason := s.pair.redeem(code)
+	if reason != "" {
+		if reason == redeemWrong {
+			s.logins.fail(k)
+		}
+		redeemFailed(w, reason, 0)
+		return
+	}
+	s.logins.ok(k)
+	device := cleanLabel(b.Device, 60)
+	if device == "" {
+		device = "TV app"
+	}
+	tok, u, err := s.Auth.IssueSession(r.Context(), userID, device)
+	if err != nil { // the account was deleted in the meantime
+		redeemFailed(w, redeemExpired, 0)
+		return
+	}
+	s.Log.Info("device signed in with a code", "device", device, "user", u.Name, "from", ipOf(r))
+	writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
+}
+
+// pairTarget is the account a device will sign in as: this one, or a Kids or
+// Guest profile it manages.
+func (s *Server) pairTarget(r *http.Request, me *auth.User, id int64) (*auth.User, bool) {
+	if id == 0 || id == me.ID {
+		return me, true
+	}
+	t, err := s.Auth.User(r.Context(), id)
+	if err != nil || t.IsAdmin || !s.canManage(r, me, t.Kind) {
+		return nil, false
+	}
+	return t, true
 }
 
 var errPairBusy = errors.New("too many sign-in codes were asked for from this device; wait a few minutes")
@@ -389,14 +619,10 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	target := me
-	if b.UserID != 0 && b.UserID != me.ID {
-		t, err := s.Auth.User(r.Context(), b.UserID)
-		if err != nil || t.IsAdmin || !s.canManage(r, me, t.Kind) {
-			writeErr(w, 403, "you can't sign a device in as that profile")
-			return
-		}
-		target = t
+	target, allowed := s.pairTarget(r, me, b.UserID)
+	if !allowed {
+		writeErr(w, 403, "you can't sign a device in as that profile")
+		return
 	}
 	p := s.pair.answer(b.Code, target.ID)
 	if p == nil { // answered a moment ago, on another phone

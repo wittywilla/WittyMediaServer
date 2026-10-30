@@ -22,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/discovery"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
@@ -197,6 +198,22 @@ func cmdServe(args []string) int {
 			time.Sleep(10 * time.Second)
 			os.Exit(0)
 		}()
+	}
+	// Let apps on the home network find this server (not when it only listens on
+	// this machine, where nobody else could connect anyway).
+	if reachable, bind := discovery.Reachable(cfg.Listen); reachable {
+		port := 0
+		if a, ok := ln.Addr().(*net.TCPAddr); ok {
+			port = a.Port
+		}
+		d := &discovery.Service{
+			Info:    func() discovery.Info { return srv.DiscoveryInfo(port) },
+			Enabled: func() bool { return database.GetSetting(context.Background(), "lanDiscovery", "1") == "1" },
+			Bind:    bind,
+			Log:     log,
+		}
+		srv.Discovery = d
+		go d.Run(ctx)
 	}
 	go updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
 	var restarting atomic.Bool

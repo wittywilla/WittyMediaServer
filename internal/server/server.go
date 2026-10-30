@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -21,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -43,6 +45,9 @@ type Server struct {
 	Version string
 	Logs    *logging.Logger
 	Update  *update.Updater // nil: this build can't update itself
+	// Discovery announces the server on the home network; nil when it can't
+	// be reached from other devices.
+	Discovery interface{ Refresh() }
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -50,6 +55,9 @@ type Server struct {
 	stream     streamTokens
 	pair       pairings
 	subtitles  subtitleFiles
+	idOnce     sync.Once
+	id         *identity.Identity
+	idErr      error
 }
 
 type ctxKey int
@@ -77,9 +85,11 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
+	m.HandleFunc("POST /api/identity", s.handleIdentity)
 	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
 	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
 	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
+	m.HandleFunc("POST /api/pair/redeem", s.handlePairRedeem)
 
 	// Authenticated
 	a := s.requireUser
@@ -121,6 +131,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/info", a(s.handlePairInfo))
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
+	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
 	m.Handle("POST /api/items/{id}/stream-token", a(s.handleStreamToken))

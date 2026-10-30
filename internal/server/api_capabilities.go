@@ -1,10 +1,13 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/discovery"
+	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 )
 
@@ -18,7 +21,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 1
+	apiRevision = 2
 	apiPrefix   = "/api/v1/"
 )
 
@@ -57,7 +60,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 // hide what an older server lacks without knowing its version numbers. A new
 // area adds its name here along with its routes.
 var serverFeatures = []string{
-	"profiles", "pairing", "stream-tokens",
+	"profiles", "pairing", "pair-invite", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
 	"dvd", "dvd-menus", "bluray", "bluray-menus",
 	"shows", "next-up", "recommendations", "skip-intro",
@@ -73,8 +76,17 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 	for _, p := range playback.Profiles() {
 		profiles = append(profiles, p.ID)
 	}
+	id, err := s.Identity()
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	writeJSON(w, 200, map[string]any{
 		"server":        "WittyMediaServer",
+		"serverId":      id.ID,
+		"serverName":    s.ServerName(ctx),
+		"publicKey":     id.PublicKey(),
+		"fingerprint":   id.Fingerprint(),
 		"version":       s.Version,
 		"apiVersion":    apiVersion,
 		"apiRevision":   apiRevision,
@@ -104,6 +116,51 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books"},
 		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "audio", "book"},
 	})
+}
+
+// Identity is this server's ID and key, made the first time they're needed.
+func (s *Server) Identity() (*identity.Identity, error) {
+	s.idOnce.Do(func() { s.id, s.idErr = identity.Load(context.Background(), s.DB) })
+	return s.id, s.idErr
+}
+
+// ServerName is what the server calls itself to other devices. Never the
+// computer's own name, which is often a person's.
+func (s *Server) ServerName(ctx context.Context) string {
+	return firstNonEmpty(s.DB.GetSetting(ctx, "brandName", ""), s.DB.GetSetting(ctx, "serverName", ""), "WittyMediaServer")
+}
+
+// DiscoveryInfo is all that's announced on the home network. tls stays false
+// until the server itself speaks HTTPS.
+func (s *Server) DiscoveryInfo(port int) discovery.Info {
+	info := discovery.Info{Name: s.ServerName(context.Background()), Version: s.Version, API: apiVersion, Port: port}
+	if id, err := s.Identity(); err == nil {
+		info.ID = id.ID
+	}
+	return info
+}
+
+// POST /api/identity {nonce} (public): proves this is the server an app pinned.
+// The ID and public key are no secret, so only a signature over a fresh challenge
+// tells it from a look-alike. An app does this before sending its token.
+func (s *Server) handleIdentity(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Nonce string `json:"nonce"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "expected a JSON body")
+		return
+	}
+	if err := identity.CheckNonce(b.Nonce); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	id, err := s.Identity()
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"serverId": id.ID, "publicKey": id.PublicKey(), "fingerprint": id.Fingerprint(), "algorithm": "ed25519", "signature": id.Sign(b.Nonce)})
 }
 
 // GET /api/playback/profiles: the built-in client profiles, for apps and

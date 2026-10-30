@@ -254,6 +254,9 @@ function SignInScreen() {
       <Row label="Show profiles outside your home" desc="Off by default: anyone who can reach the server would see everyone's names. Passwords are always required." dim={!profiles}>
         <Switch label="Show profiles outside your home" disabled={!profiles} checked={on('profilesRemote', '0')} onChange={(v) => set('profilesRemote', v ? '1' : '0')} />
       </Row>
+      <Row label="Let apps find this server" desc="Apps on your home network can see this server's name, version and a random ID. They still need a code or a password to connect, and can always connect by typing its address.">
+        <Switch label="Let apps find this server" checked={on('lanDiscovery', '1')} onChange={(v) => set('lanDiscovery', v ? '1' : '0')} />
+      </Row>
       <Row label="Who may manage Kids profiles">
         <select className="select" value={s.kidsManagedBy || 'adults'} onChange={(e) => set('kidsManagedBy', e.target.value)}>
           <option value="adults">Every adult</option>

@@ -15,7 +15,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck"}
+	"libraryGrouping", "updateCheck", "lanDiscovery"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -25,7 +25,9 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// ("combine"), or becomes a library of its own ("separate").
 	"libraryGrouping": "combine",
 	// updateCheck: look for new releases on GitHub twice a day.
-	"updateCheck": "1"}
+	"updateCheck": "1",
+	// lanDiscovery: apps on the home network can find this server.
+	"lanDiscovery": "1"}
 
 // secretSettings are masked when read back.
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
@@ -62,6 +64,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 500, err.Error())
 			return
 		}
+	}
+	if s.Discovery != nil {
+		s.Discovery.Refresh() // it may have been switched off, or the server renamed
 	}
 	s.handleGetSettings(w, r)
 }

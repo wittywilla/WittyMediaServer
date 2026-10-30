@@ -47,6 +47,8 @@ type Server struct {
 	mux        *http.ServeMux
 	logins     loginLimiter
 	clientLogs clientLogLimiter
+	stream     streamTokens
+	subtitles  subtitleFiles
 }
 
 type ctxKey int
@@ -73,6 +75,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
 	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
+	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
 
 	// Authenticated
 	a := s.requireUser
@@ -111,6 +114,10 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/backdrop", a(s.handleBackdrop))
 	m.Handle("POST /api/items/{id}/progress", a(s.handleProgress))
 	m.Handle("DELETE /api/items/{id}/progress", a(s.handleClearProgress))
+	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
+	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
+	m.Handle("POST /api/items/{id}/stream-token", a(s.handleStreamToken))
+	m.Handle("GET /api/items/{id}/subtitles/{file}", a(s.handleItemSubtitle))
 	m.Handle("GET /api/items/{id}/play", a(s.handlePlayInfo))
 	m.Handle("GET /api/items/{id}/file", a(s.handleFile))
 	m.Handle("GET /api/items/{id}/stream", a(s.handleAudioStream))
@@ -142,6 +149,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/dvd/{sid}/still/{name}", a(s.handleDVDStill))
 	m.Handle("GET /api/dvd/{sid}/subs", a(s.handleDVDSubs))
 	m.Handle("GET /api/dvd/{sid}/sub/{name}", a(s.handleDVDSub))
+	m.Handle("GET /api/hls/{id}/master.m3u8", a(s.handleHLSMaster))
+	m.Handle("GET /api/hls/{id}/subs/{file}", a(s.handleHLSSubtitle))
 	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
 	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
 	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))
@@ -175,7 +184,7 @@ func (s *Server) Handler() http.Handler {
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
 
-	return s.logging(s.headers(s.cors(s.csrf(m))))
+	return s.logging(s.headers(s.versioned(s.cors(s.csrf(m)))))
 }
 
 // ---------------------------------------------------------------------------
@@ -218,15 +227,17 @@ func (w *statusWriter) Flush() {
 // redactQuery hides session tokens (media URLs carry one) so logs, which
 // people attach to bug reports, never hold a working login.
 func redactQuery(q string) string {
-	if !strings.Contains(q, "token=") {
+	if !strings.Contains(q, "token=") && !strings.Contains(q, "st=") {
 		return q
 	}
 	v, err := url.ParseQuery(q)
 	if err != nil {
 		return "(unreadable)"
 	}
-	if v.Has("token") {
-		v.Set("token", "REDACTED")
+	for _, k := range []string{"token", "st"} {
+		if v.Has(k) {
+			v.Set(k, "REDACTED")
+		}
 	}
 	return v.Encode()
 }
@@ -327,6 +338,9 @@ func (s *Server) resolveUser(r *http.Request) *auth.User {
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := s.resolveUser(r)
+		if u == nil {
+			u = s.resolveStream(r) // media addresses only; see stream_tokens.go
+		}
 		if u == nil {
 			writeErr(w, 401, "authentication required")
 			return

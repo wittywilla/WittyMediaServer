@@ -146,6 +146,7 @@ func (s *Server) handleClientLog(w http.ResponseWriter, r *http.Request) {
 	}
 	cut := func(v string, n int) string {
 		v = tokenRe.ReplaceAllString(v, "token=REDACTED") // a media URL in an error message
+		v = streamTokenRe.ReplaceAllString(v, "st=REDACTED")
 		if len(v) > n {
 			return v[:n] + "…"
 		}
@@ -202,3 +203,4 @@ func (l *clientLogLimiter) allow(user int64) bool {
 }
 
 var tokenRe = regexp.MustCompile(`token=[^&\s"']+`)
+var streamTokenRe = regexp.MustCompile(`\bst=[^&\s"']+`)

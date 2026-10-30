@@ -3,7 +3,7 @@
   "name": "Light Purple",
   "description": "Light surfaces with a purple accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {

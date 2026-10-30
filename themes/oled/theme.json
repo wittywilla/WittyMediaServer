@@ -3,7 +3,7 @@
   "name": "OLED Black",
   "description": "True black surfaces for OLED screens and dark rooms.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {

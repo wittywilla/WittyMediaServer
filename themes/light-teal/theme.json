@@ -3,7 +3,7 @@
   "name": "Light Teal",
   "description": "Light surfaces with a teal accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {

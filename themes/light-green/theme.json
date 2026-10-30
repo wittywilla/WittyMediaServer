@@ -3,7 +3,7 @@
   "name": "Light Green",
   "description": "Light surfaces with a green accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {

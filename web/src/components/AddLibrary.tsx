@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, type Library } from '../api'
 import { IconFolder, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
@@ -26,7 +26,8 @@ const FOLDER_HINT: Record<string, string> = {
   discs: 'Only DVD and Blu-ray images and folders are picked up. Each disc is sorted as a film or a TV series from its name; you can change that on the disc’s page.',
 }
 
-export default function AddLibrary({ onAdded, compact }: { onAdded: (l: Library) => void; compact?: boolean }) {
+// onPanel: told when a kind is chosen (true) and when the list is back (false).
+export default function AddLibrary({ onAdded, compact, onPanel }: { onAdded: (l: Library) => void; compact?: boolean; onPanel?: (open: boolean) => void }) {
   const [type, setType] = useState<string | null>(null)
   const [paths, setPaths] = useState<string[]>([])
   const [name, setName] = useState('')
@@ -36,6 +37,8 @@ export default function AddLibrary({ onAdded, compact }: { onAdded: (l: Library)
   const [following, setFollowing] = useState<Library | null>(null) // a new podcasts library
   const t = LIB_TYPES.find((x) => x.type === type)
   const pods = t?.type === 'podcasts'
+  const open = !!t || !!following
+  useEffect(() => { onPanel?.(open) }, [open, onPanel])
   const addPath = (p: string) => { if (p.trim()) setPaths((x) => [...new Set([...x, p.trim()])]); setManual('') }
   const reset = () => { setType(null); setPaths([]); setName('') }
   const add = async () => {
@@ -74,7 +77,7 @@ export default function AddLibrary({ onAdded, compact }: { onAdded: (l: Library)
   }
   return (
     <div className="oobe-lib">
-      <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{t.name}</b><button type="button" className="linkish" onClick={() => { setType(null); setPaths([]) }}>Choose another kind</button></div>
+      <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{t.name}</b></div>
       {pods && <PodcastWays />}
       <label className="oobe-field">Library name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t.name} /></label>
       {pods && <p className="pod-folder"><b>Folder for episode files</b> <span className="muted">optional: episodes you already have, and where downloads are saved. Leave it empty to only stream.</span></p>}
@@ -88,7 +91,9 @@ export default function AddLibrary({ onAdded, compact }: { onAdded: (l: Library)
       </div>
       {FOLDER_HINT[t.type] && <p className="muted oobe-hint" style={{ marginTop: 10 }}>{FOLDER_HINT[t.type]}</p>}
       {err && <div className="error" role="alert">{err}</div>}
-      <div className="oobe-actions"><span /><button type="button" className="btn primary" disabled={(!paths.length && !pods) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : `Add ${name.trim() || t.name}`}</button></div>
+      <div className="oobe-actions">
+        <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setErr('') }}>Back</button>
+        <button type="button" className="btn primary" disabled={(!paths.length && !pods) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : `Add ${name.trim() || t.name}`}</button></div>
     </div>
   )
 }

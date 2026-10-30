@@ -211,3 +211,18 @@
   .oobe-steps li::after { min-width: 6px; }
   .oobe-step-count { display: block; }
 }
+
+/* Welcome: a centred introduction with a plain list of what the server does
+   (no tiles, so it doesn't look like the "Where is your media?" choices). */
+.oobe-welcome { display: grid; justify-items: center; text-align: center; }
+.oobe-welcome-logo { width: 64px; height: 64px; margin: 4px 0 14px; filter: drop-shadow(0 8px 24px rgb(var(--accent-rgb) / .45)); }
+.oobe-welcome .lead { margin-left: auto; margin-right: auto; }
+.oobe-perks { list-style: none; padding: 0; margin: 4px 0 26px; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; text-align: left; }
+.oobe-perks li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.45; }
+.oobe-perks .ic { flex: none; display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; }
+.oobe-perks .ic svg { width: 20px; height: 20px; fill: var(--accent); }
+.oobe-perks b { color: var(--fg); }
+.oobe-perks .muted { color: var(--fg-2); }
+.oobe-welcome .oobe-name { width: 100%; max-width: 420px; text-align: left; }
+.oobe-start { min-width: 220px; margin-top: 6px; }
+@media (max-width: 640px) { .oobe-perks { grid-template-columns: minmax(0, 1fr); } }

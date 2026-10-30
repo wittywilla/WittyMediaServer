@@ -364,10 +364,15 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const titleName = discTitle?.label || (isFeature ? 'Feature presentation' : title ? `Title ${title.ttn}` : '')
 
   const seek = (t: number) => { const v = video.current; if (v) v.currentTime = Math.max(0, t) }
+  // Next on the last scene (or in a one-scene clip such as a warning or
+  // trailer) moves on to what the disc plays next, like a disc player,
+  // instead of starting the scene again.
   const seekChapter = (dir: 1 | -1) => {
     const v = video.current
-    if (!v || !chapters.length) return
-    const cur = chapters.filter((c) => c <= v.currentTime + 1).length - 1
+    if (!v) return
+    const cur = Math.max(0, chapters.filter((c) => c <= v.currentTime + 1).length - 1)
+    if (dir === 1 && cur >= chapters.length - 1) { act({ type: 'ended' }); return }
+    if (!chapters.length) return
     const next = Math.min(chapters.length - 1, Math.max(0, cur + dir))
     if (dir === -1 && v.currentTime - chapters[cur] > 3) seek(chapters[cur]); else seek(chapters[next])
   }
@@ -583,7 +588,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             <button className="ibtn" onClick={back} title="Back (playback continues in the mini player)"><IconBack /></button>
             <div className="grow">
               <h2>{item.title}</h2>
-              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters${hasPopup ? (popupOpen ? ' · pop-up menu (Esc closes)' : ' · Menu key: pop-up menu') : ''}` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
+              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} scenes${hasPopup ? (popupOpen ? ' · pop-up menu (Esc closes)' : ' · Menu key: pop-up menu') : ''}` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
             </div>
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
             <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
@@ -594,6 +599,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={isBluray(item) ? 'WittyBluray' : 'WittyDVD'} />)}
           {pres?.kind === 'title' && (
             <Controls video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
+              chapterThumb={title ? (i) => mediaUrl(`/api/items/${item.id}/disc/thumb/${title.ttn}/${discTitle?.chapters[i]?.n ?? i + 1}`) : undefined}
               onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}
               audio={audioOpts} subtitles={subOpts} onAudio={switchAudio} onSubtitle={switchSub}
               onPick={setPicker} angles={title?.angles || 1}

@@ -149,6 +149,7 @@ function ProfileMenu() {
   return (
     <div className="profile-menu" ref={ref}>
       <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} aria-label={`${user?.name}: account menu`} onClick={() => setOpen((o) => !o)}>
+        <span className="avatar-name">{user?.name}</span>
         <Avatar name={user?.name || '?'} />
       </button>
       {open && (

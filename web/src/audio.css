@@ -135,7 +135,7 @@ button.ab-info:hover { background: var(--bg-3); }
   .audio-bar.full .ab-art-big { width: 100%; max-width: 300px; border-radius: 16px; }
   .audio-bar.full .ab-title { font-size: 18px; }
   .audio-bar.full .ab-queue-wrap { background: var(--bg); }
-  .app:has(~ .audio-bar.full) .main { padding-right: 404px; transition: padding .25s; }
+  .app:has(~ .audio-bar.full) .content { padding-right: 432px; transition: padding .25s; }
 }
 
 /* podcasts */

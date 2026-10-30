@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
-import { IconAngle, IconAudio, IconChapters, IconFull, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { Thumb } from '../pages/DiscSections'
+import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
 
@@ -9,6 +10,8 @@ type Props = {
   duration: number
   chapters?: number[]
   chapterNames?: string[]
+  // chapterThumb: a picture of each scene (discs), for the scene picker.
+  chapterThumb?: (i: number) => string
   onSeek: (t: number) => void
   onPrev?: () => void
   onNext?: () => void
@@ -70,7 +73,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
   return { playing, time, buffered, waiting, muted, volume }
 }
 
-export function Controls({ video, duration, chapters = [], chapterNames, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
+export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
   onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0 }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | null>(null)
@@ -109,7 +112,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, onSeek,
     }
   }
   const curChapter = chapters.filter((c) => c <= t + 0.5).length
-  const chapName = (i: number) => chapterNames?.[i] || `Chapter ${i + 1}`
+  const chapName = (i: number) => chapterNames?.[i] || `Scene ${i + 1}`
   return (
     <div className="bottom" onClick={(e) => e.stopPropagation()}>
       {showSeek && (
@@ -123,9 +126,9 @@ export function Controls({ video, duration, chapters = [], chapterNames, onSeek,
         </div>
       )}
       <div className="ctl">
-        {onPrev && <button className="ibtn chap-step" onClick={onPrev} title="Previous chapter"><IconPrev /></button>}
+        {onPrev && <button className="ibtn chap-step" onClick={onPrev} title="Previous scene"><IconPrev /></button>}
         <button className="ibtn big" onClick={toggle} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
-        {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next chapter"><IconNext /></button>}
+        {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next scene"><IconNext /></button>}
         <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute">{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
         <input className="hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume"
           onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ width: 90, accentColor: 'var(--accent)' }} />
@@ -136,7 +139,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, onSeek,
         <div className="spacer" />
         {extra}
         <button className="btn sm speed-btn" title="Playback speed (< and >)" aria-label={`Playback speed ${rate} times`} onClick={() => setPop(pop === 'speed' ? null : 'speed')}>{rate}×</button>
-        {chapters.length > 1 && <button className="ibtn" title="Chapters" onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /></button>}
+        {chapters.length > 1 && <button className={'ibtn' + (pop === 'chapters' ? ' on' : '')} title="Scenes" aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /></button>}
         {audio && audio.length > 1 && <button className="ibtn" title="Audio & language" onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /></button>}
         {subtitles && subtitles.length > 0 && <button className="ibtn" title="Subtitles" onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /></button>}
         {onPick && angles > 1 && <button className="ibtn" title="Video version (camera angle)" onClick={() => onPick('angle')}><IconAngle /></button>}
@@ -163,10 +166,43 @@ export function Controls({ video, duration, chapters = [], chapterNames, onSeek,
         </div>
       )}
       {pop === 'chapters' && (
-        <div className="popover" style={{ maxHeight: '50vh', overflow: 'auto' }}><h4>Chapters</h4>
-          {chapters.map((c, i) => <button key={i} className={i + 1 === curChapter ? 'active' : ''} onClick={() => { onSeek(c); setPop(null) }}>{chapName(i)} <span className="muted" style={{ marginLeft: 'auto' }}>{fmtTime(c)}</span></button>)}
-        </div>
+        <ScenePanel chapters={chapters} name={chapName} thumb={chapterThumb} current={curChapter - 1}
+          onPick={(c) => { onSeek(c); setPop(null) }} onClose={() => setPop(null)} />
       )}
+    </div>
+  )
+}
+
+// ScenePanel: every scene as a picture with its start time and name, like
+// the disc page, with the one playing now marked.
+function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
+  chapters: number[]; name: (i: number) => string; thumb?: (i: number) => string; current: number
+  onPick: (t: number) => void; onClose: () => void
+}) {
+  const grid = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    grid.current?.querySelector<HTMLElement>('.scene.now')?.scrollIntoView({ block: 'nearest' })
+    grid.current?.querySelector<HTMLButtonElement>('.scene.now .scene-thumb')?.focus({ preventScroll: true })
+  }, [])
+  return (
+    <div className="scene-panel" role="dialog" aria-label="Scenes" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
+      <div className="scene-panel-head">
+        <h4>Scenes</h4>
+        <span className="muted">{chapters.length} scenes</span>
+        <button className="ibtn" onClick={onClose} title="Close" aria-label="Close scenes"><IconClose /></button>
+      </div>
+      <div className="scene-grid" ref={grid}>
+        {chapters.map((c, i) => (
+          <div key={i} className={'scene' + (i === current ? ' now' : '')}>
+            <button className="scene-thumb" onClick={() => onPick(c)} aria-label={`Play ${name(i)}, from ${fmtTime(c)}`} aria-current={i === current || undefined}>
+              {thumb ? <Thumb src={thumb(i)} /> : <span className="scene-num">{i + 1}</span>}
+              {i === current && <span className="scene-now">Now playing</span>}
+              <span className="scene-time">{fmtTime(c)}</span>
+            </button>
+            <div className="scene-name"><span className="muted">{i + 1}.</span> {name(i)}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

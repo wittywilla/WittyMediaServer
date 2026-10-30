@@ -47,11 +47,11 @@ export default function MetadataSettings() {
             <option value="anime">Only the Anime library</option>
           </select>
         </Row>
-        <Row label="Title language">
+        <Row label="Title language" desc="How anime titles are written. The titles in this list are only examples.">
           <select className="select" value={s.animeTitles || 'english'} onChange={(e) => set('animeTitles', e.target.value)}>
-            <option value="english">English (Attack on Titan)</option>
-            <option value="romaji">Rōmaji (Shingeki no Kyojin)</option>
-            <option value="native">Japanese (進撃の巨人)</option>
+            <option value="english">English (Ex. Attack on Titan)</option>
+            <option value="romaji">Rōmaji (Ex. Shingeki no Kyojin)</option>
+            <option value="native">Japanese (Ex. 進撃の巨人)</option>
           </select>
         </Row>
       </Section>

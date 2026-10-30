@@ -69,16 +69,17 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
 
         <main className="oobe-card" key={step}>
           {step === 'welcome' && (
-            <section>
+            <section className="oobe-welcome">
+              <img className="oobe-welcome-logo" src="/icon.svg" alt="" />
               <h1>Welcome to your media server</h1>
               <p className="lead">Everything you own — films, shows, discs, music, books — in one place, on every screen in your home. Setup takes about three minutes, and every step can be changed later.</p>
-              <div className="oobe-features">
-                {FEATURES.map((f) => <div key={f.title} className="oobe-feature"><span className="ic">{f.icon}</span><b>{f.title}</b><span>{f.text}</span></div>)}
-              </div>
-              <label className="oobe-field">Give your server a name <span className="muted">(optional, shown in the corner)</span>
+              <ul className="oobe-perks" aria-label="What your server does">
+                {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{f.title}</b> <span className="muted">{f.text}</span></span></li>)}
+              </ul>
+              <label className="oobe-field oobe-name">Give your server a name <span className="muted">(optional, shown in the corner)</span>
                 <input className="input" value={serverName} onChange={(e) => setServerName(e.target.value)} placeholder="e.g. The Living Room Cinema" maxLength={40} />
               </label>
-              <div className="oobe-actions"><span /><button className="btn primary big" autoFocus onClick={() => go('account')}>Get started</button></div>
+              <button className="btn primary big oobe-start" autoFocus onClick={() => go('account')}>Get started</button>
             </section>
           )}
 
@@ -181,6 +182,10 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
 }
 
 function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: (l: Library) => void; onNext: () => void }) {
+  // While a kind is chosen (folder, then following podcasts) the panel has its
+  // own Back and Add buttons; the wizard's Continue would be easy to hit by
+  // mistake, so it waits until the panel is closed.
+  const [inPanel, setInPanel] = useState(false)
   return (
     <section>
       <h1>Where is your media?</h1>
@@ -190,11 +195,13 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
           {added.map((l) => <li key={l.id}><IconCheck size={16} /> <b>{l.name}</b> <span className="muted">{l.paths.join(', ') || 'no folder'}</span></li>)}
         </ul>
       )}
-      <AddLibrary onAdded={onAdded} />
-      <div className="oobe-actions">
-        <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background.' : 'You can also do this later in Settings.'}</span>
-        <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>
-      </div>
+      <AddLibrary onAdded={onAdded} onPanel={setInPanel} />
+      {!inPanel && (
+        <div className="oobe-actions">
+          <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>
+          <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>
+        </div>
+      )}
     </section>
   )
 }

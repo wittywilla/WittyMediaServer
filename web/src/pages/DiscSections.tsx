@@ -153,7 +153,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
 // Thumb loads a scene picture. The server already tries two moments of the
 // scene; a failed load (busy server, timeout) is retried twice before the
 // tile says "Preview not available".
-function Thumb({ src }: { src: string }) {
+export function Thumb({ src }: { src: string }) {
   const [tries, setTries] = useState(0)
   const [state, setState] = useState<'loading' | 'ok' | 'failed'>('loading')
   const onError = () => {

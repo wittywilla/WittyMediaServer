@@ -8,15 +8,17 @@
 /* ---------------------------------------------------------------- DVD remote */
 .remote {
   --ra: .92; /* background opacity, set from the remote's transparency button */
-  position: absolute; z-index: 7; width: 196px; padding: 14px 12px 16px; transform-origin: top left;
+  position: absolute; z-index: 7; width: 208px; padding: 14px 12px 16px; transform-origin: top left;
   background: linear-gradient(180deg, rgb(42 45 53 / var(--ra)), rgb(21 23 28 / var(--ra))); border-radius: 26px 26px 34px 34px;
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); touch-action: none;
-  box-shadow: 0 18px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); display: grid; gap: 10px; transition: opacity .25s;
+  box-shadow: 0 18px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; transition: opacity .25s;
   user-select: none;
 }
-.remote-head { display: flex; align-items: center; gap: 6px; cursor: grab; }
+.remote-head { display: flex; align-items: center; gap: 4px; cursor: grab; min-width: 0; }
 .remote-head:active { cursor: grabbing; }
-.remote-head .remote-brand { flex: 1; text-align: center; }
+.remote-head .remote-brand { flex: 1; min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remote-head .rk.round.ghost { width: 28px; height: 28px; flex: none; }
+.remote-head .rk.round { flex: none; }
 .remote-grip { position: absolute; right: 8px; bottom: 8px; width: 14px; height: 14px; pointer-events: none;
   background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.35) 50% 58%, transparent 58% 70%, rgba(255,255,255,.35) 70% 78%, transparent 78%); }
 /* Resize handles on every edge and corner (double-click one to reset). */
@@ -36,7 +38,7 @@
   letter-spacing: .2px; padding: 5px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,.12); pointer-events: none; opacity: 0; transition: opacity .15s, transform .15s; z-index: 5;
 }
 .remote [data-tip]:hover::after, .remote [data-tip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
-.remote-brand { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--fg-3); font-weight: 700; }
+.remote-brand { font-size: 9px; letter-spacing: .9px; text-transform: uppercase; color: var(--fg-3); font-weight: 700; }
 .remote .rk {
   border: 0; color: #e8e9ee; background: linear-gradient(180deg, #3a3e48, #2a2d35); border-radius: 8px; height: 30px;
   font-size: 10px; font-weight: 700; letter-spacing: .6px; display: grid; place-items: center; padding: 0 6px;
@@ -51,9 +53,9 @@
 .remote .rk.ghost { background: transparent; box-shadow: none; }
 .remote .rk.pill { border-radius: 15px; }
 .remote .rk.accent { background: var(--accent); }
-.remote-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.remote-row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.remote-row4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.remote-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.remote-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.remote-row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .remote-dpad {
   position: relative; width: 150px; height: 150px; margin: 4px auto; border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, #3b3f4a, #1c1e24); box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.06);
@@ -70,7 +72,7 @@
   background: var(--accent); box-shadow: 0 3px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); font-size: 10px;
 }
 .remote-dpad .rk.enter:disabled { background: linear-gradient(180deg, #4a4f5c, #343844); }
-.remote-digits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.remote-digits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .remote-digits .rk { border-radius: 12px; font-size: 12px; }
 
 /* ---------------------------------------------------------------- Insert DVD */
@@ -195,7 +197,7 @@
 .watch-next .wn-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .watch-next .wn-title { font-weight: 700; }
 .watch-next .wn-actions { display: flex; gap: 8px; }
-.remote ~ .watch-next, .remote ~ .skip-intro { right: 232px; }
+.remote ~ .watch-next, .remote ~ .skip-intro { right: 244px; }
 
 /* ---------------------------------------------------------------- tooltips */
 .tip { position: relative; display: inline-grid; place-items: center; width: 17px; height: 17px; margin-left: 6px; border-radius: 50%; background: var(--bg-4, #2a2f3a); color: var(--fg-2); font-size: 11px; font-weight: 800; cursor: help; vertical-align: middle; flex: none; }
@@ -383,3 +385,26 @@
 .stage.stereo-ou .sub-layer, .stage.stereo-ou .dvd-layer { transform-origin: 0 0; transform: scaleY(2); clip-path: inset(0 0 50% 0); }
 .stage.stereo-sbs .sub-layer, .stage.stereo-sbs .dvd-layer { transform-origin: 0 0; transform: scaleX(2); clip-path: inset(0 50% 0 0); }
 .player .stereo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* Scenes: the scene picker over the picture, laid out like the disc page. */
+.scene-panel { position: absolute; left: 20px; right: 20px; bottom: 70px; z-index: 6; max-height: min(64vh, 620px); overflow: auto; overscroll-behavior: contain;
+  padding: 14px 18px 18px; border-radius: 16px; background: rgba(14,15,19,.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.08); box-shadow: 0 18px 50px rgba(0,0,0,.55); color: #f1f2f5; animation: fade-in .15s ease-out; }
+.scene-panel-head { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; position: sticky; top: -14px; padding: 4px 0; z-index: 1; background: inherit; }
+.scene-panel-head h4 { margin: 0; font-size: 17px; letter-spacing: -.01em; color: #fff; }
+.scene-panel-head .muted { font-size: 13px; color: rgba(255,255,255,.55); margin-right: auto; }
+.scene-panel .scene-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px 12px; }
+.scene-panel .scene-thumb { background: #22252c; }
+.scene-panel .scene-name { color: #e8e9ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-panel .scene-name .muted { color: rgba(255,255,255,.5); }
+.scene-panel .scene.now .scene-thumb { outline: 3px solid var(--accent); outline-offset: 2px; }
+.scene-panel .scene.now .scene-name { color: var(--accent); font-weight: 600; }
+.scene-now { position: absolute; left: 6px; top: 6px; background: var(--accent); color: var(--accent-fg, #fff); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+.scene-num { display: grid; place-items: center; width: 100%; height: 100%; font-size: 28px; font-weight: 700; color: rgba(255,255,255,.35); }
+.player .ctl .ibtn.on { color: var(--accent); }
+@media (max-width: 700px) {
+  .scene-panel { left: 8px; right: 8px; bottom: 64px; padding: 12px; max-height: 58vh; }
+  .scene-panel .scene-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+/* The controls stay up while the scene picker is open. */
+.player.controls-hidden .bottom:has(.scene-panel) { opacity: 1; pointer-events: auto; }

@@ -33,7 +33,10 @@
 
 /* ---------------------------------------------------------------- account menu */
 .profile-menu { position: relative; flex: none; }
-.avatar-btn { background: none; border: 0; padding: 0; border-radius: 12px; display: block; }
+.avatar-btn { background: none; border: 0; padding: 0; border-radius: 999px; display: flex; align-items: center; gap: 10px; color: var(--fg); max-width: 220px; }
+.avatar-name { font-weight: 600; font-size: 14px; padding-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.avatar-btn:hover .avatar-name, .avatar-btn[aria-expanded="true"] .avatar-name { color: var(--accent); }
+@media (max-width: 760px) { .avatar-name { display: none; } }
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: 16px; border-radius: 50%; }
 .profile-menu .menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 220px; background: var(--bg-2); border: 1px solid var(--border);
   border-radius: 12px; box-shadow: var(--shadow); padding: 6px; z-index: 50; display: grid; animation: fade-in .12s ease-out; }

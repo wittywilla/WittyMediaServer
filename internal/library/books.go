@@ -56,7 +56,7 @@ func discoverBooks(root string) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil {
+		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
 		key := filepath.Join(filepath.Dir(p), strings.TrimSuffix(name, filepath.Ext(name)))
@@ -152,6 +152,8 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 	return s.Store.upsertItem(ctx, it)
 }
 
+const maxCoverPixels = "100000000"
+
 // makeCover turns an image inside an archive into a 400 px cover.
 func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) error {
 	zr, err := zip.OpenReader(archive)
@@ -174,8 +176,9 @@ func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) err
 		return err
 	}
 	tmp.Close()
-	// Read as a picture whatever its contents claim to be.
-	return s.Tools.Still(ctx, append([]string{"-f", "image2"}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
+	// Read as a picture whatever its contents claim to be, and refuse sizes no
+	// cover has: a tiny file can claim 30000 x 30000 pixels (gigabytes of memory).
+	return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
 }
 
 // ---------------------------------------------------------------- CBZ
@@ -193,6 +196,10 @@ type comicInfo struct {
 	AgeRating string `xml:"AgeRating"`
 }
 
+// maxComicPages: sorting is the slowest part of opening a comic, and an archive
+// can hold millions of (empty) entries.
+const maxComicPages = 50000
+
 // ComicPages lists the page images of a comic archive in reading order.
 func ComicPages(zr *zip.Reader) []string {
 	var pages []string
@@ -205,6 +212,9 @@ func ComicPages(zr *zip.Reader) []string {
 		switch path.Ext(low) {
 		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif":
 			pages = append(pages, n)
+		}
+		if len(pages) >= maxComicPages {
+			break
 		}
 	}
 	sort.Slice(pages, func(i, j int) bool { return naturalLess(pages[i], pages[j]) })
@@ -550,6 +560,7 @@ type cachedArchive struct {
 	pages   []string
 	epub    *EPUBInfo
 	readers int
+	stale   bool // replaced: close when the last reader is done
 }
 
 // OpenArchive returns an open archive (call the release func when done).
@@ -567,6 +578,15 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 	zr, err := zip.OpenReader(p)
 	if err != nil {
 		return nil, nil, err
+	}
+	// The file changed: close the copy of it kept open, once nobody reads it.
+	if c := archiveCache.m[p]; c != nil {
+		if c.readers == 0 {
+			c.zr.Close()
+		} else {
+			c.stale = true
+		}
+		delete(archiveCache.m, p)
 	}
 	// Keep at most 8 open; close the least recently used idle one.
 	if len(archiveCache.m) >= 8 {
@@ -590,6 +610,9 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 func release(c *cachedArchive) {
 	archiveCache.Lock()
 	c.readers--
+	if c.stale && c.readers == 0 {
+		c.zr.Close()
+	}
 	archiveCache.Unlock()
 }
 

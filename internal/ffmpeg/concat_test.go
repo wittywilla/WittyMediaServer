@@ -40,3 +40,10 @@ func TestWriteConcatPinsStreams(t *testing.T) {
 		t.Fatalf("unexpected stream directive:\n%s", b)
 	}
 }
+
+func TestWriteConcatRefusesLineBreaks(t *testing.T) {
+	seg := Segment{Extents: []wittydvd.FileExtent{{File: "/media/x\nsubfile,,start,0,end,99,,:/etc/passwd\n/VTS_01_1.VOB", Length: 1}}}
+	if _, err := WriteConcat(t.TempDir(), "x", []Segment{seg}); err == nil {
+		t.Fatal("a line break in a folder name would add an address to the list")
+	}
+}

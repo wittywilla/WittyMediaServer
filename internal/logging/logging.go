@@ -209,7 +209,7 @@ func (l *Logger) openFile(day string) {
 	if l.part > 0 {
 		name = fmt.Sprintf("wms-%s-%d.log", day, l.part)
 	}
-	f, err := os.OpenFile(filepath.Join(l.dir, name), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(filepath.Join(l.dir, name), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
 	if err != nil {
 		return
 	}

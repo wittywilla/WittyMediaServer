@@ -2,6 +2,8 @@ module github.com/wittywilla/wittymediaserver
 
 go 1.26.0
 
+toolchain go1.27.3
+
 require (
 	fyne.io/systray v1.12.2
 	github.com/wittywilla/wittybluray v0.1.0

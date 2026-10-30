@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -30,6 +31,12 @@ func Open(dataDir string) (*DB, error) {
 	if err := d.migrate(context.Background()); err != nil {
 		sdb.Close()
 		return nil, err
+	}
+	// The database holds password hashes, API keys and sessions: others on a
+	// shared machine have no business reading it (no effect on Windows, where
+	// the folder's permissions decide).
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		_ = os.Chmod(filepath.Join(dataDir, "wms.db"+suffix), 0o600)
 	}
 	return d, nil
 }

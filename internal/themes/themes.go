@@ -295,7 +295,7 @@ func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
 		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
 	}
 	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
-	if !idRe.MatchString(id) {
+	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
 		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
 	}
 	m.mu.Lock()

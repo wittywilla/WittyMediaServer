@@ -2,7 +2,6 @@ package library
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,7 @@ func TestSaveItemMetadataRoundTrip(t *testing.T) {
 	media := filepath.Join(movieDir, "Shrek (2001).mkv")
 	art := filepath.Join(dir, "picked.jpg")
 	for _, f := range []string{media, art} {
-		if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+		if err := os.WriteFile(f, pngHead, 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -30,7 +29,7 @@ func TestSaveItemMetadataRoundTrip(t *testing.T) {
 	y, r := 2001, 7.9
 	it := &Item{Kind: "video", Path: media, Title: "Shrek", Year: &y, Overview: "An ogre.", Genres: []string{"Animation", "Comedy"},
 		Rating: &r, Provider: "tmdb", ProviderID: "808", Poster: art}
-	s := &Scanner{CacheDir: dir, Log: slog.Default()}
+	s := testScanner(t, dir)
 	if err := s.SaveItemMetadata(context.Background(), it); err != nil {
 		t.Fatal(err)
 	}

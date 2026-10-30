@@ -38,6 +38,20 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Everything new has JSON routes, plays through standard HLS or direct files, and works with a D-pad, for the
 coming TV apps.
+## Unreleased: security
+
+A full security review and its fixes; the details are in `docs/SECURITY-REVIEW.md`. Things you may
+notice:
+
+- First-time setup from another network asks for a code from the server's log.
+- New passwords for full accounts need 8 characters (Kids and Guest PINs stay at 4; passwords
+  already set keep working).
+- `maxTranscodes` is now enforced: beyond it, viewers are told the server is busy.
+- Files that are links leading out of their library are no longer indexed or served.
+- The expert FFmpeg fields accept only options that tune encoding.
+- Accounts other than the administrator no longer see server folders or podcast feed addresses.
+- An HLS playlist opened with a token in its address names its segments with a token for that stream
+  alone, so the session's own token doesn't end up in playlists.
 
 ## 0.4.0-alpha
 

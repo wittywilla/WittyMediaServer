@@ -155,6 +155,7 @@ func cmdServe(args []string) int {
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 15 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 	ln, err := listen(cfg.Listen)
 	if err != nil {
@@ -162,6 +163,12 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
+		log.Warn("session tokens", "err", err)
+	}
+	if srv.Auth.UserCount(context.Background()) == 0 {
+		log.Warn("This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", "setupCode", srv.SetupCode())
+	}
 	// First start on a desktop: open the setup wizard in the browser.
 	if cfg.OpenBrowser && srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
 		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {

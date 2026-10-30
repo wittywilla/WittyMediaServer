@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -48,8 +49,7 @@ var SafeClient = &http.Client{
 			if err != nil {
 				return err
 			}
-			ip := net.ParseIP(host)
-			if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+			if !internetAddr(net.ParseIP(host)) {
 				return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
 			}
 			return nil
@@ -65,6 +65,58 @@ var SafeClient = &http.Client{
 		return nil
 	},
 }
+
+// notInternet are the address ranges that are not the public internet. Some
+// lead back to private networks: NAT64 and 6to4 addresses embed an IPv4 one.
+var notInternet = func() []netip.Prefix {
+	var out []netip.Prefix
+	for _, c := range []string{
+		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24",
+		"192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
+		"::/128", "::1/128", "100::/64", "2001::/32", "2001:db8::/32", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+	} {
+		out = append(out, netip.MustParsePrefix(c))
+	}
+	return out
+}()
+
+var (
+	nat64Prefix = netip.MustParsePrefix("64:ff9b::/96")
+	sixToFour   = netip.MustParsePrefix("2002::/16")
+)
+
+// internetAddr reports whether an address is on the public internet.
+func internetAddr(ip net.IP) bool {
+	a, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	a = a.Unmap()
+	if a.Is6() {
+		b := a.As16()
+		switch {
+		case nat64Prefix.Contains(a):
+			return internetAddr(net.IP(b[12:16]))
+		case sixToFour.Contains(a):
+			return internetAddr(net.IP(b[2:6]))
+		}
+	}
+	for _, p := range notInternet {
+		if p.Contains(a) {
+			return false
+		}
+	}
+	return true
+}
+
+// catalogClient is for the online catalogues (TMDB, TVmaze...): their fixed
+// addresses are on the internet, and a redirect must not lead anywhere else.
+func catalogClient(timeout time.Duration) *http.Client {
+	return &http.Client{Timeout: timeout, Transport: SafeClient.Transport, CheckRedirect: SafeClient.CheckRedirect}
+}
+
+// maxAnswer caps what is read from a catalogue's answer.
+const maxAnswer = 32 << 20
 
 // webURL keeps a feed's address only when it is a web address: a feed must
 // not point the server at a file on this machine.
@@ -111,6 +163,10 @@ type rssItem struct {
 	} `xml:"enclosure"`
 }
 
+// maxFeedItems caps the episodes taken from one feed: a hostile feed could
+// otherwise fill the database with hundreds of thousands of rows.
+const maxFeedItems = 5000
+
 // FetchFeed downloads and parses a podcast feed (at most 20 MB).
 func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	u, err := url.Parse(strings.TrimSpace(feedURL))
@@ -132,8 +188,12 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("the feed answered %s", res.Status)
 	}
+	return parseFeed(res.Body)
+}
+
+func parseFeed(r io.Reader) (*rssFeed, error) {
 	var f rssFeed
-	dec := xml.NewDecoder(io.LimitReader(res.Body, 20<<20))
+	dec := xml.NewDecoder(io.LimitReader(r, 20<<20))
 	dec.Strict = false
 	dec.CharsetReader = func(_ string, in io.Reader) (io.Reader, error) { return in, nil } // feeds lie about charsets; UTF-8 in practice
 	if err := dec.Decode(&f); err != nil {
@@ -219,6 +279,9 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 		return err
 	}
 	p.Title, p.Author, p.Image, p.Description = ch.Title, ch.Author, image, desc
+	if len(ch.Items) > maxFeedItems {
+		ch.Items = ch.Items[:maxFeedItems] // feeds list the newest first
+	}
 	for _, e := range ch.Items {
 		if webURL(e.Enclosure.URL) == "" {
 			continue // no episode, or not on the web
@@ -326,13 +389,19 @@ func safeName(s string) string {
 	s = strings.TrimSpace(unsafeName.ReplaceAllString(s, " "))
 	s = strings.TrimRight(s, ". ")
 	if len(s) > 120 {
-		s = s[:120]
+		s = strings.ToValidUTF8(strings.TrimRight(s[:120], ". "), "")
 	}
 	if s == "" {
 		s = "Episode"
 	}
+	// Names Windows keeps for devices, with or without an extension.
+	if !filepath.IsLocal(s+".mp3") || reservedNameRe.MatchString(s) {
+		s = "_" + s
+	}
 	return s
 }
+
+var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])($|\.)`)
 
 // Download saves an episode into the library's first folder:
 // <folder>/<podcast>/<date> <title>.<ext>, and the item then plays from disk.
@@ -369,19 +438,24 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("download failed: %s", res.Status)
 	}
-	tmp := dst + ".part"
-	f, err := os.Create(tmp)
+	f, err := os.CreateTemp(dir, ".wms-*.part")
 	if err != nil {
 		return err
 	}
+	tmp := f.Name()
 	n, err := io.Copy(f, io.LimitReader(res.Body, 4<<30))
 	if cerr := f.Close(); err == nil {
 		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(tmp, 0o644)
 	}
 	if err != nil {
 		os.Remove(tmp)
 		return err
 	}
+	// A feed chooses the name: it must not replace a file already there.
+	dst = freeName(dst)
 	if err := os.Rename(tmp, dst); err != nil {
 		os.Remove(tmp)
 		return err
@@ -392,6 +466,18 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 		it.MTime = st.ModTime().Unix()
 	}
 	return s.Store.upsertItem(ctx, it)
+}
+
+// freeName is path, or path with a number added when something has that name.
+func freeName(path string) string {
+	ext := filepath.Ext(path)
+	stem := strings.TrimSuffix(path, ext)
+	for i := 2; ; i++ {
+		if _, err := os.Lstat(path); err != nil {
+			return path
+		}
+		path = fmt.Sprintf("%s (%d)%s", stem, i, ext)
+	}
 }
 
 // autoDownload keeps the newest N episodes of a podcast on disk.

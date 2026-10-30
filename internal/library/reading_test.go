@@ -1,6 +1,8 @@
 package library
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"strings"
 	"testing"
@@ -70,5 +72,33 @@ func TestAnnotations(t *testing.T) {
 	_ = s.DeleteAnnotation(ctx, 2, hl.ID)
 	if list, _ := s.Annotations(ctx, 1, book.ID); len(list) != 3 {
 		t.Error("another account removed a highlight")
+	}
+}
+
+// A small crafted book must not make one request unpack gigabytes.
+func TestBookTextIsBudgeted(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.Create("c.xhtml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write(bytes.Repeat([]byte("a "), 1<<16)); err != nil {
+		t.Fatal(err)
+	}
+	zw.Close()
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	budget := int64(1 << 17)
+	if chapterText(zr, "c.xhtml", &budget) == "" {
+		t.Fatal("the first chapter should be read")
+	}
+	if budget > 0 {
+		t.Fatalf("%d bytes of budget left", budget)
+	}
+	if chapterText(zr, "c.xhtml", &budget) != "" {
+		t.Fatal("kept reading past the budget")
 	}
 }

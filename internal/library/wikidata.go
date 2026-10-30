@@ -44,7 +44,7 @@ func (w *Wikidata) get(ctx context.Context, u string, out any) error {
 	}
 	c := w.Client
 	if c == nil {
-		c = &http.Client{Timeout: 15 * time.Second}
+		c = catalogClient(15 * time.Second)
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
@@ -60,7 +60,7 @@ func (w *Wikidata) get(ctx context.Context, u string, out any) error {
 		b, _ := io.ReadAll(io.LimitReader(res.Body, 200))
 		return fmt.Errorf("wikidata: %s: %s", res.Status, strings.TrimSpace(string(b)))
 	}
-	return json.NewDecoder(res.Body).Decode(out)
+	return json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(out)
 }
 
 type wdEntity struct {

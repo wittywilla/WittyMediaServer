@@ -81,6 +81,17 @@ func DefaultAccess(kind string) Access {
 	return Access{MaxAge: NoAgeLimit, AllowUnrated: true, LiveTV: true, LibraryChannels: true, TunerChannels: true}
 }
 
+// Limited reports whether the account can't see everything. Someone who is
+// limited can't set limits for others: a Kids profile they make with no limits
+// and a password they know would be a way around their own.
+func (a *Access) Limited() bool {
+	if a == nil {
+		return false
+	}
+	return a.MaxAge >= 0 || len(a.Libraries) > 0 || len(a.BlockGenres) > 0 || len(a.BlockItems) > 0 || len(a.BlockShows) > 0 ||
+		!a.LiveTV || !a.LibraryChannels || !a.TunerChannels
+}
+
 // CanWatchChannels reports whether the account may use a kind of channel
 // ("library" or "tuner").
 func (a *Access) CanWatchChannels(kind string) bool {
@@ -140,8 +151,10 @@ func (a *Access) ItemClause() (string, []any) {
 		cond = append(cond, "i.library_id IN ("+ids(a.Libraries)+")")
 	}
 	for _, g := range a.BlockGenres {
-		cond = append(cond, "('|' || IFNULL(i.genres,'') || '|') NOT LIKE ?")
-		args = append(args, "%|"+g+"|%")
+		// An episode counts its show's genres too, as AllowsItem does.
+		cond = append(cond, "('|' || IFNULL(i.genres,'') || '|') NOT LIKE ?",
+			"('|' || IFNULL((SELECT sh.genres FROM shows sh WHERE sh.id = i.show_id),'') || '|') NOT LIKE ?")
+		args = append(args, "%|"+g+"|%", "%|"+g+"|%")
 	}
 	return "(i.id NOT IN (" + ids(a.BlockItems) + ") AND IFNULL(i.show_id, 0) NOT IN (" + ids(a.BlockShows) + ") AND (" +
 		"i.id IN (" + ids(a.AllowItems) + ") OR IFNULL(i.show_id, 0) IN (" + ids(a.AllowShows) + ") OR (" + strings.Join(cond, " AND ") + ")))", args

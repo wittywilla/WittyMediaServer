@@ -3,11 +3,17 @@ package auth
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -58,6 +64,65 @@ var ErrInvalid = errors.New("invalid name or password")
 
 const tokenTTL = 90 * 24 * time.Hour
 
+// Shortest passwords for new ones (those set earlier keep working): a full
+// account's password protects everything; a Kids or Guest profile's is a PIN
+// to keep siblings apart.
+const (
+	MinPassword = 8
+	MinPIN      = 4
+)
+
+func checkPassword(password, kind string) error {
+	if kind == KindAdult && len(password) < MinPassword {
+		return fmt.Errorf("the password must be at least %d characters", MinPassword)
+	}
+	if len(password) < MinPIN {
+		return fmt.Errorf("the password or PIN must be at least %d characters", MinPIN)
+	}
+	if len(password) > 72 {
+		return errors.New("the password must be at most 72 bytes")
+	}
+	return nil
+}
+
+// storedToken is what the database keeps of a session token: its hash, so a
+// copy of the database (a backup, a stolen disk) holds no working sign-ins.
+// Tokens are long and random, so a plain, fast hash is enough.
+func storedToken(tok string) string {
+	sum := sha256.Sum256([]byte(tok))
+	return hashedPrefix + hex.EncodeToString(sum[:])
+}
+
+const hashedPrefix = "s256:"
+
+// HashStoredTokens converts sessions saved before tokens were hashed, so those
+// sign-ins keep working. It runs at start-up.
+func (s *Service) HashStoredTokens(ctx context.Context) error {
+	rows, err := s.DB.QueryContext(ctx, `SELECT token FROM sessions WHERE token NOT LIKE 's256:%'`)
+	if err != nil {
+		return err
+	}
+	var old []string
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			rows.Close()
+			return err
+		}
+		old = append(old, t)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, t := range old {
+		if _, err := s.DB.ExecContext(ctx, `UPDATE sessions SET token = ? WHERE token = ?`, storedToken(t), t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("not a password"), bcrypt.DefaultCost)
 
 func (s *Service) UserCount(ctx context.Context) int {
@@ -86,8 +151,8 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 	}
 	hash := ""
 	if password != "" || kind == KindAdult {
-		if len(password) < 4 {
-			return nil, errors.New("the password must be at least 4 characters")
+		if err := checkPassword(password, kind); err != nil {
+			return nil, err
 		}
 		b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
@@ -147,8 +212,12 @@ func (s *Service) ClearPassword(ctx context.Context, id int64) error {
 }
 
 func (s *Service) SetPassword(ctx context.Context, id int64, password string) error {
-	if len(password) < 4 {
-		return errors.New("password must be at least 4 characters")
+	u, err := s.User(ctx, id)
+	if err != nil {
+		return err
+	}
+	if err := checkPassword(password, u.Kind); err != nil {
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -170,7 +239,7 @@ func (s *Service) CheckPassword(ctx context.Context, id int64, password string) 
 // EndSessions signs the account out everywhere except the session keep
 // (after a password change, so a stolen session stops working).
 func (s *Service) EndSessions(ctx context.Context, id int64, keep string) error {
-	_, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND token <> ?`, id, keep)
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND token <> ?`, id, storedToken(keep))
 	return err
 }
 
@@ -233,7 +302,12 @@ func (s *Service) issue(ctx context.Context, userID int64, device string) (strin
 	}
 	tok := hex.EncodeToString(b)
 	now := time.Now()
-	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device) VALUES(?,?,?,?,?)`, tok, userID, now.Unix(), now.Add(tokenTTL).Unix(), device); err != nil {
+	if r := []rune(device); len(r) > 120 {
+		device = string(r[:120])
+	}
+	// Sessions nobody came back to would otherwise stay for ever.
+	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, now.Unix())
+	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device) VALUES(?,?,?,?,?)`, storedToken(tok), userID, now.Unix(), now.Add(tokenTTL).Unix(), device); err != nil {
 		return "", nil, err
 	}
 	u, err := s.User(ctx, userID)
@@ -242,7 +316,7 @@ func (s *Service) issue(ctx context.Context, userID int64, device string) (strin
 
 // Logout revokes a token.
 func (s *Service) Logout(ctx context.Context, token string) {
-	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, token)
+	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, storedToken(token))
 }
 
 // Resolve returns the user for a token.
@@ -250,18 +324,108 @@ func (s *Service) Resolve(ctx context.Context, token string) (*User, error) {
 	if token == "" {
 		return nil, ErrInvalid
 	}
+	return s.resolveStored(ctx, storedToken(token))
+}
+
+func (s *Service) resolveStored(ctx context.Context, stored string) (*User, error) {
 	var userID, expires int64
-	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at FROM sessions WHERE token = ?`, token).Scan(&userID, &expires); err != nil {
+	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at FROM sessions WHERE token = ?`, stored).Scan(&userID, &expires); err != nil {
 		return nil, ErrInvalid
 	}
 	if time.Now().Unix() > expires {
-		s.Logout(ctx, token)
+		_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, stored)
 		return nil, ErrInvalid
 	}
 	return s.User(ctx, userID)
 }
 
+// Stream tokens keep a session's token out of HLS playlists. A player that had
+// to put its token in a playlist's address can't send one with the segments
+// either, so the playlist names them with a stream token: it opens that one
+// stream, only for reading, for a few hours, and only while the session it came
+// from lasts, so a playlist in a player's cache or a log is worth little.
+const (
+	streamPrefix = "st1."
+	// StreamTokenTTL is long enough for a long film with a pause in it. A
+	// player that outlasts it gets 401 and opens the playlist again.
+	StreamTokenTTL = 6 * time.Hour
+)
+
+// streamKey is chosen at every start: stream tokens don't outlive the server
+// run, and neither do the streams themselves.
+var streamKey = func() []byte {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return b
+}()
+
+// IsStreamToken tells stream tokens from session tokens.
+func IsStreamToken(tok string) bool { return strings.HasPrefix(tok, streamPrefix) }
+
+func signStream(payload []byte) []byte {
+	m := hmac.New(sha256.New, streamKey)
+	m.Write(payload)
+	return m.Sum(nil)
+}
+
+// StreamToken makes a token from a session's token for one scope.
+func StreamToken(session, scope string, ttl time.Duration) (string, time.Time) {
+	exp := time.Now().Add(ttl)
+	payload := binary.BigEndian.AppendUint64(nil, uint64(exp.Unix()))
+	payload = append(payload, storedToken(session)[len(hashedPrefix):]...)
+	payload = append(payload, scope...)
+	enc := base64.RawURLEncoding
+	return streamPrefix + enc.EncodeToString(payload) + "." + enc.EncodeToString(signStream(payload)), exp
+}
+
+// streamSessionLen is the session's hash inside a stream token, in hex.
+const streamSessionLen = sha256.Size * 2
+
+// ResolveStream returns the user for a stream token on this request.
+func (s *Service) ResolveStream(ctx context.Context, tok string, r *http.Request) (*User, error) {
+	if (r.Method != http.MethodGet && r.Method != http.MethodHead) || !mediaRoute.MatchString(r.URL.Path) || strings.Contains(r.URL.Path, "..") {
+		return nil, ErrInvalid
+	}
+	body, sig, ok := strings.Cut(strings.TrimPrefix(tok, streamPrefix), ".")
+	if !ok {
+		return nil, ErrInvalid
+	}
+	enc := base64.RawURLEncoding
+	payload, err1 := enc.DecodeString(body)
+	mac, err2 := enc.DecodeString(sig)
+	if err1 != nil || err2 != nil || !hmac.Equal(mac, signStream(payload)) || len(payload) < 8+streamSessionLen {
+		return nil, ErrInvalid
+	}
+	if time.Now().Unix() > int64(binary.BigEndian.Uint64(payload)) {
+		return nil, ErrInvalid
+	}
+	session, scope := string(payload[8:8+streamSessionLen]), string(payload[8+streamSessionLen:])
+	if scope == "" || !strings.HasPrefix(r.URL.Path, scope) {
+		return nil, ErrInvalid
+	}
+	return s.resolveStored(ctx, hashedPrefix+session)
+}
+
 const CookieName = "wms_token"
+
+// mediaRoute are the addresses a page opens with <img>, <video>, <a download>
+// and the like, which can't carry a header. Only these take a token in the
+// address: one that leaked from a media link (a browser's history, a proxy's
+// log) can't be used to call the rest of the API or change anything.
+var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$)`)
+
+// queryToken is the ?token= of a media address.
+func queryToken(r *http.Request) string {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return ""
+	}
+	if q := r.URL.Query().Get("token"); q != "" && mediaRoute.MatchString(r.URL.Path) {
+		return q
+	}
+	return ""
+}
 
 // TokenFrom returns the token a request names most explicitly: the
 // Authorization header, X-WMS-Token, the ?token= of a media address, then
@@ -285,7 +449,7 @@ func Tokens(r *http.Request) []string {
 	if h := r.Header.Get("X-WMS-Token"); h != "" {
 		out = append(out, h)
 	}
-	if q := r.URL.Query().Get("token"); q != "" {
+	if q := queryToken(r); q != "" {
 		out = append(out, q)
 	}
 	for _, c := range r.Cookies() {

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +23,18 @@ func (s *Server) handlePodcasts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		a := s.access(r)
+		out := ps[:0]
+		for _, p := range ps {
+			if a != nil && len(a.Libraries) > 0 && !slices.Contains(a.Libraries, p.LibraryID) {
+				continue
+			}
+			p.URL = "" // a private feed's address is a password
+			out = append(out, p)
+		}
+		ps = out
 	}
 	writeJSON(w, 200, ps)
 }
@@ -190,11 +204,30 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 		return
 	}
 	defer res.Body.Close()
-	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"} {
+	if res.StatusCode != 200 && res.StatusCode != 206 && res.StatusCode != 416 {
+		writeErr(w, 502, "the podcast server answered "+res.Status)
+		return
+	}
+	for _, h := range []string{"Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"} {
 		if v := res.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}
 	}
+	w.Header().Set("Content-Type", episodeType(res.Header.Get("Content-Type")))
 	w.WriteHeader(res.StatusCode)
 	_, _ = io.Copy(w, res.Body)
+}
+
+// episodeType keeps the type a podcast server gave only when it is audio or
+// video: the address could serve anything, and this stream comes from our
+// own site, so a web page from a feed must never be sent as one.
+func episodeType(ct string) string {
+	mt, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	if strings.HasPrefix(mt, "audio/") || strings.HasPrefix(mt, "video/") || mt == "application/ogg" {
+		return mt
+	}
+	return "application/octet-stream"
 }

@@ -18,6 +18,9 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Write-Host "==> installing to $Prefix (data: $Data, port: $Port)"
 New-Item -ItemType Directory -Force $Prefix, $Data | Out-Null
+# ProgramData lets every account read, and add files to, new folders. This one
+# holds password hashes and sessions: only the service and administrators get in.
+icacls $Data /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null
 Copy-Item -Force "$here\wms.exe" $Prefix
 if (Test-Path "$here\bin") { Copy-Item -Recurse -Force "$here\bin" $Prefix }
 Get-ChildItem "$here\*.md" -ErrorAction SilentlyContinue | Copy-Item -Force -Destination $Prefix
@@ -34,7 +37,8 @@ if (Test-Path "$Prefix\WittyMediaServer.exe") {
 
 # Firewall rule for LAN access
 netsh advfirewall firewall delete rule name="WittyMediaServer" | Out-Null
-netsh advfirewall firewall add rule name="WittyMediaServer" dir=in action=allow protocol=TCP localport=$Port | Out-Null
+# (home and work networks: not open to everyone on a public Wi-Fi network)
+netsh advfirewall firewall add rule name="WittyMediaServer" dir=in action=allow protocol=TCP localport=$Port profile=private,domain | Out-Null
 
 # Scheduled task: runs hidden at startup as SYSTEM, restarts on failure.
 $action = New-ScheduledTaskAction -Execute "$Prefix\wms.exe" -Argument "serve -data `"$Data`" -listen :$Port" -WorkingDirectory $Prefix

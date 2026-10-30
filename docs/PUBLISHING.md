@@ -81,6 +81,10 @@ on the computer that made it, at `C:\Users\<you>\.wms-signing\release.key` (`~/.
    `release.key` in Notepad, copy **all** of it (both lines) into *Secret*, and click *Add secret*.
    GitHub keeps secrets encrypted and never shows them again, even to you. The release workflow
    then signs every release it builds; check that each release lists a `…SHA256SUMS.txt.sig`.
+   **Better:** keep it in an environment so only the signing job can read it, and approve each
+   signature yourself: *Settings* → *Environments* → **New environment**, name it `release`, tick
+   *Required reviewers* and add yourself, then add the secret there under *Environment secrets*
+   and delete the repository secret. A tag then waits for your approval before it is signed.
 3. **Local builds** sign automatically: `scripts/build-release.sh` uses `~/.wms-signing/release.key`
    (or the file in `WMS_SIGNING_KEY`) and checks the signature against the key built into the
    server. Without a key it warns and leaves the release unsigned; `REQUIRE_SIGNING=1` makes that an

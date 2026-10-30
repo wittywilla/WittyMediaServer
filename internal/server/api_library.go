@@ -22,6 +22,11 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if !userFrom(r).IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{} // how this machine's folders are laid out is the admin's business
+		}
+	}
 	writeJSON(w, 200, libs)
 }
 
@@ -48,6 +53,9 @@ func (b *libraryBody) validate() error {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
+		}
+		if !filepath.IsAbs(p) {
+			return errors.New("use the folder's full path: " + p)
 		}
 		st, err := os.Stat(p)
 		if err != nil || !st.IsDir() {
@@ -138,11 +146,14 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 	id, _ := pathInt(r, "id")
 	out := s.Scanner.Snapshot(id)
+	if out != nil && !userFrom(r).IsAdmin {
+		out.Current = "" // the file being scanned may be one this account can't see
+	}
 	writeJSON(w, 200, map[string]any{"scanning": out != nil, "progress": out})
 }
 
 func (s *Server) handleGenres(w http.ResponseWriter, r *http.Request) {
-	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)))
+	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -173,7 +184,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
-	writeJSON(w, 200, map[string]any{"items": items, "total": total})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "total": total})
 }
 
 func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +208,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
 		}
 	}
+	s.forViewer(r, it)
 	writeJSON(w, 200, it)
 }
 
@@ -216,6 +228,12 @@ func (s *Server) handleRecommend(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if rec != nil {
+		s.forViewer(r, rec)
+	}
+	if show != nil {
+		s.showsForViewer(r, show)
 	}
 	writeJSON(w, 200, map[string]any{"item": rec, "show": show})
 }
@@ -432,6 +450,16 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = s.Store.AttachProgress(ctx, u.ID, featured)
+	for _, h := range hubs {
+		s.forViewer(r, h.Items...)
+		s.showsForViewer(r, h.Shows...)
+	}
+	s.forViewer(r, featured...)
+	if !u.IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{}
+		}
+	}
 	writeJSON(w, 200, map[string]any{"hubs": hubs, "featured": featured, "libraries": libs})
 }
 
@@ -538,7 +566,7 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	default:
 		// Pictures next to the media (poster.jpg, an NFO's thumb): inside a
 		// library folder only.
-		if !s.inLibraries(r.Context(), src) {
+		if !s.Store.LibraryFile(r.Context(), src) {
 			writeErr(w, 404, "no artwork")
 			return
 		}
@@ -558,28 +586,14 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	// private: this art may belong to a title other accounts can't see.
+	w.Header().Set("Cache-Control", "private, max-age=86400")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 
 // inLibraries: the path is inside one of the libraries' folders.
 func (s *Server) inLibraries(ctx context.Context, path string) bool {
-	if !filepath.IsAbs(path) {
-		return false
-	}
-	libs, err := s.Store.Libraries(ctx)
-	if err != nil {
-		return false
-	}
-	clean := filepath.Clean(path)
-	for _, l := range libs {
-		for _, p := range l.Paths {
-			if rel, err := filepath.Rel(p, clean); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
-				return true
-			}
-		}
-	}
-	return false
+	return s.Store.InLibraries(ctx, path)
 }
 
 // imageType is the type of a raster picture, from its first bytes (AVIF by
@@ -604,7 +618,8 @@ func imageType(f io.ReadSeeker, name string) string {
 // internet only (a feed or catalogue must not reach devices on this network).
 func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	h := sha1.Sum([]byte(u))
-	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
+	// The file's name is ours alone: nothing from the address becomes part of it.
+	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10]))
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}
@@ -622,19 +637,30 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	if res.StatusCode != 200 {
 		return "", errors.New("artwork fetch failed: " + res.Status)
 	}
-	tmp := p + ".tmp"
-	f, err := os.Create(tmp)
+	if err := os.MkdirAll(s.Cfg.ImagesDir, 0o755); err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp(s.Cfg.ImagesDir, "r-*.tmp")
 	if err != nil {
 		return "", err
 	}
-	if _, err := io.Copy(f, io.LimitReader(res.Body, 20<<20)); err != nil {
-		f.Close()
-		os.Remove(tmp)
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	// A picture bigger than the limit is refused rather than cut short.
+	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteArt+1))
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
 		return "", err
 	}
-	f.Close()
+	if n > maxRemoteArt {
+		return "", errors.New("artwork too large")
+	}
 	return p, os.Rename(tmp, p)
 }
+
+const maxRemoteArt = 20 << 20
 
 // ---------------------------------------------------------------------------
 // Progress
@@ -644,6 +670,10 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
+		return
+	}
+	if _, err := s.visibleItem(r, id); err != nil {
+		writeErr(w, 404, "item not found") // whether a hidden title exists stays hidden
 		return
 	}
 	var p library.Progress

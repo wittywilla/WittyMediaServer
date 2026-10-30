@@ -45,7 +45,7 @@ export default function Profiles() {
             : <form className="field-row" onSubmit={(e) => { e.preventDefault(); changePw() }}>
                 <input className="input" type="password" autoComplete="current-password" aria-label="Current password" placeholder="Current password" value={curpw} onChange={(e) => setCurpw(e.target.value)} />
                 <input className="input" type="password" autoComplete="new-password" aria-label="New password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} />
-                <button className="btn" disabled={mypw.length < 4 || !curpw}>Change password</button>
+                <button className="btn" disabled={mypw.length < 8 || !curpw}>Change password</button>
               </form>}
         </div>
       </div>
@@ -128,7 +128,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
           {kind !== 'adult' && <AgePicker value={age} onChange={setAge} />}
           {err && <div className="error" role="alert">{err}</div>}
         </div>
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!name.trim() || (needsPw ? pw.length < 4 : pw.length > 0 && pw.length < 4)} onClick={save}>Add profile</button></div>
+        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!name.trim() || (needsPw ? pw.length < 8 : pw.length > 0 && pw.length < 4)} onClick={save}>Add profile</button></div>
       </div>
     </div>
   )

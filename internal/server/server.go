@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -47,15 +48,28 @@ type Server struct {
 	mux        *http.ServeMux
 	logins     loginLimiter
 	clientLogs clientLogLimiter
+
+	setupCode     string
+	setupCodeOnce sync.Once
+	audioSlots    chan struct{} // audio transcodes running at once
 }
 
 type ctxKey int
 
-const userKey ctxKey = 1
+const (
+	userKey ctxKey = iota + 1
+	tokenKey
+)
 
 func userFrom(r *http.Request) *auth.User {
 	u, _ := r.Context().Value(userKey).(*auth.User)
 	return u
+}
+
+// tokenFrom is the token this request was signed in with.
+func tokenFrom(r *http.Request) string {
+	t, _ := r.Context().Value(tokenKey).(string)
+	return t
 }
 
 // Handler builds the root handler.
@@ -255,12 +269,30 @@ func (s *Server) Handler() http.Handler {
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
 
-	return s.logging(s.headers(s.cors(s.csrf(m))))
+	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
+	return s.limits(s.logging(s.headers(s.cors(s.csrf(m)))))
 }
 
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
+
+// Limits on what a client can make the server hold on to while it sends a
+// request: uploads (a theme, a logo) are the largest bodies there are.
+const (
+	maxRequestBody  = 32 << 20
+	requestBodyTime = 2 * time.Minute
+)
+
+func (s *Server) limits(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+			_ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(requestBodyTime))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func (s *Server) logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -288,7 +320,8 @@ type statusWriter struct {
 	code int
 }
 
-func (w *statusWriter) WriteHeader(c int) { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (w *statusWriter) WriteHeader(c int)           { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 func (w *statusWriter) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
@@ -321,8 +354,14 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "SAMEORIGIN")
-		if !strings.HasPrefix(r.URL.Path, "/api/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			// Nothing the API sends is a page: whatever a file, feed or stream
+			// turns out to hold, opening its address can't run it on this site.
+			// Handlers with their own needs replace this.
+			h.Set("Content-Security-Policy", apiCSP)
+		} else {
 			h.Set("Content-Security-Policy", appCSP)
+			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -331,8 +370,11 @@ func (s *Server) headers(next http.Handler) http.Handler {
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
 const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
-	"media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
+	"media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// apiCSP: a sandbox with no scripts, for everything under /api/.
+const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
 // token. Cookies are never honoured across origins, so a page elsewhere on
@@ -391,27 +433,41 @@ func crossOrigin(r *http.Request) bool {
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {
+	u, _ := s.signedIn(r)
+	return u
+}
+
+// signedIn finds the account and the token that signed this request in.
+func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 	// The first token that belongs to a session here wins (a stale cookie
 	// must not hide a valid token).
 	for i, tok := range auth.Tokens(r) {
 		if i >= 4 {
 			break
 		}
-		if u, err := s.Auth.Resolve(r.Context(), tok); err == nil {
-			return u
+		var u *auth.User
+		var err error
+		if auth.IsStreamToken(tok) {
+			u, err = s.Auth.ResolveStream(r.Context(), tok, r)
+		} else {
+			u, err = s.Auth.Resolve(r.Context(), tok)
+		}
+		if err == nil {
+			return u, tok
 		}
 	}
-	return nil
+	return nil, ""
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := s.resolveUser(r)
+		u, tok := s.signedIn(r)
 		if u == nil {
 			writeErr(w, 401, "authentication required")
 			return
 		}
-		h(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
+		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
+		h(w, r.WithContext(ctx))
 	})
 }
 

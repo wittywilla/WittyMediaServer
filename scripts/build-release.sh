@@ -42,7 +42,8 @@ MISSING=()
 
 if [ "${SKIP_WEB:-}" != "1" ]; then
   echo "==> building web client"
-  (cd web && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund) && npm run build)
+  # Exactly what the lock file says, and no install scripts from packages.
+  (cd web && npm ci --ignore-scripts --no-audit --no-fund && npm run build)
 fi
 
 # Host tools (archive packer, icon renderer), built once for this machine.
@@ -68,6 +69,23 @@ fetch() {
   return 1
 }
 
+# fetch_btbn <out> <file>: a rolling FFmpeg build, checked against the checksums
+# published with it (a download that was cut short or altered on the way fails).
+fetch_btbn() {
+  local out="$1" file="$2" want got
+  [ -s "$out" ] && return 0
+  fetch "$out" "$BTBN/$file" || return 1
+  rm -f "$CACHE/btbn.sha256"
+  fetch "$CACHE/btbn.sha256" "$BTBN/checksums.sha256" || { rm -f "$out"; return 1; }
+  want=$(grep -E "[ *]$file\$" "$CACHE/btbn.sha256" | cut -d' ' -f1 | head -1)
+  got=$( (sha256sum "$out" 2>/dev/null || shasum -a 256 "$out") | cut -d' ' -f1)
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    echo "   !! $file does not match its published checksum" >&2
+    rm -f "$out"
+    return 1
+  fi
+}
+
 # untar <archive> <dir>: extracts once.
 untar() { [ -d "$2" ] || { mkdir -p "$2" && tar -xf "$1" -C "$2"; }; }
 unzipd() { [ -d "$2" ] || { mkdir -p "$2" && unzip -qo "$1" -d "$2"; }; }
@@ -83,12 +101,12 @@ bundle_ffmpeg() {
   case "$os/$arch" in
     windows/amd64|windows/arm64)
       local n=win64; [ "$arch" = arm64 ] && n=winarm64
-      fetch "$CACHE/$n.zip" "$BTBN/ffmpeg-master-latest-$n-gpl.zip" || return 1
+      fetch_btbn "$CACHE/$n.zip" "ffmpeg-master-latest-$n-gpl.zip" || return 1
       unzipd "$CACHE/$n.zip" "$CACHE/$n"
       cp "$CACHE"/$n/*/bin/ffmpeg.exe "$CACHE"/$n/*/bin/ffprobe.exe "$bin/" ;;
     linux/amd64|linux/arm64)
       local n=linux64; [ "$arch" = arm64 ] && n=linuxarm64
-      fetch "$CACHE/$n.tar.xz" "$BTBN/ffmpeg-master-latest-$n-gpl.tar.xz" || return 1
+      fetch_btbn "$CACHE/$n.tar.xz" "ffmpeg-master-latest-$n-gpl.tar.xz" || return 1
       untar "$CACHE/$n.tar.xz" "$CACHE/$n"
       cp "$CACHE"/$n/*/bin/ffmpeg "$CACHE"/$n/*/bin/ffprobe "$bin/" ;;
     linux/arm|linux/386)

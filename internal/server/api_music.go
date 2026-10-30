@@ -1,9 +1,12 @@
 package server
 
 import (
+	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -11,6 +14,22 @@ import (
 
 // Music and audiobooks: albums (or books), artists (or authors), the
 // tracks of one album, and streaming one audio file.
+
+// maxStreamStall is how long a listener may read nothing before their stream
+// and its FFmpeg process end. It is long enough for a paused player.
+const maxStreamStall = 10 * time.Minute
+
+// stallWriter gives up on a client that stopped reading.
+type stallWriter struct {
+	w     io.Writer
+	rc    *http.ResponseController
+	limit time.Duration
+}
+
+func (s *stallWriter) Write(p []byte) (int, error) {
+	_ = s.rc.SetWriteDeadline(time.Now().Add(s.limit))
+	return s.w.Write(p)
+}
 
 // GET /api/music/albums?library=&artist=&search=&sort=
 func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +77,7 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
-	writeJSON(w, 200, items)
+	writeJSON(w, 200, s.forViewer(r, items...))
 }
 
 // GET /api/items/{id}/stream?start=SEC: plays an audio file. Formats every
@@ -80,8 +99,8 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		s.proxyEpisode(w, r, it) // a podcast episode that was not downloaded
 		return
 	}
-	if it.Provider == "podcast" && !s.inLibraries(r.Context(), it.Path) {
-		writeErr(w, 404, "not found") // a downloaded episode lives in its library
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "not found")
 		return
 	}
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
@@ -89,7 +108,18 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, it.Path)
 		return
 	}
+	select {
+	case s.audioSlots <- struct{}{}:
+		defer func() { <-s.audioSlots }()
+	default:
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, "the server is busy with other streams")
+		return
+	}
 	start, _ := strconv.ParseFloat(r.URL.Query().Get("start"), 64)
+	if math.IsNaN(start) || math.IsInf(start, 0) {
+		start = 0
+	}
 	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
 	if start > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
@@ -97,7 +127,7 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	args = append(args, ffmpeg.FileInput(it.Path)...)
 	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
 	cmd := ffmpeg.Command(r.Context(), s.Tools.FFmpeg, args...)
-	cmd.Stdout = w
+	cmd.Stdout = &stallWriter{w: w, rc: http.NewResponseController(w), limit: maxStreamStall}
 	w.Header().Set("Content-Type", "audio/aac")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-WMS-Transcoded", "1")

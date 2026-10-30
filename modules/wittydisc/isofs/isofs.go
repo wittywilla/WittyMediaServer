@@ -35,15 +35,25 @@ type File struct {
 }
 
 // Disc is an opened disc image.
+// image is where a disc's bytes come from.
+type image interface {
+	io.ReaderAt
+	io.Closer
+}
+
 type Disc struct {
 	Path   string
 	Format string // "udf", "iso9660"
 	Label  string
 
-	f     *os.File
+	f     image
 	size  int64
 	files map[string]*File // upper-cased path -> file
 	mu    sync.Mutex
+
+	walked   map[int64]bool // directories already read while indexing
+	dirBytes int64
+	entries  int
 }
 
 var ErrNotFound = errors.New("isofs: file not found")
@@ -94,9 +104,14 @@ func (d *Disc) ReadFile(p string, max int64) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrNotFound, p)
 	}
-	n := f.Size
+	// A file's size is whatever the image says. Nothing can be longer than the
+	// image itself, so that is all the memory a read may ask for.
+	n := min(f.Size, d.size)
 	if max > 0 && n > max {
 		n = max
+	}
+	if n < 0 {
+		return nil, fmt.Errorf("isofs: %s has a negative size", p)
 	}
 	buf := make([]byte, n)
 	got, err := d.ReadAtFile(f, buf, 0)
@@ -162,6 +177,7 @@ func (d *Disc) index() error {
 		udfErr = errors.New("no files")
 	}
 	d.files = map[string]*File{}
+	d.walked, d.dirBytes, d.entries = nil, 0, 0
 	if err := d.indexISO9660(); err != nil {
 		return fmt.Errorf("isofs: not a readable UDF (%v) or ISO 9660 (%v) image", udfErr, err)
 	}
@@ -172,6 +188,44 @@ func (d *Disc) index() error {
 func (d *Disc) add(f *File) {
 	f.Path = strings.Trim(f.Path, "/")
 	d.files[strings.ToUpper(f.Path)] = f
+}
+
+// A real disc holds hundreds of files. These bound what a crafted image can
+// make the walk do: directories that list each other are read once, not once
+// per path through them, which from a tiny file would never end.
+const (
+	maxFiles    = 200000
+	maxDirBytes = 256 << 20 // directory data read in total
+	maxEntries  = 1 << 20   // directory entries read in total
+)
+
+// enterDir says whether to read a directory at this place in the image.
+func (d *Disc) enterDir(at int64, size int64) error {
+	if d.walked == nil {
+		d.walked = map[int64]bool{}
+	}
+	if d.walked[at] {
+		return errSeen
+	}
+	d.walked[at] = true
+	d.dirBytes += size
+	if d.dirBytes > maxDirBytes || len(d.files) > maxFiles {
+		return errors.New("isofs: the directory tree is too large")
+	}
+	return nil
+}
+
+var errSeen = errors.New("isofs: directory already read")
+
+// nextEntry counts a directory entry. A UDF entry means reading another
+// sector, so a few megabytes of crafted directory could otherwise keep a disk
+// busy for minutes.
+func (d *Disc) nextEntry() error {
+	d.entries++
+	if d.entries > maxEntries {
+		return errors.New("isofs: the directory tree is too large")
+	}
+	return nil
 }
 
 func (d *Disc) sector(n int64) ([]byte, error) {
@@ -227,6 +281,11 @@ func (d *Disc) walkISODir(rec []byte, prefix string, depth int) error {
 	if size <= 0 || size > 64<<20 {
 		return nil
 	}
+	if err := d.enterDir(lba, size); errors.Is(err, errSeen) {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	buf := make([]byte, size)
 	if _, err := d.f.ReadAt(buf, lba*Sector); err != nil && !errors.Is(err, io.EOF) {
 		return err
@@ -240,6 +299,9 @@ func (d *Disc) walkISODir(rec []byte, prefix string, depth int) error {
 		}
 		if off+l > len(buf) || l < 33 {
 			break
+		}
+		if err := d.nextEntry(); err != nil {
+			return err
 		}
 		r := buf[off : off+l]
 		nameLen := int(r[32])
@@ -556,7 +618,7 @@ func (d *Disc) readUDFEntry(ctx *udfCtx, icb longAD) (*udfEntry, error) {
 		infoLen  int64
 		eaLen    uint32
 		adLen    uint32
-		adStart  int
+		adStart  int64
 		partRef  = icb.part
 	)
 	switch tag {
@@ -566,22 +628,22 @@ func (d *Disc) readUDFEntry(ctx *udfCtx, icb longAD) (*udfEntry, error) {
 		infoLen = int64(binary.LittleEndian.Uint64(b[56:64]))
 		eaLen = binary.LittleEndian.Uint32(b[168:172])
 		adLen = binary.LittleEndian.Uint32(b[172:176])
-		adStart = 176 + int(eaLen)
+		adStart = 176 + int64(eaLen)
 	case 266: // Extended File Entry
 		fileType = b[16+11]
 		flags = binary.LittleEndian.Uint16(b[16+18 : 16+20])
 		infoLen = int64(binary.LittleEndian.Uint64(b[56:64]))
 		eaLen = binary.LittleEndian.Uint32(b[208:212])
 		adLen = binary.LittleEndian.Uint32(b[212:216])
-		adStart = 216 + int(eaLen)
+		adStart = 216 + int64(eaLen)
 	default:
 		return nil, fmt.Errorf("UDF: unexpected tag %d at sector %d", tag, sec)
 	}
 	e := &udfEntry{isDir: fileType == 4, size: infoLen}
-	if adStart+int(adLen) > len(b) {
+	if adStart+int64(adLen) > int64(len(b)) {
 		return nil, errors.New("UDF: allocation descriptors overrun")
 	}
-	ads := b[adStart : adStart+int(adLen)]
+	ads := b[adStart : adStart+int64(adLen)]
 	switch flags & 7 {
 	case 0, 1: // short_ad or long_ad
 		if err := d.udfExtents(ctx, e, ads, flags&7 == 1, partRef, 0); err != nil {
@@ -603,13 +665,18 @@ func (d *Disc) walkUDFDir(ctx *udfCtx, icb longAD, prefix string, depth int) err
 	if err != nil {
 		return err
 	}
+	if ent.size < 0 || ent.size > 16<<20 {
+		return errors.New("UDF: directory too large")
+	}
+	if err := d.enterDir(int64(icb.part)<<32|int64(icb.block), ent.size); errors.Is(err, errSeen) {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	var data []byte
 	if ent.inline != nil {
 		data = ent.inline
 	} else {
-		if ent.size > 16<<20 {
-			return errors.New("UDF: directory too large")
-		}
 		data = make([]byte, ent.size)
 		tmp := &File{Size: ent.size, Extents: ent.extents}
 		if _, err := d.ReadAtFile(tmp, data, 0); err != nil && !errors.Is(err, io.EOF) {
@@ -619,6 +686,9 @@ func (d *Disc) walkUDFDir(ctx *udfCtx, icb longAD, prefix string, depth int) err
 	for off := 0; off+38 <= len(data); {
 		if binary.LittleEndian.Uint16(data[off:off+2]) != 257 { // FID
 			break
+		}
+		if err := d.nextEntry(); err != nil {
+			return err
 		}
 		chars := data[off+18]
 		fidICB := readLongAD(data[off+20 : off+36])

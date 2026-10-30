@@ -92,7 +92,7 @@ func (a *AniList) query(ctx context.Context, q string, vars map[string]any, out 
 	req.Header.Set("Accept", "application/json")
 	c := a.Client
 	if c == nil {
-		c = &http.Client{Timeout: 20 * time.Second}
+		c = catalogClient(20 * time.Second)
 	}
 	res, err := c.Do(req)
 	if err != nil {
@@ -112,7 +112,7 @@ func (a *AniList) query(ctx context.Context, q string, vars map[string]any, out 
 			Message string `json:"message"`
 		} `json:"errors"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&wrap); err != nil {
+	if err := json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(&wrap); err != nil {
 		return err
 	}
 	if len(wrap.Errors) > 0 {

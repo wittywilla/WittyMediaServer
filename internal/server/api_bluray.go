@@ -94,11 +94,21 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	}
 	defer d.Close()
 	pl := d.Playlist(ttn)
-	if pl == nil {
+	if pl == nil && ttn == 0 {
 		pl = d.MainPlaylist()
 	}
 	if pl == nil || len(pl.Items) == 0 {
-		return fmt.Errorf("no such playlist")
+		return errNoPicture
+	}
+	marks := 0
+	for _, m := range pl.Marks {
+		if m.Type == 1 {
+			marks++
+		}
+	}
+	// Only chapters that exist get a file: the address is the viewer's to choose.
+	if n < 0 || n > marks {
+		return errNoPicture
 	}
 	// A few seconds into the chapter skips fades from black.
 	item, at := 0, pl.Items[0].In+uint32(minf(90, d.PlaylistDuration(pl)*0.1)*45000)

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
@@ -169,7 +170,25 @@ func (s *Server) resolveStream(r *http.Request) *auth.User {
 	if err != nil || u.ID != g.userID {
 		return nil
 	}
+	// HLS and disc routes don't look at the item themselves, so limits set since
+	// the ticket was made are checked here. Accounts without limits pay nothing.
+	if a := accessFor(u); a != nil && !s.itemAllowed(r.Context(), a, g.itemID) {
+		return nil
+	}
 	return u
+}
+
+// itemAllowed says whether limits let an account see an item.
+func (s *Server) itemAllowed(ctx context.Context, a *library.Access, id int64) bool {
+	it, err := s.Store.Item(ctx, id)
+	if err != nil {
+		return false
+	}
+	var sh *library.Show
+	if it.ShowID != nil {
+		sh, _ = s.Store.Show(ctx, *it.ShowID, 0)
+	}
+	return a.AllowsItem(it, sh)
 }
 
 // sessionToken is the sign-in behind a request, for tickets made from it.

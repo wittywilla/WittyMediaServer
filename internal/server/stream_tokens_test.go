@@ -116,14 +116,24 @@ func TestStreamTokenFollowsTheSignIn(t *testing.T) {
 func TestStreamTokenFollowsAccessRules(t *testing.T) {
 	ts := newTestServer(t)
 	u, session := ts.account(t, "Alex", "adult", false)
-	id := ts.item(t, "video", tempMedia(t, "a.mp4", "AAAA"))
+	path := tempMedia(t, "a.mp4", "AAAA")
+	id := ts.item(t, "video", path)
 	tok := mintFor(t, ts, session, id)
-	// Taking the title away from the account closes the ticket's door too.
+	sid := "v-" + hls.Key(path) + "-test"
+	ts.HLS.Ensure(hls.Spec{ID: sid, Duration: 8, AudioIndex: -1, SubtitleIndex: -1})
+	playlist := "/api/hls/" + sid + "/playlist.m3u8?st=" + tok
+	if w := ts.do(t, "GET", playlist, "", nil); w.Code != 200 {
+		t.Fatalf("before blocking: %d", w.Code)
+	}
+	// Taking the title away from the account closes the ticket's door too,
+	// on routes that never look at the item themselves as well.
 	if err := ts.Auth.SetRestrictions(context.Background(), u.ID, fmt.Sprintf(`{"maxAge":-1,"blockItems":[%d]}`, id)); err != nil {
 		t.Fatal(err)
 	}
-	if w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/file?st=%s", id, tok), "", nil); w.Code != 404 {
-		t.Errorf("after blocking the title: %d", w.Code)
+	for _, addr := range []string{fmt.Sprintf("/api/items/%d/file?st=%s", id, tok), playlist} {
+		if w := ts.do(t, "GET", addr, "", nil); w.Code != 401 {
+			t.Errorf("%s after blocking the title: %d", addr, w.Code)
+		}
 	}
 	if w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/stream-token", id), session, nil); w.Code != 404 {
 		t.Errorf("mint for a hidden title: %d", w.Code)

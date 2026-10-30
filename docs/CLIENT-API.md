@@ -274,8 +274,7 @@ far too powerful to put there. A stream token is the short-lived replacement.
 - It is **read-only and for one item**. It opens nothing else: not another item, not the library, not
   an account, and it can't be used to get another token.
 - It expires 30 minutes after it was last used, and after 12 hours at most. It ends at once when the
-  sign-in it came from ends, and the account's limits are checked on every use of the file and artwork
-  routes.
+  sign-in it came from ends, and the account's limits are checked on every use.
 - A 401 on a media address means: ask for a new one (and open the stream again).
 - If your player can set headers (ExoPlayer can, with a `DataSource.Factory`), a bearer token works on
   all these routes too, but a stream token is still the safer choice to give a player: playlists get

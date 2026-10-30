@@ -687,7 +687,8 @@ func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
 		}
 		// Short chains that set a highlight are interactive screens; a feature
 		// film never is, whatever its commands do for the menu afterwards.
-		if p := v.PGCs[c.PGCN-1].PGC; p.StillTime != 0 || (p.SetsHighlight() && p.Duration < 600) {
+		// Random and shuffle chains pick their programs as they play.
+		if p := v.PGCs[c.PGCN-1].PGC; p.StillTime != 0 || p.PlaybackMode != 0 || (p.SetsHighlight() && p.Duration < 600) {
 			return nil
 		}
 	}
@@ -771,6 +772,16 @@ func (s *Session) scanOptions(st *wittydvd.Step, maxHops int) wittydvd.MenuScanO
 func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentation) error {
 	sp := wittydvd.SpaceFor(st.Domain, st.VTS)
 	pic, err := s.opened.Menu(sp, st.FirstSector, st.LastSector, s.scanOptions(st, 0))
+	if errors.Is(err, wittydvd.ErrNoNav) {
+		// The cell does not start with a NAV pack (damaged sectors, junk
+		// cells): play what is there without buttons rather than stop.
+		v := s.videoAttr(st)
+		pic, err = &wittydvd.MenuPicture{Aspect: 4.0 / 3.0, NoButtons: true}, nil
+		pic.FrameW, pic.FrameH = v.Size()
+		if v.Wide {
+			pic.Aspect = 16.0 / 9.0
+		}
+	}
 	if err != nil {
 		return err
 	}

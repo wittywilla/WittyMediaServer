@@ -30,7 +30,7 @@ trip through the app switcher loses nothing.
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed` |
+| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`. With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |

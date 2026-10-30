@@ -242,6 +242,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		all = append(all, c...)
 	}
+	if lib.Type == "games" {
+		s.Store.noteSkippedGames(ctx, lib)
+	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}
 	tv := newTVScan()

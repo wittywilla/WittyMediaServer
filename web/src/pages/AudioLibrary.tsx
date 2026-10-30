@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, mediaUrl, type Album, type Artist, type Item, type Library } from '../api'
 import { useAudio, type AudioMode } from '../audio/player'
-import { BackLink, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
+import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
 import { IconAudio, IconCheck, IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
@@ -42,13 +42,15 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
         {tabs.length > 1 && <div className="seg" role="tablist">
           {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { set('artist', null); set('tab', k) }}>{l}</button>)}
         </div>}
-        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
         {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
+        <div className="grow" />
         {tab === 'albums' && !pods && (
           <select className="select" value={sort} aria-label="Sort" onChange={(e) => set('sort', e.target.value)}>
             <option value="title">Title</option><option value="artist">{books ? 'Author' : 'Artist'}</option><option value="year">Year</option><option value="added">Recently added</option>
           </select>
         )}
+        <ScanButton lib={lib} />
+        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
       </div>
       {tab === 'albums' && (!albums ? <SkeletonGrid square={!books} /> : albums.length === 0 ? (pods ? (
         <div className="pod-empty">
@@ -60,7 +62,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
         <div className="album-grid">
           {albums.map((a) => (
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">
-              <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} sub={a.artist || undefined} />}</div>
+              <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} />}</div>
               <b>{a.title || 'Unknown album'}</b>
               <span className="muted">{a.artist || (books ? 'Unknown author' : 'Unknown artist')}{a.year ? ` · ${a.year}` : ''}</span>
             </Link>
@@ -136,7 +138,7 @@ export function AlbumPage() {
     <div className="album-page">
       <BackLink to={`/library/${libId}`} label={lib?.name || (books ? 'Audiobooks' : 'Music')} />
       <div className="album-head">
-        <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={cover(coverId)} alt="" /> : <Placeholder title={tracks[0]?.album || 'Unknown'} sub={tracks[0]?.albumArtist || tracks[0]?.artist || undefined} />}</div>
+        <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={cover(coverId)} alt="" /> : <Placeholder title={tracks[0]?.album || 'Unknown'} />}</div>
         <div className="album-meta">
           <span className="muted">{pods ? 'Podcast' : books ? 'Audiobook' : 'Album'}</span>
           <h1>{album || 'Unknown album'}</h1>

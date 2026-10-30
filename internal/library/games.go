@@ -76,6 +76,89 @@ func discoverGames(root, console string) ([]candidate, error) {
 	return out, err
 }
 
+// gameLikeExts are files that are probably games. One that gameConsole turns down
+// is worth telling the owner about; anything else in the folder (a text file, a
+// picture) isn't.
+var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
+	".gcm": true, ".gcz": true, ".wbfs": true, ".rvz": true, ".nsp": true, ".xci": true, ".3ds": true, ".cia": true, ".xiso": true}
+
+// skippedGameFiles counts, by extension, game-like files a library can't use.
+func skippedGameFiles(root, console string) map[string]int {
+	out := map[string]int{}
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		name := d.Name()
+		if d.IsDir() {
+			if p != root && (strings.HasPrefix(name, ".") || strings.HasPrefix(name, "$") || gameSkipDirs[strings.ToLower(name)]) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(name))
+		if !gameLikeExts[ext] || strings.HasPrefix(name, ".") {
+			return nil
+		}
+		if rel, err := filepath.Rel(root, p); err == nil && gameConsole(p, rel, console) == "" {
+			out[ext]++
+		}
+		return nil
+	})
+	return out
+}
+
+const skippedGamesKey = "gamesSkipped."
+
+// noteSkippedGames remembers what the last scan of a games library left out.
+func (s *Store) noteSkippedGames(ctx context.Context, lib *Library) {
+	total := map[string]int{}
+	for _, root := range lib.Paths {
+		for ext, n := range skippedGameFiles(root, lib.Console) {
+			total[ext] += n
+		}
+	}
+	b, err := json.Marshal(total)
+	if err == nil {
+		_ = s.DB.SetSetting(ctx, skippedGamesKey+strconv.FormatInt(lib.ID, 10), string(b))
+	}
+}
+
+// SkippedGames says what the last scan of a games library left out, by extension.
+func (s *Store) SkippedGames(ctx context.Context, libraryID int64) map[string]int {
+	var out map[string]int
+	raw := s.DB.GetSetting(ctx, skippedGamesKey+strconv.FormatInt(libraryID, 10), "")
+	if raw == "" || json.Unmarshal([]byte(raw), &out) != nil {
+		return nil
+	}
+	return out
+}
+
+// GameCounts says how many games a library holds for each console.
+func (s *Store) GameCounts(ctx context.Context, libraryID int64, access *Access) (map[string]int, error) {
+	q := `SELECT IFNULL(i.console, ''), COUNT(*) FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND i.missing = 0`
+	args := []any{libraryID}
+	if access != nil {
+		c, a := access.ItemClause()
+		q += " AND " + c
+		args = append(args, a...)
+	}
+	rows, err := s.DB.QueryContext(ctx, q+` GROUP BY 1`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var c string
+		var n int
+		if rows.Scan(&c, &n) == nil {
+			out[c] = n
+		}
+	}
+	return out, rows.Err()
+}
+
 // gameConsole says which console a file is for, or "" when it isn't a game this
 // library holds.
 func gameConsole(path, rel, console string) string {

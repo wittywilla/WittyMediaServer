@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, getToken, mediaUrl, posterUrl, serverBase, type GameConsole, type Item, type Library } from '../api'
-import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
-import { IconPlay, IconRefresh, IconSettings } from '../icons'
+import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
+import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 import type { PlayHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
 import './games.css'
@@ -29,7 +29,7 @@ function GameCard({ item, console: c }: { item: Item; console?: GameConsole }) {
   return (
     <Link to={`/item/${item.id}`} className="card" title={item.title}>
       <div className="poster">
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} sub={c?.short} />}
+        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} label={c?.short} />}
         <div className="play"><span><IconPlay /></span></div>
       </div>
       <div className="title">{item.title}</div>
@@ -38,59 +38,115 @@ function GameCard({ item, console: c }: { item: Item; console?: GameConsole }) {
   )
 }
 
+// A page at a time: a collection can run to thousands of games, and neither an old
+// TV nor a phone should pay for all of them to look at the first few.
+const PAGE = 120
+const list = (ext: string, n: number) => `${n.toLocaleString()} ${ext}`
+const and = (parts: string[]) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`)
+
 export function GamesLibrary({ lib }: { lib: Library }) {
-  const { user } = useApp()
-  const consoles = useConsoles()
+  const [consoles, setConsoles] = useState<GameConsole[]>([])
   const [params, setParams] = useSearchParams()
   const [items, setItems] = useState<Item[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [playing, setPlaying] = useState<Item[]>([])
+  const [skipped, setSkipped] = useState<Record<string, number>>({})
   const filter = params.get('console') || ''
-  const load = () => api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&sort=title&limit=2000`).then((r) => setItems(r.items)).catch(() => setItems([]))
+  const search = params.get('q') || ''
+  const [typed, setTyped] = useState(search)
+  const url = (limit: number, offset = 0) => `/items?library=${lib.id}&kind=game&sort=title&console=${encodeURIComponent(filter)}&search=${encodeURIComponent(search)}&limit=${limit}&offset=${offset}`
+  const loadedRef = useRef(0)
+  loadedRef.current = items?.length ?? 0
+  const load = () => api.get<{ items: Item[]; total: number }>(url(Math.max(PAGE, loadedRef.current)))
+    .then((r) => { setItems(r.items); setTotal(r.total) }).catch(() => setItems([]))
+  const loadConsoles = () => api.get<GameConsole[]>(`/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {})
   const [watch, setWatch] = useState(0) // bumped to follow a scan just started
-  useEffect(() => { setItems(null); load() }, [lib.id])
+  useEffect(() => { setItems(null); loadedRef.current = 0; load() }, [lib.id, filter, search]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&played=1&limit=50`).then((r) => setPlaying(r.items)).catch(() => {}) }, [lib.id])
   // A scan may already be running (a library just added), or just started. Follow
   // it, so games appear as they're found and the page ends up complete.
   useEffect(() => {
     let stop = false
     let timer = 0
     const tick = async () => {
-      const r = await api.get<{ scanning: boolean }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false }))
+      const r = await api.get<{ scanning: boolean; skipped?: Record<string, number> }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false, skipped: undefined }))
       if (stop) return
-      await load()
+      setSkipped(r.skipped || {})
+      await Promise.all([load(), loadConsoles()])
       if (r.scanning && !stop) timer = window.setTimeout(tick, 2000)
     }
     void tick()
     return () => { stop = true; clearTimeout(timer) }
-  }, [lib.id, watch])
+  }, [lib.id, watch]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The next page, when the end of the list comes near.
+  const more = useRef<HTMLDivElement | null>(null)
+  const loaded = items?.length ?? 0
+  const hasMore = loaded > 0 && loaded < total
+  useEffect(() => {
+    const el = more.current
+    if (!el || !hasMore) return
+    let busy = false
+    const io = new IntersectionObserver((es) => {
+      if (!es.some((e) => e.isIntersecting) || busy) return
+      busy = true
+      api.get<{ items: Item[]; total: number }>(url(PAGE, loaded))
+        .then((r) => { setItems((cur) => [...(cur || []), ...r.items]); setTotal(r.total) })
+        .catch(() => {}).finally(() => { busy = false })
+    }, { rootMargin: '800px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loaded, filter, search]) // eslint-disable-line react-hooks/exhaustive-deps
+  const setParam = (k: string, v: string) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
+  // Search follows typing, once it pauses.
+  useEffect(() => {
+    if (typed === search) return
+    const t = setTimeout(() => setParam('q', typed.trim()), 300)
+    return () => clearTimeout(t)
+  }, [typed]) // eslint-disable-line react-hooks/exhaustive-deps
   const byId = useMemo(() => new Map(consoles.map((c) => [c.id, c])), [consoles])
-  const present = useMemo(() => [...new Set((items || []).map((i) => i.console || ''))].filter(Boolean), [items])
-  const shown = (items || []).filter((i) => !filter || i.console === filter)
-  const playing = (items || []).filter((i) => i.progress && i.progress.positionSec > 60).sort((a, b) => (b.progress!.updatedAt) - (a.progress!.updatedAt)).slice(0, 8)
-  const scan = async () => {
-    try { await api.post(`/libraries/${lib.id}/scan`); toast(`Scanning ${lib.name}`); setWatch((n) => n + 1) } catch (e: any) { toast(e.message) }
-  }
+  const present = consoles.filter((c) => (c.count || 0) > 0)
+  const everything = present.reduce((n, c) => n + (c.count || 0), 0)
+  const inProgress = [...playing].sort((a, b) => (b.progress?.updatedAt || 0) - (a.progress?.updatedAt || 0)).slice(0, 8)
+  const left = Object.entries(skipped).sort((a, b) => b[1] - a[1])
+  const leftCount = left.reduce((n, [, c]) => n + c, 0)
+  const archives = left.some(([e]) => e === '.7z' || e === '.rar')
   return (
     <>
       <div className="toolbar">
-        <h1>{lib.name}{items && <span className="muted"> · {shown.length}</span>}</h1>
-        {present.length > 1 && (
-          <div className="seg" role="radiogroup" aria-label="Console">
-            <button type="button" role="radio" aria-checked={!filter} className={!filter ? 'active' : ''} onClick={() => setParams({})}>All</button>
-            {present.map((c) => <button key={c} type="button" role="radio" aria-checked={filter === c} className={filter === c ? 'active' : ''} onClick={() => setParams({ console: c })}>{byId.get(c)?.short || c}</button>)}
-          </div>
-        )}
-        <span className="grow" />
-        {user?.isAdmin && <button className="btn ghost" onClick={scan}><IconRefresh /> Scan</button>}
+        <h1>{lib.name}</h1>
+        {items && <span className="count">{total.toLocaleString()} {total === 1 ? 'game' : 'games'}</span>}
+        <div className="grow" />
+        <input className="input gm-search" type="search" placeholder="Search these games…" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
+        <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />
       </div>
-      {!items ? <Spinner /> : items.length === 0
-        ? <EmptyState title="No games here yet" text="Put your own game files in this library’s folder and scan it. Zipped games and multi-disc sets work too." />
+      {leftCount > 0 && (
+        <div className="warn-box gm-skipped" role="status">
+          <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>
+          {and(left.map(([e, c]) => list(e, c)))}.{' '}
+          {archives ? '.7z and .rar archives can’t be read yet: unpack them, or zip them instead. ' : ''}
+          Anything else is a kind of file, or a console, that isn’t supported yet.
+        </div>
+      )}
+      {present.length > 1 && (
+        <div className="chips" role="group" aria-label="Console">
+          <button type="button" aria-pressed={!filter} className={'chip' + (!filter ? ' active' : '')} onClick={() => setParam('console', '')}>All · {everything.toLocaleString()}</button>
+          {present.map((c) => <button key={c.id} type="button" aria-pressed={filter === c.id} className={'chip' + (filter === c.id ? ' active' : '')} onClick={() => setParam('console', c.id)}>{c.short} · {(c.count || 0).toLocaleString()}</button>)}
+        </div>
+      )}
+      {!items ? <SkeletonGrid /> : items.length === 0
+        ? (search || filter
+          ? <EmptyState icon={<IconGamepad />} title="No games match" text={search ? `Nothing here matches “${search}”.` : 'There are none for this console.'}
+              action={<button className="btn" onClick={() => { setTyped(''); setParams({}, { replace: true }) }}>Show all games</button>} />
+          : <EmptyState icon={<IconGamepad />} title="No games here yet" text="Put your own game files in this library’s folder and scan it. Zipped games and multi-disc sets work too." />)
         : (
           <>
-            {playing.length > 0 && !filter && <>
+            {inProgress.length > 0 && !filter && !search && <>
               <h2 className="shelf-head">Continue playing</h2>
-              <div className="grid">{playing.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+              <div className="grid">{inProgress.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
               <h2 className="shelf-head">All games</h2>
             </>}
-            <div className="grid">{shown.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+            <div className="grid">{items.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+            {hasMore && <div ref={more} className="gm-more"><Spinner /></div>}
           </>
         )}
     </>
@@ -100,7 +156,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
 // A game's page.
 export function GameDetails({ it }: { it: Item }) {
   const nav = useNavigate()
-  const { user } = useApp()
+  const { user, libraries } = useApp()
   const consoles = useConsoles()
   const c = consoles.find((x) => x.id === it.console)
   const [saves, setSaves] = useState<SaveSlot[]>([])
@@ -114,10 +170,10 @@ export function GameDetails({ it }: { it: Item }) {
   const played = it.progress?.positionSec || 0
   return (
     <div className="game-page">
-      <BackLink to={`/library/${it.libraryId}`} label="Back to the library" />
+      <BackLink to={`/library/${it.libraryId}`} label={libraries.find((l) => l.id === it.libraryId)?.name || 'Library'} />
       <div className="game-head">
         <div className="poster game-poster">
-          {it.poster ? <img src={posterUrl(it)} alt="" /> : <Placeholder title={it.title} sub={c?.short} />}
+          {it.poster ? <img src={posterUrl(it)} alt="" /> : <Placeholder title={it.title} label={c?.short} />}
         </div>
         <div className="game-info">
           <h1>{it.title}</h1>

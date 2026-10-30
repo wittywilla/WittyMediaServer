@@ -47,7 +47,7 @@ export type Item = {
 export type GameCore = { id: string; name: string; license: string; source?: string; sha256?: string; nonCommercial?: boolean }
 export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
-  unavailable?: string; installed: GameCore[]; ready: boolean
+  unavailable?: string; installed: GameCore[]; ready: boolean; count?: number
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }
 export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }

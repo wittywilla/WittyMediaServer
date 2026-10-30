@@ -191,7 +191,13 @@ func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 	if out != nil && !userFrom(r).IsAdmin {
 		out.Current = "" // the file being scanned may be one this account can't see
 	}
-	writeJSON(w, 200, map[string]any{"scanning": out != nil, "progress": out})
+	res := map[string]any{"scanning": out != nil, "progress": out}
+	// Files a games scan couldn't use, by extension, so the page can say so
+	// instead of quietly showing fewer games than are in the folder.
+	if skipped := s.Store.SkippedGames(r.Context(), id); len(skipped) > 0 && userFrom(r).IsAdmin {
+		res["skipped"] = skipped
+	}
+	writeJSON(w, 200, res)
 }
 
 func (s *Server) handleGenres(w http.ResponseWriter, r *http.Request) {
@@ -220,6 +226,11 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Watchable:  qBool(r, "watchable"),
 		// discContent=movie|tv: discs holding films or TV episodes
 		DiscContent: r.URL.Query().Get("discContent"),
+		// console=<id>: games for one console; played=1: games this user has played
+		Console: r.URL.Query().Get("console"),
+	}
+	if qBool(r, "played") {
+		q.PlayedBy = userFrom(r).ID
 	}
 	items, total, err := s.Store.Items(r.Context(), q)
 	if err != nil {

@@ -72,7 +72,7 @@ export default function ReviewPage() {
           </select>
         )}
         <div style={{ flex: 1 }} />
-        <button className="btn sm ghost" onClick={clear}>Clear my history</button>
+        {r.seconds > 0 && <button className="btn sm ghost" onClick={clear}>Clear my history</button>}
       </div>
       {r.seconds === 0 ? <EmptyState title={`Nothing yet for ${r.year}`} text="As you watch and listen, this fills up. It's worked out on this server from your profile's own record, and only you can see it." /> : (
         <>

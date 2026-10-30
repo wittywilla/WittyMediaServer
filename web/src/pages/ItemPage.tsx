@@ -28,14 +28,14 @@ export default function ItemPage() {
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)
-  const resume = it.progress && !it.progress.watched && it.progress.positionSec > 60 ? it.progress : null
+  const resume = it.progress?.resumeSec ? it.progress : null
   const main = it.disc?.titles.find((t) => t.number === it.disc?.mainTitle)
   const refresh = async () => {
     try { setIt(await api.put<Item>(`/items/${it.id}`, { refresh: true })); toast('Metadata refreshed') } catch (e: any) { toast(e.message) }
   }
   const sizeGB = it.sizeBytes ? (it.sizeBytes / 1e9).toFixed(2) + ' GB' : ''
-  const start = dvdStartMode(it, prefs)
-  const fx = insertFxOn(it, prefs)
+  const start = dvdStartMode(it)
+  const fx = insertFxOn(it)
   const playable = !(disc && it.disc?.scrambled)
   return (
     <>

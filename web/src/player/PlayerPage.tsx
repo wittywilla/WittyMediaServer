@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
+import { api, dvdStartMode, isDisc, type Item } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
 import DvdPlayer from './DvdPlayer'
@@ -51,17 +51,15 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   const params = useMemo(() => new URLSearchParams(search), [search])
   const [item, setItem] = useState<Item | null>(null)
   const [err, setErr] = useState('')
-  const [prefs, setPrefs] = useState<Prefs | null>(null)
   useEffect(() => { api.get<Item>(`/items/${id}`).then(setItem).catch((e) => setErr(e.message)) }, [id])
-  useEffect(() => { getPrefs().then(setPrefs) }, [])
   if (err) return <div className="player"><div className="overlay-msg"><div className="box">{err}<br /><BackButton /></div></div></div>
-  if (!item || !prefs) return <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
+  if (!item) return <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
   const startParam = params.get('start')
   const startAt = startParam != null ? Number(startParam) : null
   if (isDisc(item)) {
     // No explicit mode: the item's start setting (menu by default).
     const m = params.get('mode')
-    const mode = m === 'menu' || m === 'title' ? m : params.get('ttn') ? 'title' : dvdStartMode(item, prefs)
+    const mode = m === 'menu' || m === 'title' ? m : params.get('ttn') ? 'title' : dvdStartMode(item)
     const ttn = params.get('ttn') ? Number(params.get('ttn')) : undefined
     const chapter = params.get('chapter') ? Number(params.get('chapter')) : undefined
     const menu = params.get('menu') || undefined

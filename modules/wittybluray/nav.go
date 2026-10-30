@@ -61,9 +61,12 @@ type navState struct {
 
 // Nav runs a disc.
 type Nav struct {
-	d  *Disc
-	st *navState
+	d     *Disc
+	st    *navState
+	depth int // programs running inside one another, see run
 }
+
+const maxProgramDepth = 16
 
 // NewNav makes a navigator for the disc.
 func NewNav(d *Disc, o NavOptions) *Nav {
@@ -254,6 +257,14 @@ func (n *Nav) jumpTitle(t int) *Step {
 // run executes a movie object from pc, following jumps and calls, until
 // something plays or everything stops.
 func (n *Nav) run(obj, pc int) *Step {
+	// Jumping to a title runs that title's object from inside this one. A disc
+	// whose program jumps to itself would go on until the Go stack overflows,
+	// which ends the whole process and can't be recovered from.
+	if n.depth >= maxProgramDepth {
+		return &Step{Kind: StepStop, Reason: "the disc's program jumped between titles without playing anything"}
+	}
+	n.depth++
+	defer func() { n.depth-- }()
 	for hops := 0; hops < 64; hops++ {
 		if obj < 0 || obj >= len(n.d.MovieObjects) {
 			return &Step{Kind: StepStop, Reason: fmt.Sprintf("the disc jumped to movie object %d, which it does not have", obj)}

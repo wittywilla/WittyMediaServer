@@ -188,8 +188,12 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("the feed answered %s", res.Status)
 	}
+	return parseFeed(res.Body)
+}
+
+func parseFeed(r io.Reader) (*rssFeed, error) {
 	var f rssFeed
-	dec := xml.NewDecoder(io.LimitReader(res.Body, 20<<20))
+	dec := xml.NewDecoder(io.LimitReader(r, 20<<20))
 	dec.Strict = false
 	dec.CharsetReader = func(_ string, in io.Reader) (io.Reader, error) { return in, nil } // feeds lie about charsets; UTF-8 in practice
 	if err := dec.Decode(&f); err != nil {

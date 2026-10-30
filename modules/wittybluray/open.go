@@ -235,6 +235,10 @@ func (d *Disc) Clip(name string) *Clip { return d.Clips[name] }
 
 // ClipExtents returns the byte extents of a clip's stream file.
 func (d *Disc) ClipExtents(name string) ([]FileExtent, error) {
+	// A clip's name comes from a playlist: it is five digits, not a path.
+	if strings.ContainsAny(name, `/\:.`) {
+		return nil, fmt.Errorf("bad clip name %q", name)
+	}
 	return d.Source.Extents("BDMV/STREAM/" + name + ".m2ts")
 }
 

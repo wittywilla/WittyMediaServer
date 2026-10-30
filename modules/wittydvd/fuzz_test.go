@@ -1,6 +1,9 @@
 package wittydvd
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 // The parsers read whatever is on a disc image, so no input may crash them.
 // `go test -fuzz=FuzzParsers` explores further; the seeds run with every test.
@@ -34,6 +37,51 @@ func FuzzParsers(f *testing.F) {
 				var pal [16]uint32
 				_ = s.Render(pal, nil)
 			}
+		}
+	})
+}
+
+// Running a disc's programs must always come back, however they are written,
+// and no state a disc can reach may crash the navigator.
+func FuzzNav(f *testing.F) {
+	f.Add(testVMG(), testVTS([3]int{2, 1, 1<<2 | 1}, [3]int{1, 2, 3<<2 | 1}), uint8(3))
+	f.Add(append([]byte("DVDVIDEO-VMG"), make([]byte, 0x200)...), append([]byte("DVDVIDEO-VTS"), make([]byte, 0x200)...), uint8(0))
+	f.Fuzz(func(t *testing.T, vmgB, vtsB []byte, script uint8) {
+		vmg, err := ParseVMG(vmgB)
+		if err != nil {
+			return
+		}
+		d := &Disc{VMG: vmg, VTS: map[int]*VTS{}}
+		if v, err := ParseVTS(vtsB, 1); err == nil {
+			d.VTS[1] = v
+		}
+		n := NewNav(d, NavOptions{})
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			n.Start()
+			_ = d.Titles()
+			_ = d.MainTitle()
+			for i := uint8(0); i < script%8; i++ {
+				n.CellEnded()
+				n.PressButton(int(script), nil)
+				n.SelectButton(int(script))
+				n.MenuKey("title")
+				n.GoUp()
+				n.OpenMenu("root", int(script))
+				n.Resume()
+				n.PlayTitle(int(script), 1)
+				n.NextChapter()
+				n.PrevChapter()
+				n.NavTimerFired()
+				n.Tick(1)
+				_ = n.SyncTitleCell(int(script), int(script))
+			}
+		}()
+		select {
+		case <-done:
+		case <-time.After(20 * time.Second):
+			t.Fatal("a disc's program never came back")
 		}
 	})
 }

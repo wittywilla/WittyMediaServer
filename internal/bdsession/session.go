@@ -1054,7 +1054,9 @@ func (s *Session) OverlayPNG(serial int) ([]byte, bool) {
 }
 
 // HighlightPNG is one button in its selected state, on a full frame.
-func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) { return s.HighlightFramePNG(serial, n, 0) }
+func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) {
+	return s.HighlightFramePNG(serial, n, 0)
+}
 
 // HighlightFramePNG is one picture of a button's selected-state animation.
 func (s *Session) HighlightFramePNG(serial, n, frame int) ([]byte, bool) {

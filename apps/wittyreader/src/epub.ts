@@ -8,7 +8,7 @@ import type { EpubInfo, SearchHit } from '@wittywilla/wittyink'
 // script in a book can run.
 
 const BOOK_CACHE = 'wittyreader-book'
-const CSP = "default-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'"
+const CSP = "default-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-same-origin"
 const TYPES: Record<string, string> = {
   xhtml: 'application/xhtml+xml', xht: 'application/xhtml+xml', html: 'text/html', htm: 'text/html', css: 'text/css', svg: 'image/svg+xml',
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif',
@@ -106,7 +106,7 @@ export async function serveEpub(key: string, book: Epub) {
     if (path.endsWith('/')) return null
     const type = typeOf(path)
     const headers: Record<string, string> = { 'Content-Type': type, 'X-Content-Type-Options': 'nosniff' }
-    if (/html|xml|svg/.test(type)) headers['Content-Security-Policy'] = CSP
+    headers['Content-Security-Policy'] = CSP // every file: a book's files are untrusted
     return cache.put(fileUrl(base, path), new Response(bytes as BodyInit, { headers }))
   }))
   const texts = book.spine.map((p) => chapterText(book.files[p]))

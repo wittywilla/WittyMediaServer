@@ -66,6 +66,16 @@ var SafeClient = &http.Client{
 	},
 }
 
+// webURL keeps a feed's address only when it is a web address: a feed must
+// not point the server at a file on this machine.
+func webURL(s string) string {
+	s = strings.TrimSpace(s)
+	if l := strings.ToLower(s); strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://") {
+		return s
+	}
+	return ""
+}
+
 type rssFeed struct {
 	Channel struct {
 		Title       string `xml:"title"`
@@ -195,12 +205,12 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 	ch := f.Channel
 	image := ""
 	for _, im := range ch.Images { // the iTunes image is usually the larger one
-		if im.Href != "" {
+		if webURL(im.Href) != "" {
 			image = im.Href
 			break
 		}
 		if image == "" {
-			image = im.URL
+			image = webURL(im.URL)
 		}
 	}
 	desc := plain(ch.Description)
@@ -210,14 +220,14 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 	}
 	p.Title, p.Author, p.Image, p.Description = ch.Title, ch.Author, image, desc
 	for _, e := range ch.Items {
-		if e.Enclosure.URL == "" {
-			continue
+		if webURL(e.Enclosure.URL) == "" {
+			continue // no episode, or not on the web
 		}
 		if existing, err := s.Store.podcastEpisode(ctx, p, e); err == nil && existing != nil {
 			continue // already known (it may be downloaded: keep its file path)
 		}
 		it := &Item{LibraryID: p.LibraryID, Kind: "audio", Path: e.Enclosure.URL, Title: strings.TrimSpace(e.Title), Album: p.Title, AlbumArtist: p.Author, Artist: p.Author,
-			Overview: plain(firstNonEmpty(e.Summary, e.Description)), Aired: parsePub(e.PubDate), RuntimeSec: parseDuration(e.Duration), Poster: firstNonEmpty(e.Image.Href, image),
+			Overview: plain(firstNonEmpty(e.Summary, e.Description)), Aired: parsePub(e.PubDate), RuntimeSec: parseDuration(e.Duration), Poster: firstNonEmpty(webURL(e.Image.Href), image),
 			Provider: "podcast", ProviderID: firstNonEmpty(e.GUID, e.Enclosure.URL), VideoCodec: codecForMime(e.Enclosure.Type, e.Enclosure.URL)}
 		it.SortTitle = SortTitle(it.Title)
 		it.Year = yearOf(it.Aired)

@@ -58,6 +58,8 @@ var ErrInvalid = errors.New("invalid name or password")
 
 const tokenTTL = 90 * 24 * time.Hour
 
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("not a password"), bcrypt.DefaultCost)
+
 func (s *Service) UserCount(ctx context.Context) int {
 	var n int
 	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&n)
@@ -156,6 +158,22 @@ func (s *Service) SetPassword(ctx context.Context, id int64, password string) er
 	return err
 }
 
+// CheckPassword reports whether password is the account's current one.
+func (s *Service) CheckPassword(ctx context.Context, id int64, password string) bool {
+	var hash string
+	if err := s.DB.QueryRowContext(ctx, `SELECT password_hash FROM users WHERE id = ?`, id).Scan(&hash); err != nil || hash == "" {
+		return false
+	}
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+}
+
+// EndSessions signs the account out everywhere except the session keep
+// (after a password change, so a stolen session stops working).
+func (s *Service) EndSessions(ctx context.Context, id int64, keep string) error {
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND token <> ?`, id, keep)
+	return err
+}
+
 func (s *Service) DeleteUser(ctx context.Context, id int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
 	return err
@@ -190,6 +208,9 @@ func (s *Service) Login(ctx context.Context, name, password, device string, allo
 	var hash, kind string
 	err := s.DB.QueryRowContext(ctx, `SELECT id, password_hash, kind FROM users WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name)).Scan(&id, &hash, &kind)
 	if errors.Is(err, sql.ErrNoRows) {
+		// The same work as a real check, so the time taken doesn't tell
+		// which account names exist.
+		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return "", nil, ErrInvalid
 	}
 	if err != nil {

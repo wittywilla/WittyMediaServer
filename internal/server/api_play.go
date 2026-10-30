@@ -142,9 +142,8 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, info)
 		return
 	}
-	h := sha1.Sum([]byte(it.Path))
 	qh := sha1.Sum([]byte(fmt.Sprint(q)))
-	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-%s-%s", hex.EncodeToString(h[:8]), info.AudioIndex, info.SubIndex, maxHeight, s.audioCodec(r), hex.EncodeToString(qh[:3]))
+	hid := fmt.Sprintf("v-%s-a%d-s%d-h%d-%s-%s", hls.Key(it.Path), info.AudioIndex, info.SubIndex, maxHeight, s.audioCodec(r), hex.EncodeToString(qh[:3]))
 	var vf string
 	if v != nil && (v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt") {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
@@ -158,7 +157,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: []string{"-i", it.Path}, Duration: pr.Duration(), VideoFilter: vf,
+		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), VideoFilter: vf,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"

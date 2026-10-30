@@ -413,6 +413,11 @@ disc's menus in a few seconds.
 All endpoints live under `/api`, return JSON, and accept a bearer token
 (`Authorization: Bearer …`, `X-WMS-Token`, the `wms_token` cookie or `?token=`).
 
+Apps on other origins (the mobile app, your own tools) send the token in a header: the server
+answers them with CORS, but never honours the cookie across origins, and it refuses
+state-changing requests signed in by cookie that come from another site. Changing your own
+password needs the current one (`{"password", "current"}`) and signs out your other devices.
+
 | Method & path | Purpose |
 |---|---|
 | `GET /status` · `POST /setup` · `POST /login` · `POST /logout` · `GET /me` | bootstrap & auth |

@@ -80,6 +80,10 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		s.proxyEpisode(w, r, it) // a podcast episode that was not downloaded
 		return
 	}
+	if it.Provider == "podcast" && !s.inLibraries(r.Context(), it.Path) {
+		writeErr(w, 404, "not found") // a downloaded episode lives in its library
+		return
+	}
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
 		w.Header().Set("Cache-Control", "private, max-age=3600")
 		http.ServeFile(w, r, it.Path)
@@ -90,7 +94,8 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	if start > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
 	}
-	args = append(args, "-i", it.Path, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
+	args = append(args, ffmpeg.FileInput(it.Path)...)
+	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
 	cmd := ffmpeg.Command(r.Context(), s.Tools.FFmpeg, args...)
 	cmd.Stdout = w
 	w.Header().Set("Content-Type", "audio/aac")

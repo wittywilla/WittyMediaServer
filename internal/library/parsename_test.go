@@ -38,3 +38,17 @@ func TestLegacyTitle(t *testing.T) {
 		t.Errorf("legacy %q differs from %q", legacyTitle("The.Matrix.1999.1080p"), got)
 	}
 }
+
+func TestWebURL(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://example.com/a.mp3": "https://example.com/a.mp3",
+		" HTTP://x/y ":              "HTTP://x/y",
+		`C:\Users\me\secret.txt`:    "",
+		"file:///etc/passwd":        "",
+		"/etc/passwd":               "",
+	} {
+		if got := webURL(in); got != want {
+			t.Errorf("webURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

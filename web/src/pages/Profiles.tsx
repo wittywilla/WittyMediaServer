@@ -23,11 +23,12 @@ export default function Profiles() {
   const { user } = useApp()
   const [users, setUsers] = useState<UserView[]>([])
   const [mypw, setMypw] = useState('')
+  const [curpw, setCurpw] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<UserView | null>(null)
   const load = () => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
   useEffect(() => { load() }, [])
-  const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw }); setMypw(''); toast('Password changed') } catch (e: any) { toast(e.message) } }
+  const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw, current: curpw }); setMypw(''); setCurpw(''); toast('Password changed; other devices are signed out') } catch (e: any) { toast(e.message) } }
   const del = async (u: User) => {
     if (!confirm(`Remove the profile “${u.name}”? Their watch history is deleted too.`)) return
     try { await api.del(`/users/${u.id}`); load() } catch (e: any) { toast(e.message) }
@@ -41,7 +42,11 @@ export default function Profiles() {
           <div className="profile-me"><Avatar name={user?.name || '?'} /> <b>{user?.name}</b> <span className="pill">{user?.isAdmin ? 'Administrator' : KIND_LABEL[user?.kind || 'adult']}</span></div>
           {restricted
             ? <p className="muted">This profile's password and limits are managed by the adults of this server.</p>
-            : <div className="field-row"><input className="input" type="password" aria-label="New password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} /><button className="btn" onClick={changePw} disabled={mypw.length < 4}>Change password</button></div>}
+            : <form className="field-row" onSubmit={(e) => { e.preventDefault(); changePw() }}>
+                <input className="input" type="password" autoComplete="current-password" aria-label="Current password" placeholder="Current password" value={curpw} onChange={(e) => setCurpw(e.target.value)} />
+                <input className="input" type="password" autoComplete="new-password" aria-label="New password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} />
+                <button className="btn" disabled={mypw.length < 4 || !curpw}>Change password</button>
+              </form>}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
@@ -469,39 +470,113 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 	s.serveArtSrc(w, r, src)
 }
 
-// serveArtSrc serves artwork from a cache name, a remote URL (cached) or a path.
+// serveArtSrc serves artwork from a cache name, a remote URL (cached) or a
+// path. Artwork references come from places the owner doesn't control
+// (NFO files, podcast feeds, online catalogues), so only pictures are ever
+// served: never another kind of file from this machine, never an SVG or a
+// page that could run scripts on this site.
 func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string) {
 	if src == "" {
 		writeErr(w, 404, "no artwork")
 		return
 	}
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	var p string
 	switch {
 	case strings.HasPrefix(src, "cache:"):
-		http.ServeFile(w, r, filepath.Join(s.Cfg.ImagesDir, strings.TrimPrefix(src, "cache:")))
+		name := strings.TrimPrefix(src, "cache:")
+		if name == "" || name != filepath.Base(name) {
+			writeErr(w, 404, "no artwork")
+			return
+		}
+		p = filepath.Join(s.Cfg.ImagesDir, name)
 	case strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://"):
-		p, err := s.cachedRemote(src)
-		if err != nil {
+		var err error
+		if p, err = s.cachedRemote(r.Context(), src); err != nil {
 			writeErr(w, 502, err.Error())
 			return
 		}
-		http.ServeFile(w, r, p)
 	default:
-		http.ServeFile(w, r, src)
+		// Pictures next to the media (poster.jpg, an NFO's thumb): inside a
+		// library folder only.
+		if !s.inLibraries(r.Context(), src) {
+			writeErr(w, 404, "no artwork")
+			return
+		}
+		p = filepath.Clean(src)
 	}
+	f, err := os.Open(p)
+	if err != nil {
+		writeErr(w, 404, "no artwork")
+		return
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	ct := imageType(f, p)
+	if err != nil || st.IsDir() || ct == "" {
+		writeErr(w, 404, "no artwork")
+		return
+	}
+	w.Header().Set("Content-Type", ct)
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 
-// cachedRemote downloads a remote image once into the cache.
-func (s *Server) cachedRemote(u string) (string, error) {
+// inLibraries: the path is inside one of the libraries' folders.
+func (s *Server) inLibraries(ctx context.Context, path string) bool {
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	libs, err := s.Store.Libraries(ctx)
+	if err != nil {
+		return false
+	}
+	clean := filepath.Clean(path)
+	for _, l := range libs {
+		for _, p := range l.Paths {
+			if rel, err := filepath.Rel(p, clean); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// imageType is the type of a raster picture, from its first bytes (AVIF by
+// its extension), or "" for anything else.
+func imageType(f io.ReadSeeker, name string) string {
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(f, head)
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return ""
+	}
+	switch ct := http.DetectContentType(head[:n]); ct {
+	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp":
+		return ct
+	}
+	if strings.EqualFold(filepath.Ext(name), ".avif") && n > 12 && string(head[4:8]) == "ftyp" {
+		return "image/avif"
+	}
+	return ""
+}
+
+// cachedRemote downloads a remote image once into the cache, from the
+// internet only (a feed or catalogue must not reach devices on this network).
+func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	h := sha1.Sum([]byte(u))
 	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10])+filepath.Ext(strings.Split(u, "?")[0]))
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}
-	c := &http.Client{Timeout: 20 * time.Second}
-	res, err := c.Get(u)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return "", err
+	}
+	res, err := library.SafeClient.Do(req)
+	if err != nil {
+		return "", errors.New("artwork fetch failed")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -514,6 +589,7 @@ func (s *Server) cachedRemote(u string) (string, error) {
 	}
 	if _, err := io.Copy(f, io.LimitReader(res.Body, 20<<20)); err != nil {
 		f.Close()
+		os.Remove(tmp)
 		return "", err
 	}
 	f.Close()

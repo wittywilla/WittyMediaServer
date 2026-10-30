@@ -98,7 +98,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  const res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'include' })
+  const res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
@@ -123,7 +123,8 @@ export function mediaUrl(path: string): string {
 }
 
 export const posterUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/poster`) + `&v=${it.updatedAt}`
-export const backdropUrl = (it: Item) => mediaUrl(`/api/items/${it.id}/backdrop`) + `&v=${it.updatedAt}`
+// '' when the item has no picture at all (nothing to ask the server for).
+export const backdropUrl = (it: Item) => (it.backdrop || it.poster ? mediaUrl(`/api/items/${it.id}/backdrop`) + `&v=${it.updatedAt}` : '')
 export const showPosterUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/poster`) + `&v=${s.updatedAt}`
 export const showBackdropUrl = (s: Show) => mediaUrl(`/api/shows/${s.id}/art/backdrop`) + `&v=${s.updatedAt}`
 export const seasonPosterUrl = (s: Show, n: number) => mediaUrl(`/api/shows/${s.id}/art/season`) + `&n=${n}&v=${s.updatedAt}`

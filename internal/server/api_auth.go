@@ -295,14 +295,27 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	var c struct {
 		Password string `json:"password"`
+		Current  string `json:"current"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
+		return
+	}
+	// Your own password needs the current one, so a session left open on
+	// another device can't lock you out of your account.
+	if id == u.ID && !s.Auth.CheckPassword(r.Context(), id, c.Current) {
+		writeErr(w, 403, "the current password is not right")
 		return
 	}
 	if err := s.Auth.SetPassword(r.Context(), id, c.Password); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	// Every other session of that account ends (this one stays signed in).
+	keep := ""
+	if id == u.ID {
+		keep = auth.TokenFrom(r)
+	}
+	_ = s.Auth.EndSessions(r.Context(), id, keep)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

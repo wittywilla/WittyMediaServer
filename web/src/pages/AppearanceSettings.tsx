@@ -30,7 +30,7 @@ export default function AppearanceSettings() {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
     const tok = getToken()
     if (tok) headers.Authorization = 'Bearer ' + tok
-    const res = await fetch(`${serverBase()}/api/themes?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'include' })
+    const res = await fetch(`${serverBase()}/api/themes?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) { toast(data.error || 'Upload failed'); return }
     toast(`Installed “${data.name}”`)

@@ -209,17 +209,17 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		keep[c.path] = true
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
-		var err error
-		switch {
-		case lib.Type == "shows" || lib.Type == "anime":
-			err = s.indexEpisode(ctx, lib, c, tv)
-		case IsAudioLibrary(lib.Type):
-			err = s.indexAudio(ctx, lib, c, covers)
-		case lib.Type == "books":
-			err = s.indexBook(ctx, lib, c)
-		default:
-			err = s.index(ctx, lib, c)
-		}
+		err := guard(func() error {
+			switch {
+			case lib.Type == "shows" || lib.Type == "anime":
+				return s.indexEpisode(ctx, lib, c, tv)
+			case IsAudioLibrary(lib.Type):
+				return s.indexAudio(ctx, lib, c, covers)
+			case lib.Type == "books":
+				return s.indexBook(ctx, lib, c)
+			}
+			return s.index(ctx, lib, c)
+		})
 		if err != nil {
 			s.Log.Warn("index failed", "path", c.path, "err", err)
 		} else {
@@ -452,7 +452,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 	at := it.RuntimeSec * 0.2
 	switch it.Kind {
 	case "video":
-		input = []string{"-i", it.Path}
+		input = ffmpeg.FileInput(it.Path)
 	case "bluray-iso", "bluray-folder":
 		var err error
 		if input, at, err = s.blurayThumbInput(it, h); err != nil {
@@ -514,4 +514,16 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 	if err := s.Store.retitle(ctx, it.ID, title); err != nil {
 		s.Log.Warn("retitle", "path", it.Path, "err", err)
 	}
+}
+
+// guard runs f, turning a panic into an error: files are read by parsers
+// that see whatever is on disk, and one malformed disc or archive must cost
+// that file, not the server.
+func guard(f func() error) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("could not read this file (%v)", p)
+		}
+	}()
+	return f()
 }

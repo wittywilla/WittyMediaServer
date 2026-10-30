@@ -9,6 +9,10 @@ package hls
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -458,4 +462,21 @@ func (s *Session) Active() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.job != nil && !s.job.finished()
+}
+
+// keySecret is chosen afresh at every start: stream IDs built from it can't
+// be guessed from a file's path, so only someone who was handed a stream
+// (after the access checks) can fetch it.
+var keySecret = func() []byte {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return b
+}()
+
+// Key names a source file in stream IDs: the same file gives the same key
+// (so viewers share one transcode) while the server runs.
+func Key(path string) string {
+	m := hmac.New(sha256.New, keySecret)
+	m.Write([]byte(path))
+	return hex.EncodeToString(m.Sum(nil)[:12])
 }

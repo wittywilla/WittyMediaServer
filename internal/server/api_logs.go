@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -144,6 +145,7 @@ func (s *Server) handleClientLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cut := func(v string, n int) string {
+		v = tokenRe.ReplaceAllString(v, "token=REDACTED") // a media URL in an error message
 		if len(v) > n {
 			return v[:n] + "…"
 		}
@@ -198,3 +200,5 @@ func (l *clientLogLimiter) allow(user int64) bool {
 	l.m[user] = append(recent, now)
 	return true
 }
+
+var tokenRe = regexp.MustCompile(`token=[^&\s"']+`)

@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 // Books, comics and manga. Files that share a name in a folder are one
@@ -171,7 +173,8 @@ func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) err
 		return err
 	}
 	tmp.Close()
-	return s.Tools.Still(ctx, []string{"-i", tmp.Name()}, 0, 400, out)
+	// Read as a picture whatever its contents claim to be.
+	return s.Tools.Still(ctx, append([]string{"-f", "image2"}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
 }
 
 // ---------------------------------------------------------------- CBZ

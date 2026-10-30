@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -223,10 +222,9 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	if err != nil {
 		return nil, err
 	}
-	h := sha1.Sum([]byte(path))
 	s := &Session{
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
-		key: hex.EncodeToString(h[:8]), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string]*subPic{},
+		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string]*subPic{},
 	}
 	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle}})
 	m.mu.Lock()

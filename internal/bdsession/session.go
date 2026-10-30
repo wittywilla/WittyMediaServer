@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -130,6 +129,13 @@ type menuArt struct {
 	highlights map[int][]byte
 }
 
+// Count is the number of open sessions.
+func (m *Manager) Count() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.sessions)
+}
+
 func randomID() string {
 	b := make([]byte, 9)
 	_, _ = rand.Read(b)
@@ -142,8 +148,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	if err != nil {
 		return nil, err
 	}
-	h := sha1.Sum([]byte(path))
-	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hex.EncodeToString(h[:6]), prefs: prefs, disc: d, last: time.Now(),
+	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hls.Key(path), prefs: prefs, disc: d, last: time.Now(),
 		menus: map[int]*menuArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*subPic{}}
 	s.nav = wittybluray.NewNav(d, wittybluray.NavOptions{Registers: wittybluray.RegisterOptions{
 		AudioLang: lang3(prefs.AudioLanguage), SubtitleLang: lang3(prefs.SubtitleLanguage), MenuLang: lang3(prefs.MenuLanguage),

@@ -158,9 +158,16 @@ func (p *Probe) Subtitles() []Stream {
 	return out
 }
 
+// FileInput opens a file from a library as input. Only local file reading
+// is allowed: a downloaded "video" that is really a playlist must not make
+// the server fetch addresses on the network.
+func FileInput(path string) []string {
+	return []string{"-protocol_whitelist", "file,pipe", "-i", path}
+}
+
 // ProbeFile runs ffprobe on a regular media file.
 func (t *Tools) ProbeFile(ctx context.Context, path string) (*Probe, error) {
-	return t.probe(ctx, []string{path})
+	return t.probe(ctx, FileInput(path))
 }
 
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {

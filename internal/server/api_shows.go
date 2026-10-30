@@ -371,21 +371,11 @@ func (s *Server) handleArtPreview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "not an image")
 		return
 	}
-	libs, err := s.Store.Libraries(r.Context())
-	if err != nil {
-		writeErr(w, 500, err.Error())
+	if !s.inLibraries(r.Context(), src) {
+		writeErr(w, 403, "outside the libraries")
 		return
 	}
-	clean := filepath.Clean(src)
-	for _, l := range libs {
-		for _, p := range l.Paths {
-			if rel, err := filepath.Rel(p, clean); err == nil && !strings.HasPrefix(rel, "..") {
-				s.serveArtSrc(w, r, clean)
-				return
-			}
-		}
-	}
-	writeErr(w, 403, "outside the libraries")
+	s.serveArtSrc(w, r, filepath.Clean(src))
 }
 
 // handleShowView sets one show's episode layout (cards | list | "" = default).

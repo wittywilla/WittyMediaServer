@@ -80,7 +80,7 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer done()
-	s.serveArchiveFile(w, zr, pages[n], false)
+	s.serveArchiveFile(w, zr, pages[n])
 }
 
 // GET /api/items/{id}/epub/{file...}: a file inside an EPUB (chapters,
@@ -105,10 +105,14 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer done()
-	s.serveArchiveFile(w, zr, name, true)
+	s.serveArchiveFile(w, zr, name)
 }
 
-func (s *Server) serveArchiveFile(w http.ResponseWriter, zr *zip.Reader, name string, untrusted bool) {
+// serveArchiveFile serves a file from a book or comic. Their files are
+// untrusted (a comic "page" may be an SVG with a script), so none of them
+// can run scripts, submit forms or reach outside this server, even when
+// opened on their own.
+func (s *Server) serveArchiveFile(w http.ResponseWriter, zr *zip.Reader, name string) {
 	f, err := zr.Open(name)
 	if err != nil {
 		writeErr(w, 404, "not in this book")
@@ -130,8 +134,6 @@ func (s *Server) serveArchiveFile(w http.ResponseWriter, zr *zip.Reader, name st
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "private, max-age=604800, immutable")
-	if untrusted {
-		w.Header().Set("Content-Security-Policy", "default-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'")
-	}
+	w.Header().Set("Content-Security-Policy", "default-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-same-origin")
 	_, _ = io.Copy(w, f)
 }

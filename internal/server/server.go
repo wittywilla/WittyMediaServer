@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -162,7 +163,7 @@ func (s *Server) Handler() http.Handler {
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
 
-	return s.logging(s.cors(m))
+	return s.logging(s.headers(s.cors(s.csrf(m))))
 }
 
 // ---------------------------------------------------------------------------
@@ -186,7 +187,7 @@ func (s *Server) logging(next http.Handler) http.Handler {
 		if p := clientIP(r); p != nil {
 			ip = p.String()
 		}
-		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", r.URL.Path, "q", r.URL.RawQuery, "s", sw.code, "ms", time.Since(start).Milliseconds())
+		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", r.URL.Path, "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds())
 	})
 }
 
@@ -202,11 +203,52 @@ func (w *statusWriter) Flush() {
 	}
 }
 
+// redactQuery hides session tokens (media URLs carry one) so logs, which
+// people attach to bug reports, never hold a working login.
+func redactQuery(q string) string {
+	if !strings.Contains(q, "token=") {
+		return q
+	}
+	v, err := url.ParseQuery(q)
+	if err != nil {
+		return "(unreadable)"
+	}
+	if v.Has("token") {
+		v.Set("token", "REDACTED")
+	}
+	return v.Encode()
+}
+
+// headers sets the browser protections every response gets: no MIME
+// sniffing, no framing by other sites (clickjacking), no full URLs in
+// Referer headers, and for the app itself a policy that only runs its own
+// scripts.
+func (s *Server) headers(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "same-origin")
+		h.Set("X-Frame-Options", "SAMEORIGIN")
+		if !strings.HasPrefix(r.URL.Path, "/api/") {
+			h.Set("Content-Security-Policy", appCSP)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// appCSP: the web UI's own scripts only; artwork and podcast images may come
+// from the internet, media and workers from blobs (HLS, PDF).
+const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
+	"media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
+	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// CORS: other apps (the mobile app, tools) may call the API with a bearer
+// token. Cookies are never honoured across origins, so a page elsewhere on
+// the same host or network cannot act as whoever is signed in here.
 func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if o := r.Header.Get("Origin"); o != "" {
 			w.Header().Set("Access-Control-Allow-Origin", o)
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Vary", "Origin")
@@ -217,6 +259,43 @@ func (s *Server) cors(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// csrf refuses state-changing requests signed in by cookie that come from
+// another origin (a form or script on another page). Requests with the token
+// in a header cannot be forged that way, so apps and the mobile client pass.
+func (s *Server) csrf(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			next.ServeHTTP(w, r)
+			return
+		}
+		if r.Header.Get("Authorization") == "" && r.Header.Get("X-WMS-Token") == "" && crossOrigin(r) {
+			writeErr(w, 403, "cross-site request refused")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// crossOrigin: the browser says the request comes from another origin.
+func crossOrigin(r *http.Request) bool {
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "same-origin", "none":
+		return false
+	case "same-site", "cross-site":
+		return true
+	}
+	o := r.Header.Get("Origin")
+	if o == "" || o == "null" {
+		return o == "null"
+	}
+	u, err := url.Parse(o)
+	if err != nil {
+		return true
+	}
+	return !strings.EqualFold(u.Host, r.Host) && !strings.EqualFold(u.Host, r.Header.Get("X-Forwarded-Host"))
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {

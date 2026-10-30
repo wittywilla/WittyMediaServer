@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 // Music, audiobooks and podcasts: audio files are indexed from their tags
@@ -169,7 +171,7 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 				cover = "cache:" + name
 			} else {
 				cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-				if s.Tools.Still(cctx, []string{"-i", c.path}, 0, 600, out) == nil {
+				if s.Tools.Still(cctx, ffmpeg.FileInput(c.path), 0, 600, out) == nil {
 					if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 						cover = "cache:" + name
 					}

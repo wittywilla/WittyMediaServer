@@ -10,6 +10,10 @@ stay honest: **written** does not mean **works**.
 | **Not started** | Nothing exists yet. |
 | **Blocked** | Needs something only the owner can get. |
 
+**One exception to "never compiled" on Android:** its non-screen code (address rules, API layer and data
+models) has compiled on a plain JVM with the app's own library versions, and its 9 tests pass, including
+all the shared address cases. That says nothing about the screens, the player or the app as a whole.
+
 ## Platforms
 
 | Platform | Status | Notes |

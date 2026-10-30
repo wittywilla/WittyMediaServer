@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
+import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item } from '../api'
 import AddLibrary from '../components/AddLibrary'
 import { ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconInfo, IconRefresh, libIcon } from '../icons'
@@ -45,6 +45,10 @@ export default function HomePage() {
     }).catch(() => {})
   }, [])
 
+  // Recommendations from this profile's own record on this server.
+  const [forYou, setForYou] = useState<{ items: Item[]; shows: Show[]; because: string } | null>(null)
+  useEffect(() => { api.get<{ items: Item[]; shows: Show[]; because: string }>('/me/recommended').then(setForYou).catch(() => {}) }, [])
+
   const widgets = useMemo<Widget[]>(() => {
     if (!home) return []
     const hub = (h: Hub): Widget => ({ id: h.key, title: h.title, render: () => <HubRow hub={h} /> })
@@ -56,13 +60,14 @@ export default function HomePage() {
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
       { id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> },
       { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
+      { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items, shows: forYou.shows }} /> : null) },
     ]
     const next = byKey('nextup')
     if (next) list.push(hub(next))
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
     list.push({ id: 'shuffle', title: 'Can’t decide?', render: () => <Shuffle /> })
     return list
-  }, [home])
+  }, [forYou, home])
 
   // Saved order first, then any widget the person has not placed yet.
   const ordered = useMemo(() => {
@@ -195,7 +200,7 @@ function HubRow({ hub }: { hub: Hub }) {
 const NOUNS: Record<string, [string, string]> = {
   movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
   music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
-  photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'],
+  photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'], musicvideos: ['video', 'videos'], radio: ['station', 'stations'],
 }
 function LibraryTiles() {
   const { libraries, user } = useApp()

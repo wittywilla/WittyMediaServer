@@ -211,6 +211,30 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/comments/{cid}", a(s.handleEditComment))
 	m.Handle("DELETE /api/comments/{cid}", a(s.handleDeleteComment))
 
+	// Collections and smart playlists
+	m.Handle("GET /api/collections", a(s.handleCollections))
+	m.Handle("POST /api/collections", a(s.handleCreateCollection))
+	m.Handle("POST /api/collections/preview", a(s.handlePreviewRule))
+	m.Handle("GET /api/collections/holding", a(s.handleCollectionsHolding))
+	m.Handle("POST /api/collections/watch-later/items", a(s.handleWatchLaterAdd))
+	m.Handle("GET /api/collections/{id}", a(s.handleCollection))
+	m.Handle("PUT /api/collections/{id}", a(s.handleUpdateCollection))
+	m.Handle("DELETE /api/collections/{id}", a(s.handleDeleteCollection))
+	m.Handle("POST /api/collections/{id}/items", a(s.handleCollectionAdd))
+	m.Handle("DELETE /api/collections/{id}/items", a(s.handleCollectionRemove))
+
+	// Internet radio
+	m.Handle("GET /api/radio", a(s.handleRadioList))
+	m.Handle("POST /api/radio", s.requireAdmin(s.handleRadioAdd))
+	m.Handle("POST /api/radio/import", s.requireAdmin(s.handleRadioImport))
+	m.Handle("DELETE /api/radio/{id}", s.requireAdmin(s.handleRadioRemove))
+	m.Handle("GET /api/radio/{id}/stream", a(s.handleRadioStream))
+
+	// Year in review and recommendations, from this account's own record
+	m.Handle("GET /api/me/review", a(s.handleReview))
+	m.Handle("DELETE /api/me/history", a(s.handleClearHistory))
+	m.Handle("GET /api/me/recommended", a(s.handleRecommended))
+
 	// Links that share with someone without an account
 	m.Handle("GET /api/shares", a(s.handleShares))
 	m.Handle("POST /api/shares", a(s.handleCreateShare))

@@ -13,11 +13,13 @@ import (
 // comments. Likes, comments and views work on any item an account may see.
 // See docs/SHORTS.md and docs/CHANNELS.md.
 
+var creatorLibraries = []string{"shorts", "channels", "musicvideos"}
+
 // GET /api/creators?library=&search=&subscribed=
 func (s *Server) handleCreators(w http.ResponseWriter, r *http.Request) {
 	q := library.CreatorQuery{LibraryID: int64(qInt(r, "library", 0)), UserID: userFrom(r).ID, Access: s.access(r), Search: strings.TrimSpace(r.URL.Query().Get("search")), Subscribed: qBool(r, "subscribed")}
 	if q.LibraryID != 0 {
-		if _, err := s.libraryOfType(r, q.LibraryID, "shorts", "channels"); err != nil {
+		if _, err := s.libraryOfType(r, q.LibraryID, creatorLibraries...); err != nil {
 			writeLibErr(w, err)
 			return
 		}
@@ -154,10 +156,18 @@ func (s *Server) handleVideos(w http.ResponseWriter, r *http.Request) {
 		Tag: q.Get("tag"), Platform: q.Get("platform"), Search: strings.TrimSpace(q.Get("search")), Subscribed: qBool(r, "subscribed"), Liked: qBool(r, "liked"),
 		History: qBool(r, "history"), Sort: q.Get("sort"), Limit: qInt(r, "limit", 0), Offset: qInt(r, "offset", 0)}
 	if vq.LibraryID != 0 {
-		if _, err := s.libraryOfType(r, vq.LibraryID, "shorts", "channels"); err != nil {
+		if _, err := s.libraryOfType(r, vq.LibraryID, creatorLibraries...); err != nil {
 			writeLibErr(w, err)
 			return
 		}
+	}
+	switch q.Get("length") {
+	case "long":
+		v := true
+		vq.Long = &v
+	case "short":
+		v := false
+		vq.Long = &v
 	}
 	if q.Has("playlist") {
 		p := q.Get("playlist")
@@ -183,7 +193,7 @@ func (s *Server) handleVideos(w http.ResponseWriter, r *http.Request) {
 // answers with the seed to send for the next ones, so a session's order holds.
 func (s *Server) handleVideoFeed(w http.ResponseWriter, r *http.Request) {
 	libID := int64(qInt(r, "library", 0))
-	if _, err := s.libraryOfType(r, libID, "shorts", "channels"); err != nil {
+	if _, err := s.libraryOfType(r, libID, creatorLibraries...); err != nil {
 		writeLibErr(w, err)
 		return
 	}
@@ -211,7 +221,7 @@ func (s *Server) handleVideoFeed(w http.ResponseWriter, r *http.Request) {
 // GET /api/videos/tags?library=
 func (s *Server) handleVideoTags(w http.ResponseWriter, r *http.Request) {
 	libID := int64(qInt(r, "library", 0))
-	if _, err := s.libraryOfType(r, libID, "shorts", "channels"); err != nil {
+	if _, err := s.libraryOfType(r, libID, creatorLibraries...); err != nil {
 		writeLibErr(w, err)
 		return
 	}

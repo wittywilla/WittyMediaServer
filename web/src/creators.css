@@ -162,3 +162,10 @@
 .ch-next-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ch-next-thumb.tall img { object-fit: contain; }
 @media (max-width: 1050px) { .ch-watch { grid-template-columns: minmax(0, 1fr); } .ch-theatre { display: none; } }
+
+.ch-chapters { margin-top: 14px; }
+.ch-chapters h2 { margin: 0 0 8px; font-size: 16px; }
+.ch-chapters ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ch-chapters button { display: flex; gap: 12px; width: 100%; padding: 6px 10px; background: none; border: 0; border-radius: 8px; color: var(--fg); text-align: left; font-size: 14px; cursor: pointer; }
+.ch-chapters button:hover, .ch-chapters button:focus-visible { background: var(--bg-3); }
+.ch-chapters .muted { font-variant-numeric: tabular-nums; }

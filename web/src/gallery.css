@@ -118,3 +118,59 @@
 .gal-public { min-height: 100vh; padding: 24px clamp(14px, 4vw, 48px); background: var(--bg); color: var(--fg); }
 .gal-public-head h1 { margin: 0; font-size: 24px; }
 .gal-public-head p { margin: 4px 0 18px; }
+
+/* Collections */
+.col-cell { position: relative; }
+.col-x { position: absolute; right: 4px; top: 4px; padding: 3px; background: rgba(0,0,0,.6); color: #fff; border: 0; }
+.col-x svg { width: 15px; height: 15px; }
+.col-dialog { max-height: 88vh; overflow-y: auto; }
+.col-dialog .seg { margin: 8px 0; }
+.col-rule { border: 1px solid var(--bg-4); border-radius: 10px; padding: 10px 12px; margin: 10px 0; min-width: 0; }
+.col-rule legend { padding: 0 6px; font-weight: 600; font-size: 13.5px; }
+.col-types { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.col-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 10px; font-size: 13px; }
+.col-fields label { display: grid; gap: 3px; min-width: 0; }
+.col-checks { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.col-preview { margin-top: 10px; font-size: 13.5px; min-height: 22px; }
+.col-preview-row { display: flex; gap: 5px; margin-top: 5px; overflow: hidden; }
+.col-preview-row img { width: 46px; height: 68px; object-fit: cover; border-radius: 4px; background: var(--bg-3); flex: none; }
+.col-save { padding: 4px 2px; }
+.ch-tag { flex: none; padding: 5px 12px; font-size: 13px; font-weight: 600; border: 0; border-radius: 8px; background: var(--bg-3); color: var(--fg-2); cursor: pointer; }
+.ch-tag:hover { color: var(--fg); background: var(--bg-4); }
+.ch-tag.on { background: var(--accent); color: var(--accent-fg); }
+.ch-tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.ch-tags { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+
+/* Radio */
+.radio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.radio-list li { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; }
+.radio-list li:hover, .radio-list li.on { background: var(--bg-2); }
+.radio-play { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--bg-3); color: var(--fg); cursor: pointer; }
+.radio-list li.on .radio-play { background: var(--accent); color: var(--accent-fg); }
+.radio-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.radio-play svg { fill: currentColor; }
+.radio-name { flex: 1; min-width: 0; display: grid; }
+.radio-name b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.radio-name .muted { font-size: 13px; }
+
+/* Year in review */
+.rv-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.rv-hero > div { display: grid; gap: 2px; padding: 18px; background: var(--bg-2); border-radius: 14px; }
+.rv-hero b { font-size: 30px; line-height: 1.1; color: var(--accent-text, var(--accent)); }
+.rv-hero span { color: var(--fg-2); font-size: 13.5px; }
+.rv-note { color: var(--fg-2); margin: 0 0 14px; }
+.rv-card { background: var(--bg-2); border-radius: 14px; padding: 14px 18px; margin-bottom: 14px; min-width: 0; }
+.rv-card h2 { margin: 0 0 10px; font-size: 16px; }
+.rv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; align-items: start; }
+.rv-grid .rv-card { margin: 0; }
+.rv-months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; height: 140px; }
+.rv-month { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; min-width: 0; }
+.rv-month i { display: block; background: var(--accent); border-radius: 4px 4px 0 0; }
+.rv-month span { font-size: 11px; color: var(--fg-2); text-align: center; }
+.rv-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rv-top li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 14px; }
+.rv-top-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rv-top-name a { color: var(--fg); }
+.rv-top-time { color: var(--fg-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.rv-bar { grid-column: 1 / -1; height: 4px; background: var(--bg-4); border-radius: 2px; }
+.rv-bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }

@@ -37,7 +37,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "photos", "shorts", "channels":
+	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "photos", "shorts", "channels", "musicvideos", "radio":
 	case "":
 		b.Type = "movies"
 	default:
@@ -57,7 +57,7 @@ func (b *libraryBody) validate() error {
 	}
 	// An anime library may have no folders of its own: it then shows the
 	// anime found in the TV libraries.
-	if len(clean) == 0 && b.Type != "anime" && b.Type != "podcasts" {
+	if len(clean) == 0 && b.Type != "anime" && b.Type != "podcasts" && b.Type != "radio" {
 		return errors.New("at least one folder is required")
 	}
 	b.Paths = clean
@@ -189,6 +189,9 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, []*library.Item{it})
 	it.NextID = s.Store.NextEpisode(r.Context(), it)
+	if next := s.nextForCollection(r, it); next != nil {
+		it.NextID = next // playing a list through
+	}
 	if it.IntroEnd == nil && it.ShowID != nil {
 		if sh, err := s.Store.Show(r.Context(), *it.ShowID, 0); err == nil {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api, episodeLabel, langName, posterUrl, type Item, type PlayInfo, type Show } from '../api'
 import { IconBack, IconClose, IconExpand, IconMini, IconNext, IconPause, IconPlay } from '../icons'
 import { usePlayerChrome } from './chrome'
@@ -15,6 +15,9 @@ const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video
 export default function VideoPlayer({ item, startAt }: { item: Item; startAt: number | null }) {
   const nav = useNavigate()
   const chrome = usePlayerChrome()
+  // A list being played through carries on with its next item.
+  const listId = new URLSearchParams(useLocation().search).get('collection')
+  const nextHref = `/play/${item.nextId}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
   const prefs = view.prefs
@@ -55,7 +58,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   }, [item.nextId])
   useEffect(() => {
     if (upNext == null || nextDismissed || mini) return
-    if (upNext <= 0) { nav(`/play/${item.nextId}`, { replace: true }); return }
+    if (upNext <= 0) { nav(nextHref, { replace: true }); return }
     const t = setTimeout(() => setUpNext(upNext - 1), 1000)
     return () => clearTimeout(t)
   }, [upNext, item.nextId, nav, nextDismissed, mini])
@@ -137,7 +140,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       case 'subtitle': if (info?.subtitles.length) setPicker('subtitle'); break
       case 'rew': case 'prev': if (v) seek(v.currentTime - (k === 'prev' ? 60 : 10)); break
       case 'ff': if (v) seek(v.currentTime + 30); break
-      case 'next': if (item.nextId) nav(`/play/${item.nextId}`); else if (v) seek(v.currentTime + 60); break
+      case 'next': if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + 60); break
       case 'play': v?.play().catch(() => {}); break
       case 'pause': v?.pause(); break
       case 'stop': if (v) { v.pause(); seek(0) } break
@@ -170,7 +173,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <div className="mini-btns">
             <button className="ibtn" onClick={() => onRemote('rew')} title="Back 10 s"><IconBack /></button>
             <button className="ibtn big" onClick={togglePlay} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
-            {item.nextId ? <button className="ibtn" onClick={() => nav(`/play/${item.nextId}`)} title="Next episode"><IconNext /></button> : <span />}
+            {item.nextId ? <button className="ibtn" onClick={() => nav(nextHref)} title="Next episode"><IconNext /></button> : <span />}
             <button className="ibtn" onClick={chrome.expand} title="Full player"><IconExpand /></button>
             <button className="ibtn" onClick={chrome.close} title="Stop"><IconClose /></button>
           </div>
@@ -180,7 +183,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h2>{item.title}</h2><div className="sub">{[subtitle || item.year, info?.type === 'direct' ? 'Direct play' : 'Transcoding'].filter(Boolean).join(' · ')}</div></div>
-            {item.nextId && <button className="btn sm" onClick={() => nav(`/play/${item.nextId}`, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
+            {item.nextId && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>
           {remoteOn && (prefs.remoteStyle === 'bar'

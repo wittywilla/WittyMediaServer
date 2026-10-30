@@ -12,6 +12,7 @@ import BooksLibrary from './Books'
 const PhotosLibrary = lazy(() => import('./photos/PhotosLibrary'))
 const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
 const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
+const RadioLibrary = lazy(() => import('./RadioLibrary'))
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
@@ -23,7 +24,8 @@ export default function LibraryPage() {
   if (lib?.type === 'books') return <BooksLibrary key={lib.id} lib={lib} />
   if (lib?.type === 'photos') return <Suspense fallback={<Spinner />}><PhotosLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'shorts') return <Suspense fallback={<Spinner />}><ShortsLibrary key={lib.id} lib={lib} /></Suspense>
-  if (lib?.type === 'channels') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
+  if (lib?.type === 'channels' || lib?.type === 'musicvideos') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
+  if (lib?.type === 'radio') return <Suspense fallback={<Spinner />}><RadioLibrary key={lib.id} lib={lib} /></Suspense>
   return <VideoLibrary />
 }
 

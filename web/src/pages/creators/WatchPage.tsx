@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api } from '../../api'
+import { api, fmtTime, type PlayInfo } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
 import ShareDialog from '../../components/ShareDialog'
+import { SaveButton } from '../../components/SaveToCollection'
 import { canPost, fmtCount, timeAgo, videoThumb, type Creator, type VideoCard, type VideoDetail } from '../../gallery'
 import { IconEdit } from '../../icons'
 import InlinePlayer from '../../player/InlinePlayer'
@@ -28,6 +29,8 @@ export default function WatchPage() {
   const [more, setMore] = useState(false)
   const [share, setShare] = useState(false)
   const [edit, setEdit] = useState(false)
+  const [chapters, setChapters] = useState<NonNullable<PlayInfo['chapters']>>([])
+  const [seekTo, setSeekTo] = useState<{ at: number } | undefined>()
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem(AUTONEXT) !== '0' } catch { return true } })
   const load = () => api.get<VideoDetail>(`/videos/${id}`).then((v) => { setD(v); setErr('') }).catch((e) => setErr(e.message))
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function WatchPage() {
   return (
     <div className={'ch-watch' + (theatre ? ' theatre' : '')}>
       <div className="ch-watch-main">
-        {d ? <InlinePlayer key={d.id} id={d.id} startAt={start} durationSec={d.durationSec} onEnded={() => { if (auto && next[0]) nav(`/watch/${next[0].id}`) }} className={d.vertical ? 'tall' : ''} /> : <div className="player inline"><div className="center-spinner"><div className="spinner" /></div></div>}
+        {d ? <InlinePlayer key={d.id} id={d.id} startAt={start} durationSec={d.durationSec} onEnded={() => { if (auto && next[0]) nav(`/watch/${next[0].id}`) }} className={d.vertical ? 'tall' : ''} onInfo={(i) => setChapters(i.chapters || [])} seekTo={seekTo} /> : <div className="player inline"><div className="center-spinner"><div className="spinner" /></div></div>}
         {d && (
           <>
             <h1 className="ch-title">{d.title}</h1>
@@ -60,6 +63,7 @@ export default function WatchPage() {
               <div className="ch-actions">
                 <LikeButtons v={d} onChange={(r) => setD({ ...d, reaction: r, likes: d.likes + (r > 0 ? 1 : d.reaction > 0 ? -1 : 0) })} />
                 {canPost(user) && <button className="btn sm" onClick={() => setShare(true)}>Share</button>}
+                <SaveButton itemId={d.id} />
                 <button className={'btn sm ghost ch-theatre'} aria-pressed={theatre} onClick={() => setTheatre(!theatre)}>{theatre ? 'Default view' : 'Wide view'}</button>
                 {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
               </div>
@@ -74,6 +78,12 @@ export default function WatchPage() {
                 <dl className="ch-custom">{Object.entries(d.custom).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{String(x)}</dd></div>)}</dl>
               )}
             </div>
+            {chapters.length > 1 && (
+              <section className="ch-chapters" aria-label="Chapters">
+                <h2>{d.durationSec >= 1200 ? 'Setlist' : 'Chapters'}</h2>
+                <ol>{chapters.map((c, i) => <li key={i}><button onClick={() => setSeekTo({ at: c.start })}><span className="muted">{fmtTime(c.start)}</span> {c.title || `Part ${i + 1}`}</button></li>)}</ol>
+              </section>
+            )}
             <Comments key={d.id} itemId={d.id} count={d.comments} />
           </>
         )}

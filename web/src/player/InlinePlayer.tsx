@@ -13,8 +13,9 @@ import './inline.css'
 // One speed for the whole visit: the next video in a list starts at it too.
 let sessionRate = 1
 
-export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, durationSec = 0, compact, className = '' }: {
+export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, durationSec = 0, compact, className = '', onInfo, seekTo }: {
   id: number; startAt?: number; autoPlay?: boolean; onEnded?: () => void; durationSec?: number; compact?: boolean; className?: string
+  onInfo?: (info: PlayInfo) => void; seekTo?: { at: number } // a new object jumps there
 }) {
   const video = useRef<HTMLVideoElement | null>(null)
   const root = useIdle(3000, [])
@@ -32,6 +33,9 @@ export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, du
     setInfo(null); setErr('')
     api.get<PlayInfo>(`/items/${id}/play?audio=${audio}&subtitle=${sub}`).then(setInfo).catch((e) => setErr(e.message))
   }, [id, audio, sub])
+
+  useEffect(() => { if (info) onInfo?.(info) }, [info]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (seekTo && video.current) { video.current.currentTime = seekTo.at; video.current.play().catch(() => {}) } }, [seekTo])
 
   useSource(video, info?.url || null, {
     startAt: () => pendingSeek.current,

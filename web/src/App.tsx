@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api } from './api'
-import { IconFilm, IconHome, IconLogout, IconMenu, IconSearch, IconSettings, IconUsers, libIcon } from './icons'
+import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconSearch, IconSettings, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -22,6 +22,9 @@ import { Announcer, useDialogs } from './a11y'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
+const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
+const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
+const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
 
 export default function App() {
@@ -82,6 +85,9 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
+            <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
+            <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
             <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
             <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
@@ -107,6 +113,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div className="nav-section">Libraries</div>
         {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-link muted" style={{ fontSize: 13 }}>No libraries yet</div>}
+        {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
         <div className="nav-section">Manage</div>
         <NavLink to="/settings" className="nav-link"><IconSettings /> Settings<UpdateDot /></NavLink>
         <div className="sidebar-footer"><VersionTag version={version} /></div>
@@ -129,6 +136,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
         <nav className="topnav" aria-label="Libraries">
           <NavLink to="/" end className="topnav-link"><IconHome /> <span>Home</span></NavLink>
           {libraries.map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
+          {libraries.length > 0 && <NavLink to="/collections" className="topnav-link"><IconLibrary /> <span>Collections</span></NavLink>}
         </nav>
       )}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
@@ -166,6 +174,7 @@ function ProfileMenu() {
       {open && (
         <div className="menu" role="menu" onClick={() => setOpen(false)}>
           <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
+          <Link role="menuitem" to="/review">Your year</Link>
           <Link role="menuitem" to="/settings/appearance">Appearance</Link>
           <Link role="menuitem" to="/settings">Settings</Link>
           <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>

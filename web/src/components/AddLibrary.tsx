@@ -19,6 +19,8 @@ export const LIB_TYPES = [
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
   { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; nothing leaves this server' },
   { type: 'shorts', name: 'Vertical videos', hint: 'A feed of short videos with likes, comments and a For You page worked out on this server alone' },
+  { type: 'musicvideos', name: 'Music videos & concerts', hint: 'Music videos and live recordings by artist, with setlists from their chapters' },
+  { type: 'radio', name: 'Internet radio', hint: 'Stations you add by their stream address or an M3U or PLS playlist; no folder needed' },
   { type: 'channels', name: 'Creator videos', hint: 'Your archive of creators’ videos, laid out by channel with subscriptions, comments and up next' },
 ]
 
@@ -28,6 +30,7 @@ const FOLDER_HINT: Record<string, string> = {
   shows: 'Disc images of a series are listed with the show’s discs and keep their menus.',
   discs: 'Only DVD and Blu-ray images and folders are picked up. Each disc is sorted as a film or a TV series from its name; you can change that on the disc’s page.',
   shorts: 'One folder per creator works best. Sidecar files beside a video can add its creator, tags, date and where it came from.',
+  musicvideos: 'Name files Artist - Title, or keep one folder per artist. An .nfo or sidecar beside a file adds more. Recordings of 20 minutes or more appear under Concerts, with their chapters as the setlist.',
   channels: 'One folder per channel, with subfolders as playlists. Sidecar files beside a video add its title, date, description and saved comments, and a picture with its name becomes its thumbnail. Nothing is downloaded or looked up.',
   photos: 'Every picture and clip in here and in folders below it. Thumbnails are made when first looked at, so even a large collection scans quickly. Your files are never changed; uploads are saved in an Uploads folder inside it.',
 }
@@ -58,6 +61,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     setType(k); setName(''); setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
   }
   const pods = t?.type === 'podcasts'
+  const noFolder = t?.type === 'radio'
   const open = !!t || !!following
   useEffect(() => { onPanel?.(open) }, [open, onPanel])
   const addPath = (p: string) => { if (p.trim()) setPaths((x) => [...new Set([...x, p.trim()])]); setManual('') }
@@ -128,19 +132,20 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         </label>
       )}
       {pods && <p className="pod-folder"><b>Folder for episode files</b> <span className="muted">optional: episodes you already have, and where downloads are saved. Leave it empty to only stream.</span></p>}
-      <div className="oobe-paths">
+      {noFolder && <p className="muted oobe-hint">Stations aren't files, so this library needs no folder. Add them on its page once it's made.</p>}
+      {!noFolder && <div className="oobe-paths">
         {paths.map((p) => <div key={p} className="oobe-path"><IconFolder /> <span>{p}</span><button type="button" className="btn sm ghost" onClick={() => setPaths(paths.filter((x) => x !== p))} aria-label={`Remove ${p}`}>Remove</button></div>)}
-      </div>
-      <div className="field-row">
+      </div>}
+      {!noFolder && <div className="field-row">
         <ChooseFolderButton className={'btn ' + (paths.length || pods ? '' : 'primary')} label={paths.length ? 'Add another folder…' : 'Choose folder…'} onPick={addPath} />
         <input className="input" placeholder={`…or type a path, e.g. ${pods ? 'D:\\Podcasts' : 'D:\\Movies'}`} aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPath(manual) } }} />
-      </div>
+      </div>}
       {FOLDER_HINT[t.type] && <p className="muted oobe-hint" style={{ marginTop: 10 }}>{FOLDER_HINT[t.type]}</p>}
       {err && <div className="error" role="alert">{err}</div>}
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setErr('') }}>Back</button>
-        <button type="button" className="btn primary" disabled={(!paths.length && !pods) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
+        <button type="button" className="btn primary" disabled={(!paths.length && !pods && !noFolder) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
     </div>
   )
 }

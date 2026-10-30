@@ -13,6 +13,9 @@ import '../../creators.css'
 // channel. Everything comes from files the owner already has (docs/CHANNELS.md).
 
 const TABS: [string, string][] = [['home', 'Home'], ['latest', 'Latest'], ['subs', 'Subscriptions'], ['channels', 'Channels'], ['history', 'History'], ['liked', 'Liked']]
+// Music videos and concerts use the same pages: an artist is a channel, and
+// recordings of 20 minutes or more are concerts.
+const MUSIC_TABS: [string, string][] = [['home', 'Home'], ['latest', 'Videos'], ['concerts', 'Concerts'], ['subs', 'Following'], ['channels', 'Artists'], ['history', 'History'], ['liked', 'Liked']]
 
 export default function ChannelsLibrary({ lib }: { lib: Library }) {
   const { user } = useApp()
@@ -36,16 +39,18 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
     if (tab === 'subs') u.set('subscribed', '1')
     if (tab === 'liked') u.set('liked', '1')
     if (tab === 'history') u.set('history', '1')
+    if (tab === 'concerts') u.set('length', 'long')
     return u.toString()
   }, [lib.id, search, tag, tab])
   const rescan = async () => { await api.post(`/libraries/${lib.id}/scan`); setScanning(true); toast('Scan started'); setTimeout(() => setScanning(false), 3000) }
   const browsing = search || tag
+  const music = lib.type === 'musicvideos'
   return (
     <div className="ch-page">
       <div className="toolbar ch-bar">
         <h1>{lib.name}</h1>
         <div className="seg ch-tabs" role="tablist" aria-label="View">
-          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
+          {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
         </div>
         <div style={{ flex: 1 }} />
         <form className="ch-search" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), tag: null }) }}>
@@ -63,6 +68,7 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
       {browsing ? <Grid query={query} empty={`Nothing matched ${search ? `“${search}”` : tag}.`} />
         : tab === 'home' ? <HomeFeed lib={lib} />
         : tab === 'channels' ? <ChannelsTab lib={lib} />
+        : tab === 'concerts' ? <Grid query={query} empty="Recordings of 20 minutes or more appear here, with their chapters as the setlist." />
         : tab === 'latest' ? <Grid query={query} empty="No videos yet. Put them in this library's folders and scan it." />
         : tab === 'subs' ? <Grid query={query} empty="Subscribe to a channel and its videos appear here." />
         : tab === 'history' ? <Grid query={query} empty="What you watch appears here. Only you can see it." />
@@ -90,12 +96,12 @@ function HomeFeed({ lib }: { lib: Library }) {
   const [seed, setSeed] = useState<number | null>(null)
   const [more, setMore] = useState(false)
   useEffect(() => {
-    api.get<{ videos: VideoCard[]; more: boolean; seed: number }>(`/videos/feed?library=${lib.id}&limit=24&shape=wide`).then((r) => { setItems(r.videos); setMore(r.more); setSeed(r.seed) }).catch(() => setItems([]))
-    api.get<{ videos: VideoCard[] }>(`/videos?library=${lib.id}&shape=vertical&limit=12`).then((r) => setVertical(r.videos)).catch(() => {})
+    api.get<{ videos: VideoCard[]; more: boolean; seed: number }>(`/videos/feed?library=${lib.id}&limit=24${lib.type === 'musicvideos' ? '' : '&shape=wide'}`).then((r) => { setItems(r.videos); setMore(r.more); setSeed(r.seed) }).catch(() => setItems([]))
+    if (lib.type !== 'musicvideos') api.get<{ videos: VideoCard[] }>(`/videos?library=${lib.id}&shape=vertical&limit=12`).then((r) => setVertical(r.videos)).catch(() => {})
   }, [lib.id])
   const loadMore = async () => {
     if (!items) return
-    const r = await api.get<{ videos: VideoCard[]; more: boolean }>(`/videos/feed?library=${lib.id}&limit=24&shape=wide&seed=${seed}&offset=${items.length}`)
+    const r = await api.get<{ videos: VideoCard[]; more: boolean }>(`/videos/feed?library=${lib.id}&limit=24${lib.type === 'musicvideos' ? '' : '&shape=wide'}&seed=${seed}&offset=${items.length}`)
     const have = new Set(items.map((v) => v.id))
     setItems([...items, ...r.videos.filter((v) => !have.has(v.id))]); setMore(r.more)
   }
@@ -155,7 +161,8 @@ export function CreatorPage() {
   if (err) return <EmptyState title="Channel not found" text={err} />
   if (!c) return <Spinner />
   const lib = libraries.find((l) => l.id === c.libraryId)
-  const q = `creator=${c.id}&sort=${sort}${tab === 'shorts' ? '&shape=vertical' : tab === 'videos' ? '&shape=wide' : ''}${playlist !== null ? `&playlist=${encodeURIComponent(playlist)}` : ''}`
+  const music = lib?.type === 'musicvideos'
+  const q = `creator=${c.id}&sort=${sort}${tab === 'shorts' ? '&shape=vertical' : tab === 'videos' && !music ? '&shape=wide' : ''}${playlist !== null ? `&playlist=${encodeURIComponent(playlist)}` : ''}`
   return (
     <div className="ch-page">
       {lib && <BackLink to={`/library/${lib.id}?tab=channels`} label={lib.name} />}
@@ -170,7 +177,7 @@ export function CreatorPage() {
         {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEditing(true)}><IconEdit /> Edit</button>}
       </header>
       <div className="seg ch-tabs" role="tablist" aria-label="This channel">
-        {[['videos', 'Videos'], ['shorts', 'Vertical'], ['playlists', 'Playlists'], ['about', 'About']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k === 'videos' ? null : k, playlist: null })}>{l}</button>)}
+        {(music ? [['videos', 'Videos'], ['playlists', 'Albums'], ['about', 'About']] : [['videos', 'Videos'], ['shorts', 'Vertical'], ['playlists', 'Playlists'], ['about', 'About']]).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k === 'videos' ? null : k, playlist: null })}>{l}</button>)}
       </div>
       {(tab === 'videos' || tab === 'shorts') && (
         <>

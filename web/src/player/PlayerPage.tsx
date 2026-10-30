@@ -52,7 +52,9 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   const [item, setItem] = useState<Item | null>(null)
   const [err, setErr] = useState('')
   const [prefs, setPrefs] = useState<Prefs | null>(null)
-  useEffect(() => { api.get<Item>(`/items/${id}`).then(setItem).catch((e) => setErr(e.message)) }, [id])
+  // Playing a list through: the server says what comes next in it.
+  const listId = params.get('collection')
+  useEffect(() => { api.get<Item>(`/items/${id}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`).then(setItem).catch((e) => setErr(e.message)) }, [id, listId])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   if (err) return <div className="player"><div className="overlay-msg"><div className="box">{err}<br /><BackButton /></div></div></div>
   if (!item || !prefs) return <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>

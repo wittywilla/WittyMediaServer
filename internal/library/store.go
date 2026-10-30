@@ -433,7 +433,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')")
 	}
 	if q.Watchable || q.NoGallery {
-		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type IN ('photos', 'shorts', 'channels'))")
+		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type IN ('photos', 'shorts', 'channels', 'musicvideos', 'radio'))")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

@@ -35,6 +35,16 @@ export type Creator = {
   id: number; libraryId: number; name: string; handle?: string; description?: string; platform?: string; url?: string
   hasAvatar: boolean; hasBanner: boolean; videos: number; subscribed: boolean; subscribers: number; updatedAt: number; latestAt?: string
 }
+export type CollectionRule = {
+  libraries?: number[]; libraryTypes?: string[]; genres?: string[]; tags?: string[]; search?: string; artist?: string
+  yearFrom?: number; yearTo?: number; ratingMin?: number; runtimeMinSec?: number; runtimeMaxSec?: number
+  watched?: '' | 'yes' | 'no' | 'started'; liked?: boolean; addedWithinDays?: number
+  sort?: 'added' | 'title' | 'year' | 'rating' | 'runtime' | 'random' | 'played'; desc?: boolean; limit?: number; episodes?: boolean
+}
+export type Collection = {
+  id: number; ownerId: number; owner: string; name: string; description: string; kind: 'manual' | 'smart'; rule?: CollectionRule
+  shared: boolean; system?: string; count: number; coverId: number; coverShowId?: number; updatedAt: number
+}
 export type Comment = {
   id: number; itemId: number; parentId?: number; userId?: number; author: string; body: string; imported: boolean
   likes?: number; createdAt: number; editedAt?: number

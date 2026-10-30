@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -25,8 +26,9 @@ import (
 // A creator comes from the file's sidecar when there is one, otherwise from the
 // first folder under the library: Library/Creator/[Playlist/]video.mp4.
 
-// IsCreatorLibrary: shorts or channels.
-func IsCreatorLibrary(t string) bool { return t == "shorts" || t == "channels" }
+// IsCreatorLibrary: shorts, channels or music videos. A music video's artist is
+// its creator.
+func IsCreatorLibrary(t string) bool { return t == "shorts" || t == "channels" || t == "musicvideos" }
 
 // IsGalleryLibrary: a library whose edits stay in the database, never written
 // beside the media (the owner's own photos and archives are left as they are).
@@ -75,6 +77,8 @@ type videoSidecar struct {
 	ChannelID     string         `json:"channel_id"`
 	ChannelURL    string         `json:"channel_url"`
 	Creator       string         `json:"creator"`
+	Artist        string         `json:"artist"`
+	Album         string         `json:"album"`
 	Handle        string         `json:"handle"`
 	Platform      string         `json:"platform"`
 	ExtractorKey  string         `json:"extractor_key"`
@@ -286,7 +290,7 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 		if it.ContentRating == "" && side.AgeLimit != nil && *side.AgeLimit > 0 {
 			it.ContentRating = fmt.Sprintf("%d+", *side.AgeLimit)
 		}
-		for _, n := range []string{side.Creator, side.Channel, side.Uploader} {
+		for _, n := range []string{side.Artist, side.Creator, side.Channel, side.Uploader} {
 			if n != "" {
 				cr.Name = n
 				break
@@ -341,8 +345,14 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 			}
 		}
 	}
+	if vm.Playlist == "" && side != nil {
+		vm.Playlist = side.Album
+	}
 	if vm.Playlist == "" {
 		vm.Playlist = folderPlaylist
+	}
+	if lib.Type == "musicvideos" {
+		musicVideoNames(it, &cr, &vm, base, side, c.path)
 	}
 	if vm.UploadDate == "" {
 		if t, ok := DateFromName(base); ok {
@@ -401,6 +411,70 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 		return s.Store.importComments(ctx, it.ID, side.Comments)
 	}
 	return nil
+}
+
+var artistTitleRe = regexp.MustCompile(`^(.+?)\s+[-–—]\s+(.+)$`)
+
+// musicVideoNames: "Artist - Title.mp4", an .nfo beside the file, or the folder.
+func musicVideoNames(it *Item, cr *creatorRow, vm *videoMeta, base string, side *videoSidecar, path string) {
+	if side == nil || side.Title == "" {
+		if m := artistTitleRe.FindStringSubmatch(cleanTitle(base)); m != nil {
+			it.Title = strings.TrimSpace(m[2])
+			if side == nil || (side.Artist == "" && side.Creator == "") {
+				cr.Name, cr.Key = strings.TrimSpace(m[1]), ""
+			}
+		}
+	}
+	if n := readMusicVideoNFO(strings.TrimSuffix(path, filepath.Ext(path)) + ".nfo"); n != nil {
+		if n.Title != "" {
+			it.Title = n.Title
+		}
+		if n.Artist != "" {
+			cr.Name, cr.Key = n.Artist, ""
+		}
+		if n.Album != "" {
+			vm.Playlist = n.Album
+		}
+		if n.Plot != "" {
+			it.Overview = n.Plot
+		}
+		if len(n.Genres) > 0 {
+			it.Genres = n.Genres
+		}
+		if len(n.Tags) > 0 {
+			vm.Tags = cleanTags(n.Tags)
+		}
+		if n.Year > 0 {
+			y := n.Year
+			it.Year = &y
+			if vm.UploadDate == "" || side == nil {
+				vm.UploadDate = fmt.Sprintf("%04d-01-01", n.Year)
+			}
+		}
+	}
+}
+
+type musicVideoNFO struct {
+	Title  string   `xml:"title"`
+	Artist string   `xml:"artist"`
+	Album  string   `xml:"album"`
+	Plot   string   `xml:"plot"`
+	Year   int      `xml:"year"`
+	Genres []string `xml:"genre"`
+	Tags   []string `xml:"tag"`
+}
+
+// readMusicVideoNFO reads the common sidecar for music videos.
+func readMusicVideoNFO(p string) *musicVideoNFO {
+	b, err := os.ReadFile(p)
+	if err != nil || len(b) > 1<<20 {
+		return nil
+	}
+	var n musicVideoNFO
+	if xml.Unmarshal(b, &n) != nil {
+		return nil
+	}
+	return &n
 }
 
 // creatorFromPath: Library/Creator/[Playlist/]video.mp4.
@@ -762,6 +836,7 @@ type VideoQuery struct {
 	Platform   string
 	Search     string
 	Vertical   *bool
+	Long       *bool // true: 20 minutes or more (concerts), false: shorter
 	Subscribed bool
 	Liked      bool
 	History    bool
@@ -828,6 +903,13 @@ func (s *Store) Videos(ctx context.Context, q VideoQuery) ([]VideoCard, bool, er
 	if q.Vertical != nil {
 		w = append(w, "v.vertical = ?")
 		args = append(args, *q.Vertical)
+	}
+	if q.Long != nil {
+		if *q.Long {
+			w = append(w, "i.runtime_sec >= 1200")
+		} else {
+			w = append(w, "IFNULL(i.runtime_sec, 0) < 1200")
+		}
 	}
 	if q.Subscribed {
 		w = append(w, "v.creator_id IN (SELECT creator_id FROM creator_subs WHERE user_id = ?)")

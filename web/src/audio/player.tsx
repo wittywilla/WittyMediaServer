@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
 import { IconClose, IconDown, IconExpand, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
 import { setSpeed, SPEEDS } from '../player/Controls'
+import { toast } from '../state'
 
 // The audio player: music, audiobooks and podcasts. One <audio> element for
 // the whole app, a queue, and a bar along the bottom that keeps playing
@@ -14,7 +15,7 @@ import { setSpeed, SPEEDS } from '../player/Controls'
 // seeked by restarting the stream at the new position.
 const DIRECT = new Set(['mp3', 'aac', 'flac', 'opus', 'vorbis', 'pcm_s16le', 'pcm_s24le', 'pcm_u8', 'pcm_f32le'])
 
-export type AudioMode = 'music' | 'audiobooks' | 'podcasts'
+export type AudioMode = 'music' | 'audiobooks' | 'podcasts' | 'radio'
 type Repeat = 'off' | 'all' | 'one'
 
 type AudioCtx = {
@@ -51,7 +52,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const current = queue[index] || null
   const loc = useLocation()
   const nav = useNavigate()
-  const books = mode !== 'music'
+  const books = mode === 'audiobooks' || mode === 'podcasts'
+  const live = mode === 'radio' // a station: no seeking, no speed
+  const listened = useRef(0) // seconds of this track, for Your year
+  const lastAt = useRef(0)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
   // Each kind of listening keeps its own speed: 1.5× for audiobooks needn't
   // apply to the next album.
@@ -97,6 +101,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const direct = (it: Item) => DIRECT.has(it.videoCodec)
   const load = (it: Item, at: number) => {
     const a = audio.current!
+    if (it.kind === 'radio') {
+      offset.current = 0
+      a.src = mediaUrl(`/api/radio/${it.id}/stream`)
+      return
+    }
     if (direct(it)) {
       offset.current = 0
       a.src = mediaUrl(`/api/items/${it.id}/stream`)
@@ -127,6 +136,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id, books])
 
+  // Music has no place to save, but what was played counts for Your year.
+  // Stations are counted by the server, which relays them.
+  useEffect(() => {
+    listened.current = 0; lastAt.current = 0
+    const id = current?.id
+    if (!id || books || live) return
+    return () => {
+      if (listened.current >= 5) api.post(`/items/${id}/view`, { seconds: listened.current }).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, books, live])
+
   // A video takes over the speakers: pause the music.
   useEffect(() => { if (loc.pathname.startsWith('/play/')) audio.current?.pause() }, [loc.pathname])
 
@@ -150,6 +171,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, current])
   const onEnded = () => {
+    if (live) { setPlaying(false); return }
     if (current && books) api.post(`/items/${current.id}/progress`, { positionSec: current.runtimeSec, durationSec: current.runtimeSec }).catch(() => {})
     if (sleepAt === 'chapter') { setSleepAt(null); return }
     if (repeat === 'one') { seek(0); audio.current?.play().catch(() => {}); return }
@@ -209,7 +231,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider value={ctx}>
       {children}
       <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={onEnded}
-        onTimeUpdate={() => setTime(position())} />
+        onError={() => { if (live && current) toast(`${current.title} can't be reached`) }}
+        onTimeUpdate={() => {
+          const p = position(), d = p - lastAt.current
+          if (d > 0 && d < 5) listened.current += d
+          lastAt.current = p
+          setTime(p)
+        }} />
       {current && !loc.pathname.startsWith('/play/') && (
         <div className={'audio-bar' + (full ? ' full' : '')} role="region" aria-label="Now playing">
           {full && (
@@ -241,17 +269,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             <button className="ibtn" onClick={next} aria-label="Next"><IconNext /></button>
             {books && <button className="ibtn" onClick={() => seek(position() + 30)} aria-label="Forward 30 seconds">30↻</button>}
           </div>
-          <div className="ab-seek">
+          {!live && <div className="ab-seek">
             <span>{fmtTime(time)}</span>
             <input type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" onChange={(e) => seek(Number(e.target.value))} />
             <span>{fmtTime(dur)}</span>
-          </div>
+          </div>}
           <div className="ab-extra">
-            {!books && <button className={'btn sm ' + (shuffle ? 'primary' : 'ghost')} onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>Shuffle</button>}
-            {!books && <button className={'btn sm ' + (repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => setRepeat(repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off')}>Repeat{repeat === 'one' ? ' 1' : ''}</button>}
-            <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
+            {!books && !live && <button className={'btn sm ' + (shuffle ? 'primary' : 'ghost')} onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>Shuffle</button>}
+            {!books && !live && <button className={'btn sm ' + (repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => setRepeat(repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off')}>Repeat{repeat === 'one' ? ' 1' : ''}</button>}
+            {!live && <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
               {SPEEDS.filter((r) => r <= maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
-            </select>
+            </select>}
             {books && (
               <select className="select sm" aria-label="Sleep timer" value={sleepAt === null ? '' : sleepAt === 'chapter' ? 'chapter' : 'set'}
                 onChange={(e) => { const v = e.target.value; setSleepAt(v === '' ? null : v === 'chapter' ? 'chapter' : v === 'set' ? sleepAt : Date.now() + Number(v) * 60000) }}>

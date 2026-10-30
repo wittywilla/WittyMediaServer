@@ -208,6 +208,20 @@ var migrations = []string{
 	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	   creator_id INTEGER NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
 	   created_at INTEGER NOT NULL, PRIMARY KEY(user_id, creator_id));`,
+	// 13: collections and smart playlists, across libraries.
+	`CREATE TABLE IF NOT EXISTS collections (
+	   id INTEGER PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'manual', rule TEXT NOT NULL DEFAULT '',
+	   shared INTEGER NOT NULL DEFAULT 0, system TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE INDEX IF NOT EXISTS collections_owner ON collections(owner_id, name);
+	 CREATE TABLE IF NOT EXISTS collection_items (
+	   collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   added_at INTEGER NOT NULL, PRIMARY KEY(collection_id, item_id));
+	 CREATE TABLE IF NOT EXISTS collection_shows (
+	   collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+	   show_id INTEGER NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
+	   added_at INTEGER NOT NULL, PRIMARY KEY(collection_id, show_id));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

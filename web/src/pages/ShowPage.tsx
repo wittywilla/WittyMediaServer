@@ -1,3 +1,4 @@
+import { SaveButton } from '../components/SaveToCollection'
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -59,6 +60,7 @@ export default function ShowPage() {
             {(show.genres || []).length > 0 && <span>{show.genres.join(', ')}</span>}
           </div>
           <div className="actions">
+            <SaveButton showId={show.id} />
             {next && <button className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
               <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
             </button>}

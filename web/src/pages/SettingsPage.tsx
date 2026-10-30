@@ -4,7 +4,7 @@ import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { UpdateDot, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconClose, IconEdit, IconFolder, IconInfo, IconLibrary, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
+import { IconClose, IconEdit, IconFolder, IconImage, IconInfo, IconLibrary, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import LogSettings from './LogSettings'
@@ -96,6 +96,8 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'photos', label: 'Photos', hint: 'A timeline, albums and a map of your pictures' },
   { v: 'shorts', label: 'Vertical videos', hint: 'A feed of short videos with a For You page' },
   { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
+  { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
+  { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
 

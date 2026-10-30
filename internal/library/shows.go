@@ -86,15 +86,17 @@ func scanShow(sc interface{ Scan(...any) error }) (*Show, error) {
 
 // ShowQuery filters shows.
 type ShowQuery struct {
-	LibraryID int64
-	Search    string
-	Genre     string
-	Network   string // exact network name (case-insensitive)
-	Sort      string // title | added | year | rating
-	Desc      bool
-	Limit     int
-	UserID    int64
-	Access    *Access // Kids/Guest limits
+	// InCollection: only the shows in this collection.
+	InCollection int64
+	LibraryID    int64
+	Search       string
+	Genre        string
+	Network      string // exact network name (case-insensitive)
+	Sort         string // title | added | year | rating
+	Desc         bool
+	Limit        int
+	UserID       int64
+	Access       *Access // Kids/Guest limits
 	// AnimeOf lists anime library LibraryID together with the anime shows
 	// (genre "Anime") of every TV library.
 	AnimeOf bool
@@ -123,6 +125,10 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	}
 	if q.HideAnime {
 		where = append(where, "NOT "+animeGenre)
+	}
+	if q.InCollection != 0 {
+		where = append(where, "s.id IN (SELECT show_id FROM collection_shows WHERE collection_id = ?)")
+		args = append(args, q.InCollection)
 	}
 	if q.Search != "" {
 		where = append(where, "(s.title LIKE ? OR s.overview LIKE ?)")

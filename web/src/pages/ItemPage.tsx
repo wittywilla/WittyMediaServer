@@ -5,6 +5,7 @@ import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fm
 import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
+import { SaveButton } from '../components/SaveToCollection'
 import { Spinner, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
@@ -29,7 +30,8 @@ export default function ItemPage() {
   const libType = libraries.find((l) => l.id === it.libraryId)?.type
   if (libType === 'photos') return <Navigate replace to={`/library/${it.libraryId}?view=${it.id}`} />
   if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
-  if (libType === 'channels') return <Navigate replace to={`/watch/${it.id}`} />
+  if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
+  if (libType === 'radio') return <Navigate replace to={`/library/${it.libraryId}`} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)
@@ -105,6 +107,7 @@ export default function ItemPage() {
               </button>
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
               {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
+              <SaveButton itemId={it.id} />
               {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
               {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}

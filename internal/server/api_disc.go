@@ -206,7 +206,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Cache-Control", "public, max-age=604800")
+	w.Header().Set("Cache-Control", "private, max-age=604800")
 	http.ServeFile(w, r, out)
 }
 

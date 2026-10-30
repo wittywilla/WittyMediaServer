@@ -543,7 +543,8 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	// private: this art may belong to a title other accounts can't see.
+	w.Header().Set("Cache-Control", "private, max-age=86400")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 

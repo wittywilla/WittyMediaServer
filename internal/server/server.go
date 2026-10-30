@@ -241,8 +241,14 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "SAMEORIGIN")
-		if !strings.HasPrefix(r.URL.Path, "/api/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			// Nothing the API sends is a page: whatever a file, feed or stream
+			// turns out to hold, opening its address can't run it on this site.
+			// Handlers with their own needs replace this.
+			h.Set("Content-Security-Policy", apiCSP)
+		} else {
 			h.Set("Content-Security-Policy", appCSP)
+			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -251,8 +257,11 @@ func (s *Server) headers(next http.Handler) http.Handler {
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
 const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
-	"media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
+	"media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// apiCSP: a sandbox with no scripts, for everything under /api/.
+const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
 // token. Cookies are never honoured across origins, so a page elsewhere on

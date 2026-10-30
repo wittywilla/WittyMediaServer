@@ -188,9 +188,31 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
-	st, _ := f.Stat()
+	st, err := f.Stat()
+	if err != nil || !st.Mode().IsRegular() {
+		writeErr(w, 404, "file missing")
+		return
+	}
+	// The type comes from this list, never from what the file's first bytes
+	// look like: a "movie" that is really a web page stays a download.
+	w.Header().Set("Content-Type", mediaType(it.Path))
 	w.Header().Set("Accept-Ranges", "bytes")
-	http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
+	http.ServeContent(w, r, "", st.ModTime(), f)
+}
+
+var mediaTypes = map[string]string{
+	".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm", ".mkv": "video/x-matroska",
+	".avi": "video/x-msvideo", ".wmv": "video/x-ms-wmv", ".ts": "video/mp2t", ".m2ts": "video/mp2t", ".mts": "video/mp2t", ".flv": "video/x-flv",
+	".mpg": "video/mpeg", ".mpeg": "video/mpeg", ".vob": "video/mpeg", ".ogv": "video/ogg", ".3gp": "video/3gpp",
+	".pdf": "application/pdf", ".epub": "application/epub+zip", ".cbz": "application/vnd.comicbook+zip", ".cbr": "application/vnd.comicbook-rar",
+}
+
+// mediaType is the Content-Type a library file is sent with.
+func mediaType(path string) string {
+	if ct := mediaTypes[strings.ToLower(filepath.Ext(path))]; ct != "" {
+		return ct
+	}
+	return "application/octet-stream"
 }
 
 // ---------------------------------------------------------------------------

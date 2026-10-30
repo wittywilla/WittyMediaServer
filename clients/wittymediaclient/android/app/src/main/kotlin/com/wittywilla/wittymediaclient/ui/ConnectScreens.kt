@@ -1,11 +1,13 @@
 package com.wittywilla.wittymediaclient.ui
 
-import android.os.Build
 import android.view.KeyEvent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -18,8 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,12 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -47,9 +53,11 @@ import androidx.compose.ui.unit.sp
 import com.wittywilla.wittymediaclient.data.SavedServer
 import com.wittywilla.wittymediaclient.net.Address
 import com.wittywilla.wittymediaclient.net.ApiError
+import com.wittywilla.wittymediaclient.net.FoundServer
 import com.wittywilla.wittymediaclient.net.Probe
 import com.wittywilla.wittymediaclient.net.Profile
 import com.wittywilla.wittymediaclient.net.Profiles
+import com.wittywilla.wittymediaclient.net.ServerFinder
 import com.wittywilla.wittymediaclient.net.probeServer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,6 +71,8 @@ private fun reasonText(s: Map<String, String>, reason: String) = when (reason) {
     "not-server" -> s["errNotServer"]
     "not-set-up" -> s["errNotSetUp"]
     "server-old" -> s["errServerOld"]
+    "app-old" -> s["errAppOld"]
+    "certificate" -> s["errCertificate"]
     else -> s["errInvalid"]
 }.orEmpty()
 
@@ -110,31 +120,59 @@ private fun Centred(content: @Composable () -> Unit) {
     }
 }
 
+// A server in a list: its name, and the address it's at.
+@Composable
+private fun ServerRow(name: String, url: String, requestFocus: Boolean, onClick: () -> Unit) {
+    FocusBox(onClick, Modifier.fillMaxWidth(), label = "$name, $url", requestFocus = requestFocus, filled = MaterialTheme.colorScheme.surfaceVariant) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 11.dp)) {
+            Text(name, color = MaterialTheme.colorScheme.onSurface)
+            Secondary(url)
+        }
+    }
+}
+
+private val ARROWS = setOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT)
+private const val NONE_AFTER_MS = 6000L
+
 @Composable
 fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val recent = remember { nav.app.store.recent }
     var address by rememberSaveable { mutableStateOf("") }
-    var error by rememberSaveable { mutableStateOf(message) }
+    var error by rememberSaveable(message) { mutableStateOf(message) }
     var busy by remember { mutableStateOf(false) }
-    var showForm by rememberSaveable { mutableStateOf(recent.isEmpty()) }
+    var showForm by rememberSaveable { mutableStateOf(false) }
+    var found by remember { mutableStateOf(emptyList<FoundServer>()) }
+    var searchedLong by remember { mutableStateOf(false) }
+    var moved by remember { mutableStateOf(false) }
     val fieldFocus = remember { FocusRequester() }
+
+    // Only looks while this screen is open.
+    DisposableEffect(Unit) {
+        val finder = ServerFinder(context) { found = it }
+        finder.start()
+        onDispose { finder.stop() }
+    }
+    LaunchedEffect(Unit) {
+        delay(NONE_AFTER_MS)
+        searchedLong = true
+    }
+    BackHandler(enabled = showForm) { showForm = false; error = "" }
 
     fun connect(url: String) {
         if (busy) return
         busy = true
+        error = ""
         scope.launch {
-            when (val r = probeServer(url)) {
-                is Probe.Found -> {
-                    nav.openServer(SavedServer(url, r.status.brandName.ifEmpty { r.status.name }))
-                    nav.themeId = r.status.theme
-                    nav.reset(Route.SignIn)
-                }
-                is Probe.Failed -> {
-                    error = reasonText(s, r.reason)
-                    address = url
-                    showForm = true
-                }
+            val problem = when (val r = probeServer(url)) {
+                is Probe.Found -> nav.arrive(url, r.status)
+                is Probe.Failed -> reasonText(s, r.reason)
+            }
+            if (problem != null) {
+                error = problem
+                address = url
+                showForm = true
             }
             busy = false
         }
@@ -148,27 +186,174 @@ fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
     }
 
     Centred {
-        Heading(if (showForm) s["addressTitle"].orEmpty() else s["findTitle"].orEmpty())
         if (showForm) {
             LaunchedEffect(Unit) { runCatching { fieldFocus.requestFocus() } }
+            Heading(s["addressTitle"].orEmpty())
             Secondary(s["addressHint"].orEmpty())
             Field(address, { address = it; error = "" }, s["addressLabel"].orEmpty(), Modifier.focusRequester(fieldFocus), keyboard = KeyboardType.Uri, onDone = ::submit)
             ErrorText(error)
             ActionButton(if (busy) s["connecting"].orEmpty() else s["connect"].orEmpty(), ::submit, Modifier.fillMaxWidth(), primary = true, enabled = !busy)
-            if (recent.isNotEmpty()) ActionButton(s["back"].orEmpty(), { showForm = false; error = "" }, Modifier.fillMaxWidth())
+            ActionButton(s["back"].orEmpty(), { showForm = false; error = "" }, Modifier.fillMaxWidth())
         } else {
-            ErrorText(error)
-            Secondary(s["recentServers"].orEmpty())
-            recent.forEachIndexed { i, server ->
-                FocusBox({ connect(server.url) }, Modifier.fillMaxWidth(), label = "${server.name}, ${server.url}", requestFocus = i == 0, filled = MaterialTheme.colorScheme.surfaceVariant) {
-                    Column(Modifier.padding(horizontal = 18.dp, vertical = 11.dp)) {
-                        Text(server.name, color = MaterialTheme.colorScheme.onSurface)
-                        Secondary(server.url)
-                    }
+            // The first server found takes focus, until the person has moved themselves.
+            Column(
+                Modifier.onPreviewKeyEvent {
+                    if (it.type == KeyEventType.KeyDown && it.key.nativeKeyCode in ARROWS) moved = true
+                    false
+                },
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Heading(s["findTitle"].orEmpty())
+                ErrorText(error)
+                if (busy) Secondary(s["connecting"].orEmpty())
+                Secondary(s["foundServers"].orEmpty())
+                if (found.isEmpty()) Secondary(if (searchedLong) s["findNone"].orEmpty() else s["findSearching"].orEmpty())
+                found.forEachIndexed { i, server ->
+                    key(server.id) { ServerRow(server.name, server.url, i == 0 && !moved) { connect(server.url) } }
+                }
+                val others = recent.filter { r -> found.none { it.url == r.url || it.id == r.serverId } }
+                if (others.isNotEmpty()) Secondary(s["recentServers"].orEmpty())
+                others.forEachIndexed { i, server ->
+                    key(server.url) { ServerRow(server.name, server.url, found.isEmpty() && i == 0 && !moved) { connect(server.url) } }
+                }
+                ActionButton(s["enterAddress"].orEmpty(), { showForm = true; error = "" }, Modifier.fillMaxWidth(), requestFocus = found.isEmpty() && others.isEmpty())
+            }
+        }
+    }
+}
+
+@Composable
+private fun PadKey(key: Int, keys: List<FocusRequester>, label: String, small: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    FocusBox(
+        onClick,
+        modifier
+            .focusRequester(keys[key])
+            .focusProperties {
+                padMove(key, PadMove.Up)?.let { up = keys[it] }
+                padMove(key, PadMove.Down)?.let { down = keys[it] }
+                padMove(key, PadMove.Left)?.let { left = keys[it] }
+                padMove(key, PadMove.Right)?.let { right = keys[it] }
+            },
+        requestFocus = key == 0,
+        filled = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 13.dp), contentAlignment = Alignment.Center) {
+            Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = if (small) 16.sp else 22.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// Works with only a remote: arrows and OK. Touch and number keys work as well.
+@Composable
+private fun NumberPad(deleteLabel: String, onDigit: (Char) -> Unit, onDelete: () -> Unit) {
+    val keys = remember { List(PAD_KEYS.size) { FocusRequester() } }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (row in 0..2) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (column in 0..2) {
+                    val key = row * 3 + column
+                    PadKey(key, keys, PAD_KEYS[key], false, { onDigit(PAD_KEYS[key][0]) }, Modifier.weight(1f))
                 }
             }
-            ActionButton(s["enterAddress"].orEmpty(), { showForm = true }, Modifier.fillMaxWidth())
         }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PadKey(PAD_DELETE, keys, deleteLabel, true, onDelete, Modifier.weight(1f))
+            PadKey(PAD_ZERO, keys, PAD_KEYS[PAD_ZERO], false, { onDigit('0') }, Modifier.weight(2f))
+        }
+    }
+}
+
+// A new server is opened with a six-digit code from someone already signed in. See
+// docs/CLIENT-API.md, "The code is typed on the device".
+@Composable
+fun CodeScreen(nav: Nav, s: Map<String, String>, server: SavedServer) {
+    val scope = rememberCoroutineScope()
+    var entry by remember { mutableStateOf(CodeEntry()) }
+    var problem by remember { mutableStateOf("") }
+
+    fun press(digit: Char) {
+        val next = entry.typed(digit)
+        if (next == entry) return
+        problem = ""
+        entry = next
+        if (!next.complete) return
+        entry = next.copy(busy = true)
+        scope.launch {
+            val failed = nav.redeem(server, next.digits)
+            if (failed != null) {
+                entry = CodeEntry()
+                problem = failed
+            }
+        }
+    }
+
+    Centred {
+        Column(
+            Modifier.onPreviewKeyEvent {
+                if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (val code = it.key.nativeKeyCode) {
+                    in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> { press('0' + (code - KeyEvent.KEYCODE_0)); true }
+                    in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> { press('0' + (code - KeyEvent.KEYCODE_NUMPAD_0)); true }
+                    KeyEvent.KEYCODE_DEL -> { entry = entry.erased(); true }
+                    else -> false
+                }
+            },
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Heading(s["codeTitle"].orEmpty())
+            Secondary(s["codeHint"].orEmpty())
+            Text(
+                entry.shown,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics {
+                    contentDescription = "${s["codeLabel"]}: ${entry.digits.length} ${s["codeEntered"]}"
+                },
+            )
+            if (entry.busy) Secondary(s["connecting"].orEmpty()) else ErrorText(problem)
+            NumberPad(s["codeDelete"].orEmpty(), ::press) { entry = entry.erased() }
+            ActionButton(s["usePassword"].orEmpty(), { nav.signInTo(server, SignInWay.Password) }, Modifier.fillMaxWidth())
+            ActionButton(s["showCodeInstead"].orEmpty(), { nav.signInTo(server, SignInWay.ShownCode) }, Modifier.fillMaxWidth())
+            Secondary("${s["fingerprintLabel"]}: ${server.fingerprint}")
+        }
+    }
+}
+
+// Another machine is answering for a server we know. Only the person can decide,
+// so the safe choice has focus, and nothing has been sent to it.
+@Composable
+fun MismatchScreen(nav: Nav, s: Map<String, String>, server: SavedServer) {
+    val scope = rememberCoroutineScope()
+    var problem by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    Centred {
+        Heading(s["identityTitle"].orEmpty())
+        Secondary(s["identityHint"].orEmpty())
+        Secondary("${server.url} · ${s["fingerprintLabel"]}: ${server.fingerprint}")
+        ErrorText(problem)
+        ActionButton(s["back"].orEmpty(), nav::pop, Modifier.fillMaxWidth(), primary = true, requestFocus = true)
+        ActionButton(
+            s["identityTrust"].orEmpty(),
+            {
+                busy = true
+                scope.launch {
+                    problem = nav.trust(server).orEmpty()
+                    busy = false
+                }
+            },
+            Modifier.fillMaxWidth(),
+            enabled = !busy,
+        )
+    }
+}
+
+// Only a server that has proved its identity can be sent a code.
+@Composable
+private fun TypedCodeButton(nav: Nav, s: Map<String, String>) {
+    val server = nav.server
+    if (server != null && server.publicKey.isNotEmpty()) {
+        ActionButton(s["codeTitle"].orEmpty(), { nav.push(Route.Code(server)) }, Modifier.fillMaxWidth())
     }
 }
 
@@ -185,7 +370,7 @@ private fun PairPanel(nav: Nav, s: Map<String, String>, onUsePassword: () -> Uni
         code = ""
         problem = ""
         try {
-            val start = nav.app.api.pairStart("${Build.MANUFACTURER} ${Build.MODEL}".take(60), if (nav.app.isTv) "Android TV" else "Android")
+            val start = nav.app.api.pairStart(nav.app.deviceName, nav.app.platformName)
             code = start.code
             approveAt = nav.app.api.base + start.approvePath
             var wait = start.intervalSec.coerceAtLeast(1)
@@ -215,16 +400,17 @@ private fun PairPanel(nav: Nav, s: Map<String, String>, onUsePassword: () -> Uni
     }
     ErrorText(problem)
     if (code.isEmpty() && problem.isNotEmpty()) ActionButton(s["pairNew"].orEmpty(), { round++ }, Modifier.fillMaxWidth(), primary = true, requestFocus = true)
+    TypedCodeButton(nav, s)
     ActionButton(s["usePassword"].orEmpty(), onUsePassword, Modifier.fillMaxWidth(), requestFocus = code.isNotEmpty())
     ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SignInScreen(nav: Nav, s: Map<String, String>) {
+fun SignInScreen(nav: Nav, s: Map<String, String>, way: SignInWay) {
     val scope = rememberCoroutineScope()
     // On a TV the code comes first. Everywhere else a keyboard is at hand.
-    var useCode by rememberSaveable { mutableStateOf(nav.app.isTv) }
+    var useCode by rememberSaveable { mutableStateOf(way == SignInWay.ShownCode || (way == SignInWay.Usual && nav.app.isTv)) }
     var profiles by remember { mutableStateOf<Profiles?>(null) }
     var chosen by remember { mutableStateOf<Profile?>(null) }
     var useForm by rememberSaveable { mutableStateOf(false) }
@@ -244,7 +430,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
         error = ""
         scope.launch {
             try {
-                nav.signedIn(nav.app.api.login(who, secret, "${Build.MANUFACTURER} ${Build.MODEL}".take(80)).token)
+                nav.signedIn(nav.app.api.login(who, secret, nav.app.deviceName).token)
             } catch (e: ApiError) {
                 error = e.message.orEmpty()
             } catch (_: Exception) {
@@ -277,6 +463,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
                     }
                 }
                 ActionButton("Sign in with another account", { useForm = true }, Modifier.fillMaxWidth())
+                TypedCodeButton(nav, s)
                 ActionButton(s["useCode"].orEmpty(), { useCode = true }, Modifier.fillMaxWidth())
                 ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
             }
@@ -287,6 +474,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
                 ErrorText(error)
                 ActionButton("Sign in", { login(name, password) }, Modifier.fillMaxWidth(), primary = true, enabled = !busy)
                 if (list.profiles.isNotEmpty()) ActionButton(s["back"].orEmpty(), { useForm = false; error = "" }, Modifier.fillMaxWidth())
+                TypedCodeButton(nav, s)
                 ActionButton(s["useCode"].orEmpty(), { useCode = true }, Modifier.fillMaxWidth())
                 ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
             }

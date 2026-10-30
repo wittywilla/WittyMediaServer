@@ -176,6 +176,7 @@ data class Capabilities(
     val server: String = "",
     val version: String = "",
     val apiVersion: Int = 0,
+    val apiVersions: List<Int> = emptyList(),
     val setupRequired: Boolean = false,
     val features: List<String> = emptyList(),
 )
@@ -197,6 +198,9 @@ data class PairStartRequest(val device: String, val platform: String)
 
 @Serializable
 data class PairPollRequest(val deviceSecret: String)
+
+@Serializable
+data class PairRedeemRequest(val code: String, val device: String, val platform: String)
 
 @Serializable
 data class ProgressReport(val positionSec: Double, val durationSec: Double)

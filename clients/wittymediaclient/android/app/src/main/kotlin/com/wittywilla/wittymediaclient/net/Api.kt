@@ -1,7 +1,9 @@
 package com.wittywilla.wittymediaclient.net
 
+import com.wittywilla.wittymediaclient.data.SavedServer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -13,6 +15,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLException
 
 class ApiError(val status: Int, message: String) : Exception(message)
 
@@ -24,13 +27,19 @@ val json = Json {
 
 private val JSON_TYPE = "application/json".toMediaType()
 private const val API = "/api/v1" // the contract: docs/CLIENT-API.md
+private const val QUICK_SECONDS = 5L
+private const val QUICK_MAX_BYTES = 64L * 1024
+private val shared = OkHttpClient() // connections and threads are reused across servers
 
 // One connection to one server. The token only ever goes to that server, in a
-// header, so it stays out of URLs and logs. Redirects from https to http are refused.
-class Api(val base: String, val token: String) {
-    val http: OkHttpClient = OkHttpClient.Builder()
+// header, so it stays out of URLs and logs. Redirects are never followed. Quick is
+// for questions to an address not yet trusted: short waits and small answers.
+class Api(val base: String, val token: String, private val quick: Boolean = false) {
+    val http: OkHttpClient = shared.newBuilder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS) // the first playback request probes the file
+        .callTimeout(if (quick) QUICK_SECONDS else 0, TimeUnit.SECONDS)
+        .followRedirects(false)
         .followSslRedirects(false)
         .addInterceptor(Interceptor { chain ->
             val req = chain.request()
@@ -49,7 +58,9 @@ class Api(val base: String, val token: String) {
             .url("$base$API$path")
             .method(method, body?.toRequestBody(JSON_TYPE))
             .build()
-        http.newCall(request).execute().use { res -> res.code to res.body.string() }
+        http.newCall(request).execute().use { res ->
+            res.code to if (quick) res.peekBody(QUICK_MAX_BYTES).string() else res.body.string()
+        }
     }
 
     private suspend fun call(method: String, path: String, body: String? = null): String {
@@ -91,6 +102,13 @@ class Api(val base: String, val token: String) {
         throw ApiError(status, errorText(status, text))
     }
 
+    // Errors carry the server's own plain words: a wrong, expired or used code, or too many tries.
+    suspend fun pairRedeem(code: String, device: String, platform: String): LoginResult =
+        json.decodeFromString(call("POST", "/pair/redeem", json.encodeToString(PairRedeemRequest(code, device, platform))))
+
+    suspend fun identity(nonce: String): IdentityAnswer =
+        json.decodeFromString(call("POST", "/identity", json.encodeToString(IdentityRequest(nonce))))
+
     suspend fun saveProgress(id: Long, positionSec: Double, durationSec: Double) {
         call("POST", "/items/$id/progress", json.encodeToString(ProgressReport(positionSec, durationSec)))
     }
@@ -113,21 +131,42 @@ sealed interface Probe {
 }
 
 suspend fun probeServer(url: String): Probe {
-    val api = Api(url, "")
+    val api = Api(url, "", quick = true)
     return try {
         val caps = api.capabilities()
         when {
             caps.server != "WittyMediaServer" -> Probe.Failed("not-server")
+            1 !in caps.apiVersions -> Probe.Failed("app-old")
             caps.setupRequired -> Probe.Failed("not-set-up")
             else -> Probe.Found(api.status())
         }
+    } catch (_: SSLException) {
+        Probe.Failed("certificate")
     } catch (_: IOException) {
         Probe.Failed("unreachable")
     } catch (e: ApiError) {
         // No /capabilities: an older server, if it says it is one at all.
         val old = e.status == 404 && runCatching { api.status().name == "WittyMediaServer" }.getOrDefault(false)
         Probe.Failed(if (old) "server-old" else "not-server")
-    } catch (_: kotlinx.serialization.SerializationException) {
+    } catch (_: SerializationException) {
         Probe.Failed("not-server")
+    }
+}
+
+// Has the server at this address proved it holds its key, and is that a key we
+// remember? A new nonce every time, and no token goes with the question.
+suspend fun identify(url: String, saved: List<SavedServer>): ServerProof {
+    val nonce = Identity.newNonce()
+    return try {
+        val answer = Api(url, "", quick = true).identity(nonce)
+        val state = withContext(Dispatchers.Default) { Identity.judge(answer, nonce, url, saved) }
+        if (state == IdentityState.Bad) ServerProof(state)
+        else ServerProof(state, answer.serverId, answer.publicKey, Identity.fingerprint(answer.publicKey))
+    } catch (_: IOException) {
+        ServerProof(IdentityState.Unreachable)
+    } catch (e: ApiError) {
+        ServerProof(if (e.status == 404) Identity.unanswered(url, saved) else IdentityState.Bad)
+    } catch (_: SerializationException) {
+        ServerProof(IdentityState.Bad)
     }
 }

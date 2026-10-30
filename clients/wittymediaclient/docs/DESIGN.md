@@ -80,9 +80,9 @@ The API is `docs/CLIENT-API.md`, owned by the `client-contract` work. The flow o
 
 A name and password remain available everywhere as the fallback.
 
-**Status:** only the code shown on the device and the password route are built. Finding servers, typed
-codes and the identity check are decided but [not built](PLATFORMS.md#connecting), because the server
-side isn't committed yet.
+**Status:** the whole flow is built on every client but has only been run on the desktop. On Android it
+compiles and its logic and network calls are tested, but no screen has run and no real network has been
+searched. On Apple it has never been compiled. See [what has been checked](PLATFORMS.md#connecting).
 
 ### Discovery by platform
 

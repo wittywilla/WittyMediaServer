@@ -63,6 +63,7 @@ final class ModelTests: XCTestCase {
         let caps: Capabilities = try fixture("capabilities")
         XCTAssertEqual(caps.server, "WittyMediaServer")
         XCTAssertEqual(caps.features?.contains("pairing"), true)
+        XCTAssertEqual(caps.apiVersions, [1])
     }
 
     func testPairStart() throws {

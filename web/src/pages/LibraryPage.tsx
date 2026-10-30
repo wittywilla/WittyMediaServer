@@ -7,6 +7,7 @@ import { IconRefresh } from '../icons'
 import { toast } from '../state'
 import AudioLibrary from './AudioLibrary'
 import BooksLibrary from './Books'
+import { GamesLibrary } from './Games'
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
@@ -16,6 +17,7 @@ export default function LibraryPage() {
   const lib = libraries.find((l) => String(l.id) === id)
   if (lib && AUDIO.includes(lib.type)) return <AudioLibrary key={lib.id} lib={lib} />
   if (lib?.type === 'books') return <BooksLibrary key={lib.id} lib={lib} />
+  if (lib?.type === 'games') return <GamesLibrary key={lib.id} lib={lib} />
   return <VideoLibrary />
 }
 

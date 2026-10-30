@@ -173,7 +173,7 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 		return nil, ErrBusy
 	}
 	id := newID()
-	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}),
+	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
 		viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
 		audioCh: make(chan []byte, 32)}
 	m.sessions[id] = s
@@ -250,6 +250,8 @@ type Session struct {
 
 	viewMu        sync.Mutex
 	viewers       map[*viewer]bool
+	paused        bool // what the runner was last told; it starts paused
+	menuPaused    bool // someone has a menu open
 	noViewerSince time.Time
 	lastInput     time.Time
 	h264, vp8     *videoEncoder
@@ -532,6 +534,15 @@ const MaxPlayers = 4
 
 // Reset is the console's reset button.
 func (s *Session) Reset() error { return s.command(ipc.CmdReset) }
+
+// Pause stops or restarts the game, as a menu does.
+func (s *Session) Pause(on bool) error {
+	s.viewMu.Lock()
+	defer s.viewMu.Unlock()
+	s.menuPaused = on
+	s.applyPauseLocked()
+	return nil
+}
 
 // SlotName is the state file for a slot: 0 is the automatic save, 1-9 the
 // manual ones. Paths are built only from this number.

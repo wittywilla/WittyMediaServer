@@ -273,6 +273,56 @@ func TestWebSocketFallbacks(t *testing.T) {
 	}
 }
 
+// A viewer who connects while a menu has paused the game still gets a picture, and
+// the game stays paused.
+func TestViewerJoiningWhilePaused(t *testing.T) {
+	m := newManager(t)
+	s := startGame(t, m, t.TempDir(), false)
+	defer s.Stop()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.ServeWS(w, r, "jpeg")
+	}))
+	defer srv.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	read := func(c *websocket.Conn) {
+		t.Helper()
+		for {
+			typ, b, err := c.Read(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if typ == websocket.MessageBinary && b[0] == wsJPEG {
+				return
+			}
+		}
+	}
+	first, _, err := websocket.Dial(ctx, srv.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.SetReadLimit(1 << 24)
+	read(first)
+	if err := s.Pause(true); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(300 * time.Millisecond)
+	second, _, err := websocket.Dial(ctx, srv.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.SetReadLimit(1 << 24)
+	defer second.Close(websocket.StatusNormalClosure, "")
+	read(second)
+	first.Close(websocket.StatusNormalClosure, "")
+	s.viewMu.Lock()
+	paused := s.paused
+	s.viewMu.Unlock()
+	if !paused {
+		t.Fatal("a new viewer must not unpause a game a menu has paused")
+	}
+}
+
 func TestBadInputIgnored(t *testing.T) {
 	m := newManager(t)
 	s := startGame(t, m, t.TempDir(), false)

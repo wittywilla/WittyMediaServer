@@ -3,6 +3,7 @@ import { api, type Library } from '../api'
 import { IconFolder, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
 import { ChooseFolderButton } from './FolderPicker'
+import { ConsolePicker } from '../pages/Games'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
 // folder it's in. Used by the setup wizard and the empty home page.
@@ -17,6 +18,7 @@ export const LIB_TYPES = [
   { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by RSS feed or search a free directory; add episode files you already have' },
   { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
+  { type: 'games', name: 'Games', hint: 'Your own game files, by console, played right in the browser with a gamepad, keyboard or touch' },
 ]
 
 // What each kind of library expects in its folder, shown once it's chosen.
@@ -24,6 +26,7 @@ const FOLDER_HINT: Record<string, string> = {
   movies: 'Disc images (.iso) and VIDEO_TS or BDMV folders in here are listed as DVDs and Blu-rays, and you can mark each one as a film or a TV series.',
   shows: 'Disc images of a series are listed with the show’s discs and keep their menus.',
   discs: 'Only DVD and Blu-ray images and folders are picked up. Each disc is sorted as a film or a TV series from its name; you can change that on the disc’s page.',
+  games: 'Bring your own game files: nothing is bundled or downloaded. Zipped games work, and a .cue or .m3u keeps a multi-file game together.',
 }
 
 export type Grouping = 'combine' | 'separate'
@@ -43,10 +46,13 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   const [busy, setBusy] = useState(false)
   const [following, setFollowing] = useState<Library | null>(null) // a new podcasts library
   const [target, setTarget] = useState(0) // the library the folders join; 0 = a new one
+  const [console_, setConsole] = useState('auto') // games: which console this library holds
+  const [consoleName, setConsoleName] = useState('Games')
   const t = LIB_TYPES.find((x) => x.type === type)
-  const same = existing.filter((l) => l.type === type)
+  const same = existing.filter((l) => l.type === type && (type !== 'games' || (l.console || 'auto') === console_))
   const joining = same.find((l) => l.id === target)
-  const newName = name.trim() || (same.length ? `${t?.name} ${same.length + 1}` : t?.name || '')
+  const kindLabel = type === 'games' ? consoleName : t?.name
+  const newName = name.trim() || (same.length ? `${kindLabel} ${same.length + 1}` : kindLabel || '')
   const choose = (k: string) => {
     const s = existing.filter((l) => l.type === k)
     setType(k); setName(''); setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
@@ -60,8 +66,8 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     setBusy(true); setErr('')
     try {
       const lib = joining
-        ? await api.put<Library>(`/libraries/${joining.id}`, { name: joining.name, type: joining.type, paths: [...new Set([...joining.paths, ...paths])] })
-        : await api.post<Library>('/libraries', { name: newName, type, paths })
+        ? await api.put<Library>(`/libraries/${joining.id}`, { name: joining.name, type: joining.type, console: joining.console, paths: [...new Set([...joining.paths, ...paths])] })
+        : await api.post<Library>('/libraries', { name: newName, type, paths, console: type === 'games' ? console_ : undefined })
       if (pods) setFollowing(lib) // straight on to following shows
       else { onAdded(lib); reset() }
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
@@ -96,6 +102,11 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     <div className="oobe-lib">
       <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{t.name}</b></div>
       {pods && <PodcastWays />}
+      {type === 'games' && <ConsolePicker value={console_} onChange={(id, label) => {
+        setConsole(id); setConsoleName(label); setName('')
+        const s = existing.filter((l) => l.type === 'games' && (l.console || 'auto') === id)
+        setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
+      }} />}
       {same.length > 0 && (
         <div className="lib-dest" role="radiogroup" aria-label="Where these folders go">
           <label className={'lib-dest-opt' + (joining ? ' on' : '')}>
@@ -117,7 +128,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       )}
       {!joining && (
         <label className="oobe-field">Library name
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={same.length ? `e.g. ${t.name} ${same.length + 1}` : t.name} maxLength={60} />
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={same.length ? `e.g. ${kindLabel} ${same.length + 1}` : kindLabel} maxLength={60} />
           {same.some((l) => l.name.toLowerCase() === newName.toLowerCase()) && <span className="muted" style={{ fontWeight: 400, fontSize: 12.5 }}>You already have a library with this name; a different one makes them easier to tell apart.</span>}
         </label>
       )}
@@ -127,7 +138,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       </div>
       <div className="field-row">
         <ChooseFolderButton className={'btn ' + (paths.length || pods ? '' : 'primary')} label={paths.length ? 'Add another folder…' : 'Choose folder…'} onPick={addPath} />
-        <input className="input" placeholder={`…or type a path, e.g. ${pods ? 'D:\\Podcasts' : 'D:\\Movies'}`} aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)}
+        <input className="input" placeholder={`…or type a path, e.g. ${pods ? 'D:\\Podcasts' : type === 'games' ? 'D:\\Games' : 'D:\\Movies'}`} aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPath(manual) } }} />
       </div>
       {FOLDER_HINT[t.type] && <p className="muted oobe-hint" style={{ marginTop: 10 }}>{FOLDER_HINT[t.type]}</p>}

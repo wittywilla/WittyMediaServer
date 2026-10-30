@@ -55,16 +55,30 @@ const (
 // attach counts a viewer in and wakes the game up if it was the first.
 func (s *Session) attach(v *viewer) {
 	s.viewMu.Lock()
-	first := len(s.viewers) == 0
 	s.viewers[v] = true
 	s.lastInput = time.Now()
 	if v.pc != nil {
 		s.startOpusLocked()
 	}
+	s.applyPauseLocked()
 	s.viewMu.Unlock()
-	if first {
-		_ = s.command(ipc.CmdPause, []byte{0}) // CmdPause: run
+	// A paused game makes no new frames, but a new viewer still needs a picture.
+	s.signalFrame()
+}
+
+// applyPauseLocked tells the runner whether to run: only with someone watching,
+// and not while a menu has paused it. It says so only when that has changed.
+func (s *Session) applyPauseLocked() {
+	paused := s.menuPaused || len(s.viewers) == 0
+	if paused == s.paused {
+		return
 	}
+	s.paused = paused
+	b := byte(0)
+	if paused {
+		b = 1
+	}
+	_ = s.command(ipc.CmdPause, []byte{b})
 }
 
 // detach counts a viewer out; with none left the game pauses and encoders stop.
@@ -75,17 +89,14 @@ func (s *Session) detach(v *viewer) {
 		return
 	}
 	delete(s.viewers, v)
-	last := len(s.viewers) == 0
-	if last {
+	if len(s.viewers) == 0 {
 		s.noViewerSince = time.Now()
 		s.stopEncodersLocked()
 	} else if !s.anyWebRTCLocked() {
 		s.stopOpusLocked()
 	}
+	s.applyPauseLocked()
 	s.viewMu.Unlock()
-	if last {
-		_ = s.command(ipc.CmdPause, []byte{1}) // CmdPause: stop
-	}
 }
 
 func (s *Session) anyWebRTCLocked() bool {

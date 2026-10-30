@@ -448,6 +448,7 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Type string `json:"type"`
 		Slot int    `json:"slot"`
+		On   bool   `json:"on"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -465,6 +466,8 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.LoadState(b.Slot)
 	case "reset":
 		err = sess.Reset()
+	case "pause":
+		err = sess.Pause(b.On)
 	default:
 		writeErr(w, 400, "unknown action")
 		return

@@ -13,6 +13,7 @@ import ShowPage from './pages/ShowPage'
 import { AlbumPage } from './pages/AudioLibrary'
 import { AudioProvider } from './audio/player'
 import ReaderPage from './pages/Reader'
+import { GamePage } from './pages/Games'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
@@ -52,9 +53,12 @@ function Shell() {
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
+  const isGame = loc.pathname.startsWith('/game/')
   return (
     <AudioProvider>
-      {isReader ? <Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+      {isReader ? <Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes>
+        : isGame ? <Routes><Route path="/game/:id" element={<GamePage />} /></Routes>
+        : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )

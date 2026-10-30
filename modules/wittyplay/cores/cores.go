@@ -95,7 +95,7 @@ func DefaultExtra() []string {
 // core elsewhere.
 func (m *Manager) List() []Core {
 	seen := map[string]bool{}
-	var out []Core
+	out := []Core{}
 	read := func(dir, source string) {
 		ents, err := os.ReadDir(dir)
 		if err != nil {

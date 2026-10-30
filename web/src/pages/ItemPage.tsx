@@ -5,6 +5,7 @@ import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fm
 import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
+import { GameDetails } from './Games'
 import { Spinner, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
@@ -25,6 +26,7 @@ export default function ItemPage() {
   if (err) return <div className="error">{err}</div>
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />
+  if (it.kind === 'game') return <GameDetails it={it} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)

@@ -96,8 +96,12 @@ function focus(el: HTMLElement) {
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+// While a game is being played its controls belong to the game; its menus use the
+// normal navigation again.
+const inGame = () => !!document.querySelector('.wp-playing')
+
 function onKey(e: KeyboardEvent) {
-  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return
   const target = e.target as Element | null
   const dir = DIRS[e.key]
   if (dir) {
@@ -147,6 +151,7 @@ const held = new Map<string, number>() // key -> next repeat time
 function poll() {
   const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
   if (!pads.length) { polling = false; held.clear(); return }
+  if (inGame()) { held.clear(); requestAnimationFrame(poll); return }
   const now = performance.now()
   const down = new Set<string>()
   for (const p of pads) {

@@ -252,7 +252,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
 const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
-	"media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
+	"media-src 'self' blob: https:; connect-src 'self' https: ws: wss:; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer

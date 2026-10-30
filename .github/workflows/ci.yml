@@ -19,7 +19,7 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
-      - run: go test ./... -count=1
+      - run: WMS_TEST_LAN=1 go test ./... -count=1
       # go.work builds the modules against each other's local source.
       - name: WittyDisc, WittyDVD, WittyBluray and WittyIntegratedFileBrowser modules (their own go.mod)
         run: |

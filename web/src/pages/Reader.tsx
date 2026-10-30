@@ -63,6 +63,7 @@ export default function ReaderPage() {
   if (!host) return <div className="reader center"><div className="spinner" /></div>
   return (
     <HostContext.Provider value={host}>
+      <h1 className="sr-only">{it?.title}</h1>
       {host.format === 'pdf' ? <Suspense fallback={<div className="reader center"><div className="spinner" /></div>}><WittyPDF /></Suspense>
         : host.format === 'cbz' ? <WittyComics /> : <WittyEbook />}
     </HostContext.Provider>

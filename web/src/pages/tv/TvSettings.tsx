@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { api, fmtRuntime, mediaUrl } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
 import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
@@ -19,6 +19,7 @@ export default function TvSettings() {
       <Route path="new" element={<ChannelEditor />} />
       <Route path="edit/:id" element={<ChannelEditor />} />
       <Route path="tuner/:id" element={<TunerChannels />} />
+      <Route path="*" element={<Navigate to="/settings/channels" replace />} />
     </Routes>
   )
 }

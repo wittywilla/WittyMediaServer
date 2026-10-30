@@ -39,7 +39,7 @@ export default function RecordingsPage() {
         <Link className="ctv-btn sm" to="/tv">Back to the guide</Link>
       </header>
       {err && <div className="ctv-err" role="alert">{err}</div>}
-      {list && list.length === 0 && <p className="ctv-list-empty">Nothing recorded yet. Highlight a programme on a Live TV channel in the guide and press R.</p>}
+      {list && list.length === 0 && <p className="ctv-list-empty">Nothing recorded yet. Highlight a show on a Live TV channel in the guide and press R.</p>}
       {list && list.length > 0 && (
         <ul className="ctv-list">
           {list.map((r) => (

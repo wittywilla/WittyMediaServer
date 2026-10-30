@@ -137,7 +137,8 @@ ipcMain.handle('open-server', async (e, s) => {
 ipcMain.on('theme', (e, t) => {
   if (e.sender !== content.webContents || !t) return
   const ok = (c) => typeof c === 'string' && COLOUR.test(c)
-  if (ok(t.bg) && ok(t.fg) && ok(t.border)) bar.webContents.send('theme', { bg: t.bg, fg: t.fg, border: t.border })
+  // A hairline in a form this check doesn't know mustn't stop the rest applying.
+  if (ok(t.bg) && ok(t.fg)) bar.webContents.send('theme', { bg: t.bg, fg: t.fg, border: ok(t.border) ? t.border : 'transparent' })
 })
 
 ipcMain.on('window', (e, action) => {

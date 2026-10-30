@@ -62,20 +62,32 @@ the server.
 
 ## Connecting to a server
 
-The flow is the same on every client:
+The API is `docs/CLIENT-API.md`, owned by the `client-contract` work. The flow on every client:
 
 1. **Find.** The app lists servers it finds on the local network, and always offers "Enter an
    address" beside them. On TV the first found server already has focus, so one press selects it.
-2. **Prove.** A found server asks for its **security code**, so a neighbour's device on the same
-   network can't simply attach. Digits only, entered with a number pad that works from a remote.
-3. **Sign in.** Pick a profile, or enter a name and password, using the server's existing rules.
+2. **Prove.** Connecting takes a code, so a neighbour's device on the same network can't simply attach.
+   There are two directions, and both end signed in:
+   - **A code typed on the device:** someone already signed in gets six digits and types them with a
+     number pad that works from a remote. This is the owner's requirement.
+   - **A code shown on the device:** the TV shows a code, and someone approves it on a phone. This is
+     the easier one when typing on the TV is the hard part.
+3. **Check.** Before sending a sign-in to an address, the app has the server prove its identity with a
+   fresh signature, against the key it remembered from the first connection. A mismatch is refused and
+   explained, because it may be a different machine pretending to be the server.
 4. **Remember.** The server and token are kept in the platform's secret store, and the next launch
    goes straight to the home screen.
 
+A name and password remain available everywhere as the fallback.
+
+**Status:** only the code shown on the device and the password route are built. Finding servers, typed
+codes and the identity check are decided but [not built](PLATFORMS.md#connecting), because the server
+side isn't committed yet.
+
 ### Discovery by platform
 
-The transport comes from `docs/CLIENT-API.md` (owned by the `client-contract` work). We asked for
-mDNS/DNS-SD as the primary transport, because of the Apple row below.
+The server announces `_wittymedia._tcp` by mDNS/DNS-SD, with a UDP broadcast as an extra for clients
+with raw sockets.
 
 | Platform | Mechanism | Limit |
 |---|---|---|
@@ -88,8 +100,8 @@ mDNS/DNS-SD as the primary transport, because of the Apple row below.
 
 A typed address is normalised the same way everywhere (`shared/data/connection-cases.json`): add
 `http://` if there's no scheme, add port 9797 only if the user gave neither a scheme nor a port, and
-strip trailing slashes and paths. The app then confirms it really is a WittyMediaServer through
-`GET /api/status` before saving anything.
+strip trailing slashes and paths. The app then confirms it really is a WittyMediaServer before saving
+anything: through `GET /api/v1/capabilities` on the native apps, and `GET /api/status` on the desktop.
 
 Plain HTTP is allowed to private and local addresses, because that's how home servers run. On a
 public hostname it is refused with an explanation and a suggestion to use HTTPS, because a token
@@ -99,8 +111,9 @@ enabled there and the check in the app's own connection code is what refuses pub
 
 ### Tokens
 
-- **Native clients** send `Authorization: Bearer` on every API, image and media request, including
-  HLS segments, so the token never appears in a URL or a log.
+- **Native clients** send `Authorization: Bearer` on API and artwork requests. Players get the address
+  from `/playback`, which carries a short-lived stream token that is read-only and for one item. AVPlayer
+  has no supported way to add headers, and a stream token is far less powerful to leak.
 - **Storage:** Keychain on Apple, and an Android Keystore-wrapped value with backups disabled. Shells
   hold no token themselves: the web UI manages its own session as it does in a browser, and the
   desktop app only remembers server addresses and its window size.
@@ -133,9 +146,9 @@ The roadmap asks for Windows 7 and up. **This is flagged, not assumed.** The cos
 - A legacy build would mean a second release line, frozen on a browser engine with years of known
   vulnerabilities, displaying pages from the network. That conflicts with the security-first rule.
 
-**Decision for this pass:** the desktop client targets Windows 10 and later. Windows 7 users can run
-the frozen legacy build only if the owner explicitly decides to accept that risk; it would be limited
-to private addresses and labelled as unsupported. See [OWNER-STEPS.md](OWNER-STEPS.md).
+**Decision for this pass:** the desktop client targets Windows 10 and later, and no legacy build exists.
+The owner may decide otherwise: such a build would be limited to private addresses and labelled as
+unsupported. See [OWNER-STEPS.md](OWNER-STEPS.md).
 
 ## Input
 
@@ -153,9 +166,9 @@ Every client follows `shared/data/input-map.json`.
 
 ## Themes
 
-`/api/themes` and `/api/status` name the active theme. Native clients read colours from
-`shared/data/themes.json`, which is bundled, and fall back to the default theme for a custom theme uploaded
-to a server, whose CSS they can't apply yet. Shells show themes exactly, because they display the
+`/api/status` names the server's theme. Native clients read colours from `shared/data/themes.json`, which
+is bundled, and fall back to the default theme for a custom theme uploaded to a server. The server's
+`/themes/{id}/tokens.json` can replace the bundled copy later, and would cover uploaded themes too. Shells show themes exactly, because they display the
 server's own page, and the desktop's title bar reads its colours from that page's CSS variables.
 
 ## Performance rules
@@ -163,6 +176,7 @@ server's own page, and the desktop's title bar reads its colours from that page'
 - Lists are lazy, and images are requested at the size shown and cached on disk with a bound.
 - No animation on focus beyond a border or small scale change.
 - No background work while playing, other than saving progress every 10 seconds.
+- The player stops the server's conversion when the viewer leaves, so a closed stream costs nothing.
 - Android builds with R8 and ships a baseline profile when one can be generated on a device.
 
 ## Feature phases

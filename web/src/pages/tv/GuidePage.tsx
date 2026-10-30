@@ -111,7 +111,7 @@ export default function GuidePage() {
       setTotal(g.total)
       setGroups(g.groups)
       setServerLook({ layout: g.layout, colours: g.skin })
-      setRows((r) => { const n = { ...r }; g.channels.forEach((c, i) => { n[g.offset + i] = c }); return n })
+      setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
     } catch (e: any) { loaded.current.delete(key); setErr(e.message) }
   }, [fetchFrom, filterKey, filter.kind, filter.group])

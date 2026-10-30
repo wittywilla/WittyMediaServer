@@ -512,7 +512,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item
-	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, Access: acc, NoTotal: true, Brief: true})
+	all, _, _ := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, HasArt: true, Access: acc, NoTotal: true, Brief: true})
 	for _, it := range all {
 		if it.Backdrop != "" {
 			featured = append(featured, it)
@@ -526,6 +526,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		if len(featured) > 8 {
 			featured = featured[:8]
 		}
+	}
+	if featured == nil {
+		featured = []*library.Item{}
 	}
 	_ = s.Store.AttachProgress(ctx, u.ID, featured)
 	for _, h := range hubs {

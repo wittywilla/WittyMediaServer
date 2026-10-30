@@ -673,7 +673,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	offset := max(qInt(r, "offset", 0), 0)
 	kind := r.URL.Query().Get("kind")
 	group := r.URL.Query().Get("group")
-	var rows []guideChannel
+	rows := []guideChannel{}
 	if kind == "" || kind == "library" {
 		rows = append(rows, s.libraryRows(ctx, r)...)
 	}

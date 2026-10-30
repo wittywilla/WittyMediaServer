@@ -472,6 +472,9 @@ type ItemQuery struct {
 	// NoGallery leaves out photo, vertical video and creator libraries, which
 	// are not what the home page's hero or Shuffle are for.
 	NoGallery bool
+	// HasArt: only items with a backdrop or a frame from the video, for the home
+	// page's hero, which would otherwise be an empty dark box.
+	HasArt bool
 	// Audio: one album (by album artist and album title).
 	Album       *string
 	AlbumArtist *string
@@ -556,6 +559,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.Watchable || q.NoGallery {
 		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type IN ('photos', 'shorts', 'channels', 'musicvideos', 'radio'))")
+	}
+	if q.HasArt {
+		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%')")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

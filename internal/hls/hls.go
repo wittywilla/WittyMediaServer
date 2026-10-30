@@ -212,13 +212,24 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	}
 	s.mu.Lock()
 	j := s.job
-	needStart := j == nil || j.finished() || n < j.startSeg || n > j.lastProduced()+6
+	// A stream that holds its last frame (DVD menus and interactive clips) is
+	// never entered part-way: such clips often carry a second of video and
+	// then minutes of sound over that one picture (a credits card, a game
+	// screen), so a seek past the last frame leaves nothing to show and the
+	// segments come out empty. It is converted from the start, which is
+	// quick for these short, simple clips, and later segments wait for it.
+	from := n
+	ahead := n > j.lastProducedOr(-1)+6
+	if s.Spec.HoldLastFrame {
+		from, ahead = 0, false
+	}
+	needStart := j == nil || j.finished() || n < j.startSeg || ahead
 	if needStart {
 		if j != nil {
 			s.stopLocked()
 		}
 		var err error
-		j, err = s.startLocked(n)
+		j, err = s.startLocked(from)
 		if err != nil {
 			s.mu.Unlock()
 			return "", err
@@ -277,6 +288,14 @@ func (j *job) finished() bool {
 }
 
 func (j *job) lastProduced() int { return j.lastSeg }
+
+// lastProducedOr is lastProduced for a job that may not exist.
+func (j *job) lastProducedOr(none int) int {
+	if j == nil {
+		return none
+	}
+	return j.lastSeg
+}
 
 func (s *Session) startLocked(fromSeg int) (*job, error) {
 	sp := s.Spec

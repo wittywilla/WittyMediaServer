@@ -63,6 +63,8 @@ var wittyTVMigrations = []string{
 	 CREATE INDEX IF NOT EXISTS recordings_start ON recordings(status, start);
 	 CREATE TABLE IF NOT EXISTS recording_rules (
 	   id INTEGER PRIMARY KEY, channel_id INTEGER NOT NULL, user_id INTEGER, title TEXT NOT NULL, created_at INTEGER NOT NULL);`,
+	// 3: whether a commercials library also appears in the main menus and Home.
+	`ALTER TABLE libraries ADD COLUMN show_main INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

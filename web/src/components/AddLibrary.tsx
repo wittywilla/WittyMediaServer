@@ -17,6 +17,7 @@ export const LIB_TYPES = [
   { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by RSS feed or search a free directory; add episode files you already have' },
   { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
+  { type: 'commercials', name: 'Commercials', hint: 'Your own adverts and bumpers to play between programmes on TV channels. Have as many of these as you like' },
 ]
 
 // What each kind of library expects in its folder, shown once it's chosen.

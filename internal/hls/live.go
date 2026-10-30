@@ -84,12 +84,17 @@ type LiveSession struct {
 	disc   int // discontinuities that have left the window
 	target float64
 	lastAt time.Time
-	err    error
-	failed chan struct{} // closed when err is set
-	stopd  bool
-	ready  chan struct{} // closed when the first segments exist
-	isRdy  bool
-	runs   int
+	// viewers: players that say who they are, and when each last asked. Those
+	// can say when they leave, so a channel flicked past does not hold FFmpeg
+	// or a tuner until the idle timeout.
+	viewers map[string]time.Time
+	anonAt  time.Time
+	err     error
+	failed  chan struct{} // closed when err is set
+	stopd   bool
+	ready   chan struct{} // closed when the first segments exist
+	isRdy   bool
+	runs    int
 	// nextDisc: the next segment follows a change of input.
 	nextDisc bool
 	// runner lets tests stand in for FFmpeg.
@@ -162,7 +167,7 @@ func (m *Manager) newLive(spec LiveSpec) *LiveSession {
 	dir := filepath.Join(m.root, "live-"+safeName(spec.ID))
 	_ = os.RemoveAll(dir)
 	_ = os.MkdirAll(dir, 0o755)
-	return &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), target: spec.SegmentSec,
+	return &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), anonAt: time.Now().Add(-viewerStale), target: spec.SegmentSec,
 		failed: make(chan struct{}), ready: make(chan struct{})}
 }
 
@@ -239,6 +244,60 @@ func (s *LiveSession) Touch() {
 	s.mu.Lock()
 	s.lastAt = time.Now()
 	s.mu.Unlock()
+}
+
+// viewerStale: a player silent this long has gone without saying so.
+const viewerStale = 30 * time.Second
+
+// Viewer records a named player as watching.
+func (s *LiveSession) Viewer(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastAt = time.Now()
+	if name == "" {
+		s.anonAt = s.lastAt
+		return
+	}
+	if s.viewers == nil {
+		s.viewers = map[string]time.Time{}
+	}
+	if len(s.viewers) < 4096 {
+		s.viewers[name] = s.lastAt
+	}
+}
+
+// watched says whether anyone is still here.
+func (s *LiveSession) watched() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now()
+	for k, at := range s.viewers {
+		if now.Sub(at) > viewerStale {
+			delete(s.viewers, k)
+		}
+	}
+	return len(s.viewers) > 0 || now.Sub(s.anonAt) < viewerStale
+}
+
+// leaveGrace lets the same person's next player take over (from the guide's
+// preview to full screen) without starting the channel again.
+const leaveGrace = 2 * time.Second
+
+// LeaveLive is a player saying it has gone. When it was the last, the channel
+// stops shortly after, freeing FFmpeg and any tuner.
+func (m *Manager) LeaveLive(id, viewer string) {
+	s := m.GetLive(id)
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	delete(s.viewers, viewer)
+	s.mu.Unlock()
+	time.AfterFunc(leaveGrace, func() {
+		if !s.watched() && m.GetLive(id) == s {
+			m.StopLive(id)
+		}
+	})
 }
 
 // Err is why the session failed, if it did.

@@ -178,6 +178,42 @@ func TestLiveFeedErrorIsReported(t *testing.T) {
 	}
 }
 
+func TestLiveLeaveStopsAChannelNobodyWatches(t *testing.T) {
+	m := testManager(t)
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) { return &LiveInput{AudioIndex: 0}, nil }}, fakeRun(3))
+	s.Viewer("a")
+	s.Viewer("b")
+	if !s.watched() {
+		t.Fatal("two viewers are watching")
+	}
+	m.LeaveLive("x", "a")
+	time.Sleep(leaveGrace + 300*time.Millisecond)
+	if m.GetLive("x") == nil {
+		t.Fatal("someone else is still watching")
+	}
+	m.LeaveLive("x", "b")
+	// The same person's next player can take over within the grace.
+	s.Viewer("c")
+	time.Sleep(leaveGrace + 300*time.Millisecond)
+	if m.GetLive("x") == nil {
+		t.Fatal("a new viewer arrived in time")
+	}
+	m.LeaveLive("x", "c")
+	time.Sleep(leaveGrace + 300*time.Millisecond)
+	if m.GetLive("x") != nil {
+		t.Fatal("the last viewer left: the channel should stop")
+	}
+	// A player that gave no name stays until it goes quiet.
+	s2 := startFake(t, m, LiveSpec{ID: "y", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) { return &LiveInput{AudioIndex: 0}, nil }}, fakeRun(3))
+	s2.Viewer("")
+	s2.Viewer("n")
+	m.LeaveLive("y", "n")
+	time.Sleep(leaveGrace + 300*time.Millisecond)
+	if m.GetLive("y") == nil {
+		t.Fatal("an unnamed player is still watching")
+	}
+}
+
 func TestLiveArgs(t *testing.T) {
 	m := testManager(t)
 	s := m.newLive(LiveSpec{ID: "x", MaxHeight: 720})

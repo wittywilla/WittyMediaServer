@@ -530,6 +530,11 @@ func (d *Definition) allRules() []Rules {
 	if d.Filler.Rules != nil {
 		out = append(out, *d.Filler.Rules)
 	}
+	for _, c := range d.Filler.Commercials {
+		if r, ok := c.rules(); ok {
+			out = append(out, r)
+		}
+	}
 	return out
 }
 

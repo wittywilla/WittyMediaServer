@@ -126,6 +126,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
                   ? `Your ${added.length === 1 ? 'library is' : `${added.length} libraries are`} being scanned now. Titles and posters appear as each one is found.`
                   : 'Add your first library any time from Settings → Libraries.'}
               </p>
+              <p className="muted">When your libraries have been scanned, you can make always-on TV channels out of them with one click, and add tuners or IPTV, under Settings → Channels &amp; tuners. There is nothing to set up now.</p>
               <ul className="oobe-summary">
                 <li className={added.length ? 'ok' : ''}><IconCheck size={16} /> {added.length ? `${added.length} ${added.length === 1 ? 'library' : 'libraries'} added` : 'No libraries yet'}</li>
                 <li className="ok"><IconCheck size={16} /> TV and movie information with no API key needed{keys ? `, plus ${keys} key${keys === 1 ? '' : 's'}` : ''}</li>

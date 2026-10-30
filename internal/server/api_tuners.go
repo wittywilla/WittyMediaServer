@@ -389,10 +389,12 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 		writeErr(w, 403, (&wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}).Error())
 		return
 	}
-	if _, err := s.ensureTunerLive(r, id); err != nil {
+	ls, err := s.ensureTunerLive(r, id)
+	if err != nil {
 		tuneError(w, err)
 		return
 	}
+	ls.Viewer(viewerName(r))
 	now := time.Now()
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: c.Logo, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		ServerTime: now.Unix(), CanRecord: true, BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60)}

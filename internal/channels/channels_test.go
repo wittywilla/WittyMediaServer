@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,7 +162,9 @@ func TestBlocksAndFit(t *testing.T) {
 		t.Fatal(err)
 	}
 	noOverlap(t, progs)
-	at := func(hh, mm int) int64 { return DayStart(day, time.UTC).Add(time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute).Unix() }
+	at := func(hh, mm int) int64 {
+		return DayStart(day, time.UTC).Add(time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute).Unix()
+	}
 	var a, b, c, after *Programme
 	for i := range progs {
 		p := &progs[i]
@@ -536,6 +539,133 @@ func TestVisibility(t *testing.T) {
 	off := &Channel{Enabled: false, Definition: kidChan.Definition}
 	if s.Visible(ctx, off, adult, nil) {
 		t.Error("a disabled channel is hidden")
+	}
+}
+
+func TestCommercials(t *testing.T) {
+	s, ls := testStore(t)
+	ctx := context.Background()
+	mk := func(name string, n int) (int64, []int64) {
+		lib, err := ls.CreateLibrary(ctx, name, library.CommercialsType, []string{"/c/" + name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ids []int64
+		for i := 0; i < n; i++ {
+			res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, runtime_sec, year, added_at, updated_at) VALUES(?, 'video', ?, ?, ?, 30, 1994, 1, 1)`,
+				lib.ID, fmt.Sprintf("/c/%s/%d.mkv", name, i), fmt.Sprintf("%s ad %d", name, i), fmt.Sprintf("%s ad %d", name, i))
+			if err != nil {
+				t.Fatal(err)
+			}
+			id, _ := res.LastInsertId()
+			ids = append(ids, id)
+		}
+		return lib.ID, ids
+	}
+	a, aIDs := mk("Nineties", 3)
+	b, bIDs := mk("Toys", 4)
+
+	// They never turn up as programmes, in Home-style lists or in suggestions.
+	st, err := s.Stats(ctx, Rules{})
+	if err != nil || st.Titles != 45 {
+		t.Fatalf("commercials leaked into a channel's programmes: %d %v", st.Titles, err)
+	}
+	if st, _ := s.Stats(ctx, Rules{Decades: []int{1990}}); st.Titles != 25 {
+		t.Fatalf("by decade: %d", st.Titles)
+	}
+	items, _, err := ls.Items(ctx, library.ItemQuery{Limit: 500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, it := range items {
+		if strings.Contains(it.Title, " ad ") {
+			t.Fatalf("a commercial reached a list across libraries: %s", it.Title)
+		}
+	}
+	mine, _, _ := ls.Items(ctx, library.ItemQuery{LibraryID: a, Limit: 50})
+	if len(mine) != 3 {
+		t.Fatalf("its own library still lists them: %d", len(mine))
+	}
+	// An owner can choose to show a commercials library in the main views...
+	if err := ls.SetLibraryShowMain(ctx, a, true); err != nil {
+		t.Fatal(err)
+	}
+	lib, _ := ls.Library(ctx, a)
+	if !lib.ShowMain || lib.Hidden() {
+		t.Fatalf("%+v", lib)
+	}
+	items, _, _ = ls.Items(ctx, library.ItemQuery{Limit: 500})
+	shown := 0
+	for _, it := range items {
+		if strings.Contains(it.Title, "Nineties ad") {
+			shown++
+		} else if strings.Contains(it.Title, " ad ") {
+			t.Fatalf("another, hidden library leaked: %s", it.Title)
+		}
+	}
+	if shown != 3 {
+		t.Fatalf("a library switched on should list across libraries: %d", shown)
+	}
+	// ...and they are still not programmes.
+	if st, _ := s.Stats(ctx, Rules{}); st.Titles != 45 {
+		t.Fatalf("showing a library must not put it on channels: %d", st.Titles)
+	}
+	if err := ls.SetLibraryShowMain(ctx, a, false); err != nil {
+		t.Fatal(err)
+	}
+	// Only commercials libraries have the switch.
+	other, _ := ls.CreateLibrary(ctx, "Plain", "movies", []string{"/p"})
+	if err := ls.SetLibraryShowMain(ctx, other.ID, false); err == nil {
+		t.Fatal("other libraries have no such switch")
+	}
+
+	fillerOn := func(picks ...CommercialPick) map[int64]bool {
+		t.Helper()
+		def := &Definition{Mode: "simple", Rules: Rules{Genres: []string{"Comedy"}}, Order: Order{Mode: "sequential"}, AlignMin: 30, Filler: Filler{Between: 5, Commercials: picks}}
+		if err := def.Validate(); err != nil {
+			t.Fatal(err)
+		}
+		progs, _, err := GenerateDay(def, 1, 20000, time.UTC, State{}, func(r Rules, m int64) ([]Entry, error) { return s.LoadPool(ctx, r, m) }, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[int64]bool{}
+		for _, p := range progs {
+			if p.Kind == KindFiller {
+				got[p.ItemID] = true
+			} else if p.Kind == KindShow && strings.Contains(p.Title, " ad ") {
+				t.Fatal("a commercial was scheduled as a programme")
+			}
+		}
+		return got
+	}
+	// Two libraries, whole.
+	got := fillerOn(CommercialPick{Library: a}, CommercialPick{Library: b})
+	if len(got) != 7 {
+		t.Fatalf("both libraries: %v", got)
+	}
+	// One whole, and only chosen videos from another.
+	got = fillerOn(CommercialPick{Library: a}, CommercialPick{Library: b, Only: true, Items: []int64{bIDs[1]}})
+	if len(got) != 4 || !got[bIDs[1]] || got[bIDs[0]] || !got[aIDs[0]] {
+		t.Fatalf("chosen videos: %v", got)
+	}
+	// "Only these" with none chosen plays none: it never falls back to all.
+	got = fillerOn(CommercialPick{Library: b, Only: true})
+	if len(got) != 0 {
+		t.Fatalf("none chosen: %v", got)
+	}
+	// A video from another library cannot be smuggled in by a pick.
+	got = fillerOn(CommercialPick{Library: a, Only: true, Items: []int64{bIDs[0]}})
+	if len(got) != 0 {
+		t.Fatalf("a pick only reaches its own library: %v", got)
+	}
+	// They are checked against a profile's limits like anything else.
+	age := 7
+	kids := &auth.User{ID: 5, Kind: "kids"}
+	kidsA := library.DefaultAccess("kids")
+	c := &Channel{Enabled: true, Definition: Definition{Rules: Rules{Genres: []string{"Children"}, MaxAge: &age}, Filler: Filler{Commercials: []CommercialPick{{Library: a}}}}}
+	if s.Visible(ctx, c, kids, &kidsA) {
+		t.Fatal("unrated commercials must hide a channel from a Kids profile")
 	}
 }
 

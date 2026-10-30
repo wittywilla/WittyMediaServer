@@ -81,6 +81,9 @@ the file: `WMS_LISTEN` / `-listen`, `WMS_DATA_DIR` / `-data`, `WMS_METADATA_DIR`
 `WMS_FFMPEG` / `-ffmpeg`, `WMS_FFPROBE` / `-ffprobe`, `WMS_MAX_TRANSCODES` / `-max-transcodes`,
 `WMS_PUBLIC_URL` / `-public-url`, `WMS_NO_BROWSER=1` / `-open-browser=false`.
 
+`WMS_TUNER_COMMANDS=1` allows the custom command tuner, which runs a program on the server. There is no
+setting for it on purpose: a web session alone must not be able to turn it on.
+
 A typo in a setting name stops the server with a clear message instead of being ignored.
 
 ## Portable mode

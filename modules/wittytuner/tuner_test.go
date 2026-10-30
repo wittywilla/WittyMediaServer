@@ -48,7 +48,7 @@ http://stream.test/one.m3u8
 
 #EXTINF:-1 tvg-name="Fallback",
 http://stream.test/two.ts
-#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha
+#EXTPROP:inputstream.adaptive.license_type=com.widevine.alpha
 #EXTINF:-1,Locked Channel
 https://stream.test/locked.mpd
 #EXTINF:-1,Bad

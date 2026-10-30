@@ -11,8 +11,10 @@ export type Access = {
 export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; paths: string[]; createdAt: number
-  lastScanAt: number | null; scanning: boolean; itemCount: number
+  lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean
 }
+// A commercials library stays out of the menus and Home unless switched on.
+export const inMainMenus = (l: Library) => l.type !== 'commercials' || !!l.showMain
 export type DiscTitle = {
   number: number; durationSec: number; chapters: number[]; angles: number
   audio: string[]; subtitles: string[]; wide: boolean; standard: string

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
@@ -15,6 +15,8 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './se
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 
+const TvSettings = lazy(() => import('./tv/TvSettings'))
+
 // Settings: a menu of pages grouped by what they are about (beside the page
 // on wide screens, a row of buttons on phones), each page a column of
 // section cards in the middle of the screen.
@@ -25,6 +27,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconTv />, admin: true, hint: 'Player, DVDs and Blu-rays' },
+    { to: 'channels', label: 'Channels & tuners', icon: <IconTv />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
     { to: 'transcoding', label: 'Transcoding', icon: <IconTune />, admin: true, hint: 'Quality, hardware and formats' },
   ] },
   { title: 'You', pages: [
@@ -65,6 +68,7 @@ export default function SettingsPage() {
           <Route path="libraries" element={<Libraries />} />
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
+          <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
@@ -90,8 +94,23 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'podcasts', label: 'Podcasts', hint: 'RSS feeds you follow, plus episode files; the folder holds downloads' },
   { v: 'books', label: 'Books & comics', hint: 'EPUB, PDF, comics and manga' },
   { v: 'videos', label: 'Home videos', hint: 'Your own videos; nothing is looked up online' },
+  { v: 'commercials', label: 'Commercials', hint: 'Your own adverts and bumpers for TV channels; they stay out of Home and search' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
+
+// A commercials library works for channels whether or not it is on show.
+function CommercialsSwitch({ library }: { library: Library }) {
+  const { refreshLibraries } = useApp()
+  const set = async (show: boolean) => {
+    try { await api.put(`/libraries/${library.id}/main`, { show }); await refreshLibraries(); toast(show ? `${library.name} now shows in the menus and on Home` : `${library.name} is hidden, and still plays on channels`) } catch (e: any) { toast(e.message) }
+  }
+  return (
+    <div className="set-lib-switch">
+      <span><b>Show in the main menus and on Home</b><br /><small className="muted">Off: only channels use it. Either way, it plays on the channels you choose it for.</small></span>
+      <Switch checked={!!library.showMain} label={`Show ${library.name} in the main menus and on Home`} onChange={(v) => void set(v)} />
+    </div>
+  )
+}
 
 function Libraries() {
   const { libraries, refreshLibraries } = useApp()
@@ -145,6 +164,7 @@ function Libraries() {
                 {l.scanning && <span className="set-pill live">Scanning…</span>}
               </div>
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span>{p}</span></li>)}</ul>
+              {l.type === 'commercials' && <CommercialsSwitch library={l} />}
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> Edit</button>

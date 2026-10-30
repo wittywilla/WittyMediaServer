@@ -19,6 +19,10 @@ const genreList = `('|' || IFNULL(i.genres, '') || '|' || IFNULL(s.genres, '') |
 const playable = `i.missing = 0 AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')
 	AND COALESCE(json_extract(i.disc_json, '$.scrambled'), 0) = 0`
 
+// notCommercial keeps commercials out of what a channel plays as programmes.
+// A rule that names their library or the videos themselves still gets them.
+const notCommercial = `i.library_id NOT IN (SELECT id FROM libraries WHERE type = '` + library.CommercialsType + `')`
+
 func placeholders(n int) string {
 	return strings.TrimSuffix(strings.Repeat("?,", n), ",")
 }
@@ -44,6 +48,8 @@ func (r *Rules) where() (string, []any) {
 	}
 	if len(r.Libraries) > 0 {
 		add("i.library_id IN ("+placeholders(len(r.Libraries))+")", anyArgs(r.Libraries)...)
+	} else if len(r.Items) == 0 {
+		add(notCommercial)
 	}
 	if len(r.Kinds) > 0 {
 		var parts []string

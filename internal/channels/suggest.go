@@ -364,7 +364,7 @@ type genreCount struct {
 }
 
 func (s *Store) genreCounts(ctx context.Context) ([]genreCount, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT COALESCE(NULLIF(i.genres, ''), s.genres, '') FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+playable)
+	rows, err := s.DB.QueryContext(ctx, `SELECT COALESCE(NULLIF(i.genres, ''), s.genres, '') FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+notCommercial+` AND `+playable)
 	if err != nil {
 		return nil, err
 	}
@@ -452,14 +452,14 @@ func (s *Store) EditorOptions(ctx context.Context) (*Options, error) {
 		o.Genres = append(o.Genres, g.name)
 	}
 	sort.Strings(o.Genres)
-	if o.Studios, err = s.strings(ctx, `SELECT DISTINCT i.studio FROM items i WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND i.missing = 0 ORDER BY i.studio COLLATE NOCASE LIMIT 500`); err != nil {
+	if o.Studios, err = s.strings(ctx, `SELECT DISTINCT i.studio FROM items i WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND i.missing = 0 AND `+notCommercial+` ORDER BY i.studio COLLATE NOCASE LIMIT 500`); err != nil {
 		return nil, err
 	}
 	if o.Ratings, err = s.strings(ctx, `SELECT DISTINCT COALESCE(NULLIF(i.content_rating, ''), s.content_rating) AS r FROM items i LEFT JOIN shows s ON s.id = i.show_id
-		WHERE r IS NOT NULL AND r <> '' AND `+playable+` ORDER BY r LIMIT 200`); err != nil {
+		WHERE r IS NOT NULL AND r <> '' AND `+notCommercial+` AND `+playable+` ORDER BY r LIMIT 200`); err != nil {
 		return nil, err
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT `+yearExpr+` / 10 * 10 AS d FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE d IS NOT NULL AND d > 1800 AND `+playable+` ORDER BY d`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT `+yearExpr+` / 10 * 10 AS d FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE d IS NOT NULL AND d > 1800 AND `+notCommercial+` AND `+playable+` ORDER BY d`)
 	if err != nil {
 		return nil, err
 	}

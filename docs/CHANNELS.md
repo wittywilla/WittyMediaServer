@@ -27,7 +27,7 @@ Definition
                                           watched state, length, kind, hand-picked items…
   order     how it plays                  rotate | sequential | aired | shuffle, keep episodes in order
   blocks[]  day parts and timetable slots days, start, end, own rules, own order, fit
-  filler    between programmes            rules for bumpers, how many between shows
+  filler    between programmes            commercials libraries, bumper rules, how many between shows
   alignMin  start times snap to a grid    0, 5, 15, 30 or 60 minutes
 ```
 
@@ -58,6 +58,20 @@ previous day (where each pool had got to, and when the last programme ended).
 
 Days skipped because nobody watched are simulated, not stored, so an unwatched channel still moves
 on as real TV would. A definition change applies right after whatever is on now.
+
+### Commercials
+
+**Commercials** is a kind of library: the owner's own adverts and bumpers. There can be as many as they
+like, one for an era, one per channel. Its videos are never looked up online and never become a
+channel's programmes. Each library has a switch, off by default, for whether it also shows in the main
+menus, on Home and in search (*Settings → Libraries*). Channels can use it either way.
+
+Each channel chooses which commercials libraries it uses, and from each either all the videos or only
+the ones ticked. They play after each programme (0 to 5 of them) and fill the gaps to the time grid,
+and never count as watched. They come under a profile's limits like anything else: unrated commercials
+hide a channel from a Kids profile, since viewers share one stream.
+
+Breaks inside a programme are not done: commercials come between programmes.
 
 ### Tune in mid-show
 
@@ -211,20 +225,32 @@ thousands of channels stays quick.
 - Recordings come first: when no tuner is free, a live viewer on that tuner is stopped, with a
   message. A viewer and a recording do not yet share one tuner.
 
-## The classic look
+## The look
 
-The guide and the channel banner are styled after set-top boxes of the early 2000s, with original
-artwork and colours (no real provider's name, logo or layout):
+Everything about how the guide looks is the viewer's own choice, per device (**Look** on the guide).
+The owner sets what people start with (*Settings → Channels & tuners*).
 
-- a royal-blue grid with bevelled cells, a highlighted cell in yellow, and half-hour columns;
-- an information panel on top (the title, times, rating and description of the highlighted
-  programme) with a clock;
-- a help strip along the bottom with the coloured A, B and C buttons of a remote;
-- when tuning: a banner with the channel number, name, times, a progress bar and what is next;
-- number keys to dial a channel, CH+ and CH− with the arrows or Page keys, **Last** to go back.
+- **Layout: Classic box.** Bulky, bevelled and square, in the style of a cable or satellite box of the
+  early 2000s, with original artwork and colours (no real provider's name, logo or layout): raised
+  cells, half-hour columns, an information panel on top with a clock, and a help strip with the
+  coloured A, B and C buttons of a remote.
+- **Layout: Streaming.** Clean rows and soft corners, with how long is left on each programme.
+- **Colours:** Cable blue, Satellite black and amber, or the viewer's theme. Both fixed palettes are
+  checked against WCAG AA.
+- **The line at the current time** runs down all channels, and each programme on now fills up to it,
+  so it is plain how far in each channel is. Both can be turned off, in either layout.
+- **The preview:** a live picture, top right by default, in both layouts. It can show the highlighted
+  channel, the last channel watched, or be off; go in any corner or anywhere it is dragged (or nudged
+  with the arrow keys on its handle); and come in three sizes.
+- Row size, hours across the screen, episode names and logos can be changed too.
 
-Three skins: **Cable** (blue), **Satellite** (near-black with amber) and **Theme** (follows the
-server's theme). All are checked against WCAG AA.
+The preview waits for the highlight to settle, then shares the channel's ordinary stream, so a channel
+someone else is watching costs nothing extra. Each player names itself to the server and says when it
+leaves, so a channel only flicked past stops about two seconds later and frees FFmpeg and its tuner.
+On a tuner, a preview does use up a tuner, which is why it can be pointed at the last channel or off.
+
+Tuning shows a banner with the channel number, name, times, a progress bar and what is next. Number
+keys dial a channel, CH+ and CH− use the arrows or Page keys, and **Last** goes back.
 
 The grid is a real ARIA grid. Arrow keys move between programmes with a roving tab stop, every cell
 is read as "Channel 101, Comedy, The Show, 8:00 to 8:30 PM, on now", and it works with TV remotes,
@@ -239,6 +265,7 @@ The player reuses the on-screen remote and the shared controls, and adds channel
 | `GET /api/guide?from&hours&offset&limit&kind&group` | signed in | Channels and programmes |
 | `GET /api/tv/{key}/tune` | signed in | What is on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | signed in | The shared stream |
+| `POST /api/tv/{key}/leave?viewer=` | signed in | A player has gone |
 | `GET /api/channels` | signed in | Library channels this account may see |
 | `POST /api/channels`, `PUT`/`DELETE /api/channels/{id}` | admin | Manage |
 | `GET /api/channels/{id}`, `/history`, `POST /restore` | admin | Definition and earlier versions |
@@ -255,7 +282,35 @@ The player reuses the on-screen remote and the shared controls, and adds channel
 | `GET`/`POST /api/recordings`, `DELETE /api/recordings/{id}` | signed in, may use tuner channels | DVR |
 | `GET`/`PUT /api/tv/settings` | admin | Buffers, DVR folder, conversion limits |
 
+## Using it
+
+1. *Settings → Channels & tuners*. Under **Add with one click**, press **Add** on anything suggested,
+   such as a network your library has shows from. It is on the air straight away.
+2. **TV guide** in the menu. Arrow keys or the remote move around, Enter or OK watches, and number keys
+   dial a channel. **Look** changes how the guide looks on this device.
+3. For more control: **New channel**, or **Edit** on a channel. Start with Simple. Rules and Full
+   timetable are there if you want them.
+4. For your own adverts: *Settings → Libraries → Add library → Commercials*, then tick the library under
+   **Commercials** when editing a channel.
+5. For live TV: **Search for tuners**, or **Add** one under *Tuners and IPTV*. For a guide, add an XMLTV
+   address under *Guide data*, if the playlist did not bring its own.
+
+To let the custom command driver run, start the server with `WMS_TUNER_COMMANDS=1`.
+
 ## Status
 
-See [TV.md](TV.md) for the viewer's guide, and the driver table above for what has been tested on
-real hardware (nothing yet: no tuner was available while this was built).
+**Tested end to end on a real server with real FFmpeg:** one-click network channels, rule channels, hand
+timetables, tuning in mid-show, the guide and its looks, the preview, commercials, DVDs on a channel,
+IPTV playlists and streams against a local server, a stand-in network tuner, refusal of encrypted
+channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
+
+**Not tested on real hardware, because none was available:** every physical tuner. See the driver table.
+
+**Not done:**
+
+- Windows BDA digital tuning; DiSEqC dish switches on Linux DVB.
+- ATSC huffman-compressed guide text (those events are skipped).
+- Commercial breaks inside a programme (they play between programmes).
+- A viewer and a recording sharing one tuner on the same channel.
+- Recording disk-space checks and automatic clean-up of old recordings.
+- Guide data read over the air reaches only the channel being watched, not the others on its multiplex.

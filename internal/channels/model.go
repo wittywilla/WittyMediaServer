@@ -85,6 +85,29 @@ type Filler struct {
 	Between int `json:"between,omitempty"`
 	// MaxSeconds keeps longer files out of the filler (0 = no limit).
 	MaxSeconds int `json:"maxSeconds,omitempty"`
+	// Commercials are libraries of commercials this channel uses: any number
+	// of them, each whole or only the videos chosen here.
+	Commercials []CommercialPick `json:"commercials,omitempty"`
+}
+
+// CommercialPick is one commercials library on one channel.
+type CommercialPick struct {
+	Library int64 `json:"library"`
+	// Only: just the Items below, rather than the whole library.
+	Only  bool    `json:"only,omitempty"`
+	Items []int64 `json:"items,omitempty"`
+}
+
+// rules are what this pick chooses. ok is false when it chooses nothing.
+func (c CommercialPick) rules() (r Rules, ok bool) {
+	r = Rules{Libraries: []int64{c.Library}}
+	if c.Only {
+		if len(c.Items) == 0 {
+			return r, false
+		}
+		r.Items = c.Items
+	}
+	return r, true
 }
 
 // Visibility says which profiles see a channel, on top of their own limits.
@@ -163,6 +186,14 @@ func (d *Definition) Validate() error {
 	}
 	if d.Filler.Between < 0 || d.Filler.Between > 5 || d.Filler.MaxSeconds < 0 {
 		return errors.New("filler: between 0 and 5 bumpers")
+	}
+	if len(d.Filler.Commercials) > 100 {
+		return errors.New("too many commercials libraries")
+	}
+	for _, c := range d.Filler.Commercials {
+		if len(c.Items) > maxListLen {
+			return errors.New("too many commercials chosen")
+		}
 	}
 	return nil
 }

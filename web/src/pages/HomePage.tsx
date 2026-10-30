@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
+import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item, inMainMenus } from '../api'
 import AddLibrary from '../components/AddLibrary'
 import { ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconInfo, IconRefresh, libIcon } from '../icons'
@@ -193,11 +193,12 @@ function HubRow({ hub }: { hub: Hub }) {
 
 // LibraryTiles: a way into every library, with an Add tile for admins.
 const NOUNS: Record<string, [string, string]> = {
-  movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
+  movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], commercials: ['commercial', 'commercials'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
   music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
 }
 function LibraryTiles() {
-  const { libraries, user } = useApp()
+  const { libraries: allLibraries, user } = useApp()
+  const libraries = allLibraries.filter(inMainMenus)
   if (!libraries.length) return null
   return (
     <section className="hub">

@@ -44,7 +44,7 @@ func playlist(srv *httptest.Server) string {
 %[1]s/news.ts
 #EXTINF:-1 tvg-id="film.test" tvg-chno="6",Films
 %[1]s/film.ts
-#KODIPROP:inputstream.adaptive.license_key=abc
+#EXTPROP:inputstream.adaptive.license_key=abc
 #EXTINF:-1 tvg-chno="7",Locked
 %[1]s/locked.mpd
 #EXTINF:-1 tvg-chno="8",Scrambled

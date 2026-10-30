@@ -35,8 +35,10 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tv/{key}/tune", a(s.handleTune))
 	m.Handle("GET /api/tv/{key}/live/playlist.m3u8", a(s.handleLivePlaylist))
 	m.Handle("GET /api/tv/{key}/live/seg/{name}", a(s.handleLiveSegment))
+	m.Handle("POST /api/tv/{key}/leave", a(s.handleLiveLeave))
 	m.Handle("GET /api/tv/settings", ad(s.handleTVSettings))
 	m.Handle("PUT /api/tv/settings", ad(s.handlePutTVSettings))
+	m.Handle("PUT /api/libraries/{id}/main", ad(s.handleLibraryShowMain))
 	m.Handle("GET /api/channels", a(s.handleChannels))
 	m.Handle("POST /api/channels", ad(s.handleCreateChannel))
 	m.Handle("POST /api/channels/preview", ad(s.handleChannelPreview))
@@ -69,6 +71,28 @@ type channelView struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Logo        string `json:"logo"`
+}
+
+// PUT /api/libraries/{id}/main: whether a commercials library shows in the
+// menus and on Home. Channels can use it either way.
+func (s *Server) handleLibraryShowMain(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		Show bool `json:"show"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.Store.SetLibraryShowMain(r.Context(), id, b.Show); err != nil {
+		writeErr(w, 404, "no such commercials library")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 func (s *Server) handleChannels(w http.ResponseWriter, r *http.Request) {
@@ -457,8 +481,9 @@ var tvSettings = map[string]string{
 	"tvCopyVideo":        "1",  // pass H.264 through instead of converting it
 	"tvMaxHeight":        "0",  // 0 = the server's general limit
 	"tvSkin":             "cable",
-	"dvrFolder":          "", // "" = recordings in the data folder
-	"dvrLibrary":         "", // a library to rescan after recording
+	"tvLayout":           "classic", // classic | streaming: what a new viewer starts with
+	"dvrFolder":          "",        // "" = recordings in the data folder
+	"dvrLibrary":         "",        // a library to rescan after recording
 }
 
 func (s *Server) tvSetting(ctx context.Context, k string) string {
@@ -504,6 +529,11 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 		case "tvSkin":
 			if v != "cable" && v != "satellite" && v != "theme" {
 				writeErr(w, 400, "unknown guide style")
+				return
+			}
+		case "tvLayout":
+			if v != "classic" && v != "streaming" {
+				writeErr(w, 400, "unknown guide layout")
 				return
 			}
 		case "tvCopyVideo":
@@ -616,7 +646,8 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	}
 	to := from.Add(time.Duration(hours) * time.Hour)
 	limit := qInt(r, "limit", 40)
-	if limit < 1 || limit > 200 {
+	numbersOnly := qBool(r, "list")
+	if limit < 1 || (limit > 200 && !numbersOnly) || limit > 20000 {
 		limit = 40
 	}
 	offset := max(qInt(r, "offset", 0), 0)
@@ -650,7 +681,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 		offset = total
 	}
 	rows = rows[offset:min(offset+limit, total)]
-	if qBool(r, "list") {
+	if numbersOnly {
 		// Only the channel list: numbers for dialling, no programmes.
 		for i := range rows {
 			rows[i].Programmes = []guideProgramme{}
@@ -666,7 +697,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Strings(names)
 	writeJSON(w, 200, map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
-		"channels": rows, "groups": names, "skin": s.tvSetting(ctx, "tvSkin")})
+		"channels": rows, "groups": names, "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout")})
 }
 
 func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to time.Time) []guideProgramme {
@@ -771,10 +802,12 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if _, err := s.ensureLibraryLive(r, c); err != nil {
+	ls, err := s.ensureLibraryLive(r, c)
+	if err != nil {
 		liveError(w, err)
 		return
 	}
+	ls.Viewer(viewerName(r))
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		PositionSec: float64(now.Unix() - cur.Start), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
 	if c.Logo != "" {
@@ -788,6 +821,28 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
 	writeJSON(w, 200, info)
+}
+
+// viewerName is the name a player chose for itself, within reason.
+func viewerName(r *http.Request) string {
+	v := r.URL.Query().Get("viewer")
+	if len(v) > 40 {
+		return ""
+	}
+	return v
+}
+
+// POST /api/tv/{key}/leave?viewer=x: this player has gone.
+func (s *Server) handleLiveLeave(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	if _, _, ok := parseKey(key); !ok {
+		writeErr(w, 400, "bad channel")
+		return
+	}
+	if v := viewerName(r); v != "" {
+		s.HLS.LeaveLive(key, v)
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 func liveError(w http.ResponseWriter, err error) {
@@ -986,7 +1041,7 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	ls.Touch()
+	ls.Viewer(viewerName(r))
 	ctx, cancel := context.WithTimeout(r.Context(), 40*time.Second)
 	defer cancel()
 	if err := ls.WaitReady(ctx); err != nil {

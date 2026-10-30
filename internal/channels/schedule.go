@@ -417,15 +417,8 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 	dayStart := DayStart(day, loc)
 	dayEnd := DayStart(day+1, loc)
 	t := max(prev.Carry, dayStart.Unix())
-	if def.Filler.Rules != nil {
-		minimum := int64(1)
-		g.filler, g.err = g.load(*def.Filler.Rules, minimum)
-		if g.err != nil {
-			return nil, prev, g.err
-		}
-		if m := int64(def.Filler.MaxSeconds); m > 0 {
-			g.filler = slices.DeleteFunc(slices.Clone(g.filler), func(e Entry) bool { return e.Dur > m })
-		}
+	if err := g.loadFiller(); err != nil {
+		return nil, prev, err
 	}
 	for _, seg := range segments(def, dayStart, dayEnd) {
 		if t >= seg.end {
@@ -443,6 +436,35 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 	prev.Carry = t
 	prev.Filler = g.fillerR.next()
 	return g.out, prev, nil
+}
+
+// loadFiller gathers everything this channel may play between programmes: its
+// bumper rules and each of its commercials libraries.
+func (g *generator) loadFiller() error {
+	var sets []Rules
+	if r := g.def.Filler.Rules; r != nil {
+		sets = append(sets, *r)
+	}
+	for _, c := range g.def.Filler.Commercials {
+		if r, ok := c.rules(); ok {
+			sets = append(sets, r)
+		}
+	}
+	seen := map[int64]bool{}
+	for _, r := range sets {
+		entries, err := g.load(r, 1)
+		if err != nil {
+			return err
+		}
+		for _, e := range entries {
+			if m := int64(g.def.Filler.MaxSeconds); seen[e.ID] || (m > 0 && e.Dur > m) {
+				continue
+			}
+			seen[e.ID] = true
+			g.filler = append(g.filler, e)
+		}
+	}
+	return nil
 }
 
 func (g *generator) poolFor(seg segment) (*pool, error) {

@@ -3,6 +3,27 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### TV channels and live TV
+
+See [CHANNELS.md](docs/CHANNELS.md).
+
+- **Channels from your library** that run all the time: tune in part-way through a programme, as on
+  real TV. One click makes one from a TV network, an era, a genre or a show. Rules, day parts and a
+  full weekly timetable are there for whoever wants them, and moving between them loses nothing.
+- **As it aired**: shows in the day and time they first aired, where the metadata knows it.
+- **Commercials libraries**, as many as you like. Each channel uses a whole library or only the videos
+  you tick. Each library can be shown in the menus or kept out of the way.
+- **A guide with a look of your choosing**: a bulky classic cable or satellite box, or clean streaming
+  rows, with a line at the current time down all channels and a live preview you can put anywhere.
+- **Live TV** through the new **WittyTuner** module: IPTV playlists and streams, network tuners, Linux
+  DVB, capture cards, SAT>IP, external backends and a custom command. Most drivers have not been tried
+  on real hardware yet, and say so.
+- **Encrypted and copy-protected channels are detected and refused**, never decrypted.
+- **Guide data** from XMLTV and from the broadcasts themselves, and **recording** of live channels.
+- One stream per channel however many are watching, and FFmpeg runs only while someone is.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

@@ -59,6 +59,7 @@ func TestStreamTokenOpensOnlyItsOwnItem(t *testing.T) {
 	}
 	// Ranges work: native players seek with them.
 	r := httptest.NewRequest("GET", fmt.Sprintf("/api/items/%d/file?st=%s", a, tok), nil)
+	r.RemoteAddr = "192.168.1.50:4000"
 	r.Header.Set("Range", "bytes=1-2")
 	rec := httptest.NewRecorder()
 	ts.h.ServeHTTP(rec, r)

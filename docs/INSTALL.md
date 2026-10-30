@@ -170,9 +170,10 @@ home network only**: every device on the same Wi-Fi or cable network can open
 `http://<this computer's address>:9797` (the setup wizard and *Settings → About* show the address).
 
 **Setting up from another network.** Until the first account exists, whoever makes it owns the
-server, so from this computer and your home network setup just works, and from anywhere else (the
-internet, through a reverse proxy, or under a domain name) it also asks for a **setup code**. The
-server writes the code to its log when it starts (`This server has no accounts yet…`, in
+server, so from this computer and your home network setup just works. A server nobody can reach from
+a home network first (a rented one, say) needs `remoteAccess` turned on in its configuration
+([CONFIG.md](CONFIG.md)) and HTTPS, and from there, through a reverse proxy, or under a domain name,
+setup also asks for a **setup code**. The server writes the code to its log when it starts (`This server has no accounts yet…`, in
 `logs/` inside the data folder, in `docker logs`, or in `journalctl -u wittymediaserver`).
 
 **Installed with `install.ps1`?** Its firewall rule covers home and work networks, not public ones.

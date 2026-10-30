@@ -80,6 +80,7 @@ func (ts *galleryServer) do(method, path, token string, body any) *httptest.Resp
 		rd = bytes.NewReader(b)
 	}
 	r := httptest.NewRequest(method, path, rd)
+	r.RemoteAddr = "192.168.1.50:4000"
 	if token != "" {
 		r.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -108,6 +109,7 @@ func (ts *galleryServer) upload(token, name string, content []byte) *httptest.Re
 	_, _ = fw.Write(content)
 	_ = mw.Close()
 	r := httptest.NewRequest("POST", "/api/libraries/"+itoa(ts.lib.ID)+"/upload", &b)
+	r.RemoteAddr = "192.168.1.50:4000"
 	r.Header.Set("Content-Type", mw.FormDataContentType())
 	r.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -184,6 +186,7 @@ func TestUploadRules(t *testing.T) {
 		t.Errorf("an account without this library: %d", w.Code)
 	}
 	r := httptest.NewRequest("POST", "/api/libraries/"+itoa(ts.lib.ID)+"/upload", nil)
+	r.RemoteAddr = "192.168.1.50:4000"
 	w := httptest.NewRecorder()
 	ts.h.ServeHTTP(w, r)
 	if w.Code != 401 {

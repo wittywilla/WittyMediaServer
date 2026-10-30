@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -19,16 +21,34 @@ import (
 // Open to anyone, on purpose. Adding a route here should be a decision: the
 // sign-in screen needs these, and nothing behind them is private.
 var publicRoutes = map[string]bool{
-	"GET /api/status":                true,
-	"POST /api/setup":                true,
-	"POST /api/login":                true,
-	"POST /api/logout":               true,
-	"GET /api/profiles":              true,
-	"GET /api/themes":                true,
-	"GET /api/themes/{id}/download":  true,
-	"GET /api/themes/{id}/{file...}": true,
-	"GET /api/health":                true,
-	"GET /api/branding/logo":         true,
+	"GET /api/status":                  true,
+	"POST /api/setup":                  true,
+	"POST /api/login":                  true,
+	"POST /api/logout":                 true,
+	"GET /api/profiles":                true,
+	"GET /api/themes":                  true,
+	"GET /api/themes/{id}/download":    true,
+	"GET /api/themes/{id}/{file...}":   true,
+	"GET /api/health":                  true,
+	"GET /api/branding/logo":           true,
+	"GET /api/themes/{id}/tokens.json": true,
+	// What an app needs before it has an account: is this the right server,
+	// and sign-in by a code shown on the TV.
+	"GET /api/capabilities": true,
+	"POST /api/identity":    true,
+	"POST /api/pair/start":  true,
+	"POST /api/pair/poll":   true,
+	"POST /api/pair/redeem": true,
+	// Links someone was sent: the token in the address is the permission.
+	"GET /api/share/{token}":                        true,
+	"GET /api/share/{token}/image/{id}":             true,
+	"GET /api/share/{token}/original/{id}":          true,
+	"GET /api/share/{token}/play/{id}":              true,
+	"GET /api/share/{token}/file/{id}":              true,
+	"GET /api/share/{token}/hls/{id}/playlist.m3u8": true,
+	"GET /api/share/{token}/hls/{id}/seg/{n}":       true,
+	// The outside reachability test; an unknown address looks like any other.
+	"GET /api/reach/{nonce}": true,
 }
 
 var routeRe = regexp.MustCompile(`m\.Handle(?:Func)?\("((?:GET|POST|PUT|DELETE) (/api/[^"]*))",\s*(\S*)`)
@@ -41,16 +61,28 @@ func routeServer(t *testing.T) (*Server, *auth.Service) {
 	}
 	t.Cleanup(func() { d.Close() })
 	a := &auth.Service{DB: d}
-	return &Server{DB: d, Auth: a, Store: &library.Store{DB: d}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}, a
+	return &Server{Cfg: &config.Config{}, DB: d, Auth: a, Store: &library.Store{DB: d}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}, a
 }
 
 // Every route in server.go, as the code declares it: signed-out requests get
 // 401 unless the route is listed above, and administrators' routes refuse
 // everyone else. A new route is covered by being added.
 func TestEveryRouteChecksWhoIsAsking(t *testing.T) {
-	src, err := os.ReadFile("server.go")
+	// Every file that registers routes, not only server.go.
+	files, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
+	}
+	var src []byte
+	for _, name := range files {
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src = append(src, b...)
 	}
 	s, a := routeServer(t)
 	ctx := context.Background()
@@ -71,6 +103,7 @@ func TestEveryRouteChecksWhoIsAsking(t *testing.T) {
 	h := s.Handler()
 	call := func(method, path, token string) int {
 		r := httptest.NewRequest(method, path, strings.NewReader("{}"))
+		r.RemoteAddr = "192.168.1.50:4000"
 		if token != "" {
 			r.Header.Set("Authorization", "Bearer "+token)
 		}
@@ -78,7 +111,7 @@ func TestEveryRouteChecksWhoIsAsking(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w.Code
 	}
-	fill := strings.NewReplacer("{id}", "1", "{aid}", "1", "{sid}", "x", "{ttn}", "1", "{n}", "1", "{serial}", "1", "{name}", "x", "{kind}", "poster", "{file...}", "x")
+	fill := strings.NewReplacer("{id}", "1", "{aid}", "1", "{sid}", "x", "{ttn}", "1", "{n}", "1", "{serial}", "1", "{name}", "x", "{kind}", "poster", "{file...}", "x", "{key}", "x", "{console}", "x", "{slot}", "1", "{nonce}", "x", "{token}", "x", "{cid}", "1")
 	matches := routeRe.FindAllSubmatch(src, -1)
 	if len(matches) < 90 {
 		t.Fatalf("found only %d routes: has the way they are declared changed?", len(matches))
@@ -99,7 +132,7 @@ func TestEveryRouteChecksWhoIsAsking(t *testing.T) {
 		if call(method, path, "not-a-token") != http.StatusUnauthorized {
 			t.Errorf("%s with a made-up token was let through", route)
 		}
-		if strings.HasPrefix(handler, "s.requireAdmin") {
+		if strings.HasPrefix(handler, "s.requireAdmin") || strings.HasPrefix(handler, "ad(") || strings.HasPrefix(handler, "adm(") {
 			for _, tok := range []string{adult, kid} {
 				if code := call(method, path, tok); code != http.StatusForbidden {
 					t.Errorf("%s as a non-admin: %d, want 403", route, code)
@@ -129,6 +162,7 @@ func TestAccountManagementLimits(t *testing.T) {
 	h := s.Handler()
 	call := func(method, path, token, body string) int {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.RemoteAddr = "192.168.1.50:4000"
 		r.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)

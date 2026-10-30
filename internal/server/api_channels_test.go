@@ -58,6 +58,7 @@ func tvServer(t *testing.T) (h http.Handler, admin, kid string, s *Server) {
 
 func tvCall(h http.Handler, method, path, token, body string) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
+	r.RemoteAddr = "192.168.1.50:4000"
 	if token != "" {
 		r.Header.Set("Authorization", "Bearer "+token)
 	}

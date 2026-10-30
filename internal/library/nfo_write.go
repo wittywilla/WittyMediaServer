@@ -84,6 +84,9 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 		if !s.Store.LibraryFile(ctx, ref) {
 			return nil, errors.New("artwork outside the libraries")
 		}
+		if st, serr := os.Stat(ref); serr == nil && st.Size() > 20<<20 { // the same limit as a download
+			return nil, errors.New("image too large")
+		}
 		b, err = os.ReadFile(ref)
 	}
 	if err != nil {

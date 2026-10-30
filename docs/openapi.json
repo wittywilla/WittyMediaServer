@@ -400,7 +400,16 @@
           "n": {
             "type": "integer"
           },
+          "num": {
+            "type": "integer"
+          },
           "right": {
+            "type": "integer"
+          },
+          "soundPress": {
+            "type": "integer"
+          },
+          "soundSelect": {
             "type": "integer"
           },
           "up": {
@@ -613,6 +622,27 @@
           "highlightUrl": {
             "type": "string"
           },
+          "inEffect": {
+            "items": {
+              "properties": {
+                "sec": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sec",
+                "url"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "inTitle": {
             "type": "boolean"
           },
@@ -624,6 +654,12 @@
           },
           "selected": {
             "type": "integer"
+          },
+          "soundUrl": {
+            "type": "string"
+          },
+          "userTimeoutSec": {
+            "type": "number"
           },
           "width": {
             "type": "integer"
@@ -704,6 +740,15 @@
           },
           "frameW": {
             "type": "integer"
+          },
+          "locks": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "startSec": {
             "type": "number"
@@ -870,6 +915,9 @@
             ]
           },
           "backdrop": {
+            "type": "string"
+          },
+          "console": {
             "type": "string"
           },
           "container": {
@@ -1149,6 +1197,9 @@
       },
       "Library": {
         "properties": {
+          "console": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "integer"
           },
@@ -1183,6 +1234,9 @@
           "scanning": {
             "type": "boolean"
           },
+          "showMain": {
+            "type": "boolean"
+          },
           "type": {
             "type": "string"
           }
@@ -1195,6 +1249,7 @@
           "name",
           "paths",
           "scanning",
+          "showMain",
           "type"
         ],
         "type": "object"
@@ -1355,6 +1410,27 @@
           },
           "audioIndex": {
             "type": "integer"
+          },
+          "chapters": {
+            "items": {
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "container": {
             "type": "string"
@@ -2056,6 +2132,33 @@
       },
       "Presentation": {
         "properties": {
+          "bdj": {
+            "anyOf": [
+              {
+                "properties": {
+                  "pollUrl": {
+                    "type": "string"
+                  },
+                  "video": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "pollUrl"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "kind": {
             "type": "string"
           },
@@ -2073,6 +2176,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/DiscMenu"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pause": {
+            "anyOf": [
+              {
+                "type": "boolean"
               },
               {
                 "type": "null"
@@ -2370,6 +2483,12 @@
       },
       "SubEvent": {
         "properties": {
+          "bold": {
+            "type": "boolean"
+          },
+          "color": {
+            "type": "string"
+          },
           "end": {
             "type": "number"
           },
@@ -2379,11 +2498,29 @@
           "h": {
             "type": "integer"
           },
+          "halign": {
+            "type": "integer"
+          },
+          "italic": {
+            "type": "boolean"
+          },
+          "outline": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
           "start": {
             "type": "number"
           },
+          "text": {
+            "type": "string"
+          },
           "url": {
             "type": "string"
+          },
+          "valign": {
+            "type": "integer"
           },
           "w": {
             "type": "integer"
@@ -2650,6 +2787,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "twoFactor": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -2658,7 +2798,8 @@
           "id",
           "isAdmin",
           "kind",
-          "name"
+          "name",
+          "twoFactor"
         ],
         "type": "object"
       },
@@ -2691,6 +2832,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "twoFactor": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -2700,7 +2844,8 @@
           "id",
           "isAdmin",
           "kind",
-          "name"
+          "name",
+          "twoFactor"
         ],
         "type": "object"
       }
@@ -3061,6 +3206,37 @@
         "x-wms-auth": "admin"
       }
     },
+    "/bdj/status": {
+      "get": {
+        "operationId": "getBdjStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "BDJ status.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/branding/logo": {
       "delete": {
         "operationId": "deleteBrandingLogo",
@@ -3253,6 +3429,1302 @@
         "x-wms-auth": "public"
       }
     },
+    "/channels": {
+      "get": {
+        "operationId": "getChannels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channels.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postChannels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/from-network": {
+      "post": {
+        "operationId": "postChannelsFromNetwork",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel from network.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/networks/refresh": {
+      "get": {
+        "operationId": "getChannelsNetworksRefresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refresh networks progress.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postChannelsNetworksRefresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refresh networks.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/options": {
+      "get": {
+        "operationId": "getChannelsOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel options.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/preview": {
+      "post": {
+        "operationId": "postChannelsPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel preview.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/suggestions": {
+      "get": {
+        "operationId": "getChannelsSuggestions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel suggestions.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/{id}": {
+      "delete": {
+        "operationId": "deleteChannelsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getChannelsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putChannelsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/{id}/history": {
+      "get": {
+        "operationId": "getChannelsIdHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel history.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/{id}/logo": {
+      "delete": {
+        "operationId": "deleteChannelsIdLogo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete channel logo.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getChannelsIdLogo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channel logo.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putChannelsIdLogo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set channel logo.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/{id}/rebuild": {
+      "post": {
+        "operationId": "postChannelsIdRebuild",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rebuild channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/{id}/restore": {
+      "post": {
+        "operationId": "postChannelsIdRestore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/collections": {
+      "get": {
+        "operationId": "getCollections",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Collections.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postCollections",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create collection.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/collections/holding": {
+      "get": {
+        "operationId": "getCollectionsHolding",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Collections holding.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/collections/preview": {
+      "post": {
+        "operationId": "postCollectionsPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview rule.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/collections/watch-later/items": {
+      "post": {
+        "operationId": "postCollectionsWatchLaterItems",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Watch later add.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/collections/{id}": {
+      "delete": {
+        "operationId": "deleteCollectionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete collection.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getCollectionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Collection.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putCollectionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update collection.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/collections/{id}/items": {
+      "delete": {
+        "operationId": "deleteCollectionsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Collection remove.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postCollectionsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Collection add.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/comments/{cid}": {
+      "delete": {
+        "operationId": "deleteCommentsCid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete comment.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putCommentsCid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit comment.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/consoles/{console}/controls": {
+      "get": {
+        "operationId": "getConsolesConsoleControls",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "console",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game controls.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putConsolesConsoleControls",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "console",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put game control.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/creators": {
+      "get": {
+        "operationId": "getCreators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Creators.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/creators/{id}": {
+      "get": {
+        "operationId": "getCreatorsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Creator.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putCreatorsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update creator.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/creators/{id}/art/{kind}": {
+      "get": {
+        "operationId": "getCreatorsIdArtKind",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Creator art.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/creators/{id}/subscribe": {
+      "put": {
+        "operationId": "putCreatorsIdSubscribe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subscribe2.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/dictionary": {
       "get": {
         "operationId": "getDictionary",
@@ -3441,6 +4913,150 @@
         "x-wms-auth": "user"
       }
     },
+    "/dvd/{sid}/bdj": {
+      "get": {
+        "operationId": "getDvdSidBdj",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "BDJ poll.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/dvd/{sid}/bdj/frame/{n}": {
+      "get": {
+        "operationId": "getDvdSidBdjFrameN",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "BDJ frame.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/dvd/{sid}/menu/{serial}/effect/{n}": {
+      "get": {
+        "operationId": "getDvdSidMenuSerialEffectN",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serial",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "DVD effect.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/dvd/{sid}/menu/{serial}/highlight/{n}": {
       "get": {
         "operationId": "getDvdMenuHighlightById",
@@ -3560,6 +5176,54 @@
         ],
         "x-wms-auth": "user",
         "x-wms-stream-token": true
+      }
+    },
+    "/dvd/{sid}/sound/{n}": {
+      "get": {
+        "operationId": "getDvdSidSoundN",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "DVD sound.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/dvd/{sid}/still/{name}": {
@@ -3757,6 +5421,177 @@
         "x-wms-auth": "user"
       }
     },
+    "/epg/ids": {
+      "get": {
+        "operationId": "getEpgIds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "EPGI ds.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/epg/sources": {
+      "get": {
+        "operationId": "getEpgSources",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "EPG sources.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postEpgSources",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add EPG source.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/epg/sources/{id}": {
+      "delete": {
+        "operationId": "deleteEpgSourcesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete EPG source.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/epg/sources/{id}/refresh": {
+      "post": {
+        "operationId": "postEpgSourcesIdRefresh",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refresh EPG source.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/fs": {
       "get": {
         "operationId": "getFs",
@@ -3843,6 +5678,355 @@
         "x-wms-auth": "admin"
       }
     },
+    "/games/consoles": {
+      "get": {
+        "operationId": "getGamesConsoles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game consoles.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/modes": {
+      "get": {
+        "operationId": "getGamesModes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game modes.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/play": {
+      "post": {
+        "operationId": "postGamesIdPlay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game play.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/saves": {
+      "get": {
+        "operationId": "getGamesIdSaves",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game saves.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/saves/{slot}": {
+      "delete": {
+        "operationId": "deleteGamesIdSavesSlot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game save delete.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/saves/{slot}/thumb": {
+      "get": {
+        "operationId": "getGamesIdSavesSlotThumb",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game save thumb.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/gaming": {
+      "get": {
+        "operationId": "getGaming",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Gaming.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/cores/{id}": {
+      "delete": {
+        "operationId": "deleteGamingCoresId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Core remove.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/cores/{id}/install": {
+      "post": {
+        "operationId": "postGamingCoresIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Core install.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/genres": {
       "get": {
         "operationId": "getGenres",
@@ -3881,6 +6065,37 @@
         "summary": "Genres among movies and other items.",
         "tags": [
           "Browsing"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/guide": {
+      "get": {
+        "operationId": "getGuide",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Guide.",
+        "tags": [
+          "Channels and live TV"
         ],
         "x-wms-auth": "user"
       }
@@ -4774,6 +6989,84 @@
         "x-wms-auth": "user"
       }
     },
+    "/items/{id}/comments": {
+      "get": {
+        "operationId": "getItemsIdComments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Comments.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postItemsIdComments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add comment.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/items/{id}/disc": {
       "get": {
         "operationId": "getItemsDisc",
@@ -5176,6 +7469,126 @@
         "x-wms-stream-token": true
       }
     },
+    "/items/{id}/image": {
+      "get": {
+        "operationId": "getItemsIdImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Item image.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/items/{id}/motion": {
+      "get": {
+        "operationId": "getItemsIdMotion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Motion.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/items/{id}/original": {
+      "get": {
+        "operationId": "getItemsIdOriginal",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Original.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/items/{id}/page/{n}": {
       "get": {
         "operationId": "getItemsPageById",
@@ -5522,6 +7935,46 @@
         "x-wms-auth": "user"
       }
     },
+    "/items/{id}/reaction": {
+      "put": {
+        "operationId": "putItemsIdReaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reaction.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/items/{id}/recommend": {
       "get": {
         "operationId": "getItemsRecommend",
@@ -5797,6 +8250,46 @@
         "x-wms-stream-token": true
       }
     },
+    "/items/{id}/view": {
+      "post": {
+        "operationId": "postItemsIdView",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "View.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/libraries": {
       "get": {
         "operationId": "getLibraries",
@@ -5989,6 +8482,46 @@
         "x-wms-auth": "admin"
       }
     },
+    "/libraries/{id}/main": {
+      "put": {
+        "operationId": "putLibrariesIdMain",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Library show main.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/libraries/{id}/scan": {
       "get": {
         "operationId": "getLibrariesScan",
@@ -6081,6 +8614,46 @@
           "Browsing"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/upload": {
+      "post": {
+        "operationId": "postLibrariesIdUpload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/login": {
@@ -6403,6 +8976,223 @@
         "summary": "The signed-in account.",
         "tags": [
           "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/2fa": {
+      "get": {
+        "operationId": "getMe2fa",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two factor.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/2fa/confirm": {
+      "post": {
+        "operationId": "postMe2faConfirm",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two factor confirm.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/2fa/disable": {
+      "post": {
+        "operationId": "postMe2faDisable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two factor disable.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/2fa/setup": {
+      "post": {
+        "operationId": "postMe2faSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two factor setup.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/history": {
+      "delete": {
+        "operationId": "deleteMeHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clear history.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/recommended": {
+      "get": {
+        "operationId": "getMeRecommended",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recommended.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/review": {
+      "get": {
+        "operationId": "getMeReview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Review.",
+        "tags": [
+          "Collections and your year"
         ],
         "x-wms-auth": "user"
       }
@@ -7122,6 +9912,615 @@
         "x-wms-auth": "public"
       }
     },
+    "/photos/ai": {
+      "get": {
+        "operationId": "getPhotosAi",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo AI.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/albums": {
+      "get": {
+        "operationId": "getPhotosAlbums",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo albums.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postPhotosAlbums",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create album.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/albums/{id}": {
+      "delete": {
+        "operationId": "deletePhotosAlbumsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete album.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putPhotosAlbumsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update album.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/albums/{id}/items": {
+      "delete": {
+        "operationId": "deletePhotosAlbumsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Album remove.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postPhotosAlbumsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Album add.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/folders": {
+      "get": {
+        "operationId": "getPhotosFolders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo folders.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/list": {
+      "get": {
+        "operationId": "getPhotosList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo list.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/map": {
+      "get": {
+        "operationId": "getPhotosMap",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo map.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/months": {
+      "get": {
+        "operationId": "getPhotosMonths",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo months.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/photos/{id}": {
+      "get": {
+        "operationId": "getPhotosId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Photo detail.",
+        "tags": [
+          "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}": {
+      "delete": {
+        "operationId": "deletePlaySid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Play stop.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getPlaySid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Play get.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/action": {
+      "post": {
+        "operationId": "postPlaySidAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Play action.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/webrtc": {
+      "post": {
+        "operationId": "postPlaySidWebrtc",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Play web RTC.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/ws": {
+      "get": {
+        "operationId": "getPlaySidWs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Play WS.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/playback/profiles": {
       "get": {
         "operationId": "getPlaybackProfiles",
@@ -7552,6 +10951,728 @@
         "x-wms-auth": "public"
       }
     },
+    "/radio": {
+      "get": {
+        "operationId": "getRadio",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Radio list.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postRadio",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Radio add.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/import": {
+      "post": {
+        "operationId": "postRadioImport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Radio import.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/{id}": {
+      "delete": {
+        "operationId": "deleteRadioId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Radio remove.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/{id}/stream": {
+      "get": {
+        "operationId": "getRadioIdStream",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Radio stream.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/reach/{nonce}": {
+      "get": {
+        "operationId": "getReachNonce",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Reach.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/recording-rules": {
+      "get": {
+        "operationId": "getRecordingRules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recording rules.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postRecordingRules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add recording rule.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/recording-rules/{id}": {
+      "delete": {
+        "operationId": "deleteRecordingRulesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete recording rule.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/recordings": {
+      "get": {
+        "operationId": "getRecordings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recordings.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postRecordings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/recordings/{id}": {
+      "delete": {
+        "operationId": "deleteRecordingsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel recording.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/remote": {
+      "get": {
+        "operationId": "getRemote",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remote.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putRemote",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put remote.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/remote/lockouts": {
+      "delete": {
+        "operationId": "deleteRemoteLockouts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clear lockouts.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/remote/obtain": {
+      "post": {
+        "operationId": "postRemoteObtain",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtain.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/remote/router": {
+      "post": {
+        "operationId": "postRemoteRouter",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look router.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/remote/selfcheck": {
+      "post": {
+        "operationId": "postRemoteSelfcheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Self check.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/remote/test": {
+      "post": {
+        "operationId": "postRemoteTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start test.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/sessions": {
+      "delete": {
+        "operationId": "deleteSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End other sessions.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sessions.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/sessions/{id}": {
+      "delete": {
+        "operationId": "deleteSessionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End session.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/settings": {
       "get": {
         "operationId": "getSettings",
@@ -7682,6 +11803,414 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}": {
+      "get": {
+        "operationId": "getShareToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share open.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/file/{id}": {
+      "get": {
+        "operationId": "getShareTokenFileId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share file.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/hls/{id}/playlist.m3u8": {
+      "get": {
+        "operationId": "getShareTokenHlsIdPlaylistM3u8",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share HLS playlist.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/hls/{id}/seg/{n}": {
+      "get": {
+        "operationId": "getShareTokenHlsIdSegN",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share HLS segment.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/image/{id}": {
+      "get": {
+        "operationId": "getShareTokenImageId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share image.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/original/{id}": {
+      "get": {
+        "operationId": "getShareTokenOriginalId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share original.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/share/{token}/play/{id}": {
+      "get": {
+        "operationId": "getShareTokenPlayId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Share play.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/shares": {
+      "get": {
+        "operationId": "getShares",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Shares.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postShares",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create share.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/shares/{id}": {
+      "delete": {
+        "operationId": "deleteSharesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete share.",
+        "tags": [
+          "Share links"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/shows": {
@@ -8509,6 +13038,703 @@
         "x-wms-auth": "public"
       }
     },
+    "/tuner-channels/{id}": {
+      "put": {
+        "operationId": "putTunerChannelsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit tuner channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners": {
+      "get": {
+        "operationId": "getTuners",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tuners.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postTuners",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/discover": {
+      "get": {
+        "operationId": "getTunersDiscover",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tuner discover.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/drivers": {
+      "get": {
+        "operationId": "getTunersDrivers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tuner drivers.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}": {
+      "delete": {
+        "operationId": "deleteTunersId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putTunersId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/channels": {
+      "get": {
+        "operationId": "getTunersIdChannels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tuner channels.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/channels/enable": {
+      "post": {
+        "operationId": "postTunersIdChannelsEnable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable all channels.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/refresh": {
+      "post": {
+        "operationId": "postTunersIdRefresh",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refresh tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/scan": {
+      "get": {
+        "operationId": "getTunersIdScan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scan progress2.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postTunersIdScan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scan tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tv/encrypted-help": {
+      "get": {
+        "operationId": "getTvEncryptedHelp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Encrypted help.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/settings": {
+      "get": {
+        "operationId": "getTvSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "TV settings.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putTvSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put TV settings.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tv/{key}/leave": {
+      "post": {
+        "operationId": "postTvKeyLeave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live leave.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/live/playlist.m3u8": {
+      "get": {
+        "operationId": "getTvKeyLivePlaylistM3u8",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live playlist.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/live/seg/{name}": {
+      "get": {
+        "operationId": "getTvKeyLiveSegName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live segment.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/tune": {
+      "get": {
+        "operationId": "getTvKeyTune",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tune.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/update": {
       "get": {
         "operationId": "getUpdate",
@@ -8732,6 +13958,46 @@
         "x-wms-auth": "user"
       }
     },
+    "/users/{id}/2fa": {
+      "delete": {
+        "operationId": "deleteUsersId2fa",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "User two factor reset.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/users/{id}/access": {
       "put": {
         "operationId": "putUsersAccess",
@@ -8852,6 +14118,217 @@
         ],
         "x-wms-auth": "user"
       }
+    },
+    "/videos": {
+      "get": {
+        "operationId": "getVideos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Videos.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/videos/feed": {
+      "get": {
+        "operationId": "getVideosFeed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Video feed.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/videos/tags": {
+      "get": {
+        "operationId": "getVideosTags",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Video tags.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/videos/{id}": {
+      "get": {
+        "operationId": "getVideosId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Video.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putVideosId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit video.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/videos/{id}/related": {
+      "get": {
+        "operationId": "getVideosIdRelated",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Video related.",
+        "tags": [
+          "Vertical and creator videos"
+        ],
+        "x-wms-auth": "user"
+      }
     }
   },
   "security": [
@@ -8889,6 +14366,30 @@
     },
     {
       "name": "Themes"
+    },
+    {
+      "name": "Channels and live TV"
+    },
+    {
+      "name": "Games"
+    },
+    {
+      "name": "Remote access and signed-in devices"
+    },
+    {
+      "name": "Photos"
+    },
+    {
+      "name": "Vertical and creator videos"
+    },
+    {
+      "name": "Collections and your year"
+    },
+    {
+      "name": "Internet radio"
+    },
+    {
+      "name": "Share links"
     }
   ]
 }

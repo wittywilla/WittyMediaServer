@@ -126,6 +126,8 @@ func TestSetupClaim(t *testing.T) {
 	creds := map[string]string{"name": "owner", "password": "a long password"}
 	// A website rebinding its domain to a fresh server in the visitor's home.
 	ts := newTestServer(t)
+	ts.Cfg.RemoteAccess = true // a server nobody can reach from a home network first
+	ts.reloadNet(context.Background())
 	if w := ts.do(t, "POST", "/api/setup", "", creds, "Host", "evil.example.com:9797", "RemoteAddr", "192.168.1.9:1"); w.Code != 403 {
 		t.Fatalf("rebinding page claimed a fresh server: %d", w.Code)
 	}
@@ -133,7 +135,7 @@ func TestSetupClaim(t *testing.T) {
 	if w := ts.do(t, "POST", "/api/setup", "", creds, "Host", "203.0.113.5:9797", "RemoteAddr", "198.51.100.7:1"); w.Code != 403 {
 		t.Fatalf("a stranger claimed a fresh server: %d", w.Code)
 	}
-	if w := ts.do(t, "POST", "/api/setup", "", creds, "X-Forwarded-For", "198.51.100.7"); w.Code != 403 {
+	if w := ts.do(t, "POST", "/api/setup", "", creds, "X-Forwarded-For", "198.51.100.7", "X-Forwarded-Proto", "https"); w.Code != 403 {
 		t.Fatalf("through a proxy, without the code: %d", w.Code)
 	}
 	if ts.Auth.UserCount(context.Background()) != 0 {
@@ -146,7 +148,7 @@ func TestSetupClaim(t *testing.T) {
 	}
 	// The owner, from another network, with the code from the log.
 	withCode := map[string]string{"name": "owner", "password": "a long password", "setupCode": strings.ToLower(ts.SetupCode())}
-	if w := ts.do(t, "POST", "/api/setup", "", withCode, "Host", "media.example.com", "X-Forwarded-For", "198.51.100.7"); w.Code != 200 {
+	if w := ts.do(t, "POST", "/api/setup", "", withCode, "Host", "media.example.com", "X-Forwarded-For", "198.51.100.7", "X-Forwarded-Proto", "https"); w.Code != 200 {
 		t.Fatalf("with the code: %d %s", w.Code, w.Body)
 	}
 	// Setup can't run twice.

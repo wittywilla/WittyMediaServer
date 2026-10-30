@@ -219,7 +219,7 @@ func TestWeakPassword(t *testing.T) {
 func TestWeakAccounts(t *testing.T) {
 	ctx := context.Background()
 	s := newService(t)
-	admin, _ := s.CreateUser(ctx, "Sam", "1234", true)
+	admin, _ := s.CreateUser(ctx, "Sam", "12345678", true)
 	if _, err := s.CreateUser(ctx, "Alex", "correct horse battery", false); err != nil {
 		t.Fatal(err)
 	}

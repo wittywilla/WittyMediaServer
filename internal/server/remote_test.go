@@ -62,8 +62,13 @@ func call(h http.Handler, method, path, from string, body any, hdr ...string) re
 	if strings.Contains(from, ":") {
 		r.RemoteAddr = "[" + from + "]:5000"
 	}
+	r.Host = "192.168.1.2:9797" // the address a browser at home has in its bar
 	for _, kv := range hdr {
 		k, v, _ := strings.Cut(kv, ": ")
+		if k == "Host" {
+			r.Host = v
+			continue
+		}
 		if k == "TLS" { // a direct encrypted connection
 			r.TLS = &tls.ConnectionState{ServerName: "media.example.com"}
 			continue
@@ -534,13 +539,13 @@ func TestReachTest(t *testing.T) {
 
 func TestWeakAdminWarning(t *testing.T) {
 	s, h := remoteServer(t, nil)
-	if _, err := s.Auth.CreateUser(context.Background(), "Owner", "1234", true); err != nil {
+	if _, err := s.Auth.CreateUser(context.Background(), "Owner", "12345678", true); err != nil {
 		t.Fatal(err)
 	}
 	var out struct {
 		Token string `json:"token"`
 	}
-	call(h, "POST", "/api/login", lan, map[string]string{"name": "Owner", "password": "1234"}).json(t, &out)
+	call(h, "POST", "/api/login", lan, map[string]string{"name": "Owner", "password": "12345678"}).json(t, &out)
 	warned := func(v remoteView) bool {
 		for _, n := range v.Notices {
 			if n.Level == "warn" && strings.Contains(n.Text, "weak password") {

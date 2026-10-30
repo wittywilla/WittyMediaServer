@@ -92,8 +92,11 @@ func codeRoutes(t *testing.T) []apiRoute {
 			if wrap, ok := call.Args[1].(*ast.CallExpr); ok {
 				switch fn := wrap.Fun.(type) {
 				case *ast.Ident:
-					if fn.Name == "a" {
+					switch fn.Name {
+					case "a":
 						r.auth = "user"
+					case "ad", "adm":
+						r.auth = "admin"
 					}
 				case *ast.SelectorExpr:
 					switch fn.Sel.Name {

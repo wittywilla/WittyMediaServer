@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/db"
 )
 
 func TestSaveItemMetadataRoundTrip(t *testing.T) {
@@ -74,10 +76,22 @@ func TestLoadImageOnlyPictures(t *testing.T) {
 	if err := os.WriteFile(secret, []byte("SQLite format 3 and everyone's data"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	s := &Scanner{ImagesDir: images, Log: slog.Default()}
+	d, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { d.Close() })
 	ctx := context.Background()
+	st := &Store{DB: d}
+	if _, err := st.CreateLibrary(ctx, "lib", "movies", []string{dir}); err != nil {
+		t.Fatal(err)
+	}
+	s := &Scanner{ImagesDir: images, Log: slog.Default(), Store: st}
 	if _, err := s.LoadImage(ctx, secret); err == nil {
 		t.Error("a file that is no picture was read as artwork")
+	}
+	if _, err := s.LoadImage(ctx, filepath.Join(t.TempDir(), "elsewhere.jpg")); err == nil {
+		t.Error("artwork outside the libraries was read")
 	}
 	if _, err := s.LoadImage(ctx, "cache:../wms.db"); err == nil {
 		t.Error("a cache name left the cache")

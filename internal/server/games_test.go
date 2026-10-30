@@ -64,6 +64,7 @@ func (g *gameServer) do(method, path, tok string, body any) *httptest.ResponseRe
 		r = bytes.NewReader(b)
 	}
 	req := httptest.NewRequest(method, path, r)
+	req.RemoteAddr = "192.168.1.50:4000"
 	if tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}

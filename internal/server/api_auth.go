@@ -122,7 +122,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	release, ok := s.loginAllowed(w, r, c.Name)
+	release, ok := s.signInAllowed(w, r, c.Name)
 	if !ok {
 		return
 	}
@@ -157,12 +157,29 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 // many passwords are being checked right now. Otherwise it holds one of the
 // places for checking a password until release is called.
 func (s *Server) loginAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
-	// An attempt counts when it starts, not when its password turns out wrong:
-	// otherwise hundreds of guesses sent at once all pass before the first ends.
+	if !s.loginWaitOver(w, r, name) {
+		return nil, false
+	}
+	return s.loginSlot(w, r)
+}
+
+// signInAllowed is loginAllowed for signing in. An attempt counts when it
+// starts, not when its password turns out wrong: otherwise hundreds of guesses
+// sent at once all pass before the first one ends.
+func (s *Server) signInAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
 	if d := s.logins.attempt(r, name); d > 0 {
 		tooManyTries(w, d)
 		return nil, false
 	}
+	release, ok = s.loginSlot(w, r)
+	if !ok { // nothing was checked
+		s.logins.uncount(r, name)
+	}
+	return release, ok
+}
+
+// loginSlot waits for a place among the password checks running at once.
+func (s *Server) loginSlot(w http.ResponseWriter, r *http.Request) (release func(), ok bool) {
 	t := time.NewTimer(3 * time.Second)
 	defer t.Stop()
 	select {

@@ -856,5 +856,197 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /themes` | admin | Install a theme: the ZIP as the body. |
 | `DELETE /themes/{id}` | admin | Remove a theme. |
 
+### Channels and live TV
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /guide` | user | Guide. |
+| `GET /tv/{key}/tune` | user | Tune. |
+| `GET /tv/{key}/live/playlist.m3u8` | user | Live playlist. |
+| `GET /tv/{key}/live/seg/{name}` | user | Live segment. |
+| `POST /tv/{key}/leave` | user | Live leave. |
+| `GET /tv/settings` | admin | TV settings. |
+| `PUT /tv/settings` | admin | Put TV settings. |
+| `PUT /libraries/{id}/main` | admin | Library show main. |
+| `GET /channels` | user | Channels. |
+| `POST /channels` | admin | Create channel. |
+| `POST /channels/preview` | admin | Channel preview. |
+| `GET /channels/suggestions` | admin | Channel suggestions. |
+| `GET /channels/options` | admin | Channel options. |
+| `POST /channels/from-network` | admin | Channel from network. |
+| `POST /channels/networks/refresh` | admin | Refresh networks. |
+| `GET /channels/networks/refresh` | admin | Refresh networks progress. |
+| `GET /channels/{id}` | admin | Channel. |
+| `PUT /channels/{id}` | admin | Update channel. |
+| `DELETE /channels/{id}` | admin | Delete channel. |
+| `POST /channels/{id}/rebuild` | admin | Rebuild channel. |
+| `GET /channels/{id}/history` | admin | Channel history. |
+| `POST /channels/{id}/restore` | admin | Restore channel. |
+| `GET /channels/{id}/logo` | user | Channel logo. |
+| `PUT /channels/{id}/logo` | admin | Set channel logo. |
+| `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
+| `GET /tv/encrypted-help` | user | Encrypted help. |
+| `GET /tuners/drivers` | admin | Tuner drivers. |
+| `GET /tuners/discover` | admin | Tuner discover. |
+| `GET /tuners` | admin | Tuners. |
+| `POST /tuners` | admin | Create tuner. |
+| `PUT /tuners/{id}` | admin | Update tuner. |
+| `DELETE /tuners/{id}` | admin | Delete tuner. |
+| `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
+| `POST /tuners/{id}/scan` | admin | Scan tuner. |
+| `GET /tuners/{id}/scan` | admin | Scan progress2. |
+| `GET /tuners/{id}/channels` | admin | Tuner channels. |
+| `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
+| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. |
+| `GET /epg/sources` | admin | EPG sources. |
+| `POST /epg/sources` | admin | Add EPG source. |
+| `DELETE /epg/sources/{id}` | admin | Delete EPG source. |
+| `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
+| `GET /epg/ids` | admin | EPGI ds. |
+| `GET /recordings` | user | Recordings. |
+| `POST /recordings` | user | Schedule. |
+| `DELETE /recordings/{id}` | user | Cancel recording. |
+
+### Games
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /games/consoles` | user | Game consoles. |
+| `GET /games/modes` | user | Game modes. |
+| `GET /consoles/{console}/controls` | user | Game controls. |
+| `PUT /consoles/{console}/controls` | user | Put game control. |
+| `POST /games/{id}/play` | user | Game play. |
+| `GET /games/{id}/saves` | user | Game saves. |
+| `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
+| `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
+
+### Photos
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /photos/months` | user | Photo months. |
+| `GET /photos/list` | user | Photo list. |
+| `GET /photos/folders` | user | Photo folders. |
+| `GET /photos/map` | user | Photo map. |
+| `GET /photos/ai` | user | Photo AI. |
+| `GET /photos/albums` | user | Photo albums. |
+| `POST /photos/albums` | user | Create album. |
+| `PUT /photos/albums/{id}` | user | Update album. |
+| `DELETE /photos/albums/{id}` | user | Delete album. |
+| `POST /photos/albums/{id}/items` | user | Album add. |
+| `DELETE /photos/albums/{id}/items` | user | Album remove. |
+| `GET /photos/{id}` | user | Photo detail. |
+| `GET /items/{id}/image` | user | Item image. |
+| `GET /items/{id}/original` | user | Original. |
+| `GET /items/{id}/motion` | user | Motion. |
+| `POST /libraries/{id}/upload` | user | Upload. |
+
+### Vertical and creator videos
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /creators` | user | Creators. |
+| `GET /creators/{id}` | user | Creator. |
+| `PUT /creators/{id}` | admin | Update creator. |
+| `GET /creators/{id}/art/{kind}` | user | Creator art. |
+| `PUT /creators/{id}/subscribe` | user | Subscribe2. |
+| `GET /videos` | user | Videos. |
+| `GET /videos/feed` | user | Video feed. |
+| `GET /videos/tags` | user | Video tags. |
+| `GET /videos/{id}` | user | Video. |
+| `PUT /videos/{id}` | admin | Edit video. |
+| `GET /videos/{id}/related` | user | Video related. |
+| `PUT /items/{id}/reaction` | user | Reaction. |
+| `POST /items/{id}/view` | user | View. |
+| `GET /items/{id}/comments` | user | Comments. |
+| `POST /items/{id}/comments` | user | Add comment. |
+| `PUT /comments/{cid}` | user | Edit comment. |
+| `DELETE /comments/{cid}` | user | Delete comment. |
+
+### Collections and your year
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /collections` | user | Collections. |
+| `POST /collections` | user | Create collection. |
+| `POST /collections/preview` | user | Preview rule. |
+| `GET /collections/holding` | user | Collections holding. |
+| `POST /collections/watch-later/items` | user | Watch later add. |
+| `GET /collections/{id}` | user | Collection. |
+| `PUT /collections/{id}` | user | Update collection. |
+| `DELETE /collections/{id}` | user | Delete collection. |
+| `POST /collections/{id}/items` | user | Collection add. |
+| `DELETE /collections/{id}/items` | user | Collection remove. |
+| `GET /me/review` | user | Review. |
+| `DELETE /me/history` | user | Clear history. |
+| `GET /me/recommended` | user | Recommended. |
+
+### Internet radio
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /radio` | user | Radio list. |
+| `POST /radio` | admin | Radio add. |
+| `POST /radio/import` | admin | Radio import. |
+| `DELETE /radio/{id}` | admin | Radio remove. |
+| `GET /radio/{id}/stream` | user | Radio stream. |
+
+### Share links
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /shares` | user | Shares. |
+| `POST /shares` | user | Create share. |
+| `DELETE /shares/{id}` | user | Delete share. |
+| `GET /share/{token}` | none | Share open. |
+| `GET /share/{token}/image/{id}` | none | Share image. |
+| `GET /share/{token}/original/{id}` | none | Share original. |
+| `GET /share/{token}/play/{id}` | none | Share play. |
+| `GET /share/{token}/file/{id}` | none | Share file. |
+| `GET /share/{token}/hls/{id}/playlist.m3u8` | none | Share HLS playlist. |
+| `GET /share/{token}/hls/{id}/seg/{n}` | none | Share HLS segment. |
+
+### Remote access and signed-in devices
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /remote` | admin | Remote. |
+| `PUT /remote` | admin | Put remote. |
+| `POST /remote/test` | admin | Start test. |
+| `POST /remote/selfcheck` | admin | Self check. |
+| `POST /remote/router` | admin | Look router. |
+| `POST /remote/obtain` | admin | Obtain. |
+| `DELETE /remote/lockouts` | admin | Clear lockouts. |
+| `GET /sessions` | user | Sessions. |
+| `DELETE /sessions` | user | End other sessions. |
+| `DELETE /sessions/{id}` | user | End session. |
+| `GET /me/2fa` | user | Two factor. |
+| `POST /me/2fa/setup` | user | Two factor setup. |
+| `POST /me/2fa/confirm` | user | Two factor confirm. |
+| `POST /me/2fa/disable` | user | Two factor disable. |
+
+### More server routes
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /play/{sid}` | user | Play get. |
+| `DELETE /play/{sid}` | user | Play stop. |
+| `POST /play/{sid}/webrtc` | user | Play web RTC. |
+| `GET /play/{sid}/ws` | user | Play WS. |
+| `POST /play/{sid}/action` | user | Play action. |
+| `GET /gaming` | admin | Gaming. |
+| `POST /gaming/cores/{id}/install` | admin | Core install. |
+| `DELETE /gaming/cores/{id}` | admin | Core remove. |
+| `GET /reach/{nonce}` | none | Reach. |
+| `DELETE /users/{id}/2fa` | admin | User two factor reset. |
+| `GET /recording-rules` | user | Recording rules. |
+| `POST /recording-rules` | user | Add recording rule. |
+| `DELETE /recording-rules/{id}` | user | Delete recording rule. |
+| `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
+| `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
+| `GET /dvd/{sid}/bdj` | user | BDJ poll. |
+| `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
+| `GET /bdj/status` | admin | BDJ status. |
+
 ---
 <sub>WittyMediaServer 0.4.0-alpha documentation</sub>

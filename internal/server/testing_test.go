@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -100,7 +102,14 @@ func (ts *contractServer) item(t *testing.T, kind, path string) int64 {
 	ctx := context.Background()
 	libs, _ := ts.Store.Libraries(ctx)
 	var lib int64
-	if len(libs) > 0 {
+	if _, err := os.Stat(path); err == nil {
+		// A real file has to be inside a library's folder to be served.
+		l, err := ts.Store.CreateLibrary(ctx, "Test "+filepath.Base(path), "movies", []string{filepath.Dir(path)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		lib = l.ID
+	} else if len(libs) > 0 {
 		lib = libs[0].ID
 	} else {
 		l, err := ts.Store.CreateLibrary(ctx, "Test", "movies", []string{t.TempDir()})

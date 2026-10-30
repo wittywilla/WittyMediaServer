@@ -80,7 +80,7 @@ func parseTokens(css string) *Tokens {
 	t := &Tokens{Colors: map[string]string{}, Lengths: map[string]float64{}, Fonts: []string{}, Other: map[string]string{}}
 	t.WebOnly = strings.TrimSpace(rootBlock.ReplaceAllString(css, "")) != ""
 	for name := range vars {
-		v := resolveVar(vars, name, 0)
+		v := mixedColor(vars, resolveVar(vars, name, 0))
 		if strings.HasSuffix(name, "-rgb") {
 			continue // the same colour again, for the browser's translucent shades
 		}
@@ -102,6 +102,27 @@ func parseTokens(css string) *Tokens {
 		}
 	}
 	return t
+}
+
+var colorMix = regexp.MustCompile(`^color-mix\(in srgb,\s*(var\(--[\w-]+\)|#[0-9a-fA-F]{3,8}|[a-zA-Z]+)\s+([0-9.]+)%,\s*transparent\)$`)
+
+// mixedColor turns a colour mixed with transparent, the way themes write their
+// hairlines, into the same colour with an alpha value native apps can read.
+func mixedColor(vars map[string]string, v string) string {
+	m := colorMix.FindStringSubmatch(strings.TrimSpace(v))
+	if m == nil {
+		return v
+	}
+	base := m[1]
+	if strings.HasPrefix(base, "var(--") {
+		base = resolveVar(vars, strings.TrimSuffix(strings.TrimPrefix(base, "var(--"), ")"), 0)
+	}
+	c, ok := NormalizeColor(base)
+	pct, err := strconv.ParseFloat(m[2], 64)
+	if !ok || err != nil || pct > 100 || len(c) != 7 {
+		return v
+	}
+	return fmt.Sprintf("%s%02X", c, int(pct*255/100+0.5))
 }
 
 // resolveVar follows var(--x) references, a few steps deep at most.

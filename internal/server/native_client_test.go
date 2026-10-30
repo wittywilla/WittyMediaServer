@@ -54,7 +54,8 @@ func TestNativeClientNeedsNoCookies(t *testing.T) {
 }
 
 // Native players often can't add headers: the playlist must carry a ?token= on
-// to its segments, and never otherwise put a token in an address.
+// to its segments, a stream token rather than the session's own, and never
+// otherwise put a token in an address.
 func TestPlaylistCarriesTokenOnlyWhenSignedInByIt(t *testing.T) {
 	s, h := remoteServer(t, nil)
 	tok := adminToken(t, s, h)
@@ -62,7 +63,7 @@ func TestPlaylistCarriesTokenOnlyWhenSignedInByIt(t *testing.T) {
 	s.HLS.Ensure(hls.Spec{ID: "v1", Duration: 8, SegmentSec: 4})
 
 	r := call(h, "GET", "/api/hls/v1/playlist.m3u8?token="+tok, lan, nil)
-	if r.code != 200 || !strings.Contains(r.body, "seg/0.ts?token="+tok+"\n") || !strings.Contains(r.body, "seg/1.ts?token="+tok+"\n") {
+	if r.code != 200 || !strings.Contains(r.body, "seg/0.ts?token=st") || !strings.Contains(r.body, "seg/1.ts?token=st") || strings.Contains(r.body, tok) {
 		t.Errorf("by ?token=: %d\n%s", r.code, r.body)
 	}
 	r = call(h, "GET", "/api/hls/v1/playlist.m3u8", lan, nil, "Authorization: Bearer "+tok)

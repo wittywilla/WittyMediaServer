@@ -148,6 +148,9 @@ func latest(rels []ghRelease, current, goos, goarch string) *Release {
 	return best
 }
 
+// ErrNotFound: GitHub has no such repository or file.
+var ErrNotFound = errors.New("GitHub answered 404 Not Found")
+
 // Fetcher downloads from GitHub, and from nowhere else. Plugins' releases use
 // it too (internal/modules), so everything this server installs comes the same
 // way.
@@ -199,6 +202,9 @@ func (f *Fetcher) Get(ctx context.Context, raw string, accept string) (*http.Res
 		res.Body.Close()
 		if res.StatusCode == 403 || res.StatusCode == 429 {
 			return nil, errors.New("GitHub is limiting requests from this network; try again in an hour")
+		}
+		if res.StatusCode == 404 {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("GitHub answered %s", res.Status)
 	}

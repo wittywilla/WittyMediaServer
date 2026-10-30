@@ -304,7 +304,11 @@ func (m *Manager) resolve(id string, e *entry) {
 		man, dir, err := m.usable(id, ver)
 		if err != nil {
 			m.log.Warn("modules: not using an installed version", "module", id, "version", ver, "err", err)
-			why = append(why, name+" "+ver+" can't be used: "+sentence(err.Error()))
+			msg := sentence(err.Error())
+			if !strings.HasPrefix(msg, name+" "+ver) {
+				msg = name + " " + ver + " can't be used: " + msg
+			}
+			why = append(why, msg)
 			continue
 		}
 		pick, pickDir = man, dir

@@ -215,8 +215,9 @@ slower):
 
 | | Helper | WebAssembly |
 |---|---|---|
-| Download size, compressed | 1.2 to 1.3 MB per platform | 1.4 MB, one file for all |
+| Download size, compressed | 1.3 to 1.5 MB per platform | 1.4 MB, one file for all |
 | Getting ready to run | About 0.2 s to start, including the shell's overhead | 1.3 s to compile, using 47 MB more memory, or 0.1 s and 64 MB with the interpreter |
+| Memory while running | 22 MB while scanning, and none after a minute idle | At least what is above, while the server runs |
 | Added to the server | Nothing | About 2.5 MB for the wazero runtime |
 
 WebAssembly's one-file-for-all is appealing and its sandbox is the strongest, but compiling costs

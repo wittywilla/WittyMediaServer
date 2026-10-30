@@ -84,6 +84,7 @@ type github struct {
 	rels     []update.GHRelease
 	requests int
 	offline  bool
+	notFound bool
 }
 
 func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -95,6 +96,9 @@ func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	answer := func(code int, b []byte) (*http.Response, error) {
 		return &http.Response{StatusCode: code, Status: fmt.Sprint(code), Body: io.NopCloser(bytes.NewReader(b)), ContentLength: int64(len(b)), Header: http.Header{}, Request: req}, nil
+	}
+	if g.notFound {
+		return answer(404, nil)
 	}
 	if req.URL.Host == "api.github.com" {
 		b, _ := json.Marshal(g.rels)
@@ -969,4 +973,15 @@ func writeExe(t *testing.T, path string, b []byte) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatal(err)
+}
+
+// A module whose repository isn't published yet has nothing newer. That isn't a problem to report.
+func TestUnpublishedRepositoryIsNotAnError(t *testing.T) {
+	w := newWorld(t)
+	w.gh.notFound = true
+	m := w.manager()
+	defer m.Close()
+	if r := m.Check(context.Background(), 0); r.CheckError != "" || r.Modules[0].Latest != nil {
+		t.Fatalf("%+v", r)
+	}
 }

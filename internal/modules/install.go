@@ -111,6 +111,9 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 	m.mu.Unlock()
 
 	rels, err := m.fetch.Releases(ctx, repo)
+	if errors.Is(err, update.ErrNotFound) {
+		rels, err = nil, nil // its repository isn't published yet, so there is nothing newer
+	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
 	}

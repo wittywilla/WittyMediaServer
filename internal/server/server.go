@@ -134,7 +134,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
-	m.Handle("POST /api/items/{id}/stream-token", a(s.handleStreamToken))
+	m.Handle("POST /api/items/{id}/stream-token", a(s.handleItemStreamToken))
 	m.Handle("GET /api/items/{id}/subtitles/{file}", a(s.handleItemSubtitle))
 	m.Handle("GET /api/items/{id}/play", a(s.handlePlayInfo))
 	m.Handle("GET /api/items/{id}/file", a(s.handleFile))

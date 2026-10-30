@@ -184,7 +184,7 @@ func (s *Server) sessionToken(r *http.Request, u *auth.User) string {
 
 // POST /api/items/{id}/stream-token: a ticket for this item's media. It is
 // asked for with a real sign-in, never with another ticket.
-func (s *Server) handleStreamToken(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleItemStreamToken(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")

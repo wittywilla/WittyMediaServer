@@ -53,20 +53,25 @@ server doesn't have answers 404 with `apiVersions`.
 address in front and don't change them otherwise. They are not part of what a version promises to
 keep the same; use them as given, and don't build your own from pieces.
 
-**Sign-in.** Send `Authorization: Bearer <token>`. Tokens last 90 days and end when the user signs out
-or changes their password, so a 401 at any time means: sign in again. Each route's sign-in is in
+**Sign-in.** Send `Authorization: Bearer <token>`, on every API call: never put a session token in an
+address. Tokens last 90 days and end when the user signs out or changes their password, so a 401 at any
+time means: sign in again. Each route's sign-in is in
 [the table below](#every-route): none, user or admin (403 for everyone else).
 
 **Errors** are JSON, `{"error": "..."}`, in plain words that can be shown as they are. Status codes
 mean what they usually do: 400 bad input, 401 not signed in, 403 not allowed, 404 not found **or not
 for this account** (titles an account may not see don't exist as far as it can tell), 409 conflict,
-429 slow down (`Retry-After` says for how long), 5xx a problem on the server.
+429 slow down (`Retry-After` says for how long), 503 busy (for example, every transcode slot is in use: a
+stream's segments may answer this, so wait `Retry-After` and try again), other 5xx a problem on the server.
 
 **Numbers.** Times are seconds as floating point unless a name says otherwise; `...At` values are Unix
 seconds. IDs are integers, except session and stream IDs, which are strings to pass back unchanged.
 
 **Lists** that can be long take `limit` and `offset` and answer with `total` (`/items`), so don't fetch
 a whole library for a screen. Filtering and sorting always happen on the server.
+
+**Files on the server** are not for apps. An item's `path`, `poster` and `backdrop` fields are empty or
+say little for anyone but an administrator: use the routes for pictures, and `/playback` for media.
 
 **Artwork** is a plain image route. Add `v=<updatedAt>` to the address so it can be cached until the
 item changes. Items and shows without a picture answer 404: draw a placeholder.
@@ -277,6 +282,9 @@ far too powerful to put there. A stream token is the short-lived replacement.
   logged and shared in ways API calls don't.
 
 Logs hide these tokens, like session tokens.
+
+This is the one way for apps. The web interface has its own older way of putting a credential in media
+addresses (`?token=`), which is limited to media routes and may change with it: don't use it.
 
 ## Playing something
 

@@ -10,6 +10,9 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 
 - [Start here](#start-here)
 - [Conventions](#conventions)
+- [Finding a server](#finding-a-server)
+- [Connecting by address](#connecting-by-address)
+- [Server identity](#server-identity)
 - [Signing in](#signing-in)
 - [Stream tokens](#stream-tokens)
 - [Playing something](#playing-something)
@@ -25,11 +28,12 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 
 ## Start here
 
-1. The user types the server's address. `GET /api/v1/capabilities` confirms it is a
-   WittyMediaServer and says what it can do. `setupRequired: true` means nobody has set it up: say so,
-   and point them to a browser.
-2. [Sign in](#signing-in) with a code. Keep the token in the platform's secure storage (Keychain,
-   Android Keystore).
+1. [Find servers on the network](#finding-a-server), and always offer
+   [typing an address](#connecting-by-address) beside them. `GET /api/v1/capabilities` confirms it is
+   a WittyMediaServer and says what it can do. `setupRequired: true` means nobody has set it up: say
+   so, and point them to a browser.
+2. [Pin the server's identity](#server-identity), and [sign in](#signing-in) with a code. Keep the
+   token in the platform's secure storage (Keychain, Android Keystore).
 3. `GET /api/v1/home` gives the first screen; `/items`, `/shows` and `/music/...` the libraries.
 4. To play anything, `POST /api/v1/items/{id}/playback` with the [profile](#what-each-tv-plays)
    of this device, and hand the `url` it answers with to AVPlayer or ExoPlayer.
@@ -70,13 +74,140 @@ item changes. Items and shows without a picture answer 404: draw a placeholder.
 **CORS and cookies.** Apps use the bearer token and never need cookies. Cross-origin requests with a
 token are allowed; cookies are not honoured across origins.
 
+## Finding a server
+
+The server announces itself on the home network, so an app can list it without anyone typing an
+address. Being found opens nothing: connecting still takes a code or a password. An administrator can
+turn it off (*Settings → Profiles → Signing in → Let apps find this server*; the setting is
+`lanDiscovery`). It never runs when the server only listens on `127.0.0.1`, since nobody else could
+connect, and it only uses private addresses.
+
+**What is announced, and nothing more:** the server's name (the one its owner gave it, never the
+computer's), a random ID, its version, and how to connect. No accounts, no paths, no hostname.
+
+**mDNS/DNS-SD is the way to find it** (`_wittymedia._tcp`, in the `local` domain, IPv4):
+
+| Record | Holds |
+|---|---|
+| PTR | The instance: `<name> (<first 4 of id>)._wittymedia._tcp.local`. Show `name` from TXT, not this. |
+| SRV | The port of the server's web address, and a host name `wms-<first 8 of id>.local` |
+| A | Its private IPv4 address on that network |
+| TXT | `id` (32 hex, stable), `name`, `v` (server version), `api` (API version), `tls` (`1` for `https://`, otherwise `http://`) |
+
+| Platform | How to browse |
+|---|---|
+| tvOS, iOS | `NWBrowser` for `_wittymedia._tcp`. List it under `NSBonjourServices`, and give an `NSLocalNetworkUsageDescription`; the system asks the person once. No special entitlement is needed. |
+| Android, Android TV | `NsdManager`, type `_wittymedia._tcp` |
+| Desktop | Any mDNS library, or a socket on `224.0.0.251:5353` |
+| Web apps (webOS, Tizen, browsers) | Not possible: offer the address box only, and say so |
+
+**An extra for clients with raw sockets**, where multicast is blocked but broadcast isn't: send the ASCII
+bytes `WMS-DISCOVER/1` by UDP to `255.255.255.255` port 9797. Each server answers directly with:
+
+```json
+{"service": "wittymediaserver", "id": "…", "name": "…", "version": "…", "api": 1, "port": 9797, "tls": false}
+```
+
+Apple platforms need an entitlement Apple must grant for this, so don't rely on it there. Answers go to
+private addresses only. Ignore answers whose `service` differs. Wait a second or two and listen for
+several: there may be more than one server.
+
+**If nothing is found:** a firewall may be blocking UDP ports 5353 and 9797 on the server (the install
+script for Windows opens them), a network may keep devices apart ("guest" or "client isolation" Wi-Fi), or
+the server may be in a container without host networking. So never make discovery the only way in.
+
+**Finding it again.** Addresses change, so remember `id`. If a saved address stops answering, browse
+for the same `id`, then [check its identity](#server-identity) before sending a token.
+
+## Connecting by address
+
+For someone typing an address or a URL. This is the whole check, in order:
+
+1. **Tidy it up.** Trim it. With no scheme, add `http://`. With neither a scheme nor a port, add port
+   9797. Remove any path, query and trailing slash.
+2. **Ask.** `GET /api/v1/capabilities`, with a timeout of about 5 seconds, sending no token.
+3. **Is it a WittyMediaServer?**
+
+   | Answer | Means | Say |
+   |---|---|---|
+   | 200, JSON, `server` is `WittyMediaServer`, `apiVersions` has 1 | Yes | Carry on |
+   | 200, JSON, but `apiVersions` lacks 1 | A far newer or older server | "This server needs a newer version of the app" |
+   | 404, and `GET /api/status` has `name` of `WittyMediaServer` | A server older than this API | "Update this server" |
+   | Anything else with an answer (a web page, other JSON) | Something else is at that address | "That isn't a WittyMediaServer" |
+   | Connection refused, or a timeout | Nothing there, or it's not running | "Can't reach it. Check the address, and that the server is running." |
+   | A certificate error | Wrong or self-signed certificate | Say so. Never accept it silently. |
+
+4. **Redirects.** Don't follow one automatically to another host. `http://` to `https://` on the same host
+   is fine: keep the new address. Never send a token across a redirect to a different host.
+5. **Plain HTTP?** On a private address (`10.x`, `172.16-31.x`, `192.168.x`, `169.254.x`, `fd00::/8`,
+   loopback, a `.local` name) it's how home servers normally run: allow it. On anything else, a password
+   or token would cross the internet readable by anyone on the way: refuse, or at the very least warn
+   clearly, and suggest HTTPS. `100.64.0.0/10` and VPN names are encrypted by the VPN itself, so count as
+   private.
+6. **Identity.** [Pin or check it](#server-identity), then [sign in](#signing-in). If `setupRequired` is
+   true, send the person to a browser first.
+
+Save the address, `serverId`, `publicKey` and the token, all together.
+
+## Server identity
+
+Anyone on the network can announce a server's name and ID, and answer at its old address. A key can't
+be copied that way. Each server has an Ed25519 key, made the first time it runs and moved with its database,
+and proves it holds it:
+
+```
+POST /api/v1/identity  {"nonce": "<base64 of 16 to 64 random bytes>"}
+→ {"serverId": "…", "publicKey": "<base64>", "fingerprint": "AB12-CD34-EF56", "algorithm": "ed25519", "signature": "<base64>"}
+```
+
+The signature is over these bytes, the nonce being the string exactly as sent:
+
+```
+WittyMediaServer identity v1\n<serverId>\n<nonce>
+```
+
+- **First connection:** check the signature, then keep `publicKey` (the pin). Show the `fingerprint`, as `/pair`
+  shows it too, so careful people can compare.
+- **Every connection after that, and before sending the token to any address not just used:** make a new
+  nonce and check that the signature is good **and** `publicKey` is the pinned one. `serverId` alone proves
+  nothing, because it's announced openly.
+- **If it doesn't match:** stop, don't send the token, and tell the person that a different machine is answering
+  at that address, which may be a look-alike or a reinstalled server. Only they can decide; offer "This is
+  my server, trust it" and then sign in again.
+
+**What this doesn't do.** It notices a different machine once a key is pinned. On plain HTTP it can't stop someone
+relaying traffic on the very first connection or reading what is sent: comparing the fingerprint helps with
+the first, and HTTPS is the real answer to both.
+
 ## Signing in
 
-### TV code sign-in (pairing)
+### With a code
 
-Typing a password with a remote is miserable, so the TV shows a short code and someone approves it on
-a phone or computer where they are already signed in. It follows the same pattern as the OAuth device
-flow.
+A device on the network can't attach by itself: someone already signed in on a phone or computer has to agree,
+at `/pair` in the web interface (*their name → Sign in a TV*). Only adult accounts can. There are two ways
+round, so use whichever end is easier to type on. They end the same: the device has a token and `user`.
+
+**The code is typed on the device.** Good when the device has a number pad, or a remote can act as one.
+
+- The person presses *Get a number* at `/pair` (`POST /pair/invite {userId}`), and sees 6 digits.
+- The device sends `POST /pair/redeem {code, device, platform}` and gets
+  `{status: "approved", token, user}` at once.
+- Digits only; spaces and dashes are ignored. A code lasts 5 minutes, works once, and a person has one open
+  at a time. The sign-in is for whoever pressed the button, or a Kids or Guest profile they chose.
+- Each failure has `error`, in plain words to show, and `reason` if you want your own:
+
+  | Status | `reason` | Meaning |
+  |---|---|---|
+  | 400 | `wrong-code` | Not a code that exists. |
+  | 410 | `expired` | Its five minutes are up. |
+  | 410 | `used` | It has already been used. |
+  | 429 | `too-many-tries` | Too many wrong codes. `retryAfterSec` and `Retry-After` say how long to wait. |
+
+- Six digits are few, so guessing is limited: 5 wrong from one address means a wait, which grows; 30 wrong
+  anywhere on the server within 5 minutes stops all attempts for a while and cancels every open code.
+
+**The code is shown on the device.** Good for a TV with only a remote: nothing to type there. The TV shows a
+short code and someone approves it on a phone or computer. It follows the same pattern as the OAuth device flow.
 
 ```
 TV                              server                         phone or computer
@@ -508,10 +639,14 @@ deliberately a real list: anything here has to be written once for tvOS and once
   and search; the web readers (WittyEbook, WittyPDF, WittyComics, WittyInk) are browser code. On a TV it may
   make sense to leave books out, or support comics only. Treat EPUB content as untrusted: no scripts.
 
-**Signing in**
+**Connecting and signing in**
 
-- The code screen with its polling and a QR code of `approveUrl`, the server address screen and saving the
-  token securely. Finding servers on the network isn't in the API yet.
+- Browsing for servers (`NWBrowser`, `NsdManager`), the address box with its checks, and the wording of
+  its failures.
+- Pinning `publicKey`, the signature check, and what to say when it doesn't match. Ed25519 verification is
+  in CryptoKit (`Curve25519.Signing`) and, from Android 13, the platform; older Android needs a small library.
+- The code screens: entering digits with a remote, or showing a code and polling, with a QR code of
+  `approveUrl`. Saving the token securely.
 
 **Administration**
 
@@ -533,7 +668,8 @@ For anyone adding a feature (a new library, channels, games):
 3. **Schemas come from Go types.** Add the response type to `schemaTypes` in
    `internal/server/contract_test.go`, then run
    `WMS_UPDATE_OPENAPI=1 go test ./internal/server -run TestSchemasMatchGoTypes`.
-4. **Add a name to `serverFeatures`**, so apps can tell a server has it, and raise `apiRevision`.
+4. **Add a name to `serverFeatures`**, so apps can tell a server has it, and raise `apiRevision` (and
+   `info.version` in `openapi.json`, which a test compares).
 5. **Only add.** Don't rename or remove a field or route in v1, or change what a value means. New fields
    must be safe to ignore. Clients are told to ignore what they don't know.
 6. **Media and native players.** Anything a player fetches goes in `streamRoutes`
@@ -558,6 +694,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /capabilities` | none | What this server is and can do: API versions, features, playback profiles and shared rules. The first thing a client asks. |
+| `POST /identity` | none | Prove this is the server an app pinned: signs a fresh challenge with the server's key. See "Server identity". |
 | `GET /status` | none | Server name, version, branding, default theme, and the signed-in user if any. |
 | `GET /health` | none | Liveness check. |
 | `GET /about` | user | Server version and the engines built into it. |
@@ -591,6 +728,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /login` | none | Sign in. 429 with Retry-After after repeated failures. Password-free Kids and Guest profiles only sign in where `/profiles` lists them. |
 | `POST /logout` | none | End the session the request carries. |
 | `GET /profiles` | none | The "Who's watching?" list where the server offers it: `style` is `profiles` (with `profiles`) or `classic` (ask for name and password). |
+| `POST /pair/invite` | user | Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes. |
+| `POST /pair/redeem` | none | Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429). |
 | `POST /pair/start` | none | TV sign-in: get a code to show. Rate limited per address (429). |
 | `POST /pair/poll` | none | TV sign-in: has someone answered? `status` is `pending`; `approved` with `token` and `user` (once only); 403 `denied`; 410 `expired`; 429 `slow-down`. |
 | `POST /pair/info` | user | TV sign-in, on the phone or computer: what is asking, and which profiles this person may put on it. Adults only. Wrong codes are limited. |

@@ -7,6 +7,7 @@ or session tokens) to an issue.
 | Problem | What to do |
 |---|---|
 | **The tray says “Stopped — address already in use”** | Another copy (or the installed service) uses port 9797. Stop it, or start the tray with `-listen :9798`. |
+| **An app doesn't list the server** | Apps find it over UDP ports 5353 and 9797, which a firewall may block; Wi-Fi with client isolation or a guest network keeps devices apart; a container needs host networking. Check *Settings → Profiles → Signing in → Let apps find this server*. Typing the server's address in the app always works. |
 | **Other devices at home can't open the server** | Use this computer's network address, not `localhost` (the setup wizard and *Settings → About* show it). Check that the server listens on every network card (`-listen :9797`, the default) and that the firewall allows the port. |
 | **It doesn't work away from home** | That's expected: the server is on your home network only until you set up remote access. See [At home and away](INSTALL.md#at-home-and-away). |
 | **“ffmpeg not found”** | Keep `bin/ffmpeg` next to the program, install FFmpeg on `PATH`, or set `WMS_FFMPEG`. *Settings → About* shows which one is used. |

@@ -16,8 +16,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   no work on the server.
 - **Stream tokens**: short-lived, read-only addresses for one item's media, for players that can't
   send headers. They end with the sign-in they came from.
-- **TV sign-in with a code**: the TV shows a code, and someone signed in approves it at
-  *Sign in a TV*, after seeing which device is asking.
+- **Apps can find the server on the home network** (mDNS, with an off switch), and check it is really
+  your server with a key they remember, so a look-alike is noticed. Only its name, a random ID and
+  its version are announced.
+- **TV sign-in with a code**, either way round: the TV shows a code, and someone signed in approves it at
+  *Sign in a TV*, after seeing which device is asking; or that page shows 6 digits to type on the device.
 - **Subtitles for native players**: text tracks as WebVTT, by HLS rendition or as a separate file.
 - **Themes as data**: `GET /api/themes/{id}/tokens.json` gives a theme's colours, lengths and fonts.
 - The resume rule and how a disc starts now come from the server, for every client.

@@ -2725,7 +2725,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3198,6 +3198,9 @@
                       },
                       "type": "array"
                     },
+                    "fingerprint": {
+                      "type": "string"
+                    },
                     "itemKinds": {
                       "items": {
                         "type": "string"
@@ -3213,7 +3216,16 @@
                     "playback": {
                       "type": "object"
                     },
+                    "publicKey": {
+                      "type": "string"
+                    },
                     "server": {
+                      "type": "string"
+                    },
+                    "serverId": {
+                      "type": "string"
+                    },
+                    "serverName": {
                       "type": "string"
                     },
                     "setupRequired": {
@@ -4216,6 +4228,64 @@
           "Browsing"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/identity": {
+      "post": {
+        "operationId": "postIdentity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "nonce": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "algorithm": {
+                      "type": "string"
+                    },
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "serverId": {
+                      "type": "string"
+                    },
+                    "signature": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Prove this is the server an app pinned: signs a fresh challenge with the server's key. See \"Server identity\".",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
       }
     },
     "/items": {
@@ -6816,6 +6886,62 @@
         "x-wms-auth": "user"
       }
     },
+    "/pair/invite": {
+      "post": {
+        "operationId": "postPairInvite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "userId": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/pair/poll": {
       "post": {
         "operationId": "postPairPoll",
@@ -6868,6 +6994,64 @@
         },
         "security": [],
         "summary": "TV sign-in: has someone answered? `status` is `pending`; `approved` with `token` and `user` (once only); 403 `denied`; 410 `expired`; 429 `slow-down`.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/pair/redeem": {
+      "post": {
+        "operationId": "postPairRedeem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "device": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429).",
         "tags": [
           "Sign-in and accounts"
         ],

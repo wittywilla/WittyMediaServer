@@ -18,9 +18,11 @@
 :where(.fx) :where(.btn) svg { width: 18px; height: 18px; }
 :where(.fx) :where(.input, .select) { height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--fx-border); background: var(--fx-bg); color: var(--fx-fg); font: inherit; }
 :where(.fx) :where(.muted) { color: var(--fx-fg3); }
-:where(.fx) :where(.error) { color: #ff8a80; padding: 8px 14px; }
+:where(.fx) :where(.error) { padding: 8px 14px; }
 .fx { width: min(1040px, calc(100vw - 24px)); height: min(720px, calc(100vh - 32px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto;
-  background: var(--fx-bg2); border: 1px solid var(--fx-border); border-radius: 18px; box-shadow: var(--shadow, 0 24px 60px rgba(0,0,0,.5)); overflow: hidden; text-align: left; }
+  background: var(--fx-bg2); border: 1px solid var(--fx-border); border-radius: 18px; box-shadow: var(--shadow, 0 24px 60px rgba(0,0,0,.5)); overflow: hidden; text-align: left; animation: fx-in .2s cubic-bezier(.2,.8,.2,1); }
+@keyframes fx-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) { .fx { animation: none; } }
 .fx-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px; }
 .fx-title { display: flex; align-items: baseline; gap: 8px; font-size: 17px; }
 .fx-title .muted { font-size: 13px; }
@@ -29,6 +31,7 @@
 .fx-path { flex: 1; min-width: 0; display: flex; align-items: center; height: 36px; padding: 0 6px; border-radius: 10px; background: var(--fx-bg); border: 1px solid var(--fx-border); overflow-x: auto; scrollbar-width: none; cursor: text; }
 .fx-path::-webkit-scrollbar { display: none; }
 .fx-path.editing { padding: 0; border: 0; background: none; }
+.fx .input, .fx .select { min-height: 36px; }
 .fx-path.editing .input { width: 100%; height: 36px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
 .fx-crumb-wrap { display: inline-flex; align-items: center; flex: none; }
 .fx-crumb { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--fx-fg); padding: 4px 8px; border-radius: 7px; font-size: 13.5px; white-space: nowrap; cursor: pointer; }

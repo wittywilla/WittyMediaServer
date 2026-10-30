@@ -141,7 +141,6 @@ function Libraries() {
     setGrouping(g)
     try { await api.put('/settings', { libraryGrouping: g }); toast(g === 'combine' ? 'Folders of one kind now join one library' : 'New folders now become libraries of their own') } catch (e: any) { toast(e.message) }
   }
-  const kinds = [...new Set(libraries.map((l) => l.type))].map((k) => `${libraries.filter((l) => l.type === k).length} ${typeLabel(k)}`)
   const remove = async (l: Library) => {
     if (!confirm(`Remove the library “${l.name}”? Your files stay where they are; only the server forgets them.`)) return
     await api.del(`/libraries/${l.id}`)
@@ -157,7 +156,6 @@ function Libraries() {
       {libraries.length > 0 && (
         <div className="set-lib-summary">
           <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
-          <span className="muted">{kinds.join(' · ')}</span>
         </div>
       )}
       <Section title="Folders of the same kind" desc="When you add a folder of a kind you already have a library for, it can join that library, or become a new library with its own name (for example “Kids’ movies” beside “Movies”). You can always choose differently when adding.">

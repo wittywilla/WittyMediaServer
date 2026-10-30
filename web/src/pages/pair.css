@@ -1,0 +1,5 @@
+/* Signing a TV in: the two ways round, side by side when there's room. */
+.pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); max-width: 900px; align-items: start; }
+.pair-ask { max-width: 560px; }
+.pair-code { margin: var(--sp-2) 0; font-size: var(--text-5xl); font-weight: var(--weight-heading); letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.pair-print { margin-top: var(--sp-5); font-size: var(--text-sm); }

@@ -52,7 +52,7 @@
 .tabbar { display: none; }
 @media (max-width: 700px) {
   .tabbar {
-    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
     padding: 6px var(--sp-1) calc(6px + env(safe-area-inset-bottom)); background: var(--bg-2); border-top: 1px solid var(--border);
   }
   .tabbar a, .tabbar button { display: grid; justify-items: center; gap: 2px; min-height: 48px; align-content: center; padding: 0; border-radius: var(--r-md); color: var(--fg-3); background: none; border: 0; font-size: var(--text-2xs); font-weight: 600; }

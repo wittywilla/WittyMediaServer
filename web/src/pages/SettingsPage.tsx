@@ -54,6 +54,8 @@ export default function SettingsPage() {
   const loc = useLocation()
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
+  const slug = loc.pathname.split('/')[2]
+  if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   return (
     <div className="set-shell">
       <nav className="set-nav" aria-label="Settings">

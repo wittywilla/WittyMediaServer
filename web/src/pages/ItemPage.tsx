@@ -24,7 +24,7 @@ export default function ItemPage() {
   const load = () => api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
   useEffect(() => { load() }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
-  if (err) return <EmptyState icon={<IconInfo />} title="This title didn’t load" text={err} />
+  if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />
   // Pictures and creator videos have their own places.

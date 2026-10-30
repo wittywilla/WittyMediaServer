@@ -180,6 +180,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
 // (back to "Who's watching?") and signing out.
 function ProfileMenu() {
   const { user, setUser } = useApp()
+  const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -191,7 +192,7 @@ function ProfileMenu() {
     window.addEventListener('keydown', close)
     return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', close) }
   }, [open])
-  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } setUser(null) }
+  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
   return (
     <div className="profile-menu" ref={ref}>
       <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} aria-label={`${user?.name}: account menu`} onClick={() => setOpen((o) => !o)}>

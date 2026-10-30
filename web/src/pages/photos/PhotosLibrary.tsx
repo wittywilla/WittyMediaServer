@@ -35,7 +35,16 @@ export default function PhotosLibrary({ lib }: { lib: Library }) {
     setParams(n, { replace })
   }
   const open = useCallback((id: number) => set({ view: String(id) }), [params]) // eslint-disable-line react-hooks/exhaustive-deps
-  const closeViewer = () => { if ((window.history.state?.idx ?? 0) > 0) window.history.back(); else set({ view: null }, true) }
+  const closeViewer = () => {
+    const last = viewId
+    if ((window.history.state?.idx ?? 0) > 0) window.history.back(); else set({ view: null }, true)
+    // Back on the grid, at the picture just seen: where a remote user expects to be.
+    setTimeout(() => {
+      const tile = document.querySelector<HTMLElement>(`.gal-tile[data-id="${last}"]`)
+      tile?.focus({ preventScroll: true })
+      tile?.scrollIntoView({ block: 'nearest' })
+    }, 60)
+  }
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const stopSelecting = () => { setSelecting(false); setSelected(new Set()) }
   const setTab = (k: string) => { stopSelecting(); setSearch(''); set({ tab: k === 'timeline' ? null : k, album: null, folder: null }) }
@@ -175,7 +184,7 @@ function Tile({ p, open, selecting, on, toggle }: { p: Photo; open: (id: number)
   const [failed, setFailed] = useState(false)
   // Row-filling without measuring: each tile grows in proportion to its shape.
   return (
-    <button type="button" className={'gal-tile' + (on ? ' on' : '')} style={{ flexGrow: aspect, flexBasis: aspect * ROW_HEIGHT }} aria-pressed={selecting ? on : undefined}
+    <button type="button" data-id={p.id} className={'gal-tile' + (on ? ' on' : '')} style={{ flexGrow: aspect, flexBasis: aspect * ROW_HEIGHT }} aria-pressed={selecting ? on : undefined}
       aria-label={`${p.kind === 'video' ? 'Video' : 'Picture'} ${p.title}, ${takenDate(p.takenAt)}`} onClick={() => (selecting ? toggle(p.id) : open(p.id))}>
       {failed ? <span className="gal-noimg"><IconImage /><small>{p.title}</small></span>
         : <img src={photoThumb(p.id, 480, p.updatedAt)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />}

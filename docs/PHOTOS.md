@@ -27,6 +27,9 @@ Two things are grouped for you:
 - A short clip (up to 40 MB) with a picture of the same name beside it, as phones save live photos,
   becomes that picture's **Live** button rather than a separate entry.
 
+Thumbnails live in the `thumbs` folder of the server's cache. Deleting it is safe: they are made again as
+they are looked at.
+
 ## Dates and places
 
 A picture's date comes from its EXIF (`DateTimeOriginal`), then from its file name

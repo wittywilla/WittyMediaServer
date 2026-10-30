@@ -147,7 +147,7 @@ export function LibrarySummary({ libs, title = 'Your libraries' }: { libs: Libra
   const kinds = [...new Set(libs.map((l) => l.type))].map((k) => `${libs.filter((l) => l.type === k).length} ${kindName(k)}`)
   return (
     <section className="lib-summary" aria-label={title}>
-      <div className="lib-summary-head"><b>{title} · {libs.length}</b><span className="muted" style={{ fontSize: 13 }}>{kinds.join(' · ')}</span></div>
+      <div className="lib-summary-head"><b>{title} · {libs.length}</b><span className="small-note">{kinds.join(' · ')}</span></div>
       <ul className="lib-summary-list">
         {libs.map((l) => (
           <li key={l.id}>

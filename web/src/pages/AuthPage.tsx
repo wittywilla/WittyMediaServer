@@ -97,7 +97,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
           <input ref={pwRef} className="input" type="password" autoFocus={!!profile} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>
         {err && <div className="error" role="alert">{err}</div>}
-        <button className="btn primary" disabled={busy || !name || !password} style={{ justifyContent: 'center' }}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button className="btn primary" disabled={busy || !name || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
       </div>
     </form>
   )
@@ -105,7 +105,8 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
 
 // Avatar: the profile's initial on a colour picked from its name, so each
 // person keeps the same colour on every device.
-const AVATAR_COLORS = ['#e5484d', '#f76b15', '#ffc53d', '#46a758', '#12a594', '#0090ff', '#3e63dd', '#8e4ec6', '#d6409f', '#ad7f58']
+// All dark enough for the white initial (4.5:1).
+const AVATAR_COLORS = ['#c9302f', '#b8500d', '#99690a', '#2e7d3c', '#0e7c6f', '#0a6fb8', '#3e5bd0', '#7f46b8', '#bd2f85', '#8d6444']
 export function Avatar({ name, big }: { name: string; big?: boolean }) {
   let h = 0
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0

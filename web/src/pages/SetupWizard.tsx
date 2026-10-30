@@ -217,7 +217,7 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
       <AddLibrary onAdded={onAdded} onPanel={setInPanel} existing={added} grouping={grouping} />
       {!inPanel && (
         <div className="oobe-actions">
-          <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>
+          <span className="muted">{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>
           <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>
         </div>
       )}

@@ -1,10 +1,10 @@
 import RatingField from '../components/RatingField'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, episodeLabel, fmtRuntime, fmtTime, getPrefs, posterUrl, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
-import { Spinner } from '../components/common'
-import { IconEdit, IconImage, IconPlay, IconRefresh } from '../icons'
+import { BackLink, EmptyState, SeenBadge, Spinner } from '../components/common'
+import { IconCheck, IconEdit, IconImage, IconInfo, IconPlay, IconRefresh } from '../icons'
 import { toast, useApp } from '../state'
 
 export default function ShowPage() {
@@ -21,7 +21,7 @@ export default function ShowPage() {
   const load = () => api.get<ShowDetail>(`/shows/${id}`).then(setD).catch((e) => setErr(e.message))
   useEffect(() => { load(); setViewOverride(null) }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
-  if (err) return <div className="error">{err}</div>
+  if (err) return <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
   if (!d) return <Spinner />
   const { show, seasons, episodes } = d
   const seasonParam = params.get('season')
@@ -73,7 +73,7 @@ export default function ShowPage() {
               <button key={s.number} className={'season-tab' + (s.number === season ? ' active' : '')} onClick={() => setParams({ season: String(s.number) }, { replace: true })}>
                 <div className="season-poster">{<img src={seasonPosterUrl(show, s.number)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />}</div>
                 <div className="t">{s.title}</div>
-                <div className="sub">{s.episodeCount} ep{s.unwatched > 0 && s.unwatched < s.episodeCount ? ` · ${s.unwatched} left` : s.unwatched === 0 ? ' · ✓' : ''}</div>
+                <div className="sub">{s.episodeCount} ep{s.unwatched > 0 && s.unwatched < s.episodeCount ? ` · ${s.unwatched} left` : s.unwatched === 0 ? ' · watched' : ''}</div>
               </button>
             ))}
             {unmatched.length > 0 && <button className={'season-tab' + (season === -1 ? ' active' : '')} onClick={() => setParams({ season: '-1' }, { replace: true })}><div className="season-poster" /><div className="t">Other videos</div><div className="sub">{unmatched.length}</div></button>}
@@ -92,10 +92,10 @@ export default function ShowPage() {
               {eps.map((e) => <EpisodeRow key={e.id} ep={e} />)}
             </div>
           )}
-          <p style={{ marginTop: 30 }}><Link to={`/library/${show.libraryId}`} className="muted">‹ Back to library</Link></p>
-          {show.provider === 'tvdb' && <p className="muted" style={{ fontSize: 12 }}>Metadata provided by TheTVDB. Please consider adding missing information or subscribing.</p>}
-          {show.provider === 'anilist' && <p className="muted" style={{ fontSize: 12 }}>Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
-          {show.provider === 'tvmaze' && <p className="muted" style={{ fontSize: 12 }}>TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
+          <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label="Back to library" /></div>
+          {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by TheTVDB. Please consider adding missing information or subscribing.</p>}
+          {show.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
+          {show.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
         </div>
       </div>
       {edit && <ShowEditor show={show} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load() }} />}
@@ -114,7 +114,7 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
       <tbody>
         {eps.map((e) => {
           const p = e.progress
-          const state = p?.watched ? '\u2713' : p && p.positionSec > 60 ? fmtTime(p.positionSec) : ''
+          const state = p?.watched ? <IconCheck size={16} /> : p && p.positionSec > 60 ? fmtTime(p.positionSec) : ''
           return (
             <tr key={e.id} onClick={() => nav(`/item/${e.id}`)}>
               <td className="thumb-cell">{e.poster ? <img src={posterUrl(e)} alt="" loading="lazy" /> : <span />}</td>
@@ -141,7 +141,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
         {ep.poster && <img src={posterUrl(ep)} alt="" loading="lazy" />}
         <div className="play"><span><IconPlay /></span></div>
         {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}
-        {ep.progress?.watched && <span className="badge" style={{ left: 'auto', right: 6 }}>✓</span>}
+        {ep.progress?.watched && <SeenBadge />}
       </div>
       <div className="info">
         <div className="t"><span className="num">{episodeLabel(ep)}</span> {ep.title}</div>
@@ -174,7 +174,7 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Edit show</h2>
-        <div className="form" style={{ maxWidth: 'none' }}>
+        <div className="form full">
           <div className="row2">
             <label>Title<input className="input" value={f.title} onChange={up('title')} /></label>
             <label>Year<input className="input" value={f.year} onChange={up('year')} /></label>
@@ -186,7 +186,7 @@ function ShowEditor({ show, onClose, onSaved }: { show: ShowDetail['show']; onCl
             <label>Intro starts at <span className="muted">(m:ss)</span><input className="input" value={f.introStart} onChange={up('introStart')} placeholder="0:00" /></label>
             <label>Intro ends at <span className="muted">(m:ss — empty: no Skip intro)</span><input className="input" value={f.introEnd} onChange={up('introEnd')} placeholder="1:05" /></label>
           </div>
-          <div className="muted" style={{ fontSize: 12, marginTop: -6 }}>Used for episodes without an “Intro”/“Opening” chapter; files with such a chapter are detected automatically.</div>
+          <div className="hint">Used for episodes without an “Intro”/“Opening” chapter; files with such a chapter are detected automatically.</div>
           <label>Match by {show.provider === 'tvmaze' ? 'TVmaze' : show.provider === 'anilist' ? 'AniList' : 'TheTVDB'} id <span className="muted">(optional — fixes a wrong match; current: {show.providerId || 'none'})</span>
             <input className="input" value={f.tvdbId} onChange={up('tvdbId')} placeholder="e.g. 76163" />
           </label>

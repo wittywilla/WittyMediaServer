@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, mediaUrl, type Album, type Artist, type Item, type Library } from '../api'
 import { useAudio, type AudioMode } from '../audio/player'
-import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
-import { IconPlay } from '../icons'
+import { BackLink, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
+import { IconAudio, IconCheck, IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 
@@ -50,13 +50,13 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
           </select>
         )}
       </div>
-      {tab === 'albums' && (!albums ? <Spinner /> : albums.length === 0 ? (pods ? (
+      {tab === 'albums' && (!albums ? <SkeletonGrid square={!books} /> : albums.length === 0 ? (pods ? (
         <div className="pod-empty">
           <h2>Your podcasts will live here</h2>
           <PodcastWays />
           {user?.isAdmin ? <PodcastFinder libraryId={lib.id} onAdded={() => setReload((n) => n + 1)} /> : <p className="muted">Ask whoever runs this server to follow some shows.</p>}
         </div>
-      ) : <EmptyState title="Nothing here yet" text="Add audio files to this library's folders and scan it." />) : (
+      ) : <EmptyState icon={<IconAudio />} title="Nothing here yet" text="Add audio files to this library's folders and scan it." />) : (
         <div className="album-grid">
           {albums.map((a) => (
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">
@@ -67,7 +67,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
           ))}
         </div>
       ))}
-      {tab === 'artists' && (!artists ? <Spinner /> : (
+      {tab === 'artists' && (!artists ? <SkeletonGrid square /> : (
         <div className="album-grid">
           {artists.map((a) => (
             <button key={a.name} className="album-card artist" onClick={() => { const p = new URLSearchParams(params); p.set('tab', 'albums'); p.set('artist', a.name); setParams(p) }}>
@@ -95,11 +95,11 @@ export function TrackList({ items, onPlay, showAlbum, episodes, extra }: { items
         return (
           <li key={t.id} className={on ? 'on' : ''}>
             <button onClick={() => onPlay(i)} aria-label={`Play ${t.title}`}>
-              <span className="tl-n">{on && playing ? '▶' : episodes ? '' : t.track ?? i + 1}</span>
+              <span className="tl-n">{on && playing ? <IconPlay /> : episodes ? '' : t.track ?? i + 1}</span>
               <span className="tl-t"><b>{t.title}</b>{showAlbum && <span className="muted">{[t.artist, t.album].filter(Boolean).join(' · ')}</span>}
                 {episodes && <span className="muted">{[t.aired, t.overview].filter(Boolean).join(' · ').slice(0, 160)}</span>}
                 {pct > 0 && <span className="tl-prog" style={{ width: pct + '%' }} />}</span>
-              <span className="tl-d muted">{t.progress?.watched ? '✓ ' : ''}{t.runtimeSec ? fmtTime(t.runtimeSec) : ''}</span>
+              <span className="tl-d muted">{t.progress?.watched && <IconCheck />}{t.runtimeSec ? fmtTime(t.runtimeSec) : ''}</span>
             </button>
             {extra && <span className="tl-x">{extra(t)}</span>}
           </li>

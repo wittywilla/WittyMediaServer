@@ -111,7 +111,7 @@ func TestLoginLimiterMemoryIsBounded(t *testing.T) {
 func TestRebindingIsNeverLocal(t *testing.T) {
 	for host, want := range map[string]bool{
 		"127.0.0.1:9797": true, "[::1]:9797": true, "192.168.1.5:9797": true, "localhost:9797": true, "mediabox:9797": true, "mediabox.local": true,
-		"media.lan:9797": true, "media.home.arpa": true, "x.localhost": true, "evil.example.com:9797": false, "evil.com": false, "127.0.0.1.nip.io:9797": false, "localhost.evil.com": false, "": false,
+		"media.lan:9797": true, "media.home.arpa": true, "nas.fritz.box": true, "x.localhost": true, "evil.example.com:9797": false, "evil.com": false, "127.0.0.1.nip.io:9797": false, "localhost.evil.com": false, "": false,
 	} {
 		r := httptest.NewRequest("GET", "/", nil)
 		r.RemoteAddr = "192.168.1.20:1"

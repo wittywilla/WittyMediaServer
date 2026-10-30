@@ -50,7 +50,7 @@ func localHostName(r *http.Request) bool {
 	if net.ParseIP(host) != nil || !strings.Contains(host, ".") {
 		return host != "" // an address, "localhost" or a computer's own name
 	}
-	for _, suffix := range []string{".localhost", ".local", ".lan", ".home", ".home.arpa", ".internal", ".intranet"} {
+	for _, suffix := range []string{".localhost", ".local", ".localdomain", ".lan", ".home", ".home.arpa", ".fritz.box", ".internal", ".intranet"} {
 		if strings.HasSuffix(host, suffix) {
 			return true
 		}

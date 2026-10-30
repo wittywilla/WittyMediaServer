@@ -14,7 +14,8 @@
   --bg-3: #e9ebee;        /* inputs, cards, hovered rows */
   --bg-4: #d9dde3;        /* borders, scrollbar, pressed buttons */
   --bg-rgb: 243 243 244;   /* --bg as "R G B" for translucent shades */
-  --border: #dfe3ea;      /* hairlines between panels */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #828791;      /* outlines of fields and switches: 3:1 on every surface */
 
   /* Text */
   --fg: #15171c;          /* primary text */
@@ -27,11 +28,12 @@
   --accent-fg: #ffffff;     /* text on accent backgrounds */
   --accent-text: #8f5f18;   /* the accent as text: links, highlighted words */
   --accent-rgb: 150 99 25;
-  --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status colours */
-  --danger: #d92d3f;
-  --ok: #14915f;
+  --danger: #ca2536;
+  --ok: #11784f;
+  --warn: #995c00;
 
   /* Shape and depth */
   --radius: 10px;
@@ -41,7 +43,7 @@
 
   /* Layout and type */
   --sidebar: 240px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Light themes: soften the text shadow used on artwork and keep chips readable. */

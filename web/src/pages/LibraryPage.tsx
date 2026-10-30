@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
-import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
+import { EmptyState, ItemCard, ShowCard, SkeletonGrid, Spinner } from '../components/common'
 import { useApp } from '../state'
-import { IconRefresh } from '../icons'
+import { IconRefresh, IconSortDown, IconSortUp, IconTv } from '../icons'
 import { toast } from '../state'
 import AudioLibrary from './AudioLibrary'
 import BooksLibrary from './Books'
@@ -124,7 +124,7 @@ function VideoLibrary() {
       <div className="toolbar">
         <h1>{lib.name}</h1>
         <span className="count">{total} {isShows ? (total === 1 ? 'show' : 'shows') : total === 1 ? 'item' : 'items'}</span>
-        <div style={{ flex: 1 }} />
+        <div className="grow" />
         <select className="select" value={sort} aria-label="Sort by" onChange={(e) => set('sort', e.target.value)}>
           <option value="title">Title</option><option value="added">Date added</option><option value="year">Year</option>
           <option value="rating">Rating</option>{!isShows && <option value="runtime">Runtime</option>}
@@ -135,8 +135,8 @@ function VideoLibrary() {
             {networks.map((n) => <option key={n.name} value={n.name === 'Unknown network' ? '' : n.name}>{n.name} ({n.shows})</option>)}
           </select>
         )}
-        <button className="btn sm ghost" onClick={() => set('desc', desc ? '' : '1')}>{desc ? '↓ Desc' : '↑ Asc'}</button>
-        {user?.isAdmin && <button className="btn sm ghost" onClick={rescan} disabled={!!scan}><IconRefresh /> {scan ? `Scanning… ${scan.done ?? 0}/${scan.found ?? '?'}` : 'Scan'}</button>}
+        <button className="btn ghost square" onClick={() => set('desc', desc ? '' : '1')} aria-label={desc ? 'Sorted high to low: switch to low to high' : 'Sorted low to high: switch to high to low'} title={desc ? 'High to low' : 'Low to high'}>{desc ? <IconSortDown /> : <IconSortUp />}</button>
+        {user?.isAdmin && <button className="btn ghost" onClick={rescan} disabled={!!scan}><IconRefresh /> {scan ? `Scanning… ${scan.done ?? 0}/${scan.found ?? '?'}` : 'Scan'}</button>}
       </div>
       {!isShows && discCount.all > 0 && (lib.type === 'discs' ? discCount.tv > 0 && discCount.tv < discCount.all : true) && (
         <div className="seg shelf-seg" role="tablist" aria-label="Show">
@@ -147,12 +147,12 @@ function VideoLibrary() {
         </div>
       )}
       {genres.length > 0 && (
-        <div className="chips" style={{ marginBottom: 18 }}>
+        <div className="chips">
           <button className={'chip' + (!genre ? ' active' : '')} onClick={() => set('genre', '')}>All</button>
           {genres.map((g) => <button key={g} className={'chip' + (genre === g ? ' active' : '')} onClick={() => set('genre', g)}>{g}</button>)}
         </div>
       )}
-      {!items ? <Spinner /> : isShows
+      {!items ? <SkeletonGrid /> : isShows
         ? (shows && shows.length > 0
           ? <>
               <div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div>
@@ -160,7 +160,7 @@ function VideoLibrary() {
             </>
           : showDiscs.length > 0
           ? <><h2 className="shelf-head">DVDs & Blu-rays</h2><div className="grid">{showDiscs.map((it) => <ItemCard key={it.id} item={it} />)}</div></>
-          : <EmptyState title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organise episodes as Show/Season 1/Show - S01E01 - Title.mkv and rescan.'} />)
+          : <EmptyState icon={<IconTv />} title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organise episodes as Show/Season 1/Show - S01E01 - Title.mkv and rescan.'} />)
         : items.length === 0
         ? <EmptyState title={scan ? 'Scanning…' : 'No items'} text={scan ? 'Items appear as they are found.' : 'Nothing matched. Check the library folders in Settings.'} />
         : <><div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div>{hasMore && <div ref={more} style={{ minHeight: 1 }}><Spinner /></div>}</>}

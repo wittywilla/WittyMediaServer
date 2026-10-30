@@ -3,7 +3,7 @@
   "name": "Light Red",
   "description": "Light surfaces with a red accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -11,5 +11,37 @@
     "surface": "#eae9ee",
     "text": "#15171c",
     "accent": "#dc2626"
-  }
+  },
+  "colors": {
+    "bg": "#f4f1f4",
+    "bg2": "#fefbfb",
+    "bg3": "#eae9ee",
+    "bg4": "#dadbe3",
+    "fg": "#15171c",
+    "fg2": "#4a5160",
+    "fg3": "#626a78",
+    "accent": "#dc2626",
+    "accentHover": "#b91c1c",
+    "accentFg": "#ffffff",
+    "accentText": "#cd2121",
+    "brandAccent": "#cd2121",
+    "danger": "#ca2536",
+    "ok": "#11784f",
+    "warn": "#965a00",
+    "border": "#15171c1a",
+    "borderStrong": "#15171c33",
+    "controlLine": "#818690",
+    "hover": "#15171c12",
+    "pressed": "#15171c1f",
+    "accentSoft": "#dc262624",
+    "accentLine": "#dc262673",
+    "okSoft": "#11784f21",
+    "warnSoft": "#965a0021",
+    "dangerSoft": "#ca25361c",
+    "focus": "#cd2121",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10
 }

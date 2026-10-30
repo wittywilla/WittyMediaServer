@@ -3,7 +3,7 @@
   "name": "Light Purple",
   "description": "Light surfaces with a purple accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -11,5 +11,37 @@
     "surface": "#e8eaf2",
     "text": "#15171c",
     "accent": "#6d4fe0"
-  }
+  },
+  "colors": {
+    "bg": "#f1f2f8",
+    "bg2": "#fcfbfe",
+    "bg3": "#e8eaf2",
+    "bg4": "#d8dce7",
+    "fg": "#15171c",
+    "fg2": "#4a5160",
+    "fg3": "#626a78",
+    "accent": "#6d4fe0",
+    "accentHover": "#5838c9",
+    "accentFg": "#ffffff",
+    "accentText": "#6d4fe0",
+    "brandAccent": "#6d4fe0",
+    "danger": "#ca2536",
+    "ok": "#11784f",
+    "warn": "#965a00",
+    "border": "#15171c1a",
+    "borderStrong": "#15171c33",
+    "controlLine": "#828791",
+    "hover": "#15171c12",
+    "pressed": "#15171c1f",
+    "accentSoft": "#6d4fe024",
+    "accentLine": "#6d4fe073",
+    "okSoft": "#11784f21",
+    "warnSoft": "#965a0021",
+    "dangerSoft": "#ca25361c",
+    "focus": "#6d4fe0",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10
 }

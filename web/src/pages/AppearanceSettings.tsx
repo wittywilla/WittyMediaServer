@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconDownload } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
@@ -49,7 +50,7 @@ export default function AppearanceSettings() {
       <LayoutPanel />
       <div className="panel">
         <h2>Theme</h2>
-        <p className="muted" style={{ marginTop: -6 }}>
+        <p className="panel-note">
           Pick a look for this device, {user?.isAdmin ? 'or set the default everyone gets. ' : ''}
           Themes are ZIP files in the server's <code>themes</code> folder — <a href={DOCS} target="_blank" rel="noreferrer">make your own</a>.
         </p>
@@ -57,7 +58,7 @@ export default function AppearanceSettings() {
           <div className="seg">
             {(['all', 'dark', 'light'] as const).map((f) => <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f[0].toUpperCase() + f.slice(1)}</button>)}
           </div>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="small-note">
             {mine ? <>This device uses its own theme. <button className="linkish" onClick={() => useHere('')}>Follow the server default</button></> : 'This device follows the server default.'}
           </span>
         </div>
@@ -80,7 +81,7 @@ export default function AppearanceSettings() {
                 <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>{mine === t.id ? 'In use here' : 'Use here'}</button>
                   {user?.isAdmin && t.id !== serverTheme && <button className="btn sm ghost" onClick={() => makeDefault(t.id)}>Make default</button>}
-                  <a className="btn sm ghost" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a starting point for your own">ZIP</a>
+                  <a className="btn sm ghost square" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a ZIP, as a starting point for your own" aria-label={`Download the ${t.name} theme as a ZIP`}><IconDownload /></a>
                   {user?.isAdmin && !t.builtin && <button className="btn sm danger" onClick={() => remove(t)}>Remove</button>}
                 </div>
               </div>
@@ -88,10 +89,10 @@ export default function AppearanceSettings() {
           ))}
         </div>
         {user?.isAdmin && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="panel-actions">
             <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
             <button className="btn primary" onClick={() => fileRef.current?.click()}>Install theme ZIP…</button>
-            <span className="muted" style={{ fontSize: 13 }}>Or copy the ZIP into the <code>themes</code> folder of the data directory and reload this page.</span>
+            <span className="small-note">Or copy the ZIP into the <code>themes</code> folder of the data directory and reload this page.</span>
           </div>
         )}
       </div>
@@ -102,7 +103,7 @@ export default function AppearanceSettings() {
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
             <button className="btn" onClick={() => setNaming(true)}>Rename…</button>
           </div>
-          <p className="muted" style={{ fontSize: 13 }}>Shown in the corner, on the sign-in page and in the browser tab. The licence notice in Settings, About always remains.</p>
+          <p className="small-note">Shown in the corner, on the sign-in page and in the browser tab. The licence notice in Settings, About always remains.</p>
           {naming && <BrandDialog name={brandName} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </div>
       )}
@@ -121,7 +122,7 @@ function LayoutPanel() {
   return (
     <div className="panel">
       <h2>Layout</h2>
-      <p className="muted" style={{ marginTop: -6 }}>Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</p>
+      <p className="panel-note">Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</p>
       <div className="layout-opts" role="radiogroup" aria-label="Navigation">
         {opts.map(([v, label, hint]) => (
           <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>

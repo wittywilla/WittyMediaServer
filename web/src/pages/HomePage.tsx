@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
+import { albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
 import AddLibrary from '../components/AddLibrary'
-import { ItemCard, ShowCard, Spinner } from '../components/common'
-import { IconInfo, IconRefresh, libIcon } from '../icons'
+import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
+import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { useOpenItem } from '../openItem'
 
@@ -123,14 +123,14 @@ export default function HomePage() {
             onDragOver={(e) => { if (dragId && dragId !== w.id) e.preventDefault() }}
             onDrop={(e) => { e.preventDefault(); if (dragId) move(dragId, i) }}>
             <div className="widget-bar">
-              <span className="grip" aria-hidden="true">⠿</span>
+              <span className="grip" aria-hidden="true"><IconGrip size={18} /></span>
               <b>{w.title}</b>
               <span className="grow" />
-              <button className="btn sm ghost" disabled={i === 0} onClick={() => move(w.id, i - 1)} aria-label={`Move ${w.title} up`}>▲</button>
-              <button className="btn sm ghost" disabled={i === shown.length - 1} onClick={() => move(w.id, i + 1)} aria-label={`Move ${w.title} down`}>▼</button>
+              <button className="btn sm ghost square" disabled={i === 0} onClick={() => move(w.id, i - 1)} aria-label={`Move ${w.title} up`}><IconUp /></button>
+              <button className="btn sm ghost square" disabled={i === shown.length - 1} onClick={() => move(w.id, i + 1)} aria-label={`Move ${w.title} down`}><IconDown /></button>
               <button className="btn sm" onClick={() => toggle(w.id)}>{hidden ? 'Show' : 'Hide'}</button>
             </div>
-            {!hidden && <div className="widget-preview">{body || <div className="muted" style={{ padding: 12 }}>Nothing to show here right now.</div>}</div>}
+            {!hidden && <div className="widget-preview">{body || <div className="muted">Nothing to show here right now.</div>}</div>}
           </div>
         )
       })}
@@ -191,12 +191,12 @@ function HubRow({ hub }: { hub: Hub }) {
     <section className="hub">
       <div className="hub-head">
         <h2>{hub.title}</h2>
-        {hub.libraryId && <Link to={`/library/${hub.libraryId}`}>See all ›</Link>}
+        {hub.libraryId && <Link to={`/library/${hub.libraryId}`}>See all <IconRight /></Link>}
       </div>
-      <div className="row">
-        {hub.items.map((it) => (wideRow ? <ItemCard key={it.id} item={it} wide /> : <ItemCard key={it.id} item={it} />))}
+      <CardRow>
+        {albumsOnce(hub.items).map((it) => (wideRow ? <ItemCard key={it.id} item={it} wide /> : <ItemCard key={it.id} item={it} />))}
         {(hub.shows || []).map((s) => <ShowCard key={'s' + s.id} show={s} />)}
-      </div>
+      </CardRow>
     </section>
   )
 }
@@ -213,7 +213,7 @@ function LibraryTiles() {
   if (!libraries.length) return null
   return (
     <section className="hub">
-      <div className="hub-head"><h2>Your libraries</h2>{user?.isAdmin && <Link to="/settings/libraries">Manage ›</Link>}</div>
+      <div className="hub-head"><h2>Your libraries</h2>{user?.isAdmin && <Link to="/settings/libraries">Manage <IconRight /></Link>}</div>
       <div className="lib-tiles">
         {libraries.map((l) => {
           const [one, many] = NOUNS[l.type] || ['item', 'items']
@@ -226,7 +226,7 @@ function LibraryTiles() {
         })}
         {user?.isAdmin && (
           <Link to="/settings/libraries" className="lib-tile add">
-            <span className="lib-tile-ic" aria-hidden="true">+</span>
+            <span className="lib-tile-ic" aria-hidden="true"><IconPlus /></span>
             <span className="lib-tile-txt"><b>Add a library</b><span className="muted">Another folder of media</span></span>
           </Link>
         )}
@@ -264,17 +264,21 @@ function Shuffle() {
 
 function Hero({ items }: { items: Home['featured'] }) {
   const [i, setI] = useState(0)
+  // It only turns by itself if nobody asked for less motion, and stops while
+  // the pointer or keyboard is on it, or when paused (WCAG 2.2.2).
+  const [paused, setPaused] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [hold, setHold] = useState(false)
   const nav = useNavigate()
   const opener = useOpenItem()
   useEffect(() => {
-    if (items.length < 2) return
+    if (items.length < 2 || paused || hold) return
     const t = setInterval(() => setI((x) => (x + 1) % items.length), 9000)
     return () => clearInterval(t)
-  }, [items.length])
+  }, [items.length, paused, hold])
   const it = items[i]
   if (!it) return null
   return (
-    <div className="hero">
+    <div className="hero" onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
       {items.map((x, k) => <div key={x.id} className="bg" style={{ backgroundImage: backdropUrl(x) ? `url(${backdropUrl(x)})` : undefined, opacity: k === i ? 1 : 0 }} />)}
       <div className="shade" />
       <div className="info">
@@ -282,8 +286,8 @@ function Hero({ items }: { items: Home['featured'] }) {
         <div className="meta">
           {it.year && <span>{it.year}</span>}
           {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
-          {it.contentRating && <span>{it.contentRating}</span>}
-          {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
+          {it.contentRating && <span className="pill">{it.contentRating}</span>}
+          {it.rating && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
           {isDisc(it) && <span>{discName(it)}{it.disc?.hasMenus !== false ? ' · interactive menus' : ''}</span>}
           {it.genres.slice(0, 3).map((g) => <span key={g}>{g}</span>)}
         </div>
@@ -294,7 +298,12 @@ function Hero({ items }: { items: Home['featured'] }) {
           <Link className="btn ghost" to={`/item/${it.id}`}><IconInfo /> Details</Link>
         </div>
       </div>
-      {items.length > 1 && <div className="dots">{items.map((_, k) => <button key={k} aria-label={`Show featured title ${k + 1}`} className={k === i ? 'active' : ''} onClick={() => setI(k)} />)}</div>}
+      {items.length > 1 && (
+        <div className="dots">
+          <button type="button" className="hero-pause" aria-label={paused ? 'Start turning the featured titles' : 'Stop turning the featured titles'} title={paused ? 'Play' : 'Pause'} onClick={() => setPaused((p) => !p)}>{paused ? <IconPlay /> : <IconPause />}</button>
+          {items.map((_, k) => <button key={k} type="button" aria-label={`Show featured title ${k + 1}`} aria-current={k === i || undefined} className={k === i ? 'active' : ''} onClick={() => setI(k)} />)}
+        </div>
+      )}
     </div>
   )
 }

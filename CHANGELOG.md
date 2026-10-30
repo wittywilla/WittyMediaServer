@@ -189,6 +189,18 @@ See [CHANNELS.md](docs/CHANNELS.md).
 - **Settings, Gaming**: install cores on request with each licence shown first, and set up streaming.
 - **Ready for TV apps**: controller layouts live on the server, and `docs/GAMING-API.md` documents everything a client
   needs. The player works with a TV remote's D-pad.
+### Interface
+
+- A new look across every page, built on one design system (see `docs/DESIGN.md`): one type scale,
+  a spacing grid, shared buttons, fields, dialogs, cards and empty and loading states. All 20 themes
+  are updated; a theme's `--radius` now shapes the whole interface.
+- Backdrops run behind the top bar, rows of cards have arrows for the mouse, and dialogs are bottom
+  sheets on phones.
+- Faster on low-end devices: no blur on anything that scrolls or covers video, and long libraries
+  skip the cards that are off screen.
+- Accessibility: the featured banner can be paused, field outlines and switches reach 3:1, every
+  target is at least 24px, and a focused control is never hidden under the bars.
+- Rows show an album once instead of once per song; books no longer say "0 min".
 
 ## 0.4.0-alpha
 

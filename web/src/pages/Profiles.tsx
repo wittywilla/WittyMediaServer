@@ -66,7 +66,7 @@ export default function Profiles() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setAdding(true)}>Add profile</button></div>
+          <div className="panel-actions"><button className="btn primary" onClick={() => setAdding(true)}>Add profile</button></div>
         </div>
       )}
       {!restricted && users.length === 0 && !user?.isAdmin && (
@@ -111,7 +111,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" role="dialog" aria-label="Add a profile" onClick={(e) => e.stopPropagation()}>
         <h2>Add a profile</h2>
-        <div className="form" style={{ maxWidth: 'none' }}>
+        <div className="form full">
           {admin && (
             <div className="seg big" role="radiogroup" aria-label="Kind of profile">
               {(['adult', 'kids', 'guest'] as const).map((k) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={kind === k ? 'active' : ''} onClick={() => { setKind(k); setAge(k === 'guest' ? 13 : 7) }}>{KIND_LABEL[k]}</button>)}
@@ -192,7 +192,7 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
     try { await api.put(`/users/${user.id}/access`, { access: a, clearPassword: clearPw }); toast('Limits saved'); onSaved() } catch (e: any) { toast(e.message) }
   }
   const chips = (ids: number[] | undefined, prefix: 'i' | 's', field: keyof Access) => (ids || []).map((id) => (
-    <span key={prefix + id} className="chip">{titles[prefix + id] || '…'}<button type="button" aria-label="Remove" onClick={() => set({ [field]: (ids || []).filter((x) => x !== id) } as Partial<Access>)}>×</button></span>
+    <span key={prefix + id} className="chip tag">{titles[prefix + id] || '…'}<button type="button" aria-label="Remove" onClick={() => set({ [field]: (ids || []).filter((x) => x !== id) } as Partial<Access>)}>×</button></span>
   ))
   return (
     <div className="modal-backdrop" onClick={onClose}>

@@ -3,7 +3,7 @@
   "name": "Dark Blue",
   "description": "Dark surfaces with a blue accent.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -11,5 +11,37 @@
     "surface": "#212631",
     "text": "#ececf1",
     "accent": "#1e6ff5"
-  }
+  },
+  "colors": {
+    "bg": "#12151c",
+    "bg2": "#181d26",
+    "bg3": "#212631",
+    "bg4": "#2c323f",
+    "fg": "#ececf1",
+    "fg2": "#a8adb9",
+    "fg3": "#878d9c",
+    "accent": "#1e6ff5",
+    "accentHover": "#2563eb",
+    "accentFg": "#ffffff",
+    "accentText": "#488af7",
+    "brandAccent": "#488af7",
+    "danger": "#ff5c6c",
+    "ok": "#3ad29f",
+    "warn": "#e0a030",
+    "border": "#ececf11a",
+    "borderStrong": "#ececf133",
+    "controlLine": "#6f7480",
+    "hover": "#ececf112",
+    "pressed": "#ececf11f",
+    "accentSoft": "#1e6ff524",
+    "accentLine": "#1e6ff573",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e0a03021",
+    "dangerSoft": "#ff5c6c1c",
+    "focus": "#488af7",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#00000099"
+  },
+  "radius": 10
 }

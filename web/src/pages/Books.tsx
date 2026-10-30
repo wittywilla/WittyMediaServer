@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl, posterUrl, type Album, type Item, type Library } from '../api'
-import { EmptyState, Spinner } from '../components/common'
+import { EmptyState, SkeletonGrid } from '../components/common'
 import { IconBook } from '../icons'
 
 // Books, comics and manga: the library page and a book's details.
@@ -55,10 +55,10 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
           {[['books', 'Books'], ['series', 'Series']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k, series: null })}>{l}</button>)}
         </div>
       </div>
-      {tab === 'books' && (!items ? <Spinner /> : items.length === 0 ? <EmptyState title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
+      {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>
       ))}
-      {tab === 'series' && (!groups ? <Spinner /> : (
+      {tab === 'series' && (!groups ? <SkeletonGrid /> : (
         <div className="album-grid">
           {groups.filter((g) => g.title).map((g) => (
             <button key={g.artist + '|' + g.title} className="album-card" onClick={() => set({ tab: 'books', series: g.title })}>

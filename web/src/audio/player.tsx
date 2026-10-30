@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
-import { IconClose, IconDown, IconExpand, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
+import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
 import { setSpeed, SPEEDS } from '../player/Controls'
 import { toast } from '../state'
 
@@ -249,7 +249,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           )}
           {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined }} />}
           <button className="ab-art" onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
-            {current.poster ? <img src={posterUrl(current)} alt="" /> : <span>♪</span>}
+            {current.poster ? <img src={posterUrl(current)} alt="" /> : <IconAudio />}
           </button>
           {full ? (
             <div className="ab-info">
@@ -263,15 +263,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             </button>
           )}
           <div className="ab-ctl">
-            {books && <button className="ibtn" onClick={() => seek(Math.max(0, position() - 15))} aria-label="Back 15 seconds">↺15</button>}
+            {books && <button className="ibtn" onClick={() => seek(Math.max(0, position() - 15))} aria-label="Back 15 seconds"><IconBack15 /></button>}
             <button className="ibtn" onClick={prev} aria-label="Previous"><IconPrev /></button>
             <button className="ibtn big" onClick={ctx.toggle} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <IconPause /> : <IconPlay />}</button>
             <button className="ibtn" onClick={next} aria-label="Next"><IconNext /></button>
-            {books && <button className="ibtn" onClick={() => seek(position() + 30)} aria-label="Forward 30 seconds">30↻</button>}
+            {books && <button className="ibtn" onClick={() => seek(position() + 30)} aria-label="Forward 30 seconds"><IconForward30 /></button>}
           </div>
           {!live && <div className="ab-seek">
             <span>{fmtTime(time)}</span>
-            <input type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" onChange={(e) => seek(Number(e.target.value))} />
+            <input className="range" style={{ '--pct': (dur > 0 ? Math.min(100, (time / dur) * 100) : 0) + '%' } as React.CSSProperties} type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" onChange={(e) => seek(Number(e.target.value))} />
             <span>{fmtTime(dur)}</span>
           </div>}
           <div className="ab-extra">

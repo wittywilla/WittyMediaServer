@@ -166,8 +166,8 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
         <button className="ibtn big" onClick={toggle} title={st.playing ? 'Pause (Space)' : 'Play (Space)'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
         {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next scene"><IconNext /></button>}
         <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute (M)" aria-label="Mute" aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
-        <input className="hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
-          onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ width: 90, accentColor: 'var(--accent)' }} />
+        <input className="range vol hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
+          onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ '--pct': (st.muted ? 0 : st.volume * 100) + '%' } as React.CSSProperties} />
         <span className="time" aria-hidden="true">
           {fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
           {!showSeek && chapters.length > 1 ? ` · ${chapName(Math.max(0, curChapter - 1))}` : ''}
@@ -269,7 +269,7 @@ function ShortcutHelp({ disc, onClose }: { disc: boolean; onClose: () => void })
         <dl className="kbd-list">
           {KEYS.filter(([, , d]) => !d || disc).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
         </dl>
-        <p className="muted" style={{ fontSize: 13 }}>Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
+        <p className="small-note">Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
         <div className="actions"><button className="btn primary" onClick={onClose}>Close</button></div>
       </div>
     </div>

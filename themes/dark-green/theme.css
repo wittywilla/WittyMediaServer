@@ -14,7 +14,8 @@
   --bg-3: #20292c;        /* inputs, cards, hovered rows */
   --bg-4: #2b3439;        /* borders, scrollbar, pressed buttons */
   --bg-rgb: 17 23 23;   /* --bg as "R G B" for translucent shades */
-  --border: #08090b;      /* hairlines between panels */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #6f7480;      /* outlines of fields and switches: 3:1 on every surface */
 
   /* Text */
   --fg: #ececf1;          /* primary text */
@@ -27,11 +28,12 @@
   --accent-fg: #0e1013;     /* text on accent backgrounds */
   --accent-text: #22c55e;   /* the accent as text: links, highlighted words */
   --accent-rgb: 34 197 94;
-  --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status colours */
   --danger: #ff5c6c;
   --ok: #3ad29f;
+  --warn: #e0a030;
 
   /* Shape and depth */
   --radius: 10px;
@@ -41,5 +43,5 @@
 
   /* Layout and type */
   --sidebar: 240px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }

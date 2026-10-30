@@ -62,7 +62,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
                 ? <input className="input" value={labels.titles[main.ttn] || ''} placeholder={item.title} onChange={(e) => setTitle(main.ttn, e.target.value)} aria-label="Feature name" />
                 : <h3>{titleName(main, item.title)}</h3>}
               <div className="muted">{fmtRuntime(main.durationSec)} · {main.chapters.length} scenes{main.angles > 1 ? ` · ${main.angles} video versions` : ''}{main.wide ? ' · widescreen' : ''}</div>
-              <div className="muted" style={{ fontSize: 13 }}>
+              <div className="muted">
                 {main.audio.length > 0 && <>Audio: {[...new Set(main.audio.map((a) => langName(a.split(' ')[0])))].join(', ')}</>}
                 {main.subtitles.length > 0 && <> · Subtitles: {[...new Set(main.subtitles.map((s) => langName(s.split(' ')[0])))].join(', ')}</>}
               </div>
@@ -137,8 +137,8 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
                   <td>{t.number}{t.number === item.disc!.mainTitle && ' · Feature'}</td>
                   <td>{fmtTime(t.durationSec)}</td>
                   <td>{(t.chapters || []).length}</td>
-                  <td style={{ fontSize: 13 }}>{(t.audio || []).slice(0, 3).join(', ')}</td>
-                  <td style={{ fontSize: 13 }}>{[...new Set((t.subtitles || []).map(langName))].join(', ')}</td>
+                  <td className="small">{(t.audio || []).slice(0, 3).join(', ')}</td>
+                  <td className="small">{[...new Set((t.subtitles || []).map(langName))].join(', ')}</td>
                   <td><button className="btn sm" disabled={!playable} onClick={() => play(t.number)}><IconPlay /> Play</button></td>
                 </tr>
               ))}

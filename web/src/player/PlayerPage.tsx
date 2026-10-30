@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, dvdStartMode, isDisc, type Item } from '../api'
+import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
 

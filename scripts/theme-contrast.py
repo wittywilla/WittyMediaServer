@@ -93,6 +93,21 @@ for f in FILES:
     if text != v.get('accent-text') and f.name != 'styles.css':  # the app's default leaves it to the theme
         new['accent-text'] = text
         notes.append(f'--accent-text {text} ({min(ratio(text, x) for x in surfaces):.2f})')
+    # Status colours are also text, and the outlines of fields must be visible.
+    for k in ('danger', 'ok', 'warn'):
+        if k in v and min(ratio(v[k], s) for s in surfaces) < 4.5:
+            new[k] = move(v[k], surfaces, 4.5, lighter=dark)
+            notes.append(f'--{k} {v[k]} -> {new[k]} ({min(ratio(new[k], s) for s in surfaces):.2f})')
+    if 'control-line' in v:
+        worst = min(ratio(v['control-line'], s) for s in surfaces)
+        # Only as strong as it has to be: a heavier outline is just noise.
+        if worst < 3 or worst > 3.4:
+            start = v['bg-3'] if worst > 3.4 else v['control-line']
+            new['control-line'] = move(start, surfaces, 3, lighter=dark)
+            if new['control-line'] != v['control-line']:
+                notes.append(f'--control-line {v["control-line"]} -> {new["control-line"]} ({min(ratio(new["control-line"], s) for s in surfaces):.2f})')
+            else:
+                del new['control-line']
     print(f'{f}: ' + ('; '.join(notes) if notes else 'passes'))
     if FIX and new != v:
         changed += 1

@@ -7,8 +7,8 @@ import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 import { GameDetails } from './Games'
-import { Spinner, isGeneratedArt } from '../components/common'
-import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
+import { BackLink, EmptyState, Spinner, artHue, isGeneratedArt } from '../components/common'
+import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
 import { toast, useApp } from '../state'
 
 export default function ItemPage() {
@@ -24,7 +24,7 @@ export default function ItemPage() {
   const load = () => api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
   useEffect(() => { load() }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
-  if (err) return <div className="error">{err}</div>
+  if (err) return <EmptyState icon={<IconInfo />} title="This title didn’t load" text={err} />
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />
   // Pictures and creator videos have their own places.
@@ -54,9 +54,8 @@ export default function ItemPage() {
       </div>
       <div className="detail">
         <div>
-          <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')}>
-            {/* A frame from the video: shown whole over a blurred fill of itself. */}
-            {it.poster && isGeneratedArt(it) && <div className="blur" style={{ backgroundImage: `url(${posterUrl(it)})` }} />}
+          {/* A frame from the video: shown whole on a colour of its own. */}
+          <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')} style={isGeneratedArt(it) ? { '--art-hue': artHue(it.title) } as React.CSSProperties : undefined}>
             {it.poster && <img src={posterUrl(it)} alt="" />}
           </div>
         </div>
@@ -68,8 +67,8 @@ export default function ItemPage() {
           {it.showId != null && (
             <div className="crumbs">
               <Link to={`/show/${it.showId}`}>{it.showTitle}</Link>
-              {it.season != null && <> › <Link to={`/show/${it.showId}?season=${it.season}`}>{it.season === 0 ? 'Specials' : `Season ${it.season}`}</Link></>}
-              {episodeLabel(it) && <> › {episodeLabel(it)}</>}
+              {it.season != null && <><IconRight /><Link to={`/show/${it.showId}?season=${it.season}`}>{it.season === 0 ? 'Specials' : `Season ${it.season}`}</Link></>}
+              {episodeLabel(it) && <><IconRight /><span>{episodeLabel(it)}</span></>}
             </div>
           )}
           <h1>{it.title}</h1>
@@ -78,7 +77,7 @@ export default function ItemPage() {
             {it.aired ? <span>{it.aired}</span> : it.year && <span>{it.year}</span>}
             {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
-            {it.rating && <span>★ {it.rating.toFixed(1)}</span>}
+            {it.rating && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
             {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 4).join(', ')}{it.genres.length > 4 ? '…' : ''}</span>}
             {it.studio && <span>{it.studio}</span>}
           </div>
@@ -117,25 +116,25 @@ export default function ItemPage() {
           )}
           {it.overview && <p className="overview">{it.overview}</p>}
           {it.provider === 'wikidata' && (
-            <p className="muted" style={{ fontSize: 12 }}>
+            <p className="fine-print">
               Facts from <a href={`https://www.wikidata.org/wiki/${it.providerId}`} target="_blank" rel="noreferrer">Wikidata</a>; plot summary from Wikipedia,
               shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
             </p>
           )}
-          {disc && it.disc?.scrambled && <div className="error" style={{ maxWidth: 760 }}>This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'}, so it can't be played. Make a decrypted image of the disc you own with a tool that is legal where you live, then rescan.</div>}
+          {disc && it.disc?.scrambled && <div className="error">This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'}, so it can't be played. Make a decrypted image of the disc you own with a tool that is legal where you live, then rescan.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {codecName(it.videoCodec)}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
             {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
             {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
             <div className="fact"><div className="k">Source</div><div className="v">{disc ? `${discName(it)} ${it.kind.endsWith('-iso') ? 'image' : 'folder'}` : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
             {disc && it.disc && <div className="fact"><div className="k">Disc</div><div className="v">{it.disc.label} · {it.disc.titles.length} titles{it.disc.hasMenus ? ' · menus' : ''}</div></div>}
-            {user?.isAdmin && <div className="fact" style={{ gridColumn: '1 / -1' }}><div className="k">File</div><div className="v" style={{ fontWeight: 400, color: 'var(--fg-2)', wordBreak: 'break-all', fontSize: 13 }}>{it.path}</div></div>}
+            {user?.isAdmin && <div className="fact wide"><div className="k">File</div><div className="v">{it.path}</div></div>}
           </div>
 
           {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
-          <p style={{ marginTop: 30 }}>{it.showId != null
-            ? <Link to={`/show/${it.showId}?season=${it.season ?? -1}`} className="muted">‹ Back to {it.showTitle}</Link>
-            : <Link to={`/library/${it.libraryId}`} className="muted">‹ Back to library</Link>}</p>
+          <div className="page-back">{it.showId != null
+            ? <BackLink to={`/show/${it.showId}?season=${it.season ?? -1}`} label={`Back to ${it.showTitle}`} />
+            : <BackLink to={`/library/${it.libraryId}`} label="Back to library" />}</div>
         </div>
       </div>
       {edit && <EditModal item={it} onClose={() => setEdit(false)} onSaved={(x) => { setIt(x); setEdit(false) }} />}
@@ -160,14 +159,14 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Disc settings</h2>
-        <div className="form" style={{ maxWidth: 'none' }}>
+        <div className="form full">
           <label>What’s on this disc
             <select className="select" value={content} onChange={(e) => setContent(e.target.value)}>
               <option value="">Work it out from the name ({item.disc?.contentManual ? 'automatic' : guessed})</option>
               <option value="movie">A film</option>
               <option value="tv">Episodes of a TV series</option>
             </select>
-            <span className="muted" style={{ fontWeight: 400, fontSize: 12.5 }}>Sorts the disc under Films or TV series in its library. Discs of a series aren’t looked up as films.</span>
+            <span className="hint">Sorts the disc under Films or TV series in its library. Discs of a series aren’t looked up as films.</span>
           </label>
           <label>When this disc is inserted
             <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>
@@ -208,7 +207,7 @@ function EditModal({ item, onClose, onSaved }: { item: Item; onClose: () => void
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Edit metadata</h2>
-        <div className="form" style={{ maxWidth: 'none' }}>
+        <div className="form full">
           <div className="row2">
             <label>Title<input className="input" value={f.title} onChange={up('title')} /></label>
             <label>Year<input className="input" value={f.year} onChange={up('year')} /></label>

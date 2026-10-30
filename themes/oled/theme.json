@@ -3,7 +3,7 @@
   "name": "OLED Black",
   "description": "True black surfaces for OLED screens and dark rooms.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -11,5 +11,37 @@
     "surface": "#121317",
     "text": "#f2f3f6",
     "accent": "#7955ff"
-  }
+  },
+  "colors": {
+    "bg": "#000000",
+    "bg2": "#07080a",
+    "bg3": "#121317",
+    "bg4": "#1d1f25",
+    "fg": "#f2f3f6",
+    "fg2": "#a3a8b4",
+    "fg3": "#777d8d",
+    "accent": "#7955ff",
+    "accentHover": "#6a4df0",
+    "accentFg": "#ffffff",
+    "accentText": "#8362ff",
+    "brandAccent": "#8362ff",
+    "danger": "#ff5c6c",
+    "ok": "#3ad29f",
+    "warn": "#e0a030",
+    "border": "#f2f3f61a",
+    "borderStrong": "#f2f3f633",
+    "controlLine": "#5c6175",
+    "hover": "#f2f3f612",
+    "pressed": "#f2f3f61f",
+    "accentSoft": "#7955ff24",
+    "accentLine": "#7955ff73",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e0a03021",
+    "dangerSoft": "#ff5c6c1c",
+    "focus": "#8362ff",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#00000099"
+  },
+  "radius": 10
 }

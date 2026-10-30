@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api, inMainMenus } from './api'
-import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconSearch, IconSettings, IconTv, IconUsers, libIcon } from './icons'
+import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -136,7 +136,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <NavLink to="/tv" className="nav-link"><IconTv /> TV guide</NavLink>
         <div className="nav-section">Libraries</div>
         {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
-        {libraries.length === 0 && <div className="nav-link muted" style={{ fontSize: 13 }}>No libraries yet</div>}
+        {libraries.length === 0 && <div className="nav-empty">No libraries yet</div>}
         {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
         <div className="nav-section">Manage</div>
         <NavLink to="/settings" className="nav-link"><IconSettings /> Settings<UpdateDot /></NavLink>
@@ -199,10 +199,10 @@ function ProfileMenu() {
       {open && (
         <div className="menu" role="menu" onClick={() => setOpen(false)}>
           <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
-          <Link role="menuitem" to="/review">Your year</Link>
-          <Link role="menuitem" to="/settings/appearance">Appearance</Link>
-          <Link role="menuitem" to="/settings">Settings</Link>
-          {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair">Sign in a TV</Link>}
+          <Link role="menuitem" to="/review"><IconStar /> Your year</Link>
+          <Link role="menuitem" to="/settings/appearance"><IconPalette /> Appearance</Link>
+          <Link role="menuitem" to="/settings"><IconSettings /> Settings</Link>
+          {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair"><IconTv /> Sign in a TV</Link>}
           <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>
           <button role="menuitem" onClick={signOut}><IconLogout /> Sign out</button>
         </div>

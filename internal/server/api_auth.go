@@ -199,7 +199,7 @@ func (s *Server) canManage(r *http.Request, me *auth.User, targetKind string) bo
 	if me.IsAdmin {
 		return true
 	}
-	return me.Kind == auth.KindAdult && targetKind == auth.KindKids && s.DB.GetSetting(r.Context(), "kidsManagedBy", "adults") == "adults"
+	return me.Kind == auth.KindAdult && targetKind == auth.KindKids && !accessFor(me).Limited() && s.DB.GetSetting(r.Context(), "kidsManagedBy", "adults") == "adults"
 }
 
 // GET /api/users: everyone for the admin; the Kids profiles for adults who

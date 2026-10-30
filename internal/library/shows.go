@@ -488,9 +488,10 @@ type Network struct {
 
 // Networks lists the networks of the shows in a library (0 = all), with the
 // genres that appear on each.
-func (s *Store) Networks(ctx context.Context, libraryID int64) ([]Network, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, IFNULL(network, ''), IFNULL(genres, '') FROM shows
-		WHERE missing = 0 AND (? = 0 OR library_id = ?) ORDER BY network COLLATE NOCASE, sort_title COLLATE NOCASE`, libraryID, libraryID)
+func (s *Store) Networks(ctx context.Context, libraryID int64, access *Access) ([]Network, error) {
+	clause, extra := access.ShowClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT s.id, IFNULL(s.network, ''), IFNULL(s.genres, '') FROM shows s
+		WHERE s.missing = 0 AND (? = 0 OR s.library_id = ?) AND `+clause+` ORDER BY s.network COLLATE NOCASE, s.sort_title COLLATE NOCASE`, append([]any{libraryID, libraryID}, extra...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -538,8 +539,9 @@ func containsFold(list []string, v string) bool {
 }
 
 // ShowGenres lists the genres used by shows in a library.
-func (s *Store) ShowGenres(ctx context.Context, libraryID int64) ([]string, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT genres FROM shows WHERE missing = 0 AND library_id = ?`, libraryID)
+func (s *Store) ShowGenres(ctx context.Context, libraryID int64, access *Access) ([]string, error) {
+	clause, extra := access.ShowClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT s.genres FROM shows s WHERE s.missing = 0 AND s.library_id = ? AND `+clause, append([]any{libraryID}, extra...)...)
 	if err != nil {
 		return nil, err
 	}

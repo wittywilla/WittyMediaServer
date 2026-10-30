@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -149,5 +150,171 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 	if csp := ts.do(t, "GET", "/", "", nil).Header().Get("Content-Security-Policy"); strings.Contains(csp, "connect-src 'self' https:") {
 		t.Errorf("the app may talk only to this server: %q", csp)
+	}
+}
+
+// Everything a restricted account can reach by asking directly for an address.
+func TestRestrictedAccountCantReachHiddenTitles(t *testing.T) {
+	ts := newTestServer(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	lib := ts.library(t, "movies", dir)
+	hiddenLib := ts.library(t, "shows", dir)
+	secret := filepath.Join(dir, "poster.png")
+	if err := os.WriteFile(secret, append([]byte("\x89PNG\r\n\x1a\n"), make([]byte, 40)...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sh := &library.Show{LibraryID: hiddenLib, Path: dir, Title: "Hidden show", SortTitle: "Hidden show", ContentRating: "TV-MA", Genres: []string{"Horror"}, Network: "SecretNet", Poster: secret}
+	if err := ts.Store.UpsertShow(ctx, sh); err != nil {
+		t.Fatal(err)
+	}
+	ok := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(dir, "ok.mp4"), ContentRating: "G", Genres: []string{"Family"}})
+	bad := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(dir, "bad.mp4"), ContentRating: "R", Genres: []string{"Slasher"}, Poster: secret})
+	_, kid := ts.user(t, "kid", "kids", false, "")
+
+	for _, target := range []string{
+		fmt.Sprintf("/api/items/%d", bad.ID), fmt.Sprintf("/api/items/%d/poster", bad.ID), fmt.Sprintf("/api/items/%d/file", bad.ID), fmt.Sprintf("/api/items/%d/play", bad.ID),
+		fmt.Sprintf("/api/items/%d/stream", bad.ID), fmt.Sprintf("/api/items/%d/disc", bad.ID), fmt.Sprintf("/api/items/%d/recommend", bad.ID), fmt.Sprintf("/api/items/%d/book", bad.ID),
+		fmt.Sprintf("/api/shows/%d", sh.ID), fmt.Sprintf("/api/shows/%d/art/poster", sh.ID), fmt.Sprintf("/api/shows/%d/art/backdrop", sh.ID),
+	} {
+		if w := ts.do(t, "GET", target, kid, nil); w.Code == 200 {
+			t.Errorf("GET %s: a Kids profile got %s", target, w.Body.String())
+		}
+	}
+	if w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/progress", bad.ID), kid, map[string]any{"positionSec": 100}); w.Code != 404 {
+		t.Errorf("progress on a hidden title: %d", w.Code)
+	}
+	if w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/progress", ok.ID), kid, map[string]any{"positionSec": 100}); w.Code != 200 {
+		t.Errorf("progress on an allowed title: %d", w.Code)
+	}
+	for target, secretWord := range map[string]string{"/api/genres": "Slasher", fmt.Sprintf("/api/shows/genres?library=%d", hiddenLib): "Horror", "/api/shows/networks": "SecretNet"} {
+		if w := ts.do(t, "GET", target, kid, nil); strings.Contains(w.Body.String(), secretWord) {
+			t.Errorf("%s names what is hidden: %s", target, w.Body)
+		}
+	}
+}
+
+// Where files are on this machine is the admin's to know.
+func TestServerPathsHiddenFromOtherAccounts(t *testing.T) {
+	ts := newTestServer(t)
+	dir := filepath.Join(t.TempDir(), "users", "owner-name", "Movies")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lib := ts.library(t, "movies", dir)
+	it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(dir, "m.mp4"), ContentRating: "G"})
+	_, admin := ts.user(t, "admin", "adult", true, "")
+	_, adult := ts.user(t, "adult", "adult", false, "")
+	for _, target := range []string{"/api/libraries", "/api/items", fmt.Sprintf("/api/items/%d", it.ID), "/api/home"} {
+		if w := ts.do(t, "GET", target, adult, nil); w.Code != 200 || strings.Contains(w.Body.String(), "owner-name") {
+			t.Errorf("%s (%d): %s", target, w.Code, w.Body)
+		}
+	}
+	if w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d", it.ID), admin, nil); !strings.Contains(w.Body.String(), "owner-name") {
+		t.Errorf("the admin needs the path: %s", w.Body)
+	}
+}
+
+// A private podcast feed's address is a password.
+func TestPodcastAddressesHidden(t *testing.T) {
+	ts := newTestServer(t)
+	ctx := context.Background()
+	lib := ts.library(t, "podcasts")
+	other := ts.library(t, "podcasts")
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO podcasts(library_id, url, title, created_at) VALUES(?,?,?,1),(?,?,?,1)`, lib, "https://feeds.test/private?key=SECRET", "Show", other, "https://x.test/f", "Other"); err != nil {
+		t.Fatal(err)
+	}
+	_, adult := ts.user(t, "adult", "adult", false, "")
+	if w := ts.do(t, "GET", "/api/podcasts", adult, nil); strings.Contains(w.Body.String(), "SECRET") {
+		t.Errorf("feed address shown: %s", w.Body)
+	}
+	limited := fmt.Sprintf(`{"maxAge":-1,"allowUnrated":true,"libraries":[%d]}`, lib)
+	_, u := ts.user(t, "limited", "adult", false, limited)
+	if w := ts.do(t, "GET", "/api/podcasts", u, nil); strings.Contains(w.Body.String(), "Other") {
+		t.Errorf("a podcast from a library this account can't open: %s", w.Body)
+	}
+	_, admin := ts.user(t, "admin", "adult", true, "")
+	if w := ts.do(t, "GET", "/api/podcasts", admin, nil); !strings.Contains(w.Body.String(), "SECRET") {
+		t.Errorf("the admin manages feeds: %s", w.Body)
+	}
+}
+
+// A limited adult who could create Kids profiles could give one no limits and
+// sign in as it.
+func TestLimitedAdultCantMakeUnlimitedProfiles(t *testing.T) {
+	ts := newTestServer(t)
+	_, tok := ts.user(t, "teen", "adult", false, `{"maxAge":13,"allowUnrated":false}`)
+	body := map[string]any{"name": "backdoor", "password": "1234", "kind": "kids", "access": map[string]any{"maxAge": -1, "allowUnrated": true}}
+	if w := ts.do(t, "POST", "/api/users", tok, body); w.Code != 403 {
+		t.Fatalf("status %d: %s", w.Code, w.Body)
+	}
+	_, full := ts.user(t, "parent", "adult", false, "")
+	if w := ts.do(t, "POST", "/api/users", full, body); w.Code != 201 {
+		t.Fatalf("an unrestricted adult manages Kids profiles: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "POST", "/api/users", full, map[string]any{"name": "x", "password": "long enough pw", "kind": "adult", "isAdmin": true}); w.Code != 403 {
+		t.Fatalf("an adult made an admin: %d", w.Code)
+	}
+}
+
+// Every route that changes something or shows server internals needs the
+// right account. Walks the routes so a new one can't be forgotten here.
+func TestAdminRoutes(t *testing.T) {
+	ts := newTestServer(t)
+	_, adult := ts.user(t, "adult", "adult", false, "")
+	_, kid := ts.user(t, "kid", "kids", false, "")
+	for _, rt := range []struct{ m, p string }{
+		{"POST", "/api/libraries"}, {"PUT", "/api/libraries/1"}, {"DELETE", "/api/libraries/1"}, {"POST", "/api/libraries/1/scan"},
+		{"PUT", "/api/items/1"}, {"GET", "/api/items/1/artwork"}, {"PUT", "/api/items/1/disc/labels"}, {"GET", "/api/artwork/preview?src=x.png"},
+		{"POST", "/api/themes"}, {"DELETE", "/api/themes/x"}, {"PUT", "/api/shows/1"}, {"PUT", "/api/shows/1/view"}, {"GET", "/api/shows/1/artwork"},
+		{"GET", "/api/podcasts/search?q=ab"}, {"POST", "/api/podcasts"}, {"PUT", "/api/podcasts/1"}, {"POST", "/api/podcasts/1/refresh"}, {"DELETE", "/api/podcasts/1"}, {"POST", "/api/items/1/download"},
+		{"GET", "/api/settings"}, {"PUT", "/api/settings"}, {"PUT", "/api/branding/logo"}, {"DELETE", "/api/branding/logo"}, {"GET", "/api/system"},
+		{"GET", "/api/fs?path=/"}, {"POST", "/api/fs/pick"}, {"POST", "/api/metadata/test"}, {"GET", "/api/agents"}, {"PUT", "/api/agents"}, {"POST", "/api/agents/test"},
+		{"GET", "/api/logs"}, {"PUT", "/api/logs"}, {"GET", "/api/logs/files/wms-x.log"}, {"POST", "/api/logs/open"}, {"GET", "/api/update"}, {"POST", "/api/update/check"}, {"POST", "/api/update/apply"},
+	} {
+		for who, tok := range map[string]string{"adult": adult, "kids": kid} {
+			if w := ts.do(t, rt.m, rt.p, tok, nil); w.Code != 403 {
+				t.Errorf("%s %s as %s: %d", rt.m, rt.p, who, w.Code)
+			}
+		}
+		if w := ts.do(t, rt.m, rt.p, "", nil); w.Code != 401 {
+			t.Errorf("%s %s signed out: %d", rt.m, rt.p, w.Code)
+		}
+	}
+}
+
+// Requests naming a track that doesn't exist used to panic the handler.
+func TestSettingsRefuseFFmpegEscapes(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "admin", "adult", true, "")
+	for k, v := range map[string]string{
+		"ffmpegOutputArgs": "-y /etc/cron.d/x", "ffmpegVideoArgs": "-i /etc/passwd", "x264Preset": "-y", "maxBitrate": "../../x", "audioBitrate": "1 2", "audioCodec": "../../../x",
+	} {
+		if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{k: v}); w.Code != 400 {
+			t.Errorf("%s=%q: status %d", k, v, w.Code)
+		}
+		if got := ts.DB.GetSetting(context.Background(), k, ""); got == v {
+			t.Errorf("%s=%q was saved", k, v)
+		}
+	}
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"ffmpegVideoArgs": "-preset slow -crf 20 -tune film", "maxBitrate": "8M"}); w.Code != 200 {
+		t.Errorf("normal settings: %d %s", w.Code, w.Body)
+	}
+	// A value saved before this check is not used.
+	_ = ts.DB.SetSetting(context.Background(), "qualityMode", "expert")
+	_ = ts.DB.SetSetting(context.Background(), "ffmpegOutputArgs", "-y /tmp/evil")
+	q, _ := ts.quality(httptest.NewRequest("GET", "/", nil))
+	if len(q.OutputArgs) != 0 {
+		t.Errorf("old expert options used: %v", q.OutputArgs)
+	}
+}
+
+func TestViewerCantRaiseMaxHeight(t *testing.T) {
+	ts := newTestServer(t)
+	_ = ts.DB.SetSetting(context.Background(), "maxHeight", "720")
+	for target, want := range map[string]int{"/?maxHeight=2160": 720, "/?maxHeight=480": 480, "/?maxHeight=-5": 720, "/?maxHeight=99999999": 720, "/": 720} {
+		if _, h := ts.quality(httptest.NewRequest("GET", target, nil)); h != want {
+			t.Errorf("%s: %d, want %d", target, h, want)
+		}
 	}
 }

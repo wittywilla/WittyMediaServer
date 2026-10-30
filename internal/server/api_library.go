@@ -22,6 +22,11 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if !userFrom(r).IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{} // how this machine's folders are laid out is the admin's business
+		}
+	}
 	writeJSON(w, 200, libs)
 }
 
@@ -141,11 +146,14 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 	id, _ := pathInt(r, "id")
 	out := s.Scanner.Snapshot(id)
+	if out != nil && !userFrom(r).IsAdmin {
+		out.Current = "" // the file being scanned may be one this account can't see
+	}
 	writeJSON(w, 200, map[string]any{"scanning": out != nil, "progress": out})
 }
 
 func (s *Server) handleGenres(w http.ResponseWriter, r *http.Request) {
-	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)))
+	g, err := s.Store.Genres(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -176,7 +184,7 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
-	writeJSON(w, 200, map[string]any{"items": items, "total": total})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "total": total})
 }
 
 func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +205,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 			it.IntroStart, it.IntroEnd = sh.IntroStart, sh.IntroEnd
 		}
 	}
+	s.forViewer(r, it)
 	writeJSON(w, 200, it)
 }
 
@@ -216,6 +225,12 @@ func (s *Server) handleRecommend(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if rec != nil {
+		s.forViewer(r, rec)
+	}
+	if show != nil {
+		s.showsForViewer(r, show)
 	}
 	writeJSON(w, 200, map[string]any{"item": rec, "show": show})
 }
@@ -428,6 +443,16 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = s.Store.AttachProgress(ctx, u.ID, featured)
+	for _, h := range hubs {
+		s.forViewer(r, h.Items...)
+		s.showsForViewer(r, h.Shows...)
+	}
+	s.forViewer(r, featured...)
+	if !u.IsAdmin {
+		for i := range libs {
+			libs[i].Paths = []string{}
+		}
+	}
 	writeJSON(w, 200, map[string]any{"hubs": hubs, "featured": featured, "libraries": libs})
 }
 
@@ -630,6 +655,10 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
+		return
+	}
+	if _, err := s.visibleItem(r, id); err != nil {
+		writeErr(w, 404, "item not found") // whether a hidden title exists stays hidden
 		return
 	}
 	var p library.Progress

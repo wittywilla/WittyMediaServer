@@ -41,7 +41,10 @@ func (s *Server) audioCodec(r *http.Request) string {
 	if v := r.URL.Query().Get("audioCodec"); v == "mp3" || v == "aac" {
 		return v
 	}
-	return s.DB.GetSetting(r.Context(), "audioCodec", "aac")
+	if s.DB.GetSetting(r.Context(), "audioCodec", "aac") == "mp3" {
+		return "mp3"
+	}
+	return "aac"
 }
 
 // quality builds the transcode profile from Settings -> Transcoding:
@@ -56,7 +59,8 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 	ctx := r.Context()
 	get := func(k, def string) string { return s.DB.GetSetting(ctx, k, def) }
 	maxHeight, _ = strconv.Atoi(get("maxHeight", "0"))
-	if v := qInt(r, "maxHeight", 0); v > 0 {
+	// A viewer can ask for less than the admin's limit, not for more.
+	if v := qInt(r, "maxHeight", 0); v >= 144 && v <= 4320 && (maxHeight <= 0 || v < maxHeight) {
 		maxHeight = v
 	}
 	enabled := get("hwEncoders", "")
@@ -72,13 +76,29 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 	}
 	switch get("qualityMode", "easy") {
 	case "advanced", "expert":
-		q.Preset = get("x264Preset", "veryfast")
+		if v := get("x264Preset", "veryfast"); ffmpeg.ValidPreset(v) {
+			q.Preset = v
+		}
 		q.CRF, _ = strconv.Atoi(get("crf", "21"))
-		q.MaxRate = get("maxBitrate", "")
-		q.AudioRate = get("audioBitrate", "")
+		if v := get("maxBitrate", ""); ffmpeg.ValidRate(v) {
+			q.MaxRate = v
+		}
+		if v := get("audioBitrate", ""); ffmpeg.ValidRate(v) {
+			q.AudioRate = v
+		}
 		if get("qualityMode", "") == "expert" {
-			q.VideoArgs = ffmpeg.SplitArgs(get("ffmpegVideoArgs", ""))
-			q.OutputArgs = ffmpeg.SplitArgs(get("ffmpegOutputArgs", ""))
+			// Saved by an older version, perhaps: checked again before use.
+			for _, a := range []struct {
+				setting string
+				to      *[]string
+			}{{"ffmpegVideoArgs", &q.VideoArgs}, {"ffmpegOutputArgs", &q.OutputArgs}} {
+				args := ffmpeg.SplitArgs(get(a.setting, ""))
+				if err := ffmpeg.CheckExpertArgs(args); err != nil {
+					s.Log.Warn("ignoring expert FFmpeg options", "setting", a.setting, "err", err)
+					continue
+				}
+				*a.to = args
+			}
 		}
 	default:
 		switch get("qualityProfile", "balanced") {
@@ -108,6 +128,10 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "only videos play here: discs use the disc player, and audio its stream")
 		return
 	}
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
@@ -128,6 +152,14 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if info.Subtitles == nil {
 		info.Subtitles = []trackInfo{}
 	}
+	// Tracks that don't exist are not asked of FFmpeg (a negative one would
+	// panic below), and don't each start a stream of their own.
+	if info.AudioIndex < 0 || info.AudioIndex >= len(info.Audio) {
+		info.AudioIndex = 0
+	}
+	if info.SubIndex < 0 || info.SubIndex >= len(info.Subtitles) {
+		info.SubIndex = -1
+	}
 	v := pr.Video()
 	q, maxHeight := s.quality(r)
 	ext := strings.ToLower(filepath.Ext(it.Path))
@@ -135,7 +167,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	browserFriendly := v != nil && (v.CodecName == "h264" || v.CodecName == "vp9" || v.CodecName == "av1") &&
 		(ext == ".mp4" || ext == ".m4v" || ext == ".mov" || ext == ".webm")
 	audioOK := len(info.Audio) == 0 || info.Audio[0].Codec == "aac" || info.Audio[0].Codec == "mp3" || info.Audio[0].Codec == "opus" || info.Audio[0].Codec == "vorbis"
-	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight == 0 || v.Height <= maxHeight) {
+	if directPlay && browserFriendly && audioOK && info.AudioIndex == 0 && info.SubIndex < 0 && !qBool(r, "transcode") && (maxHeight <= 0 || v.Height <= maxHeight) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)

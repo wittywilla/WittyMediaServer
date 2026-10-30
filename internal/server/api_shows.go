@@ -63,13 +63,13 @@ func (s *Server) handleShows(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"shows": shows, "total": len(shows)})
+	writeJSON(w, 200, map[string]any{"shows": s.showsForViewer(r, shows...), "total": len(shows)})
 }
 
 // handleNetworks lists TV networks with their shows and genres:
 // GET /api/shows/networks?library=N
 func (s *Server) handleNetworks(w http.ResponseWriter, r *http.Request) {
-	n, err := s.Store.Networks(r.Context(), int64(qInt(r, "library", 0)))
+	n, err := s.Store.Networks(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -78,7 +78,7 @@ func (s *Server) handleNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleShowGenres(w http.ResponseWriter, r *http.Request) {
-	g, err := s.Store.ShowGenres(r.Context(), int64(qInt(r, "library", 0)))
+	g, err := s.Store.ShowGenres(r.Context(), int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -113,7 +113,8 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 	if n := library.NextUp(eps); n != nil {
 		next = &n.ID
 	}
-	writeJSON(w, 200, map[string]any{"show": sh, "seasons": seasons, "episodes": eps, "nextUpId": next})
+	s.showsForViewer(r, sh)
+	writeJSON(w, 200, map[string]any{"show": sh, "seasons": seasons, "episodes": s.forViewer(r, eps...), "nextUpId": next})
 }
 
 func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +207,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sh, err := s.Store.Show(r.Context(), id, 0)
-	if err != nil {
+	if err != nil || !s.access(r).AllowsShow(sh) {
 		writeErr(w, 404, "show not found")
 		return
 	}
@@ -430,17 +431,25 @@ func (s *Server) saveMeta(r *http.Request) bool {
 
 // DVD subtitles (client-side rendering).
 
+const maxSubtitleWindow = 600 // seconds
+
 func (s *Server) handleDVDSubs(w http.ResponseWriter, r *http.Request) {
 	sess := s.dvdSession(w, r)
 	if sess == nil {
 		return
 	}
 	q := r.URL.Query()
-	from, _ := strconv.ParseFloat(q.Get("from"), 64)
+	from, err := strconv.ParseFloat(q.Get("from"), 64)
+	if err != nil || math.IsNaN(from) || math.IsInf(from, 0) {
+		from = 0
+	}
 	to, err := strconv.ParseFloat(q.Get("to"), 64)
-	if err != nil || to <= from {
+	if err != nil || math.IsNaN(to) || to <= from {
 		to = from + 120
 	}
+	// Subtitles are read off the disc: a window the size of a whole film would
+	// keep a drive busy for each request.
+	to = math.Min(to, from+maxSubtitleWindow)
 	evs, err := sess.Subtitles(qInt(r, "ttn", 0), qInt(r, "stream", 0), from, to)
 	if err != nil {
 		writeErr(w, 400, err.Error())

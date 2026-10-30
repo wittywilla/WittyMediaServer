@@ -644,8 +644,9 @@ func (s *Store) markMissing(ctx context.Context, libraryID int64, keep map[strin
 	return nil
 }
 
-func (s *Store) Genres(ctx context.Context, libraryID int64) ([]string, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT genres FROM items WHERE missing = 0 AND (? = 0 OR library_id = ?)`, libraryID, libraryID)
+func (s *Store) Genres(ctx context.Context, libraryID int64, access *Access) ([]string, error) {
+	clause, extra := access.ItemClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.genres FROM items i WHERE i.missing = 0 AND (? = 0 OR i.library_id = ?) AND `+clause, append([]any{libraryID, libraryID}, extra...)...)
 	if err != nil {
 		return nil, err
 	}

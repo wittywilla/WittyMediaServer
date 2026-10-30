@@ -42,7 +42,11 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 		dir := filepath.Dir(exe)
 		candidates = append(candidates, dir, filepath.Join(dir, "bin"), filepath.Join(dir, "ffmpeg"), filepath.Join(dir, "..", "ffmpeg"), filepath.Join(dir, "..", "Resources", "ffmpeg"))
 	}
-	candidates = append(candidates, ".tools/ffmpeg-master-latest-win64-gpl/bin")
+	// The copy for working on this project, only in a source checkout: FFmpeg
+	// must not be run from whatever folder the server was started in.
+	if st, err := os.Stat("go.work"); err == nil && !st.IsDir() {
+		candidates = append(candidates, ".tools/ffmpeg-master-latest-win64-gpl/bin")
+	}
 	find := func(explicit, name string) string {
 		if explicit != "" {
 			return explicit
@@ -224,6 +228,13 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 		fmt.Fprintf(&b, "stream\nexact_stream_id 0x%x\n", id)
 	}
 	for i, s := range segs {
+		// Lists hold one address per line: a folder name with a line break in
+		// it (possible on Linux) would add an address of its own.
+		for _, e := range s.Extents {
+			if strings.ContainsAny(e.File, "\n\r\x00") {
+				return "", fmt.Errorf("unusable file name: %q", e.File)
+			}
+		}
 		var url string
 		if len(s.Extents) == 1 {
 			url = SubfileURL(s.Extents[0])

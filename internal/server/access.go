@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -68,6 +69,29 @@ func (s *Server) visibleShow(r *http.Request, id int64) (*library.Show, error) {
 		return nil, library.ErrNotFound
 	}
 	return sh, nil
+}
+
+// forViewer takes out what only an administrator needs: where a file is on
+// this machine (folder names, often an account name). A podcast episode's
+// path is a web address and stays: players and the page need it.
+func (s *Server) forViewer(r *http.Request, items ...*library.Item) []*library.Item {
+	if !userFrom(r).IsAdmin {
+		for _, it := range items {
+			if !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
+				it.Path = ""
+			}
+		}
+	}
+	return items
+}
+
+func (s *Server) showsForViewer(r *http.Request, shows ...*library.Show) []*library.Show {
+	if !userFrom(r).IsAdmin {
+		for _, sh := range shows {
+			sh.Path = ""
+		}
+	}
+	return shows
 }
 
 // visibleLibraries drops libraries an account may not open.

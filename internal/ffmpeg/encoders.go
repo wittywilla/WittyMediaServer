@@ -3,6 +3,9 @@ package ffmpeg
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -234,6 +237,67 @@ func amfQuality(x264 string) string {
 	}
 	return "speed"
 }
+
+// expertOptions are the options the expert fields may set: they tune encoding
+// and nothing else. FFmpeg's options can also read and write any file (-i, an
+// output name, -attach, -dump_attachment, -passlogfile), run filters that open
+// files (-vf, -filter_complex) or reach the network, so anything not listed
+// is refused: settings are not a way out onto the machine.
+var expertOptions = map[string]bool{
+	"preset": true, "tune": true, "profile": true, "profile:v": true, "level": true, "level:v": true,
+	"crf": true, "cq": true, "qp": true, "qmin": true, "qmax": true, "qp_i": true, "qp_p": true, "qp_b": true,
+	"b:v": true, "minrate": true, "maxrate": true, "bufsize": true, "rc": true, "multipass": true,
+	"g": true, "bf": true, "refs": true, "keyint_min": true, "sc_threshold": true, "threads": true, "pix_fmt": true,
+	"rc-lookahead": true, "look_ahead": true, "look_ahead_depth": true, "spatial-aq": true, "spatial_aq": true, "temporal-aq": true, "temporal_aq": true,
+	"aq-strength": true, "b_ref_mode": true, "nonref_p": true, "global_quality": true, "async_depth": true, "quality": true, "realtime": true,
+	"coder": true, "x264-params": true, "x265-params": true, "b:a": true, "ac": true, "ar": true, "max_muxing_queue_size": true, "movflags": true,
+}
+
+var (
+	expertValueRe = regexp.MustCompile(`^(?:[A-Za-z0-9_.:=+,-]+|\d+/\d+)$`)
+	// Encoder parameters that name a file.
+	expertFileParamRe = regexp.MustCompile(`(?i)(^|:)[a-z0-9_-]*(stats|dump|file|csv|analysis|log|recon|zones|lut)[a-z0-9_-]*=`)
+	rateRe            = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?[kKmMgG]?$`)
+)
+
+// CheckExpertArgs says whether the expert fields' options are allowed: pairs
+// of an option from the list above and a plain value.
+func CheckExpertArgs(args []string) error {
+	if len(args)%2 != 0 {
+		return errors.New("expert options come in pairs: -option value")
+	}
+	for i := 0; i < len(args); i += 2 {
+		name, ok := strings.CutPrefix(args[i], "-")
+		if !ok || !expertOptions[name] {
+			return fmt.Errorf("the expert option %q is not allowed", args[i])
+		}
+		v := args[i+1]
+		if !expertValueRe.MatchString(v) || (strings.HasPrefix(v, "-") && !isNumber(v)) {
+			return fmt.Errorf("the value of %s is not allowed: %q", args[i], v)
+		}
+		if (name == "x264-params" || name == "x265-params") && expertFileParamRe.MatchString(v) {
+			return fmt.Errorf("%s may not name files: %q", args[i], v)
+		}
+	}
+	return nil
+}
+
+func isNumber(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
+}
+
+// ValidPreset reports whether v is a libx264 preset.
+func ValidPreset(v string) bool {
+	switch v {
+	case "ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo":
+		return true
+	}
+	return false
+}
+
+// ValidRate reports whether v is empty or a bitrate like 8M or 192k.
+func ValidRate(v string) bool { return v == "" || rateRe.MatchString(v) }
 
 // SplitArgs splits an option string like a shell would (spaces separate,
 // single or double quotes group). Used for the expert ffmpeg options.

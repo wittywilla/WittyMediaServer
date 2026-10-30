@@ -58,7 +58,7 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, items)
-	writeJSON(w, 200, items)
+	writeJSON(w, 200, s.forViewer(r, items...))
 }
 
 // GET /api/items/{id}/stream?start=SEC: plays an audio file. Formats every

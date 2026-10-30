@@ -1,13 +1,17 @@
 package server
 
 import (
+	"errors"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
@@ -58,12 +62,50 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(v, "•") { // masked secret sent back unchanged
 			continue
 		}
-		if err := s.DB.SetSetting(r.Context(), k, strings.TrimSpace(v)); err != nil {
+		v = strings.TrimSpace(v)
+		if err := checkSetting(k, v); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		if err := s.DB.SetSetting(r.Context(), k, v); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
 	}
 	s.handleGetSettings(w, r)
+}
+
+// checkSetting refuses values that would reach FFmpeg's command line or build
+// file names unless they are what the setting is meant to hold. An account
+// that can change settings must not get the machine's file system with them.
+func checkSetting(k, v string) error {
+	switch k {
+	case "ffmpegVideoArgs", "ffmpegOutputArgs":
+		return ffmpeg.CheckExpertArgs(ffmpeg.SplitArgs(v))
+	case "x264Preset":
+		if v != "" && !ffmpeg.ValidPreset(v) {
+			return errors.New("unknown encoder preset")
+		}
+	case "maxBitrate", "audioBitrate":
+		if !ffmpeg.ValidRate(v) {
+			return errors.New(`a bitrate looks like "8M" or "192k"`)
+		}
+	case "crf", "maxHeight", "maxSpeed":
+		if v != "" {
+			if _, err := strconv.ParseFloat(v, 64); err != nil {
+				return errors.New(k + " must be a number")
+			}
+		}
+	case "audioCodec":
+		if v != "" && v != "aac" && v != "mp3" {
+			return errors.New("the audio codec must be aac or mp3")
+		}
+	case "serverName", "brandName":
+		if len([]rune(v)) > 80 {
+			return errors.New("the name must be at most 80 characters")
+		}
+	}
+	return nil
 }
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {

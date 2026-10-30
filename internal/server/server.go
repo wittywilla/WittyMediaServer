@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -50,6 +51,7 @@ type Server struct {
 	Version string
 	Logs    *logging.Logger
 	Update  *update.Updater // nil: this build can't update itself
+	Modules *modmgr.Manager // nil: modules can't be updated here
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }
@@ -84,8 +86,8 @@ type Server struct {
 	setupCode     string
 	setupCodeOnce sync.Once
 	audioSlots    chan struct{} // audio transcodes running at once
-	gameOnce   sync.Once
-	gameSvc    *gameService
+	gameOnce      sync.Once
+	gameSvc       *gameService
 }
 
 type ctxKey int
@@ -241,6 +243,10 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+	m.Handle("GET /api/modules", s.requireAdmin(s.handleModules))
+	m.Handle("POST /api/modules/check", s.requireAdmin(s.handleModulesCheck))
+	m.Handle("POST /api/modules/{id}/install", s.requireAdmin(s.handleModuleInstall))
+	m.Handle("POST /api/modules/{id}/rollback", s.requireAdmin(s.handleModuleRollback))
 	s.remoteRoutes(m)
 
 	// WittyPhotos

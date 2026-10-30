@@ -34,7 +34,8 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
 | **WittyPlay** | Console games streamed to a browser or an app: a libretro game runner in its own sandboxed process, WebRTC with fallbacks, every controller, a touch layout editor | WittyMediaServer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
-| **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, no dependencies, fuzz-tested | WittyMediaServer |
+| **WittyModule** | What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool. Go, no dependencies | Every plugin, WittyMediaServer |
+| **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, fuzz-tested, and can update without a new server | WittyMediaServer |
 | **WittyTuner** | TV tuners and IPTV behind one interface: network tuners, M3U playlists and streams, Linux DVB, V4L2 and other capture cards, SAT>IP, external backends, a custom command. Also reads XMLTV and the guide data in broadcasts. Refuses encrypted channels | WittyMediaServer |
 
 ### Server libraries
@@ -75,6 +76,7 @@ modules/                    Go plugins
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
   wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
+  wittymodule/              → github.com/wittywilla/WittyModule
   wittyphotos/              → github.com/wittywilla/WittyPhotos
   wittytuner/               → github.com/wittywilla/WittyTuner
   wittyplay/                → github.com/wittywilla/WittyPlay (Go, with its React half in web/)
@@ -383,7 +385,11 @@ go run github.com/wittywilla/wittymodule/cmd/wittymodule sign release/wittyphoto
 `sign` uses the same key as `wms-sign` (`WMS_SIGNING_KEY`, then `~/.wms-signing/release.key`). A plugin's
 `.github/workflows/release.yml` runs these when a `v*` tag lands in its own repository, then publishes
 the GitHub release. That workflow does nothing in this repository, since GitHub only reads workflows
-from a repository's root.
+from a repository's root. While a plugin still lives here, `scripts/release-module.sh modules/wittyphotos
+v0.2.0` does the same from your own machine.
+
+CI runs `wittymodule check -server <this server's version>` over every manifest, so a server version
+that falls outside a plugin's range fails until its `maxServer` is raised.
 
 ### Moving a plugin to its own repository
 

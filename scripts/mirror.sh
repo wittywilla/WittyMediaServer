@@ -19,13 +19,15 @@ cd "$(git rev-parse --show-toplevel)"
 OWNER=${OWNER:-wittywilla}
 NAME=${GIT_AUTHOR_NAME:-WittyWilla}
 EMAIL=${GIT_AUTHOR_EMAIL:-wittywilla@users.noreply.github.com}
-# WittyDisc comes before the engines that require it.
+# WittyDisc comes before the engines that require it, and WittyModule before the
+# plugins that do.
 MIRRORS=(
   "web/src/modules/wittyink    WittyInk"
   "web/src/modules/wittyebook  WittyEbook"
   "web/src/modules/wittypdf    WittyPDF"
   "web/src/modules/wittycomics WittyComics"
   "apps/wittyreader            WittyReader"
+  "modules/wittymodule         WittyModule"
   "modules/wittydisc           WittyDisc"
   "modules/wittydvd            WittyDVD"
   "modules/wittybluray         WittyBluray"
@@ -62,6 +64,9 @@ publish() { # <prefix> <remote url> <branch>
 # A release publishes what is committed, so the folder must have no local
 # changes, and a Go module must build as a stranger's `go install` would.
 check_release() { # <dir>
+  if [ -f "$1/module.json" ] && ! grep -q "\"version\": *\"${TAG#v}\"" "$1/module.json"; then
+    echo "   $1/module.json has another version than $TAG; update it first" >&2; exit 1
+  fi
   if ! git diff --quiet HEAD -- "$1" || [ -n "$(git ls-files --others --exclude-standard -- "$1")" ]; then
     echo "   $1 has uncommitted changes; commit them first" >&2; exit 1
   fi

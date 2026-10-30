@@ -223,3 +223,9 @@ a.mod-row:hover { background: var(--hover); }
 .upd-progress progress { width: 100%; height: 8px; accent-color: var(--accent); }
 
 .set-lib-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 13px; }
+
+/* Modules */
+.mod-card { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-3); }
+.mod-card + .mod-card { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+.mod-card .upd-msg, .mod-card .upd-new, .mod-card .upd-progress, .mod-actions { margin: 0 var(--sp-3); }
+.mod-local.warn { background: var(--danger-soft, var(--bg-4)); color: var(--danger); }

@@ -38,10 +38,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"setupRequired": setupRequired,
 		// Setting up from outside this network takes the code from the log.
 		"setupCodeRequired": setupRequired && !onLocalNetwork(r),
-		"user":          u,
-		"brandName":     s.DB.GetSetting(r.Context(), "brandName", ""),
-		"brandLogo":     s.DB.GetSetting(r.Context(), "brandLogo", ""),
-		"theme":         s.DB.GetSetting(r.Context(), "theme", "default"),
+		"user":              u,
+		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
+		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
+		"theme":             s.DB.GetSetting(r.Context(), "theme", "default"),
 	})
 }
 

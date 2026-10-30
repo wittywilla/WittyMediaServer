@@ -53,8 +53,10 @@ type RegisterOptions struct {
 	MenuLanguage     string
 	AudioLanguage    string
 	SubtitleLanguage string
-	Region           int // 1-8
-	Angle            int // initial camera angle (0 = 1)
+	Region           int    // 1-8
+	Parental         int    // 1-8; 0 = no limit
+	Country          string // two letters; "" = US
+	Angle            int    // initial camera angle (0 = 1)
 	Rand             func() float64
 }
 
@@ -95,6 +97,12 @@ func NewRegisters(o RegisterOptions) *Registers {
 	}
 	if o.Region >= 1 && o.Region <= 8 {
 		r.SPRM[SprmRegion] = 1 << (o.Region - 1)
+	}
+	if o.Parental >= 1 && o.Parental <= 8 {
+		r.SPRM[SprmParental] = uint16(o.Parental)
+	}
+	if len(o.Country) == 2 {
+		r.SPRM[SprmCountry] = code2(strings.ToLower(o.Country))
 	}
 	return r
 }

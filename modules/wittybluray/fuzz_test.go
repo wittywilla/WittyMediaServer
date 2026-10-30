@@ -26,7 +26,15 @@ func FuzzParsers(f *testing.F) {
 			m := &Menu{}
 			_ = m.parseIC(b)
 		case 5:
-			_, _ = parsePDS(b, true)
+			_, _ = parsePDS(b, matrix709)
+			_, _ = ParseBDJObject("00000", b)
+			if s, err := ParseSounds(b); err == nil {
+				for i := range s.Clips {
+					_, _ = s.WAV(i)
+				}
+			}
+			_, _ = parseDialogStyle(b)
+			_ = parseDialog(b, nil, &Palette{}, 1)
 			_, _ = parseCompObject(b)
 			_ = parseWindows(b)
 		case 6:

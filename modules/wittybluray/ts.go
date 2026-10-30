@@ -100,6 +100,9 @@ func (d *Disc) ReadPID(clip string, pid uint16, from, to uint32, fn PESHandler) 
 			return true
 		}
 		hdr := 9 + int(pes[8])
+		if pes[3] == 0xbf {
+			hdr = 6 // private stream 2 (text subtitles) has no header extension
+		}
 		if hdr > len(pes) {
 			pes = pes[:0]
 			return true
@@ -147,7 +150,7 @@ func (d *Disc) ReadPID(clip string, pid uint16, from, to uint32, fn PESHandler) 
 				}
 				pesLen = int(payload[4])<<8 | int(payload[5])
 				pts = 0
-				if payload[7]&0x80 != 0 && len(payload) >= 14 {
+				if payload[3] != 0xbf && payload[7]&0x80 != 0 && len(payload) >= 14 {
 					pts = uint64(payload[9]>>1&7)<<30 | uint64(payload[10])<<22 | uint64(payload[11]>>1)<<15 | uint64(payload[12])<<7 | uint64(payload[13]>>1)
 				}
 				pes = append(pes[:0], payload...)

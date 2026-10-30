@@ -32,7 +32,7 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 			it.Kind = "bluray-iso"
 		}
 	}
-	info := &DiscInfo{Label: d.Label, Format: "bluray", HasMenus: d.Index.TopMenu.Kind == wittybluray.ObjectHDMV, Scrambled: d.Encrypted}
+	info := &DiscInfo{Label: d.Label, Format: "bluray", HasMenus: d.Index.TopMenu.Kind != wittybluray.ObjectNone, Scrambled: d.Encrypted}
 	if d.Label != "" && it.Title == "" {
 		it.Title, _ = ParseName(d.Label)
 	}

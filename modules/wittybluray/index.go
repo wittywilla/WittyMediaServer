@@ -8,7 +8,7 @@ import (
 // index.bdmv: what the disc does when inserted (first play), what its top
 // menu is, and the list of titles. Each points at an HDMV movie object (a
 // small program of navigation commands) or a BD-J object (a Java program,
-// which this engine cannot run).
+// which runs in a separate process when the server has Java; see bdj.go).
 
 // ObjectKind says what kind of program an index entry runs.
 type ObjectKind int
@@ -16,7 +16,7 @@ type ObjectKind int
 const (
 	ObjectNone ObjectKind = iota
 	ObjectHDMV            // a movie object in MovieObject.bdmv
-	ObjectBDJ             // a BD-J (Java) object: not supported
+	ObjectBDJ             // a BD-J (Java) object
 )
 
 func (k ObjectKind) String() string {
@@ -50,7 +50,9 @@ type Title struct {
 type Index struct {
 	Version    string
 	Stereo3D   bool // the disc prefers 3D output when the player can
-	HasContent bool
+	HasContent bool // the disc says it holds 3D content
+	// DynamicRange is the initial dynamic range of an Ultra HD disc.
+	DynamicRange int
 	// VideoFormat and FrameRate are the disc's main video, as its menus
 	// expect: 1 = 480i, 2 = 576i, 3 = 480p, 4 = 1080i, 5 = 720p, 6 = 1080p,
 	// 7 = 576p; frame rates 1 = 23.976, 2 = 24, 3 = 25, 4 = 29.97, 6 = 50, 7 = 59.94.
@@ -71,6 +73,7 @@ func ParseIndex(b []byte) (*Index, error) {
 	flags := r.u8(44)
 	ix.Stereo3D = flags&0x40 != 0
 	ix.HasContent = flags&0x20 != 0
+	ix.DynamicRange = int(flags & 15)
 	ix.VideoFormat = int(r.u8(45) >> 4)
 	ix.FrameRate = int(r.u8(45) & 15)
 	// Indexes
@@ -82,14 +85,12 @@ func ParseIndex(b []byte) (*Index, error) {
 		switch kind {
 		case ObjectHDMV:
 			out = IndexObject{Kind: kind, Interactive: r.u8(o+4)>>6 == 1, MovieObject: int(r.u16(o + 6))}
-			o += 12
 		case ObjectBDJ:
 			out = IndexObject{Kind: kind, Interactive: r.u8(o+4)>>6 == 3, BDJName: r.str(o+6, 5)}
-			o += 16
 		default:
 			out = IndexObject{Kind: ObjectNone}
-			o += 12
 		}
+		o += 12 // every entry has the same size
 		return out
 	}
 	ix.FirstPlay = obj(false)

@@ -39,7 +39,8 @@ Blu-ray Disc structure (the HDMV navigation model).
 | 🔘 | **Decodes menus** | interactive graphics: pages, button groups, buttons with their arrow neighbours and commands, normal/selected/activated pictures, **animated** highlights and **pop-up** menus |
 | 💬 | **Decodes subtitles** | presentation graphics, read in windows so a 20 GB film is never scanned whole |
 | 🌈 | **4K and HDR** | 2160p HEVC with HDR10, HDR10+ and Dolby Vision flags, so a player can tone-map for SDR screens |
-| 🔒 | **Knows its limits** | AACS-encrypted discs are refused (nothing is decrypted); BD-J (Java) discs fall back to their titles; 3D (MVC) is reported |
+| ☕ | **Runs BD-J menus** | with a Java the server's owner installs (none is shipped), in a default-deny sandbox; without one, the disc plays its titles |
+| 🔒 | **Knows its limits** | AACS-encrypted discs are refused and BD+ is not run (nothing is decrypted); 3D (MVC) is reported |
 | 🛠️ | **Diagnoses discs** | the `wittybluray` tool reports all of the above, simulates the menus, and renders menu pages |
 
 **What it leaves to the player:** decoding the video and audio. WittyBluray tells a player *which
@@ -64,6 +65,7 @@ program: `go get github.com/wittywilla/wittybluray@latest`.
 | `wittybluray menu <disc> <playlist>` | a playlist's menu: pages, buttons, every command |
 | `wittybluray walk <disc> [button…]` | simulates inserting the disc, then pressing menu buttons by id |
 | `wittybluray render <disc> <dir>` | the first menu's pages as PNG files |
+| `wittybluray bdj <disc> [seconds [picture.png]]` | BD-J titles and what their code needs; with Java, runs them |
 
 The output holds no video or artwork, so it's safe to attach to a bug report. The same commands are
 built into WittyMediaServer as `wms bluray …`.
@@ -110,7 +112,7 @@ for step.Kind == wittybluray.StepPlay {
 
 </details>
 
-Requirements: Go 1.26 or newer, no cgo. Its only dependency is WittyDisc.
+Requirements: Go 1.26 or newer, no cgo. Its only dependency is WittyDisc. BD-J also needs Java 8 or newer on the machine, at run time only.
 
 ## Design
 
@@ -133,6 +135,8 @@ flowchart LR
 | `vm.go`, `nav.go` | the HDMV virtual machine and the navigator |
 | `ts.go`, `graphics.go` | the transport-stream demuxer; palettes, pictures, windows |
 | `ig.go`, `pg.go` | menus (interactive graphics) and subtitles (presentation graphics) |
+| `bdjo.go`, `sound.go`, `textst.go` | BD-J objects, button sounds, text subtitles |
+| `bdj/` | starts Java, the link to it, and `runtime.jar`, the platform disc applications link against (`bdj/java/src`, built by `bdj/java/build.sh`) |
 | `cli/` | the command-line tool |
 
 **Safe with untrusted discs:** every read is bounds-checked, counts are limited, a disc's program
@@ -143,9 +147,8 @@ can't loop for ever (100 000 commands per run), and the parsers are fuzz-tested.
 | Not yet | What happens instead |
 |---|---|
 | AACS-encrypted discs | refused; make decrypted images of discs you own with a tool that is legal where you live |
-| BD-J (Java) menus | the disc plays its titles without the menu |
+| Secondary audio, picture-in-picture | the disc's choice is recorded, not mixed in |
 | MVC 3D | the 2D view plays; the second view is reported, not decoded |
-| Page transition effects | skipped (button animations play) |
 
 Tested on custom-authored discs; retail discs exercise more of the format and may show problems not
 seen yet. Reports with `wittybluray info` and `walk` output are very welcome.

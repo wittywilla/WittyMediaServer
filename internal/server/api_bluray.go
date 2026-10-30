@@ -80,7 +80,7 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 	if extras != nil {
 		out["extras"] = extras
 	}
-	if d.Index.TopMenu.Kind == wittybluray.ObjectHDMV {
+	if d.Index.TopMenu.Kind != wittybluray.ObjectNone {
 		out["menus"] = []discMenu{{Kind: "title", Label: "Top menu"}}
 	}
 	writeJSON(w, 200, out)
@@ -123,9 +123,11 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	if c == nil {
 		return fmt.Errorf("clip missing")
 	}
+	// A clip with no entry-point map (a recording, a damaged disc) is read
+	// from its start.
 	e, ok := c.SPNAt(c.VideoPID(), at)
 	if !ok {
-		return fmt.Errorf("no entry point")
+		e = wittybluray.EPEntry{PTS: pi.In}
 	}
 	ext, err := d.ClipExtents(pi.Clip)
 	if err != nil {

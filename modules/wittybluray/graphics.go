@@ -45,26 +45,52 @@ func splitSegments(payload []byte, pts uint64, out []segment) []segment {
 // Palette is 256 colours. Entries a segment does not set are transparent.
 type Palette [256]color.RGBA
 
-// parsePDS reads a palette definition. hd selects BT.709 colour conversion
-// (HD video) rather than BT.601.
-func parsePDS(data []byte, hd bool) (id int, p Palette) {
+// colorMatrix is how a stream's palette colours convert to RGB.
+type colorMatrix int
+
+const (
+	matrix601  colorMatrix = iota // standard definition
+	matrix709                     // high definition
+	matrix2020                    // Ultra HD
+)
+
+// matrixFor picks the conversion for graphics on a frame of this height.
+func matrixFor(height int) colorMatrix {
+	switch {
+	case height >= 2160:
+		return matrix2020
+	case height >= 720:
+		return matrix709
+	}
+	return matrix601
+}
+
+// parsePDS reads a palette definition.
+func parsePDS(data []byte, m colorMatrix) (id int, p Palette) {
 	if len(data) < 2 {
 		return 0, p
 	}
 	id = int(data[0])
 	for off := 2; off+5 <= len(data); off += 5 {
-		y, cr, cb, a := float64(data[off+1]), float64(data[off+2]), float64(data[off+3]), data[off+4]
-		var r, g, b float64
-		yy := (y - 16) * 255 / 219
-		cr, cb = cr-128, cb-128
-		if hd {
-			r, g, b = yy+1.5748*cr*255/224, yy-0.1873*cb*255/224-0.4681*cr*255/224, yy+1.8556*cb*255/224
-		} else {
-			r, g, b = yy+1.402*cr*255/224, yy-0.3441*cb*255/224-0.7141*cr*255/224, yy+1.772*cb*255/224
-		}
-		p[data[off]] = color.RGBA{clamp8(r), clamp8(g), clamp8(b), a}
+		p[data[off]] = yCrCbA(data[off+1], data[off+2], data[off+3], data[off+4], m)
 	}
 	return id, p
+}
+
+// yCrCbA converts one palette entry.
+func yCrCbA(yb, crb, cbb, a byte, m colorMatrix) color.RGBA {
+	yy := (float64(yb) - 16) * 255 / 219
+	cr, cb := float64(crb)-128, float64(cbb)-128
+	var r, g, b float64
+	switch m {
+	case matrix2020:
+		r, g, b = yy+1.4746*cr*255/224, yy-0.16455*cb*255/224-0.57135*cr*255/224, yy+1.8814*cb*255/224
+	case matrix709:
+		r, g, b = yy+1.5748*cr*255/224, yy-0.1873*cb*255/224-0.4681*cr*255/224, yy+1.8556*cb*255/224
+	default:
+		r, g, b = yy+1.402*cr*255/224, yy-0.3441*cb*255/224-0.7141*cr*255/224, yy+1.772*cb*255/224
+	}
+	return color.RGBA{clamp8(r), clamp8(g), clamp8(b), a}
 }
 
 func clamp8(v float64) uint8 {

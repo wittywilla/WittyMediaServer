@@ -8,7 +8,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return <div className="vs-row"><span>{label}</span><div className="vs-ctl">{children}</div></div>
 }
 
-function Toggle({ k, label, prefs, onChange }: { k: 'seekBar' | 'chapterMarks' | 'remote' | 'forcedSubs'; label: string; prefs: ViewPrefs; onChange: Change }) {
+function Toggle({ k, label, prefs, onChange }: { k: 'seekBar' | 'chapterMarks' | 'remote' | 'forcedSubs' | 'discLocks'; label: string; prefs: ViewPrefs; onChange: Change }) {
   return (
     <button type="button" role="switch" aria-checked={prefs[k]} aria-label={label} className={'switch' + (prefs[k] ? ' on' : '')}
       onClick={() => onChange({ [k]: !prefs[k] })}><i /></button>
@@ -51,6 +51,7 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
       <Row label="Hide controls after"><Seg k="hideAfter" label="Hide controls after" opts={[[2, '2 s'], [3.5, '3.5 s'], [6, '6 s'], [0, 'Never']]} {...p} /></Row>
       <Row label="Picture"><Seg k="picture" label="Picture" opts={[['fit', 'Fit'], ['fill', 'Fill screen']]} {...p} /></Row>
       {isDisc && <Row label="Forced captions"><Toggle k="forcedSubs" label="Forced captions: signs and foreign-language lines the disc shows even with subtitles off" {...p} /></Row>}
+      {isDisc && <Row label="Disc restrictions"><Toggle k="discLocks" label="Disc restrictions: obey a disc's bans on seeking and skipping, as a disc player does" {...p} /></Row>}
       {isDisc && <Row label="Subtitle size"><Seg k="subtitleSize" label="Subtitle size" opts={[[0.8, 'S'], [1, 'M'], [1.25, 'L'], [1.5, 'XL']]} {...p} /></Row>}
       <Row label="3D video"><Seg k="stereo" label="3D video" opts={[['off', 'Off'], ['sbs', 'Side by side'], ['ou', 'Over-under']]} {...p} /></Row>
       {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}

@@ -10,6 +10,8 @@ the Blu-ray Disc navigation model, the same logic a player runs. It is its own G
 - [Playing a disc](#playing-a-disc)
 - [Audio, subtitles and chapters](#audio-subtitles-and-chapters)
 - [3D, 4K and HDR](#3d-4k-and-hdr)
+- [BD-J (Java) menus](#bd-j-java-menus)
+- [Java and licensing](#java-and-licensing)
 - [Performance on small machines](#performance-on-small-machines)
 - [How WittyBluray works](#how-wittybluray-works)
 - [Diagnosing a disc](#diagnosing-a-disc)
@@ -23,7 +25,11 @@ length, resolution (up to 2160p, with HDR10, HDR10+ or Dolby Vision noted), code
 chapters, and whether it has menus. 3D discs get a "3D" genre.
 
 Encrypted (AACS) discs are detected and shown as unplayable: WittyMediaServer never decrypts
-anything. Make decrypted images of discs you own with a tool that is legal where you live.
+anything. Make decrypted images of discs you own with a tool that is legal where you live. A
+decrypted image that still has its AACS folder plays normally, because detection looks at the
+video itself.
+
+AVCHD discs and camcorder cards, and BDAV recordings, are read too.
 
 ## Playing a disc
 
@@ -45,8 +51,14 @@ opens it over the picture while the film keeps playing; the arrows and OK work i
 or Menu closes it. Discs use it for chapters, audio and subtitle choices with their own artwork.
 Buttons whose pictures animate (a pulsing highlight) animate here too.
 
-Discs whose menus are written in BD-J (Java) can't run them; they open on the feature instead,
-with a note. Chapters, audio and subtitles are still available from the player's own controls.
+Discs whose menus are written in Java need the [BD-J setting](#bd-j-java-menus). Without it they
+open on the feature instead, and chapters, audio and subtitles are still available from the
+player's own controls.
+
+Menu buttons make the disc's own sounds, pages play their transitions, and menus that move on by
+themselves after a while now do. Region, parental limits and country are in **Settings → Transcoding**.
+A disc can forbid seeking or skipping at some points, as on a disc player; to ignore that, turn off
+**Disc restrictions** in the player's viewing settings.
 
 ## Audio, subtitles and chapters
 
@@ -72,6 +84,52 @@ with a note. Chapters, audio and subtitles are still available from the player's
 - **HDR** (HDR10, HDR10+, and the HDR10 layer of Dolby Vision) is tone-mapped to SDR for the
   browser with FFmpeg (`zscale` + `tonemap`, present in the bundled builds). When an FFmpeg
   without those filters is used, HDR plays unmapped: watchable, but flat.
+
+## BD-J (Java) menus
+
+Many commercial Blu-rays write their menus in Java. To show them:
+
+1. Install any Java 8 or newer on the server, with its graphics libraries. [Eclipse
+   Temurin](https://adoptium.net) is a free build of OpenJDK. On Linux avoid "headless" packages
+   only if they lack `java.desktop`, and install `fontconfig`. In Docker, add both to the image.
+2. In **Settings → Transcoding**, turn on **Run Blu-ray Java menus**. The page shows which Java it
+   found; set **Java location** if it found none.
+3. Insert the disc.
+
+Each viewer's disc starts its own small Java process (192 MB at most), which ends with the session.
+The disc's graphics are sent to the player as pictures at up to 12 a second, so fast animation looks
+less smooth than on a hardware player.
+
+If an application can't run, the disc plays its main feature instead. This is new, and it has been
+tested with a test application, not yet on retail discs. Please report discs that fail, with the
+output of `wms bluray bdj <disc> 20`.
+
+**Safety.** A BD-J disc contains code. It runs in a sandbox with no network and no access to files
+outside the disc's own areas, but that is not an absolute guarantee, so this stays off until you
+turn it on. [The sandbox in detail](BLURAY-QUIRKS.md#bd-j).
+
+## Java and licensing
+
+This section explains how BD-J support is arranged. It is not legal advice; if you plan to sell or
+distribute this software commercially, ask a lawyer.
+
+- **Java is not shipped.** WittyMediaServer contains no Java runtime. Whoever runs the server
+  installs one, under that Java's own licence, and the server starts it as a separate program.
+  OpenJDK builds such as Temurin are licensed under GPLv2 with the Classpath Exception. Oracle's own
+  builds have their own terms, which are for the installer to check.
+- **The runtime is ours.** `runtime.jar` is original code under Apache-2.0, with no code from Sun,
+  Oracle or other players. It provides the classes disc applications link against (JavaTV, JMF, HAVi,
+  DVB and BD-J names) by re-implementing their published interfaces, for interoperability with discs.
+  In the US, [*Google v. Oracle*](https://www.jonesday.com/ja/insights/2021/04/supreme-court-google-wins-copyright-battle)
+  (2021) held that such re-implementation of the Java API was fair use, without deciding whether
+  APIs are copyrightable. In the EU, *SAS Institute v. World Programming* treats functionality and
+  interfaces as outside copyright's protection. Neither ruling covers every country or every case.
+- **It is not certified.** The runtime has not passed any compatibility test and makes no claim to.
+  It does not call itself Java, and "BD-J" and "Blu-ray" here only describe which discs it plays.
+- **Format licences are separate.** Blu-ray Disc has its own licensing for commercial players, and the
+  specifications behind these APIs have their own terms. That applies to this project with or
+  without Java, and it is the main thing to raise with a lawyer before any commercial use.
+- **Copy protection is untouched.** AACS and BD+ are never decrypted or run.
 
 ## Performance on small machines
 
@@ -115,6 +173,7 @@ wms bluray info   THE_LORAX.iso          # titles, program, playlists, clips, st
 wms bluray walk   THE_LORAX.iso          # simulate inserting the disc; the menu's buttons and commands
 wms bluray walk   THE_LORAX.iso 2 5      # ...then press buttons 2 and 5
 wms bluray render THE_LORAX.iso out/     # the menu's pages as PNG files
+wms bluray bdj    THE_LORAX.iso 20 a.png # BD-J titles; with Java, run them for 20 seconds
 ```
 
 The same commands exist as a standalone tool, `wittybluray`, from the
@@ -123,13 +182,14 @@ problem, attach the output of `info` and `walk`; never the disc image.
 
 ## Limits
 
-- AACS-encrypted discs are refused.
-- BD-J (Java) menus don't run; the disc plays its titles.
-- MVC 3D plays as 2D (the dependent view is not decoded); page transition effects are not
-  played.
-- Tested so far on custom-authored discs (Scenarist and ImgBurn builds). Retail discs use more
-  of the format: BD-J menus (not supported), MVC 3D, and UHD HDR, which is implemented from the
-  format's definition but untested.
+- AACS-encrypted discs are refused, and BD+ is not run.
+- MVC 3D plays as 2D (the dependent view is not decoded).
+- Secondary audio and picture-in-picture are not mixed in.
+- BD-J graphics reach the player at up to 12 pictures a second.
+- Tested on custom-authored discs. Retail discs use more of the format: BD-J, MVC 3D and Ultra HD HDR
+  are implemented, and tested only on synthetic data or not at all.
+
+[Everything the format can do, and what happens with each](BLURAY-QUIRKS.md).
 
 ---
 <sub>WittyMediaServer documentation</sub>

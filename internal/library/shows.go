@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -303,29 +304,7 @@ func SeasonName(n int) string {
 	if n == 0 {
 		return "Specials"
 	}
-	return "Season " + itoa(n)
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	var b [20]byte
-	i := len(b)
-	for n > 0 {
-		i--
-		b[i] = byte('0' + n%10)
-		n /= 10
-	}
-	if neg {
-		i--
-		b[i] = '-'
-	}
-	return string(b[i:])
+	return "Season " + strconv.Itoa(n)
 }
 
 // SeasonPoster returns the stored poster for a season ("" if none).
@@ -373,6 +352,71 @@ func NextUp(eps []*Item) *Item {
 		return eps[0]
 	}
 	return nil
+}
+
+// NextUpItems picks the next episode of each show, for the home page, reading
+// only what the choice needs: one query for all the shows instead of every
+// episode's full row for each. limit bounds the result.
+func (s *Store) NextUpItems(ctx context.Context, userID int64, showIDs []int64, access *Access, limit int) ([]*Item, error) {
+	if len(showIDs) == 0 {
+		return nil, nil
+	}
+	c, a := access.ItemClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.show_id, i.id, p.item_id, IFNULL(p.position_sec, 0), IFNULL(p.watched, 0) FROM items i
+		LEFT JOIN progress p ON p.item_id = i.id AND p.user_id = ?
+		WHERE i.missing = 0 AND i.show_id IN (`+ids(showIDs)+`) AND `+c+`
+		ORDER BY i.show_id, IFNULL(i.season, 0), IFNULL(i.episode, 0), i.id`, append([]any{userID}, a...)...)
+	if err != nil {
+		return nil, err
+	}
+	byShow := make(map[int64][]*Item, len(showIDs))
+	for rows.Next() {
+		var show int64
+		var pid sql.NullInt64
+		var pos float64
+		var watched int
+		it := &Item{}
+		if err := rows.Scan(&show, &it.ID, &pid, &pos, &watched); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if pid.Valid {
+			it.Progress = &Progress{PositionSec: pos, Watched: watched != 0}
+		}
+		byShow[show] = append(byShow[show], it)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	var picks []int64
+	for _, id := range showIDs {
+		if n := NextUp(byShow[id]); n != nil && (n.Progress == nil || n.Progress.PositionSec <= 60) {
+			if picks = append(picks, n.ID); len(picks) >= limit {
+				break
+			}
+		}
+	}
+	if len(picks) == 0 {
+		return nil, nil
+	}
+	items, _, err := s.Items(ctx, ItemQuery{IDs: picks, Limit: len(picks), NoTotal: true, Brief: true})
+	if err != nil {
+		return nil, err
+	}
+	// In the order of the shows, not of the query.
+	found := make(map[int64]*Item, len(items))
+	for _, it := range items {
+		found[it.ID] = it
+	}
+	out := make([]*Item, 0, len(picks))
+	for _, id := range picks {
+		if it := found[id]; it != nil {
+			out = append(out, it)
+		}
+	}
+	return out, s.AttachProgress(ctx, userID, out)
 }
 
 // NextEpisode returns the id of the episode after it in its show, if any.

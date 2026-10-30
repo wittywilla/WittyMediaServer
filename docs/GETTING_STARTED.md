@@ -135,7 +135,7 @@ On phones you can choose *Add to Home Screen* to get an app-like icon.
 | **Direct play** | the browser plays the original file; nothing is converted |
 | **Transcoding** | converting a video on the fly so the browser can play it; uses CPU or GPU |
 | **ISO / DVD image** | one file containing a whole DVD, made from a disc you own |
-| **NFO** | a small text file next to a video holding its title, plot, year… (a standard format most media servers and Kodi understand) |
+| **NFO** | a small text file next to a video holding its title, plot, year… (a standard format most media software understands) |
 | **WittyDVD** | the part of WittyMediaServer that runs DVD menus like a real player |
 
 ## Where next

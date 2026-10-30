@@ -214,20 +214,14 @@ func BenchmarkHomeQueries(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			n := 0
+			var started []int64
 			for _, sh := range shows {
-				if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
-					continue
+				if sh.Unwatched != 0 && sh.Unwatched != sh.EpisodeCount {
+					started = append(started, sh.ID)
 				}
-				eps, err := st.Episodes(ctx, sh.ID, nil)
-				if err != nil {
-					b.Fatal(err)
-				}
-				_ = st.AttachProgress(ctx, user, eps)
-				NextUp(eps)
-				if n++; n >= 20 {
-					break
-				}
+			}
+			if _, err := st.NextUpItems(ctx, user, started, nil, 20); err != nil {
+				b.Fatal(err)
 			}
 			if _, err := st.Shows(ctx, ShowQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, UserID: user}); err != nil {
 				b.Fatal(err)

@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -28,6 +31,40 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	"libraryGrouping": "combine",
 	// updateCheck: look for new releases on GitHub twice a day.
 	"updateCheck": "1"}
+
+// settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
+// would otherwise only show up as every transcode failing.
+var settingChecks = map[string]func(string) bool{
+	"crf":            intBetween(0, 51),
+	"maxHeight":      intBetween(0, 4320),
+	"maxSpeed":       floatBetween(1, 16),
+	"x264Preset":     oneOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"),
+	"qualityMode":    oneOf("easy", "advanced", "expert"),
+	"qualityProfile": oneOf("speed", "balanced", "quality"),
+	"audioCodec":     oneOf("aac", "mp3"),
+	"maxBitrate":     bitrateRe.MatchString,
+	"audioBitrate":   bitrateRe.MatchString,
+}
+
+var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)
+
+func intBetween(lo, hi int) func(string) bool {
+	return func(v string) bool {
+		n, err := strconv.Atoi(v)
+		return err == nil && n >= lo && n <= hi
+	}
+}
+
+func floatBetween(lo, hi float64) func(string) bool {
+	return func(v string) bool {
+		f, err := strconv.ParseFloat(v, 64)
+		return err == nil && f >= lo && f <= hi
+	}
+}
+
+func oneOf(list ...string) func(string) bool {
+	return func(v string) bool { return slices.Contains(list, v) }
+}
 
 // secretSettings are masked when read back.
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
@@ -52,6 +89,12 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	for k, v := range in {
+		if check := settingChecks[k]; check != nil && v != "" && !check(strings.TrimSpace(v)) {
+			writeErr(w, 400, "that value is not valid for "+k)
+			return
+		}
+	}
 	for _, k := range settingKeys {
 		v, ok := in[k]
 		if !ok {
@@ -70,6 +113,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 	host, _ := os.Hostname()
+	s.Tools.StartHardwareProbe() // Settings is asking: it shows which ones work
 	hwList, hwDone := s.Tools.HardwareStatus()
 	var encoders []string
 	for _, e := range []string{"libx264", "libopenh264", "h264_nvenc", "h264_qsv", "h264_amf", "h264_vaapi", "h264_videotoolbox"} {

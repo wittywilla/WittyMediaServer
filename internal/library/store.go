@@ -403,6 +403,8 @@ type ItemQuery struct {
 	NoEpisodes bool
 	// Access limits the result to what a Kids/Guest profile may see.
 	Access *Access
+	// IDs limits the result to these items.
+	IDs []int64
 	// NoTotal skips counting all matches, for callers that only want the list.
 	NoTotal bool
 	// Brief leaves a disc's list of titles and chapters out: only its own page
@@ -457,6 +459,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		c, a := q.Access.ItemClause()
 		where = append(where, c)
 		args = append(args, a...)
+	}
+	if q.IDs != nil {
+		where = append(where, "i.id IN ("+ids(q.IDs)+")")
 	}
 	if q.LibraryID != 0 {
 		where = append(where, "i.library_id = ?")

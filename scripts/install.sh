@@ -70,6 +70,12 @@ Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
 ProtectSystem=full
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
 ReadWritePaths=$DATA
 # Media folders are read-only by default; add ReadWritePaths= entries if you need deletes.
 

@@ -463,7 +463,7 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 // nextUp offers the next episode of each show the user has started.
 func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item {
 	ctx, uid, acc := r.Context(), userFrom(r).ID, s.access(r)
-	var out []*library.Item
+	var started []int64
 	seen := map[int64]bool{} // anime can be listed by a TV and an anime library
 	for _, l := range libs {
 		if l.Type != "shows" && l.Type != "anime" {
@@ -481,18 +481,12 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 			if sh.Unwatched == 0 || sh.Unwatched == sh.EpisodeCount {
 				continue // finished, or never started
 			}
-			eps, err := s.Store.Episodes(ctx, sh.ID, acc)
-			if err != nil {
-				continue
-			}
-			_ = s.Store.AttachProgress(ctx, uid, eps)
-			if n := library.NextUp(eps); n != nil && (n.Progress == nil || n.Progress.PositionSec <= 60) {
-				out = append(out, n)
-			}
-			if len(out) >= 20 {
-				return out
-			}
+			started = append(started, sh.ID)
 		}
+	}
+	out, err := s.Store.NextUpItems(ctx, uid, started, acc, 20)
+	if err != nil {
+		s.Log.Warn("next up", "err", err)
 	}
 	return out
 }

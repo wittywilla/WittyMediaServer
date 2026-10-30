@@ -2,6 +2,7 @@ package library
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -42,6 +43,56 @@ func TestItemClauseCountsShowGenres(t *testing.T) {
 	}
 	if g, err := st.Genres(ctx, 0, &Access{Libraries: []int64{lib.ID + 1}}); err != nil || len(g) != 0 {
 		t.Fatalf("genres of a library the account can't open: %v %v", g, err)
+	}
+}
+
+// The home page's next episodes: the same choice as NextUp over full rows.
+func TestNextUpItems(t *testing.T) {
+	d, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	st := &Store{DB: d}
+	lib, err := st.CreateLibrary(ctx, "TV", "shows", []string{"/t"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := d.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at) VALUES('u', 'x', 0, 1)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	user, _ := res.LastInsertId()
+	sh := &Show{LibraryID: lib.ID, Path: "/t/a", Title: "A"}
+	if err := st.UpsertShow(ctx, sh); err != nil {
+		t.Fatal(err)
+	}
+	var eps []*Item
+	for i := 1; i <= 3; i++ {
+		season, ep := 1, i
+		it := &Item{LibraryID: lib.ID, Kind: "video", Path: "/t/a/" + strconv.Itoa(i), Title: "E", SortTitle: "E", ShowID: &sh.ID, Season: &season, Episode: &ep}
+		if err := st.upsertItem(ctx, it); err != nil {
+			t.Fatal(err)
+		}
+		eps = append(eps, it)
+	}
+	if err := st.SetProgress(ctx, user, eps[0].ID, Progress{Watched: true}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.NextUpItems(ctx, user, []int64{sh.ID}, nil, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != eps[1].ID || got[0].Title != "E" {
+		t.Fatalf("next up: %+v", got)
+	}
+	// Part-way through the next one: Continue watching shows it instead.
+	if err := st.SetProgress(ctx, user, eps[1].ID, Progress{PositionSec: 200, DurationSec: 1000}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := st.NextUpItems(ctx, user, []int64{sh.ID}, nil, 20); len(got) != 0 {
+		t.Fatalf("next up while in progress: %+v", got)
 	}
 }
 

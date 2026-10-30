@@ -330,7 +330,7 @@ as well (see its section below).
 
 ### Library and metadata
 
-- Metadata and artwork are **saved next to media** in the standard NFO + artwork layout other media servers and Kodi read
+- Metadata and artwork are **saved next to media** in the standard NFO + artwork layout other media software reads
   (`.nfo`, `poster.jpg`, `fanart.jpg`, …), with backups of hand-written NFOs.
 - **Artwork picker** (local files, TMDB, TheTVDB) for movies, discs, episodes and shows.
 - Movie recommendations at the end of a film (sequels first).

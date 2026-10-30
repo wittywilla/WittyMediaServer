@@ -67,9 +67,6 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("ffmpeg", "path", tools.FFmpeg, "version", tools.Version)
-	// Find out which hardware encoders really work here (for Settings).
-	go tools.ProbeHardware(context.Background())
-
 	database, err := db.Open(cfg.DataDir)
 	if err != nil {
 		log.Error("database", "err", err)
@@ -92,6 +89,14 @@ func cmdServe(args []string) int {
 		}
 		if v := database.GetSetting(ctx, "logCategories", ""); v != "" {
 			logs.SetCategories(strings.Split(v, ","))
+		}
+	}
+
+	// Find out which hardware encoders really work here, if any are to be used.
+	{
+		ctx := context.Background()
+		if database.GetSetting(ctx, "hwEncoders", "") != "" || database.GetSetting(ctx, "hwAccel", "0") == "1" {
+			tools.StartHardwareProbe()
 		}
 	}
 

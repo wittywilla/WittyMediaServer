@@ -125,6 +125,21 @@ func TestWebFilesAndGzip(t *testing.T) {
 	}
 }
 
+func TestSettingChecks(t *testing.T) {
+	for k, vals := range map[string]map[string]bool{
+		"crf":        {"21": true, "51": true, "99": false, "abc": false, "-1": false},
+		"x264Preset": {"veryfast": true, "--evil": false, "fast fast": false},
+		"maxBitrate": {"8M": true, "2500k": true, "1.5M": true, "8 M": false, "-i": false},
+		"maxSpeed":   {"4": true, "0.5": false, "NaN": false},
+	} {
+		for v, want := range vals {
+			if got := settingChecks[k](v); got != want {
+				t.Errorf("%s=%q: got %v", k, v, got)
+			}
+		}
+	}
+}
+
 func TestImageType(t *testing.T) {
 	png := append([]byte("\x89PNG\r\n\x1a\n"), make([]byte, 40)...)
 	if ct := imageType(bytes.NewReader(png), "x.png"); ct != "image/png" {

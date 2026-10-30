@@ -241,7 +241,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 		if n < len(ts.Chapters) {
 			end = ts.Chapters[n]
 		}
-		at = ts.Chapters[n-1] + minf(6, (end-ts.Chapters[n-1])/3)
+		at = ts.Chapters[n-1] + min(6, (end-ts.Chapters[n-1])/3)
 	}
 	cell := ts.Cells[0]
 	for _, c := range ts.Cells {
@@ -285,10 +285,3 @@ var (
 	errNoPicture = errors.New("no picture in this title")
 	errNoTitle   = errors.New("no such title or chapter")
 )
-
-func minf(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-	return b
-}

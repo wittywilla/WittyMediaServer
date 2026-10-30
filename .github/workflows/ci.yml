@@ -4,14 +4,19 @@ on:
     branches: [master, main]
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # The newest patch release, not the minimum go.mod names: every Go patch
+      # fixes security problems in the standard library that binaries ship with.
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: "1.27.x"
+          check-latest: true
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -20,6 +25,12 @@ jobs:
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
       - run: go test ./... -count=1
+      # Transcodes, disc sessions and scans run concurrently; only this finds data races.
+      - name: Race detector
+        run: CGO_ENABLED=1 go test -race -count=1 ./internal/...
+      - name: Known vulnerabilities (reported, does not stop the build)
+        continue-on-error: true
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       # go.work builds the modules against each other's local source.
       - name: WittyDisc, WittyDVD, WittyBluray and WittyIntegratedFileBrowser modules (their own go.mod)
         run: |

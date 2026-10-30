@@ -656,7 +656,7 @@ func (s *Session) segments(pl *playing) ([]ffmpeg.Segment, error) {
 		for _, e := range ext {
 			a, b := off, off+e.Length
 			off = b
-			lo, hi := max64(a, from), min64(b, to)
+			lo, hi := max(a, from), min(b, to)
 			if hi <= lo {
 				continue
 			}
@@ -671,20 +671,6 @@ func (s *Session) segments(pl *playing) ([]ffmpeg.Segment, error) {
 		return nil, errors.New("the playlist has no clips")
 	}
 	return segs, nil
-}
-
-func max64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min64(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func (s *Session) listDir() string { return filepath.Join(s.m.CacheDir, "lists", s.key) }

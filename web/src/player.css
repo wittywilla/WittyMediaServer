@@ -355,3 +355,8 @@
 /* Leave room under the page for the mini player. */
 .app:has(~ .player.mini) .content { padding-bottom: 260px; }
 @media (max-width: 700px) { .app:has(~ .player.mini) .content { padding-bottom: 84px; } }
+
+/* 3D video shown through a canvas (one eye, or red/cyan anaglyph); the
+   video element keeps playing underneath, invisible. */
+.player canvas.stereo { position: absolute; z-index: 0; pointer-events: none; }
+.player .stereo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }

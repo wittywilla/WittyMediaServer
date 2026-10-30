@@ -193,7 +193,17 @@ func (s *Server) handleDVDHighlight(w http.ResponseWriter, r *http.Request) {
 	}
 	serial, _ := strconv.Atoi(r.PathValue("serial"))
 	n, _ := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".png"))
-	png, ok := sess.HighlightPNG(serial, n)
+	var png []byte
+	var ok bool
+	if f, _ := strconv.Atoi(r.URL.Query().Get("f")); f > 0 {
+		if fs, can := sess.(interface {
+			HighlightFramePNG(serial, n, frame int) ([]byte, bool)
+		}); can {
+			png, ok = fs.HighlightFramePNG(serial, n, f)
+		}
+	} else {
+		png, ok = sess.HighlightPNG(serial, n)
+	}
 	if !ok {
 		writeErr(w, 404, "no highlight")
 		return

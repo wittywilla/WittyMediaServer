@@ -15,7 +15,7 @@ var version = "dev"
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "info", "playlist", "walk", "render":
+		case "info", "playlist", "menu", "walk", "render":
 			os.Exit(cli.Bluray(os.Args[1:]))
 		case "version", "--version", "-v":
 			fmt.Println("wittybluray", version)
@@ -26,6 +26,7 @@ func main() {
 
   wittybluray info      <disc>            titles, the disc's program, playlists, clips and streams
   wittybluray playlist  <disc> <number>   every item, stream and chapter of one playlist
+  wittybluray menu      <disc> <playlist>   a playlist's menu: pages, buttons and every command
   wittybluray walk      <disc> [button...] simulate inserting the disc, then pressing menu buttons by id
   wittybluray render    <disc> <out-dir>  save the first menu's pages as PNG files
 

@@ -90,6 +90,7 @@ type Session struct {
 	playlist  *playing // what a title presentation streams
 	menu      *menuState
 	menus     map[int]*menuArt
+	artSeq    int
 	menuCache map[string]*wittybluray.Menu
 	subPics   map[string]*subPic
 	seekTo    float64 // seconds into the playlist: continue here after a stream change
@@ -253,13 +254,12 @@ func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 	case "tick":
 		return cur
 	case "press":
+		s.syncPosition(a.PositionSec) // pop-up menus read the chapter and time registers
 		return s.press(ctx, a.Button)
 	case "select":
 		return s.selectButton(a.Button)
 	case "key":
-		if a.Key == "menu" || a.Key == "root" || a.Key == "title" || a.Key == "return" {
-			s.syncPosition(a.PositionSec)
-		}
+		s.syncPosition(a.PositionSec)
 		return s.keyPress(ctx, a.Key)
 	case "ended":
 		return s.show(ctx, s.nav.PlaylistEnded())
@@ -331,23 +331,41 @@ func (s *Session) tickTimer() *wittybluray.Step {
 
 // press runs a menu button's commands.
 func (s *Session) press(ctx context.Context, n int) *Presentation {
-	ms := s.menu
-	if ms == nil {
-		return s.current
+	ms, cur := s.menu, s.current
+	if ms == nil || cur == nil || cur.Menu == nil {
+		return cur
 	}
 	b := ms.page.Button(n - 1)
 	if b == nil {
-		return s.current
+		return cur
 	}
 	ms.selected = b.ID
 	st := s.nav.PressButton(b.Commands)
 	if st.Kind != wittybluray.StepStay {
 		return s.show(ctx, st)
 	}
-	if s.applyEffects(st.Effects) {
+	fx := st.Effects
+	if s.applyEffects(fx) {
+		if cur.Kind == "title" && cur.Menu.Popup {
+			// The pop-up menu changed page or buttons: same film, new layer.
+			p := *cur
+			if err := s.menuView(&p, ms.menu, true, s.videoRate(s.step)); err != nil {
+				return cur
+			}
+			s.current = &p
+			return &p
+		}
 		return s.present(ctx, s.step, true) // the page or its buttons changed
 	}
-	return s.moveSelection(ms.selected)
+	p := s.moveSelection(ms.selected)
+	if fx != nil && fx.PopupOff && p != nil && p.Menu != nil {
+		// Tell the player to hide the pop-up, without remembering it as closed.
+		q, m := *p, *p.Menu
+		m.Closed = true
+		q.Menu = &m
+		return &q
+	}
+	return p
 }
 
 // applyEffects applies a button's SET_SYSTEM effects to the menu state and
@@ -501,33 +519,40 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 	if !rebuild {
 		s.seekTo = 0
 	}
+	// A playlist whose menu is always on is a menu. A playlist with a pop-up
+	// menu (summoned during the film) is a title that carries the menu for
+	// the player's Menu key. Playlists that are not a numbered title
+	// (first-play intros, menu transitions) present like menus without
+	// buttons: they play through, and no viewing progress is recorded.
+	var popup *wittybluray.Menu
+	if st.Menu {
+		switch menu := s.loadMenu(st); {
+		case menu == nil:
+			st.Menu = false
+		case menu.Popup:
+			st.Menu, popup = false, menu
+		}
+	}
 	s.serial++
 	s.step = st
 	p := &Presentation{Serial: s.serial, Reason: st.Reason}
-	// A playlist with a pop-up menu (summoned during the film) is a title; a
-	// playlist whose menu is always on is a menu. Playlists that are not a
-	// numbered title (first-play intros, menu transitions) present like menus
-	// without buttons: they play through, and the viewer's progress is not
-	// recorded for them.
-	if st.Menu {
-		if menu := s.loadMenu(st); menu == nil || menu.Popup {
-			st.Menu = false
-		}
-	}
+	var err error
 	if st.Menu || st.Title == 0xffff || st.Title == 0 {
-		if !rebuild || s.menu == nil {
+		if !rebuild {
 			s.menu = nil
 		}
-		if err := s.buildMenu(ctx, st, p); err != nil {
-			s.current = &Presentation{Kind: "stop", Serial: s.serial, Reason: err.Error(), Media: &Media{Type: "none"}}
-			return s.current
-		}
+		err = s.buildMenu(ctx, st, p)
 	} else {
-		s.menu = nil
-		if err := s.buildTitle(ctx, st, p); err != nil {
-			s.current = &Presentation{Kind: "stop", Serial: s.serial, Reason: err.Error(), Media: &Media{Type: "none"}}
-			return s.current
+		if !rebuild || popup == nil {
+			s.menu = nil
 		}
+		if err = s.buildTitle(ctx, st, p); err == nil && popup != nil {
+			err = s.menuView(p, popup, true, s.videoRate(st))
+		}
+	}
+	if err != nil {
+		s.current = &Presentation{Kind: "stop", Serial: s.serial, Reason: err.Error(), Media: &Media{Type: "none"}}
+		return s.current
 	}
 	if s.timer != nil {
 		if left := time.Until(s.timerAt).Seconds(); left > 0 {
@@ -809,24 +834,13 @@ func (s *Session) buildMenu(ctx context.Context, st *wittybluray.Step, p *Presen
 	}
 	it := &pl.Items[st.Item]
 	var menu *wittybluray.Menu
-	var buttons []*wittybluray.Button
 	if st.Menu {
-		menu = s.loadMenu(st)
-		if menu == nil {
+		if menu = s.loadMenu(st); menu == nil {
 			return errors.New("the menu graphics could not be read")
-		}
-		if s.menu == nil || s.menu.menu != menu {
-			s.menu = &menuState{menu: menu, page: &menu.Pages[0], selected: menu.Pages[0].DefaultSelected, enabled: map[int]bool{}, disabled: map[int]bool{}}
-		}
-		ms := s.menu
-		buttons = ms.page.Visible(ms.enabled, ms.disabled)
-		if ms.page.Button(ms.selected) == nil && len(buttons) > 0 {
-			ms.selected = buttons[0].ID
 		}
 	} else {
 		s.menu = nil
 	}
-	// Media: the menu's video and sound, looping.
 	laid := s.layout(pl)
 	_, audio := s.audioFor(it)
 	id, audioIdx, err := s.ensureHLS(laid, it, audio, true)
@@ -839,31 +853,78 @@ func (s *Session) buildMenu(ctx context.Context, st *wittybluray.Step, p *Presen
 		p.Menu = &Menu{Width: 1920, Height: 1080, Aspect: "16:9", Buttons: []ButtonView{}}
 		return nil
 	}
+	return s.menuView(p, menu, false, s.videoRate(st))
+}
+
+// menuView fills p.Menu with the current page of a menu: its buttons, the
+// overlay of their normal pictures and a highlight per button. popup marks
+// a menu the player shows only on its Menu key. Each view gets its own
+// artwork key, so a page change under the same serial still refreshes the
+// pictures.
+func (s *Session) menuView(p *Presentation, menu *wittybluray.Menu, popup bool, rate int) error {
+	if s.menu == nil || s.menu.menu != menu {
+		s.menu = &menuState{menu: menu, page: &menu.Pages[0], selected: menu.Pages[0].DefaultSelected, enabled: map[int]bool{}, disabled: map[int]bool{}}
+	}
 	ms := s.menu
-	art := &menuArt{menu: menu, page: ms.page, buttons: buttons, highlights: map[int][]byte{}}
-	s.menus[s.serial] = art
+	buttons := ms.page.Visible(ms.enabled, ms.disabled)
+	if ms.page.Button(ms.selected) == nil && len(buttons) > 0 {
+		ms.selected = buttons[0].ID
+	}
+	s.artSeq = s.artSeq%999 + 1
+	key := s.serial*1000 + s.artSeq
+	s.menus[key] = &menuArt{menu: menu, page: ms.page, buttons: buttons, highlights: map[int][]byte{}}
 	for k := range s.menus {
-		if k < s.serial-4 {
+		if k < (s.serial-4)*1000 {
 			delete(s.menus, k)
 		}
 	}
-	m := &Menu{Width: menu.Width, Height: menu.Height, Aspect: "16:9", Selected: ms.selected + 1, HasHighlights: true, Buttons: []ButtonView{}}
+	m := &Menu{Width: menu.Width, Height: menu.Height, Aspect: "16:9", Selected: ms.selected + 1, HasHighlights: true, Buttons: []ButtonView{}, Popup: popup, InTitle: popup}
 	if menu.Width > 0 && menu.Height > 0 && menu.Width*3 == menu.Height*4 {
 		m.Aspect = "4:3"
 	}
+	fps := animationFPS(ms.page, rate, s.disc.Index.FrameRate)
 	for _, b := range buttons {
 		r := menu.Rect(b)
 		cmd := ""
 		if len(b.Commands) > 0 {
 			cmd = wittybluray.Decode(b.Commands[0]).String()
 		}
-		m.Buttons = append(m.Buttons, ButtonView{N: b.ID + 1, X1: r.Min.X, Y1: r.Min.Y, X2: r.Max.X, Y2: r.Max.Y,
-			Up: ref(b.Up), Down: ref(b.Down), Left: ref(b.Left), Right: ref(b.Right), Auto: b.AutoAction, Lit: b.Selected.Start != wittybluray.NoButton, Cmd: cmd})
+		bv := ButtonView{N: b.ID + 1, X1: r.Min.X, Y1: r.Min.Y, X2: r.Max.X, Y2: r.Max.Y,
+			Up: ref(b.Up), Down: ref(b.Down), Left: ref(b.Left), Right: ref(b.Right), Auto: b.AutoAction, Lit: b.Selected.Start != wittybluray.NoButton, Cmd: cmd}
+		if n := b.Selected.Frames(); n > 1 && fps > 0 {
+			bv.Frames, bv.FPS = n, fps
+		}
+		m.Buttons = append(m.Buttons, bv)
 	}
-	m.OverlayURL = s.url("menu", fmt.Sprint(s.serial), "overlay.png")
-	m.HighlightURL = s.url("menu", fmt.Sprint(s.serial), "highlight", "{n}.png")
+	m.OverlayURL = s.url("menu", fmt.Sprint(key), "overlay.png")
+	m.HighlightURL = s.url("menu", fmt.Sprint(key), "highlight", "{n}.png")
 	p.Menu = m
 	return nil
+}
+
+// animationFPS is how fast a page's button animations run: the video frame
+// rate divided by the page's animation rate code (0 = no animation).
+func animationFPS(page *wittybluray.Page, rate, indexRate int) float64 {
+	if page.AnimationRate <= 0 {
+		return 0
+	}
+	rates := map[int]float64{1: 23.976, 2: 24, 3: 25, 4: 29.97, 6: 50, 7: 59.94}
+	fps := rates[rate]
+	if fps == 0 {
+		fps = rates[indexRate]
+	}
+	if fps == 0 {
+		fps = 24
+	}
+	return fps / float64(page.AnimationRate)
+}
+
+// videoRate is the frame rate code of the step's video stream.
+func (s *Session) videoRate(st *wittybluray.Step) int {
+	if st != nil && st.Playlist != nil && st.Item < len(st.Playlist.Items) && len(st.Playlist.Items[st.Item].Video) > 0 {
+		return st.Playlist.Items[st.Item].Video[0].Rate
+	}
+	return 0
 }
 
 func ref(id int) int {
@@ -993,22 +1054,26 @@ func (s *Session) OverlayPNG(serial int) ([]byte, bool) {
 }
 
 // HighlightPNG is one button in its selected state, on a full frame.
-func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) {
+func (s *Session) HighlightPNG(serial, n int) ([]byte, bool) { return s.HighlightFramePNG(serial, n, 0) }
+
+// HighlightFramePNG is one picture of a button's selected-state animation.
+func (s *Session) HighlightFramePNG(serial, n, frame int) ([]byte, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	art := s.menus[serial]
-	if art == nil {
+	if art == nil || frame < 0 || frame > 256 {
 		return nil, false
 	}
-	if b, ok := art.highlights[n]; ok {
+	k := n*1000 + frame
+	if b, ok := art.highlights[k]; ok {
 		return b, true
 	}
 	for _, b := range art.buttons {
 		if b.ID == n-1 {
 			img := image.NewNRGBA(image.Rect(0, 0, art.menu.Width, art.menu.Height))
-			art.menu.Draw(img, art.page, b, wittybluray.ButtonSelected)
+			art.menu.DrawFrame(img, art.page, b, wittybluray.ButtonSelected, frame)
 			out := encode(img)
-			art.highlights[n] = out
+			art.highlights[k] = out
 			return out, true
 		}
 	}

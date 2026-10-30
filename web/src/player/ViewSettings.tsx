@@ -46,11 +46,13 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
       </Row>
       <Row label="Seek bar"><Toggle k="seekBar" label="Seek bar" {...p} /></Row>
       <Row label="Chapter marks"><Toggle k="chapterMarks" label="Chapter marks" {...p} /></Row>
-      <Row label={isDisc ? 'DVD remote' : 'Remote'}><Toggle k="remote" label="Remote" {...p} /></Row>
+      <Row label={isDisc ? 'Disc remote' : 'Remote'}><Toggle k="remote" label="Remote" {...p} /></Row>
       <Row label="Remote style"><Seg k="remoteStyle" label="Remote style" opts={[['floating', 'Floating'], ['bar', 'In control bar']]} {...p} /></Row>
       <Row label="Hide controls after"><Seg k="hideAfter" label="Hide controls after" opts={[[2, '2 s'], [3.5, '3.5 s'], [6, '6 s'], [0, 'Never']]} {...p} /></Row>
       <Row label="Picture"><Seg k="picture" label="Picture" opts={[['fit', 'Fit'], ['fill', 'Fill screen']]} {...p} /></Row>
       {isDisc && <Row label="Subtitle size"><Seg k="subtitleSize" label="Subtitle size" opts={[[0.8, 'S'], [1, 'M'], [1.25, 'L'], [1.5, 'XL']]} {...p} /></Row>}
+      <Row label="3D video"><Seg k="stereo" label="3D video" opts={[['off', 'Off'], ['sbs', 'Side by side'], ['ou', 'Over-under']]} {...p} /></Row>
+      {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}
       <p className="vs-note">{scope === 'item' ? `Saved for ${isDisc ? 'this disc' : 'this video'} on this device.` : 'Saved for all videos on this device.'}</p>
     </div>
   )

@@ -47,6 +47,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const [insertSound, setInsertSound] = useState(true)
   const [picker, setPicker] = useState<PickKind | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // A Blu-ray's pop-up menu during the film: shown on the Menu key.
+  const [popupOpen, setPopupOpen] = useState(false)
+  const [hlFrame, setHlFrame] = useState(0)
   // The previous still image stays up until the next clip has a frame, so
   // pressing a menu button never flashes black.
   const [lingerStill, setLingerStill] = useState<string | null>(null)
@@ -120,8 +123,11 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       presRef.current = p
       setPres(p)
       if (p.menu) setSelected(p.menu.selected || 0)
+      if (p.menu?.closed) setPopupOpen(false)
       return
     }
+    const sameUrl = p.media?.url === urlRef.current
+    setPopupOpen(false)
     if (p.media?.url !== urlRef.current) {
       freeze()
       if (prev?.media?.type === 'still' && p.media?.type === 'hls' && prev.media.url) {
@@ -139,6 +145,11 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     setPres(p)
     setSelected(p.menu?.selected || 0)
     setShowButtons(!(p.menu?.buttonsFromSec && p.menu.buttonsFromSec > 0.3))
+    if (p.kind === 'title' && sameUrl && prev?.kind === 'title' && p.title) {
+      // The same stream from another place (a pop-up menu chose a chapter): seek.
+      const v = video.current
+      if (v && Math.abs(v.currentTime - p.title.startSec) > 1.5) v.currentTime = p.title.startSec
+    }
     if (p.kind === 'title') {
       if (!resumeUsed.current && startAt == null && item.progress && !item.progress.watched && item.progress.positionSec > 60 && item.progress.discTitle === p.title?.ttn) {
         pendingSeek.current = item.progress.positionSec
@@ -209,7 +220,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const menu = pres?.menu
   const buttons = menu?.buttons || []
-  const pressButton = useCallback((n: number) => act({ type: 'press', button: n }), [act])
+  // Presses carry the playhead: a Blu-ray pop-up menu's buttons read the
+  // current chapter and time from the player's registers.
+  const pressButton = useCallback((n: number) => act({ type: 'press', button: n, positionSec: presRef.current?.kind === 'title' ? video.current?.currentTime || 0 : 0 }), [act])
 
   // Clip ended -> tell the navigator (after any still time). Also used by the
   // stall watchdog below, so it reports each clip at most once.
@@ -303,7 +316,19 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     return () => ro.disconnect()
   }, [aspect, pres?.serial, fill])
 
-  const inMenu = pres?.kind === 'menu' && buttons.length > 0 && showButtons
+  const hasPopup = pres?.kind === 'title' && !!menu?.popup && buttons.length > 0
+  const inMenu = (pres?.kind === 'menu' && buttons.length > 0 && showButtons) || (hasPopup && popupOpen)
+
+  // Animated highlights (Blu-ray menus): cycle the selected button's frames.
+  const selectedBtn = buttons.find((b) => b.n === selected)
+  const hlFrames = inMenu && selectedBtn?.frames && selectedBtn.frames > 1 ? selectedBtn.frames : 0
+  useEffect(() => {
+    setHlFrame(0)
+    if (!hlFrames) return
+    const t = setInterval(() => setHlFrame((f) => (f + 1) % hlFrames), 1000 / Math.max(1, selectedBtn?.fps || 12))
+    return () => clearInterval(t)
+  }, [hlFrames, selectedBtn?.fps, selected, pres?.serial])
+  const frameUrl = (u: string, f: number) => u + (u.includes('?') ? '&' : '?') + 'f=' + f
 
   // Only show the spinner when waiting is noticeable; quick button presses
   // and segment fetches would otherwise make it flash.
@@ -388,8 +413,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     switch (k) {
       case 'eject': chrome.close(); break
       case 'topmenu': titleMenu(); break
-      case 'menu': rootMenu(); break
-      case 'return': act({ type: 'key', key: 'return', positionSec: pres?.kind === 'title' ? pos() : 0 }); break
+      case 'menu': if (hasPopup) setPopupOpen((o) => !o); else rootMenu(); break
+      case 'return': if (popupOpen) setPopupOpen(false); else act({ type: 'key', key: 'return', positionSec: pres?.kind === 'title' ? pos() : 0 }); break
       case 'up': case 'down': case 'left': case 'right': move(k); break
       case 'enter': if (inMenu && selected) pressButton(selected); break
       case 'audio': if ((title?.audio.length || 0) > 1) setPicker('audio'); break
@@ -439,13 +464,13 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           break
         case 'Enter': if (inMenu) { e.preventDefault(); pressButton(selected) } break
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); togglePlay(); break
-        case 'm': case 'ContextMenu': rootMenu(); break
+        case 'm': case 'ContextMenu': if (hasPopup) setPopupOpen((o) => !o); else rootMenu(); break
         case 't': titleMenu(); break
         case 'r': setRemote(!prefs.remote); break
         case 'f': toggleFullscreen(root.current); break
         case 'a': onRemote('audio'); break
         case 's': onRemote('subtitle'); break
-        case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); back() } break
+        case 'Escape': case 'GoBack': case 'BrowserBack': if (popupOpen) { e.preventDefault(); setPopupOpen(false) } else if (!document.fullscreenElement) { e.preventDefault(); back() } break
         case 'PageDown': case 'n': case 'MediaTrackNext': onRemote('next'); break
         case 'PageUp': case 'p': case 'MediaTrackPrevious': onRemote('prev'); break
         case 'MediaStop': onRemote('stop'); break
@@ -500,16 +525,21 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       <div className="stage" ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
-        <video ref={video} playsInline preload="auto" style={{ objectFit }} />
+        <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1 }} />
+        {prefs.stereo !== 'off' && rect && <StereoLayer video={video} rect={rect} mode={prefs.stereo} out={prefs.stereoOut} />}
         {pres?.media?.type === 'still' && <img className="still" src={mediaUrl(pres.media.url!)} alt="" />}
         {lingerStill && <img className="still" src={mediaUrl(lingerStill)} alt="" />}
-        {menu && rect && scale && (
+        {menu && rect && scale && (pres?.kind !== 'title' || (hasPopup && popupOpen)) && (
           <div className="dvd-layer" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
             {menu.overlayUrl && <img src={mediaUrl(menu.overlayUrl)} alt="" />}
             {/* Every highlight is loaded up front and only shown/hidden, so moving
                 the selection never waits for an image (no flicker). */}
             {inMenu && menu.highlightUrl && buttons.filter((b) => b.lit).map((b) => (
-              <img key={`${pres!.serial}-${b.n}`} className={'hl' + (b.n === selected ? ' on' : '')} src={mediaUrl(menu.highlightUrl!.replace('{n}', String(b.n)))} alt="" />
+              b.frames && b.frames > 1 && b.n === selected
+                ? Array.from({ length: b.frames }, (_, f) => (
+                  <img key={`${menu.highlightUrl}-${b.n}-${f}`} className={'hl' + (f === hlFrame ? ' on' : '')} src={frameUrl(mediaUrl(menu.highlightUrl!.replace('{n}', String(b.n))), f)} alt="" />
+                ))
+                : <img key={`${menu.highlightUrl}-${b.n}`} className={'hl' + (b.n === selected ? ' on' : '')} src={mediaUrl(menu.highlightUrl!.replace('{n}', String(b.n)))} alt="" />
             ))}
             {/* Real buttons (not just hit areas) so screen readers and keyboards
                 can reach every menu option; the disc's own artwork is the label. */}
@@ -552,7 +582,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             <button className="ibtn" onClick={back} title="Back (playback continues in the mini player)"><IconBack /></button>
             <div className="grow">
               <h2>{item.title}</h2>
-              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
+              <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} chapters${hasPopup ? (popupOpen ? ' · pop-up menu (Esc closes)' : ' · Menu key: pop-up menu') : ''}` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
             </div>
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
             <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
@@ -669,5 +699,53 @@ function SubtitleLayer({ video, title, rect, size = 1 }: { video: React.RefObjec
         return <img key={e.url} src={mediaUrl(e.url)} alt="" style={{ left: cx - w / 2, top: bottom - h, width: w, height: h }} />
       })}
     </div>
+  )
+}
+
+// StereoLayer shows 3D video (two views side by side or over-under) as one
+// eye's view, or as red/cyan anaglyph, by drawing the hidden video onto a
+// canvas frame by frame. Anaglyph needs canvas filters (Chromium, Firefox);
+// elsewhere it falls back to one eye.
+function StereoLayer({ video, rect, mode, out }: { video: React.RefObject<HTMLVideoElement | null>; rect: Rect; mode: 'sbs' | 'ou'; out: '2d' | 'anaglyph' }) {
+  const canvas = useRef<HTMLCanvasElement | null>(null)
+  useEffect(() => {
+    const v = video.current, c = canvas.current
+    if (!v || !c) return
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    const anaglyph = out === 'anaglyph' && 'filter' in ctx
+    let stop = false, raf = 0
+    const draw = () => {
+      if (stop) return
+      const W = v.videoWidth, H = v.videoHeight
+      if (W && H) {
+        if (c.width !== W || c.height !== H) { c.width = W; c.height = H }
+        const sbs = mode === 'sbs'
+        const w = sbs ? W / 2 : W, h = sbs ? H : H / 2
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.filter = anaglyph ? 'url(#wms-an-left)' : 'none'
+        ctx.drawImage(v, 0, 0, w, h, 0, 0, W, H)
+        if (anaglyph) {
+          ctx.globalCompositeOperation = 'lighter'
+          ctx.filter = 'url(#wms-an-right)'
+          ctx.drawImage(v, sbs ? w : 0, sbs ? 0 : h, w, h, 0, 0, W, H)
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.filter = 'none'
+        }
+      }
+      const rvfc = (v as any).requestVideoFrameCallback
+      if (typeof rvfc === 'function') rvfc.call(v, draw); else raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { stop = true; cancelAnimationFrame(raf) }
+  }, [video, mode, out])
+  return (
+    <>
+      <svg className="stereo-defs" aria-hidden="true"><defs>
+        <filter id="wms-an-left" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" /></filter>
+        <filter id="wms-an-right" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" /></filter>
+      </defs></svg>
+      <canvas ref={canvas} className="stereo" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} aria-hidden="true" />
+    </>
   )
 }

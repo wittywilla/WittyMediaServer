@@ -65,6 +65,15 @@ func TestRun(t *testing.T) {
 	}
 	var fx Effects
 	r.Run([]Command{{0x51c00001, 0x80050000 | 0x8000 | 0x4000 | 2, 0x80030000 | 0x8000 | 1}}, 0, RunOptions{}, &fx)
+	// SET_BUTTON_PAGE with register operands: the flags come from the operand,
+	// the button and page numbers from the named registers (a chapter page
+	// chosen from the current chapter).
+	r.GPR[10], r.GPR[11] = 7, 3
+	var bp Effects
+	r.Run([]Command{{0x51000003, 0x8000000a, 0x8000000b}}, 0, RunOptions{}, &bp)
+	if bp.ButtonPage == nil || !bp.ButtonPage.SetButton || bp.ButtonPage.Button != 7 || !bp.ButtonPage.SetPage || bp.ButtonPage.Page != 3 {
+		t.Fatalf("SET_BUTTON_PAGE from registers: %+v", bp.ButtonPage)
+	}
 	if r.PSR[PSRAudio] != 5 || r.PSR[PSRPG]&0xfff != 2 || r.PSR[PSRPG]>>31 != 1 || r.PSR[PSRIGStream] != 3 || r.PSR[PSRAngle] != 1 || !fx.StreamChange {
 		t.Fatalf("SET_STREAM: audio %d pg %#x ig %d angle %d", r.PSR[PSRAudio], r.PSR[PSRPG], r.PSR[PSRIGStream], r.PSR[PSRAngle])
 	}

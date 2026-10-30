@@ -104,6 +104,10 @@ func (n *Nav) PlaylistEnded() *Step {
 func (n *Nav) PressButton(cmds []Command) *Step {
 	fx := &Effects{}
 	res := n.st.regs.Run(cmds, 0, RunOptions{}, fx)
+	if res.Kind == ResultEnd {
+		// A button's commands ran out (or it had none): the menu stays as it is.
+		return &Step{Kind: StepStay, Object: -1, Effects: fx}
+	}
 	st := n.apply(res, n.st.obj, fx)
 	if st.Kind == StepStay || st.Effects == nil {
 		st.Effects = fx

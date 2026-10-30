@@ -40,6 +40,11 @@ between buttons and **OK** presses one; the disc's own program then runs. Pages 
 feature starts, and so on, as the disc's authors intended. The player's **Top menu** key returns
 to the top menu from the film, and **Resume** continues the film.
 
+**Pop-up menus:** when the film's playlist carries a pop-up menu, the **Menu** key (or **m**)
+opens it over the picture while the film keeps playing; the arrows and OK work it, and **Esc**
+or Menu closes it. Discs use it for chapters, audio and subtitle choices with their own artwork.
+Buttons whose pictures animate (a pulsing highlight) animate here too.
+
 Discs whose menus are written in BD-J (Java) can't run them; they open on the feature instead,
 with a note. Chapters, audio and subtitles are still available from the player's own controls.
 
@@ -56,8 +61,11 @@ with a note. Chapters, audio and subtitles are still available from the player's
 
 ## 3D, 4K and HDR
 
-- **3D (MVC) discs** play their 2D (base) view. The disc is marked 3D in the library. Discs
-  made from side-by-side or over-under 3D video play as they are.
+- **3D (MVC) discs** play their 2D (base) view. The disc is marked 3D in the library.
+- **Side-by-side and over-under 3D video** (discs or files made that way): the player's viewing
+  settings have a **3D video** choice (side by side or over-under) and **Show 3D as**: one eye's
+  view flat in 2D, or red/cyan anaglyph for the paper glasses. The choice is remembered per disc
+  or for everything.
 - **4K UHD discs** (2160p HEVC) are read like any other. By default they are sent as 1080p,
   because encoding 4K in software is beyond most machines and most screens that play it are
   1080p; set a maximum height of 2160 in Settings to send full 4K to a machine that can.
@@ -117,9 +125,11 @@ problem, attach the output of `info` and `walk`; never the disc image.
 
 - AACS-encrypted discs are refused.
 - BD-J (Java) menus don't run; the disc plays its titles.
-- 3D plays as 2D; pop-up menus during the film are not shown yet; menu animations and page
-  transitions are not played (the first picture of each button state is shown).
-- 4K and HDR handling has not yet been tested on a real UHD disc.
+- MVC 3D plays as 2D (the dependent view is not decoded); page transition effects are not
+  played.
+- Tested so far on custom-authored discs (Scenarist and ImgBurn builds). Retail discs use more
+  of the format: BD-J menus (not supported), MVC 3D, and UHD HDR, which is implemented from the
+  format's definition but untested.
 
 ---
 <sub>WittyMediaServer documentation</sub>

@@ -10,8 +10,9 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 - [x] **WittyBluray engine** (`modules/wittybluray`, mirrored to its repository, with the
   `wittybluray` tool and [BLURAY.md](BLURAY.md)): images and folders, menus, titles, chapters,
   audio, subtitles, resume, AACS/BD-J/3D detection, 4K and HDR flags with tone mapping.
-  Still to do: pop-up menus during the film, menu animations, 3D viewing modes for
-  side-by-side/over-under video, and a test on a real UHD HDR disc.
+  Pop-up menus during the film, animated highlights and 3D viewing modes (side-by-side /
+  over-under to 2D or anaglyph) are in. Still to do: test on retail discs (BD-J, MVC 3D, UHD
+  HDR); MVC 3D decoding.
 - [x] **WittyDisc** (`modules/wittydisc`): the disc image reader both engines share.
 - [ ] **DVD playback sometimes stuck on the first warning screen** (Shrek 2): confirm fixed, or
   fix.

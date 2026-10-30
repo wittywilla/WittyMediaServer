@@ -33,7 +33,10 @@ type Page struct {
 	DefaultSelected  int // button id, or NoButton
 	DefaultActivated int // a button that runs when the selection times out, or NoButton
 	Palette          int
-	BOGs             []BOG
+	// AnimationRate is the video frames per animation frame of the buttons'
+	// state animations (0 = no animation).
+	AnimationRate int
+	BOGs          []BOG
 }
 
 // NoButton means "none" in button references.
@@ -162,7 +165,8 @@ func (m *Menu) parseIC(b []byte) error {
 		o += 10
 		o = skipEffects(r, o) // in effects
 		o = skipEffects(r, o) // out effects
-		o++                   // animation frame rate code
+		p.AnimationRate = int(r.u8(o))
+		o++
 		p.DefaultSelected = int(r.u16(o))
 		p.DefaultActivated = int(r.u16(o + 2))
 		p.Palette = int(r.u8(o + 4))
@@ -283,8 +287,26 @@ func (m *Menu) Rect(b *Button) image.Rectangle {
 	return image.Rect(b.X, b.Y, b.X, b.Y)
 }
 
-// Draw paints one button in a state into img (the menu's full frame).
+// Frames is how many pictures a button state animates through (0 = none).
+func (st StateImages) Frames() int {
+	if st.Start == NoButton || st.End < st.Start {
+		return 0
+	}
+	if n := st.End - st.Start + 1; n <= 256 {
+		return n
+	}
+	return 256
+}
+
+// Draw paints one button in a state into img (the menu's full frame): the
+// first picture of the state's animation.
 func (m *Menu) Draw(img *image.NRGBA, page *Page, b *Button, state ButtonState) bool {
+	return m.DrawFrame(img, page, b, state, 0)
+}
+
+// DrawFrame paints picture `frame` of a button state's animation (frames
+// wrap, so a looping highlight can be drawn for any frame number).
+func (m *Menu) DrawFrame(img *image.NRGBA, page *Page, b *Button, state ButtonState, frame int) bool {
 	st := b.Normal
 	switch state {
 	case ButtonSelected:
@@ -298,8 +320,12 @@ func (m *Menu) Draw(img *image.NRGBA, page *Page, b *Button, state ButtonState) 
 			st = b.Selected
 		}
 	}
-	o := m.objects[st.Start]
-	if o == nil || st.Start == NoButton {
+	n := st.Frames()
+	if n == 0 {
+		return false
+	}
+	o := m.objects[st.Start+frame%n]
+	if o == nil {
 		return false
 	}
 	p, ok := m.palettes[page.Palette]

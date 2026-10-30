@@ -52,6 +52,7 @@ bytes to FFmpeg and shows the result in the browser with the menu and subtitle l
 ```bash
 wittybluray info     THE_LORAX.iso           # titles, the disc's program, playlists, clips, streams
 wittybluray playlist THE_LORAX.iso 2         # every item, stream and chapter of one playlist
+wittybluray menu     THE_LORAX.iso 2         # a playlist's menu: pages, buttons, every command
 wittybluray walk     THE_LORAX.iso           # simulate inserting the disc; show the first menu's buttons
 wittybluray walk     THE_LORAX.iso 2 5       # ...then press buttons 2 and 5
 wittybluray render   THE_LORAX.iso out/      # save the menu's pages as PNG files
@@ -122,7 +123,7 @@ disc ──► WittyDisc ──► index/mobj/mpls/clpi parsers ──► nav.go
 | `graphics.go` | Palettes, run-length pictures, windows and composition objects |
 | `ig.go` | Menus: pages, button groups, buttons, rendering |
 | `pg.go` | Subtitles: display sets to timed pictures |
-| `cli/` | The `info`, `playlist`, `walk` and `render` commands |
+| `cli/` | The `info`, `playlist`, `menu`, `walk` and `render` commands |
 
 Everything is careful with untrusted input: every read is bounds-checked, counts are limited,
 and a disc's program cannot loop for ever (a run is capped at 100 000 commands).
@@ -133,10 +134,9 @@ and a disc's program cannot loop for ever (a run is capped at 100 000 commands).
   is legal where you live.
 - BD-J (Java) menus cannot run; such discs play their titles without the menu.
 - 3D: the base (2D) view plays; the MVC dependent view is reported, not decoded.
-- Menu animations and page transition effects are not played; the first picture of each
-  button state is shown.
-- Pop-up menus during the film are not shown yet (chapters, audio and subtitles are available
-  through the player's own controls).
+- Page transition effects are not played (button state animations are).
+- Tested on custom-authored discs; retail discs exercise more of the format (BD-J, MVC 3D, UHD
+  HDR) and may show problems not seen yet.
 
 ## License
 

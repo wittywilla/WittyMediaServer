@@ -105,7 +105,7 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
       </div>
       <div className="remote-row2">
         <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
-        <B k="menu" cls="pill" title="Menu (title set root menu)">MENU</B>
+        <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">MENU</B>
       </div>
       <div className="remote-dpad">
         <B k="up" cls="d up" title="Up"><IconUp /></B>

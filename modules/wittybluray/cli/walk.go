@@ -75,6 +75,9 @@ func walk(d *wittybluray.Disc, presses []int) int {
 		for _, b := range buttons {
 			r := menu.Rect(b)
 			fmt.Printf("      button %d at (%d,%d) %dx%d: %d commands", b.ID, r.Min.X, r.Min.Y, r.Dx(), r.Dy(), len(b.Commands))
+			if n := b.Selected.Frames(); n > 1 {
+				fmt.Printf(" (%d-frame highlight)", n)
+			}
 			for i, c := range b.Commands {
 				if i < 4 {
 					fmt.Printf("  %s;", wittybluray.Decode(c))

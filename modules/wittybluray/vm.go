@@ -303,13 +303,7 @@ func (r *Registers) Run(cmds []Command, pc int, o RunOptions, fx *Effects) Resul
 			return Result{Kind: ResultError, PC: pc, Err: fmt.Errorf("the disc's program ran %d commands without playing anything", max)}
 		}
 		in := Decode(cmds[pc])
-		dst, src := in.Dst, in.Src
-		if !in.ImmDst {
-			dst = r.get(in.Dst)
-		}
-		if !in.ImmSrc {
-			src = r.get(in.Src)
-		}
+		dst, src := r.fetch(in, in.Dst, in.ImmDst), r.fetch(in, in.Src, in.ImmSrc)
 		next := pc + 1
 		switch in.Group {
 		case GroupBranch:
@@ -436,6 +430,26 @@ func (r *Registers) Run(cmds []Command, pc int, o RunOptions, fx *Effects) Resul
 		}
 		pc = next
 	}
+}
+
+// fetch resolves an operand. A register operand normally means the
+// register's value, but the stream and button-page system commands keep
+// the operand's flag bits and take only the numbers from general-purpose
+// registers named in the low bits (that is how discs choose a chapter page
+// or an audio track from a computed value).
+func (r *Registers) fetch(in Instr, v uint32, imm bool) uint32 {
+	if imm {
+		return v
+	}
+	if in.Group == GroupSet && in.Sub == 1 {
+		switch in.Opt {
+		case 1, 6, 11: // SET_STREAM, SET_SEC_STREAM, SET_STREAM_SS: two numbers, one per half
+			return v&0xf000f000 | (r.GPR[(v>>16)&0xfff]&0xfff)<<16 | r.GPR[v&0xfff]&0xfff
+		case 3: // SET_BUTTON_PAGE: one number
+			return v&0xc0000000 | r.GPR[v&0xfff]&0x3fffffff
+		}
+	}
+	return r.get(v)
 }
 
 // get reads an operand register. PSRs the disc may not see read as zero.

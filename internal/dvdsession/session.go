@@ -68,6 +68,11 @@ type Menu struct {
 	// InTitle is set for interactive cells inside a title (games, quizzes,
 	// branching features) rather than a menu domain.
 	InTitle bool `json:"inTitle,omitempty"`
+	// Popup marks a menu summoned during a title (Blu-ray pop-up menus): the
+	// player shows it on the Menu key. Closed tells the player to hide it (a
+	// button ran POPUP_OFF).
+	Popup  bool `json:"popup,omitempty"`
+	Closed bool `json:"closed,omitempty"`
 }
 
 type ButtonView struct {
@@ -83,6 +88,10 @@ type ButtonView struct {
 	Auto  bool   `json:"auto"`
 	Lit   bool   `json:"lit"`
 	Cmd   string `json:"cmd"`
+	// Frames and FPS describe an animated selected state (Blu-ray menus):
+	// the highlight URL takes ?f=N for frame N.
+	Frames int     `json:"frames,omitempty"`
+	FPS    float64 `json:"fps,omitempty"`
 }
 
 // TitleView describes feature playback.

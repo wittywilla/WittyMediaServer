@@ -16,8 +16,9 @@ type Clip struct {
 	Name    string // five digits
 	Version string
 	// StreamType: 1 = a normal transport stream. ApplicationType: 1 = main
-	// movie, 2 = time-based slideshow, 3 = browsable slideshow, 4 = sub-path
-	// (secondary audio or text subtitles), 5 = IG menu, 6 = ...
+	// movie, 2 = time-based slideshow, 3 = browsable slideshow pictures, 4 =
+	// browsable slideshow audio, 5 = IG menu, 6 = text subtitles, 7 = other
+	// sub-path streams (secondary audio or video).
 	StreamType, ApplicationType int
 	TSRate                      int    // bytes per second of the transport stream
 	Packets                     uint32 // source packets (192 bytes each)
@@ -28,6 +29,7 @@ type Clip struct {
 
 // STCSequence is a stretch of the clip with one continuous clock.
 type STCSequence struct {
+	ID         int // the number play items name it by
 	PCRPID     uint16
 	StartSPN   uint32
 	Start, End uint32 // presentation times, 45 kHz
@@ -110,18 +112,78 @@ func (c *Clip) Duration() float64 {
 // stream, so a player can start reading there. ok is false when the clip has
 // no entry-point map for that stream.
 func (c *Clip) SPNAt(pid uint16, pts uint32) (e EPEntry, ok bool) {
+	return c.EntryAt(pid, -1, pts)
+}
+
+// EntryAt is SPNAt within one time base. A clip with several (the clock
+// restarts mid-file, as when studios join separately encoded reels) has the
+// same times more than once, and its entries are not in time order overall,
+// so a play item's time only means something inside its own time base. stc
+// -1 searches the whole map. A stream with no map of its own uses the clip's
+// first one (audio-only clips map their audio).
+func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
+	var m *EPMap
 	for i := range c.EPMaps {
-		m := &c.EPMaps[i]
-		if m.PID != pid || len(m.Entries) == 0 {
-			continue
+		if c.EPMaps[i].PID == pid && len(c.EPMaps[i].Entries) > 0 {
+			m = &c.EPMaps[i]
+			break
 		}
-		k := sort.Search(len(m.Entries), func(j int) bool { return m.Entries[j].PTS > pts })
-		if k == 0 {
-			return m.Entries[0], true
-		}
-		return m.Entries[k-1], true
 	}
-	return EPEntry{}, false
+	if m == nil {
+		for i := range c.EPMaps {
+			if len(c.EPMaps[i].Entries) > 0 {
+				m = &c.EPMaps[i]
+				break
+			}
+		}
+	}
+	if m == nil {
+		return EPEntry{}, false
+	}
+	entries := m.Entries
+	if from, to, found := c.stcRange(stc); found {
+		lo := sort.Search(len(entries), func(j int) bool { return entries[j].SPN >= from })
+		hi := sort.Search(len(entries), func(j int) bool { return entries[j].SPN >= to })
+		if lo < hi {
+			entries = entries[lo:hi]
+		}
+	}
+	k := sort.Search(len(entries), func(j int) bool { return entries[j].PTS > pts })
+	if k == 0 {
+		return entries[0], true
+	}
+	return entries[k-1], true
+}
+
+// stcRange is the source packets of a time base; found is false when the
+// clip has only one, or no such number.
+func (c *Clip) stcRange(stc int) (from, to uint32, found bool) {
+	if stc < 0 || len(c.STC) < 2 {
+		return 0, 0, false
+	}
+	for i := range c.STC {
+		if c.STC[i].ID == stc {
+			to = c.Packets
+			if i+1 < len(c.STC) {
+				to = c.STC[i+1].StartSPN
+			}
+			return c.STC[i].StartSPN, to, true
+		}
+	}
+	return 0, 0, false
+}
+
+// EndPTS is where a time base ends (45 kHz), or 0 when the clip does not say.
+func (c *Clip) EndPTS(stc int) uint32 {
+	for i := range c.STC {
+		if c.STC[i].ID == stc {
+			return c.STC[i].End
+		}
+	}
+	if n := len(c.STC); n > 0 {
+		return c.STC[n-1].End
+	}
+	return 0
 }
 
 // ParseClip parses one .clpi file.
@@ -142,10 +204,10 @@ func ParseClip(name string, b []byte) (*Clip, error) {
 	nATC := int(r.u8(o))
 	o++
 	for i := 0; i < nATC && i < 32 && r.err == nil; i++ {
-		nSTC := int(r.u8(o + 4))
+		nSTC, first := int(r.u8(o+4)), int(r.u8(o+5))
 		o += 6
 		for j := 0; j < nSTC && j < 255 && r.err == nil; j++ {
-			c.STC = append(c.STC, STCSequence{PCRPID: r.u16(o), StartSPN: r.u32(o + 2), Start: r.u32(o + 6), End: r.u32(o + 10)})
+			c.STC = append(c.STC, STCSequence{ID: first + j, PCRPID: r.u16(o), StartSPN: r.u32(o + 2), Start: r.u32(o + 6), End: r.u32(o + 10)})
 			o += 14
 		}
 	}

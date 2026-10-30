@@ -81,7 +81,7 @@ func objName(o wittybluray.IndexObject) string {
 		}
 		return fmt.Sprintf("HDMV object %d (%s)", o.MovieObject, kind)
 	case wittybluray.ObjectBDJ:
-		return fmt.Sprintf("BD-J %q (not supported)", o.BDJName)
+		return fmt.Sprintf("BD-J %q", o.BDJName)
 	}
 	return "none"
 }
@@ -98,6 +98,18 @@ func info(d *wittybluray.Disc) int {
 	}
 	if d.BDJ {
 		flags = append(flags, "uses BD-J (Java) menus")
+	}
+	if d.AACSFolder && !d.Encrypted {
+		flags = append(flags, "has an AACS folder, streams are clear")
+	}
+	if d.BDPlus {
+		flags = append(flags, "BD+ (not run; some of the picture may be damaged on a copy that was not converted)")
+	}
+	if d.Recording {
+		flags = append(flags, "recording: clips listed as playlists")
+	}
+	if len(d.Damaged) > 0 {
+		flags = append(flags, "unreadable: "+strings.Join(d.Damaged, " "))
 	}
 	if len(flags) > 0 {
 		fmt.Println("flags:", strings.Join(flags, ", "))

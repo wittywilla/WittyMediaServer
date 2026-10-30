@@ -20,9 +20,13 @@ type Playlist struct {
 	PlaybackCount int
 	UOMask        uint64 // user operations the disc forbids (see UO constants)
 	RandomAccess  bool   // the user may not jump around (chapter search, time search) when false
-	Items         []PlayItem
-	SubPaths      []SubPath
-	Marks         []Mark
+	// AudioMix: the disc mixes button sounds and secondary audio into the
+	// primary audio. LosslessBypass: it allows lossless output unmixed.
+	// RightEyeBase: on a 3D playlist the base (2D) view is the right eye.
+	AudioMix, LosslessBypass, RightEyeBase bool
+	Items                                  []PlayItem
+	SubPaths                               []SubPath
+	Marks                                  []Mark
 }
 
 // PlayItem is one stretch of a clip.
@@ -49,6 +53,7 @@ type PlayItem struct {
 	Video, Audio, PG []Stream
 	IG, SecAudio     []Stream
 	SecVideo, PiPPG  []Stream
+	DV               []Stream // Dolby Vision enhancement layers
 }
 
 // Duration is the item's length in seconds.
@@ -169,35 +174,52 @@ type Mark struct {
 // User operation mask bits (UOMask). A set bit means the operation is
 // forbidden while the playlist or item plays.
 const (
-	UOMenuCall       = 1 << 63
-	UOTitleSearch    = 1 << 62
-	UOChapterSearch  = 1 << 61
-	UOTimeSearch     = 1 << 60
-	UOSkipToNext     = 1 << 59
-	UOSkipBack       = 1 << 58
-	UOPlay           = 1 << 57
-	UOStop           = 1 << 56
-	UOPauseOn        = 1 << 55
-	UOStill          = 1 << 53
-	UOForward        = 1 << 52
-	UOBackward       = 1 << 51
-	UOResume         = 1 << 50
-	UOMoveUp         = 1 << 49
-	UOMoveDown       = 1 << 48
-	UOMoveLeft       = 1 << 47
-	UOMoveRight      = 1 << 46
-	UOSelect         = 1 << 45
-	UOActivate       = 1 << 44
-	UOSelectActivate = 1 << 43
-	UOPrimaryAudio   = 1 << 42
-	UOAngle          = 1 << 40
-	UOPopup          = 1 << 39
-	UOPGSelect       = 1 << 38
-	UOPGEnable       = 1 << 37
-	UOSecVideo       = 1 << 36
-	UOSecAudio       = 1 << 34
-	UOPiPPG          = 1 << 32
+	UOMenuCall      = 1 << 63
+	UOTitleSearch   = 1 << 62
+	UOChapterSearch = 1 << 61
+	UOTimeSearch    = 1 << 60
+	UOSkipToNext    = 1 << 59
+	UOSkipBack      = 1 << 58
+	UOPlay          = 1 << 57
+	UOStop          = 1 << 56
+	UOPauseOn       = 1 << 55
+	UOPauseOff      = 1 << 54
+	UOStillOff      = 1 << 53
+	UOForward       = 1 << 52
+	UOBackward      = 1 << 51
+	UOResume        = 1 << 50
+	UOMoveUp        = 1 << 49
+	UOMoveDown      = 1 << 48
+	UOMoveLeft      = 1 << 47
+	UOMoveRight     = 1 << 46
+	UOSelect        = 1 << 45
+	UOActivate      = 1 << 44
+	UOSelectActive  = 1 << 43
+	UOPrimaryAudio  = 1 << 42
+	UOAngle         = 1 << 40
+	UOPopupOn       = 1 << 39
+	UOPopupOff      = 1 << 38
+	UOPGEnable      = 1 << 37
+	UOPGChange      = 1 << 36
+	UOSecVideoOn    = 1 << 35
+	UOSecVideo      = 1 << 34
+	UOSecAudioOn    = 1 << 33
+	UOSecAudio      = 1 << 32
+	UOPiPPG         = 1 << 30
 )
+
+// SubClip finds the clip a stream outside the main path is in: its sub-path
+// and the numbered clip of that sub-path's first item.
+func (pl *Playlist) SubClip(s Stream) string {
+	if s.SubPath >= len(pl.SubPaths) || len(pl.SubPaths[s.SubPath].Items) == 0 {
+		return ""
+	}
+	it := &pl.SubPaths[s.SubPath].Items[0]
+	if s.SubClip >= 1 && s.SubClip <= len(it.MultiClips) {
+		return it.MultiClips[s.SubClip-1].Clip
+	}
+	return it.Clip
+}
 
 // ParsePlaylist parses one .mpls file.
 func ParsePlaylist(number int, b []byte) (*Playlist, error) {
@@ -211,7 +233,9 @@ func ParsePlaylist(number int, b []byte) (*Playlist, error) {
 	pl.PlaybackType = int(r.u8(45))
 	pl.PlaybackCount = int(r.u16(46))
 	pl.UOMask = r.u64(48)
-	pl.RandomAccess = r.u16(56)&0x8000 == 0
+	af := r.u16(56)
+	pl.RandomAccess = af&0x8000 == 0
+	pl.AudioMix, pl.LosslessBypass, pl.RightEyeBase = af&0x4000 != 0, af&0x2000 != 0, af&0x1000 != 0
 	// PlayList
 	o := plStart
 	nItems, nSub := int(r.u16(o+6)), int(r.u16(o+8))
@@ -273,7 +297,7 @@ func parsePlayItem(r *rd, o int) PlayItem {
 		}
 	}
 	// STN table
-	counts := [7]int{}
+	counts := [8]int{}
 	for k := range counts {
 		counts[k] = int(r.u8(p + 4 + k))
 	}
@@ -287,13 +311,31 @@ func parsePlayItem(r *rd, o int) PlayItem {
 		}
 		return out
 	}
+	// The table's own order: picture-in-picture subtitles follow the
+	// subtitles, and secondary streams carry lists of what they go with.
 	it.Video = read("video", counts[0])
 	it.Audio = read("audio", counts[1])
 	it.PG = read("pg", counts[2])
-	it.IG = read("ig", counts[3])
-	it.SecAudio = read("sec-audio", counts[4])
-	it.SecVideo = read("sec-video", counts[5])
 	it.PiPPG = read("pip-pg", counts[6])
+	it.IG = read("ig", counts[3])
+	refs := func() {
+		n := int(r.u8(q))
+		q += 2 + n + n&1
+	}
+	for k := 0; k < counts[4] && r.err == nil; k++ {
+		sa, next := parseStream(r, q, "sec-audio")
+		it.SecAudio = append(it.SecAudio, sa)
+		q = next
+		refs()
+	}
+	for k := 0; k < counts[5] && r.err == nil; k++ {
+		sv, next := parseStream(r, q, "sec-video")
+		it.SecVideo = append(it.SecVideo, sv)
+		q = next
+		refs()
+		refs()
+	}
+	it.DV = read("dv", counts[7])
 	return it
 }
 
@@ -351,7 +393,7 @@ func parseSubPath(r *rd, o int) SubPath {
 		it.SyncStart = r.u32(q + 24)
 		if multi {
 			m := int(r.u8(q + 28))
-			e := q + 29
+			e := q + 30
 			for k := 1; k < m && k < 10 && r.err == nil; k++ {
 				it.MultiClips = append(it.MultiClips, AngleClip{Clip: r.str(e, 5), Codec: r.str(e+5, 4), STCID: int(r.u8(e + 9))})
 				e += 10

@@ -18,8 +18,9 @@ type Menu struct {
 	// Popup menus (UIModel 1) stay hidden until the user's Popup key; always-on
 	// menus (0) show at once.
 	Popup bool
-	// Timeouts, in seconds (0 = none): the whole composition, and how long a
-	// selection waits before the default activated button runs.
+	// Timeout and SelectionTimeout are the stream times (seconds, 0 = none)
+	// when the menu ends and when selection ends and the default activated
+	// button runs. UserTimeout is how long a pop-up stays with no key pressed.
 	Timeout, SelectionTimeout, UserTimeout float64
 	Pages                                  []Page
 	palettes                               map[int]Palette
@@ -37,6 +38,22 @@ type Page struct {
 	// state animations (0 = no animation).
 	AnimationRate int
 	BOGs          []BOG
+	// In and Out are the page's transition effects, played as it opens and
+	// closes.
+	In, Out EffectSequence
+}
+
+// EffectSequence is a page transition: a list of timed compositions.
+type EffectSequence struct {
+	Windows []Window
+	Effects []Effect
+}
+
+// Effect is one step of a transition: pictures placed in windows, for a time.
+type Effect struct {
+	DurationSec float64
+	Palette     int
+	Objects     []compObject
 }
 
 // NoButton means "none" in button references.
@@ -93,14 +110,14 @@ func (d *Disc) LoadMenu(clip string, pid uint16, limit uint32) (*Menu, error) {
 	ods := newODSAssembler()
 	var ics []byte
 	var icsDone bool
-	hd := true
+	matrix := matrix709
 	var segs []segment
 	err := d.ReadPID(clip, pid, 0, limit, func(payload []byte, pts uint64) bool {
 		segs = splitSegments(payload, pts, segs[:0])
 		for _, s := range segs {
 			switch s.typ {
 			case segPDS:
-				id, p := parsePDS(s.data, hd)
+				id, p := parsePDS(s.data, matrix)
 				m.palettes[id] = p
 			case segODS:
 				ods.feed(s.data)
@@ -113,7 +130,7 @@ func (d *Disc) LoadMenu(clip string, pid uint16, limit uint32) (*Menu, error) {
 				}
 				m.Width = int(s.data[0])<<8 | int(s.data[1])
 				m.Height = int(s.data[2])<<8 | int(s.data[3])
-				hd = m.Height >= 720
+				matrix = matrixFor(m.Height)
 				flags := s.data[8]
 				if flags&0x80 != 0 {
 					ics = ics[:0]
@@ -152,8 +169,9 @@ func (m *Menu) parseIC(b []byte) error {
 	o++
 	m.Popup = flags&0x40 != 0
 	if flags&0x80 == 0 { // in-mux: timeouts in 90 kHz
-		m.Timeout = float64(r.u64(o)&0x1ffffffff) / 90000
-		m.SelectionTimeout = float64(r.u64(o+5)&0x1ffffffff) / 90000
+		// Two 33-bit times, each in five bytes with seven bits to spare.
+		at := func(p int) float64 { return float64(uint64(r.u8(p)&1)<<32|uint64(r.u32(p+1))) / 90000 }
+		m.Timeout, m.SelectionTimeout = at(o), at(o+5)
 		o += 10
 	}
 	m.UserTimeout = float64(uint32(r.u8(o))<<16|uint32(r.u8(o+1))<<8|uint32(r.u8(o+2))) / 90000
@@ -163,8 +181,8 @@ func (m *Menu) parseIC(b []byte) error {
 	for i := 0; i < n && r.err == nil; i++ {
 		p := Page{ID: int(r.u8(o)), UOMask: r.u64(o + 2)}
 		o += 10
-		o = skipEffects(r, o) // in effects
-		o = skipEffects(r, o) // out effects
+		p.In, o = parseEffects(r, o)
+		p.Out, o = parseEffects(r, o)
 		p.AnimationRate = int(r.u8(o))
 		o++
 		p.DefaultSelected = int(r.u16(o))
@@ -205,25 +223,54 @@ func (m *Menu) parseIC(b []byte) error {
 	return nil
 }
 
-// skipEffects steps over an effect sequence (page transitions, which the
-// player does not animate).
-func skipEffects(r *rd, o int) int {
+// parseEffects reads an effect sequence.
+func parseEffects(r *rd, o int) (EffectSequence, int) {
+	var seq EffectSequence
 	nw := int(r.u8(o))
-	o += 1 + nw*9
+	o++
+	for i := 0; i < nw && r.err == nil; i, o = i+1, o+9 {
+		seq.Windows = append(seq.Windows, Window{ID: int(r.u8(o)), X: int(r.u16(o + 1)), Y: int(r.u16(o + 3)), W: int(r.u16(o + 5)), H: int(r.u16(o + 7))})
+	}
 	ne := int(r.u8(o))
 	o++
 	for i := 0; i < ne && r.err == nil; i++ {
+		d := uint32(r.u8(o))<<16 | uint32(r.u8(o+1))<<8 | uint32(r.u8(o+2))
+		e := Effect{DurationSec: float64(d) / 90000, Palette: int(r.u8(o + 3))}
 		no := int(r.u8(o + 4))
 		o += 5
 		for j := 0; j < no && r.err == nil; j++ {
-			if r.u8(o+4)&0x80 != 0 {
+			f := r.u8(o + 3)
+			ob := compObject{object: int(r.u16(o)), window: int(r.u8(o + 2)), forced: f&0x40 != 0, x: int(r.u16(o + 4)), y: int(r.u16(o + 6))}
+			if f&0x80 != 0 {
+				ob.cx, ob.cy, ob.cw, ob.ch = int(r.u16(o+8)), int(r.u16(o+10)), int(r.u16(o+12)), int(r.u16(o+14))
 				o += 16
 			} else {
 				o += 8
 			}
+			e.Objects = append(e.Objects, ob)
+		}
+		seq.Effects = append(seq.Effects, e)
+	}
+	return seq, o
+}
+
+// DrawEffect paints one step of a transition on a full frame.
+func (m *Menu) DrawEffect(seq *EffectSequence, i int) *image.NRGBA {
+	img := image.NewNRGBA(image.Rect(0, 0, m.Width, m.Height))
+	if i < 0 || i >= len(seq.Effects) {
+		return img
+	}
+	e := &seq.Effects[i]
+	p, ok := m.palettes[e.Palette]
+	if !ok {
+		return img
+	}
+	for _, ob := range e.Objects {
+		if o := m.objects[ob.object]; o != nil {
+			draw(img, o, &p, ob.x, ob.y, ob.cx, ob.cy, ob.cw, ob.ch)
 		}
 	}
-	return o
+	return img
 }
 
 // Page returns a page by id.

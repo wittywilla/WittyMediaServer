@@ -60,7 +60,7 @@ func TestRun(t *testing.T) {
 	}
 	// PSRs cannot be written by SET commands, only by SET_SYSTEM.
 	r.Run([]Command{{0x50400001, 0x80000001, 5}}, 0, RunOptions{}, nil)
-	if r.PSR[PSRAudio] != 1 {
+	if r.PSR[PSRAudio] != 0xff {
 		t.Fatal("a MOVE changed a PSR")
 	}
 	var fx Effects

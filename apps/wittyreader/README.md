@@ -14,7 +14,7 @@ Nothing is uploaded: your library, reading positions and notes stay on this devi
 
 ### Your library
 
-- **Add books:** the **Open…** button, **Ctrl+O**, dragging files onto the window, or, once
+- **Add books:** the **Add books** button, **Ctrl+O**, dragging files onto the window, or, once
   installed, your system's **Open with** menu. Add several at once; a single file opens straight
   away.
 - **A shelf of covers**, with each book's format and how far you've read, most recent first.

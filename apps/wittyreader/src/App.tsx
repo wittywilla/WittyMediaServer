@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import WittyComics from '@wittywilla/wittycomics'
 import WittyEbook from '@wittywilla/wittyebook'
-import { HostContext, type ReaderHost } from '@wittywilla/wittyink'
+import { HostContext, IconClose, IconMore, IconSearch, IconSettings, type ReaderHost } from '@wittywilla/wittyink'
 import { exportNotesFile, importFile, importNotesFile, openBook } from './books'
 import { books, type BookRec } from './store'
 
@@ -13,6 +13,7 @@ const WittyPDF = lazy(() => import('@wittywilla/wittypdf'))
 const DICT_KEY = 'wittyreader.dictionary'
 const ACCEPT = '.epub,.pdf,.cbz,application/epub+zip,application/pdf'
 const VERSION = '0.1.0'
+const SORT_KEY = 'wittyreader.sort'
 
 export default function App() {
   const [list, setList] = useState<BookRec[] | null>(null)
@@ -22,6 +23,10 @@ export default function App() {
   const [settings, setSettings] = useState(false)
   const [dictionary, setDictionary] = useState(() => localStorage.getItem(DICT_KEY) === '1')
   const [msg, setMsg] = useState('')
+  const [q, setQ] = useState('')
+  const [kind, setKind] = useState<'all' | 'epub' | 'pdf' | 'cbz'>('all')
+  const [sort, setSort] = useState<'recent' | 'title' | 'author' | 'added'>(() => { try { return (localStorage.getItem(SORT_KEY) as any) || 'recent' } catch { return 'recent' } })
+  const setSortKept = (v: typeof sort) => { setSort(v); try { localStorage.setItem(SORT_KEY, v) } catch { /* ignore */ } }
   const picker = useRef<HTMLInputElement | null>(null)
   const notesPicker = useRef<HTMLInputElement | null>(null)
   const msgTimer = useRef<any>(null)
@@ -99,14 +104,26 @@ export default function App() {
       </HostContext.Provider>
     )
   }
+  const all = list || []
+  const kinds = (['epub', 'pdf', 'cbz'] as const).filter((k) => all.some((b) => b.format === k))
+  const shown = all.filter((b) => (kind === 'all' || b.format === kind) && (!q || `${b.title} ${b.author || ''}`.toLowerCase().includes(q.toLowerCase())))
+    .sort(sort === 'title' ? (a, b) => a.title.localeCompare(b.title) : sort === 'author' ? (a, b) => (a.author || '~').localeCompare(b.author || '~') || a.title.localeCompare(b.title)
+      : sort === 'added' ? (a, b) => b.added - a.added : (a, b) => Math.max(b.opened, b.added) - Math.max(a.opened, a.added))
+  // The book being read: opened most recently and neither new nor finished.
+  const current = all.filter((b) => b.opened && progress(b) > 0 && progress(b) < 100).sort((a, b) => b.opened - a.opened)[0]
   return (
     <div className="wr">
       <header className="wr-top">
-        <img src="icon.svg" alt="" width={32} height={32} />
-        <h1>WittyReader</h1>
+        <div className="wr-brand"><img src="icon.svg" alt="" width={30} height={30} /><h1>WittyReader</h1></div>
+        {all.length > 0 && (
+          <label className="wr-search">
+            <IconSearch size={18} />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search your library" aria-label="Search your library" />
+          </label>
+        )}
         <span className="grow" />
-        <button className="btn primary" onClick={() => picker.current?.click()} title="Open (Ctrl+O)">Open…</button>
-        <button className="btn ghost" onClick={() => setSettings(!settings)} aria-expanded={settings}>Settings</button>
+        <button className="btn primary" onClick={() => picker.current?.click()} title="Add books (Ctrl+O)"><IconAdd /><span className="wr-hide-sm">Add books</span></button>
+        <button className="ibtn wr-icon" onClick={() => setSettings(true)} aria-label="Settings" title="Settings"><IconSettings /></button>
         <input ref={picker} type="file" accept={ACCEPT} multiple hidden onChange={(e) => { add(Array.from(e.target.files || [])); e.target.value = '' }} />
         <input ref={notesPicker} type="file" accept=".json,application/json" hidden onChange={async (e) => {
           const f = e.target.files?.[0]; e.target.value = ''
@@ -114,54 +131,126 @@ export default function App() {
         }} />
       </header>
 
-      {settings && <Settings dictionary={dictionary} setDictionary={setDict} importNotes={() => notesPicker.current?.click()} close={() => setSettings(false)} />}
-
       <main className="wr-main">
         {list === null ? <div className="spinner" /> : list.length === 0 ? (
           <div className="wr-empty">
+            <div className="wr-empty-art" aria-hidden="true"><span /><span /><span /></div>
             <h2>Your reading, on your device</h2>
-            <p>Open or drop an <b>EPUB</b> book, a <b>PDF</b> or a <b>CBZ</b> comic. Highlight, take notes and write with a pen; everything is kept on this device and never uploaded.</p>
-            <button className="btn primary" onClick={() => picker.current?.click()}>Open a book</button>
+            <p>Add an <b>EPUB</b> book, a <b>PDF</b> or a <b>CBZ</b> comic, or drop files anywhere on this window. Highlight, take notes and write with a pen; everything stays on this device.</p>
+            <button className="btn primary" onClick={() => picker.current?.click()}><IconAdd />Add books</button>
           </div>
         ) : (
-          <ul className="wr-grid" aria-label="Library">
-            {list.map((b) => <Card key={b.key} b={b} read={() => read(b)} remove={() => remove(b)} exportNotes={() => exportNotesFile(b)} />)}
-          </ul>
+          <>
+            {current && !q && kind === 'all' && <Hero b={current} read={() => read(current)} />}
+            <div className="wr-shelf-head">
+              <h2>Library <span>{shown.length}</span></h2>
+              {kinds.length > 1 && (
+                <div className="wr-chips" role="radiogroup" aria-label="Show">
+                  {(['all', ...kinds] as const).map((k) => (
+                    <button key={k} role="radio" aria-checked={kind === k} className={kind === k ? 'active' : ''} onClick={() => setKind(k)}>{KIND_NAMES[k]}</button>
+                  ))}
+                </div>
+              )}
+              <span className="grow" />
+              <select className="select wr-sort" value={sort} onChange={(e) => setSortKept(e.target.value as typeof sort)} aria-label="Sort by">
+                <option value="recent">Recently read</option><option value="added">Recently added</option><option value="title">Title</option><option value="author">Author</option>
+              </select>
+            </div>
+            {shown.length === 0 ? <p className="wr-none">Nothing in your library matches “{q}”.</p> : (
+              <ul className="wr-grid" aria-label="Library">
+                {shown.map((b) => <Card key={b.key} b={b} read={() => read(b)} remove={() => remove(b)} exportNotes={() => exportNotesFile(b)} />)}
+              </ul>
+            )}
+          </>
         )}
       </main>
 
-      {drag && <div className="wr-drop" aria-hidden="true"><div>Drop to add to your library</div></div>}
+      {settings && <Settings dictionary={dictionary} setDictionary={setDict} importNotes={() => notesPicker.current?.click()} close={() => setSettings(false)} />}
+      {drag && <div className="wr-drop" aria-hidden="true"><div><IconAdd size={40} />Drop to add to your library</div></div>}
       {busy && <div className="wr-busy" role="status"><div className="spinner" />{busy}</div>}
       {toastEl}
     </div>
   )
 }
 
-function Card({ b, read, remove, exportNotes }: { b: BookRec; read: () => void; remove: () => void; exportNotes: () => void }) {
+const KIND_NAMES = { all: 'All', epub: 'Books', pdf: 'PDFs', cbz: 'Comics' }
+const FORMAT_NAMES = { epub: 'EPUB', pdf: 'PDF', cbz: 'Comic' }
+const progress = (b: BookRec) => (b.total ? Math.min(100, Math.round((b.position / b.total) * 100)) : 0)
+const IconAdd = ({ size = 20 }: { size?: number }) => <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+
+// A cover from the book's stored picture, or its title on a coloured card.
+function useCover(b: BookRec) {
   const [cover, setCover] = useState('')
-  const [menu, setMenu] = useState(false)
   useEffect(() => {
     if (!b.cover) return
     const u = URL.createObjectURL(b.cover)
     setCover(u)
     return () => URL.revokeObjectURL(u)
   }, [b.cover])
-  const pct = b.total ? Math.min(100, Math.round((b.position / b.total) * 100)) : 0
+  return cover
+}
+function Cover({ b }: { b: BookRec }) {
+  const cover = useCover(b)
+  if (cover) return <img src={cover} alt="" loading="lazy" draggable={false} />
+  // A stable colour per book, so a library without covers is still easy to scan.
+  let h = 0
+  for (const c of b.key.slice(0, 8)) h = (h * 31 + c.charCodeAt(0)) % 360
   return (
-    <li className="wr-card">
+    <span className="wr-blank" style={{ background: `linear-gradient(160deg, hsl(${h} 38% 34%), hsl(${(h + 40) % 360} 42% 20%))` }}>
+      <b>{b.title}</b>{b.author && <small>{b.author}</small>}
+    </span>
+  )
+}
+
+function Hero({ b, read }: { b: BookRec; read: () => void }) {
+  const pct = progress(b)
+  return (
+    <section className="wr-hero" aria-label="Continue reading">
+      <button className="wr-hero-cover" onClick={read} aria-label={`Continue ${b.title}`}><Cover b={b} /></button>
+      <div className="wr-hero-text">
+        <span className="wr-eyebrow">Continue reading</span>
+        <h2>{b.title}</h2>
+        {b.author && <p className="wr-hero-author">{b.author}</p>}
+        <div className="wr-hero-prog"><span className="wr-bar"><i style={{ width: `${pct}%` }} /></span><span>{pct}%</span></div>
+        <button className="btn primary" onClick={read}>Continue</button>
+      </div>
+    </section>
+  )
+}
+
+function Card({ b, read, remove, exportNotes }: { b: BookRec; read: () => void; remove: () => void; exportNotes: () => void }) {
+  const [menu, setMenu] = useState(false)
+  const box = useRef<HTMLLIElement | null>(null)
+  // The menu closes on a click anywhere else or on Esc.
+  useEffect(() => {
+    if (!menu) return
+    const off = (e: Event) => { if (!box.current?.contains(e.target as Node)) setMenu(false) }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false) }
+    document.addEventListener('pointerdown', off)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('keydown', esc) }
+  }, [menu])
+  const pct = progress(b)
+  return (
+    <li className="wr-card" ref={box}>
       <button className="wr-cover" onClick={read} aria-label={`Read ${b.title}`}>
-        {cover ? <img src={cover} alt="" loading="lazy" /> : <span className="wr-blank">{b.title}</span>}
-        <span className="wr-badge">{b.format === 'cbz' ? 'Comic' : b.format.toUpperCase()}</span>
-        {pct > 0 && <span className="wr-prog" style={{ width: `${pct}%` }} />}
+        <Cover b={b} />
+        <span className="wr-badge">{FORMAT_NAMES[b.format]}</span>
+        {pct > 0 && pct < 100 && <span className="wr-prog"><i style={{ width: `${pct}%` }} /></span>}
+        {pct >= 100 && <span className="wr-done" title="Finished">✓</span>}
       </button>
       <div className="wr-meta">
-        <div className="grow"><b title={b.title}>{b.title}</b>{b.author && <span className="muted">{b.author}</span>}</div>
-        <button className="ibtn sm" aria-label={`More for ${b.title}`} aria-expanded={menu} onClick={() => setMenu(!menu)}>⋯</button>
+        <div className="grow">
+          <b title={b.title}>{b.title}</b>
+          <span className="wr-sub">{b.author || (pct ? '' : 'New')}{b.author && pct > 0 && pct < 100 ? ' · ' : ''}{pct > 0 && pct < 100 ? `${pct}%` : ''}</span>
+        </div>
+        <button className="ibtn sm wr-more" aria-label={`More for ${b.title}`} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><IconMore /></button>
       </div>
       {menu && (
-        <div className="wr-menu" role="menu" onMouseLeave={() => setMenu(false)}>
-          <button role="menuitem" onClick={() => { setMenu(false); read() }}>{pct > 0 ? 'Continue reading' : 'Read'}</button>
+        <div className="wr-menu" role="menu">
+          <button role="menuitem" onClick={() => { setMenu(false); read() }}>{pct > 0 && pct < 100 ? 'Continue reading' : 'Read'}</button>
           <button role="menuitem" onClick={() => { setMenu(false); exportNotes() }}>Export notes</button>
+          <hr />
           <button role="menuitem" className="danger" onClick={() => { setMenu(false); remove() }}>Remove from this device</button>
         </div>
       )}
@@ -173,21 +262,31 @@ function Settings({ dictionary, setDictionary, importNotes, close }: { dictionar
   const [used, setUsed] = useState('')
   useEffect(() => {
     navigator.storage?.estimate?.().then((e) => setUsed(`${((e.usage || 0) / 1048576).toFixed(1)} MB`)).catch(() => {})
-  }, [])
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [close])
   return (
-    <section className="wr-settings" aria-label="Settings">
-      <label className="check-row"><input type="checkbox" checked={dictionary} onChange={(e) => setDictionary(e.target.checked)} /> Look up words online</label>
-      <p className="muted small">Definitions come from dictionaryapi.dev. Only the word you look up is sent, and only when this is on.</p>
-      <div className="wr-row">
-        <button className="btn sm" onClick={importNotes}>Import notes…</button>
-        <span className="muted small">Adds notes exported from WittyReader on another device.</span>
-      </div>
-      {used && <p className="muted small">Books and notes on this device: {used}.</p>}
-      <p className="muted small">WittyReader keeps your books and notes in this browser on this device. Clearing the browser's site data removes them, so export notes you want to keep.</p>
-      <p className="muted small wr-about">
-        WittyReader {VERSION}, developed by WittyWilla. Apache License 2.0 · <a href="https://github.com/wittywilla/WittyReader" target="_blank" rel="noreferrer">Source and licences</a> · Part of the <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">WittyMediaServer</a> family.
-      </p>
-      <button className="btn sm ghost" onClick={close}>Close</button>
-    </section>
+    <div className="wr-modal" onClick={(e) => { if (e.target === e.currentTarget) close() }}>
+      <section className="wr-dialog" role="dialog" aria-modal="true" aria-label="Settings">
+        <header><h2>Settings</h2><button className="ibtn sm" onClick={close} aria-label="Close"><IconClose /></button></header>
+        <div className="wr-set">
+          <label className="wr-switch">
+            <span><b>Look up words online</b><small>Definitions come from dictionaryapi.dev. Only the word you look up is sent, and only when this is on.</small></span>
+            <input type="checkbox" role="switch" checked={dictionary} onChange={(e) => setDictionary(e.target.checked)} />
+          </label>
+          <div className="wr-set-row">
+            <span><b>Notes from another device</b><small>Adds notes exported from WittyReader elsewhere to the matching books here.</small></span>
+            <button className="btn sm" onClick={importNotes}>Import notes…</button>
+          </div>
+          <div className="wr-set-row">
+            <span><b>Storage</b><small>Books and notes live in this browser on this device{used ? ` (${used})` : ''}. Clearing the browser's site data removes them, so export notes you want to keep.</small></span>
+          </div>
+        </div>
+        <p className="wr-about">
+          WittyReader {VERSION}, developed by WittyWilla · Apache License 2.0 · <a href="https://github.com/wittywilla/WittyReader" target="_blank" rel="noreferrer">Source and licences</a> · Part of the <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">WittyMediaServer</a> family
+        </p>
+      </section>
+    </div>
   )
 }

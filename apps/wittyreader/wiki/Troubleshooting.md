@@ -35,7 +35,7 @@ book's language and that the sound is up. Some browsers need you to click on the
 
 ### My pen draws when I want to select text
 
-A pen writes at any time by default. To make it select text instead, open the ink toolbar (**✎**),
+A pen writes at any time by default. To make it select text instead, open the ink toolbar (the **pen** button),
 choose **⋯**, and turn off **Draw with a pen any time**.
 
 ### My hand leaves marks / my finger won't draw

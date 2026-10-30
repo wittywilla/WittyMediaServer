@@ -54,7 +54,7 @@ Full guide: [WittyComics wiki](https://github.com/wittywilla/WittyComics/wiki).
   - filter by kind, colour or text;
   - jump to anything you marked;
   - **Export** as Markdown.
-- **Bookmarks:** 🔖 or **b**.
+- **Bookmarks:** the **bookmark** button or **b**.
 - **Undo and redo:** **Ctrl+Z**, **Ctrl+Y**.
 - **Definitions:** **Define** appears after you turn on **Settings → Look up words online**.
 
@@ -62,7 +62,7 @@ Full guide: [Highlights and notes](https://github.com/wittywilla/WittyInk/wiki/H
 
 ## Handwriting (books and PDFs)
 
-- **Starting:** write with a pen any time, or press **✎** (or **p**) to use a finger or mouse.
+- **Starting:** write with a pen any time, or press the **pen** button (or **p**) to use a finger or mouse.
 - **Tools:** pen, pencil, highlighter and eraser (**e**, or the pen's eraser end).
 - **Pressure and tilt:** pen pressure sets the width, and the pencil widens with tilt.
 - **Colours and sizes:** 36 ink and 18 highlighter colours, thickness and opacity.

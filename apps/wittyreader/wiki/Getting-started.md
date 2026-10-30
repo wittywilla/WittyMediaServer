@@ -24,7 +24,7 @@ with WittyReader from your file manager's **Open with** menu.
 
 Any of these work:
 
-- **Open…** at the top, or **Ctrl+O**, then pick one or more files.
+- **Add books** at the top, or **Ctrl+O**, then pick one or more files.
 - **Drag files** from your desktop or file manager onto the window.
 - **Open with → WittyReader** from your system, once installed.
 
@@ -38,7 +38,7 @@ you already have just finds it.
   - **PDFs:** scroll.
   - **Comics:** tap the side you read towards.
 - **Highlighting:** select text and pick a colour.
-- **Writing:** with a pen, just write. With a finger or mouse, press **✎** first.
+- **Writing:** with a pen, just write. With a finger or mouse, press the **pen** button first.
 - **Back to the library:** the back arrow, **Esc**, or your browser's or phone's Back button.
   Your place is saved.
 

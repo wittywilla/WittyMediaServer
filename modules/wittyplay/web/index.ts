@@ -3,4 +3,4 @@
 // the same name.
 export { default } from './Player'
 export type { PlayHost, SaveSlot, SessionInfo } from './Player'
-export { padFor } from './consoles'
+export type { ControlsData, SaveControl } from './consoles'

@@ -4,6 +4,8 @@ go 1.26.0
 
 require (
 	fyne.io/systray v1.12.2
+	github.com/coder/websocket v1.8.15
+	github.com/pion/webrtc/v4 v4.2.26
 	github.com/wittywilla/wittybluray v0.1.0
 	github.com/wittywilla/wittydisc v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
@@ -15,7 +17,6 @@ require (
 )
 
 require (
-	github.com/coder/websocket v1.8.15 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -36,7 +37,6 @@ require (
 	github.com/pion/stun/v4 v4.0.1 // indirect
 	github.com/pion/transport/v5 v5.1.4 // indirect
 	github.com/pion/turn/v5 v5.1.3 // indirect
-	github.com/pion/webrtc/v4 v4.2.26 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.org/x/net v0.60.0 // indirect

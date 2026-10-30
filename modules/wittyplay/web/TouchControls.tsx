@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { clamp, controlList, defaultLayout, loadLayout, saveLayout, touchMask, DPAD_KEY, type Control, type Layout, type Orientation } from './touch'
+import type { Control, ControlsData, Layout, Orientation } from './consoles'
+import { clamp, layoutFor, touchMask } from './touch'
 
 // The on-screen controller, and the editor that rearranges it. Fingers are tracked
 // on the whole area rather than on each button, so sliding from one button to the
@@ -44,11 +45,11 @@ function ControlFace({ c, active }: { c: Control; active: boolean }) {
   return <span className={'wp-btn-face wp-btn-' + c.kind + (active ? ' on' : '')}>{c.label}</span>
 }
 
-export function TouchControls({ consoleId, orientation, onMask, version }: { consoleId: string; orientation: Orientation; onMask: (mask: number) => void; version: number }) {
+export function TouchControls({ data, orientation, onMask }: { data: ControlsData; orientation: Orientation; onMask: (mask: number) => void }) {
   const area = useRef<HTMLDivElement>(null)
   const size = useSize(area)
-  const controls = useMemo(() => controlList(consoleId), [consoleId])
-  const layout = useMemo(() => loadLayout(consoleId, orientation), [consoleId, orientation, version])
+  const controls = data.controls
+  const layout = useMemo(() => layoutFor(data, orientation), [data, orientation])
   const points = useRef(new Map<number, { x: number; y: number }>())
   const lastMask = useRef(0)
   const [mask, setMask] = useState(0)
@@ -96,21 +97,25 @@ export function TouchControls({ consoleId, orientation, onMask, version }: { con
 }
 
 // The editor: drag anything, or choose it from the list to change it with sliders
-// and keys. Everything here works without a touch screen.
-export function TouchEditor({ consoleId, orientation, onClose }: { consoleId: string; orientation: Orientation; onClose: () => void }) {
+// and keys. Everything here works without a touch screen: with arrow keys or a D-pad,
+// OK picks a control up, the arrows move it, and OK puts it down.
+export function TouchEditor({ data, orientation, onSave, onClose }: { data: ControlsData; orientation: Orientation; onSave: (l: Layout | null) => Promise<void>; onClose: () => void }) {
   const area = useRef<HTMLDivElement>(null)
   const size = useSize(area)
-  const controls = useMemo(() => controlList(consoleId), [consoleId])
-  const [layout, setLayout] = useState<Layout>(() => loadLayout(consoleId, orientation))
-  const [sel, setSel] = useState<string>(DPAD_KEY)
+  const controls = data.controls
+  const [layout, setLayout] = useState<Layout>(() => layoutFor(data, orientation))
+  const [sel, setSel] = useState<string>(controls[0]?.key || '')
+  const [grabbed, setGrabbed] = useState(false)
   const [note, setNote] = useState('')
   const drag = useRef<{ id: number; key: string; dx: number; dy: number } | null>(null)
-  useEffect(() => { setLayout(loadLayout(consoleId, orientation)) }, [consoleId, orientation])
+  useEffect(() => { setLayout(layoutFor(data, orientation)) }, [data, orientation])
 
   const change = (k: string, patch: Partial<Layout[string]>) => setLayout((l) => ({ ...l, [k]: { ...l[k], ...patch } }))
   const name = (k: string) => controls.find((c) => c.key === k)?.label || k
-  const finish = () => { saveLayout(consoleId, orientation, layout); onClose() }
-  const reset = () => { setLayout(defaultLayout(consoleId, orientation)); setNote('Back to the default layout') }
+  const finish = async () => {
+    try { await onSave(layout); onClose() } catch (e: any) { setNote(e?.message || 'That couldn’t be saved') }
+  }
+  const reset = () => { setLayout(data.defaults.touch[orientation]); setNote('Back to the default layout') }
   const unit = Math.min(size.w, size.h)
   const selP = layout[sel]
 
@@ -130,6 +135,12 @@ export function TouchEditor({ consoleId, orientation, onClose }: { consoleId: st
     change(d.key, { x: clamp((e.clientX - r.left - d.dx) / r.width, 0, 1), y: clamp((e.clientY - r.top - d.dy) / r.height, 0, 1) })
   }
   const nudge = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') { // pick up, or put down
+      e.preventDefault()
+      setGrabbed((g) => { setNote(g ? `${name(sel)} put down` : `${name(sel)} picked up: use the arrows to move it`); return !g })
+      return
+    }
+    if (!grabbed) return // the arrows move between controls, as everywhere else
     const step = e.shiftKey ? 0.05 : 0.01
     const move: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }
     const m = move[e.key]
@@ -148,8 +159,8 @@ export function TouchEditor({ consoleId, orientation, onClose }: { consoleId: st
           return (
             <button key={c.key} type="button" className={'wp-ctl wp-ctl-' + c.kind + ' wp-ctl-edit' + (sel === c.key ? ' selected' : '') + (p.hidden ? ' hidden' : '')}
               style={{ left: p.x * size.w - px / 2, top: p.y * size.h - px / 2, width: px, height: c.kind === 'meta' ? px * 0.55 : c.kind === 'shoulder' ? px * 0.7 : px, opacity: p.hidden ? 0.25 : p.opacity, fontSize: px * (c.kind === 'meta' ? 0.24 : 0.36) }}
-              aria-label={`${c.label}: move with the arrow keys`} aria-pressed={sel === c.key}
-              onPointerDown={(e) => startDrag(e, c.key)} onFocus={() => setSel(c.key)} onKeyDown={nudge}>
+              aria-label={`${c.label}: press to pick up, then move with the arrow keys`} aria-pressed={sel === c.key && grabbed}
+              onPointerDown={(e) => startDrag(e, c.key)} onFocus={() => { setSel(c.key); setGrabbed(false) }} onKeyDown={nudge}>
               <ControlFace c={c} active={false} />
             </button>
           )
@@ -157,7 +168,7 @@ export function TouchEditor({ consoleId, orientation, onClose }: { consoleId: st
       </div>
       <div className="wp-editor-panel">
         <h2>Touch controls <span className="wp-muted">· {orientation}</span></h2>
-        <p className="wp-muted">Saved on this device for this console. Drag a control, or use the arrow keys.</p>
+        <p className="wp-muted">Saved for this device and this console. Drag a control, or press it and use the arrow keys.</p>
         {selP && (
           <div className="wp-editor-sel">
             <b>{name(sel)}</b>

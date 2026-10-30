@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { controlsOf } from './consoles'
-import { describeBinding, describeKey, DEFAULT_KEYS, findPress, InputManager, loadKeyMap, loadPadMap, MAX_PLAYERS, saveKeyMap, savePadMap, snapshotPad, STANDARD_MAP, type KeyMap, type PadBinding, type PadInfo, type PadMap } from './input'
+import { buttonsOf, padKey, type ControlsData, type KeyMap, type PadBinding, type PadMap, type SaveControl } from './consoles'
+import { describeBinding, describeKey, findPress, InputManager, MAX_PLAYERS, snapshotPad, type PadInfo } from './input'
 
-// Which controller is which player, and what each button does. Saved per console:
-// keyboards for this browser, gamepads per model.
+// Which controller is which player, and what each button does. Layouts are saved
+// on the server, per console: keyboards for the account, gamepads per model.
 
 type Editing = { kind: 'keys' } | { kind: 'pad'; index: number; id: string; name: string; standard: boolean }
+type Props = { input: InputManager; controls: ControlsData; onSave: (s: SaveControl) => Promise<void>; say: (text: string) => void }
 
-export function ControllersPanel({ input, consoleId, onChanged, say }: { input: InputManager; consoleId: string; onChanged: () => void; say: (text: string) => void }) {
+// A button rather than a drop-down, so a remote's D-pad never gets stuck in a list.
+function PlayerButton({ value, onChange, name }: { value: number; onChange: (n: number) => void; name: string }) {
+  return (
+    <button type="button" className="wp-btn" aria-label={`${name}: Player ${value + 1}. Press to change.`} onClick={() => onChange((value + 1) % MAX_PLAYERS)}>
+      Player {value + 1}
+    </button>
+  )
+}
+
+export function ControllersPanel({ input, controls, onSave, say }: Props) {
   const [pads, setPads] = useState<PadInfo[]>(() => input.listPads())
   const [, tick] = useState(0)
   const [editing, setEditing] = useState<Editing | null>(null)
@@ -19,12 +29,7 @@ export function ControllersPanel({ input, consoleId, onChanged, say }: { input: 
     return () => { input.onChange = prev; clearInterval(iv) }
   }, [input])
 
-  if (editing) return <RemapScreen editing={editing} consoleId={consoleId} onDone={() => { setEditing(null); input.reloadMaps(); onChanged() }} say={say} />
-  const portSelect = (value: number, onChange: (n: number) => void, label: string) => (
-    <select className="wp-select" value={value} aria-label={label} onChange={(e) => { onChange(Number(e.target.value)); tick((n) => n + 1) }}>
-      {Array.from({ length: MAX_PLAYERS }, (_, i) => <option key={i} value={i}>Player {i + 1}</option>)}
-    </select>
-  )
+  if (editing) return <RemapScreen editing={editing} controls={controls} onSave={onSave} onDone={() => setEditing(null)} say={say} />
   return (
     <div className="wp-controllers">
       <ul className="wp-list">
@@ -32,7 +37,7 @@ export function ControllersPanel({ input, consoleId, onChanged, say }: { input: 
           <li key={p.index}>
             <div className="wp-grow"><b>{p.name}</b>
               <small className="wp-muted">{!p.standard && !p.hasMap ? 'This pad’s buttons aren’t in a known order; set them up to be sure they’re right.' : p.hasMap ? 'Your own button layout' : 'Standard layout'}</small></div>
-            {portSelect(p.port, (n) => input.setPadPort(p.index, n), `Player for ${p.name}`)}
+            <PlayerButton value={p.port} name={p.name} onChange={(n) => input.setPadPort(p.index, n)} />
             <button type="button" className="wp-btn" onClick={() => setEditing({ kind: 'pad', index: p.index, id: p.id, name: p.name, standard: p.standard })}>Buttons…</button>
           </li>
         ))}
@@ -41,28 +46,28 @@ export function ControllersPanel({ input, consoleId, onChanged, say }: { input: 
           : 'This browser only offers gamepads on secure (https) pages. Use the keyboard or touch controls here, or open this server over https.'}</li>}
         <li>
           <div className="wp-grow"><b>Keyboard</b><small className="wp-muted">Arrows, Z, X, A, S, Q, W, Enter and Right Shift by default.</small></div>
-          {portSelect(input.keyboardPlayer, (n) => input.setKeyboardPort(n), 'Player for the keyboard')}
+          <PlayerButton value={input.keyboardPlayer} name="Keyboard" onChange={(n) => { input.setKeyboardPort(n); tick((x) => x + 1) }} />
           <button type="button" className="wp-btn" onClick={() => setEditing({ kind: 'keys' })}>Keys…</button>
         </li>
         <li>
           <div className="wp-grow"><b>Touch controls</b></div>
-          {portSelect(input.touchPlayer, (n) => input.setTouchPort(n), 'Player for the touch controls')}
+          <PlayerButton value={input.touchPlayer} name="Touch controls" onChange={(n) => { input.setTouchPort(n); tick((x) => x + 1) }} />
         </li>
       </ul>
     </div>
   )
 }
 
-function RemapScreen({ editing, consoleId, onDone, say }: { editing: Editing; consoleId: string; onDone: () => void; say: (text: string) => void }) {
-  const controls = controlsOf(consoleId)
+function RemapScreen({ editing, controls, onSave, onDone, say }: { editing: Editing; controls: ControlsData; onSave: Props['onSave']; onDone: () => void; say: Props['say'] }) {
+  const buttons = buttonsOf(controls)
   const isPad = editing.kind === 'pad'
-  const [padMap, setPadMap] = useState<PadMap>(() => (isPad ? loadPadMap(consoleId, editing.id) || { ...STANDARD_MAP } : {}))
-  const [keyMap, setKeyMap] = useState<KeyMap>(() => loadKeyMap(consoleId))
+  const [padMap, setPadMap] = useState<PadMap>(() => (isPad ? controls.saved.gamepad[padKey(editing.id)] || { ...controls.defaults.gamepad } : {}))
+  const [keyMap, setKeyMap] = useState<KeyMap>(() => controls.saved.keyboard || controls.defaults.keyboard)
   const [listening, setListening] = useState<number | null>(null)
   const timer = useRef(0)
   const padIndex = isPad ? editing.index : -1
 
-  const label = (id: number) => controls.find((c) => c.id === id)?.label || String(id)
+  const label = (id: number) => buttons.find((c) => c.id === id)?.label || String(id)
 
   useEffect(() => {
     if (listening === null) return
@@ -90,14 +95,15 @@ function RemapScreen({ editing, consoleId, onDone, say }: { editing: Editing; co
       e.preventDefault()
       e.stopPropagation()
       if (e.code !== 'Escape') {
+        const name = e.code || e.key // remotes often send no code
         setKeyMap((m) => {
           // One key does one thing: it leaves whatever it was doing before.
           const next: KeyMap = {}
-          for (const [k, v] of Object.entries(m)) if (v !== e.code) next[Number(k)] = v
-          next[listening] = e.code
+          for (const [k, v] of Object.entries(m)) if (v !== name) next[Number(k)] = v
+          next[listening] = name
           return next
         })
-        say(`${label(listening)} is now ${describeKey(e.code)}`)
+        say(`${label(listening)} is now ${describeKey(name)}`)
       }
       setListening(null)
     }
@@ -105,21 +111,25 @@ function RemapScreen({ editing, consoleId, onDone, say }: { editing: Editing; co
     return () => window.removeEventListener('keydown', key, true)
   }, [listening, isPad, padIndex])
 
-  const save = () => {
-    if (isPad) savePadMap(consoleId, editing.id, padMap)
-    else saveKeyMap(consoleId, keyMap)
-    onDone()
+  const save = async () => {
+    try {
+      await onSave(isPad ? { kind: 'gamepad', key: padKey(editing.id), data: padMap } : { kind: 'keyboard', data: keyMap })
+      onDone()
+    } catch (e: any) { say(e?.message || 'That couldn’t be saved') }
   }
-  const reset = () => {
-    if (isPad) { setPadMap({ ...STANDARD_MAP }); savePadMap(consoleId, editing.id, null) }
-    else { setKeyMap(DEFAULT_KEYS); saveKeyMap(consoleId, null) }
-    say('Back to the default buttons')
+  const reset = async () => {
+    if (isPad) setPadMap({ ...controls.defaults.gamepad })
+    else setKeyMap(controls.defaults.keyboard)
+    try {
+      await onSave(isPad ? { kind: 'gamepad', key: padKey(editing.id), data: null } : { kind: 'keyboard', data: null })
+      say('Back to the default buttons')
+    } catch (e: any) { say(e?.message || 'That couldn’t be saved') }
   }
   return (
     <div className="wp-remap">
       <h3>{isPad ? editing.name : 'Keyboard'}</h3>
       <ul className="wp-list wp-remap-list">
-        {controls.map((c) => (
+        {buttons.map((c) => (
           <li key={c.id}>
             <span className="wp-grow">{c.label}</span>
             <span className="wp-muted">{isPad ? describeBinding(padMap[c.id]) : describeKey(keyMap[c.id])}</span>

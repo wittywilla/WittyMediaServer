@@ -6,6 +6,7 @@ on the server and stream to the browser with low latency, through **WittyPlay**
 (`modules/wittyplay`).
 
 This page explains how it is built and why. It is the reference for anyone changing it.
+[GAMING-API.md](GAMING-API.md) is the API a client uses, including the Apple TV and Android TV apps.
 
 ## What it has to do
 
@@ -134,6 +135,8 @@ send the ROM to the browser and run it there, with no server CPU, no latency and
 - `auto` would pick it per device and game: when the server is overloaded, or when the session
   has poor round-trip times and the browser is fast. A manual override would sit in the player.
 - Saves would upload to the same per-account store, and input would use the same layers.
+- It would always be optional. It only works in a browser, so the server would list it as `browserOnly`, and the
+  TV apps would never see it.
 
 The player has been kept independent of the transport so that this can be added without a rewrite.
 
@@ -178,15 +181,34 @@ files. The host sends the bytes over its pipe, and the server writes them atomic
 that has been exploited can't choose a path. Battery saves are written every 30 seconds when they
 have changed, and on stop.
 
+## Clients other than a browser
+
+Games have to work from the Apple TV and Android TV apps as well, so nothing about a game is decided
+inside the web player:
+
+- **The server holds** sessions, saves, resume, play time, each console's controller and default layouts, and
+  everyone's saved layouts. They're plain JSON, and the web player reads them like any other client.
+- **The protocol is standard:** WebRTC offer and answer over HTTP, data channels with documented messages, and a
+  WebSocket with documented frames. A test (`TestNativeClientPlaysAGame`) plays a game this way with no browser.
+- **The server says which modes a client can use.** Anything only a browser can do, such as in-browser emulation
+  when it exists, is marked `browserOnly` and is never offered to an app.
+- **Everything works with a D-pad.** A TV remote is a controller with its own default map, and Back opens the
+  game's menu, which can press Start and Select for remotes that have neither. No drop-downs or sliders are needed
+  to play.
+
+What's left for a TV app to write is listed at the end of [GAMING-API.md](GAMING-API.md).
+
 ## Controllers
 
 Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons and two sticks.
-The libretro API speaks RetroPad, so each console needs only labels.
+The libretro API speaks RetroPad, so each console needs only labels. These, and all the default layouts, are data
+from the server (`modules/wittyplay/controls.go`).
 
 - **Gamepads:** standard mapping by position (bottom button is RetroPad B, right is A, and so on),
   which is how libretro's cores expect pads to be laid out.
 - **Pads without standard mapping:** detected, and the remap screen opens for them.
 - **Keyboard:** arrows, Z, X, A, S, Q, W, Enter and Shift by default. Remappable.
+- **TV remote:** the D-pad, OK as A, Play/Pause as B, Back for the menu.
 - **Hot-plug:** connecting a pad assigns it to the next free player. Disconnecting one leaves that
   player's slot open. Browsers that don't fire the events are polled.
 - **Several players:** up to four in the UI, with eight supported by the protocol.
@@ -195,7 +217,8 @@ The libretro API speaks RetroPad, so each console needs only labels.
   landscape separately**. Sliding between buttons works, and Android gets haptics (iOS has no web
   API for them).
 
-Remaps are saved per console and per controller model.
+Layouts are saved on the server: gamepads per console and model, keyboards per console, and touch layouts per
+console, device and orientation. They follow the account.
 
 ## Security
 

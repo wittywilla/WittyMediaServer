@@ -5,13 +5,14 @@ Plays console games in a browser, from a server. Each game runs in its own sandb
 with fallbacks for networks and browsers where that can't work.
 
 WittyPlay is developed as part of [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
-`docs/GAMING.md` there explains the design, and `docs/WITTYRETROARCH.md` covers licensing.
+`docs/GAMING.md` there explains the design, `docs/GAMING-API.md` is the API for clients, and
+`docs/WITTYRETROARCH.md` covers licensing.
 
 ## What's in here
 
 | Package | What it does |
 |---|---|
-| `wittyplay` | The consoles: extensions, recommended cores and their licences, sorting a file into a console. No dependencies |
+| `wittyplay` | The consoles: extensions, recommended cores and their licences, sorting a file into a console, and each controller as data. No dependencies |
 | `ipc` | The protocol between a server and a game runner, over pipes |
 | `host`, `cmd/wittyplay-host` | The runner: a separate program that runs one game |
 | `libretro` | The libretro frontend inside the runner, with no cgo |

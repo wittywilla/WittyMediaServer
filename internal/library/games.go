@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -264,6 +266,54 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 		cancel()
 	}
 	return s.Store.upsertItem(ctx, it)
+}
+
+// A person's saved controller layouts, one row per kind and key.
+
+// GameControls returns a person's saved layouts for a console.
+func (s *Store) GameControls(ctx context.Context, userID int64, console string) (map[string]map[string]json.RawMessage, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT kind, key, data FROM wittyplay_controls WHERE user_id = ? AND console = ?`, userID, console)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[string]json.RawMessage{}
+	for rows.Next() {
+		var kind, key, data string
+		if err := rows.Scan(&kind, &key, &data); err != nil {
+			return nil, err
+		}
+		if out[kind] == nil {
+			out[kind] = map[string]json.RawMessage{}
+		}
+		out[kind][key] = json.RawMessage(data)
+	}
+	return out, rows.Err()
+}
+
+// maxGameControls bounds what one account can store per console.
+const maxGameControls = 64
+
+// ErrTooManyControls: this account has saved as many layouts as it may.
+var ErrTooManyControls = errors.New("too many saved layouts for this console; reset one first")
+
+// SetGameControl saves a layout, or removes it when data is nil.
+func (s *Store) SetGameControl(ctx context.Context, userID int64, console, kind, key string, data json.RawMessage) error {
+	if data == nil {
+		_, err := s.DB.ExecContext(ctx, `DELETE FROM wittyplay_controls WHERE user_id = ? AND console = ? AND kind = ? AND key = ?`, userID, console, kind, key)
+		return err
+	}
+	var n int
+	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM wittyplay_controls WHERE user_id = ? AND console = ? AND NOT (kind = ? AND key = ?)`, userID, console, kind, key).Scan(&n); err != nil {
+		return err
+	}
+	if n >= maxGameControls {
+		return ErrTooManyControls
+	}
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO wittyplay_controls(user_id, console, kind, key, data, updated_at) VALUES(?,?,?,?,?,?)
+		ON CONFLICT(user_id, console, kind, key) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+		userID, console, kind, key, string(data), db.Now())
+	return err
 }
 
 const wdDeveloper = "P178"

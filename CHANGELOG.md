@@ -19,6 +19,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Saves**: battery saves and nine save-state slots per account with pictures, and a resume state written
   when you stop.
 - **Settings, Gaming**: install cores on request with each licence shown first, and set up streaming.
+- **Ready for TV apps**: controller layouts live on the server, and `docs/GAMING-API.md` documents everything a client
+  needs. The player works with a TV remote's D-pad.
 
 ## 0.4.0-alpha
 

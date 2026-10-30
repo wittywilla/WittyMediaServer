@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -46,6 +47,7 @@ type Config struct {
 type Options struct {
 	UserID, ItemID int64
 	Title          string
+	Console        string
 	Core           string // a shared library path, or ipc.TestCore
 	ROM            string
 	SystemDir      string
@@ -61,6 +63,7 @@ type Info struct {
 	ID         string  `json:"id"`
 	ItemID     int64   `json:"itemId"`
 	Title      string  `json:"title"`
+	Console    string  `json:"console"`
 	Core       string  `json:"core"`
 	Width      int     `json:"width"`
 	Height     int     `json:"height"`
@@ -69,6 +72,7 @@ type Info struct {
 	SampleRate float64 `json:"sampleRate"`
 	Resumed    bool    `json:"resumed"`
 	Encoder    string  `json:"encoder,omitempty"`
+	Modes      []Mode  `json:"modes"` // what this client can connect with, best first
 }
 
 // Errors a caller shows to people.
@@ -253,6 +257,7 @@ type Session struct {
 	menuPaused    bool // someone has a menu open
 	noViewerSince time.Time
 	lastInput     time.Time
+	lastPad       [MaxPlayers][ipc.InputSize]byte
 	h264, vp8     *videoEncoder
 	opus          *audioEncoder
 	jpeg          *jpegEncoder
@@ -279,7 +284,7 @@ func (s *Session) ItemID() int64 { return s.opt.ItemID }
 func (s *Session) Info() Info {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
-	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
+	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
 		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName}
 }
 
@@ -521,10 +526,19 @@ func (s *Session) Input(p []byte) {
 	if !ok || port >= MaxPlayers {
 		return
 	}
+	// Clients repeat their state now and then, so that a lost packet heals. A repeat
+	// isn't someone playing, so it doesn't hold off the idle limit, and the runner
+	// already has it.
 	s.viewMu.Lock()
-	s.lastInput = time.Now()
+	changed := !bytes.Equal(s.lastPad[port][:], p)
+	if changed {
+		copy(s.lastPad[port][:], p)
+		s.lastInput = time.Now()
+	}
 	s.viewMu.Unlock()
-	_ = s.command(ipc.CmdInput, p)
+	if changed {
+		_ = s.command(ipc.CmdInput, p)
+	}
 }
 
 // MaxPlayers is how many players a browser may drive.

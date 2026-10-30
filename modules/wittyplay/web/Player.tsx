@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SELECT, START, type ControlsData, type SaveControl } from './consoles'
 import { ControllersPanel } from './Controllers'
-import { InputManager, load, save } from './input'
+import { deviceId, InputManager, load, onTV, save } from './input'
 import { TouchControls, TouchEditor, useOrientation } from './TouchControls'
 import { make, plan, TRANSPORT_LABELS, type Mode, type PlayEvent, type Stats, type Transport, type TransportKind } from './transport'
 import './play.css'
@@ -9,7 +10,7 @@ import './play.css'
 // and passes controllers along. Everything it needs from the app comes through
 // PlayHost, so the module works in any app that can provide one.
 
-export type SessionInfo = { id: string; itemId: number; title: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string }
+export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; modes: { id: string }[] }
 export type SaveSlot = { slot: number; updatedAt: number; size: number; hasThumb: boolean }
 
 export interface PlayHost {
@@ -24,6 +25,8 @@ export interface PlayHost {
   action(sessionId: string, type: string, slot?: number, on?: boolean): Promise<void>
   saves(): Promise<SaveSlot[]>
   thumbUrl(slot: number, version: number): string
+  controls(device: string): Promise<ControlsData>
+  saveControl(s: SaveControl): Promise<void>
   close(): void // leave the player
 }
 
@@ -33,6 +36,19 @@ const MODE_KEY = 'wittyplay.mode'
 const TOUCH_KEY = 'wittyplay.touch'
 
 export default function GamePlayer({ host }: { host: PlayHost }) {
+  const [controls, setControls] = useState<ControlsData | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => { host.controls(deviceId()).then(setControls).catch((e) => setError(e?.message || 'The game could not start.')) }, [host])
+  if (error) {
+    return (
+      <div className="wp-root"><div className="wp-error" role="alert"><p>{error}</p><button type="button" className="wp-btn primary" onClick={() => host.close()}>Back</button></div></div>
+    )
+  }
+  return controls ? <Playing host={host} initial={controls} /> : <div className="wp-root"><div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />Starting the game…</div></div>
+}
+
+function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
+  const [controls, setControls] = useState(initial)
   const [info, setInfo] = useState<SessionInfo | null>(null)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('Starting the game…')
@@ -44,10 +60,17 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
   const [toast, setToast] = useState('')
   const [mode, setModeState] = useState<Mode>(() => load<Mode>(MODE_KEY) || 'auto')
   const [touchOn, setTouchOn] = useState<boolean>(() => load<boolean>(TOUCH_KEY) ?? (window.matchMedia?.('(pointer: coarse)').matches ?? false))
-  const [touchVersion, setTouchVersion] = useState(0)
   const [padName, setPadName] = useState('')
   const orientation = useOrientation()
-  const input = useMemo(() => new InputManager(host.consoleId), [host.consoleId])
+  const input = useMemo(() => new InputManager(initial), [initial])
+  const tv = useMemo(onTV, [])
+  // Layouts live on the server, so they follow the account to its other devices.
+  const saveControl = useCallback(async (s: SaveControl) => {
+    await host.saveControl(s)
+    const fresh = await host.controls(deviceId())
+    setControls(fresh)
+    input.setControls(fresh)
+  }, [host, input])
   const stage = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<SessionInfo | null>(null)
@@ -82,7 +105,7 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
       wsUrl: (video: string) => host.wsUrl(s.id, video),
     }
     let last = ''
-    for (const kind of plan(m)) {
+    for (const kind of plan(m, (s.modes || []).map((x) => x.id))) {
       if (skip.has(kind)) continue
       if (stale()) return
       setStatus(kind === 'webrtc' ? 'Connecting…' : 'Trying another way to connect…')
@@ -185,7 +208,8 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
   // Escape, or Start and Select together on a pad, opens the menu.
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' && e.key !== 'F1') return
+      // Escape on a keyboard, and the many names of Back on a TV remote.
+      if (!['Escape', 'F1', 'GoBack', 'BrowserBack', 'Back', 'XF86Back'].includes(e.key) && !(tv && e.key === 'Backspace')) return
       e.preventDefault()
       setPanel((p) => (p === 'touch' ? p : p ? (p === 'menu' ? null : 'menu') : 'menu'))
     }
@@ -202,7 +226,17 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
       held = both
     }, 100)
     return () => { window.removeEventListener('keydown', key); clearInterval(iv) }
-  }, [])
+  }, [tv])
+
+  // A menu's contents change without it closing, so focus has to be put back in by
+  // hand, or a remote would have nothing to move from.
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const first = menuRef.current?.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]')
+    first?.focus({ preventScroll: true })
+  }, [panel])
+
+  const press = (id: number) => { setPanel(null); setTimeout(() => input.pulse(id), 150) }
 
   const setMode = (m: Mode) => {
     setModeState(m)
@@ -233,7 +267,7 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
         )}
       </div>
 
-      {touchOn && transport && !paused && <TouchControls consoleId={host.consoleId} orientation={orientation} onMask={onMask} version={touchVersion} />}
+      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} />}
 
       {needsTap && !paused && <button type="button" className="wp-tap" onClick={tap}>Tap for sound</button>}
 
@@ -254,21 +288,24 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
 
       <div className="wp-toast" role="status" aria-live="polite">{toast}</div>
 
-      {panel === 'touch' && <TouchEditor consoleId={host.consoleId} orientation={orientation} onClose={() => { setTouchVersion((v) => v + 1); setPanel('menu') }} />}
+      {panel === 'touch' && <TouchEditor data={controls} orientation={orientation} onClose={() => setPanel('menu')}
+        onSave={(l) => saveControl({ kind: 'touch', key: deviceId(), orientation, data: l })} />}
 
       {panel && panel !== 'touch' && (
         <div className="wp-menu-back" onClick={() => setPanel(null)}>
-          <div className="wp-menu" role="dialog" aria-modal="true" aria-label={panelTitle(panel, host.title)} onClick={(e) => e.stopPropagation()}>
+          <div ref={menuRef} className="wp-menu" role="dialog" aria-modal="true" aria-label={panelTitle(panel, host.title)} onClick={(e) => e.stopPropagation()}>
             {panel === 'menu' && (
               <>
                 <h2>{host.title}</h2>
                 <nav className="wp-menu-list" aria-label="Game menu">
                   <button type="button" autoFocus className="wp-btn primary" onClick={() => setPanel(null)}>Resume</button>
+                  <button type="button" className="wp-btn" onClick={() => press(START)}>Press Start</button>
+                  <button type="button" className="wp-btn" onClick={() => press(SELECT)}>Press Select</button>
                   <button type="button" className="wp-btn" onClick={() => setPanel('save')}>Save state…</button>
                   <button type="button" className="wp-btn" onClick={() => setPanel('load')}>Load state…</button>
                   <button type="button" className="wp-btn" onClick={() => setPanel('controllers')}>Controllers…</button>
-                  <button type="button" className="wp-btn" onClick={() => setPanel('touch')}>Edit touch controls…</button>
-                  <label className="wp-check"><input type="checkbox" checked={touchOn} onChange={toggleTouch} /> Show touch controls</label>
+                  {!tv && <button type="button" className="wp-btn" onClick={() => setPanel('touch')}>Edit touch controls…</button>}
+                  {!tv && <label className="wp-check"><input type="checkbox" checked={touchOn} onChange={toggleTouch} /> Show touch controls</label>}
                   <button type="button" className="wp-btn" onClick={() => setPanel('connection')}>Connection…</button>
                   <button type="button" className="wp-btn" onClick={fullscreen}>Full screen</button>
                   <button type="button" className="wp-btn" onClick={() => { const s = sessionRef.current; if (s) void host.action(s.id, 'reset').then(() => { say('Reset'); setPanel(null) }) }}>Reset the game</button>
@@ -281,7 +318,7 @@ export default function GamePlayer({ host }: { host: PlayHost }) {
             {panel === 'controllers' && (
               <>
                 <h2>Controllers</h2>
-                <ControllersPanel input={input} consoleId={host.consoleId} onChanged={() => {}} say={say} />
+                <ControllersPanel input={input} controls={controls} onSave={saveControl} say={say} />
                 <div className="wp-row"><span className="wp-grow" /><button type="button" className="wp-btn" onClick={() => setPanel('menu')}>Back</button></div>
               </>
             )}

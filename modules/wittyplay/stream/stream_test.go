@@ -323,6 +323,46 @@ func TestViewerJoiningWhilePaused(t *testing.T) {
 	}
 }
 
+// Repeats of the same state heal lost packets, but don't count as someone playing:
+// otherwise an abandoned tab would keep a game running forever.
+func TestRepeatedInputIsNotActivity(t *testing.T) {
+	m := newManager(t)
+	s := startGame(t, m, t.TempDir(), false)
+	defer s.Stop()
+	s.viewMu.Lock()
+	long := time.Now().Add(-time.Hour)
+	s.lastInput = long
+	s.viewMu.Unlock()
+	s.Input(input(0, 0)) // the state it already has
+	s.viewMu.Lock()
+	if !s.lastInput.Equal(long) {
+		t.Error("a repeat should not count as activity")
+	}
+	s.viewMu.Unlock()
+	s.Input(input(0, 1<<3))
+	s.viewMu.Lock()
+	if s.lastInput.Equal(long) {
+		t.Error("a change should count as activity")
+	}
+	s.viewMu.Unlock()
+}
+
+func TestModes(t *testing.T) {
+	m := NewManager(Config{HaveEncoder: func(n string) bool { return n == "libvpx" }})
+	got := m.Modes(ClientNative)
+	if len(got) != 2 || got[0].ID != "webrtc" || got[0].Video[0] != "vp8" || got[1].ID != "ws-jpeg" {
+		t.Fatalf("with only VP8: %+v", got)
+	}
+	m = NewManager(Config{HaveEncoder: func(string) bool { return false }})
+	if got := m.Modes(ClientBrowser); len(got) != 1 || got[0].ID != "ws-jpeg" {
+		t.Fatalf("with no encoder at all, JPEG still works: %+v", got)
+	}
+	m = NewManager(Config{HaveEncoder: func(n string) bool { return n == "libx264" }})
+	if got := m.Modes(ClientBrowser); len(got) != 3 || got[0].Video[0] != "h264" {
+		t.Fatalf("with H.264: %+v", got)
+	}
+}
+
 func TestBadInputIgnored(t *testing.T) {
 	m := newManager(t)
 	s := startGame(t, m, t.TempDir(), false)

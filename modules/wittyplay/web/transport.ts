@@ -41,13 +41,14 @@ const hasWebRTC = () => typeof RTCPeerConnection !== 'undefined'
 const hasWebCodecs = () => typeof (window as any).VideoDecoder !== 'undefined' && typeof (window as any).EncodedVideoChunk !== 'undefined'
 
 // What this browser can try, best first.
-export function plan(mode: Mode): TransportKind[] {
+// The server says which modes it has (`allowed`); this says which this browser can use.
+export function plan(mode: Mode, allowed: string[]): TransportKind[] {
   if (mode !== 'auto') return [mode]
   const out: TransportKind[] = []
   if (hasWebRTC()) out.push('webrtc')
   if (hasWebCodecs()) out.push('ws-h264')
   out.push('ws-jpeg')
-  return out
+  return out.filter((k) => allowed.includes(k))
 }
 
 export function make(kind: TransportKind, signal: Signal): Transport {

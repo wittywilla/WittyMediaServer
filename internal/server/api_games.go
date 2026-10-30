@@ -40,6 +40,9 @@ func init() {
 func (s *Server) gameRoutes(m *http.ServeMux) {
 	a := s.requireUser
 	m.Handle("GET /api/games/consoles", a(s.handleGameConsoles))
+	m.Handle("GET /api/games/modes", a(s.handleGameModes))
+	m.Handle("GET /api/consoles/{console}/controls", a(s.handleGameControls))
+	m.Handle("PUT /api/consoles/{console}/controls", a(s.handlePutGameControl))
 	m.Handle("POST /api/games/{id}/play", a(s.handleGamePlay))
 	m.Handle("GET /api/games/{id}/saves", a(s.handleGameSaves))
 	m.Handle("GET /api/games/{id}/saves/{slot}/thumb", a(s.handleGameSaveThumb))
@@ -169,8 +172,9 @@ func (s *Server) preferredCores(ctx context.Context) map[string]string {
 // consoleView is a console with what this server has for it.
 type consoleView struct {
 	wittyplay.Console
-	Installed []cores.Core `json:"installed"`
-	Ready     bool         `json:"ready"`
+	Installed []cores.Core        `json:"installed"`
+	Ready     bool                `json:"ready"`
+	Pad       wittyplay.PadLayout `json:"pad"`
 }
 
 func (s *Server) consoleViews(ctx context.Context) []consoleView {
@@ -185,7 +189,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 		if c.Hidden && !testing {
 			continue
 		}
-		v := consoleView{Console: c, Installed: []cores.Core{}}
+		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID)}
 		if v.Cores == nil {
 			v.Cores = []wittyplay.Core{}
 		}
@@ -204,6 +208,136 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 
 func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.consoleViews(r.Context()))
+}
+
+// handleGameModes says how a kind of client can connect to a game on this server.
+func (s *Server) handleGameModes(w http.ResponseWriter, r *http.Request) {
+	_ = s.configureGames(r.Context()) // so that hardware encoders count
+	client := gameClient(r.URL.Query().Get("client"))
+	writeJSON(w, 200, map[string]any{"client": client, "modes": s.games().mgr.Modes(client)})
+}
+
+// gameClient: only a browser says it is one, so a mode that needs a browser never
+// reaches an app that hasn't heard of this field.
+func gameClient(v string) string {
+	if v == stream.ClientBrowser {
+		return v
+	}
+	return stream.ClientNative
+}
+
+// gameConsole finds a console this account may be told about.
+func (s *Server) gameConsole(id string) *wittyplay.Console {
+	c := wittyplay.ByID(id)
+	if c == nil || (c.Hidden && !s.testingGames()) {
+		return nil
+	}
+	return c
+}
+
+// A client's name for itself, chosen by the client and kept on the device. It only
+// labels saved layouts, so it proves nothing and needs to be nothing more than tidy.
+var gameDeviceRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
+
+func touchKey(device, orientation string) string { return device + "/" + orientation }
+
+// handleGameControls gives a client everything it needs to draw and map a console's
+// controller: what the console has, the defaults, and what this person saved. Asking
+// with ?device= includes the touch layouts saved for that device.
+func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("console")
+	if s.gameConsole(id) == nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	saved, err := s.Store.GameControls(r.Context(), userFrom(r).ID, id)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	gamepads := saved[wittyplay.KindGamepad]
+	if gamepads == nil {
+		gamepads = map[string]json.RawMessage{}
+	}
+	var keyboard json.RawMessage
+	if k, ok := saved[wittyplay.KindKeyboard][""]; ok {
+		keyboard = k
+	}
+	touch := map[string]json.RawMessage{}
+	if device := r.URL.Query().Get("device"); gameDeviceRe.MatchString(device) {
+		for _, o := range []string{wittyplay.Landscape, wittyplay.Portrait} {
+			if l, ok := saved[wittyplay.KindTouch][touchKey(device, o)]; ok {
+				touch[o] = l
+			}
+		}
+	}
+	writeJSON(w, 200, map[string]any{
+		"console":  id,
+		"pad":      wittyplay.Pad(id),
+		"controls": wittyplay.Controls(id),
+		"defaults": map[string]any{
+			"gamepad": wittyplay.DefaultGamepad(), "keyboard": wittyplay.DefaultKeyboard(), "remote": wittyplay.DefaultRemote(),
+			"touch": map[string]any{wittyplay.Landscape: wittyplay.DefaultTouch(id, wittyplay.Landscape), wittyplay.Portrait: wittyplay.DefaultTouch(id, wittyplay.Portrait)},
+		},
+		"saved": map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch},
+	})
+}
+
+// handlePutGameControl saves one layout for the signed-in account, or removes it
+// when data is null. Everything is checked: a layout comes from a client.
+func (s *Server) handlePutGameControl(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("console")
+	if s.gameConsole(id) == nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	var b struct {
+		Kind        string          `json:"kind"`
+		Key         string          `json:"key"` // gamepad: its model; touch: this device
+		Orientation string          `json:"orientation"`
+		Data        json.RawMessage `json:"data"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, wittyplay.MaxControlSize+1024)
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "this layout can't be read")
+		return
+	}
+	key := ""
+	switch b.Kind {
+	case wittyplay.KindGamepad:
+		key = b.Key
+		if key == "" || len(key) > 120 {
+			writeErr(w, 400, "a gamepad's model name is needed")
+			return
+		}
+	case wittyplay.KindKeyboard:
+	case wittyplay.KindTouch:
+		if !gameDeviceRe.MatchString(b.Key) || (b.Orientation != wittyplay.Landscape && b.Orientation != wittyplay.Portrait) {
+			writeErr(w, 400, "a touch layout needs a device and an orientation")
+			return
+		}
+		key = touchKey(b.Key, b.Orientation)
+	default:
+		writeErr(w, 400, "unknown kind of layout")
+		return
+	}
+	var clean json.RawMessage
+	if len(b.Data) > 0 && string(b.Data) != "null" {
+		var err error
+		if clean, err = wittyplay.CleanControl(id, b.Kind, b.Data); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+	}
+	if err := s.Store.SetGameControl(r.Context(), userFrom(r).ID, id, b.Kind, key, clean); err != nil {
+		if errors.Is(err, library.ErrTooManyControls) {
+			writeErr(w, 409, err.Error())
+			return
+		}
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 // saveDir is one account's folder for one game: built only from numbers.
@@ -231,7 +365,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Resume bool `json:"resume"`
+		Resume bool   `json:"resume"`
+		Client string `json:"client"` // browser, or anything else for a native app
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -277,7 +412,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
-		UserID: userID, ItemID: it.ID, Title: it.Title, Core: corePath, ROM: rom, SystemDir: systemDir,
+		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
 	})
 	if err != nil {
@@ -290,7 +425,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
-	writeJSON(w, 201, sess.Info())
+	info := sess.Info()
+	info.Modes = g.mgr.Modes(gameClient(b.Client))
+	writeJSON(w, 201, info)
 }
 
 // recordPlayTime adds the time played to what "Continue playing" shows, in the
@@ -390,7 +527,9 @@ func (s *Server) handlePlayGet(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	writeJSON(w, 200, sess.Info())
+	info := sess.Info()
+	info.Modes = s.games().mgr.Modes(gameClient(r.URL.Query().Get("client")))
+	writeJSON(w, 200, info)
 }
 
 func (s *Server) handlePlayStop(w http.ResponseWriter, r *http.Request) {

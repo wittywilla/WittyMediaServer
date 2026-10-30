@@ -1,4 +1,4 @@
-import { A, B, DOWN, L, L2, L3, LEFT, R, R2, R3, RIGHT, SELECT, START, UP, X, Y } from './consoles'
+import { DOWN, LEFT, padKey, RIGHT, UP, type ControlsData, type PadBinding, type PadMap } from './consoles'
 
 // Turns every controller into one RetroPad state per player, and sends a state
 // when it changes. Nothing else in the player knows what a gamepad is.
@@ -7,24 +7,8 @@ export const MAX_PLAYERS = 4
 const AXIS_THRESHOLD = 0.5
 const DEADZONE = 0.15
 
-export type PadBinding = { b: number } | { a: number; d: 1 | -1 } // a button, or an axis direction
-export type PadMap = Record<number, PadBinding>
-export type KeyMap = Record<number, string> // RetroPad id -> KeyboardEvent.code
-
-// By position, as libretro expects: bottom button is RetroPad B, right is A, and
-// so on. This is the W3C standard mapping.
-export const STANDARD_MAP: PadMap = {
-  [B]: { b: 0 }, [A]: { b: 1 }, [Y]: { b: 2 }, [X]: { b: 3 }, [L]: { b: 4 }, [R]: { b: 5 }, [L2]: { b: 6 }, [R2]: { b: 7 },
-  [SELECT]: { b: 8 }, [START]: { b: 9 }, [L3]: { b: 10 }, [R3]: { b: 11 }, [UP]: { b: 12 }, [DOWN]: { b: 13 }, [LEFT]: { b: 14 }, [RIGHT]: { b: 15 },
-}
-
-export const DEFAULT_KEYS: KeyMap = {
-  [UP]: 'ArrowUp', [DOWN]: 'ArrowDown', [LEFT]: 'ArrowLeft', [RIGHT]: 'ArrowRight',
-  [B]: 'KeyZ', [A]: 'KeyX', [Y]: 'KeyA', [X]: 'KeyS', [L]: 'KeyQ', [R]: 'KeyW', [L2]: 'KeyE', [R2]: 'KeyR',
-  [START]: 'Enter', [SELECT]: 'ShiftRight',
-}
-
 // Browser storage can be blocked or empty; losing a preference is never an error.
+// Only this device's own choices live here. Controller layouts are on the server.
 export function load<T>(key: string): T | null {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) as T : null } catch { return null }
 }
@@ -32,13 +16,18 @@ export function save(key: string, value: unknown) {
   try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(value)) } catch { /* not kept */ }
 }
 
-const padKey = (consoleId: string, padId: string) => `wittyplay.pad.${consoleId}.${padId.slice(0, 80)}`
-const keysKey = (consoleId: string) => `wittyplay.keys.${consoleId}`
+// This device's name for itself, which touch layouts are saved under.
+export function deviceId(): string {
+  let id = load<string>('wittyplay.device')
+  if (!id) {
+    id = 'web-' + Math.random().toString(36).slice(2, 12)
+    save('wittyplay.device', id)
+  }
+  return id
+}
 
-export const loadPadMap = (consoleId: string, padId: string) => load<PadMap>(padKey(consoleId, padId))
-export const savePadMap = (consoleId: string, padId: string, m: PadMap | null) => save(padKey(consoleId, padId), m)
-export const loadKeyMap = (consoleId: string): KeyMap => load<KeyMap>(keysKey(consoleId)) || DEFAULT_KEYS
-export const saveKeyMap = (consoleId: string, m: KeyMap | null) => save(keysKey(consoleId), m)
+// TV browsers and web views report no pointer at all, and some name themselves.
+export const onTV = () => (window.matchMedia?.('(pointer: none)').matches ?? false) || /\b(TV|AFT[A-Z]*|BRAVIA|GoogleTV|SmartTV|CrKey|Tizen|Web0S)\b/.test(navigator.userAgent)
 
 export type PadInfo = { index: number; id: string; name: string; standard: boolean; port: number; hasMap: boolean; rumble: boolean }
 
@@ -50,9 +39,11 @@ type PadSlot = { port: number; map: PadMap | null }
 export class InputManager {
   onChange?: () => void // the list of controllers changed
   private send: (msg: Uint8Array) => void = () => {}
-  private consoleId: string
-  private keys: KeyMap
+  private controls: ControlsData
   private keyOf = new Map<string, number>()
+  private remoteOf = new Map<string, number>()
+  private tv = onTV()
+  private pulseMask = 0
   private held = new Set<number>() // keyboard
   private touchMask = 0
   private touchPort = 0
@@ -64,16 +55,32 @@ export class InputManager {
   private enabled = true
   private polling = false
 
-  constructor(consoleId: string) {
-    this.consoleId = consoleId
-    this.keys = loadKeyMap(consoleId)
+  constructor(controls: ControlsData) {
+    this.controls = controls
     this.indexKeys()
     for (let i = 0; i < MAX_PLAYERS; i++) this.last.push(new Uint8Array(11))
   }
 
   private indexKeys() {
     this.keyOf.clear()
-    for (const [id, code] of Object.entries(this.keys)) this.keyOf.set(code, Number(id))
+    this.remoteOf.clear()
+    for (const [id, code] of Object.entries(this.controls.saved.keyboard || this.controls.defaults.keyboard)) this.keyOf.set(code, Number(id))
+    for (const [id, key] of Object.entries(this.controls.defaults.remote)) this.remoteOf.set(key, Number(id))
+  }
+
+  // The button a key means. A TV remote is a controller of its own, and remotes
+  // often send a key name with no code.
+  private keyButton(e: KeyboardEvent): number | undefined {
+    if (this.tv || !e.code) { const id = this.remoteOf.get(e.key); if (id !== undefined) return id }
+    return this.keyOf.get(e.code || e.key)
+  }
+
+  // Presses a button for a moment: the game menu's Start and Select, for controllers
+  // that have neither.
+  pulse(id: number) {
+    this.pulseMask |= 1 << id
+    this.flush()
+    setTimeout(() => { this.pulseMask &= ~(1 << id); this.flush() }, 200)
   }
 
   setSender(send: (msg: Uint8Array) => void) { this.send = send }
@@ -134,7 +141,7 @@ export class InputManager {
       const used = new Set([...this.pads.values()].map((x) => x.port))
       let port = 0
       while (used.has(port) && port < MAX_PLAYERS - 1) port++
-      s = { port, map: loadPadMap(this.consoleId, p.id) }
+      s = { port, map: this.controls.saved.gamepad[padKey(p.id)] || null }
       this.pads.set(p.index, s)
       this.onChange?.()
     }
@@ -150,12 +157,12 @@ export class InputManager {
   get touchPlayer() { return this.touchPort }
   setTouchPort(port: number) { this.touchPort = port; this.flush(true); this.onChange?.() }
 
-  reloadMaps() {
-    this.keys = loadKeyMap(this.consoleId)
+  setControls(c: ControlsData) {
+    this.controls = c
     this.indexKeys()
     for (const p of this.rawPads()) {
       const s = this.pads.get(p.index)
-      if (s) s.map = loadPadMap(this.consoleId, p.id)
+      if (s) s.map = c.saved.gamepad[padKey(p.id)] || null
     }
   }
 
@@ -163,7 +170,7 @@ export class InputManager {
 
   private keydown = (e: KeyboardEvent) => {
     if (!this.enabled || e.ctrlKey || e.altKey || e.metaKey) return
-    const id = this.keyOf.get(e.code)
+    const id = this.keyButton(e)
     if (id === undefined) return
     e.preventDefault()
     if (e.repeat) return
@@ -171,7 +178,7 @@ export class InputManager {
     this.flush()
   }
   private keyup = (e: KeyboardEvent) => {
-    const id = this.keyOf.get(e.code)
+    const id = this.keyButton(e)
     if (id !== undefined && this.held.delete(id)) { e.preventDefault(); this.flush() }
   }
   private blur = () => { if (this.held.size) { this.held.clear(); this.flush() } }
@@ -193,9 +200,10 @@ export class InputManager {
     if (this.enabled) {
       for (const id of this.held) buttons[this.keyboardPort] |= 1 << id
       buttons[this.touchPort] |= this.touchMask
+      buttons[0] |= this.pulseMask
       for (const p of this.rawPads()) {
         const s = this.slot(p)
-        buttons[s.port] |= readButtons(p, s.map)
+        buttons[s.port] |= readButtons(p, s.map, this.controls.defaults.gamepad)
         const a = readAxes(p)
         if (a) axes[s.port] = a
       }
@@ -231,10 +239,9 @@ export class InputManager {
   }
 }
 
-export function readButtons(p: Gamepad, map: PadMap | null): number {
+export function readButtons(p: Gamepad, map: PadMap | null, standard: PadMap): number {
   let mask = 0
-  const m = map || STANDARD_MAP
-  for (const [id, bind] of Object.entries(m)) {
+  for (const [id, bind] of Object.entries(map || standard)) {
     if (isPressed(p, bind)) mask |= 1 << Number(id)
   }
   // The left stick also steers the D-pad unless someone chose otherwise, because

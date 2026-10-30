@@ -134,7 +134,12 @@ var migrations = []string{
 	 CREATE INDEX IF NOT EXISTS annotations_user_item ON annotations(user_id, item_id);`,
 	// 10: games: which console a library holds (or auto), and each game's console.
 	`ALTER TABLE libraries ADD COLUMN console TEXT;
-	 ALTER TABLE items ADD COLUMN console TEXT;`,
+	 ALTER TABLE items ADD COLUMN console TEXT;
+	 CREATE TABLE IF NOT EXISTS wittyplay_controls (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
+	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
+	   PRIMARY KEY(user_id, console, kind, key));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

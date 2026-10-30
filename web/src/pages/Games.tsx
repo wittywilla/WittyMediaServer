@@ -73,12 +73,10 @@ export function GamesLibrary({ lib }: { lib: Library }) {
       <div className="toolbar">
         <h1>{lib.name}{items && <span className="muted"> · {shown.length}</span>}</h1>
         {present.length > 1 && (
-          <label className="muted">Console{' '}
-            <select className="select" value={filter} onChange={(e) => setParams(e.target.value ? { console: e.target.value } : {})}>
-              <option value="">All</option>
-              {present.map((c) => <option key={c} value={c}>{byId.get(c)?.short || c}</option>)}
-            </select>
-          </label>
+          <div className="seg" role="radiogroup" aria-label="Console">
+            <button type="button" role="radio" aria-checked={!filter} className={!filter ? 'active' : ''} onClick={() => setParams({})}>All</button>
+            {present.map((c) => <button key={c} type="button" role="radio" aria-checked={filter === c} className={filter === c ? 'active' : ''} onClick={() => setParams({ console: c })}>{byId.get(c)?.short || c}</button>)}
+          </div>
         )}
         <span className="grow" />
         {user?.isAdmin && <button className="btn ghost" onClick={scan}><IconRefresh /> Scan</button>}
@@ -179,7 +177,9 @@ export function GamePage() {
     }
     return {
       itemId: it.id, title: it.title, consoleId: it.console || '', resume: params.get('resume') === '1',
-      start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume }),
+      start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }),
+      controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}`),
+      saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
       stop: async (sid) => { await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
       wsUrl: (sid, video) => {

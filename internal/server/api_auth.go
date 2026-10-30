@@ -23,6 +23,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		libs, _ := s.Store.Libraries(ctx)
 		onboarding = len(libs) == 0
 	}
+	setupRequired := s.Auth.UserCount(r.Context()) == 0
 	// Admins see a notice when a newer version was found.
 	newer := ""
 	if u != nil && u.IsAdmin && s.Update != nil {
@@ -34,7 +35,9 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"pickerLocal":   onThisMachine(r),
 		"name":          "WittyMediaServer",
 		"version":       s.Version,
-		"setupRequired": s.Auth.UserCount(r.Context()) == 0,
+		"setupRequired": setupRequired,
+		// Setting up from outside this network takes the code from the log.
+		"setupCodeRequired": setupRequired && !onLocalNetwork(r),
 		"user":          u,
 		"brandName":     s.DB.GetSetting(r.Context(), "brandName", ""),
 		"brandLogo":     s.DB.GetSetting(r.Context(), "brandLogo", ""),
@@ -46,7 +49,13 @@ type credentials struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
 	Device   string `json:"device"`
+	// SetupCode: first-run setup from outside this network.
+	SetupCode string `json:"setupCode"`
 }
+
+// maxCredentialBytes caps sign-in and setup requests (no name or password
+// comes near this); they are the only ones anyone can send without an account.
+const maxCredentialBytes = 16 << 10
 
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string) {
 	http.SetCookie(w, &http.Cookie{
@@ -66,10 +75,23 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "already set up")
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
 	var c credentials
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
 		return
+	}
+	if !onLocalNetwork(r) {
+		if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
+			writeErr(w, 429, "Too many wrong setup codes. Try again later.")
+			return
+		}
+		if !s.setupCodeOK(c.SetupCode) {
+			s.Log.Warn("setup refused: wrong setup code", "from", addressKey(r))
+			writeErr(w, 403, "Setting up this server from another network takes its setup code. You'll find it in the server's log.")
+			return
+		}
 	}
 	if _, err := s.Auth.CreateUser(r.Context(), c.Name, c.Password, true); err != nil {
 		writeErr(w, 400, err.Error())
@@ -85,24 +107,46 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
 	var c credentials
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	k := s.logins.key(r, c.Name)
-	if d := s.logins.wait(k); d > 0 {
+	tooMany := func(d time.Duration) {
 		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 		writeErr(w, 429, fmt.Sprintf("Too many wrong passwords. Try again in %d seconds.", int(d.Seconds())+1))
+	}
+	k := s.logins.key(r, c.Name)
+	if d := s.logins.begin(k, freeTriesPerName); d > 0 {
+		tooMany(d)
+		return
+	}
+	// Behind a reverse proxy every visitor has the proxy's address, so one
+	// address's count would lock everybody out.
+	addr := ""
+	if !proxied(r) {
+		addr = addressKey(r)
+		if d := s.logins.begin(addr, freeTriesPerAddress); d > 0 {
+			tooMany(d)
+			return
+		}
+	}
+	if !acquirePasswordSlot(r.Context()) {
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, "The server is busy. Try again in a moment.")
 		return
 	}
 	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, c.Device, s.profilesVisible(r))
+	<-passwordSlots
 	if err != nil {
-		s.logins.fail(k)
 		writeErr(w, 401, err.Error())
 		return
 	}
 	s.logins.ok(k)
+	if addr != "" {
+		s.logins.refund(addr)
+	}
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }

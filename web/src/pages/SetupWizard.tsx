@@ -168,14 +168,17 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
   const [pw2, setPw2] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const level = pw.length >= 12 ? 3 : pw.length >= 8 ? 2 : pw.length >= 4 ? 1 : 0
+  const [code, setCode] = useState('')
+  const [needCode, setNeedCode] = useState(false)
+  useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
+  const level = pw.length >= 12 ? 3 : pw.length >= 8 ? 2 : 0
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr('')
     if (pw !== pw2) { setErr('The two passwords are different.'); return }
     setBusy(true)
     try {
-      const r = await api.post<{ token: string; user: User }>('/setup', { name, password: pw, device: navigator.userAgent.slice(0, 80) })
+      const r = await api.post<{ token: string; user: User }>('/setup', { name, password: pw, setupCode: code, device: navigator.userAgent.slice(0, 80) })
       onDone(r.user, r.token)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
@@ -186,15 +189,16 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
       <div className="oobe-form">
         <label className="oobe-field">Your name<input className="input" autoFocus required value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>
         <label className="oobe-field">Password
-          <input className="input" type="password" required minLength={4} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" aria-describedby="pw-strength" />
-          <span className={'oobe-strength l' + level} id="pw-strength"><i /><i /><i /><span>{['At least 4 characters', 'Short — fine for a PIN at home', 'Good', 'Strong'][level]}</span></span>
+          <input className="input" type="password" required minLength={8} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" aria-describedby="pw-strength" />
+          <span className={'oobe-strength l' + level} id="pw-strength"><i /><i /><i /><span>{['At least 8 characters', '', 'Good', 'Strong'][level]}</span></span>
         </label>
         <label className="oobe-field">Type it again<input className="input" type="password" required value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
+        {needCode && <label className="oobe-field">Setup code<input className="input mono" required value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" /><span className="muted">You're setting this server up from another network, so it asks for the code it wrote to its log when it started.</span></label>}
       </div>
       {err && <div className="error" role="alert">{err}</div>}
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={onBack}>Back</button>
-        <button className="btn primary big" disabled={busy || !name || pw.length < 4}>{busy ? 'Creating…' : 'Create account'}</button>
+        <button className="btn primary big" disabled={busy || !name || pw.length < 8}>{busy ? 'Creating…' : 'Create account'}</button>
       </div>
     </form>
   )

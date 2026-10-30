@@ -12,7 +12,7 @@ export type Access = {
 }
 export type UserView = User & { access: Access | null }
 export type Library = {
-  id: number; name: string; type: string; paths: string[]; createdAt: number
+  id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
   lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean
 }
 // A commercials library stays out of the menus and Home unless switched on.
@@ -41,6 +41,14 @@ export type Item = {
   artist?: string; album?: string; albumArtist?: string; track?: number; discNo?: number
   // Books: reading direction; runtimeSec is the length in pages (comics) or chapters (EPUB).
   reading?: '' | 'ltr' | 'rtl' | 'webtoon'
+  // Games: the console it runs on.
+  console?: string
+}
+export type GameCore = { id: string; name: string; license: string; source?: string; sha256?: string; nonCommercial?: boolean }
+export type GameConsole = {
+  id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
+  unavailable?: string; installed: GameCore[]; ready: boolean
+  pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }
 export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }
 export type Artist = { name: string; albums: number; tracks: number; coverItem: number }

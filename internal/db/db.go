@@ -263,6 +263,14 @@ var migrations = []string{
 	 ALTER TABLE sessions ADD COLUMN last_ip TEXT;
 	 ALTER TABLE sessions ADD COLUMN last_where TEXT;
 	 ALTER TABLE sessions ADD COLUMN last_via TEXT;`,
+	// 16: games: which console a library holds (or auto), and each game's console.
+	`ALTER TABLE libraries ADD COLUMN console TEXT;
+	 ALTER TABLE items ADD COLUMN console TEXT;
+	 CREATE TABLE IF NOT EXISTS wittyplay_controls (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
+	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
+	   PRIMARY KEY(user_id, console, kind, key));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

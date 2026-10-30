@@ -173,6 +173,22 @@ See [CHANNELS.md](docs/CHANNELS.md).
   with AC-4 sound play silently for now, and say so.
 - **Guide data** from XMLTV and from the broadcasts themselves, and **recording** of live channels.
 - One stream per channel however many are watching, and FFmpeg runs only while someone is.
+### Games
+
+- **Games libraries**: add one for a console, or for a folder of many consoles, with several libraries of
+  one console allowed. Zipped games and multi-file games are understood. Bring your own game files.
+- **Play in the browser**: games run on the server, each in its own sandboxed process, and stream with
+  low latency over WebRTC. Where WebRTC can't connect, the player falls back to a WebSocket with WebCodecs,
+  and then to JPEG, without restarting the game.
+- **Every controller**: gamepads with hot-plug and up to four players, a keyboard, and a screen for
+  changing what every button does.
+- **Touch controls**: an on-screen controller per console, with an editor to move, resize, fade or hide
+  each control, saved per console, device and orientation. Android gets haptics.
+- **Saves**: battery saves and nine save-state slots per account with pictures, and a resume state written
+  when you stop.
+- **Settings, Gaming**: install cores on request with each licence shown first, and set up streaming.
+- **Ready for TV apps**: controller layouts live on the server, and `docs/GAMING-API.md` documents everything a client
+  needs. The player works with a TV remote's D-pad.
 
 ## 0.4.0-alpha
 

@@ -10,6 +10,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY web/ ./
 # WittyIntegratedFileBrowser's web half lives beside its Go half.
 COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
+COPY modules/wittyplay/web/ /src/modules/wittyplay/web/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS build
@@ -26,16 +27,18 @@ COPY modules/wittybluray/go.mod modules/wittybluray/
 COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
 COPY modules/wittyphotos/go.mod modules/wittyphotos/
 COPY modules/wittytuner/go.mod modules/wittytuner/
+COPY modules/wittyplay/go.mod modules/wittyplay/go.sum modules/wittyplay/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
-RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms
+RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms \
+ && cd modules/wittyplay && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host ./cmd/wittyplay-host
 
 FROM alpine:3.21
 RUN apk add --no-cache ffmpeg ca-certificates tzdata tini \
  && addgroup -g 1000 wms && adduser -D -u 1000 -G wms wms \
  && mkdir -p /config /media && chown wms:wms /config
-COPY --from=build /out/wms /usr/local/bin/wms
+COPY --from=build /out/wms /out/wittyplay-host /usr/local/bin/
 ENV WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
     WMS_TRANSCODE_DIR=/config/transcode

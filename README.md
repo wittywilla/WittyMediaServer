@@ -104,6 +104,16 @@ review, and playback speed on everything.
 
 </td>
 </tr>
+<tr>
+<td colspan="3" valign="top">
+
+### 🎮 Games
+Your own game files, by console, played in the browser with a gamepad, keyboard or touch controls you
+can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency.
+Saves follow your profile. [How it works](docs/GAMING.md).
+
+</td>
+</tr>
 </table>
 
 ## Screenshots

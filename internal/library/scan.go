@@ -130,6 +130,8 @@ type candidate struct {
 	mtime int64
 	// motion: the clip of a live photo (photos libraries).
 	motion string
+	// console: games, the console this file was sorted into.
+	console string
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -228,6 +230,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverCreatorVideos
 		case lib.Type == CommercialsType:
 			find = discoverClips
+		case lib.Type == "games":
+			find = func(root string) ([]candidate, error) { return discoverGames(root, lib.Console) }
 		}
 		c, err := find(root)
 		if err != nil {
@@ -263,6 +267,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				return s.indexPhoto(ctx, lib, c)
 			case IsCreatorLibrary(lib.Type):
 				return s.indexCreatorVideo(ctx, lib, c, creators)
+			case lib.Type == "games":
+				return s.indexGame(ctx, lib, c)
 			}
 			return s.index(ctx, lib, c)
 		})

@@ -24,6 +24,9 @@
       "@wittywilla/wittyintegratedfilebrowser": [
         "../modules/wittyintegratedfilebrowser/web/index.ts"
       ],
+      "@wittywilla/wittyplay": [
+        "../modules/wittyplay/web/index.ts"
+      ],
       "@wittywilla/*": [
         "./src/modules/*"
       ],
@@ -43,6 +46,7 @@
   },
   "include": [
     "src",
-    "../modules/wittyintegratedfilebrowser/web"
+    "../modules/wittyintegratedfilebrowser/web",
+    "../modules/wittyplay/web"
   ]
 }

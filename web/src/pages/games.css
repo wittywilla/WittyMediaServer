@@ -1,0 +1,33 @@
+/* Game pages and the Gaming settings page. Colours come from the theme. */
+.game-page { display: flex; flex-direction: column; gap: 18px; }
+.game-head { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.game-poster { flex: 0 0 auto; width: min(220px, 45vw); aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; position: relative; }
+.game-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.game-info { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.game-info h1 { margin: 0; overflow-wrap: anywhere; }
+.game-info p { margin: 0; }
+.game-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.game-note { padding: 10px 12px; border: 1px solid var(--line, rgba(127, 127, 127, .35)); border-radius: 8px; }
+.game-note a { color: inherit; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; }
+.game-saves { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.game-saves li { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line, rgba(127, 127, 127, .35)); border-radius: 8px; min-width: 0; }
+.game-saves img, .game-save-empty { width: 80px; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; image-rendering: pixelated; flex: 0 0 auto; }
+.game-saves li > div { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.game-saves small { font-size: 12px; overflow-wrap: anywhere; }
+
+.gaming-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
+.gaming-facts dt { color: var(--fg-2, inherit); }
+.gaming-facts dd { margin: 0; overflow-wrap: anywhere; }
+.gaming-consoles { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.gaming-console { border: 1px solid var(--line, rgba(127, 127, 127, .35)); border-radius: 10px; padding: 12px; min-width: 0; }
+.gaming-console h3 { margin: 0 0 8px; font-size: 15px; }
+.gaming-console ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gaming-console li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gaming-console p { margin: 0; font-size: 13px; }
+.gaming-core { display: flex; flex-direction: column; min-width: 0; }
+.gaming-core small { font-size: 12px; }
+.gaming-bios { margin-top: 8px !important; overflow-wrap: anywhere; }
+.gaming-extra { list-style: none; margin: 0; padding: 0; }
+.gaming-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.gaming-form label { display: flex; flex-direction: column; gap: 4px; }
+.gaming-form small { font-size: 12px; }

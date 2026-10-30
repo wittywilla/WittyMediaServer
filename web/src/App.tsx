@@ -15,6 +15,7 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
+const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
@@ -73,10 +74,13 @@ function Shell() {
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
+  const isGame = loc.pathname.startsWith('/game/')
   return (
     <AudioProvider>
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
-        : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense> : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+        : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
+        : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
+        : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )

@@ -32,6 +32,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDisc** | Reads DVD and Blu-ray disc images (UDF 1.02 and 2.50, ISO 9660) without mounting them | WittyDVD, WittyBluray |
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
+| **WittyPlay** | Console games streamed to a browser or an app: a libretro game runner in its own sandboxed process, WebRTC with fallbacks, every controller, a touch layout editor | WittyMediaServer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
 | **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, no dependencies, fuzz-tested | WittyMediaServer |
 | **WittyTuner** | TV tuners and IPTV behind one interface: network tuners, M3U playlists and streams, Linux DVB, V4L2 and other capture cards, SAT>IP, external backends, a custom command. Also reads XMLTV and the guide data in broadcasts. Refuses encrypted channels | WittyMediaServer |
@@ -51,6 +52,7 @@ The server's libraries carry the name where it reads naturally:
 | Vertical videos | **WittyShorts** |
 | Creator videos, music videos and concerts | **WittyChannels** |
 | Live TV and DVR | **WittyTV** |
+| Games | **WittyPlay** |
 
 The plumbing underneath (accounts, transcoding, metadata, settings, logging) keeps plain
 names. So do features inside a plugin, such as the selection toolbar or the eraser.
@@ -75,6 +77,7 @@ modules/                    Go plugins
   wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
   wittyphotos/              → github.com/wittywilla/WittyPhotos
   wittytuner/               → github.com/wittywilla/WittyTuner
+  wittyplay/                → github.com/wittywilla/WittyPlay (Go, with its React half in web/)
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer

@@ -15,7 +15,8 @@ import (
 type Library struct {
 	ID         int64    `json:"id"`
 	Name       string   `json:"name"`
-	Type       string   `json:"type"` // movies | shows | anime | videos
+	Type       string   `json:"type"`              // movies | shows | anime | videos
+	Console    string   `json:"console,omitempty"` // games libraries: a console, or auto
 	Paths      []string `json:"paths"`
 	CreatedAt  int64    `json:"createdAt"`
 	LastScanAt *int64   `json:"lastScanAt"`
@@ -91,6 +92,8 @@ type Item struct {
 	// Books: "" / ltr, rtl (manga) or webtoon (vertical strip). For books
 	// RuntimeSec is the length in pages (comics) or chapters (EPUB).
 	Reading string `json:"reading,omitempty"`
+	// Games: the console it runs on (wittyplay.Consoles).
+	Console string `json:"console,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
 }
@@ -164,13 +167,13 @@ var ErrNotFound = errors.New("not found")
 // Libraries
 // ---------------------------------------------------------------------------
 
-const libraryCols = `l.id, l.name, l.type, l.created_at, l.last_scan_at, l.scanning,
+const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
 	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
 	var scanning, showMain int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain); err != nil {
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
@@ -327,6 +330,12 @@ func (s *Store) SetLibraryShowMain(ctx context.Context, id int64, on bool) error
 // Hidden reports whether a library stays out of the main menus.
 func (l *Library) Hidden() bool { return l.Type == CommercialsType && !l.ShowMain }
 
+// SetLibraryConsole says which console a games library holds.
+func (s *Store) SetLibraryConsole(ctx context.Context, id int64, console string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE libraries SET console = ? WHERE id = ?`, console, id)
+	return err
+}
+
 func (s *Store) DeleteLibrary(ctx context.Context, id int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM libraries WHERE id = ?`, id)
 	return err
@@ -349,7 +358,7 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing,
 	i.show_id, (SELECT s.title FROM shows s WHERE s.id = i.show_id), i.season, i.episode, i.episode_end, i.aired,
 	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end,
-	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, '')`
+	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, ''), IFNULL(i.console, '')`
 
 var itemColsBrief = strings.Replace(itemCols, "i.disc_json", "CASE WHEN json_valid(i.disc_json) THEN json_remove(i.disc_json, '$.titles') END", 1)
 
@@ -368,7 +377,7 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
 		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
 		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd,
-		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading)
+		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading, &it.Console)
 	if err != nil {
 		return nil, err
 	}
@@ -644,13 +653,13 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, year, overview, tagline, genres, rating,
 			content_rating, studio, runtime_sec, poster, backdrop, container, video_codec, width, height, audio_langs, sub_langs, disc_json,
 			provider, provider_id, size_bytes, mtime, added_at, updated_at, missing, show_id, season, episode, episode_end, aired, intro_start, intro_end, min_age,
-			artist, album, album_artist, track, disc_no, reading)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			artist, album, album_artist, track, disc_no, reading, console)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			it.LibraryID, it.Kind, it.Path, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 			it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 			joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now, now,
 			it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
-			it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading)
+			it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.Console)
 		if err != nil {
 			return err
 		}
@@ -662,12 +671,12 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
 		disc_json=?, provider=?, provider_id=?, size_bytes=?, mtime=?, updated_at=?, missing=0,
 		show_id=?, season=?, episode=?, episode_end=?, aired=?, intro_start=?, intro_end=?, min_age=?,
-		artist=?, album=?, album_artist=?, track=?, disc_no=?, reading=? WHERE id=?`,
+		artist=?, album=?, album_artist=?, track=?, disc_no=?, reading=?, console=? WHERE id=?`,
 		it.Kind, it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, joinList(it.Genres), it.Rating,
 		it.ContentRating, it.Studio, it.RuntimeSec, it.Poster, it.Backdrop, it.Container, it.VideoCodec, it.Width, it.Height,
 		joinList(it.AudioLangs), joinList(it.SubLangs), discJSON, it.Provider, it.ProviderID, it.SizeBytes, it.MTime, now,
 		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
-		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.ID)
+		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.Console, it.ID)
 	it.UpdatedAt = now
 	return err
 }

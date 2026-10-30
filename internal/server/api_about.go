@@ -26,6 +26,7 @@ var engines = []moduleInfo{
 	{Name: "WittyDVD", Module: "github.com/wittywilla/wittydvd", Role: "DVD engine: menus, titles and navigation"},
 	{Name: "WittyBluray", Module: "github.com/wittywilla/wittybluray", Role: "Blu-ray engine: menus, playlists, 4K and HDR"},
 	{Name: "WittyDisc", Module: "github.com/wittywilla/wittydisc", Role: "Disc image reader (UDF and ISO 9660)"},
+	{Name: "WittyPlay", Module: "github.com/wittywilla/wittyplay", Role: "Game streaming: runs games through libretro cores and streams them to the browser"},
 	{Name: "WittyIntegratedFileBrowser", Module: "github.com/wittywilla/wittyintegratedfilebrowser", Role: "The built-in folder browser: drives and folders, from any device"},
 	{Name: "WittyTuner", Module: "github.com/wittywilla/wittytuner", Role: "TV tuners and IPTV: network tuners, playlists, DVB, capture cards, SAT>IP and backends"},
 }

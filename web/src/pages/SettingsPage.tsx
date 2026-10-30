@@ -4,7 +4,7 @@ import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { UpdateDot, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconClose, IconEdit, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
+import { IconClose, IconEdit, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import LogSettings from './LogSettings'
@@ -12,6 +12,8 @@ import Profiles from './Profiles'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
+import GamingSettings from './settings/Gaming'
+import { ConsolePicker } from './Games'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
@@ -31,6 +33,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconTv />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconTv />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
+    { to: 'gaming', label: 'Gaming', icon: <IconGamepad />, admin: true, hint: 'Consoles, cores and game streaming' },
     { to: 'transcoding', label: 'Transcoding', icon: <IconTune />, admin: true, hint: 'Quality, hardware and formats' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
@@ -75,6 +78,7 @@ export default function SettingsPage() {
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
+          <Route path="gaming" element={<GamingSettings />} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
@@ -109,6 +113,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
   { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
   { v: 'commercials', label: 'Commercials', hint: 'Your own adverts and bumpers for TV channels; they stay out of Home and search' },
+  { v: 'games', label: 'Games', hint: 'Your own game files, by console, played in the browser' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
 
@@ -205,13 +210,14 @@ function Libraries() {
 function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(lib.name || '')
   const [type, setType] = useState(lib.type || 'movies')
+  const [console_, setConsole] = useState(lib.console || 'auto')
   const [paths, setPaths] = useState<string[]>(lib.paths || [])
   const [manual, setManual] = useState('')
   const [err, setErr] = useState('')
   const add = (p: string) => { if (p.trim()) setPaths([...new Set([...paths, p.trim()])]); setManual('') }
   const save = async () => {
     try {
-      const body = { name: name.trim(), type, paths }
+      const body = { name: name.trim(), type, paths, console: type === 'games' ? console_ : undefined }
       if (lib.id) await api.put(`/libraries/${lib.id}`, body); else await api.post('/libraries', body)
       onSaved()
     } catch (e: any) { setErr(e.message) }
@@ -231,6 +237,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
               </label>
             ))}
           </fieldset>
+          {type === 'games' && <ConsolePicker value={console_} onChange={(id) => setConsole(id)} />}
           <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>
           <div className="set-field">
             <span className="set-field-label">Folders</span>

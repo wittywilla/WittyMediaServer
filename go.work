@@ -10,4 +10,5 @@ use (
 	./modules/wittyintegratedfilebrowser
 	./modules/wittyphotos
 	./modules/wittytuner
+	./modules/wittyplay
 )

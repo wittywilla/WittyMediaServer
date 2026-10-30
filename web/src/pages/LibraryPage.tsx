@@ -7,6 +7,7 @@ import { IconRefresh } from '../icons'
 import { toast } from '../state'
 import AudioLibrary from './AudioLibrary'
 import BooksLibrary from './Books'
+import { GamesLibrary } from './Games'
 
 // Loaded when opened: most servers have only some of these libraries.
 const PhotosLibrary = lazy(() => import('./photos/PhotosLibrary'))
@@ -29,6 +30,7 @@ export default function LibraryPage() {
   if (lib?.type === 'shorts') return <Suspense fallback={<Spinner />}><ShortsLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'channels' || lib?.type === 'musicvideos') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'radio') return <Suspense fallback={<Spinner />}><RadioLibrary key={lib.id} lib={lib} /></Suspense>
+  if (lib?.type === 'games') return <GamesLibrary key={lib.id} lib={lib} />
   return <VideoLibrary />
 }
 

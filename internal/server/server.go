@@ -84,6 +84,8 @@ type Server struct {
 	setupCode     string
 	setupCodeOnce sync.Once
 	audioSlots    chan struct{} // audio transcodes running at once
+	gameOnce   sync.Once
+	gameSvc    *gameService
 }
 
 type ctxKey int
@@ -317,6 +319,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/share/{token}/hls/{id}/seg/{n}", s.handleShareHLSSegment)
 
 	s.channelRoutes(m)
+	s.gameRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

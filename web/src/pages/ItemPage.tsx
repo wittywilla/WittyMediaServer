@@ -6,6 +6,7 @@ import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
+import { GameDetails } from './Games'
 import { Spinner, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconMenu, IconNext, IconPlay, IconRefresh, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
@@ -32,6 +33,7 @@ export default function ItemPage() {
   if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
   if (libType === 'radio') return <Navigate replace to={`/library/${it.libraryId}`} />
+  if (it.kind === 'game') return <GameDetails it={it} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />
   const disc = isDisc(it)

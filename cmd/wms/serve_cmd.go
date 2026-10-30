@@ -257,6 +257,7 @@ func cmdServe(args []string) int {
 		if srv.TV != nil {
 			srv.TV.Close()
 		}
+		srv.StopGames() // saves every running game
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)

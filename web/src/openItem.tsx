@@ -15,6 +15,7 @@ export function useOpenItem() {
     label(it: Item): string {
       if (it.kind === 'book') return started(it) ? 'Continue reading' : 'Read'
       if (it.kind === 'audio') return started(it) ? 'Continue listening' : 'Listen'
+      if (it.kind === 'game') return 'Play'
       return started(it) ? 'Resume' : 'Play'
     },
     icon(it: Item) {
@@ -22,6 +23,7 @@ export function useOpenItem() {
     },
     open(it: Item) {
       if (it.kind === 'book') { nav(['cbz', 'epub', 'pdf'].includes(it.container) ? `/read/${it.id}` : `/item/${it.id}`); return }
+      if (it.kind === 'game') { nav(`/game/${it.id}`); return }
       if (it.kind === 'audio') {
         const type = libraries.find((l) => l.id === it.libraryId)?.type
         audio.play([it], 0, (type === 'audiobooks' || type === 'podcasts' ? type : 'music') as AudioMode)

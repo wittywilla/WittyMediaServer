@@ -3,6 +3,21 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+### Interface
+
+- A new look across every page, built on one design system (see `docs/DESIGN.md`): one type scale,
+  a spacing grid, shared buttons, fields, dialogs, cards and empty and loading states. All 20 themes
+  are updated; a theme's `--radius` now shapes the whole interface.
+- Backdrops run behind the top bar, rows of cards have arrows for the mouse, and dialogs are bottom
+  sheets on phones.
+- Faster on low-end devices: no blur on anything that scrolls or covers video, and long libraries
+  skip the cards that are off screen.
+- Accessibility: the featured banner can be paused, field outlines and switches reach 3:1, every
+  target is at least 24px, and a focused control is never hidden under the bars.
+- Rows show an album once instead of once per song; books no longer say "0 min".
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

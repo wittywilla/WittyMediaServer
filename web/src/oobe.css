@@ -22,8 +22,6 @@
 @keyframes oobe-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .oobe-card h1 { margin: 0 0 var(--sp-2); font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .oobe-card .lead { color: var(--fg-2); font-size: var(--text-base); margin: 0 0 var(--sp-6); max-width: 62ch; }
-.oobe-points { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; color: var(--fg-2); }
-.oobe-points b { color: var(--accent-text); margin-right: 6px; }
 .oobe-field { display: grid; gap: 6px; font-weight: 500; font-size: var(--text-sm); color: var(--fg-2); margin-bottom: var(--sp-4); }
 .oobe-field .input { color: var(--fg); font-weight: 400; }
 .oobe-form { display: grid; gap: 2px; max-width: 420px; }
@@ -42,9 +40,6 @@
 .oobe-path { display: flex; align-items: center; gap: 8px; background: var(--bg-2); border-radius: var(--r-md); padding: 8px 10px; font-size: var(--text-md); word-break: break-all; }
 .oobe-path svg { flex: none; width: 18px; height: 18px; color: var(--accent-text); }
 .oobe-path span { flex: 1; }
-.oobe-added { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
-.oobe-added li { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: var(--r-md); background: rgb(var(--accent-rgb) / .12); font-size: var(--text-md); flex-wrap: wrap; }
-.oobe-added svg { color: var(--accent-text); }
 .oobe-providers { display: grid; gap: 14px; }
 .oobe-provider { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; background: var(--bg-3); transition: border-color var(--dur-3); }
 .oobe-provider.ok { border-color: var(--ok); }
@@ -72,7 +67,8 @@
 /* ---------------------------------------------------------------- who's watching */
 .who { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 16px; text-align: center;
   background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .16), transparent 70%), var(--bg); }
-.who-brand { display: flex; align-items: center; gap: 10px; font-size: var(--text-lg); font-weight: 700; }
+.who-brand { display: flex; align-items: center; gap: 10px; font-size: var(--text-lg); font-weight: 700; letter-spacing: var(--tracking-heading); }
+.who-brand b { color: var(--brand-accent); font-weight: 700; }
 .who-brand img { width: 32px; height: 32px; }
 .who h1 { margin: 0; font-size: var(--display); letter-spacing: var(--tracking-display); }
 .who-grid { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(14px, 3vw, 30px); max-width: 1000px; }
@@ -125,21 +121,11 @@
 .limits { display: grid; gap: 10px; max-height: 64vh; overflow: auto; padding-right: 4px; }
 .limits h3 { margin: 12px 0 0; font-size: var(--text-base); }
 .limits p.muted { margin: 0; font-size: var(--text-sm); }
-.oobe-kids { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 18px auto 0; padding: 12px 16px; border-radius: var(--r-md); background: var(--bg-3); max-width: 560px; }
-.oobe-kids svg { color: var(--accent-text); vertical-align: -3px; }
-.oobe-builtin { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: -8px 0 18px; font-size: var(--text-md); color: var(--fg-2); }
-.oobe-builtin span { display: inline-flex; align-items: center; gap: 6px; background: rgb(var(--accent-rgb) / .1); padding: 6px 10px; border-radius: var(--r-full); }
-.oobe-builtin svg { color: var(--ok); }
 
 /* ---------------------------------------------------------------- wizard, second edition */
 .oobe-step-count { display: none; font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
-.oobe-features { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 0 0 26px; }
-.oobe-feature { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: start; padding: 14px; border-radius: var(--r-lg); background: var(--bg-3); border: 1px solid var(--border); }
-.oobe-feature .ic { grid-row: span 2; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-text); }
-.oobe-feature .ic svg { width: 22px; height: 22px; }
-.oobe-feature b { font-size: var(--text-md); }
-.oobe-feature > span:last-child { color: var(--fg-2); font-size: var(--text-sm); line-height: 1.45; margin-top: 2px; }
-.oobe-sub { margin: var(--sp-6) 0 var(--sp-1); font-size: var(--text-lg); }
+.oobe-sub { margin: var(--sp-6) 0 var(--sp-3); font-size: var(--text-lg); }
+.oobe-sub + .oobe-hint { margin-top: calc(-1 * var(--sp-2)); }
 .oobe-hint { font-size: var(--text-sm); line-height: 1.5; margin: 0 0 14px; }
 .oobe-hint b { color: var(--fg); }
 .oobe-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
@@ -175,7 +161,7 @@
 .oobe-theme-pic .bar { left: 0; right: 0; top: 0; height: 16%; border-radius: 0; }
 .oobe-theme-pic .card { top: 30%; width: 24%; height: 42%; }
 .oobe-theme-pic .card:nth-of-type(2) { left: 8%; } .oobe-theme-pic .card:nth-of-type(3) { left: 38%; } .oobe-theme-pic .card:nth-of-type(4) { left: 68%; }
-.oobe-theme-pic .btn { left: 8%; bottom: 10%; width: 30%; height: 9%; border-radius: var(--r-full); }
+.oobe-theme-pic .btn { left: 8%; bottom: 10%; width: 30%; height: 9%; min-height: 0; padding: 0; border: 0; border-radius: var(--r-full); }
 .oobe-summary { list-style: none; padding: 0; margin: 0 auto 20px; display: grid; gap: 8px; justify-items: center; color: var(--fg-3); font-size: var(--text-md); }
 .oobe-summary li { display: inline-flex; align-items: center; gap: 8px; }
 .oobe-summary li.ok { color: var(--fg-2); }

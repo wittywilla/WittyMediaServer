@@ -53,6 +53,7 @@ export const IconTune = (p: P) => <S {...p} d="M3 17v2h6v-2zM3 5v2h10V5zm10 16v-
 export const IconTag = (p: P) => <S {...p} d="M21.4 11.6l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7c0 .6.2 1.1.6 1.4l9 9c.4.4.9.6 1.4.6s1-.2 1.4-.6l7-7c.4-.4.6-.9.6-1.4s-.2-1-.6-1.4zM5.5 7A1.5 1.5 0 117 5.5 1.5 1.5 0 015.5 7z" />
 export const IconPlus = (p: P) => <S {...p} d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" />
 export const IconPlug = (p: P) => <S {...p} d="M16 7V3h-2v4h-4V3H8v4H6v6l4 4v4h4v-4l4-4V7z" />
+export const IconDownload = (p: P) => <S {...p} d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z" />
 export const IconGrip = (p: P) => <S {...p} d="M9 5a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4zM9 10a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4zM9 15a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4z" />
 export const IconStar = (p: P) => <S {...p} d="M12 3l2.7 5.8 6.3.8-4.6 4.4 1.2 6.3L12 17.2 6.4 20.3l1.2-6.3L3 9.6l6.3-.8z" />
 export const IconMic = (p: P) => <S {...p} d="M12 2a3.5 3.5 0 00-3.5 3.5v6a3.5 3.5 0 007 0v-6A3.5 3.5 0 0012 2zm6.5 9.5h-2a4.5 4.5 0 01-9 0h-2a6.5 6.5 0 005.5 6.4V21h2v-3.1a6.5 6.5 0 005.5-6.4z" />

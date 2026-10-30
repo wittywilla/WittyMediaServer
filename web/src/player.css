@@ -128,7 +128,6 @@
 .sub-layer { position: absolute; z-index: 1; pointer-events: none; transition: translate var(--dur-3) ease; }
 .player:not(.controls-hidden) .sub-layer { translate: 0 calc(-1 * var(--lift, 0px)); }
 .sub-layer img { position: absolute; }
-.up-next { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; background: rgb(20 22 28 / .98); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); display: grid; gap: var(--sp-3); box-shadow: var(--e-3); }
 
 /* ---------------------------------------------------------------- disc & item pages */
 .modal.wide { max-width: 980px; }
@@ -243,7 +242,7 @@
 .theme-actions { display: flex; gap: var(--sp-1); flex-wrap: wrap; margin-top: var(--sp-2); }
 
 /* ---------------------------------------------------------------- version tag */
-.version-tag { display: inline-flex; align-items: center; gap: 6px; }
+.version-tag { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
 .version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
 .auth-version { text-align: center; color: var(--fg-3); font-size: var(--text-xs); }
 
@@ -363,6 +362,7 @@
 
 .speed-btn { min-width: 46px; font-variant-numeric: tabular-nums; background: rgba(255,255,255,.1); }
 .speed-pop { max-height: 60vh; overflow: auto; }
+.player .ctl .range.vol { width: 88px; }
 /* Leave room under the page for the mini player. */
 .app:has(~ .player.mini) .content { padding-bottom: 260px; }
 @media (max-width: 700px) { .app:has(~ .player.mini) .content { padding-bottom: 84px; } }

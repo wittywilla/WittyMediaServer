@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconDownload } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
@@ -80,7 +81,7 @@ export default function AppearanceSettings() {
                 <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>{mine === t.id ? 'In use here' : 'Use here'}</button>
                   {user?.isAdmin && t.id !== serverTheme && <button className="btn sm ghost" onClick={() => makeDefault(t.id)}>Make default</button>}
-                  <a className="btn sm ghost" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a starting point for your own">ZIP</a>
+                  <a className="btn sm ghost square" href={mediaUrl(`/api/themes/${t.id}/download`)} title="Download this theme as a ZIP, as a starting point for your own" aria-label={`Download the ${t.name} theme as a ZIP`}><IconDownload /></a>
                   {user?.isAdmin && !t.builtin && <button className="btn sm danger" onClick={() => remove(t)}>Remove</button>}
                 </div>
               </div>

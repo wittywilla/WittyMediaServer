@@ -19,6 +19,6 @@ export const IconLeft = (p: P) => <S {...p} d="M15.4 7.4L10.8 12l4.6 4.6L14 18l-
 export const IconLibrary = (p: P) => <S {...p} d="M4 6H2v14a2 2 0 002 2h14v-2H4zm16-4H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zm-1 9H9V9h10zm-4 4H9v-2h6zm4-8H9V5h10z" />
 export const IconRefresh = (p: P) => <S {...p} d="M17.6 6.4A8 8 0 004.3 10h2.1a6 6 0 019.8-2.2L13 11h7V4zm-11.2 11.2A8 8 0 0019.7 14h-2.1a6 6 0 01-9.8 2.2L11 13H4v7z" />
 export const IconRight = (p: P) => <S {...p} d="M8.6 7.4L13.2 12l-4.6 4.6L10 18l6-6-6-6z" />
-export const IconSearch = (p: P) => <S {...p} d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1014 15.5l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" />
+export const IconSearch = (p: P) => <S {...p} d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 10-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" />
 export const IconSubs = (p: P) => <S {...p} d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zM4 12h4v2H4zm10 6H4v-2h10zm6 0h-4v-2h4zm0-4H10v-2h10z" />
 export const IconUp = (p: P) => <S {...p} d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z" />

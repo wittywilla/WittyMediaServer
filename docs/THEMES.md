@@ -121,7 +121,9 @@ under `.player`.
 
 ## Variables reference
 
-Declare these on `:root`.
+Declare these on `:root`. The sizes, spacing and motion the interface is built from are design
+tokens that themes can override too, for example `--card-w` or `--text-base`: see [DESIGN.md](DESIGN.md).
+Hover, selected and tinted colours are worked out from the colours below.
 
 | Variable | Default | Used for |
 |---|---|---|
@@ -130,7 +132,8 @@ Declare these on `:root`.
 | `--bg-2` | `#171a21` | sidebar, panels, modals, top bar |
 | `--bg-3` | `#1f232c` | inputs, selects, cards, hovered rows, active nav item, theme/season tiles |
 | `--bg-4` | `#2a2f3a` | borders, chip outlines, scrollbar thumb, button hover |
-| `--border` | `#0a0b0e` | hairlines between sidebar/panels and the page |
+| `--border` | 10% of `--fg` | hairlines around panels, lists and tiles. Built on `--fg` it shows on any background; a darker-than-the-page colour disappears on dark themes |
+| `--control-line` | half of `--fg` | outlines of fields and switches; keep it 3:1 on `--bg`, `--bg-2` and `--bg-3` (WCAG 1.4.11; `theme-contrast.py --fix` sets it) |
 | `--fg` | `#e8eaf0` | primary text |
 | `--fg-2` | `#a9afbd` | secondary text (meta lines, overviews, inactive tabs) |
 | `--fg-3` | `#6f7686` | hints, captions, table headers, section labels |
@@ -139,10 +142,11 @@ Declare these on `:root`.
 | `--accent-fg` | `#fff` | text and icons on accent backgrounds |
 | `--accent-text` | `--accent` | the accent as text (links, highlighted words, the active item); keep it readable on `--bg`, `--bg-2` and `--bg-3` |
 | `--accent-rgb` | `139 108 255` | `--accent` as R G B for glows: `rgb(var(--accent-rgb) / .25)`. **Keep it in sync with `--accent`** |
-| `--brand-accent` | `var(--accent)` | the highlighted "Media" in the default name |
+| `--brand-accent` | `var(--accent-text)` | the highlighted "Media" in the default name |
 | `--danger` | `#ff5c6c` | errors, delete buttons |
 | `--ok` | `#3ad29f` | success messages |
-| `--radius` | `10px` | panels, posters, modals |
+| `--warn` | `#e0a030` | warnings, the rating star |
+| `--radius` | `10px` | the whole interface's corners: every other radius is worked out from it, so `0` makes everything square |
 | `--shadow` | `0 10px 30px rgba(0,0,0,.45)` | panels, modals, popovers |
 | `--card-shadow` | `0 10px 24px rgba(0,0,0,.5)` | poster cards on hover |
 | `--overlay` | `rgba(0,0,0,.6)` | backdrop behind dialogs |
@@ -237,7 +241,7 @@ The interface is built from these classes. Combine them with the variables above
 | `.remote`, `.remote .rk`, `.remote-dpad`, `.remote-dpad .enter`, `.remote-digits` | on-screen DVD remote |
 | `.dvd-layer`, `.dvd-layer .hit.selected.fallback` | DVD menu buttons; the outline used when a disc has no highlight artwork |
 | `.sub-layer` | DVD subtitles |
-| `.skip-intro`, `.watch-next`, `.up-next` | Skip intro button, Watch next card |
+| `.skip-intro`, `.watch-next` | Skip intro button, Watch next card |
 | `.insert-disc`, `.insert-disc .disc`, `.insert-disc .tray`, `.insert-disc .drive-face` | *Insert DVD* animation |
 | `.big-play`, `.center-spinner`, `.overlay-msg` | click-to-play button, buffering spinner, messages |
 
@@ -282,14 +286,12 @@ every viewer's browser contacts that site — bundle fonts in the ZIP for privac
 
 ```css
 :root { --radius: 0; --shadow: none; --card-shadow: none; }
-.btn, .input, .select, .chip, .card .poster, .modal, .panel { border-radius: 0; }
 ```
 
 ### Bigger posters
 
 ```css
-.grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-.card { width: 190px; }
+:root { --card-w: 200px; }
 ```
 
 ### Replace the logo
@@ -312,6 +314,8 @@ every viewer's browser contacts that site — bundle fonts in the ZIP for privac
 ```
 
 ### Glassy panels over a wallpaper
+
+Pretty, but a blur repaints on every frame of scrolling: expect it to stutter on TVs and old phones.
 
 ```css
 body { background: #000 url("assets/wallpaper.webp") center / cover fixed; }
@@ -348,8 +352,8 @@ Set both the variables and the colour scheme:
 ```
 
 Use accents dark enough for white text (`--accent-fg: #fff`), or set `--accent-fg` to a dark
-colour for yellow/lime accents. Aim for WCAG AA contrast: 4.5:1 for `--fg-3` and `--accent-text` on every
-surface, and for `--accent-fg` on `--accent`; the built-in themes all pass, as
+colour for yellow/lime accents. Aim for WCAG AA contrast: 4.5:1 for `--fg-3`, `--accent-text`, `--danger`, `--ok` and `--warn` on every
+surface, 3:1 for `--control-line`, and for `--accent-fg` on `--accent`; the built-in themes all pass, as
 `python scripts/theme-contrast.py` checks. Titles over artwork carry a text shadow; the built-in light themes
 soften it with `.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255,255,255,.6) }`.
 

@@ -68,8 +68,8 @@ button.ab-info:hover { background: var(--hover); }
 .ab-ctl .ibtn.big:hover { background: var(--accent-2); }
 .ab-seek { grid-area: seek; display: grid; grid-template-columns: 40px 1fr 40px; gap: var(--sp-2); align-items: center; font-size: var(--text-2xs); color: var(--fg-2); font-variant-numeric: tabular-nums; }
 .ab-seek span:last-child { text-align: right; }
-.ab-seek input { width: 100%; accent-color: var(--accent); height: 18px; margin: 0; }
 .ab-extra { display: none; }
+.ab-count { font-size: var(--text-xs); white-space: nowrap; }
 .ab-extra .btn svg, .ab-top .btn svg { width: 16px; height: 16px; }
 .select.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-2); font-size: var(--text-sm); }
 /* Phones: the bar stays compact (previous and next live in the full player), above the tab bar. */
@@ -87,7 +87,6 @@ button.ab-info:hover { background: var(--hover); }
   .ab-extra .ibtn:hover { color: var(--fg); background: var(--hover); }
   .ab-extra .ibtn svg { width: 18px; height: 18px; }
   .audio-bar:not(.full) .ab-extra .btn.sm, .audio-bar:not(.full) .ab-count { display: none; }
-  .ab-count { font-size: var(--text-xs); white-space: nowrap; }
   /* Room under the page for the bar, so the last row is never hidden. */
   .app:has(~ .audio-bar) .content { padding-bottom: 120px; }
 }

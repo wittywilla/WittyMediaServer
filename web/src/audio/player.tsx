@@ -212,7 +212,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           </div>
           <div className="ab-seek">
             <span>{fmtTime(time)}</span>
-            <input type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" onChange={(e) => seek(Number(e.target.value))} />
+            <input className="range" style={{ '--pct': (dur > 0 ? Math.min(100, (time / dur) * 100) : 0) + '%' } as React.CSSProperties} type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" onChange={(e) => seek(Number(e.target.value))} />
             <span>{fmtTime(dur)}</span>
           </div>
           <div className="ab-extra">

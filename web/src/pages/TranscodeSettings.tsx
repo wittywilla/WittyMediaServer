@@ -107,7 +107,7 @@ export default function TranscodeSettings() {
               </label>
               <label>Quality level: {crf} {crf <= 18 ? '(visually lossless)' : crf <= 21 ? '(high)' : crf <= 24 ? '(good)' : '(small files)'}
                 <Tip>Constant quality (x264 CRF). Lower is better and bigger: 18 ≈ visually lossless, 21 default, 23–26 for mobile or slow links. Hardware encoders get the equivalent setting (NVENC -cq, Quick Sync -global_quality, VAAPI/AMF -qp, VideoToolbox -q:v).</Tip>
-                <input type="range" min={16} max={30} value={crf} onChange={(e) => set('crf', e.target.value)} />
+                <input className="range" style={{ '--pct': ((Number(crf) - 16) / 14) * 100 + '%' } as React.CSSProperties} type="range" min={16} max={30} value={crf} onChange={(e) => set('crf', e.target.value)} />
               </label>
             </div>
             <div className="row2">

@@ -106,8 +106,12 @@
 .widget-bar .btn.square { width: var(--control-h-sm); }
 .widget-bar .grip { display: grid; color: var(--fg-3); }
 .widget-bar .grow { flex: 1; }
-.widget-preview { max-height: 260px; overflow: hidden; pointer-events: none; padding: 0 10px 10px; mask-image: linear-gradient(#000 70%, transparent); }
-.widget-preview .hero { margin: 0; height: 220px; min-height: 0; border-radius: var(--r-md); }
+.widget-preview { max-height: 280px; overflow: hidden; pointer-events: none; padding: 0 var(--sp-3) var(--sp-3); -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
+/* The bar above already names the section. */
+.widget-preview .hub-head { display: none; }
+.widget-preview .hub { margin: 0; }
+.widget-preview .hero p, .widget-preview .hero .dots { display: none; }
+.widget-preview .hero { margin: 0; height: 240px; min-height: 0; border-radius: var(--r-md); }
 .widget-preview .hero .info { bottom: var(--sp-3); }
 .widget-preview .row { margin: 0; padding-inline: 0; }
 .lib-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-3); }

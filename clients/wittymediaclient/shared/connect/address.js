@@ -43,7 +43,7 @@
       text = 'http://' + text
     }
     let u
-    try { u = new URL(text) } catch { return { error: 'invalid' } }
+    try { u = new URL(text) } catch (e) { return { error: 'invalid' } }
     if (u.username || u.password) return { error: 'credentials' }
     if (!u.hostname) return { error: 'invalid' }
     if (addPort) u.port = String(DEFAULT_PORT)

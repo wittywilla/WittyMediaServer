@@ -1,0 +1,8 @@
+{
+  "code": "BCDF-GHJK",
+  "deviceSecret": "0000000000000000000000000000000000000000000000000000000000000000",
+  "expiresInSec": 600,
+  "intervalSec": 3,
+  "approvePath": "/pair",
+  "approveUrl": "/pair?code=BCDF-GHJK"
+}

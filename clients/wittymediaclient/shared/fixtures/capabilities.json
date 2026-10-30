@@ -1,0 +1,10 @@
+{
+  "server": "WittyMediaServer",
+  "version": "0.4.0-alpha",
+  "apiVersion": 1,
+  "apiRevision": 1,
+  "apiVersions": [1],
+  "apiBase": "/api/v1",
+  "setupRequired": false,
+  "features": ["pairing", "playback-profiles", "stream-tokens"]
+}

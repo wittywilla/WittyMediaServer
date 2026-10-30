@@ -101,7 +101,6 @@ fun AppRoot(app: WittyApp) {
             val token = app.store.token
             app.api = Api(server, token)
             try {
-                app.api.resolveApiPath()
                 val status = app.api.status()
                 nav.themeId = status.theme
                 nav.reset(if (status.user != null) Route.Home else Route.SignIn)

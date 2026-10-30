@@ -19,13 +19,13 @@
         const data = await res.json()
         if (data.name !== 'WittyMediaServer') return { error: 'not-server' }
         return { ok: true, url, version: data.version, name: data.brandName || data.name }
-      } catch { return { error: 'unreachable' } }
+      } catch (e) { return { error: 'unreachable' } }
     },
     async recent() {
-      try { return JSON.parse(localStorage.getItem('wmc.recent') || '[]') } catch { return [] }
+      try { return JSON.parse(localStorage.getItem('wmc.recent') || '[]') } catch (e) { return [] }
     },
     open(server) {
-      try { localStorage.setItem('wmc.recent', JSON.stringify([server])) } catch { /* private mode */ }
+      try { localStorage.setItem('wmc.recent', JSON.stringify([server])) } catch (e) { /* private mode */ }
       location.href = server.url
     },
   }
@@ -33,18 +33,20 @@
 
   function el(tag, props, ...kids) {
     const n = Object.assign(document.createElement(tag), props)
-    for (const k of kids) n.append(k)
+    for (const k of kids) n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k)
     return n
   }
 
   function button(label, onclick, opts) {
     const b = el('button', { type: 'button', onclick, className: (opts && opts.className) || '' }, label)
-    if (opts && opts.sub) b.append(el('span', { className: 'sub', textContent: opts.sub }))
+    if (opts && opts.sub) b.appendChild(el('span', { className: 'sub', textContent: opts.sub }))
     return b
   }
 
+  // Written for the older browsers built into smart TVs.
   function show(...kids) {
-    app.replaceChildren(...kids)
+    app.textContent = ''
+    for (const k of kids) app.appendChild(k)
     const first = app.querySelector('input, button.primary, button')
     if (first) first.focus()
   }

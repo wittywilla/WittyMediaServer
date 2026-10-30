@@ -44,42 +44,47 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.wittywilla.wittymediaclient.net.Item
-import com.wittywilla.wittymediaclient.net.PlayInfo
+import com.wittywilla.wittymediaclient.net.Playback
+import com.wittywilla.wittymediaclient.net.PlaybackRequest
 import com.wittywilla.wittymediaclient.net.Track
 import com.wittywilla.wittymediaclient.ui.ActionButton
 import com.wittywilla.wittymediaclient.ui.ErrorText
 import com.wittywilla.wittymediaclient.ui.Nav
-import com.wittywilla.wittymediaclient.ui.RESUME_MIN_SEC
 import com.wittywilla.wittymediaclient.ui.Route
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private const val SEEK_MS = 10_000L
-private const val PROGRESS_EVERY_MS = 10_000L
+private const val SEEK_SEC = 10.0
+private const val PROGRESS_EVERY_SEC = 10
+private const val PROGRESS_NOT_BEFORE_SEC = 5.0
 private const val CONTROLS_HIDE_MS = 5_000L
+private const val NEXT_COUNTDOWN_SEC = 8
+private const val MAX_STREAM_RETRIES = 2
+private const val PROFILE = "androidtv"
 
-private fun clock(ms: Long): String {
-    val sec = (ms / 1000).coerceAtLeast(0)
-    val h = sec / 3600
-    val m = (sec % 3600) / 60
-    val s = sec % 60
+private fun clock(sec: Double): String {
+    val total = sec.toLong().coerceAtLeast(0)
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    val s = total % 60
     return if (h > 0) String.format(Locale.ROOT, "%d:%02d:%02d", h, m, s) else String.format(Locale.ROOT, "%d:%02d", m, s)
 }
 
 private fun trackName(t: Track): String {
-    val language = if (t.language.isEmpty()) "Unknown" else Locale.forLanguageTag(t.language).displayLanguage.ifEmpty { t.language }
+    val language = t.languageName.ifEmpty { if (t.language.isEmpty()) "Unknown" else Locale.forLanguageTag(t.language).displayLanguage.ifEmpty { t.language } }
     return listOf(language, t.title, t.codec.uppercase(Locale.ROOT), if (t.channels > 0) "${t.channels}ch" else "")
         .filter { it.isNotEmpty() }.joinToString(" · ")
 }
 
 private enum class Picker { None, Audio, Subtitles }
+
+// What to ask the server for. A new value of this opens or changes the stream.
+private data class Ask(val audio: Int? = null, val subtitle: Int? = null, val startSec: Double? = null, val attempt: Int = 0)
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -88,34 +93,28 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
     val api = nav.app.api
 
     var item by remember { mutableStateOf<Item?>(null) }
-    var info by remember { mutableStateOf<PlayInfo?>(null) }
-    var audio by remember { mutableStateOf(0) }
-    var subtitle by remember { mutableStateOf(-1) }
+    var stream by remember { mutableStateOf<Playback?>(null) }
+    var ask by remember { mutableStateOf(Ask(startSec = if (startOver) 0.0 else null)) }
     var error by remember { mutableStateOf("") }
     var controls by remember { mutableStateOf(true) }
     var picker by remember { mutableStateOf(Picker.None) }
     var playing by remember { mutableStateOf(false) }
-    var position by remember { mutableStateOf(0L) }
+    var filmSec by remember { mutableStateOf(0.0) }
     var interactions by remember { mutableStateOf(0) }
+    var countdown by remember { mutableStateOf<Int?>(null) }
+    var retries by remember { mutableStateOf(0) }
     val rootFocus = remember { FocusRequester() }
 
-    // The sign-in travels as a header on every playlist and segment request, so
-    // it never appears in a URL.
-    val player = remember {
-        val http = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(false)
-            .setConnectTimeoutMs(8_000)
-            .setReadTimeoutMs(60_000) // a transcoded segment can take a while to appear
-            .setDefaultRequestProperties(if (api.token.isEmpty()) emptyMap() else mapOf("Authorization" to "Bearer ${api.token}"))
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(context, http)))
-            .build()
-    }
+    // The address from the server already carries a short-lived stream token,
+    // which is safer to hand a player than the sign-in.
+    val player = remember { ExoPlayer.Builder(context).build() }
+
+    fun currentFilmSec() = player.currentPosition / 1000.0 + (stream?.timeOffsetSec ?: 0.0)
 
     fun saveProgress() {
-        val duration = info?.durationSec ?: return
-        val at = player.currentPosition / 1000.0
-        if (at <= 0) return
+        val duration = stream?.durationSec ?: return
+        val at = currentFilmSec()
+        if (at < PROGRESS_NOT_BEFORE_SEC) return
         // In the app's scope: the last save happens as this screen is leaving.
         nav.app.scope.launch { runCatching { api.saveProgress(id, at, duration) } }
     }
@@ -123,11 +122,20 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
-            override fun onPlayerError(e: PlaybackException) { error = "Can't play this: ${e.errorCodeName}" }
+            override fun onPlayerError(e: PlaybackException) {
+                // 401 means a new token and 404 means the stream went away: ask again.
+                val code = (e.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode
+                if ((code == 401 || code == 404) && retries < MAX_STREAM_RETRIES) {
+                    retries++
+                    ask = ask.copy(startSec = currentFilmSec(), attempt = ask.attempt + 1)
+                } else {
+                    error = "Can't play this: ${e.errorCodeName}"
+                }
+            }
             override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_READY) retries = 0
                 if (state == Player.STATE_ENDED) {
-                    val next = item?.nextId
-                    if (next != null) nav.replace(Route.Player(next, false)) else nav.pop()
+                    if (stream?.nextId != null) countdown = NEXT_COUNTDOWN_SEC else nav.pop()
                 }
             }
         }
@@ -138,42 +146,77 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
         }
     }
 
-    // Asking again with other tracks gives a new stream: carry on from the same place.
-    LaunchedEffect(id, audio, subtitle) {
+    // Ask the server what to play, and switch only if the answer is another address.
+    LaunchedEffect(ask) {
         try {
-            val first = item == null
-            val it = item ?: api.item(id).also { fetched -> item = fetched }
-            val play = api.play(id, audio, subtitle)
-            info = play
-            val saved = it.progress
-            val start = when {
-                !first -> player.currentPosition
-                startOver || saved == null || saved.watched || saved.positionSec <= RESUME_MIN_SEC -> 0L
-                else -> (saved.positionSec * 1000).toLong()
+            if (item == null) item = api.item(id)
+            val answer = api.playback(id, PlaybackRequest(PROFILE, ask.audio, ask.subtitle, ask.startSec))
+            val changed = answer.url != stream?.url
+            stream = answer
+            if (changed) {
+                val media = MediaItem.Builder().setUri(api.mediaUrl(answer.url))
+                if (answer.protocol == "hls") media.setMimeType(MimeTypes.APPLICATION_M3U8)
+                val chosen = answer.subtitles.firstOrNull { it.index == answer.subtitleIndex }
+                if (chosen != null && chosen.delivery == "sidecar" && chosen.url.isNotEmpty()) {
+                    media.setSubtitleConfigurations(
+                        listOf(
+                            MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(api.mediaUrl(chosen.url)))
+                                .setMimeType(MimeTypes.TEXT_VTT)
+                                .setLanguage(chosen.language)
+                                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                                .build(),
+                        ),
+                    )
+                }
+                player.setMediaItem(media.build(), (answer.startAtSec * 1000).toLong())
+                player.prepare()
+                player.playWhenReady = true
             }
-            val media = MediaItem.Builder().setUri(api.mediaUrl(play.url))
-            if (play.type == "hls") media.setMimeType(MimeTypes.APPLICATION_M3U8)
-            player.setMediaItem(media.build(), start)
-            player.prepare()
-            player.playWhenReady = true
+            // Tracks the player can switch itself: embedded, renditions and sidecars.
+            val audio = answer.audio.firstOrNull { it.index == answer.audioIndex }
+            val text = answer.subtitles.firstOrNull { it.index == answer.subtitleIndex }
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setPreferredAudioLanguage(audio?.language?.ifEmpty { null })
+                .setPreferredTextLanguage(text?.language?.ifEmpty { null })
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, text == null || answer.subtitleDelivery == "burn")
+                .build()
         } catch (e: Exception) {
             if (!nav.handleExpired(e)) error = e.message.orEmpty()
         }
     }
 
     LaunchedEffect(player) {
-        var sinceSave = 0L
+        var sinceSave = 0
         while (true) {
             delay(1000)
-            position = player.currentPosition
-            sinceSave += 1000
-            if (sinceSave >= PROGRESS_EVERY_MS && player.isPlaying) {
+            filmSec = currentFilmSec()
+            if (++sinceSave >= PROGRESS_EVERY_SEC && player.isPlaying) {
                 sinceSave = 0
                 saveProgress()
             }
         }
     }
-    DisposableEffect(Unit) { onDispose { saveProgress() } }
+
+    // Leaving: save the place and stop the conversion straight away. This runs
+    // before the player's own effect above, so the player can still be read.
+    DisposableEffect(Unit) {
+        onDispose {
+            saveProgress()
+            val streamId = stream?.streamId.orEmpty()
+            if (streamId.isNotEmpty()) nav.app.scope.launch { runCatching { api.stopStream(streamId) } }
+        }
+    }
+
+    LaunchedEffect(countdown) {
+        val left = countdown ?: return@LaunchedEffect
+        val next = stream?.nextId ?: return@LaunchedEffect
+        if (left <= 0) {
+            nav.replace(Route.Player(next, false))
+        } else {
+            delay(1000)
+            countdown = left - 1
+        }
+    }
 
     LaunchedEffect(controls, interactions, playing) {
         if (controls && playing && picker == Picker.None) {
@@ -183,10 +226,20 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
     }
     LaunchedEffect(controls) { if (!controls) runCatching { rootFocus.requestFocus() } }
 
-    fun seekBy(ms: Long) {
-        val duration = player.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
-        player.seekTo((player.currentPosition + ms).coerceIn(0, duration))
-        position = player.currentPosition
+    // How far can be reached depends on the stream: a growing one has to be
+    // reopened to go past what exists so far (see `seek` in docs/CLIENT-API.md).
+    fun seekFilm(targetSec: Double) {
+        val current = stream ?: return
+        val target = targetSec.coerceIn(0.0, current.durationSec.takeIf { it > 0 } ?: Double.MAX_VALUE)
+        val inPlayer = target - current.timeOffsetSec
+        val known = player.duration.takeIf { it != C.TIME_UNSET }?.div(1000.0)
+        val reachable = current.seek != "restart" || (inPlayer >= 0 && known != null && inPlayer <= known)
+        if (reachable) {
+            player.seekTo((inPlayer * 1000).toLong())
+        } else {
+            ask = ask.copy(startSec = target, attempt = ask.attempt + 1)
+        }
+        filmSec = target
     }
     fun playPause() { if (player.isPlaying) player.pause() else player.play() }
 
@@ -198,15 +251,16 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_SPACE -> playPause()
             KeyEvent.KEYCODE_MEDIA_PLAY -> player.play()
             KeyEvent.KEYCODE_MEDIA_PAUSE -> player.pause()
-            KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_BUTTON_L1 -> seekBy(-SEEK_MS)
-            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_BUTTON_R1 -> seekBy(SEEK_MS)
+            KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_BUTTON_L1 -> seekFilm(currentFilmSec() - SEEK_SEC)
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_BUTTON_R1 -> seekFilm(currentFilmSec() + SEEK_SEC)
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_ESCAPE -> when {
+                countdown != null -> countdown = null
                 picker != Picker.None -> picker = Picker.None
                 controls && playing -> controls = false
                 else -> nav.pop()
             }
-            KeyEvent.KEYCODE_DPAD_LEFT -> if (controls) return false else seekBy(-SEEK_MS)
-            KeyEvent.KEYCODE_DPAD_RIGHT -> if (controls) return false else seekBy(SEEK_MS)
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (controls) return false else seekFilm(currentFilmSec() - SEEK_SEC)
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (controls) return false else seekFilm(currentFilmSec() + SEEK_SEC)
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> if (controls) return false else controls = true
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_A -> if (controls) return false else controls = true
             else -> return false
@@ -231,42 +285,50 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
             factory = { PlayerView(it).apply { useController = false; this.player = player } },
             modifier = Modifier.fillMaxSize(),
         )
+        val left = countdown
         if (error.isNotEmpty()) {
             Column(Modifier.align(Alignment.Center).padding(32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ErrorText(error)
                 ActionButton("Back", nav::pop, requestFocus = true)
             }
+        } else if (left != null) {
+            Column(Modifier.align(Alignment.Center).padding(32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Next episode in $left", color = Color.White)
+                ActionButton("Cancel", { countdown = null; nav.pop() }, requestFocus = true)
+            }
         } else if (controls) {
+            val intro = stream?.intro
             Controls(
                 title = item?.title.orEmpty(),
                 playing = playing,
-                position = position,
-                duration = ((info?.durationSec ?: 0.0) * 1000).toLong(),
-                intro = item?.let { i ->
-                    val end = i.introEnd
-                    val start = i.introStart ?: 0.0
-                    if (end != null && position / 1000.0 >= start && position / 1000.0 < end - 1) end else null
-                },
-                hasAudioChoice = (info?.audio?.size ?: 0) > 1,
-                hasSubtitles = (info?.subtitles?.size ?: 0) > 0,
+                filmSec = filmSec,
+                durationSec = stream?.durationSec ?: 0.0,
+                introEndSec = intro?.takeIf { filmSec >= it.startSec && filmSec < it.endSec - 1 }?.endSec,
+                hasAudioChoice = (stream?.audio?.size ?: 0) > 1,
+                hasSubtitles = (stream?.subtitles?.size ?: 0) > 0,
                 onPlayPause = { interactions++; playPause() },
-                onSeekBack = { interactions++; seekBy(-SEEK_MS) },
-                onSeekForward = { interactions++; seekBy(SEEK_MS) },
-                onSeekTo = { interactions++; player.seekTo(it) },
-                onSkipIntro = { end -> interactions++; player.seekTo((end * 1000).toLong()) },
+                onSeekBack = { interactions++; seekFilm(currentFilmSec() - SEEK_SEC) },
+                onSeekForward = { interactions++; seekFilm(currentFilmSec() + SEEK_SEC) },
+                onSeekTo = { interactions++; seekFilm(it) },
+                onSkipIntro = { interactions++; seekFilm(it) },
                 onAudio = { picker = Picker.Audio },
                 onSubtitles = { picker = Picker.Subtitles },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
-        val current = info
+        val current = stream
         if (picker != Picker.None && current != null) {
             TrackList(
                 tracks = if (picker == Picker.Audio) current.audio else current.subtitles,
-                selected = if (picker == Picker.Audio) audio else subtitle,
+                selected = if (picker == Picker.Audio) current.audioIndex else current.subtitleIndex,
                 allowOff = picker == Picker.Subtitles,
                 onPick = { index ->
-                    if (picker == Picker.Audio) audio = index else subtitle = index
+                    val at = currentFilmSec()
+                    ask = if (picker == Picker.Audio) {
+                        ask.copy(audio = index, startSec = at, attempt = ask.attempt + 1)
+                    } else {
+                        ask.copy(subtitle = index, startSec = at, attempt = ask.attempt + 1)
+                    }
                     picker = Picker.None
                 },
                 modifier = Modifier.align(Alignment.Center),
@@ -279,31 +341,38 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
 private fun Controls(
     title: String,
     playing: Boolean,
-    position: Long,
-    duration: Long,
-    intro: Double?,
+    filmSec: Double,
+    durationSec: Double,
+    introEndSec: Double?,
     hasAudioChoice: Boolean,
     hasSubtitles: Boolean,
     onPlayPause: () -> Unit,
     onSeekBack: () -> Unit,
     onSeekForward: () -> Unit,
-    onSeekTo: (Long) -> Unit,
+    onSeekTo: (Double) -> Unit,
     onSkipIntro: (Double) -> Unit,
     onAudio: () -> Unit,
     onSubtitles: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The bar follows a finger or the remote, and only seeks once it is let go:
+    // on a growing stream each seek can mean opening a new one.
+    var dragging by remember { mutableStateOf<Float?>(null) }
     Column(
         modifier.fillMaxWidth().background(Color(0xCC000000)).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(title, color = Color.White)
-        if (intro != null) ActionButton("Skip intro", { onSkipIntro(intro) }, primary = true)
-        if (duration > 0) {
+        if (introEndSec != null) ActionButton("Skip intro", { onSkipIntro(introEndSec) }, primary = true)
+        if (durationSec > 0) {
             Slider(
-                value = position.coerceIn(0, duration).toFloat(),
-                onValueChange = { onSeekTo(it.toLong()) },
-                valueRange = 0f..duration.toFloat(),
+                value = dragging ?: filmSec.coerceIn(0.0, durationSec).toFloat(),
+                onValueChange = { dragging = it },
+                onValueChangeFinished = {
+                    dragging?.let { onSeekTo(it.toDouble()) }
+                    dragging = null
+                },
+                valueRange = 0f..durationSec.toFloat(),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -313,7 +382,7 @@ private fun Controls(
             ActionButton("Forward 10 s", onSeekForward)
             if (hasAudioChoice) ActionButton("Audio", onAudio)
             if (hasSubtitles) ActionButton("Subtitles", onSubtitles)
-            Text("${clock(position)} / ${clock(duration)}", color = Color.White)
+            Text("${clock(filmSec)} / ${clock(durationSec)}", color = Color.White)
         }
     }
 }

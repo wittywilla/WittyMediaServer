@@ -36,10 +36,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.wittywilla.wittymediaclient.data.SavedServer
 import com.wittywilla.wittymediaclient.net.Address
 import com.wittywilla.wittymediaclient.net.ApiError
@@ -47,6 +51,7 @@ import com.wittywilla.wittymediaclient.net.Probe
 import com.wittywilla.wittymediaclient.net.Profile
 import com.wittywilla.wittymediaclient.net.Profiles
 import com.wittywilla.wittymediaclient.net.probeServer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private fun reasonText(s: Map<String, String>, reason: String) = when (reason) {
@@ -56,6 +61,8 @@ private fun reasonText(s: Map<String, String>, reason: String) = when (reason) {
     "public-http" -> s["errPublicHttp"]
     "unreachable" -> s["errUnreachable"]
     "not-server" -> s["errNotServer"]
+    "not-set-up" -> s["errNotSetUp"]
+    "server-old" -> s["errServerOld"]
     else -> s["errInvalid"]
 }.orEmpty()
 
@@ -120,7 +127,6 @@ fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
             when (val r = probeServer(url)) {
                 is Probe.Found -> {
                     nav.openServer(SavedServer(url, r.status.brandName.ifEmpty { r.status.name }))
-                    nav.app.api.resolveApiPath()
                     nav.themeId = r.status.theme
                     nav.reset(Route.SignIn)
                 }
@@ -166,10 +172,59 @@ fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
     }
 }
 
+// The TV shows a code; someone already signed in on a phone or computer approves
+// it, so nobody has to type a password with a remote. See docs/CLIENT-API.md.
+@Composable
+private fun PairPanel(nav: Nav, s: Map<String, String>, onUsePassword: () -> Unit) {
+    var round by remember { mutableStateOf(0) }
+    var code by remember { mutableStateOf("") }
+    var approveAt by remember { mutableStateOf("") }
+    var problem by remember { mutableStateOf("") }
+
+    LaunchedEffect(round) {
+        code = ""
+        problem = ""
+        try {
+            val start = nav.app.api.pairStart("${Build.MANUFACTURER} ${Build.MODEL}".take(60), if (nav.app.isTv) "Android TV" else "Android")
+            code = start.code
+            approveAt = nav.app.api.base + start.approvePath
+            var wait = start.intervalSec.coerceAtLeast(1)
+            while (true) {
+                delay(wait * 1000L)
+                val poll = nav.app.api.pairPoll(start.deviceSecret)
+                when (poll.status) {
+                    "approved" -> { nav.signedIn(poll.token); return@LaunchedEffect }
+                    "denied" -> { problem = s["pairDenied"].orEmpty(); code = ""; return@LaunchedEffect }
+                    "expired" -> { problem = s["pairExpired"].orEmpty(); code = ""; return@LaunchedEffect }
+                    "slow-down" -> wait = (poll.intervalSec.coerceAtLeast(wait)) + 1
+                }
+            }
+        } catch (e: ApiError) {
+            problem = e.message.orEmpty()
+        } catch (_: java.io.IOException) {
+            problem = s["errLost"].orEmpty()
+        }
+    }
+
+    Heading(s["pairTitle"].orEmpty())
+    if (code.isNotEmpty()) {
+        Secondary(s["pairHint"].orEmpty())
+        Text(approveAt, color = MaterialTheme.colorScheme.onBackground)
+        Text(code, color = MaterialTheme.colorScheme.onBackground, fontSize = 44.sp, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { contentDescription = code.toList().joinToString(" ") })
+        Secondary(s["pairWaiting"].orEmpty())
+    }
+    ErrorText(problem)
+    if (code.isEmpty() && problem.isNotEmpty()) ActionButton(s["pairNew"].orEmpty(), { round++ }, Modifier.fillMaxWidth(), primary = true, requestFocus = true)
+    ActionButton(s["usePassword"].orEmpty(), onUsePassword, Modifier.fillMaxWidth(), requestFocus = code.isNotEmpty())
+    ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SignInScreen(nav: Nav, s: Map<String, String>) {
     val scope = rememberCoroutineScope()
+    // On a TV the code comes first. Everywhere else a keyboard is at hand.
+    var useCode by rememberSaveable { mutableStateOf(nav.app.isTv) }
     var profiles by remember { mutableStateOf<Profiles?>(null) }
     var chosen by remember { mutableStateOf<Profile?>(null) }
     var useForm by rememberSaveable { mutableStateOf(false) }
@@ -202,6 +257,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
     val list = profiles
     Centred {
         when {
+            useCode -> PairPanel(nav, s) { useCode = false }
             list == null -> Loading()
             chosen != null -> {
                 val who = chosen!!
@@ -221,6 +277,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
                     }
                 }
                 ActionButton("Sign in with another account", { useForm = true }, Modifier.fillMaxWidth())
+                ActionButton(s["useCode"].orEmpty(), { useCode = true }, Modifier.fillMaxWidth())
                 ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
             }
             else -> {
@@ -230,6 +287,7 @@ fun SignInScreen(nav: Nav, s: Map<String, String>) {
                 ErrorText(error)
                 ActionButton("Sign in", { login(name, password) }, Modifier.fillMaxWidth(), primary = true, enabled = !busy)
                 if (list.profiles.isNotEmpty()) ActionButton(s["back"].orEmpty(), { useForm = false; error = "" }, Modifier.fillMaxWidth())
+                ActionButton(s["useCode"].orEmpty(), { useCode = true }, Modifier.fillMaxWidth())
                 ActionButton(s["changeServer"].orEmpty(), nav::changeServer, Modifier.fillMaxWidth())
             }
         }

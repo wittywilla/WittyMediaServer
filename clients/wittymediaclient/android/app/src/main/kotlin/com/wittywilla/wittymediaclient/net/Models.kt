@@ -50,6 +50,7 @@ data class Progress(
     val positionSec: Double = 0.0,
     val durationSec: Double = 0.0,
     val watched: Boolean = false,
+    val resumeSec: Double = 0.0, // where Resume goes; 0 means start over
 )
 
 @Serializable
@@ -129,21 +130,73 @@ data class ShowPage(val shows: List<Show> = emptyList(), val total: Int = 0)
 data class Track(
     val index: Int = 0,
     val language: String = "",
+    val languageName: String = "",
     val title: String = "",
     val codec: String = "",
     val channels: Int = 0,
+    val delivery: String = "",
+    val url: String = "",
 )
 
 @Serializable
-data class PlayInfo(
-    val type: String = "hls",
+data class Intro(val startSec: Double = 0.0, val endSec: Double = 0.0)
+
+// What POST /items/{id}/playback answers: see docs/CLIENT-API.md. The film's
+// position is always the player's time plus timeOffsetSec.
+@Serializable
+data class Playback(
+    val decision: String = "",
+    val protocol: String = "",
     val url: String = "",
+    val streamId: String = "",
     val durationSec: Double = 0.0,
+    val seek: String = "native",
+    val startAtSec: Double = 0.0,
+    val timeOffsetSec: Double = 0.0,
     val audio: List<Track> = emptyList(),
     val subtitles: List<Track> = emptyList(),
     val audioIndex: Int = 0,
     val subtitleIndex: Int = -1,
+    val subtitleDelivery: String = "none",
+    val intro: Intro? = null,
+    val nextId: Long? = null,
 )
+
+// Left out, a field lets the server decide: which tracks, and where to resume.
+@Serializable
+data class PlaybackRequest(
+    val profile: String,
+    val audio: Int? = null,
+    val subtitle: Int? = null,
+    val startSec: Double? = null,
+)
+
+@Serializable
+data class Capabilities(
+    val server: String = "",
+    val version: String = "",
+    val apiVersion: Int = 0,
+    val setupRequired: Boolean = false,
+    val features: List<String> = emptyList(),
+)
+
+@Serializable
+data class PairStart(
+    val code: String = "",
+    val deviceSecret: String = "",
+    val expiresInSec: Int = 600,
+    val intervalSec: Int = 3,
+    val approvePath: String = "/pair",
+)
+
+@Serializable
+data class PairPoll(val status: String = "", val token: String = "", val intervalSec: Int = 0)
+
+@Serializable
+data class PairStartRequest(val device: String, val platform: String)
+
+@Serializable
+data class PairPollRequest(val deviceSecret: String)
 
 @Serializable
 data class ProgressReport(val positionSec: Double, val durationSec: Double)

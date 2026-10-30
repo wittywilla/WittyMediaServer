@@ -1,0 +1,29 @@
+{
+  "itemId": 42,
+  "decision": "remux",
+  "reasons": ["audio-codec"],
+  "protocol": "hls",
+  "url": "/api/hls/v-abc/master.m3u8?st=st_sample",
+  "streamToken": "st_sample",
+  "tokenExpiresInSec": 1800,
+  "streamId": "v-abc",
+  "durationSec": 1354.048,
+  "container": "matroska",
+  "seek": "restart",
+  "startAtSec": 0,
+  "timeOffsetSec": 600,
+  "resumeSec": 600,
+  "audio": [
+    { "index": 0, "language": "eng", "languageName": "English", "codec": "ac3", "channels": 2, "default": true },
+    { "index": 1, "language": "fre", "languageName": "French", "title": "Commentary", "codec": "ac3", "channels": 2 }
+  ],
+  "subtitles": [
+    { "index": 0, "language": "eng", "languageName": "English", "title": "SDH", "codec": "subrip", "sdh": true, "text": true, "delivery": "hls", "url": "/api/hls/v-abc/subs/0.vtt?st=st_sample" }
+  ],
+  "audioIndex": 0,
+  "subtitleIndex": -1,
+  "subtitleDelivery": "none",
+  "intro": { "startSec": 30, "endSec": 95 },
+  "nextId": 43,
+  "progressUrl": "/api/items/42/progress"
+}

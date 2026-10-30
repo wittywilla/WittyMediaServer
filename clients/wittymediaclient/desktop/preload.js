@@ -26,5 +26,7 @@ if (location.protocol === 'file:') {
     const later = () => { clearTimeout(timer); timer = setTimeout(report, 150) }
     new MutationObserver(later).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     new MutationObserver(later).observe(document.head, { childList: true })
+    // A new stylesheet only applies once loaded, which is after it was added.
+    document.head.addEventListener('load', later, true)
   })
 }

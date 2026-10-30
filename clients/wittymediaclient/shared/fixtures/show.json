@@ -1,0 +1,9 @@
+{
+  "show": { "id": 3, "title": "A Sample Show", "year": null, "overview": "A show for tests.", "updatedAt": 1700000001, "episodeCount": 2, "seasonCount": 1, "unwatched": 1 },
+  "seasons": [{ "number": 1, "title": "", "overview": "", "poster": "", "episodeCount": 2, "unwatched": 1 }],
+  "episodes": [
+    { "id": 21, "kind": "video", "title": "Pilot", "showId": 3, "showTitle": "A Sample Show", "season": 1, "episode": 1, "nextId": 22, "runtimeSec": 1320, "updatedAt": 1700000001, "progress": { "positionSec": 1300, "durationSec": 1320, "watched": true } },
+    { "id": 22, "kind": "video", "title": "Second", "showId": 3, "showTitle": "A Sample Show", "season": 1, "episode": 2, "episodeEnd": 3, "introStart": 5, "introEnd": 65.5, "runtimeSec": 1320, "updatedAt": 1700000001 }
+  ],
+  "nextUpId": 22
+}

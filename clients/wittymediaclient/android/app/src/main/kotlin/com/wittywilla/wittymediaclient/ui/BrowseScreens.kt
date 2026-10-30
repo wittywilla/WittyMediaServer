@@ -246,8 +246,8 @@ fun ItemScreen(nav: Nav, id: Long) {
                     Secondary(listOfNotNull(it.year?.toString(), runtimeText(it.runtimeSec).ifEmpty { null }, it.contentRating.ifEmpty { null }).joinToString(" · "))
                     if (it.genres.isNotEmpty()) Secondary(it.genres.joinToString(", "))
                     if (it.kind == PLAYABLE) {
-                        val progress = it.progress
-                        val resume = progress != null && !progress.watched && progress.positionSec > RESUME_MIN_SEC
+                        // The server decides where Resume goes; 0 means start over.
+                        val resume = (it.progress?.resumeSec ?: 0.0) > 0
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ActionButton(if (resume) "Resume" else "Play", { nav.push(Route.Player(it.id, false)) }, primary = true, requestFocus = true)
                             if (resume) ActionButton("Start over", { nav.push(Route.Player(it.id, true)) })
@@ -262,6 +262,3 @@ fun ItemScreen(nav: Nav, id: Long) {
         }
     }
 }
-
-// The same rule as the web client: resume past the first minute.
-const val RESUME_MIN_SEC = 60.0

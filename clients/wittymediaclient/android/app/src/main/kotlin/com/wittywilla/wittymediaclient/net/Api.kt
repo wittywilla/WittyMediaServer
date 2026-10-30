@@ -23,14 +23,14 @@ val json = Json {
 }
 
 private val JSON_TYPE = "application/json".toMediaType()
-private val API_PATH = Regex("^/api(/v[0-9]+)?$")
+private const val API = "/api/v1" // the contract: docs/CLIENT-API.md
 
 // One connection to one server. The token only ever goes to that server, in a
 // header, so it stays out of URLs and logs. Redirects from https to http are refused.
 class Api(val base: String, val token: String) {
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS) // the first play request probes the file
+        .readTimeout(60, TimeUnit.SECONDS) // the first playback request probes the file
         .followSslRedirects(false)
         .addInterceptor(Interceptor { chain ->
             val req = chain.request()
@@ -40,35 +40,27 @@ class Api(val base: String, val token: String) {
         })
         .build()
 
-    // Where this server's API lives. Newer servers name a versioned path; older
-    // ones don't know the question and keep the plain one.
-    @Volatile
-    private var apiPath = "/api"
+    private fun errorText(status: Int, text: String) =
+        runCatching { json.parseToJsonElement(text).jsonObject["error"]?.jsonPrimitive?.content }.getOrNull()
+            ?: "The server answered with an error ($status)."
 
-    suspend fun resolveApiPath() {
-        val named = runCatching {
-            json.parseToJsonElement(call("GET", "/capabilities")).jsonObject["apiBase"]?.jsonPrimitive?.content
-        }.getOrNull()
-        if (named != null && API_PATH.matches(named)) apiPath = named
-    }
-
-    private suspend fun call(method: String, path: String, body: String? = null): String = withContext(Dispatchers.IO) {
+    private suspend fun raw(method: String, path: String, body: String?): Pair<Int, String> = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("$base$apiPath$path")
+            .url("$base$API$path")
             .method(method, body?.toRequestBody(JSON_TYPE))
             .build()
-        http.newCall(request).execute().use { res ->
-            val text = res.body.string()
-            if (!res.isSuccessful) {
-                val message = runCatching { json.parseToJsonElement(text).jsonObject["error"]?.jsonPrimitive?.content }.getOrNull()
-                throw ApiError(res.code, message ?: "The server answered with an error (${res.code}).")
-            }
-            text
-        }
+        http.newCall(request).execute().use { res -> res.code to res.body.string() }
+    }
+
+    private suspend fun call(method: String, path: String, body: String? = null): String {
+        val (status, text) = raw(method, path, body)
+        if (status !in 200..299) throw ApiError(status, errorText(status, text))
+        return text
     }
 
     private suspend inline fun <reified T> get(path: String): T = json.decodeFromString(call("GET", path))
 
+    suspend fun capabilities(): Capabilities = get("/capabilities")
     suspend fun status(): ServerStatus = get("/status")
     suspend fun profiles(): Profiles = get("/profiles")
     suspend fun home(): Home = get("/home")
@@ -77,10 +69,27 @@ class Api(val base: String, val token: String) {
     suspend fun shows(library: Long): ShowPage = get("/shows?library=$library&sort=title")
     suspend fun items(library: Long, offset: Int, limit: Int): ItemPage =
         get("/items?library=$library&offset=$offset&limit=$limit&sort=title")
-    suspend fun play(id: Long, audio: Int, subtitle: Int): PlayInfo = get("/items/$id/play?audio=$audio&subtitle=$subtitle")
+
+    suspend fun playback(id: Long, request: PlaybackRequest): Playback =
+        json.decodeFromString(call("POST", "/items/$id/playback", json.encodeToString(request)))
+
+    // Stops the conversion at once when the viewer leaves.
+    suspend fun stopStream(streamId: String) {
+        call("DELETE", "/hls/$streamId")
+    }
 
     suspend fun login(name: String, password: String, device: String): LoginResult =
         json.decodeFromString(call("POST", "/login", json.encodeToString(Credentials(name, password, device))))
+
+    suspend fun pairStart(device: String, platform: String): PairStart =
+        json.decodeFromString(call("POST", "/pair/start", json.encodeToString(PairStartRequest(device, platform))))
+
+    // Denied, expired and slow-down are normal answers here, not errors.
+    suspend fun pairPoll(deviceSecret: String): PairPoll {
+        val (status, text) = raw("POST", "/pair/poll", json.encodeToString(PairPollRequest(deviceSecret)))
+        if (status in 200..299 || status == 403 || status == 410 || status == 429) return json.decodeFromString(text)
+        throw ApiError(status, errorText(status, text))
+    }
 
     suspend fun saveProgress(id: Long, positionSec: Double, durationSec: Double) {
         call("POST", "/items/$id/progress", json.encodeToString(ProgressReport(positionSec, durationSec)))
@@ -90,24 +99,35 @@ class Api(val base: String, val token: String) {
         call("POST", "/logout", "{}")
     }
 
-    fun posterUrl(it: Item) = "$base$apiPath/items/${it.id}/poster?v=${it.updatedAt}"
-    fun showPosterUrl(s: Show) = "$base$apiPath/shows/${s.id}/art/poster?v=${s.updatedAt}"
-    fun mediaUrl(path: String) = if (path.startsWith("http")) path else base + path
+    fun posterUrl(it: Item) = "$base$API/items/${it.id}/poster?v=${it.updatedAt}"
+    fun showPosterUrl(s: Show) = "$base$API/shows/${s.id}/art/poster?v=${s.updatedAt}"
+
+    // Addresses in answers start with /api/: the server's address goes in front, nothing else changes.
+    fun mediaUrl(path: String) = base + path
 }
 
-// Asks an address whether it is a WittyMediaServer, in words for the connect screen.
+// Asks an address whether it is a WittyMediaServer this app can use.
 sealed interface Probe {
     data class Found(val status: ServerStatus) : Probe
     data class Failed(val reason: String) : Probe
 }
 
-suspend fun probeServer(url: String): Probe = try {
-    val status = Api(url, "").status()
-    if (status.name == "WittyMediaServer") Probe.Found(status) else Probe.Failed("not-server")
-} catch (_: IOException) {
-    Probe.Failed("unreachable")
-} catch (_: ApiError) {
-    Probe.Failed("not-server")
-} catch (_: kotlinx.serialization.SerializationException) {
-    Probe.Failed("not-server")
+suspend fun probeServer(url: String): Probe {
+    val api = Api(url, "")
+    return try {
+        val caps = api.capabilities()
+        when {
+            caps.server != "WittyMediaServer" -> Probe.Failed("not-server")
+            caps.setupRequired -> Probe.Failed("not-set-up")
+            else -> Probe.Found(api.status())
+        }
+    } catch (_: IOException) {
+        Probe.Failed("unreachable")
+    } catch (e: ApiError) {
+        // No /capabilities: an older server, if it says it is one at all.
+        val old = e.status == 404 && runCatching { api.status().name == "WittyMediaServer" }.getOrDefault(false)
+        Probe.Failed(if (old) "server-old" else "not-server")
+    } catch (_: kotlinx.serialization.SerializationException) {
+        Probe.Failed("not-server")
+    }
 }

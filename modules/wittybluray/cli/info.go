@@ -14,7 +14,7 @@ import (
 // Bluray runs the bluray subcommands: info, playlist.
 func Bluray(args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: bluray info|playlist|menu|walk|render <image-or-folder> [args]")
+		fmt.Fprintln(os.Stderr, "usage: bluray info|playlist|menu|walk|render|bdj <image-or-folder> [args]")
 		return 2
 	}
 	d, err := wittybluray.Open(args[1])
@@ -42,6 +42,16 @@ func Bluray(args []string) int {
 			presses = append(presses, n)
 		}
 		return walk(d, presses)
+	case "bdj":
+		// bluray bdj <disc> [seconds] [picture.png]: without seconds, nothing runs.
+		secs, out := 0, ""
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d", &secs)
+		}
+		if len(args) > 3 {
+			out = args[3]
+		}
+		return bdjInfo(d, secs, out)
 	case "render":
 		if len(args) < 3 {
 			fmt.Fprintln(os.Stderr, "usage: bluray render <image-or-folder> <out-dir>")

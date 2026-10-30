@@ -193,3 +193,8 @@ func safeName(s string) bool {
 	}
 	return true
 }
+
+// ReadProgramFile reads a file of the disc's program by its path under BDMV.
+func (d *Disc) ReadProgramFile(rel string, max int64) ([]byte, error) {
+	return d.Source.ReadFile(d.layout.root+"/"+rel, max)
+}

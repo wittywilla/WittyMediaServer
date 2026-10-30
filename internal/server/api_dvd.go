@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -231,6 +232,48 @@ func (s *Server) handleDVDEffect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	_, _ = w.Write(png)
+}
+
+// handleBDJPoll waits for a disc's BD-J applications to change something.
+func (s *Server) handleBDJPoll(w http.ResponseWriter, r *http.Request) {
+	sid := r.PathValue("sid")
+	sess := s.BD.Get(sid)
+	if sess == nil {
+		writeErr(w, 404, "disc session expired; open it again")
+		return
+	}
+	since, _ := strconv.Atoi(r.URL.Query().Get("since"))
+	writeJSON(w, 200, sess.PollBDJ(r.Context(), since))
+}
+
+// handleBDJFrame serves the applications' graphics.
+func (s *Server) handleBDJFrame(w http.ResponseWriter, r *http.Request) {
+	sess := s.BD.Get(r.PathValue("sid"))
+	if sess == nil {
+		writeErr(w, 404, "disc session expired; open it again")
+		return
+	}
+	png, ok := sess.BDJFrame()
+	if !ok {
+		writeErr(w, 404, "no frame")
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(png)
+}
+
+// handleBDJStatus says whether this machine can run BD-J, for the settings page.
+func (s *Server) handleBDJStatus(w http.ResponseWriter, r *http.Request) {
+	path := s.DB.GetSetting(r.Context(), "javaPath", "")
+	out := map[string]any{"enabled": s.DB.GetSetting(r.Context(), "bdjEnabled", "0") == "1"}
+	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, path)
+	if err != nil {
+		out["error"] = err.Error()
+	} else {
+		out["version"], out["path"] = version, where
+	}
+	writeJSON(w, 200, out)
 }
 
 // handleDVDSound serves a button sound as WAV.

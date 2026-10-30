@@ -40,6 +40,17 @@ type Presentation struct {
 	// Pause is set when a disc's button froze or released the picture
 	// (Blu-ray STILL_ON and STILL_OFF): true = hold, false = go on.
 	Pause *bool `json:"pause,omitempty"`
+	// BDJ is set when a disc's BD-J applications are on screen: their graphics
+	// lie over the video and the viewer's keys go to them.
+	BDJ *BDJView `json:"bdj,omitempty"`
+}
+
+// BDJView tells the player where to follow a disc's BD-J applications.
+type BDJView struct {
+	PollURL string `json:"pollUrl"`
+	// Video is where the applications have placed the video, on a 1920x1080
+	// frame (x, y, w, h); empty = full screen.
+	Video []int `json:"video,omitempty"`
 }
 
 // Media describes the picture/sound for the current step.

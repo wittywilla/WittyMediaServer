@@ -79,7 +79,7 @@ export type DiscLabels = { titles: Record<string, string>; chapters: Record<stri
 export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string
   text?: string; color?: string; outline?: string; size?: number; halign?: number; valign?: number; bold?: boolean; italic?: boolean }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
-export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean; bdj?: { pollUrl: string; video?: number[] } }
 export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number }
 
 const TOKEN_KEY = 'wms.token'

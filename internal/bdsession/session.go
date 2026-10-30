@@ -48,6 +48,7 @@ type Manager struct {
 	CacheDir string
 	BaseURL  string
 	Log      *slog.Logger
+	BDJ      BDJConfig // nil = BD-J is off
 	mu       sync.Mutex
 	sessions map[string]*Session
 }
@@ -99,6 +100,7 @@ type Session struct {
 	timerAt   time.Time
 	// The viewer's subtitle language is applied once, to the first title.
 	subsApplied bool
+	bd          *bdjState
 }
 
 // playing is a playlist laid out on one timeline.
@@ -213,7 +215,10 @@ func (s *Session) lastUsed() time.Time {
 }
 
 // Close releases the disc.
-func (s *Session) Close() { _ = s.disc.Close() }
+func (s *Session) Close() {
+	s.closeBDJ()
+	_ = s.disc.Close()
+}
 
 // Current is the presentation now showing.
 func (s *Session) Current() *Presentation {
@@ -270,6 +275,9 @@ func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 	defer s.mu.Unlock()
 	if st := s.tickTimer(); st != nil {
 		return s.show(ctx, st)
+	}
+	if p, ok := s.bdjAction(ctx, a); ok {
+		return p
 	}
 	s.touchMenuState()
 	cur := s.current
@@ -589,10 +597,12 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 	case wittybluray.StepStay:
 		return s.current
 	case wittybluray.StepStop:
+		s.leaveBDJ()
 		return s.stop(st.Reason, false)
 	case wittybluray.StepUnsupported:
 		return s.presentBDJ(ctx, st, rebuild)
 	}
+	s.leaveBDJ()
 	if st.Playlist == nil {
 		return s.stop("nothing to play", false)
 	}
@@ -644,9 +654,12 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 	return p
 }
 
-// presentBDJ handles a BD-J title without Java: what the title's own object
-// says it plays, else the main feature.
+// presentBDJ runs a BD-J title when the server can. Otherwise it plays what
+// the title's own object says it plays, else the main feature.
 func (s *Session) presentBDJ(ctx context.Context, st *wittybluray.Step, rebuild bool) *Presentation {
+	if p, ok := s.startBDJTitle(ctx, st); ok {
+		return p
+	}
 	var pl *wittybluray.Playlist
 	if st.Title >= 1 && st.Title != 0xffff {
 		if o, err := s.disc.BDJObject(st.BDJ); err == nil && len(o.Playlists) > 0 {

@@ -117,6 +117,10 @@ func cmdServe(args []string) int {
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
+	bdMgr.BDJ = func() (bool, string) {
+		ctx := context.Background()
+		return database.GetSetting(ctx, "bdjEnabled", "0") == "1", database.GetSetting(ctx, "javaPath", "")
+	}
 
 	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}
 	if err := themeMgr.Install(builtinthemes.Builtin); err != nil {

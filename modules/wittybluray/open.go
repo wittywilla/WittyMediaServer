@@ -625,6 +625,75 @@ func structureNumber(name string, exts []string) (int, bool) {
 	return n, err == nil
 }
 
+// ExportProgram copies the disc's program files (not its video) into a
+// folder laid out as the disc is, for a BD-J runtime that reads them as files.
+// Every name is checked: a disc cannot place a file outside dst.
+func (d *Disc) ExportProgram(dst string, maxBytes int64) error {
+	var total int64
+	put := func(rel string, read func() ([]byte, error)) error {
+		rel = strings.ReplaceAll(rel, "\\", "/")
+		if !filepath.IsLocal(filepath.FromSlash(rel)) {
+			return fmt.Errorf("%q is not a file name a disc can have", rel)
+		}
+		b, err := read()
+		if err != nil {
+			return nil // one unreadable file should not stop the rest
+		}
+		if total += int64(len(b)); total > maxBytes {
+			return errors.New("the disc's program files are too large")
+		}
+		p := filepath.Join(dst, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(p, b, 0o644)
+	}
+	wanted := func(rel string) bool {
+		up := strings.ToUpper(rel)
+		root := strings.ToUpper(d.layout.root) + "/"
+		if !strings.HasPrefix(up, root) {
+			return false
+		}
+		return !strings.HasPrefix(up[len(root):], "STREAM/")
+	}
+	normal := func(rel string) string { return "BDMV" + rel[len(d.layout.root):] }
+	switch s := d.Source.(type) {
+	case *imageSource:
+		for _, f := range s.img.Files() {
+			if f.IsDir || !wanted(f.Path) {
+				continue
+			}
+			name := f.Path
+			if err := put(normal(name), func() ([]byte, error) { return s.img.ReadFile(name, maxBytes) }); err != nil {
+				return err
+			}
+		}
+	case *folderSource:
+		root := s.path(d.layout.root)
+		return filepath.WalkDir(root, func(p string, e os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			rel, rerr := filepath.Rel(root, p)
+			if rerr != nil {
+				return nil
+			}
+			rel = filepath.ToSlash(rel)
+			if e.IsDir() {
+				if strings.EqualFold(rel, "STREAM") {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if e.Type()&os.ModeSymlink != 0 {
+				return nil
+			}
+			return put("BDMV/"+rel, func() ([]byte, error) { return os.ReadFile(p) })
+		})
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------- sources
 
 type imageSource struct{ img *isofs.Disc }

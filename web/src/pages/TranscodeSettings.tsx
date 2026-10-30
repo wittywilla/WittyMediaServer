@@ -143,8 +143,30 @@ export default function TranscodeSettings() {
           Low-power mode for DVDs
           <Tip>DVD menus and titles use yadif instead of bwdif and the ultrafast preset. DVDs are standard definition, so the quality cost is small and a Raspberry Pi 4/5 or an Intel N100 can serve a disc in real time.</Tip>
         </label>
+        <BDJSettings s={s} set={set} saved={saved} />
         <div><button className="btn primary" onClick={save}>Save</button> {saved && <span className="ok" style={{ marginLeft: 10 }}>Saved — applies to newly started streams</span>}</div>
       </div>
     </div>
+  )
+}
+
+// BD-J: Blu-ray menus written in Java. Java is the server owner's to install,
+// and turning this on runs a disc's code, in a sandbox, so it starts off.
+function BDJSettings({ s, set, saved }: { s: Record<string, string>; set: (k: string, v: string) => void; saved: boolean }) {
+  const [status, setStatus] = useState<{ version?: string; path?: string; error?: string } | null>(null)
+  useEffect(() => { api.get<{ version?: string; path?: string; error?: string }>('/bdj/status').then(setStatus).catch(() => setStatus(null)) }, [saved])
+  return (
+    <>
+      <label className="check">
+        <input type="checkbox" checked={s.bdjEnabled === '1'} onChange={(e) => set('bdjEnabled', e.target.checked ? '1' : '0')} />
+        Run Blu-ray Java menus (BD-J)
+        <Tip wide>Many commercial Blu-rays write their menus in Java. To show them, install any Java 8 or newer on this server (for example Eclipse Temurin, a free OpenJDK build). WittyMediaServer does not include Java. A disc's Java code runs in its own process with no network and no access to your files outside the disc, but it is still code from the disc, so this is off until you turn it on. With it off, these discs play their main feature directly.</Tip>
+      </label>
+      {status && <div className="muted" style={{ fontSize: 13 }}>{status.version ? `Java ${status.version} found: ${status.path}` : `Java not usable: ${status.error}`}</div>}
+      <label>Java location <span className="muted">(optional)</span>
+        <Tip>Leave empty to find Java by itself (JAVA_HOME, the PATH, the usual folders). Otherwise the Java folder, or the java program inside it.</Tip>
+        <input className="input mono" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\\Program Files\\Eclipse Adoptium\\jdk-21" />
+      </label>
+    </>
   )
 }

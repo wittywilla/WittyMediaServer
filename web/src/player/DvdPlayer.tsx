@@ -197,8 +197,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   // A Blu-ray's button sounds: loaded on first use, then played at once.
   const sounds = useRef(new Map<string, HTMLAudioElement>())
-  const playSound = useCallback((id?: number) => {
-    const tpl = presRef.current?.menu?.soundUrl
+  const playSound = useCallback((id?: number, bdjSound?: boolean) => {
+    const tpl = bdjSound && sidRef.current ? `/api/dvd/${sidRef.current}/sound/{id}.wav` : presRef.current?.menu?.soundUrl
     if (!id || !tpl) return
     const url = mediaUrl(tpl.replace('{id}', String(id - 1)))
     let a = sounds.current.get(url)
@@ -206,6 +206,43 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     a.currentTime = 0
     a.play().catch(() => {})
   }, [])
+
+  // A disc's BD-J applications: their graphics come as pictures whenever they
+  // change, and everything else they do arrives with the same message.
+  const bdj = pres?.bdj
+  const bdjOn = !!bdj
+  const [bdjFrame, setBdjFrame] = useState<string | null>(null)
+  useEffect(() => {
+    if (!bdjOn || !sid) { setBdjFrame(null); return }
+    let stop = false, since = -1
+    const poll = async () => {
+      while (!stop) {
+        try {
+          const r = await api.get<{ change: number; frameUrl?: string; presentation?: Presentation; sounds?: number[]; pause?: boolean; seek?: number; gone?: boolean }>(`/dvd/${sid}/bdj?since=${since}`)
+          if (stop) return
+          since = r.change
+          if (r.frameUrl) setBdjFrame(r.frameUrl)
+          if (r.presentation) apply(r.presentation)
+          r.sounds?.forEach((id) => playSound(id + 1, true))
+          const v = video.current
+          if (v && r.pause != null) { if (r.pause) v.pause(); else v.play().catch(() => {}) }
+          if (v && r.seek != null) v.currentTime = r.seek
+          if (r.gone) return
+        } catch {
+          await new Promise((res) => setTimeout(res, 2000))
+        }
+      }
+    }
+    poll()
+    // The applications keep time by the video, so they hear where it is.
+    const tick = setInterval(() => {
+      const v = video.current
+      if (v && !v.paused) api.post(`/dvd/${sid}/action`, { type: 'tick', positionSec: v.currentTime }).catch(() => {})
+    }, 1000)
+    return () => { stop = true; clearInterval(tick) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bdjOn, sid])
+  const bdjKey = (key: string) => { const id = sidRef.current; if (id) api.post(`/dvd/${id}/action`, { type: 'key', key, positionSec: video.current?.currentTime || 0 }).catch(() => {}) }
 
   const pos = () => video.current?.currentTime || 0
   const titleMenu = () => act({ type: 'menu', menu: 'title', positionSec: pres?.kind === 'title' ? pos() : 0 })
@@ -481,6 +518,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const onRemote = (k: RemoteKey) => {
     const v = video.current
+    if (bdjOn && (k === 'up' || k === 'down' || k === 'left' || k === 'right' || k === 'enter' || k === 'menu' || k.startsWith('digit'))) { bdjKey(k); return }
     switch (k) {
       case 'eject': chrome.close(); break
       case 'topmenu': titleMenu(); break
@@ -525,6 +563,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const v = video.current
+      if (bdjOn) {
+        // The disc's applications have the remote; F1 to F4 are its colour keys.
+        const key = ({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'enter', m: 'menu', ContextMenu: 'menu', F1: 'red', F2: 'green', F3: 'yellow', F4: 'blue' } as Record<string, string>)[e.key]
+        if (key && !(e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .remote-bar, .view-settings')) { e.preventDefault(); bdjKey(key); return }
+        if (/^[0-9]$/.test(e.key)) { bdjKey('digit' + e.key); return }
+      }
       switch (e.key) {
         case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
           // Focus on the player's own controls: arrows move between them (see tv.ts).
@@ -597,7 +641,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       <div className={'stage' + (prefs.stereo !== 'off' ? ` stereo-${prefs.stereo}` : '')} ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
-        <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1 }} />
+        {/* A BD-J application can shrink the video into a corner of its own menu. */}
+        <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1, ...(bdj?.video?.length === 4 && rect ? { position: 'absolute', left: rect.left + bdj.video[0] / 1920 * rect.width, top: rect.top + bdj.video[1] / 1080 * rect.height, width: bdj.video[2] / 1920 * rect.width, height: bdj.video[3] / 1080 * rect.height } : {}) }} />
         {prefs.stereo !== 'off' && rect && <StereoLayer video={video} rect={rect} mode={prefs.stereo} out={prefs.stereoOut} />}
         {pres?.media?.type === 'still' && <img className="still" src={mediaUrl(pres.media.url!)} alt="" />}
         {lingerStill && <img className="still" src={mediaUrl(lingerStill)} alt="" />}
@@ -625,6 +670,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             ))}
           </div>
         )}
+        {bdjOn && bdjFrame && rect && <img className="bdj-layer" src={mediaUrl(bdjFrame)} alt="" style={{ position: 'absolute', left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: 'none' }} />}
         {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} forced={prefs.forcedSubs}
           stageH={stage.current?.clientHeight || 0} clear={prefs.remote && prefs.remoteStyle === 'bar' ? 150 : 104} />}
       </div>
@@ -682,8 +728,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
                 <div className="spacer" />
                 <button className="btn sm" onClick={() => act({ type: 'resume' })}>Resume</button>
                 <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: item.disc?.mainTitle || 1 })}><IconPlay /> Play movie</button>
-                {pres?.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
-                {pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
+                {!bdjOn && pres?.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
+                {!bdjOn && pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
                 {/* A picture held until the viewer acts, with nothing to press: a player's Play key goes on. */}
                 {pres?.media?.type === 'still' && pres.media.stillSec < 0 && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Continue</button>}
                 <button className={'btn sm remote-toggle' + (prefs.remote ? ' primary' : '')} onClick={() => setRemote(!prefs.remote)} aria-pressed={prefs.remote} title="Show or hide the on-screen remote (r)"><IconRemote /> <span>Remote</span></button>

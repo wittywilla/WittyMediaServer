@@ -14,6 +14,9 @@ the DVD-Video navigation model — the same logic a hardware DVD player runs.
 - [Diagnosing a disc](#diagnosing-a-disc)
 - [Limits](#limits)
 
+Working on the engine? [DVD-QUIRKS.md](DVD-QUIRKS.md) surveys the DVD-Video features and the
+quirks of real discs, and how WittyDVD handles each.
+
 ## Playing a disc
 
 On a DVD's page:
@@ -59,6 +62,9 @@ Press **Remote** (or `r`) for an on-screen DVD remote:
 You can also hover and click buttons with the mouse. The highlight moves instantly; the server
 is told in the background.
 
+A picture the disc holds until you act, with nothing to press, shows **Continue** (the Play key
+of a DVD player).
+
 The remote can be **moved** (drag its top bar), **resized** (drag the corner grip; double-click it
 to reset) and made **see-through** (the ◐ button cycles four levels). It remembers all three, and
 it fades while you're not moving the mouse.
@@ -68,6 +74,8 @@ it fades while you're not moving the mouse.
 - Audio and subtitle tracks are labelled with their purpose from the disc, e.g. *English ·
   Commentary · AC3 2ch* or *English · Captions*.
 - Changing the audio track restarts the stream **at the same moment** of the film.
+- Titles filmed from several **camera angles** (often the same scene with on-screen text in
+  another language) offer an *Angle* choice; switching also continues at the same moment.
 - Subtitles are drawn by the player from the disc's own subtitle pictures, so switching them is
   instant and they look exactly like on a DVD player. **Forced** subtitles (for alien languages,
   signs…) show even when subtitles are off.
@@ -118,6 +126,10 @@ players can use it too. The steps below name its files.
 Everything is written from the public DVD-Video structure; no libdvdnav/libdvdread code is used,
 and scrambled (CSS) discs are refused — WittyMediaServer never decrypts anything.
 
+Real discs bend the rules: still pictures that hold for minutes of sound, random and shuffled
+programs, decoy titles, broken IFOs with an intact backup, menus in only some languages.
+[DVD-QUIRKS.md](DVD-QUIRKS.md) lists what WittyDVD does with each.
+
 ## Diagnosing a disc
 
 The `wms` command-line tool inspects a disc without the web interface:
@@ -134,12 +146,16 @@ On Windows run these in a terminal in the WittyMediaServer folder (`.\wms.exe dv
 The same commands exist as a standalone tool, `wittydvd`, from the
 [WittyDVD repository](https://github.com/wittywilla/WittyDVD) (`wittydvd info SHREK_2.ISO`).
 When reporting a disc problem, attach the output of `info` and `crawl` — never the disc image.
+`walk` and `crawl` give the same output every run (the disc's random numbers come from a fixed
+seed), so two versions can be compared line by line.
 
 ## Limits
 
 - CSS-scrambled images are refused; make decrypted images of discs you own with a tool that is
   legal where you live.
-- Multi-angle scenes play the first angle (the *Angle* key is reserved).
+- Karaoke discs play all their channels mixed: guide vocals cannot be switched off.
+- The disc's prohibitions of skipping and seeking (on warning screens, for example) are not
+  enforced.
 - Blu-ray discs have their own engine and page: [BLURAY.md](BLURAY.md).
 
 ---

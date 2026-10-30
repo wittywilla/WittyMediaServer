@@ -34,9 +34,10 @@ DVD-Video navigation model.
 | 💿 | **Reads discs without mounting** | `.iso`/`.img` images (UDF and ISO 9660 bridge discs) and `VIDEO_TS` folders, through [WittyDisc](https://github.com/wittywilla/WittyDisc), which gives each file's byte ranges for a decoder such as FFmpeg |
 | 📋 | **Parses the disc's program** | VMG and VTS IFO tables: titles, program chains, programs and cells, menu languages, audio and sub-picture attributes, palettes, parental levels, regions |
 | ⚙️ | **Runs the disc's commands** | a virtual machine with 16 general and 24 system registers: links, jumps, calls, comparisons, arithmetic, the navigation timer |
-| 🧭 | **Navigates like a player** | first play, menus and titles, resume points, stills, menu loops, chapter skipping, and the title, root, audio, subtitle, angle and chapter menu keys |
+| 🧭 | **Navigates like a player** | first play, menus and titles, resume points, stills, menu loops, random and shuffled programs, parental blocks, chapter skipping, and the title, root, audio, subtitle, angle and chapter menu keys |
 | 🔘 | **Reads NAV packs** | button positions, colours and links (PCI), cell timing and seamless branching (DSI), interleaved multi-angle cells |
-| 🖼️ | **Decodes sub-pictures** | menu highlights and subtitles rendered to RGBA with the disc's palette, cropped to the button or line |
+| 🖼️ | **Decodes sub-pictures** | menu highlights and subtitles rendered to RGBA with the disc's palette, cropped to the button or line; every display control sequence and CHG_COLCON colour region |
+| 🩹 | **Copes with damaged discs** | a broken IFO is read from its backup (.BUP); junk cells and decoy titles used as structural copy protection are passed over safely |
 | 🔒 | **Refuses scrambled discs** | CSS-protected images are detected and refused; nothing is ever decrypted |
 | 🛠️ | **Diagnoses discs** | the `wittydvd` tool reports all of the above and simulates a run through the menus |
 

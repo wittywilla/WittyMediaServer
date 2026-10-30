@@ -11,7 +11,7 @@ import (
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
-	"serverName", "audioCodec", "lowPower", "bdjEnabled", "javaPath", "saveMetadata", "dvdStart", "insertFx", "episodeView",
+	"serverName", "audioCodec", "lowPower", "bdjEnabled", "javaPath", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",

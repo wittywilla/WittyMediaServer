@@ -68,6 +68,11 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),
 		Angle:            b.Angle,
+		DVDRegion:        s.intSetting(r.Context(), "dvdRegion"),
+		BDRegion:         s.intSetting(r.Context(), "blurayRegion"),
+		DVDParental:      s.intSetting(r.Context(), "dvdParental"),
+		BDAge:            s.intSetting(r.Context(), "blurayAge"),
+		Country:          s.DB.GetSetting(r.Context(), "discCountry", ""),
 	}
 	if b.Wide != nil {
 		prefs.Wide = *b.Wide
@@ -111,6 +116,11 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		p = sess.Start(r.Context())
 	}
 	writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": p})
+}
+
+func (s *Server) intSetting(ctx context.Context, key string) int {
+	n, _ := strconv.Atoi(s.DB.GetSetting(ctx, key, ""))
+	return n
 }
 
 func firstNonEmpty(v ...string) string {

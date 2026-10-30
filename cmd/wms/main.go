@@ -60,6 +60,7 @@ usage:
   wms bluray info <disc>     Blu-ray titles, program, playlists, clips and streams
   wms bluray walk <disc> [button…]  simulate inserting a Blu-ray and pressing menu buttons
   wms bluray render <disc> <out-dir>  save a Blu-ray menu's pages as PNG files
+  wms bluray bdj <disc> [seconds [picture.png]]  a Blu-ray's Java titles and what their code needs; with Java, run them
                              write menu overlay/highlight PNGs for the first menu
   wms version`)
 }

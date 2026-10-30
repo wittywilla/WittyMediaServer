@@ -171,6 +171,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		menus: map[int]*menuArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*subPic{}}
 	s.nav = wittybluray.NewNav(d, wittybluray.NavOptions{Registers: wittybluray.RegisterOptions{
 		AudioLang: lang3(prefs.AudioLanguage), SubtitleLang: lang3(prefs.SubtitleLanguage), MenuLang: lang3(prefs.MenuLanguage),
+		Region: prefs.BDRegion, Parental: prefs.BDAge, Country: strings.ToUpper(prefs.Country),
 	}})
 	if prefs.Angle > 0 {
 		s.nav.SetAngle(prefs.Angle)

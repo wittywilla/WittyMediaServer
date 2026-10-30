@@ -144,6 +144,27 @@ export default function TranscodeSettings() {
           <Tip>DVD menus and titles use yadif instead of bwdif and the ultrafast preset. DVDs are standard definition, so the quality cost is small and a Raspberry Pi 4/5 or an Intel N100 can serve a disc in real time.</Tip>
         </label>
         <BDJSettings s={s} set={set} saved={saved} />
+        <label>DVD region <span className="muted">(1 to 8; empty plays each disc as its own region)</span>
+          <input className="input" inputMode="numeric" value={s.dvdRegion || ''} onChange={(e) => set('dvdRegion', e.target.value)} />
+        </label>
+        <label>Blu-ray region
+          <Tip>Blu-rays check the region in their own program, and a disc for another region shows its own message instead of the film. Pick the region your discs are from.</Tip>
+          <select className="input" value={s.blurayRegion || '1'} onChange={(e) => set('blurayRegion', e.target.value)}>
+            <option value="1">A: Americas, East and South-East Asia</option>
+            <option value="2">B: Europe, Africa, Oceania, Middle East</option>
+            <option value="4">C: Central and South Asia, Russia, China</option>
+          </select>
+        </label>
+        <label>Parental limit
+          <Tip>Discs with parental versions use these to choose which version plays. Empty means no limit. These are the disc's own checks, not a lock on the server: use user accounts to restrict what people can open.</Tip>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="input" inputMode="numeric" placeholder="DVD level 1-8" value={s.dvdParental || ''} onChange={(e) => set('dvdParental', e.target.value)} />
+            <input className="input" inputMode="numeric" placeholder="Blu-ray viewer's age" value={s.blurayAge || ''} onChange={(e) => set('blurayAge', e.target.value)} />
+          </div>
+        </label>
+        <label>Country for disc parental rules <span className="muted">(two letters)</span>
+          <input className="input" maxLength={2} value={s.discCountry || ''} onChange={(e) => set('discCountry', e.target.value)} placeholder="US" />
+        </label>
         <div><button className="btn primary" onClick={save}>Save</button> {saved && <span className="ok" style={{ marginLeft: 10 }}>Saved — applies to newly started streams</span>}</div>
       </div>
     </div>

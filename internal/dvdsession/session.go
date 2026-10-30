@@ -178,6 +178,13 @@ type Prefs struct {
 	AudioCodec       string // aac | mp3
 	LowPower         bool   // cheaper deinterlacing and encoder presets
 	Angle            int    // remembered camera angle for this disc (0 = disc default)
+	// The player's identity, from Settings. 0 and "" leave the defaults: a DVD
+	// plays as its own region, a Blu-ray as region A; no parental limit.
+	DVDRegion   int
+	BDRegion    int    // 1 = A, 2 = B, 4 = C
+	DVDParental int    // 1-8
+	BDAge       int    // the viewer's age, as Blu-ray parental checks ask it
+	Country     string // two letters
 }
 
 // Manager owns sessions.
@@ -213,14 +220,15 @@ func (m *Manager) sweep() {
 
 // Session is one viewer's DVD player.
 type Session struct {
-	ID     string
-	ItemID int64
-	Path   string
-	m      *Manager
-	opened *wittydvd.Opened
-	nav    *wittydvd.Nav
-	prefs  Prefs
-	key    string // stable per disc, for HLS/still cache ids
+	noVocals bool // the karaoke stream plays without its vocals
+	ID       string
+	ItemID   int64
+	Path     string
+	m        *Manager
+	opened   *wittydvd.Opened
+	nav      *wittydvd.Nav
+	prefs    Prefs
+	key      string // stable per disc, for HLS/still cache ids
 
 	mu       sync.Mutex
 	used     time.Time
@@ -265,7 +273,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
 		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
-	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle}})
+	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
@@ -403,7 +411,9 @@ func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 		}
 		return s.show(ctx, s.nav.PrevChapter())
 	case "audio":
-		s.nav.SetAudio(a.Stream)
+		// A stream number with 0x100 is a karaoke stream without its vocals.
+		s.noVocals = a.Stream&karaokeOff != 0
+		s.nav.SetAudio(a.Stream &^ karaokeOff)
 		if cur != nil && cur.Kind == "title" {
 			s.syncPosition(a.PositionSec)
 			s.seekTo = a.PositionSec
@@ -1094,6 +1104,11 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 	// the stream only depends on the audio track.
 	angle := s.angle(ti.TTN)
 	name := fmt.Sprintf("t%d-x%x-g%d%s", ti.TTN, audioID, angle, s.codecTag())
+	audioFilter := ""
+	if s.noVocals && audioN < len(v.Audio) && v.Audio[audioN].Karaoke() {
+		name += "-nv"
+		audioFilter = "pan=stereo|c0=FL|c1=FR" // the backing track only
+	}
 	id := fmt.Sprintf("dvd-%s-%s", s.key, name)
 	if s.m.HLS.Get(id) == nil {
 		ids := []int{wittydvd.VideoStreamID}
@@ -1106,7 +1121,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 		}
 		s.m.HLS.Ensure(hls.Spec{
 			ID: id, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false),
-			AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
+			AudioIndex: audioIdx, AudioChannels: channels, AudioFilter: audioFilter, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 		})
 	}
 	p.Media = &Media{Type: "hls", URL: s.m.BaseURL + "/hls/" + id + "/playlist.m3u8", DurationSec: ts.Duration, Audio: audioIdx >= 0}
@@ -1119,6 +1134,12 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 		Wide: ts.Video.Wide, Audio: []Track{}, Subtitles: []Track{}, FrameW: fw, FrameH: fh, Aspect: aspect,
 		SubtitlesURL: s.url("subs") + fmt.Sprintf("?ttn=%d&angle=%d", ti.TTN, angle), ForcedStream: subRaw & 31,
 		Angle: angle, Angles: 1}
+	if audioFilter != "" {
+		tv.AudioStream = audioN | karaokeOff
+	}
+	if pgc != nil {
+		tv.Locks = uopLocks(pgc.UOPs)
+	}
 	if ti.TTN >= 1 && ti.TTN <= len(s.opened.Disc.VMG.Titles) && s.opened.Disc.VMG.Titles[ti.TTN-1].Angles > 1 {
 		tv.Angles = s.opened.Disc.VMG.Titles[ti.TTN-1].Angles
 	}
@@ -1126,7 +1147,14 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 		if pgc != nil && i < 8 && pgc.AudioControl[i] < 0 {
 			continue // not present in this title
 		}
-		tv.Audio = append(tv.Audio, Track{N: i, Language: a.Language, Codec: a.Codec, Channels: a.Channels, Purpose: a.Purpose()})
+		purpose := a.Purpose()
+		if a.Karaoke() {
+			purpose = "Karaoke with vocals"
+		}
+		tv.Audio = append(tv.Audio, Track{N: i, Language: a.Language, Codec: a.Codec, Channels: a.Channels, Purpose: purpose})
+		if a.Karaoke() {
+			tv.Audio = append(tv.Audio, Track{N: i | karaokeOff, Language: a.Language, Codec: a.Codec, Channels: 2, Purpose: "Karaoke, sing along"})
+		}
 	}
 	for i, sub := range v.Subp {
 		if pgc != nil && pgc.SubpControl[i] == nil {
@@ -1249,4 +1277,28 @@ func (s *Session) codecTag() string {
 		return "-mp3"
 	}
 	return ""
+}
+
+// karaokeOff marks a karaoke audio stream played without its vocals.
+const karaokeOff = 0x100
+
+// uopLocks names what a program chain's prohibited-operation bits forbid.
+func uopLocks(m uint32) []string {
+	var out []string
+	add := func(name string, bits ...uint) {
+		for _, b := range bits {
+			if m>>b&1 == 1 {
+				out = append(out, name)
+				return
+			}
+		}
+	}
+	add("seek", 0, 5, 8, 9)
+	add("chapter", 1)
+	add("skip", 6, 7)
+	add("pause", 19)
+	add("audio", 20)
+	add("subtitle", 21)
+	add("angle", 22)
+	return out
 }

@@ -119,6 +119,10 @@ type AudioAttr struct {
 
 var audioCodecs = []string{"ac3", "", "mp1", "mp2", "lpcm", "", "dts", "sdds"}
 
+// Karaoke says the stream is a karaoke mix: backing on the front channels, the
+// guide melody and vocals on the others.
+func (a AudioAttr) Karaoke() bool { return a.AppMode == 1 && a.Channels > 2 }
+
 // VideoStreamID is the MPEG-PS stream id of a DVD's video, as ffmpeg reports it.
 const VideoStreamID = 0x1e0
 

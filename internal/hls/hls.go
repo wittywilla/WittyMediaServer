@@ -40,6 +40,7 @@ type Spec struct {
 	// generated one or the sound may loop.
 	AudioInput    int
 	AudioChannels int    // 0 = keep (max 6)
+	AudioFilter   string // extra -af chain, before the output's own (karaoke: leave out the vocals)
 	SubtitleIndex int    // s:N to burn in, -1 = none
 	AudioCodec    string // aac (default) | mp3
 	SegmentSec    float64
@@ -387,6 +388,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 		args = append(args, "-c:a", codec)
 		af := "aresample=async=1:first_pts=0"
+		if sp.AudioFilter != "" {
+			af = sp.AudioFilter + "," + af
+		}
 		if sp.HoldLastFrame {
 			af += ",apad"
 		}

@@ -2,7 +2,9 @@ package library
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -93,6 +95,42 @@ func TestNextUpItems(t *testing.T) {
 	}
 	if got, _ := st.NextUpItems(ctx, user, []int64{sh.ID}, nil, 20); len(got) != 0 {
 		t.Fatalf("next up while in progress: %+v", got)
+	}
+}
+
+// Lists leave a disc's titles out, but the field stays a list: a native app's
+// decoder fails on null where it expects an array.
+func TestBriefListsKeepDiscShape(t *testing.T) {
+	d, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	st := &Store{DB: d}
+	lib, err := st.CreateLibrary(ctx, "Discs", "discs", []string{"/d"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := &Item{LibraryID: lib.ID, Kind: "dvd-iso", Path: "/d/a.iso", Title: "A", SortTitle: "A",
+		Disc: &DiscInfo{HasMenus: true, MainTitle: 1, Titles: []DiscTitle{{Number: 1}}}}
+	if err := st.upsertItem(ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	items, _, err := st.Items(ctx, ItemQuery{LibraryID: lib.ID, Brief: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(items[0].Disc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"titles":[]`) || !items[0].Disc.HasMenus {
+		t.Fatalf("brief disc: %s", b)
+	}
+	full, err := st.Item(ctx, it.ID)
+	if err != nil || len(full.Disc.Titles) != 1 {
+		t.Fatalf("the item's own answer lost its titles: %+v %v", full, err)
 	}
 }
 

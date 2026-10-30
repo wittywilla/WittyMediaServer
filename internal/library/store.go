@@ -356,6 +356,9 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	if discJSON.Valid && discJSON.String != "" {
 		var d DiscInfo
 		if json.Unmarshal([]byte(discJSON.String), &d) == nil {
+			if d.Titles == nil { // left out of lists (ItemQuery.Brief); apps decode this as a list
+				d.Titles = []DiscTitle{}
+			}
 			it.Disc = &d
 		}
 	}

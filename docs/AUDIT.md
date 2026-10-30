@@ -192,6 +192,71 @@ file the server can), point agents at the local network, and choose folders for 
   calls only. The update engine and its tests were reviewed lightly: it was written days ago with
   an end-to-end test.
 
+## For the Apple TV and Android TV apps
+
+The JSON APIs are a contract native apps will depend on (see `docs/CLIENT-API.md`, on the
+`client-contract` branch). Native decoders are stricter than a browser, so here is everything this
+audit changed in what clients see.
+
+### What changed in the API
+
+**No response field was renamed or removed**, and none changed type. Stream and session ids were
+always opaque and still are, though their contents changed (`v-...-c2-...` for streams, `d...` for DVD
+sessions).
+
+| Where | Before | Now | What an app does |
+|---|---|---|---|
+| `path` on items and shows, for non-admins | the file's location | `""`, or the web address for a podcast episode not downloaded | Don't read it |
+| `paths` on `/libraries` and `/home`, for non-admins | the folders | `[]` | Don't read it |
+| `disc.titles` in lists (`/items`, `/home`, `/music/tracks`, a show's `episodes`) | every title and chapter | `[]`, still a list | Use `/items/{id}` or `/items/{id}/disc` |
+| HLS segment when every transcode slot is in use | started another FFmpeg | `503` with `Retry-After: 5` | Wait and retry; it isn't an error |
+| `/items/{id}/stream` needing conversion, 8 running | started another FFmpeg | `503` with `Retry-After: 5` | The same |
+| `DELETE /hls/{id}` | stopped it for everyone | Stops it for this token; it ends if nobody else used it in the last 90 s | Call it when leaving |
+| A session idle 10 minutes to 24 hours | `404` | Still plays; FFmpeg restarts at the requested segment | Nothing |
+| `POST /items/{id}/progress` on a hidden or missing item | `200` or `500` | `404` | Treat as "not there" |
+| `/shows/{id}/art/*` on a hidden show | the picture | `404` | Draw a placeholder |
+| `/genres`, `/shows/genres`, `/shows/networks`, `/podcasts` | everything | Only what the account may see | Nothing |
+| `/shows/genres` without `library` | `[]` | All libraries | Nothing |
+| `/libraries/{id}/scan` on a library the account can't open | `200` | `404` | Treat as "not there" |
+| `/items/{id}/disc/thumb/{ttn}/{n}` for a chapter or title that doesn't exist | `500`, or a picture of something else | `404` | Draw a placeholder |
+| The same, on a copy-protected disc | a picture of scrambled data | `404` | Draw a placeholder |
+| `/items/{id}/play` with an audio or subtitle number out of range | a panic, or a failing stream | First audio track, or subtitles off | Read `audioIndex` and `subtitleIndex` back |
+| `maxHeight` outside 144 to 4320 | accepted | Ignored | Nothing |
+| `/login` with too many failures from one address, over all names | `401` | `429` with `Retry-After` | Show the wait |
+| `/login` failing for any reason | could carry an internal error | Always `invalid name or password` | Nothing |
+| `PUT /settings` with a value FFmpeg can't use | `200` | `400` | Show the message |
+| Artwork that fails to download or isn't a picture | `200` with junk, then `404` | `502` | Draw a placeholder |
+| Pictures' `Cache-Control` | `public` | `private` | Nothing |
+
+### Logic that lives only in the web client
+
+`docs/CLIENT-API.md` already lists what a TV app has to build itself, and moves the resume rule, how a
+disc starts, default tracks, language names and the direct/remux/transcode decision to the server.
+These are the ones left, which each app would otherwise write again. **None has been moved.**
+
+| Priority | What | Where in the web client | What the server could do |
+|---|---|---|---|
+| High | **Which track to go on from** in an album or audiobook (the first unfinished one) | `AlbumPage`, `AudioLibrary.tsx` | Add `nextTrackId` to the track list |
+| High | **Which audio saves progress** (audiobooks and podcasts do, music doesn't) | `books` in `audio/player.tsx` | Add a flag to the library or item |
+| High | **Series of books**: every book of the library is fetched, then filtered by `album` | `Books.tsx` | Add an `album` filter to `/items`, so a TV doesn't load the whole library |
+| High | **Per-disc memory** (sound, subtitle, angle) stays in one browser and doesn't follow the person | `discMemory` in `player/viewPrefs.ts` | Store per account and item, and apply when a disc opens |
+| High | **Search** is two requests with no limit (`/items`, `/shows`) merged by the page | `SearchPage.tsx` | Add one `/search` with sections and limits |
+| Medium | **What a season page opens on**: the next-up episode's season, else the first that isn't specials; and which episodes count as unmatched | `ShowPage.tsx` | Add `defaultSeason` to `/shows/{id}` |
+| Medium | **Which shelves a library offers** (two counting requests, then rules by library type) | `LibraryPage.tsx` | Add `shelves` to the library |
+| Medium | **"Unknown network"** is a display name that the page has to turn back into an empty filter | `LibraryPage.tsx` | Send a separate label and filter value |
+| Medium | **Whether an item can be opened at all**: only `cbz`, `epub` and `pdf` read; other formats are listed but dead ends | `readable` in `Books.tsx`, `openItem.tsx` | Add `readable` or `action` to the item |
+| Medium | **Is this picture generated**: read from the `cache:thumb-` prefix of an internal reference | `isGeneratedArt` in `components/common.tsx` | Add `posterGenerated`; apps shouldn't parse references |
+| Medium | **Is this episode downloaded**: read from whether `path` is a web address | `DownloadButton` in `Podcasts.tsx` | Add `downloaded` |
+| Medium | **An album's identity** is a pair of strings, with a fallback from album artist to artist repeated in the client | `ItemPage.tsx`, `AudioLibrary.tsx` | Add an album key to tracks and albums |
+| Medium | **The home page's rows**: the widget list, merging three rows into "Jump back in", and upgrading old saved layouts | `HomePage.tsx` | Send rows in display order, with the layout applied |
+| Medium | **Disc subtitles**: 120-second windows, and filtering to forced ones | `DvdPlayer.tsx` | Add `forced=1` to `/dvd/{sid}/subs` |
+| Low | **The formats of annotations**: `pos`, `quote`, `prefix`, `suffix` and ink `data` are defined by the web readers; the server stores them unread. For books `positionSec` holds pages or chapters, not seconds | `modules/wittyink`, `wittyebook`, `wittypdf` | Write the formats down before a second reader exists |
+| Low | **Default limits for a new profile** are sent by the page, repeating `DefaultAccess` on the server | `Profiles.tsx` | Let the server apply them (web administration only) |
+| Low | **Library kinds** and their descriptions | `AddLibrary.tsx` | Add `/library-types` (web administration only) |
+
+The disc player's timers, clip-end watchdog and overlays are also client logic, but they depend on the
+picture on screen, so they can't move. `docs/CLIENT-API.md` describes that loop.
+
 ## Merging
 
 This branch merges into `master` without conflicts, and the merged code builds and passes its tests
@@ -200,3 +265,17 @@ runs Java code from disc images on the server, so it deserves its own review. Th
 too: if two branches add a migration, both go at the end of the list, each with its own number.
 `TestEveryRouteChecksWhoIsAsking` will fail for a new public route until it is added to
 `publicRoutes`, which is on purpose.
+
+**With `claude/client-contract-b743a1` there are conflicts** in `.github/workflows/ci.yml`,
+`CHANGELOG.md`, `internal/hls/hls.go`, `internal/hls/hls_test.go`, `internal/server/api_play.go`,
+`internal/server/server.go`, `web/src/App.tsx` and `web/src/player/PlayerPage.tsx`. Most keep both
+sides, but the transcoder needs thought, because that branch adds "growing" streams and fMP4 segments:
+
+- Keep `sweepOnce`, and carry over its rule that a `Growing` stream isn't paused when idle.
+- Exempt `Growing` streams from resting and waking (`maxAheadSegs`, `wake`): as that branch says, they
+  can't continue where they were stopped. They are already paced.
+- `prune` and `wake` look for `.ts` names. fMP4 segments need their own names or an exemption, or old
+  segments stay on disk and wake never finds them.
+- `sessionDirRe` must match any new stream id prefix, or startup cleanup leaves those folders behind.
+- Its new pages in `App.tsx` should load the same way as the others (`lazy`).
+- In CI, keep the race detector and vulnerability report, and its `WMS_TEST_LAN=1`.

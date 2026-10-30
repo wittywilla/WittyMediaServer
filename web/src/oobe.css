@@ -17,7 +17,7 @@
 .oobe-steps .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .oobe-steps li.current { color: var(--fg); }
 .oobe-steps li.current .dot { background: var(--accent); color: var(--accent-fg); box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / .25); }
-.oobe-steps li.done .dot { background: rgb(var(--accent-rgb) / .2); color: var(--accent); }
+.oobe-steps li.done .dot { background: rgb(var(--accent-rgb) / .2); color: var(--accent-text, var(--accent)); }
 .oobe-steps li.done::after { background: rgb(var(--accent-rgb) / .5); }
 .oobe-card { background: color-mix(in srgb, var(--bg-2) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border); border-radius: 20px; padding: clamp(20px, 4vw, 40px); box-shadow: var(--shadow); animation: oobe-in .25s ease-out; }
@@ -25,7 +25,7 @@
 .oobe-card h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 34px); line-height: 1.15; letter-spacing: -.3px; }
 .oobe-card .lead { color: var(--fg-2); font-size: 16px; line-height: 1.55; margin: 0 0 22px; max-width: 62ch; }
 .oobe-points { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; color: var(--fg-2); }
-.oobe-points b { color: var(--accent); margin-right: 6px; }
+.oobe-points b { color: var(--accent-text, var(--accent)); margin-right: 6px; }
 .oobe-field { display: grid; gap: 6px; font-weight: 600; font-size: 14px; margin-bottom: 14px; }
 .oobe-form { display: grid; gap: 2px; max-width: 420px; }
 .oobe-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
@@ -50,11 +50,11 @@
 .oobe-provider.ok { border-color: var(--ok); }
 .op-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; padding: 0; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
 .oobe-provider .op-steps { margin-top: 12px; }
-.op-add { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 13.5px; }
+.op-add { margin-left: auto; color: var(--accent-text, var(--accent)); font-weight: 600; font-size: 13.5px; }
 .op-ok { margin-left: auto; color: var(--ok); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
 .op-ok svg { fill: currentColor; }
 .op-steps { margin: 0 0 12px; padding-left: 20px; color: var(--fg-2); line-height: 1.6; font-size: 14px; }
-.op-steps a { color: var(--accent); }
+.op-steps a { color: var(--accent-text, var(--accent)); }
 .op-note { font-size: 11.5px; margin-top: 8px; }
 .oobe-provider .input.pin { max-width: 150px; }
 .oobe-done { text-align: center; }
@@ -108,9 +108,9 @@
 /* ---------------------------------------------------------------- profiles & limits */
 .who-tile { position: relative; }
 .who-kind { position: absolute; top: 2px; right: 0; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; text-transform: uppercase; letter-spacing: .5px; }
-.who-kind.kind-kids { background: #f76b15; }
+.who-kind.kind-kids { background: #c2410c; }
 .who-kind.kind-guest { background: #6f7686; }
-.pill.kind-kids { background: rgb(247 107 21 / .18); color: #f76b15; }
+.pill.kind-kids { background: rgb(247 107 21 / .18); color: color-mix(in srgb, #f76b15 60%, var(--fg)); } /* orange, readable on light and dark */
 .pill.kind-guest { background: rgb(111 118 134 / .2); }
 .profile-me { display: flex; align-items: center; gap: 10px; }
 .check-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; font-weight: 400 !important; }

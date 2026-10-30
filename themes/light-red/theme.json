@@ -3,7 +3,7 @@
   "name": "Light Red",
   "description": "Light surfaces with a red accent.",
   "author": "WittyMediaServer",
-  "version": "1",
+  "version": "3",
   "scheme": "light",
   "builtin": true,
   "preview": {

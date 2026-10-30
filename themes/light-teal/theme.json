@@ -3,13 +3,13 @@
   "name": "Light Teal",
   "description": "Light surfaces with a teal accent.",
   "author": "WittyMediaServer",
-  "version": "1",
+  "version": "3",
   "scheme": "light",
   "builtin": true,
   "preview": {
     "bg": "#eff3f6",
     "surface": "#e6ebf0",
     "text": "#15171c",
-    "accent": "#0d9488"
+    "accent": "#0b7a70"
   }
 }

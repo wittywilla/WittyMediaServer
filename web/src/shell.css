@@ -35,7 +35,7 @@
 .profile-menu { position: relative; flex: none; }
 .avatar-btn { background: none; border: 0; padding: 0; border-radius: 999px; display: flex; align-items: center; gap: 10px; color: var(--fg); max-width: 220px; }
 .avatar-name { font-weight: 600; font-size: 14px; padding-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.avatar-btn:hover .avatar-name, .avatar-btn[aria-expanded="true"] .avatar-name { color: var(--accent); }
+.avatar-btn:hover .avatar-name, .avatar-btn[aria-expanded="true"] .avatar-name { color: var(--accent-text, var(--accent)); }
 @media (max-width: 760px) { .avatar-name { display: none; } }
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: 16px; border-radius: 50%; }
 .profile-menu .menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 220px; background: var(--bg-2); border: 1px solid var(--border);
@@ -56,7 +56,7 @@
   }
   .tabbar a, .tabbar button { display: grid; justify-items: center; gap: 2px; padding: 4px 0; color: var(--fg-3); background: none; border: 0; font-size: 11px; font-weight: 600; }
   .tabbar svg { width: 22px; height: 22px; fill: currentColor; }
-  .tabbar a.active { color: var(--accent); }
+  .tabbar a.active { color: var(--accent-text, var(--accent)); }
   .app .content { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
   /* On phones the top navigation and side menu button make room for the search. */
   .topnav, .topbar .menu-toggle, .top-brand { display: none; }
@@ -112,7 +112,7 @@
 .lib-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .lib-tile { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 14px 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border); color: var(--fg); transition: transform .12s, border-color .12s, background .12s; }
 .lib-tile:hover, .lib-tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); background: var(--bg-3); }
-.lib-tile-ic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 12px; background: rgb(var(--accent-rgb) / .14); color: var(--accent); font-size: 26px; font-weight: 300; line-height: 1; }
+.lib-tile-ic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 12px; background: rgb(var(--accent-rgb) / .14); color: var(--accent-text, var(--accent)); font-size: 26px; font-weight: 300; line-height: 1; }
 .lib-tile-ic svg { width: 24px; height: 24px; fill: var(--accent); }
 .lib-tile-txt { display: grid; gap: 2px; min-width: 0; }
 .lib-tile-txt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

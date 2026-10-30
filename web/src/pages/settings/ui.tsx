@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useState, type ReactElement, type ReactNode } from 'react'
 import { api, getPrefs } from '../../api'
 import { toast } from '../../state'
 
@@ -28,14 +28,28 @@ export function Section({ title, desc, actions, children, id }: { title: string;
 }
 
 // stack: the control goes under the text (wide fields, groups of fields).
+// The row's title and description name and describe its control for screen
+// readers: a lone field is labelled by them directly, anything else is a
+// group labelled by them.
 export function Row({ label, desc, badge, children, stack, dim }: { label: ReactNode; desc?: ReactNode; badge?: ReactNode; children?: ReactNode; stack?: boolean; dim?: boolean }) {
+  const id = useId()
+  const labelId = id + 'l', descId = desc ? id + 'd' : undefined
+  let ctl = children
+  let group = true
+  if (isValidElement(children) && typeof children.type === 'string' && ['select', 'input', 'textarea'].includes(children.type)) {
+    const el = children as ReactElement<Record<string, unknown>>
+    if (!el.props['aria-label'] && !el.props['aria-labelledby']) ctl = cloneElement(el, { 'aria-labelledby': labelId, 'aria-describedby': descId })
+    group = false
+  }
   return (
     <div className={'set-row' + (stack ? ' stack' : '') + (dim ? ' dim' : '')}>
       <div className="set-row-text">
-        <div className="set-row-label">{label}{badge && <span className="set-badge">{badge}</span>}</div>
-        {desc && <div className="set-row-desc">{desc}</div>}
+        <div className="set-row-label" id={labelId}>{label}{badge && <span className="set-badge">{badge}</span>}</div>
+        {desc && <div className="set-row-desc" id={descId}>{desc}</div>}
       </div>
-      {children !== undefined && <div className="set-row-ctl">{children}</div>}
+      {children !== undefined && (group
+        ? <div className="set-row-ctl" role="group" aria-labelledby={labelId} aria-describedby={descId}>{ctl}</div>
+        : <div className="set-row-ctl">{ctl}</div>)}
     </div>
   )
 }

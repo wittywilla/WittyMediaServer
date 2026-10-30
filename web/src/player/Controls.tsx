@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
 import { Thumb } from '../pages/DiscSections'
+import { announce } from '../a11y'
 import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
@@ -30,6 +31,7 @@ type Props = {
   showSeek?: boolean
   showChapterMarks?: boolean
   extra?: React.ReactNode
+  disc?: boolean // the keyboard help lists the disc keys
   offset?: number // media time -> displayed time offset
 }
 
@@ -74,7 +76,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0 }: Props) {
+  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | null>(null)
   const [maxSpeed, setMaxSpeed] = useState(4)
@@ -94,6 +96,39 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+  // What changed, said aloud for screen readers: playing, paused, muted,
+  // the volume, where a jump landed. Seeks and volume wait a moment so a
+  // held key gives one message.
+  const [help, setHelp] = useState(false)
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    let tSeek: ReturnType<typeof setTimeout>, tVol: ReturnType<typeof setTimeout>
+    let muted = v.muted
+    const onPlay = () => announce('Playing')
+    const onPause = () => { if (!v.ended) announce('Paused') }
+    const onSeeked = () => { clearTimeout(tSeek); tSeek = setTimeout(() => announce(`At ${fmtTime(v.currentTime + offset)}`), 400) }
+    const onVol = () => {
+      clearTimeout(tVol)
+      if (v.muted !== muted) { muted = v.muted; announce(v.muted ? 'Muted' : 'Sound on'); return }
+      tVol = setTimeout(() => announce(`Volume ${Math.round(v.volume * 100)}%`), 300)
+    }
+    v.addEventListener('play', onPlay); v.addEventListener('pause', onPause); v.addEventListener('seeked', onSeeked); v.addEventListener('volumechange', onVol)
+    return () => {
+      clearTimeout(tSeek); clearTimeout(tVol)
+      v.removeEventListener('play', onPlay); v.removeEventListener('pause', onPause); v.removeEventListener('seeked', onSeeked); v.removeEventListener('volumechange', onVol)
+    }
+  }, [video, offset])
+  // "?" (Shift+/) lists every key.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.key !== '?') return
+      e.preventDefault(); setHelp((h) => !h)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const seekRef = useRef<HTMLDivElement | null>(null)
   const t = st.time + offset
   const pct = duration > 0 ? Math.min(100, (t / duration) * 100) : 0
@@ -106,9 +141,10 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   }
   // Keyboard/remote seeking while the timeline has focus.
   const seekKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const to = e.key === 'ArrowRight' ? t + 10 : e.key === 'ArrowLeft' ? t - 10 : e.key === 'PageUp' ? t + 60 : e.key === 'PageDown' ? t - 60 : e.key === 'Home' ? 0 : e.key === 'End' ? duration - 5 : null
+    if (to !== null) {
       e.preventDefault(); e.stopPropagation()
-      onSeek(Math.max(0, Math.min(duration, t + (e.key === 'ArrowRight' ? 10 : -10))))
+      onSeek(Math.max(0, Math.min(duration, to)))
     }
   }
   const curChapter = chapters.filter((c) => c <= t + 0.5).length
@@ -116,8 +152,8 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   return (
     <div className="bottom" onClick={(e) => e.stopPropagation()}>
       {showSeek && (
-        <div className="seek" ref={seekRef} onClick={seekAt} tabIndex={0} role="slider" aria-label="Seek" aria-valuemin={0}
-          aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(t)} onKeyDown={seekKey}>
+        <div className="seek" ref={seekRef} onClick={seekAt} tabIndex={0} role="slider" aria-label="Position" aria-valuemin={0}
+          aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(t)} aria-valuetext={`${fmtTime(t)} of ${fmtTime(duration)}`} onKeyDown={seekKey}>
           <div className="track" />
           <div className="buf" style={{ width: bpct + '%' }} />
           <div className="fill" style={{ width: pct + '%' }} />
@@ -127,12 +163,12 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
       )}
       <div className="ctl">
         {onPrev && <button className="ibtn chap-step" onClick={onPrev} title="Previous scene"><IconPrev /></button>}
-        <button className="ibtn big" onClick={toggle} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
+        <button className="ibtn big" onClick={toggle} title={st.playing ? 'Pause (Space)' : 'Play (Space)'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
         {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next scene"><IconNext /></button>}
-        <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute">{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
-        <input className="hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume"
+        <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute (M)" aria-label="Mute" aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
+        <input className="hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
           onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ width: 90, accentColor: 'var(--accent)' }} />
-        <span className="time">
+        <span className="time" aria-hidden="true">
           {fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
           {!showSeek && chapters.length > 1 ? ` · ${chapName(Math.max(0, curChapter - 1))}` : ''}
         </span>
@@ -149,7 +185,8 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           </button>
         )}
         {onSettings && <button className="ibtn" title="Viewing settings" onClick={onSettings}><IconSettings /></button>}
-        <button className="ibtn" title="Fullscreen (f)" onClick={onFullscreen}><IconFull /></button>
+        <button className="ibtn hide-narrow kbd-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" onClick={() => setHelp(true)}>?</button>
+        <button className="ibtn" title="Fullscreen (F)" aria-label="Fullscreen" onClick={onFullscreen}><IconFull /></button>
       </div>
       {pop === 'audio' && audio && (
         <div className="popover"><h4>Audio</h4>{audio.map((a) => <button key={a.id} className={a.active ? 'active' : ''} onClick={() => { onAudio?.(a.id); setPop(null) }}>{a.label}</button>)}</div>
@@ -165,6 +202,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {speeds.map((s) => <button key={s} className={s === rate ? 'active' : ''} onClick={() => { changeSpeed(s); setPop(null) }}>{s === 1 ? 'Normal' : `${s}×`}{s > 4 && <span className="muted" style={{ marginLeft: 'auto', fontSize: 11 }}>may be muted</span>}</button>)}
         </div>
       )}
+      {help && <ShortcutHelp disc={disc} onClose={() => setHelp(false)} />}
       {pop === 'chapters' && (
         <ScenePanel chapters={chapters} name={chapName} thumb={chapterThumb} current={curChapter - 1}
           onPick={(c) => { onSeek(c); setPop(null) }} onClose={() => setPop(null)} />
@@ -187,7 +225,7 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
   return (
     <div className="scene-panel" role="dialog" aria-label="Scenes" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
       <div className="scene-panel-head">
-        <h4>Scenes</h4>
+        <h3>Scenes</h3>
         <span className="muted">{chapters.length} scenes</span>
         <button className="ibtn" onClick={onClose} title="Close" aria-label="Close scenes"><IconClose /></button>
       </div>
@@ -202,6 +240,37 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
             <div className="scene-name"><span className="muted">{i + 1}.</span> {name(i)}</div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ShortcutHelp: every key the player understands, in one list.
+const KEYS: [string, string, boolean?][] = [
+  ['Space or K', 'Play or pause'],
+  ['← and →', 'Back 10 seconds, forward 10 seconds'],
+  ['Page Up and Page Down', 'Forward or back a minute (on the timeline)'],
+  ['Home and End', 'The start or the end (on the timeline)'],
+  ['↑ and ↓', 'Volume up or down'],
+  ['M', 'Mute or unmute'],
+  ['< and >', 'Slower or faster'],
+  ['F', 'Fullscreen'],
+  ['R', 'Show or hide the remote'],
+  ['1 to 9', 'Jump to that scene, or press that menu button', true],
+  ['Arrow keys and Enter', 'Move around a disc menu and choose', true],
+  ['Esc', 'Close a window, or shrink the player'],
+  ['?', 'This list'],
+]
+function ShortcutHelp({ disc, onClose }: { disc: boolean; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal kbd-modal" role="dialog" aria-modal="true" aria-labelledby="kbd-h" onClick={(e) => e.stopPropagation()}>
+        <h2 id="kbd-h">Keyboard shortcuts</h2>
+        <dl className="kbd-list">
+          {KEYS.filter(([, , d]) => !d || disc).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
+        </dl>
+        <p className="muted" style={{ fontSize: 13 }}>Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
+        <div className="actions"><button className="btn primary" onClick={onClose}>Close</button></div>
       </div>
     </div>
   )

@@ -51,7 +51,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
 
       {main && (
         <section aria-labelledby="feature-h">
-          <h3 className="section-title" id="feature-h">Feature Presentation</h3>
+          <h2 className="section-title" id="feature-h">Feature Presentation</h2>
           <div className="feature-card">
             <button className="feature-thumb" disabled={!playable} onClick={() => play(main.ttn)} aria-label={`Play ${titleName(main, item.title)}`}>
               <Thumb src={thumb(main.ttn, 0)} />
@@ -60,7 +60,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
             <div className="feature-info">
               {editing
                 ? <input className="input" value={labels.titles[main.ttn] || ''} placeholder={item.title} onChange={(e) => setTitle(main.ttn, e.target.value)} aria-label="Feature name" />
-                : <h4>{titleName(main, item.title)}</h4>}
+                : <h3>{titleName(main, item.title)}</h3>}
               <div className="muted">{fmtRuntime(main.durationSec)} · {main.chapters.length} scenes{main.angles > 1 ? ` · ${main.angles} video versions` : ''}{main.wide ? ' · widescreen' : ''}</div>
               <div className="muted" style={{ fontSize: 13 }}>
                 {main.audio.length > 0 && <>Audio: {[...new Set(main.audio.map((a) => langName(a.split(' ')[0])))].join(', ')}</>}
@@ -95,7 +95,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
 
       {view.extras.length > 0 && (
         <section aria-labelledby="extras-h">
-          <h3 className="section-title" id="extras-h">Bonus Features</h3>
+          <h2 className="section-title" id="extras-h">Bonus Features</h2>
           <div className="extras-grid">
             {view.extras.map((t, i) => (
               <div key={t.ttn} className="extra">
@@ -114,7 +114,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
 
       {view.menus.length > 0 && (
         <section aria-labelledby="menus-h">
-          <h3 className="section-title" id="menus-h">Disc Menus</h3>
+          <h2 className="section-title" id="menus-h">Disc Menus</h2>
           <div className="menu-tiles">
             {view.menus.map((m) => (
               <button key={m.kind + m.vts} className="menu-tile" disabled={!playable}

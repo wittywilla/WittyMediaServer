@@ -455,6 +455,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     if (mini) return
     const onKey = (e: KeyboardEvent) => {
       if (picker || settingsOpen) return
+      if (document.querySelector('.modal-backdrop, .scene-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const v = video.current
@@ -598,7 +599,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} />
             : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={isBluray(item) ? 'WittyBluray' : 'WittyDVD'} />)}
           {pres?.kind === 'title' && (
-            <Controls video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
+            <Controls disc video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
               chapterThumb={title ? (i) => mediaUrl(`/api/items/${item.id}/disc/thumb/${title.ttn}/${discTitle?.chapters[i]?.n ?? i + 1}`) : undefined}
               onPrev={() => seekChapter(-1)} onNext={() => seekChapter(1)}
               audio={audioOpts} subtitles={subOpts} onAudio={switchAudio} onSubtitle={switchSub}

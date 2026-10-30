@@ -19,13 +19,14 @@
   /* Text */
   --fg: #15171c;          /* primary text */
   --fg-2: #4a5160;        /* secondary text */
-  --fg-3: #7c8494;        /* hints, captions */
+  --fg-3: #626a78;        /* hints, captions */
 
   /* Accent (buttons, highlights, progress bars, selected items) */
-  --accent: #0d9488;
+  --accent: #0b7a70;
   --accent-2: #0f766e;      /* hover / pressed accent */
   --accent-fg: #ffffff;     /* text on accent backgrounds */
-  --accent-rgb: 13 148 136;
+  --accent-text: #0b756c;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 11 122 112;
   --brand-accent: var(--accent); /* the highlighted word of the name in the corner */
 
   /* Status colours */

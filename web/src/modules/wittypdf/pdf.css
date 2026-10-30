@@ -28,7 +28,7 @@
 .pdf-thumb { display: grid; justify-items: center; gap: 6px; background: none; border: 0; border-radius: 10px; padding: 6px; color: var(--fg-2); font: 600 12px var(--font); cursor: pointer; transition: background .12s; }
 .pdf-thumb:hover { background: var(--bg-3); }
 .pdf-thumb canvas { width: 100%; height: auto; background: #fff; border-radius: 2px; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-.pdf-thumb.on { color: var(--accent); }
+.pdf-thumb.on { color: var(--accent-text, var(--accent)); }
 .pdf-thumb.on canvas { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--accent); }
 @media (max-width: 700px) { .pdf-pages { padding: 68px 6px 120px; } }
 

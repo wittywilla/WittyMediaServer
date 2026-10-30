@@ -3,13 +3,13 @@
   "name": "Dark Blue",
   "description": "Dark surfaces with a blue accent.",
   "author": "WittyMediaServer",
-  "version": "1",
+  "version": "3",
   "scheme": "dark",
   "builtin": true,
   "preview": {
     "bg": "#12151c",
     "surface": "#212631",
     "text": "#ececf1",
-    "accent": "#3b82f6"
+    "accent": "#1e6ff5"
   }
 }

@@ -18,7 +18,7 @@
 .album-cover.big { width: 100%; box-shadow: var(--shadow); }
 .album-meta { display: grid; gap: 6px; min-width: 0; }
 .album-meta h1 { margin: 0; font-size: clamp(24px, 4vw, 40px); line-height: 1.1; }
-.album-artist { font-weight: 700; color: var(--accent); }
+.album-artist { font-weight: 700; color: var(--accent-text, var(--accent)); }
 .album-meta .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .album-desc { color: var(--fg-2); max-width: 70ch; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 @media (max-width: 600px) { .album-head { grid-template-columns: 1fr; justify-items: center; text-align: center; } .album-cover.big { width: 60vw; } .album-meta .actions { justify-content: center; } }
@@ -27,7 +27,7 @@
 .track-list li button { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 10px 8px; background: none;
   border: 0; border-radius: 8px; color: var(--fg); text-align: left; }
 .track-list li button:hover, .track-list li button:focus-visible { background: var(--bg-2); }
-.track-list li.on button { color: var(--accent); }
+.track-list li.on button { color: var(--accent-text, var(--accent)); }
 .tl-n { color: var(--fg-3); text-align: right; font-variant-numeric: tabular-nums; }
 .tl-t { display: grid; min-width: 0; position: relative; }
 .tl-t b, .tl-t .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
@@ -113,7 +113,7 @@ button.ab-info:hover { background: var(--bg-3); }
 .ab-queue button { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px; background: none; border: 0; color: var(--fg); cursor: pointer; }
 .ab-queue button:hover { background: var(--bg-3); }
 .ab-queue li.on button { background: rgb(var(--accent-rgb) / .12); }
-.ab-queue li.on b { color: var(--accent); }
+.ab-queue li.on b { color: var(--accent-text, var(--accent)); }
 .ab-q-n { color: var(--fg-3); font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: center; }
 .ab-q-t { min-width: 0; display: grid; }
 .ab-q-t b { font-weight: 550; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

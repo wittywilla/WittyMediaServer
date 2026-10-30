@@ -83,7 +83,7 @@ function VideoLibrary() {
         <h1>{lib.name}</h1>
         <span className="count">{total} {isShows ? (total === 1 ? 'show' : 'shows') : total === 1 ? 'item' : 'items'}</span>
         <div style={{ flex: 1 }} />
-        <select className="select" value={sort} onChange={(e) => set('sort', e.target.value)}>
+        <select className="select" value={sort} aria-label="Sort by" onChange={(e) => set('sort', e.target.value)}>
           <option value="title">Title</option><option value="added">Date added</option><option value="year">Year</option>
           <option value="rating">Rating</option>{!isShows && <option value="runtime">Runtime</option>}
         </select>

@@ -3,13 +3,13 @@
   "name": "WittyMediaServer",
   "description": "The original look: deep slate with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "1",
+  "version": "3",
   "scheme": "dark",
   "builtin": true,
   "preview": {
     "bg": "#0f1115",
     "surface": "#1f232c",
     "text": "#e8eaf0",
-    "accent": "#8b6cff"
+    "accent": "#7955ff"
   }
 }

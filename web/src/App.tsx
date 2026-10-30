@@ -18,12 +18,15 @@ import SearchPage from './pages/SearchPage'
 import AuthPage from './pages/AuthPage'
 import SetupWizard from './pages/SetupWizard'
 import { PlayerDock } from './player/PlayerPage'
+import { Announcer, useDialogs } from './a11y'
 
 export default function App() {
+  useDialogs()
   return (
     <AppProvider>
       <Shell />
       <ToastHost />
+      <Announcer />
     </AppProvider>
   )
 }

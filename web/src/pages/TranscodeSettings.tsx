@@ -44,7 +44,7 @@ export default function TranscodeSettings() {
     <div className="panel transcode">
       <p className="muted" style={{ marginTop: 0 }}>Not sure what to pick? The defaults suit most machines; <a href={GUIDE} target="_blank" rel="noreferrer">the transcoding guide</a> explains each choice and recommends hardware.</p>
       <div className="form">
-        <h3 className="section-title">Playback</h3>
+        <h2 className="section-title">Playback</h2>
         <label className="check">
           <input type="checkbox" checked={s.directPlay !== '0'} onChange={(e) => set('directPlay', e.target.checked ? '1' : '0')} />
           Allow direct play
@@ -63,7 +63,7 @@ export default function TranscodeSettings() {
           </label>
         </div>
 
-        <h3 className="section-title">Hardware encoders <Tip wide>Tick the encoders you want to use. WittyMediaServer test-encodes with each one at start-up; encoders your GPU/CPU or driver does not have are greyed out. When several are ticked, the first working one in this list is used. Nothing ticked = software (libx264), which gives the best quality per bit but uses the most CPU.</Tip></h3>
+        <h2 className="section-title">Hardware encoders <Tip wide>Tick the encoders you want to use. WittyMediaServer test-encodes with each one at start-up; encoders your GPU/CPU or driver does not have are greyed out. When several are ticked, the first working one in this list is used. Nothing ticked = software (libx264), which gives the best quality per bit but uses the most CPU.</Tip></h2>
         <div className="hw-list">
           {hw.map((h) => {
             const usable = h.compiled && h.working
@@ -80,7 +80,7 @@ export default function TranscodeSettings() {
           {hw.length === 0 && <div className="muted">Loading…</div>}
         </div>
 
-        <h3 className="section-title">Transcode quality</h3>
+        <h2 className="section-title">Transcode quality</h2>
         <div className="seg big">
           {(['easy', 'advanced', 'expert'] as Mode[]).map((m) => <button key={m} className={mode === m ? 'active' : ''} onClick={() => set('qualityMode', m)}>{m[0].toUpperCase() + m.slice(1)}</button>)}
           <Tip wide><b>Easy</b>: pick one of three tested profiles.<br /><b>Advanced</b>: choose the encoder speed, quality level, bitrate cap and audio bitrate yourself.<br /><b>Expert</b>: Advanced plus raw FFmpeg options. Settings apply to new streams; restart playback to hear/see a change.</Tip>

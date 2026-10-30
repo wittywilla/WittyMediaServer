@@ -102,6 +102,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
       if (!v || picker || settingsOpen) return
+      if (document.querySelector('.modal-backdrop, .scene-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .watch-next')) return

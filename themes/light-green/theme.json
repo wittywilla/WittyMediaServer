@@ -3,13 +3,13 @@
   "name": "Light Green",
   "description": "Light surfaces with a green accent.",
   "author": "WittyMediaServer",
-  "version": "1",
+  "version": "3",
   "scheme": "light",
   "builtin": true,
   "preview": {
     "bg": "#f0f3f5",
     "surface": "#e6ecef",
     "text": "#15171c",
-    "accent": "#16a34a"
+    "accent": "#117f3a"
   }
 }

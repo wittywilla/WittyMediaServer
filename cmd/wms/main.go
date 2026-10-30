@@ -36,7 +36,7 @@ func main() {
 
 // version is stamped by the release scripts (-X main.version=...); this is
 // the default for source builds.
-var version = "0.2.0-alpha"
+var version = "0.3.0-alpha"
 
 func usage() {
 	fmt.Println(`WittyMediaServer

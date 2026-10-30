@@ -17,7 +17,8 @@ export type DiscTitle = {
   number: number; durationSec: number; chapters: number[]; angles: number
   audio: string[]; subtitles: string[]; wide: boolean; standard: string
 }
-export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean }
+export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean
+  content?: 'movie' | 'tv'; contentManual?: boolean } // a film, or episodes of a series
 export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number }
 export type Item = {
   id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | 'bluray-iso' | 'bluray-folder' | string; path: string
@@ -98,7 +99,13 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  const res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
+  let res: Response
+  try {
+    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
+  } catch {
+    // The browser's own wording ("Failed to fetch") means nothing to people.
+    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and this device is on the same network.")
+  }
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }

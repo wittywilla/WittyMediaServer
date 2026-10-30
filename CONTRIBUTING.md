@@ -77,4 +77,4 @@ To check a whole disc's menus: `go run ./cmd/wms dvd crawl /path/to/disc.iso`.
 New to Git/GitHub? See [docs/PUBLISHING.md](docs/PUBLISHING.md) for a step-by-step walkthrough.
 
 ---
-<sub>WittyMediaServer 0.2.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.3.0-alpha documentation</sub>

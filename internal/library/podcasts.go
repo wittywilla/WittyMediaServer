@@ -123,7 +123,7 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/0.2 (podcasts)")
+	req.Header.Set("User-Agent", "WittyMediaServer/0.3 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -342,7 +342,7 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	}
 	lib, err := s.Store.Library(ctx, it.LibraryID)
 	if err != nil || len(lib.Paths) == 0 {
-		return errors.New("the podcasts library has no folder to download into")
+		return errors.New("to download episodes, give this podcasts library a folder in Settings, Libraries")
 	}
 	ext := strings.ToLower(filepath.Ext(strings.Split(it.Path, "?")[0]))
 	if !audioExts[ext] {
@@ -360,7 +360,7 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/0.2 (podcasts)")
+	req.Header.Set("User-Agent", "WittyMediaServer/0.3 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
 		return err

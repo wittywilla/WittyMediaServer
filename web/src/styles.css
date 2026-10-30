@@ -385,3 +385,7 @@ main.content:focus { outline: none; }
 .album-cover svg { width: 40%; height: 40%; fill: var(--fg-3); }
 .book-progress { height: 6px; border-radius: 3px; background: var(--bg-3); overflow: hidden; max-width: 320px; }
 .book-progress span { display: block; height: 100%; background: var(--accent); }
+
+/* library shelves: films and series on disc */
+.shelf-seg { margin: 0 0 14px; max-width: 100%; overflow-x: auto; }
+.shelf-head { font-size: 18px; margin: 28px 0 12px; }

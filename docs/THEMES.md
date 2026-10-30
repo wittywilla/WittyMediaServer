@@ -397,4 +397,4 @@ Their sources live in [`themes/`](../themes) in the repository; each `theme.css`
 variable with a comment and is a good template.
 
 ---
-<sub>WittyMediaServer 0.2.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.3.0-alpha documentation</sub>

@@ -106,11 +106,34 @@
 .widget-bar .grow { flex: 1; }
 .widget-preview { max-height: 260px; overflow: hidden; pointer-events: none; padding: 0 10px 10px; mask-image: linear-gradient(#000 70%, transparent); }
 .widget-preview .hero { margin: 0; height: 220px; min-height: 0; border-radius: 10px; }
-.lib-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.lib-tile { display: grid; gap: 4px; padding: 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border); transition: transform .12s, border-color .12s; }
-.lib-tile svg { width: 28px; height: 28px; fill: var(--accent); margin-bottom: 6px; }
-.lib-tile:hover, .lib-tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); }
-.lib-tile .muted { font-size: 12px; }
+.lib-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.lib-tile { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 14px 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border); color: var(--fg); transition: transform .12s, border-color .12s, background .12s; }
+.lib-tile:hover, .lib-tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); background: var(--bg-3); }
+.lib-tile-ic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 12px; background: rgb(var(--accent-rgb) / .14); color: var(--accent); font-size: 26px; font-weight: 300; line-height: 1; }
+.lib-tile-ic svg { width: 24px; height: 24px; fill: var(--accent); }
+.lib-tile-txt { display: grid; gap: 2px; min-width: 0; }
+.lib-tile-txt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-tile-txt .muted { font-size: 12.5px; }
+.lib-tile.add { background: transparent; border-style: dashed; }
+.lib-tile.add .lib-tile-ic { background: var(--bg-3); }
+@media (max-width: 600px) { .lib-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .lib-tile { gap: 10px; padding: 12px; } .lib-tile-ic { width: 38px; height: 38px; border-radius: 10px; } .lib-tile-ic svg { width: 20px; height: 20px; } }
+
+/* home: greeting, first-run welcome, and the "something's wrong" card */
+.home-greet { margin: 6px 0 22px; }
+.home-greet h1 { margin: 0 0 4px; font-size: clamp(24px, 4vw, 32px); letter-spacing: -.02em; }
+.home-greet p { margin: 0; }
+.home-card { max-width: 560px; margin: 8vh auto 24px; padding: 32px 28px; display: grid; justify-items: center; gap: 10px; text-align: center; border-radius: 18px; background: var(--bg-2); border: 1px solid var(--border); }
+.home .home-card { margin: 0 auto 30px; }
+.home-card h2 { margin: 4px 0 0; font-size: 21px; }
+.home-card p { margin: 0 0 8px; line-height: 1.55; max-width: 440px; }
+.home-card-ic { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: rgb(var(--accent-rgb) / .14); }
+.home-card-ic svg { width: 26px; height: 26px; fill: var(--accent); }
+.home-card-ic.big { width: 64px; height: 64px; }
+.home-card-ic.big svg { width: 32px; height: 32px; }
+.home-welcome { max-width: 920px; margin: 4vh auto 40px; display: grid; gap: 22px; }
+.home-welcome-head { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.home-welcome-head h1 { margin: 6px 0 0; font-size: clamp(26px, 4.5vw, 36px); letter-spacing: -.02em; line-height: 1.15; }
+.home-welcome-head p { margin: 0; max-width: 580px; line-height: 1.55; }
 .shuffle { position: relative; display: flex; gap: 18px; align-items: center; padding: 18px; border-radius: 16px; overflow: hidden; background: var(--bg-2); }
 .shuffle-art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .18; filter: blur(2px); }
 .shuffle-poster { position: relative; width: 110px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 10px; box-shadow: var(--shadow); flex: none; }

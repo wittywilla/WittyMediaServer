@@ -10,7 +10,7 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui
 
 type Agent = { id: string; name: string; url: string; header: string; kinds: string[]; enabled: boolean }
 type AgentResult = { title: string; year?: number; overview?: string; genres?: string[]; rating?: number; poster?: string }
-const KIND_NAMES: Record<string, string> = { movies: 'Movies', videos: 'Home videos', books: 'Books' }
+const KIND_NAMES: Record<string, string> = { movies: 'Movies', discs: 'DVDs & Blu-rays', videos: 'Home videos', books: 'Books' }
 const NO_KEY = 'No API key needed'
 
 export default function MetadataSettings() {

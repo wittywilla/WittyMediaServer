@@ -148,6 +148,21 @@ button.ab-info:hover { background: var(--bg-3); }
 .podcast-hits { display: grid; gap: 6px; margin-top: 12px; max-height: 50vh; overflow: auto; }
 .podcast-hit { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; background: var(--bg-3); }
 .podcast-hit img { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex: none; }
-.podcast-hit .grow { display: grid; min-width: 0; }
+.podcast-hit .grow { display: grid; flex: 1; min-width: 0; }
 .podcast-hit .grow b, .podcast-hit .grow .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .podcast-hit .muted { font-size: 12.5px; }
+.podcast-hit-ph { width: 52px; height: 52px; border-radius: 8px; flex: none; background: var(--bg-4); }
+.pod-finder { display: grid; gap: 10px; min-width: 0; }
+.pod-finder .seg { justify-self: start; max-width: 100%; }
+.pod-finder .field-row { flex-wrap: nowrap; }
+.pod-finder .field-row .input { flex: 1 1 auto; min-width: 0; }
+.pod-finder .field-row .btn { flex: none; width: auto; }
+.pod-note { font-size: 12.5px; line-height: 1.5; margin: 0; }
+.pod-note b, .pod-ways .muted b { color: var(--fg); font-weight: 600; }
+.pod-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.pod-ways > div { display: grid; gap: 4px; align-content: start; padding: 12px 14px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--border); }
+.pod-ways .muted { font-size: 13px; line-height: 1.45; }
+.pod-empty { max-width: 760px; margin: 24px auto; display: grid; gap: 14px; }
+.pod-empty h2 { margin: 0; }
+.pod-folder { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
+.pod-folder .muted { font-size: 13px; }

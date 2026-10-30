@@ -28,6 +28,10 @@ function VideoLibrary() {
   const desc = params.get('desc') === '1'
   const genre = params.get('genre') || ''
   const network = params.get('network') || ''
+  // shelf: which discs to show, "" (everything), discs, movie or tv
+  const shelf = params.get('shelf') || ''
+  const [discCount, setDiscCount] = useState({ all: 0, tv: 0 })
+  const [showDiscs, setShowDiscs] = useState<Item[]>([])
   const [networks, setNetworks] = useState<{ name: string; shows: number }[]>([])
   const [items, setItems] = useState<Item[] | null>(null)
   const [shows, setShows] = useState<Show[] | null>(null)
@@ -39,16 +43,22 @@ function VideoLibrary() {
   useEffect(() => {
     setItems(null); setShows(null)
     if (isShows) {
+      api.get<{ items: Item[] }>(`/items?library=${id}&kind=disc&sort=title`).then((r) => setShowDiscs(r.items)).catch(() => setShowDiscs([]))
       api.get<{ shows: Show[]; total: number }>(`/shows?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}&network=${encodeURIComponent(network)}`)
         .then((r) => { setShows(r.shows); setItems([]); setTotal(r.total) })
       api.get<string[]>(`/shows/genres?library=${id}`).then(setGenres).catch(() => {})
       api.get<{ name: string; shows: number }[]>(`/shows/networks?library=${id}`).then(setNetworks).catch(() => {})
       return
     }
-    api.get<{ items: Item[]; total: number }>(`/items?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}`)
+    const filter = shelf === 'discs' ? '&kind=disc' : shelf ? `&kind=disc&discContent=${shelf}` : ''
+    api.get<{ items: Item[]; total: number }>(`/items?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}${filter}`)
       .then((r) => { setItems(r.items); setTotal(r.total) })
+    Promise.all([
+      api.get<{ total: number }>(`/items?library=${id}&kind=disc&limit=1`),
+      api.get<{ total: number }>(`/items?library=${id}&kind=disc&discContent=tv&limit=1`),
+    ]).then(([a, t]) => setDiscCount({ all: a.total, tv: t.total })).catch(() => {})
     api.get<string[]>(`/genres?library=${id}`).then(setGenres).catch(() => {})
-  }, [id, sort, desc, genre, network, scan?.done, isShows])
+  }, [id, sort, desc, genre, network, shelf, scan?.done, isShows])
 
   useEffect(() => {
     let t: any
@@ -86,6 +96,14 @@ function VideoLibrary() {
         <button className="btn sm ghost" onClick={() => set('desc', desc ? '' : '1')}>{desc ? '↓ Desc' : '↑ Asc'}</button>
         {user?.isAdmin && <button className="btn sm ghost" onClick={rescan} disabled={!!scan}><IconRefresh /> {scan ? `Scanning… ${scan.done ?? 0}/${scan.found ?? '?'}` : 'Scan'}</button>}
       </div>
+      {!isShows && discCount.all > 0 && (lib.type === 'discs' ? discCount.tv > 0 && discCount.tv < discCount.all : true) && (
+        <div className="seg shelf-seg" role="tablist" aria-label="Show">
+          {(lib.type === 'discs'
+            ? [['', 'All discs'], ['movie', 'Films'], ['tv', 'TV series']]
+            : [['', 'Everything'], ['discs', 'DVDs & Blu-rays'], ...(discCount.tv ? [['tv', 'TV series on disc']] : [])]
+          ).map(([k, l]) => <button key={k} role="tab" aria-selected={shelf === k} className={shelf === k ? 'active' : ''} onClick={() => set('shelf', k)}>{l}</button>)}
+        </div>
+      )}
       {genres.length > 0 && (
         <div className="chips" style={{ marginBottom: 18 }}>
           <button className={'chip' + (!genre ? ' active' : '')} onClick={() => set('genre', '')}>All</button>
@@ -94,7 +112,12 @@ function VideoLibrary() {
       )}
       {!items ? <Spinner /> : isShows
         ? (shows && shows.length > 0
-          ? <div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div>
+          ? <>
+              <div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div>
+              {showDiscs.length > 0 && <><h2 className="shelf-head">DVDs & Blu-rays</h2><div className="grid">{showDiscs.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
+            </>
+          : showDiscs.length > 0
+          ? <><h2 className="shelf-head">DVDs & Blu-rays</h2><div className="grid">{showDiscs.map((it) => <ItemCard key={it.id} item={it} />)}</div></>
           : <EmptyState title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organise episodes as Show/Season 1/Show - S01E01 - Title.mkv and rescan.'} />)
         : items.length === 0
         ? <EmptyState title={scan ? 'Scanning…' : 'No items'} text={scan ? 'Items appear as they are found.' : 'Nothing matched. Check the library folders in Settings.'} />

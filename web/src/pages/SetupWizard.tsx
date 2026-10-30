@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, setToken, type Library, type User } from '../api'
 import { Brand, VersionTag } from '../components/common'
-import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconAudio, IconBook, IconCheck, IconDisc, IconFolder, IconPalette, IconPlug, IconTv, IconUsers, libIcon } from '../icons'
+import AddLibrary from '../components/AddLibrary'
+import { IconAudio, IconBook, IconCheck, IconDisc, IconPalette, IconPlug, IconTv, IconUsers } from '../icons'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 import { useApp } from '../state'
 import { applyTheme, type ThemeMeta } from '../theme'
@@ -17,17 +17,6 @@ type Step = 'welcome' | 'account' | 'libraries' | 'metadata' | 'playback' | 'loo
 const STEPS: { id: Step; label: string }[] = [
   { id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Account' }, { id: 'libraries', label: 'Your media' },
   { id: 'metadata', label: 'Information' }, { id: 'playback', label: 'Discs' }, { id: 'look', label: 'Look' }, { id: 'done', label: 'Ready' },
-]
-
-const LIB_TYPES = [
-  { type: 'movies', name: 'Movies & discs', hint: 'Films, plus DVD and Blu-ray images and folders that play with their real menus' },
-  { type: 'shows', name: 'TV shows', hint: 'One folder per show, with season folders inside' },
-  { type: 'anime', name: 'Anime', hint: 'Series with AniList information; also collects anime found in your TV shows' },
-  { type: 'music', name: 'Music', hint: 'Albums by artist; tags and covers are read from the files' },
-  { type: 'audiobooks', name: 'Audiobooks', hint: 'One folder per book; picks up where you stopped' },
-  { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by name; a folder is only for episodes you download' },
-  { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
-  { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
 ]
 
 const FEATURES = [
@@ -192,22 +181,6 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
 }
 
 function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: (l: Library) => void; onNext: () => void }) {
-  const [type, setType] = useState<string | null>(null)
-  const [paths, setPaths] = useState<string[]>([])
-  const [name, setName] = useState('')
-  const [manual, setManual] = useState('')
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  const t = LIB_TYPES.find((x) => x.type === type)
-  const add = async () => {
-    setBusy(true); setErr('')
-    try {
-      const lib = await api.post<Library>('/libraries', { name: name.trim() || t!.name, type, paths })
-      onAdded(lib)
-      setType(null); setPaths([]); setName('')
-    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
-  }
-  const addPath = (p: string) => { if (p.trim()) setPaths((x) => [...new Set([...x, p.trim()])]); setManual('') }
   return (
     <section>
       <h1>Where is your media?</h1>
@@ -217,31 +190,7 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
           {added.map((l) => <li key={l.id}><IconCheck size={16} /> <b>{l.name}</b> <span className="muted">{l.paths.join(', ') || 'no folder'}</span></li>)}
         </ul>
       )}
-      {!type ? (
-        <div className="oobe-types">
-          {LIB_TYPES.map((x) => (
-            <button key={x.type} type="button" className="oobe-type" onClick={() => { setType(x.type); setName('') }}>
-              <span className="ic">{libIcon(x.type)}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="oobe-lib">
-          <div className="oobe-lib-head"><span className="ic">{libIcon(t!.type)}</span><b>{t!.name}</b><button type="button" className="linkish" onClick={() => { setType(null); setPaths([]) }}>Choose another kind</button></div>
-          <label className="oobe-field">Library name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t!.name} /></label>
-          <div className="oobe-paths">
-            {paths.map((p) => <div key={p} className="oobe-path"><IconFolder /> <span>{p}</span><button type="button" className="btn sm ghost" onClick={() => setPaths(paths.filter((x) => x !== p))} aria-label={`Remove ${p}`}>Remove</button></div>)}
-          </div>
-          <div className="field-row">
-            <ChooseFolderButton className={'btn ' + (paths.length ? '' : 'primary')} label={paths.length ? 'Add another folder…' : 'Choose folder…'} onPick={addPath} />
-            <input className="input" placeholder="…or type a path, e.g. D:\Movies" aria-label="Folder path" value={manual} onChange={(e) => setManual(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPath(manual) } }} />
-          </div>
-          {type === 'podcasts' && <p className="muted oobe-hint">No folder? That's fine: podcasts stream from the web, and you can follow shows once setup is done.</p>}
-          {err && <div className="error" role="alert">{err}</div>}
-          <div className="oobe-actions"><span /><button type="button" className="btn primary" disabled={(!paths.length && type !== 'podcasts') || busy} onClick={add}>{busy ? 'Adding…' : `Add ${name.trim() || t!.name}`}</button></div>
-        </div>
-      )}
+      <AddLibrary onAdded={onAdded} />
       <div className="oobe-actions">
         <span className="muted" style={{ fontSize: 13 }}>{added.length ? 'Scanning starts right away in the background.' : 'You can also do this later in Settings.'}</span>
         <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>

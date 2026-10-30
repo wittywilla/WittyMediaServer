@@ -81,7 +81,7 @@ export default function ItemPage() {
               </button>
               {resume
                 ? <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`)}><IconPlay /> Resume from {fmtTime(resume.positionSec)}</button>
-                : <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&start=0`)}><IconPlay /> Play movie</button>}
+                : <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&start=0`)}><IconPlay /> {it.disc?.content === 'tv' ? 'Play from the start' : 'Play movie'}</button>}
               {it.disc?.hasMenus && <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=menu`)}><IconMenu /> Main menu</button>}
               {user?.isAdmin && (
                 <div className="admin-tools" role="group" aria-label="Manage">
@@ -139,16 +139,26 @@ export default function ItemPage() {
 function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Prefs | null; onClose: () => void; onSaved: (it: Item) => void }) {
   const [playMode, setPlayMode] = useState(item.playMode)
   const [insertFx, setInsertFx] = useState(item.insertFx)
+  const [content, setContent] = useState(item.disc?.contentManual ? item.disc.content || '' : '')
   const [err, setErr] = useState('')
   const save = async () => {
-    try { onSaved(await api.put<Item>(`/items/${item.id}`, { playMode, insertFx })) } catch (e: any) { setErr(e.message) }
+    try { onSaved(await api.put<Item>(`/items/${item.id}`, { playMode, insertFx, discContent: content })) } catch (e: any) { setErr(e.message) }
   }
+  const guessed = !item.disc?.contentManual && item.disc?.content === 'tv' ? 'TV series' : 'film'
   const def = prefs?.dvdStart === 'title' ? 'main feature' : 'disc menu'
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Disc settings</h2>
         <div className="form" style={{ maxWidth: 'none' }}>
+          <label>What’s on this disc
+            <select className="select" value={content} onChange={(e) => setContent(e.target.value)}>
+              <option value="">Work it out from the name ({item.disc?.contentManual ? 'automatic' : guessed})</option>
+              <option value="movie">A film</option>
+              <option value="tv">Episodes of a TV series</option>
+            </select>
+            <span className="muted" style={{ fontWeight: 400, fontSize: 12.5 }}>Sorts the disc under Films or TV series in its library. Discs of a series aren’t looked up as films.</span>
+          </label>
           <label>When this disc is inserted
             <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>
               <option value="">Server default ({def})</option>

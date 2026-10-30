@@ -167,6 +167,18 @@
 .set-addpath .input { flex: 1 1 240px; min-width: 0; }
 
 /* ---------------------------------------------------------------- narrow */
+/* version and modules (About) */
+.mod-list { display: grid; margin: 0 0 12px; scroll-margin-top: 90px; }
+.mod-row { display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px; color: var(--fg); }
+a.mod-row:hover { background: var(--bg-3); }
+.mod-row.mod-self { background: rgb(var(--accent-rgb) / .1); margin-bottom: 6px; }
+.mod-name { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.mod-name .muted { font-size: 12.5px; }
+.mod-ver { display: flex; align-items: center; gap: 8px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--fg-2); flex: none; }
+.mod-local { font-family: inherit; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--bg-4); color: var(--fg-3); }
+.mod-group { padding: 12px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); }
+.set-nav-version { display: grid; gap: 4px; margin-top: 4px; padding: 10px 12px; border-radius: 10px; color: var(--fg-3); font-size: 12.5px; }
+.set-nav-version:hover { background: var(--bg-3); color: var(--fg-2); }
 @media (max-width: 1000px) {
   .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; }
   .set-nav { position: static; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 0 6px; margin: 0 -4px; }
@@ -176,6 +188,7 @@
   .set-nav-link { flex: none; height: 38px; padding: 0 14px 0 6px; gap: 8px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--border); white-space: nowrap; }
   .set-nav-icon { width: 26px; height: 26px; border-radius: 50%; }
   .set-nav-link.active { border-color: var(--accent); }
+  .set-nav-version { display: none; }
 }
 @media (max-width: 600px) {
   .set-head { flex-direction: column; align-items: stretch; }

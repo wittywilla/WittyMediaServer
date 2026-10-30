@@ -39,7 +39,7 @@ func (b *libraryBody) validate() error {
 		return errors.New("name is required")
 	}
 	switch b.Type {
-	case "movies", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books":
+	case "movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books":
 	case "":
 		b.Type = "movies"
 	default:
@@ -165,6 +165,8 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		// noEpisodes=1: movies and discs only (the Shuffle widget)
 		NoEpisodes: qBool(r, "noEpisodes"),
 		Watchable:  qBool(r, "watchable"),
+		// discContent=movie|tv: discs holding films or TV episodes
+		DiscContent: r.URL.Query().Get("discContent"),
 	}
 	items, total, err := s.Store.Items(r.Context(), q)
 	if err != nil {
@@ -240,6 +242,8 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		Refresh       bool      `json:"refresh"`
 		PlayMode      *string   `json:"playMode"` // DVDs: menu | title | ""
 		InsertFX      *string   `json:"insertFx"` // DVDs: on | off | ""
+		// DiscContent: what a disc holds, "movie" or "tv"; "" works it out.
+		DiscContent *string `json:"discContent"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -314,6 +318,19 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 		it.PlayMode, it.InsertFX = pm, fx
 	}
+	if b.DiscContent != nil && it.Disc != nil {
+		switch v := *b.DiscContent; v {
+		case "movie", "tv":
+			it.Disc.Content, it.Disc.ContentManual = v, true
+		case "":
+			lib, _ := s.Store.Library(r.Context(), it.LibraryID)
+			typ := ""
+			if lib != nil {
+				typ = lib.Type
+			}
+			it.Disc.Content, it.Disc.ContentManual = library.GuessDiscContent(typ, it.Title, it.Disc.Label), false
+		}
+	}
 	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Tagline != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh || b.ContentRating != nil
 	if metaEdit && s.saveMeta(r) {
 		if err := s.Scanner.SaveItemMetadata(r.Context(), it); err != nil {
@@ -362,14 +379,14 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		for _, h := range []struct {
 			key, title string
 			items      []*library.Item
-		}{{"continue", "Continue Watching", watch}, {"continue-reading", "Continue Reading", read}, {"continue-listening", "Continue Listening", listen}} {
+		}{{"continue", "Continue watching", watch}, {"continue-reading", "Continue reading", read}, {"continue-listening", "Continue listening", listen}} {
 			if len(h.items) > 0 {
 				hubs = append(hubs, hub{Key: h.key, Title: h.title, Items: h.items})
 			}
 		}
 	}
 	if next := s.nextUp(r, libs); len(next) > 0 {
-		hubs = append(hubs, hub{Key: "nextup", Title: "Next Up", Items: next})
+		hubs = append(hubs, hub{Key: "nextup", Title: "Next up", Items: next})
 	}
 	for _, l := range libs {
 		if l.Type == "shows" || l.Type == "anime" {
@@ -380,7 +397,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			id := l.ID
-			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently Added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
+			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
 		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc})
@@ -389,7 +406,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = s.Store.AttachProgress(ctx, u.ID, items)
 		id := l.ID
-		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently Added in " + l.Name, Library: &id, Items: items})
+		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item

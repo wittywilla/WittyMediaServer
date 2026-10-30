@@ -76,7 +76,7 @@ export function EmptyState({ title, text, action }: { title: string; text?: stri
 export function Spinner() { return <div style={{ display: 'grid', placeItems: 'center', padding: 60 }}><div className="spinner" /></div> }
 
 // VersionTag is the release line shown at the bottom of every page, e.g.
-// "WittyMediaServer 0.2.0 · ALPHA".
+// "WittyMediaServer 0.3.0 · ALPHA".
 export function VersionTag({ version }: { version: string }) {
   const m = /^v?(\d+\.\d+\.\d+)(?:-([a-z]+)[.\d]*)?/i.exec(version || '')
   const num = m ? m[1] : version || 'dev'

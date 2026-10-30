@@ -3,7 +3,42 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## Unreleased
+## 0.3.0-alpha
+
+### Home
+
+- **A home page that makes sense at a glance**: the featured carousel, then *Your libraries* as
+  tiles (with *Add a library* for admins), one **Jump back in** row for everything you are
+  watching, reading or listening to, *Next up*, what's new in each library, and *Can't decide?*
+  Saved layouts start fresh once; sections you hid stay hidden.
+- **First run**: with no libraries yet, home welcomes you and adds one right there, instead of an
+  empty page.
+- **Offline**: when the server can't be reached, home says so plainly and reconnects by itself,
+  instead of showing "Failed to fetch".
+
+### DVDs and Blu-rays
+
+- **A DVDs & Blu-rays library type**, for a shelf of disc images, films and TV series together.
+  Discs still work in Movies and TV shows libraries; the descriptions explain the choice.
+- **Film or TV series**: each disc is sorted from its name (season, series, box set…) or its
+  library, and you can set it yourself in *Disc settings*. Libraries holding discs get
+  *Films* / *TV series* (or *DVDs & Blu-rays*) filters; TV libraries list their discs below the
+  shows. Discs of a series are no longer looked up as films.
+- Blu-rays are offered by *Can't decide?* again.
+
+### Podcasts
+
+- Adding a podcasts library explains what it holds (shows you follow, downloads, your own files)
+  and goes straight on to **following shows**: search the free Apple Podcasts directory, or paste
+  any RSS feed. The folder is optional: without one, episodes stream.
+- *Keep downloaded* now reads "newest 5 episodes"; an empty podcasts library shows the same
+  search instead of a bare message.
+
+### Settings
+
+- **Version and modules**, in *About & legal* and at the foot of the settings menu: this server's
+  version and those of WittyDVD, WittyBluray, WittyDisc and the readers inside it.
+
 
 ### Disc engines as Go modules
 

@@ -12,7 +12,7 @@ version (with the built archives) on GitHub's Releases page.
 1. Install [GitHub Desktop](https://desktop.github.com/) and sign in with your GitHub account.
 2. *File → Add local repository…* → choose the `WittyMediaServer` folder.
 3. The left panel lists every changed file. Write a summary at the bottom left, e.g.
-   `0.2.0-alpha: WittyDVD, TV shows, themes, transcoding settings`, and click
+   `0.3.0-alpha: a new home, discs as films or series, podcasts, module versions`, and click
    **Commit to master**.
 4. Click **Push origin** at the top. Your changes are now on GitHub.
 
@@ -33,7 +33,7 @@ Every time you want to publish:
 ```bash
 git status                     # see what changed
 git add -A                     # stage everything (the .gitignore keeps build output out)
-git commit -m "0.2.0-alpha: WittyDVD, TV shows, themes, transcoding settings"
+git commit -m "0.3.0-alpha: a new home, discs as films or series, podcasts, module versions"
 git push origin master         # upload
 ```
 
@@ -47,8 +47,8 @@ The repository's release workflow (`.github/workflows/release.yml`) builds every
 you push a **version tag**:
 
 ```bash
-git tag v0.2.0-alpha
-git push origin v0.2.0-alpha
+git tag v0.3.0-alpha
+git push origin v0.3.0-alpha
 ```
 
 Then watch the *Actions* tab on GitHub; when the workflow finishes, the archives for all ten
@@ -66,7 +66,7 @@ The same script the workflow uses runs locally (Windows: from *Git Bash*, or
 
 ```bash
 scripts/build-release.sh 0.2.0-alpha            # all ten platforms -> dist/
-scripts/build-release.sh 0.2.0-alpha windows/amd64 linux/arm64   # just some
+scripts/build-release.sh 0.3.0-alpha windows/amd64 linux/arm64   # just some
 ```
 
 On a non-Mac computer the macOS archives contain the server but not the menu-bar launcher (it
@@ -90,4 +90,4 @@ In GitHub Desktop you create the tag via *History → right-click the commit →
   request* on GitHub so you can review the diff before it lands on `master`.
 
 ---
-<sub>WittyMediaServer 0.2.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.3.0-alpha documentation</sub>

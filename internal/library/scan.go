@@ -199,6 +199,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		if err != nil {
 			s.Log.Warn("discover", "root", root, "err", err)
 		}
+		if lib.Type == "discs" {
+			c = onlyDiscs(c)
+		}
 		all = append(all, c...)
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
@@ -213,6 +216,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
 		err := guard(func() error {
 			switch {
+			case (lib.Type == "shows" || lib.Type == "anime") && IsDiscKind(c.kind):
+				return s.index(ctx, lib, c) // a series on DVD or Blu-ray: a disc, with its menus
 			case lib.Type == "shows" || lib.Type == "anime":
 				return s.indexEpisode(ctx, lib, c, tv)
 			case IsAudioLibrary(lib.Type):
@@ -242,6 +247,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Poster != "" && !existing.Missing {
 		s.fixParsedTitle(ctx, existing, c.kind)
+		s.fillDiscContent(ctx, existing, lib.Type)
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime}
@@ -294,14 +300,26 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		it.SortTitle = SortTitle(it.Title)
 	}
 
+	// What a disc holds: kept when someone chose it, else worked out.
+	if it.Disc != nil {
+		if existing != nil && existing.Disc != nil && existing.Disc.ContentManual {
+			it.Disc.Content, it.Disc.ContentManual = existing.Disc.Content, true
+		} else {
+			it.Disc.Content = GuessDiscContent(lib.Type, it.Title, it.Disc.Label)
+		}
+	}
+
 	// Online metadata: the owner's own agents first, then the built-in ones.
+	// Discs of TV series are not looked up as films (they keep their name,
+	// disc label and agents' answers).
 	s.applyAgents(ctx, it, lib.Type)
-	if key := s.TMDBKey(); key != "" && lib.Type != "videos" && (it.Overview == "" || it.Poster == "") {
+	movieLike := lib.Type != "videos" && (it.Disc == nil || it.Disc.Content != "tv")
+	if key := s.TMDBKey(); key != "" && movieLike && (it.Overview == "" || it.Poster == "") {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {
 			s.Log.Info("tmdb lookup failed", "cat", "library", "title", it.Title, "err", err)
 		}
-	} else if key == "" && lib.Type == "movies" && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) {
+	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) {
 		// No TMDB key: basic facts and the rating from Wikidata (no key needed).
 		if err := (&Wikidata{}).Enrich(ctx, it); err != nil {
 			s.Log.Info("wikidata lookup failed", "cat", "library", "title", it.Title, "err", err)
@@ -529,4 +547,35 @@ func guard(f func() error) (err error) {
 		}
 	}()
 	return f()
+}
+
+// onlyDiscs keeps the DVD and Blu-ray images and folders of a Discs library.
+func onlyDiscs(c []candidate) []candidate {
+	out := c[:0]
+	for _, x := range c {
+		if strings.HasPrefix(x.kind, "dvd-") || strings.HasPrefix(x.kind, "bluray-") {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+var tvDiscRe = regexp.MustCompile(`(?i)\b(season|series|seizoen|staffel|saison|temporada|s\d{1,2}(d\d{1,2})?|complete|box ?set|episodes?|vol(ume)?\.? ?\d+)\b`)
+
+// LooksLikeTVDisc reports whether a disc's name reads like part of a TV
+// series ("Friends Season 1 Disc 2", "THE_OFFICE_S2D1") rather than a film.
+func LooksLikeTVDisc(title string) bool {
+	return tvDiscRe.MatchString(strings.NewReplacer("_", " ", ".", " ").Replace(title))
+}
+
+// fillDiscContent works out what an unchanged disc holds when it was scanned
+// before discs said so.
+func (s *Scanner) fillDiscContent(ctx context.Context, it *Item, libType string) {
+	if it.Disc == nil || it.Disc.Content != "" {
+		return
+	}
+	it.Disc.Content = GuessDiscContent(libType, it.Title, it.Disc.Label)
+	if err := s.Store.setDisc(ctx, it.ID, it.Disc); err != nil {
+		s.Log.Warn("disc content", "path", it.Path, "err", err)
+	}
 }

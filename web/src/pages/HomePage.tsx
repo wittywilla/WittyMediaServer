@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
-import { EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
-import { IconAnime, IconDisc, IconFilm, IconInfo, IconRefresh, IconTv } from '../icons'
+import { api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Item } from '../api'
+import AddLibrary from '../components/AddLibrary'
+import { ItemCard, ShowCard, Spinner } from '../components/common'
+import { IconInfo, IconRefresh, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { useOpenItem } from '../openItem'
 
@@ -11,32 +12,55 @@ import { useOpenItem } from '../openItem'
 // person to every device. Reordering works by dragging, and with Up/Down
 // buttons for touch screens, TV remotes and keyboards.
 
-type Layout = { order: string[]; hidden: string[] }
+// v: the layout version. Version 2 merged the "Continue" rows into "Jump back
+// in"; an older saved order is dropped once (hidden sections are kept).
+type Layout = { v?: number; order: string[]; hidden: string[] }
 type Widget = { id: string; title: string; render: () => React.ReactNode | null }
+const LAYOUT_V = 2
 
 export default function HomePage() {
   const [home, setHome] = useState<Home | null>(null)
-  const [err, setErr] = useState('')
-  const [layout, setLayout] = useState<Layout>({ order: [], hidden: [] })
+  const [err, setErr] = useState<{ offline: boolean; message: string } | null>(null)
+  const [layout, setLayout] = useState<Layout>({ v: LAYOUT_V, order: [], hidden: [] })
   const [editing, setEditing] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
-  const { libraries } = useApp()
-  useEffect(() => { api.get<Home>('/home').then(setHome).catch((e) => setErr(e.message)) }, [libraries])
+  const { libraries, user, refreshLibraries } = useApp()
+  // The problem card stays up while retrying, so the page doesn't flicker.
+  const load = useCallback(() => {
+    api.get<Home>('/home').then((h) => { setHome(h); setErr(null) }).catch((e) => setErr({ offline: e instanceof ApiError && e.status === 0, message: e.message }))
+  }, [])
+  useEffect(load, [libraries, load])
+  // Offline: try again every few seconds, so the page comes back by itself
+  // when the server does.
   useEffect(() => {
-    api.get<{ home?: Layout }>('/me/ui').then((u) => { if (u.home) setLayout({ order: u.home.order || [], hidden: u.home.hidden || [] }) }).catch(() => {})
+    if (!err?.offline) return
+    const t = setTimeout(() => { refreshLibraries(); load() }, 5000)
+    return () => clearTimeout(t)
+  }, [err, load, refreshLibraries])
+  useEffect(() => {
+    api.get<{ home?: Layout }>('/me/ui').then((u) => {
+      if (!u.home) return
+      const hidden = (u.home.hidden || []).map((h) => (h.startsWith('continue') ? 'jump' : h))
+      setLayout({ v: LAYOUT_V, order: u.home.v === LAYOUT_V ? u.home.order || [] : [], hidden: [...new Set(hidden)] })
+    }).catch(() => {})
   }, [])
 
   const widgets = useMemo<Widget[]>(() => {
     if (!home) return []
     const hub = (h: Hub): Widget => ({ id: h.key, title: h.title, render: () => <HubRow hub={h} /> })
     const byKey = (k: string) => home.hubs.find((h) => h.key === k)
+    // Everything in progress, watching, reading and listening, in one row.
+    const going = ['continue', 'continue-reading', 'continue-listening'].map(byKey).filter(Boolean) as Hub[]
+    const jump: Hub = { key: 'jump', title: 'Jump back in', items: going.flatMap((h) => h.items), shows: going.flatMap((h) => h.shows || []) }
     const list: Widget[] = [
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
+      { id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> },
+      { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
     ]
-    for (const k of ['continue', 'continue-reading', 'continue-listening', 'nextup']) { const h = byKey(k); if (h) list.push(hub(h)) }
-    list.push({ id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> })
+    const next = byKey('nextup')
+    if (next) list.push(hub(next))
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
-    list.push({ id: 'shuffle', title: 'Shuffle', render: () => <Shuffle /> })
+    list.push({ id: 'shuffle', title: 'Can’t decide?', render: () => <Shuffle /> })
     return list
   }, [home])
 
@@ -47,8 +71,9 @@ export default function HomePage() {
   }, [widgets, layout.order])
 
   const save = (next: Layout) => {
-    setLayout(next)
-    api.put('/me/ui', { home: next }).catch(() => toast('Could not save the layout'))
+    const l = { ...next, v: LAYOUT_V }
+    setLayout(l)
+    api.put('/me/ui', { home: l }).catch(() => toast('Could not save the layout'))
   }
   const move = (id: string, to: number) => {
     const ids = ordered.map((w) => w.id).filter((x) => x !== id)
@@ -57,13 +82,12 @@ export default function HomePage() {
   }
   const toggle = (id: string) => save({ ...layout, hidden: layout.hidden.includes(id) ? layout.hidden.filter((x) => x !== id) : [...layout.hidden, id] })
 
-  if (err) return <div className="error">{err}</div>
+  if (err) return <HomeProblem offline={err.offline} message={err.message} retry={() => { refreshLibraries(); load() }} />
   if (!home) return <Spinner />
-  if (home.libraries.length === 0) {
-    return <EmptyState title="Welcome to WittyMediaServer" text="Add a library pointing at a folder of movies, TV shows or DVD ISOs to get started."
-      action={<Link className="btn primary" to="/settings/libraries">Add a library</Link>} />
-  }
+  if (home.libraries.length === 0) return <Welcome admin={!!user?.isAdmin} name={user?.name || ''} onAdded={refreshLibraries} />
   const shown = editing ? ordered : ordered.filter((w) => !layout.hidden.includes(w.id))
+  const scanning = libraries.some((l) => l.scanning)
+  const empty = home.featured.length === 0 && home.hubs.every((h) => !h.items.length && !(h.shows || []).length)
   return (
     <div className={'home' + (editing ? ' editing' : '')}>
       {editing && (
@@ -71,6 +95,17 @@ export default function HomePage() {
           <span className="muted">Drag sections, or use the arrows. Hidden sections stay here until you show them again.</span>
           <button className="btn sm ghost" onClick={() => save({ order: [], hidden: [] })}>Reset</button>
           <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
+        </div>
+      )}
+      {!editing && (home.featured.length === 0 || layout.hidden.includes('hero')) && <Greeting name={user?.name || ''} />}
+      {!editing && empty && (
+        <div className="home-card">
+          <span className="home-card-ic"><IconRefresh /></span>
+          <h2>{scanning ? 'Your libraries are being scanned' : 'Your libraries are empty'}</h2>
+          <p className="muted">{scanning
+            ? 'Films, shows, music and books appear here as they’re found. The first scan can take a few minutes.'
+            : 'Nothing was found in their folders yet. Check the folders in Settings, Libraries, then scan again.'}</p>
+          {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">Open library settings</Link>}
         </div>
       )}
       {shown.map((w, i) => {
@@ -94,13 +129,48 @@ export default function HomePage() {
           </div>
         )
       })}
-      {!editing && home.hubs.length === 0 && <EmptyState title="Nothing here yet" text="Your libraries are empty or still scanning." />}
       {/* A page action, not a heading: at the foot of the page. */}
       {!editing && (
         <div className="home-foot">
           <button className="btn sm ghost" onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title="Rearrange or hide sections of the home page">Customize home</button>
         </div>
       )}
+    </div>
+  )
+}
+
+const greeting = () => { const h = new Date().getHours(); return h >= 5 && h < 12 ? 'Good morning' : h >= 12 && h < 18 ? 'Good afternoon' : 'Good evening' }
+
+function Greeting({ name }: { name: string }) {
+  return <div className="home-greet"><h1>{greeting()}{name ? `, ${name}` : ''}</h1><p className="muted">Here’s what’s on your server.</p></div>
+}
+
+// Welcome: the first visit, before any library exists.
+function Welcome({ admin, name, onAdded }: { admin: boolean; name: string; onAdded: () => void }) {
+  return (
+    <div className="home-welcome">
+      <div className="home-welcome-head">
+        <span className="home-card-ic big">{libIcon('movies')}</span>
+        <h1>Welcome{name ? `, ${name}` : ''}! Let’s fill your server.</h1>
+        <p className="muted">{admin
+          ? 'Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.'
+          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'}</p>
+      </div>
+      {admin && <AddLibrary onAdded={onAdded} />}
+    </div>
+  )
+}
+
+// HomeProblem: the server can't be reached, or the home page failed to load.
+function HomeProblem({ offline, message, retry }: { offline: boolean; message: string; retry: () => void }) {
+  return (
+    <div className="home-card problem" role="alert">
+      <span className="home-card-ic"><IconInfo /></span>
+      <h2>{offline ? 'Can’t reach your server' : 'Home didn’t load'}</h2>
+      <p className="muted">{offline
+        ? 'Check that WittyMediaServer is running on its computer and that this device is on the same network. This page tries again by itself every few seconds.'
+        : message}</p>
+      <button className="btn primary" onClick={retry}><IconRefresh /> Try again</button>
     </div>
   )
 }
@@ -121,20 +191,33 @@ function HubRow({ hub }: { hub: Hub }) {
   )
 }
 
-// LibraryTiles: one big tile per library, a quick way in on phones and TVs.
+// LibraryTiles: a way into every library, with an Add tile for admins.
+const NOUNS: Record<string, [string, string]> = {
+  movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
+  music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
+}
 function LibraryTiles() {
-  const { libraries } = useApp()
-  if (libraries.length < 2) return null
+  const { libraries, user } = useApp()
+  if (!libraries.length) return null
   return (
     <section className="hub">
-      <div className="hub-head"><h2>Your libraries</h2></div>
+      <div className="hub-head"><h2>Your libraries</h2>{user?.isAdmin && <Link to="/settings/libraries">Manage ›</Link>}</div>
       <div className="lib-tiles">
-        {libraries.map((l) => (
-          <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
-            {l.type === 'movies' ? <IconFilm /> : l.type === 'shows' ? <IconTv /> : l.type === 'anime' ? <IconAnime /> : <IconDisc />}
-            <b>{l.name}</b><span className="muted">{l.itemCount} {l.itemCount === 1 ? 'item' : 'items'}</span>
+        {libraries.map((l) => {
+          const [one, many] = NOUNS[l.type] || ['item', 'items']
+          return (
+            <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
+              <span className="lib-tile-ic">{libIcon(l.type)}</span>
+              <span className="lib-tile-txt"><b>{l.name}</b><span className="muted">{l.scanning ? 'Scanning…' : `${l.itemCount.toLocaleString()} ${l.itemCount === 1 ? one : many}`}</span></span>
+            </Link>
+          )
+        })}
+        {user?.isAdmin && (
+          <Link to="/settings/libraries" className="lib-tile add">
+            <span className="lib-tile-ic" aria-hidden="true">+</span>
+            <span className="lib-tile-txt"><b>Add a library</b><span className="muted">Another folder of media</span></span>
           </Link>
-        ))}
+        )}
       </div>
     </section>
   )
@@ -149,7 +232,7 @@ function Shuffle() {
   if (!it) return null
   return (
     <section className="hub">
-      <div className="hub-head"><h2>Can't decide?</h2></div>
+      <div className="hub-head"><h2>Can’t decide?</h2></div>
       <div className="shuffle">
         <div className="shuffle-art" style={backdropUrl(it) ? { backgroundImage: `url(${backdropUrl(it)})` } : undefined} />
         <img className="shuffle-poster" src={posterUrl(it)} alt="" loading="lazy" />

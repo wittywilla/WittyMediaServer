@@ -143,4 +143,4 @@ When reporting a disc problem, attach the output of `info` and `crawl` — never
 - Blu-ray discs have their own engine and page: [BLURAY.md](BLURAY.md).
 
 ---
-<sub>WittyMediaServer 0.2.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.3.0-alpha documentation</sub>

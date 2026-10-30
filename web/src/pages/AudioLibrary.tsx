@@ -5,7 +5,7 @@ import { useAudio, type AudioMode } from '../audio/player'
 import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
 import { IconPlay } from '../icons'
 import { useApp } from '../state'
-import { AddPodcast, DownloadButton, PodcastAdmin } from './Podcasts'
+import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 
 // Music and audiobook libraries: albums (books), artists (authors) and all
 // songs, and the page of one album or book.
@@ -39,10 +39,10 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
     <>
       <div className="toolbar">
         <h1>{lib.name}{artist !== null && <span className="muted"> · {artist || 'Unknown'}</span>}</h1>
-        <div className="seg" role="tablist">
+        {tabs.length > 1 && <div className="seg" role="tablist">
           {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { set('artist', null); set('tab', k) }}>{l}</button>)}
-        </div>
-        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Add podcast</button>}
+        </div>}
+        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
         {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
         {tab === 'albums' && !pods && (
           <select className="select" value={sort} aria-label="Sort" onChange={(e) => set('sort', e.target.value)}>
@@ -50,7 +50,13 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
           </select>
         )}
       </div>
-      {tab === 'albums' && (!albums ? <Spinner /> : albums.length === 0 ? <EmptyState title="Nothing here yet" text={pods ? 'Follow a podcast with “Add podcast”.' : "Add audio files to this library's folders and scan it."} /> : (
+      {tab === 'albums' && (!albums ? <Spinner /> : albums.length === 0 ? (pods ? (
+        <div className="pod-empty">
+          <h2>Your podcasts will live here</h2>
+          <PodcastWays />
+          {user?.isAdmin ? <PodcastFinder libraryId={lib.id} onAdded={() => setReload((n) => n + 1)} /> : <p className="muted">Ask whoever runs this server to follow some shows.</p>}
+        </div>
+      ) : <EmptyState title="Nothing here yet" text="Add audio files to this library's folders and scan it." />) : (
         <div className="album-grid">
           {albums.map((a) => (
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">

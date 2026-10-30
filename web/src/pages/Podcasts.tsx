@@ -2,45 +2,97 @@ import { useEffect, useState } from 'react'
 import { api, type Item } from '../api'
 import { toast, useApp } from '../state'
 
-// Podcasts: adding a show (search Apple's free directory or paste a feed
-// address) and the admin controls on a podcast's page.
+// Podcasts: following a show (search Apple's free directory or paste its RSS
+// feed), and the controls on a podcast's page.
 
 export type Podcast = { id: number; libraryId: number; url: string; title: string; author: string; image: string; description: string; lastChecked: number; autoDownload: number }
 type Hit = { title: string; author: string; feed: string; image: string; genre: string }
 
-export function AddPodcast({ libraryId, onClose, onAdded }: { libraryId: number; onClose: () => void; onAdded: () => void }) {
+// PodcastFinder: two ways to follow a show. Search the free Apple Podcasts
+// directory by name, or paste the RSS feed address a show publishes.
+export function PodcastFinder({ libraryId, onAdded }: { libraryId: number; onAdded: () => void }) {
+  const [mode, setMode] = useState<'search' | 'feed'>('search')
   const [q, setQ] = useState('')
-  const [hits, setHits] = useState<Hit[]>([])
+  const [feed, setFeed] = useState('')
+  const [hits, setHits] = useState<Hit[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [added, setAdded] = useState<string[]>([])
   const [err, setErr] = useState('')
   useEffect(() => {
-    if (q.trim().length < 2 || /^https?:\/\//i.test(q.trim())) { setHits([]); return }
-    const t = setTimeout(() => api.get<Hit[]>(`/podcasts/search?q=${encodeURIComponent(q.trim())}`).then(setHits).catch((e) => setErr(e.message)), 350)
+    const term = q.trim()
+    if (term.length < 2) { setHits(null); return }
+    if (/^https?:\/\//i.test(term)) { setMode('feed'); setFeed(term); setQ(''); return }
+    const t = setTimeout(() => { setErr(''); api.get<Hit[]>(`/podcasts/search?q=${encodeURIComponent(term)}`).then(setHits).catch((e) => setErr(e.message)) }, 350)
     return () => clearTimeout(t)
   }, [q])
   const add = async (url: string) => {
     setBusy(url); setErr('')
-    try { await api.post('/podcasts', { library: libraryId, url }); toast('Podcast added'); onAdded() } catch (e: any) { setErr(e.message) } finally { setBusy(null) }
+    try {
+      await api.post('/podcasts', { library: libraryId, url })
+      setAdded((a) => [...a, url]); toast('Following'); onAdded()
+      if (url === feed.trim()) setFeed('')
+    } catch (e: any) { setErr(e.message) } finally { setBusy(null) }
   }
-  const isUrl = /^https?:\/\//i.test(q.trim())
+  return (
+    <div className="pod-finder">
+      <div className="seg" role="tablist" aria-label="How to find a podcast">
+        <button role="tab" aria-selected={mode === 'search'} className={mode === 'search' ? 'active' : ''} onClick={() => setMode('search')}>Search the directory</button>
+        <button role="tab" aria-selected={mode === 'feed'} className={mode === 'feed' ? 'active' : ''} onClick={() => setMode('feed')}>RSS feed address</button>
+      </div>
+      {mode === 'search' ? (
+        <>
+          <input className="input" autoFocus placeholder="Search podcasts by name, host or topic" aria-label="Search podcasts" value={q} onChange={(e) => setQ(e.target.value)} />
+          <p className="muted pod-note">Results come from the free, public Apple Podcasts directory. Shows you follow <b>stream</b> through your server; nothing is saved until you download it.</p>
+        </>
+      ) : (
+        <>
+          <form className="field-row" onSubmit={(e) => { e.preventDefault(); if (feed.trim()) add(feed.trim()) }}>
+            <input className="input" type="url" autoFocus placeholder="https://example.com/feed.xml" aria-label="RSS feed address" value={feed} onChange={(e) => setFeed(e.target.value)} />
+            <button className="btn primary" disabled={!/^https?:\/\/./i.test(feed.trim()) || !!busy}>{busy === feed.trim() ? 'Following…' : 'Follow'}</button>
+          </form>
+          <p className="muted pod-note">Every podcast publishes an RSS feed; look for “RSS” on the show’s website. Private and members-only feeds work too.</p>
+        </>
+      )}
+      {err && <div className="error" role="alert">{err}</div>}
+      {mode === 'search' && hits && (
+        <div className="podcast-hits">
+          {hits.length === 0 && <p className="muted">No podcasts found for “{q.trim()}”.</p>}
+          {hits.map((h) => {
+            const done = added.includes(h.feed)
+            return (
+              <div key={h.feed} className="podcast-hit">
+                {h.image ? <img src={h.image} alt="" loading="lazy" /> : <span className="podcast-hit-ph" />}
+                <div className="grow"><b>{h.title}</b><span className="muted">{h.author}{h.genre ? ` · ${h.genre}` : ''}</span></div>
+                <button className={'btn sm ' + (done ? 'ghost' : 'primary')} disabled={!!busy || done} onClick={() => add(h.feed)}>{done ? 'Following' : busy === h.feed ? 'Following…' : 'Follow'}</button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// PodcastWays: what a podcasts library can hold, shown when adding one and
+// on an empty podcasts library.
+export function PodcastWays() {
+  return (
+    <div className="pod-ways">
+      <div><b>Follow shows</b><span className="muted">Search a free online directory or paste an RSS feed. New episodes appear as they’re published and <b>stream</b> from the web.</span></div>
+      <div><b>Download episodes</b><span className="muted">Save any episode to your server, or have a show keep its newest episodes downloaded automatically each time its feed updates.</span></div>
+      <div><b>Your own files</b><span className="muted">Already have episodes as MP3 or M4A files? Point the library at their folder and they play like any other episode.</span></div>
+    </div>
+  )
+}
+
+export function AddPodcast({ libraryId, onClose, onAdded }: { libraryId: number; onClose: () => void; onAdded: () => void }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide" role="dialog" aria-label="Add a podcast" onClick={(e) => e.stopPropagation()}>
-        <h2>Add a podcast</h2>
-        <input className="input" autoFocus placeholder="Search by name, or paste the feed address (https://…)" aria-label="Podcast name or feed address" value={q} onChange={(e) => setQ(e.target.value)} />
-        {isUrl && <button className="btn primary" style={{ marginTop: 10 }} disabled={!!busy} onClick={() => add(q.trim())}>{busy ? 'Adding…' : 'Add this feed'}</button>}
-        {err && <div className="error" role="alert">{err}</div>}
-        <div className="podcast-hits">
-          {hits.map((h) => (
-            <div key={h.feed} className="podcast-hit">
-              {h.image && <img src={h.image} alt="" loading="lazy" />}
-              <div className="grow"><b>{h.title}</b><span className="muted">{h.author}{h.genre ? ` · ${h.genre}` : ''}</span></div>
-              <button className="btn sm primary" disabled={!!busy} onClick={() => add(h.feed)}>{busy === h.feed ? 'Adding…' : 'Add'}</button>
-            </div>
-          ))}
-        </div>
-        <p className="muted" style={{ fontSize: 12 }}>Search results come from the Apple Podcasts directory. Episodes play through this server; download any you want to keep.</p>
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Close</button></div>
+      <div className="modal wide" role="dialog" aria-label="Follow a podcast" onClick={(e) => e.stopPropagation()}>
+        <h2>Follow a podcast</h2>
+        <PodcastFinder libraryId={libraryId} onAdded={onAdded} />
+        <p className="muted pod-note" style={{ marginTop: 12 }}>To keep episodes, open a show and choose <b>Keep downloaded</b>: its newest episodes are saved to this library’s folder each time the feed updates.</p>
+        <div className="actions"><button className="btn primary" onClick={onClose}>Done</button></div>
       </div>
     </div>
   )
@@ -62,8 +114,8 @@ export function PodcastAdmin({ libraryId, title, onChanged }: { libraryId: numbe
     <div className="podcast-admin">
       <button className="btn sm" onClick={refresh}>Check for new episodes</button>
       <label className="muted">Keep downloaded:
-        <select className="select sm" value={p.autoDownload} onChange={(e) => auto(Number(e.target.value))}>
-          <option value={0}>none (stream)</option>{[1, 3, 5, 10, 25].map((n) => <option key={n} value={n}>newest {n}</option>)}
+        <select className="select sm" value={p.autoDownload} onChange={(e) => auto(Number(e.target.value))} title="Saved to this library's folder each time the feed updates">
+          <option value={0}>none, stream them</option>{[1, 3, 5, 10, 25].map((n) => <option key={n} value={n}>newest {n} episode{n > 1 ? 's' : ''}</option>)}
         </select>
       </label>
       <button className="btn sm danger" onClick={remove}>Unfollow</button>

@@ -52,3 +52,29 @@ func TestWebURL(t *testing.T) {
 		}
 	}
 }
+
+func TestLooksLikeTVDisc(t *testing.T) {
+	for in, want := range map[string]bool{
+		"Friends Season 1 Disc 2": true, "THE_OFFICE_S2D1": true, "Doctor Who Series 4": true,
+		"Planet Earth Complete Box Set": true, "Dr Seuss The Lorax": false, "Shrek 2": false, "THE POLAR EXPRESS 3D": false,
+	} {
+		if got := LooksLikeTVDisc(in); got != want {
+			t.Errorf("LooksLikeTVDisc(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestGuessDiscContent(t *testing.T) {
+	for _, c := range []struct{ lib, title, label, want string }{
+		{"movies", "Shrek 2", "SHREK_2", "movie"},
+		{"discs", "Friends Season 3 Disc 1", "FRIENDS_S3D1", "tv"},
+		{"discs", "The Lorax", "THE_LORAX", "movie"},
+		{"discs", "Planet Earth", "PLANET_EARTH_S1D2", "tv"},
+		{"shows", "Disc 1", "DISC_1", "tv"},
+		{"anime", "Spirited", "", "tv"},
+	} {
+		if got := GuessDiscContent(c.lib, c.title, c.label); got != c.want {
+			t.Errorf("GuessDiscContent(%q, %q, %q) = %q, want %q", c.lib, c.title, c.label, got, c.want)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
+import { VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { IconClose, IconEdit, IconFolder, IconInfo, IconLibrary, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
@@ -31,12 +32,12 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, licence and credits' },
+    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, licence and credits' },
   ] },
 ]
 
 export default function SettingsPage() {
-  const { user } = useApp()
+  const { user, version } = useApp()
   const loc = useLocation()
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
@@ -54,6 +55,9 @@ export default function SettingsPage() {
             ))}
           </div>
         ))}
+        <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
+          <VersionTag version={version} /><span>Version and modules ›</span>
+        </NavLink>
       </nav>
       <main className="set-main">
         <Routes>
@@ -76,12 +80,13 @@ export default function SettingsPage() {
 // ---------------------------------------------------------------- libraries
 
 const TYPES: { v: string; label: string; hint: string }[] = [
-  { v: 'movies', label: 'Movies & discs', hint: 'Films, DVD and Blu-ray images and folders' },
-  { v: 'shows', label: 'TV shows', hint: 'Series in season folders' },
+  { v: 'movies', label: 'Movies', hint: 'Film files; disc images of films can go here too' },
+  { v: 'shows', label: 'TV shows', hint: 'Series in season folders; disc images of a series too' },
+  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of films and series, with their menus' },
   { v: 'anime', label: 'Anime', hint: 'Series with AniList information' },
   { v: 'music', label: 'Music', hint: 'Albums and songs' },
   { v: 'audiobooks', label: 'Audiobooks', hint: 'Books to listen to, by chapter' },
-  { v: 'podcasts', label: 'Podcasts', hint: 'Shows you follow; a folder only for downloads' },
+  { v: 'podcasts', label: 'Podcasts', hint: 'RSS feeds you follow, plus episode files; the folder holds downloads' },
   { v: 'books', label: 'Books & comics', hint: 'EPUB, PDF, comics and manga' },
   { v: 'videos', label: 'Home videos', hint: 'Your own videos; nothing is looked up online' },
 ]
@@ -236,19 +241,54 @@ function SignInScreen() {
 
 // ---------------------------------------------------------------- about
 
+// The readers built into the web app (their versions are set at build time).
+const READERS: Record<string, [string, string]> = {
+  wittyebook: ['WittyEbook', 'EPUB reader'],
+  wittypdf: ['WittyPDF', 'PDF reader'],
+  wittycomics: ['WittyComics', 'Comic and manga reader'],
+  wittyink: ['WittyInk', 'Highlights, notes and pen, shared by the readers'],
+}
+type Engine = { name: string; module: string; version: string; local?: boolean; role: string }
+
 function About() {
   const [sys, setSys] = useState<any>(null)
-  const { user } = useApp()
+  const [about, setAbout] = useState<{ version: string; modules: Engine[] } | null>(null)
+  const { user, version } = useApp()
+  const loc = useLocation()
   useEffect(() => { if (user?.isAdmin) api.get('/system').then(setSys).catch(() => {}) }, [user])
+  useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
+  useEffect(() => { if (loc.hash === '#modules' && about) document.getElementById('modules')?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
+  const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version and system, the licence, and the services it relies on." />
+      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the licence, and the services it relies on." />
+      <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
+        <div id="modules" className="mod-list">
+          <div className="mod-row mod-self">
+            <span className="mod-name"><b>WittyMediaServer</b><span className="muted">The server and this app</span></span>
+            <span className="mod-ver">{about?.version || version || 'dev'}</span>
+          </div>
+          <div className="mod-group">Disc engines</div>
+          {(about?.modules || []).map((m) => (
+            <a key={m.name} className="mod-row" href={`https://github.com/wittywilla/${m.name}`} target="_blank" rel="noreferrer">
+              <span className="mod-name"><b>{m.name}</b><span className="muted">{m.role}</span></span>
+              <span className="mod-ver">{m.version}{m.local && <span className="mod-local" title="Built from this server's own copy of the module">built in</span>}</span>
+            </a>
+          ))}
+          <div className="mod-group">Readers</div>
+          {readers.map((m) => (
+            <a key={m.id} className="mod-row" href={`https://github.com/wittywilla/${READERS[m.id][0]}`} target="_blank" rel="noreferrer">
+              <span className="mod-name"><b>{READERS[m.id][0]}</b><span className="muted">{READERS[m.id][1]}</span></span>
+              <span className="mod-ver">{m.version}</span>
+            </a>
+          ))}
+        </div>
+      </Section>
       {sys && (
         <Section title="This server">
           <dl className="set-facts">
             <div className="wide"><dt>Open it on other devices at home</dt><dd className="mono">{(sys.lanUrls || []).length ? sys.lanUrls.join('  ·  ') : 'This server only accepts connections from this computer'}</dd></div>
-            <div><dt>Version</dt><dd>{sys.version}</dd></div>
             <div><dt>System</dt><dd>{sys.os} / {sys.arch}</dd></div>
             <div><dt>Computer</dt><dd>{sys.hostname}</dd></div>
             <div><dt>Hardware video</dt><dd>{hw.length ? hw.join(', ') : 'None found; software encoding'}</dd></div>

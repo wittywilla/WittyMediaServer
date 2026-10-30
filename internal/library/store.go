@@ -89,6 +89,24 @@ type DiscInfo struct {
 	MainTitle int         `json:"mainTitle"`
 	Titles    []DiscTitle `json:"titles"`
 	Scrambled bool        `json:"scrambled"`
+	// Content: what the disc holds, "movie" or "tv". Worked out from the
+	// library and the disc's name unless someone chose it (ContentManual).
+	Content       string `json:"content,omitempty"`
+	ContentManual bool   `json:"contentManual,omitempty"`
+}
+
+// IsDiscKind: a DVD or Blu-ray image or folder.
+func IsDiscKind(kind string) bool {
+	return strings.HasPrefix(kind, "dvd-") || strings.HasPrefix(kind, "bluray-")
+}
+
+// GuessDiscContent: a disc in a TV library, or named like part of a series,
+// holds TV episodes; anything else is taken to be a film.
+func GuessDiscContent(libType, title, label string) string {
+	if libType == "shows" || libType == "anime" || LooksLikeTVDisc(title) || LooksLikeTVDisc(label) {
+		return "tv"
+	}
+	return "movie"
 }
 
 type DiscTitle struct {
@@ -324,8 +342,10 @@ type ItemQuery struct {
 	Limit     int
 	Offset    int
 	Genre     string
-	Kind      string
-	ShowID    int64
+	Kind      string // an item kind, or "disc" for every DVD and Blu-ray
+	// DiscContent: "movie" or "tv", discs holding films or TV episodes.
+	DiscContent string
+	ShowID      int64
 	// NoEpisodes leaves TV episodes out (home hero, movie views).
 	NoEpisodes bool
 	// Access limits the result to what a Kids/Guest profile may see.
@@ -393,15 +413,21 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "('|' || IFNULL(i.genres,'') || '|') LIKE ?")
 		args = append(args, "%|"+q.Genre+"|%")
 	}
-	if q.Kind != "" {
+	if q.Kind == "disc" {
+		where = append(where, "i.kind IN ('dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')")
+	} else if q.Kind != "" {
 		where = append(where, "i.kind = ?")
 		args = append(args, q.Kind)
+	}
+	if q.DiscContent != "" {
+		where = append(where, "json_extract(i.disc_json, '$.content') = ?")
+		args = append(args, q.DiscContent)
 	}
 	if q.NoEpisodes {
 		where = append(where, "i.show_id IS NULL")
 	}
 	if q.Watchable {
-		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder')")
+		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")
@@ -576,6 +602,15 @@ func (s *Store) SetItemPrefs(ctx context.Context, id int64, playMode, insertFX s
 
 // UpdateItemMeta applies user edits.
 func (s *Store) UpdateItem(ctx context.Context, it *Item) error { return s.upsertItem(ctx, it) }
+
+func (s *Store) setDisc(ctx context.Context, id int64, d *DiscInfo) error {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+	_, err = s.DB.ExecContext(ctx, `UPDATE items SET disc_json = ? WHERE id = ?`, string(b), id)
+	return err
+}
 
 func (s *Store) retitle(ctx context.Context, id int64, title string) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET title = ?, sort_title = ?, updated_at = ? WHERE id = ?`, title, SortTitle(title), db.Now(), id)

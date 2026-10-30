@@ -42,7 +42,7 @@ type Agent struct {
 }
 
 // AgentKinds are the library types custom agents can serve.
-var AgentKinds = []string{"movies", "videos", "books"}
+var AgentKinds = []string{"movies", "discs", "videos", "books"}
 
 var agentIDRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 
@@ -128,6 +128,8 @@ func agentType(libType string) string {
 		return "movie"
 	case "videos":
 		return "video"
+	case "discs":
+		return "disc"
 	}
 	return "book"
 }

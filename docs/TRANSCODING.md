@@ -186,4 +186,4 @@ or Quick Sync; both use the same hardware.
 | Transcodes fail after changing Expert options | clear both Expert fields; check the log with `-log debug` |
 
 ---
-<sub>WittyMediaServer 0.2.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.3.0-alpha documentation</sub>

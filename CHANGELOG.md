@@ -3,6 +3,19 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased: security
+
+A full security review and its fixes; the details are in `docs/SECURITY-REVIEW.md`. Things you may
+notice:
+
+- First-time setup from another network asks for a code from the server's log.
+- New passwords for full accounts need 8 characters (Kids and Guest PINs stay at 4; passwords
+  already set keep working).
+- `maxTranscodes` is now enforced: beyond it, viewers are told the server is busy.
+- Files that are links leading out of their library are no longer indexed or served.
+- The expert FFmpeg fields accept only options that tune encoding.
+- Accounts other than the administrator no longer see server folders or podcast feed addresses.
+
 ## 0.4.0-alpha
 
 0.3.0-alpha was never published as a release, so this is the first release with everything in it

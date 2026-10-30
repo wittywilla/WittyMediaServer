@@ -93,6 +93,13 @@ Keyframes are still forced on segment boundaries so seeking keeps working. Quote
 (`-x264-params "aq-mode=3:psy-rd=1.0"`). A wrong option makes transcodes fail; start the server
 with `-log debug` to see every FFmpeg command line.
 
+Only options that tune encoding are accepted, each with a plain value: presets, tunes, profiles,
+quality and bitrate settings, GOP settings, threads, `-pix_fmt`, `-movflags`, `-x264-params` and
+`-x265-params` (without parameters that name a file), and so on. Anything that can open or write
+files or reach the network (`-i`, output names, `-vf`, `-filter_complex`, `-attach`...) is refused
+when you save, because a web account must not be able to read or change files on the machine that
+way. The full list is `expertOptions` in `internal/ffmpeg/encoders.go`.
+
 ## Which profile for which machine
 
 | Machine | Encoder | Profile | Max resolution | Notes |

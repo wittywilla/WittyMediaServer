@@ -43,7 +43,7 @@ You do **not** need to install FFmpeg, a database or anything else: the download
 ## 3. Create your account
 
 The first page asks you to create the **administrator** account. Pick a name and a password
-(at least 4 characters). This account can change every setting; you can add accounts for family
+(at least 8 characters). This account can change every setting; you can add accounts for family
 members later under *Settings → Users*.
 
 ## 4. Organise your files

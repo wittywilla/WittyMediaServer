@@ -121,7 +121,10 @@ players can use it too. The steps below name its files.
 5. For each menu or interactive cell it reads the NAV packs for button positions and links, and
    decodes the sub-picture for the highlight artwork — `navpack.go`, `menu.go`, `spu.go`.
 6. The video of each cell is converted to HLS by FFmpeg and shown in the browser with the button
-   and subtitle layers on top — `internal/dvdsession`.
+   and subtitle layers on top — `internal/dvdsession`. A title is read in runs (`runs.go`): cells
+   that follow each other on the disc are one recording and are read as one, so nothing happens at
+   their chapters. Where a join is real, the next run's first picture is put exactly where it
+   belongs. `internal/seamcheck` measures this; see `TestRealDiscChapterSeams`.
 
 Everything is written from the public DVD-Video structure; no libdvdnav/libdvdread code is used,
 and scrambled (CSS) discs are refused — WittyMediaServer never decrypts anything.
@@ -148,6 +151,19 @@ The same commands exist as a standalone tool, `wittydvd`, from the
 When reporting a disc problem, attach the output of `info` and `crawl` — never the disc image.
 `walk` and `crawl` give the same output every run (the disc's random numbers come from a fixed
 seed), so two versions can be compared line by line.
+
+If playback stutters at a chapter, this check plays a title through the real stream and compares it with
+a straight read of the disc, frame by frame and sound by sound. It takes as long as FFmpeg needs to convert
+the title, and needs a developer's copy of the source and FFmpeg:
+
+```bash
+WMS_SEAM_DVD=SHREK_2.ISO WMS_SEAM_OUT=seams.txt go test ./internal/dvdsession -run RealDiscChapterSeams -v -timeout 60m
+```
+
+`WMS_SEAM_PACED=1` paces it like someone watching, so the server's rests and restarts are included.
+In the table, `shift ms` and `mark ms` should be 0 at every boundary. A steady 21 ms of sound is the audio
+encoder's own start. A low `conf` means that moment's sound was too quiet or too repetitive to compare, so its
+figures mean nothing, and a dark or still scene can show a few frames as lost and repeated.
 
 ## Limits
 

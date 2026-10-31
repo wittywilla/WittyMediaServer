@@ -117,7 +117,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'shorts', label: 'Vertical videos', hint: 'A feed of short videos with a For You page' },
   { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
   { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
-  { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
+  { v: 'radio', label: 'Internet radio', hint: 'Stations from a free directory or by stream address; no folder needed' },
   { v: 'commercials', label: 'Commercials', hint: 'Your own ads and bumpers for TV channels; they stay out of Home and search' },
   { v: 'games', label: 'Games', hint: 'Your own game files, by console, played in the browser' },
 ]

@@ -21,7 +21,7 @@ export const LIB_TYPES = [
   { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; nothing leaves this server' },
   { type: 'shorts', name: 'Vertical videos', hint: 'A feed of short videos with likes, comments and a For You page worked out on this server alone' },
   { type: 'musicvideos', name: 'Music videos & concerts', hint: 'Music videos and live recordings by artist, with setlists from their chapters' },
-  { type: 'radio', name: 'Internet radio', hint: 'Stations you add by their stream address or an M3U or PLS playlist; no folder needed' },
+  { type: 'radio', name: 'Internet radio', hint: 'Search a free directory of stations, or add them by stream address or playlist; no folder needed' },
   { type: 'channels', name: 'Creator videos', hint: 'Your archive of creators’ videos, laid out by channel with subscriptions, comments and up next' },
   { type: 'commercials', name: 'Commercials', hint: 'Your own ads and bumpers to play between shows on TV channels. Have as many of these as you like' },
   { type: 'games', name: 'Games', hint: 'Your own game files, by console, played right in the browser with a gamepad, keyboard or touch' },

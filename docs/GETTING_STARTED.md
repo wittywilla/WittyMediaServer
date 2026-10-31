@@ -80,7 +80,7 @@ Tips:
    - **Other videos** — home videos and anything else; no online lookups.
    - And more: music, audiobooks, podcasts, books and comics, [photos](PHOTOS.md),
      [vertical videos](SHORTS.md), [creator videos, music videos and concerts](CREATOR-VIDEOS.md), and
-     [internet radio](COLLECTIONS.md#internet-radio).
+     [internet radio](COLLECTIONS.md#internet-radio), found by searching a free directory of stations.
 4. Click **Browse…**, open the folder with your videos, and click **Use this folder**.
 5. **Save & scan**. Titles appear within seconds; posters and details fill in as the scan goes.
 

@@ -1,0 +1,79 @@
+/* Internet radio: the library, adding stations and a station's page. Built from the
+   shared parts in styles.css; everything here uses the theme's tokens. */
+
+/* A logo may be any shape: it sits whole on the generated art, never cropped. */
+.rd-logo { position: absolute; inset: 0; width: 100%; height: 100%; padding: 8%; object-fit: contain; background: var(--bg-3); }
+.card .poster img.rd-logo { position: absolute; object-fit: contain; }
+
+.rd-filter { max-width: 220px; }
+.rd-row { margin-bottom: var(--section-gap); }
+.rd-row h2, .rd-all { margin: 0 0 var(--sp-3); font-size: var(--text-xl); }
+.rd-filters { margin-bottom: var(--sp-4); }
+.rd-filters .select { width: auto; min-height: var(--control-h-sm); }
+.rd-note { margin: 0 0 var(--sp-4); font-size: var(--text-sm); line-height: var(--leading-body); }
+.rd-note a { color: var(--accent-text); text-decoration: underline; }
+
+/* A card: the link is the whole thing, and the play button is a target of its own, always
+   there rather than revealed by hover, so a remote and a finger can reach it. */
+.rd-card { position: relative; }
+.rd-card-link { display: block; border-radius: var(--r-md); color: inherit; text-decoration: none; }
+.rd-card-link:focus-visible { outline: none; }
+.rd-card-link:focus-visible .poster { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+/* A square over the poster, whatever the card's width, that only the button can be touched in. */
+.rd-play-box { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 1; z-index: 4; display: flex; align-items: flex-end; justify-content: flex-end; padding: var(--sp-2); pointer-events: none; }
+.rd-play { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--r-full);
+  background: var(--scrim); color: var(--on-image); cursor: pointer; transition: transform var(--dur-1), background-color var(--dur-2); }
+.rd-play svg { width: 22px; height: 22px; }
+.rd-play:hover { background: var(--accent); color: var(--accent-fg); }
+.rd-play:active { transform: scale(.975); }
+.rd-card.on .rd-play { background: var(--accent); color: var(--accent-fg); }
+.rd-fav svg { color: var(--warn); }
+.rd-card:has(.rd-dead) .poster { opacity: .7; }
+
+/* Adding stations */
+.rd-add { display: grid; gap: var(--sp-3); }
+.rd-add .actions { margin-top: var(--sp-1); }
+.rd-modes { justify-self: start; max-width: 100%; }
+.rd-finder, .rd-form { display: grid; gap: var(--sp-3); min-width: 0; }
+.rd-form .btn { justify-self: start; }
+.rd-facets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.rd-facets label { display: grid; gap: var(--sp-1); min-width: 0; font-size: var(--text-xs); color: var(--fg-2); }
+.rd-facets .select { width: 100%; min-width: 0; }
+.rd-hits-title { margin: var(--sp-1) 0 0; font-size: var(--text-md); font-weight: 600; }
+.rd-hits { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); max-height: 36vh; overflow-y: auto; }
+.rd-hit { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg-3); }
+.rd-hit-art { position: relative; width: 56px; height: 56px; flex: none; overflow: hidden; border-radius: var(--r-sm); }
+.rd-hit-art .ph { position: absolute; inset: 0; }
+.rd-hit-text { display: grid; flex: 1; min-width: 0; line-height: var(--leading-snug); }
+.rd-hit-text b, .rd-hit-text .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-hit-text b { font-weight: 600; font-size: var(--text-md); }
+.rd-hit-text .muted { font-size: var(--text-xs); }
+.rd-hit .btn { flex: none; }
+.rd-hit .btn svg { width: 16px; height: 16px; }
+
+/* A station's page */
+.rd-page { display: grid; gap: var(--sp-4); }
+.rd-head { display: flex; gap: var(--sp-6); align-items: flex-start; }
+.rd-head-art { position: relative; width: clamp(140px, 24vw, 240px); aspect-ratio: 1; flex: none; overflow: hidden; border-radius: var(--r-lg); box-shadow: var(--e-1); background: var(--bg-3); }
+.rd-head-art .ph { position: absolute; inset: 0; }
+.rd-head-text { display: grid; gap: var(--sp-3); min-width: 0; align-content: start; }
+.rd-head-text h1 { margin: 0; font-size: var(--page-title); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); overflow-wrap: anywhere; }
+.rd-now { margin: 0; font-size: var(--text-base); overflow-wrap: anywhere; }
+.rd-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-1); }
+.rd-faved svg { color: var(--warn); }
+.rd-status, .rd-about { margin: 0; }
+.rd-about { max-width: 70ch; color: var(--fg-2); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.rd-page .chips { margin-bottom: 0; }
+.rd-address { margin: 0 0 var(--sp-3); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-2); overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  .rd-head { flex-direction: column; gap: var(--sp-4); }
+  .rd-head-art { width: min(60vw, 220px); }
+  .rd-facets { grid-template-columns: 1fr; }
+  .rd-filter { max-width: none; flex: 1 1 100%; }
+}
+
+/* Ten feet: bigger targets, and focus that's easy to see. */
+.using-controller .rd-play { width: 48px; height: 48px; }
+.using-controller .rd-play:focus-visible, .rd-play:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+.using-controller .rd-hit .btn { min-height: 48px; }

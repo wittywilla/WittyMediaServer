@@ -16,6 +16,7 @@ import { Announcer, useDialogs } from './a11y'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
+const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
@@ -104,6 +105,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
             <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
             <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
             <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />

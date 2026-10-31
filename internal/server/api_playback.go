@@ -92,10 +92,11 @@ type playbackDisc struct {
 
 type playbackResponse struct {
 	ItemID int64 `json:"itemId"`
-	// Decision: direct | remux | transcode | disc | audio-direct | audio-transcode.
+	// Decision: direct | remux | transcode | disc | audio-direct | audio-transcode | radio.
 	Decision string   `json:"decision"`
 	Reasons  []string `json:"reasons"`
-	// Protocol: file (a plain file with byte ranges) | hls | adts | disc-session.
+	// Protocol: file (a plain file with byte ranges) | hls | adts | disc-session |
+	// stream (an endless audio stream, for radio).
 	Protocol string `json:"protocol"`
 	URL      string `json:"url,omitempty"`
 	// StreamToken is already in URL and in the track addresses; add it as
@@ -107,7 +108,7 @@ type playbackResponse struct {
 	DurationSec float64 `json:"durationSec"`
 	Container   string  `json:"container,omitempty"`
 	// Seek: native (seek in the player, anywhere) | restart (the stream is a
-	// growing remux: past what has been made, ask again with startSec).
+	// growing remux: past what has been made, ask again with startSec) | none (live radio).
 	Seek string `json:"seek"`
 	// StartAtSec: seek the player here before it starts. TimeOffsetSec: add
 	// this to the player's clock to get the position in the film.
@@ -123,6 +124,8 @@ type playbackResponse struct {
 	Intro            *playbackIntro `json:"intro,omitempty"`
 	NextID           *int64         `json:"nextId,omitempty"`
 	Disc             *playbackDisc  `json:"disc,omitempty"`
+	// NowPlayingURL: radio only. What the station says it is playing right now.
+	NowPlayingURL string `json:"nowPlayingUrl,omitempty"`
 	ProgressURL      string         `json:"progressUrl"`
 }
 
@@ -338,6 +341,8 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		s.playbackDisc(r, it, &out)
 	case it.Kind == "audio":
 		s.playbackAudio(r, it, p, b, &out)
+	case it.Kind == "radio":
+		s.playbackRadio(r, it, &out)
 	case it.Kind == "video":
 		if err := s.playbackVideo(r, it, p, b, &out); err != nil {
 			code := 500

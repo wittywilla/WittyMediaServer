@@ -45,16 +45,13 @@ var SafeClient = &http.Client{
 	Timeout: 0, // episodes can be long; requests carry their own contexts
 	Transport: &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{Timeout: 15 * time.Second, Control: func(_, address string, _ syscall.RawConn) error {
-			host, _, err := net.SplitHostPort(address)
+		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			c, err := safeDialer.DialContext(ctx, network, address)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if !internetAddr(net.ParseIP(host)) {
-				return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
-			}
-			return nil
-		}}).DialContext,
+			return &icyConn{Conn: c}, nil
+		},
 		TLSHandshakeTimeout:   15 * time.Second,
 		ResponseHeaderTimeout: 30 * time.Second,
 		MaxIdleConnsPerHost:   4,
@@ -66,6 +63,17 @@ var SafeClient = &http.Client{
 		return nil
 	},
 }
+
+var safeDialer = &net.Dialer{Timeout: 15 * time.Second, Control: func(_, address string, _ syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	if !internetAddr(net.ParseIP(host)) {
+		return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
+	}
+	return nil
+}}
 
 // notInternet are the address ranges that are not the public internet. Some
 // lead back to private networks: NAT64 and 6to4 addresses embed an IPv4 one.

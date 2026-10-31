@@ -77,7 +77,8 @@ func (s *Server) visibleShow(r *http.Request, id int64) (*library.Show, error) {
 func (s *Server) forViewer(r *http.Request, items ...*library.Item) []*library.Item {
 	if !userFrom(r).IsAdmin {
 		for _, it := range items {
-			if !isWeb(it.Path) {
+			// A radio station's address can hold a private key; it plays through the relay.
+			if !isWeb(it.Path) || it.Kind == "radio" {
 				it.Path = ""
 			}
 			it.Poster, it.Backdrop = artForViewer(it.Poster), artForViewer(it.Backdrop)

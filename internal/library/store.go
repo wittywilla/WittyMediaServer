@@ -94,6 +94,8 @@ type Item struct {
 	Reading string `json:"reading,omitempty"`
 	// Games: the console it runs on (wittyplay.Consoles).
 	Console string `json:"console,omitempty"`
+	// Internet radio: filled by the radio routes.
+	Radio *RadioMeta `json:"radio,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
 }

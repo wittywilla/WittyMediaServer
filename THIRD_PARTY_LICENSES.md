@@ -66,6 +66,13 @@ and each game's page credits what it shows.
 
 The reader for the libretro database's files is our own, written from its published format.
 
+## Internet radio
+
+Station details come from [Radio Browser](https://www.radio-browser.info/), a free community database reached through
+its public API, which its operators offer for free use without guarantee. Nothing from it is bundled: an administrator's
+search reads it at the time. Its server software is AGPL-3.0 and is not used or included here. Station names and logos
+belong to their stations.
+
 ## Web client (bundled into the binary)
 
 | Package | Licence |

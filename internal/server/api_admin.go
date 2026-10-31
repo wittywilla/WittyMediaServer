@@ -24,7 +24,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery"}
+	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery", "radioDirectory", "radioChecks"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -44,7 +44,11 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// map provider's address for the photo map; nothing else ever contacts one.
 	"uploads": "1", "uploadMaxMb": "4096", "shareLinks": "1", "mapTiles": "",
 	// lanDiscovery: apps on the home network can find this server.
-	"lanDiscovery": "1"}
+	"lanDiscovery": "1",
+	// radioDirectory: search the free station directory, and refresh details of
+	// stations that came from it. radioChecks: try stations in the background, which
+	// contacts them when nobody is listening, so it's off unless the owner wants it.
+	"radioDirectory": "1", "radioChecks": "0"}
 
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.

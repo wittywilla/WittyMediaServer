@@ -1033,11 +1033,22 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /radio` | user | Radio list. |
-| `POST /radio` | admin | Radio add. |
-| `POST /radio/import` | admin | Radio import. |
-| `DELETE /radio/{id}` | admin | Radio remove. |
-| `GET /radio/{id}/stream` | user | Radio stream. |
+| `GET /radio` | user | The stations of a library (`?library=`): `radio` on each has its logo-less details (`homepage`, `country`, `language`, `codec`, `bitrate`, `hls`), `status` (ok, trouble, dead, unknown) with a `reason`, and this account's `favorite` and `lastPlayed`. `path` is empty unless you're an administrator. |
+| `POST /radio` | admin | Adds a station by stream address. |
+| `POST /radio/import` | admin | Adds the stations in an M3U or PLS playlist's text. |
+| `POST /radio/check` | admin | Tries every station of a library, one at a time in the background (202). |
+| `GET /radio/directory/search` | admin | Searches the station directory: `q` (a name or genre), `tag`, `country` (two letters), `language`, `limit`, `offset`, and `library` to mark what's already there. Answers 403 when the owner has turned the directory off, 502 when it can't be reached. |
+| `GET /radio/directory/browse` | admin | The countries, genres and languages the directory can be browsed by. |
+| `POST /radio/directory/add` | admin | Adds a station by its directory `id`; the details are the directory's, not the request's. |
+| `GET /radio/{id}` | user | One station. |
+| `DELETE /radio/{id}` | admin | Removes a station. |
+| `GET /radio/{id}/now` | user | What the station says it is playing, from its own stream: `title`, and `artist` and `track` when the line reads that way; `live` says someone is listening through this server. Poll at most every 15 seconds while playing. |
+| `POST /radio/{id}/check` | admin | Tries a station now, and answers with its status. |
+| `POST /radio/{id}/lookup` | admin | Finds a station added by address in the directory, and fills in its details. An address that may hold a private key is refused, never sent. |
+| `GET /radio/{id}/stream` | user, st | The sound, relayed: endless audio, or an HLS playlist when `radio.hls` is true. Get the address from `POST /items/{id}/playback`, which answers `decision: radio`, `protocol: stream` or `hls`, `seek: none`, and `nowPlayingUrl`. |
+| `GET /radio/{id}/hls` | user, st | A part of an HLS station. These addresses come from this server's playlists and are signed; don't build them. |
+
+Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything else. Station logos are at `/items/{id}/poster`, like any other picture, and may be absent or refused: show generated art when they are.
 
 ### Share links
 

@@ -19,6 +19,7 @@ type DiscEngine interface {
 	MainPlaylist() *wittybluray.Playlist
 	PlaylistDuration(pl *wittybluray.Playlist) float64
 	ClipExtents(name string) ([]wittybluray.FileExtent, error)
+	ClipLead(clip string, video uint16, from uint32, only ...uint16) float64
 	Sounds() *wittybluray.Sounds
 	LoadMenu(clip string, pid uint16, limit uint32) (*wittybluray.Menu, error)
 	BDJObject(name string) (*wittybluray.BDJObject, error)

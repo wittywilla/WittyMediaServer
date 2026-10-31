@@ -36,6 +36,7 @@ type Params struct {
 	From     uint32                 `json:"from,omitempty"`
 	To       uint32                 `json:"to,omitempty"`
 	CharCode int                    `json:"charCode,omitempty"`
+	Only     []uint16               `json:"only,omitempty"`
 	UO       uint64                 `json:"uo,omitempty"`
 	Page     int                    `json:"page,omitempty"`
 	Button   int                    `json:"button,omitempty"`
@@ -47,6 +48,11 @@ type Opened struct {
 	Encrypted bool        `json:"encrypted"`
 	Stereo3D  bool        `json:"stereo3d"`
 	PSR       [128]uint32 `json:"psr"`
+}
+
+// Lead is the answer to "cliplead": see wittybluray.Disc.ClipLead.
+type Lead struct {
+	Seconds float64
 }
 
 // Main is the answer to "main": the number of the feature's playlist.
@@ -108,6 +114,8 @@ func (h *Helper) Handle(method string, raw json.RawMessage) (any, []byte, error)
 	case "extents":
 		ext, err := d.ClipExtents(p.Name)
 		return send(&ext, err)
+	case "cliplead":
+		return send(&Lead{Seconds: d.ClipLead(p.Name, p.PID, p.From, p.Only...)}, nil)
 	case "sounds":
 		return send(d.Sounds(), nil)
 	case "menu":

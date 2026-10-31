@@ -211,6 +211,11 @@ follows you. See [GAMING.md](docs/GAMING.md).
   viewer's address. Only internet addresses are fetched, never devices on the home network. As with other
   artwork, SVG logos are not served, so a channel with one shows no logo. **WittyTuner 0.1.1** ignores a
   playlist logo that isn't a web address.
+- **Fixed:** a Blu-ray playlist item that ends or starts part-way through its video could lose up to a second of
+  picture at the join, show a little that should not be seen, or leave the sound short. Every item now plays
+  exactly from its first frame to its last, with its sound, and an item that carries straight on from the last one
+  is read as one recording. None of the discs tested here has such an item, and their main features play as before.
+  This was checked with made-up discs built to have them.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

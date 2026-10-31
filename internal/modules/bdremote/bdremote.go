@@ -246,6 +246,9 @@ func fetch[T any](e *engine, method string, p helper.Params, check func(*T) erro
 	return v, nil
 }
 
+// maxClipLead is more than any disc stores sound ahead of its picture.
+const maxClipLead = 30
+
 // must is fetch for what a helper must answer: a refusal is passed on as the built-in
 // copy's own error would be, and anything else goes to the built-in copy. Call with
 // e.mu held.
@@ -388,6 +391,40 @@ func (e *engine) ClipExtents(name string) ([]wittybluray.FileExtent, error) {
 		e.extents[name] = *got
 	}
 	return *got, nil
+}
+
+// ClipLead says how far ahead of a clip's first picture its first packet is. Zero is
+// always safe: the join is only as exact as it was before, so a helper from before this
+// question doesn't lose the disc over it.
+func (e *engine) ClipLead(clip string, video uint16, from uint32, only ...uint16) float64 {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.h != nil {
+		got, err := fetch(e, "cliplead", helper.Params{Name: clip, PID: video, From: from, Only: only}, func(l *helper.Lead) error {
+			if !(l.Seconds >= 0 && l.Seconds <= maxClipLead) {
+				return fmt.Errorf("a clip's lead of %v seconds", l.Seconds)
+			}
+			return nil
+		})
+		if err == nil && got != nil {
+			return got.Seconds
+		}
+		var ce *wittymodule.CallError
+		if errors.As(err, &ce) && ce.Code == "unknown-method" {
+			return 0
+		}
+		if err == nil {
+			err = &badAnswer{errors.New("cliplead came back empty")}
+		}
+		if answeredNo(err) {
+			return 0
+		}
+		e.fail(err)
+	}
+	if e.disc == nil {
+		return 0
+	}
+	return e.disc.ClipLead(clip, video, from, only...)
 }
 
 func (e *engine) Sounds() *wittybluray.Sounds {

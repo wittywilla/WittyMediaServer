@@ -12,7 +12,7 @@ require (
 	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/ulikunitz/xz v0.5.15
-	github.com/wittywilla/wittybluray v0.1.1
+	github.com/wittywilla/wittybluray v0.2.0
 	github.com/wittywilla/wittycd v0.1.0
 	github.com/wittywilla/wittycouch v0.1.0
 	github.com/wittywilla/wittydisc v0.1.1

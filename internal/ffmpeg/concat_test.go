@@ -101,3 +101,19 @@ func TestWriteConcatPlacesSegmentsByTheirFirstPicture(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteConcatStopsAtAnOutpoint(t *testing.T) {
+	dir := t.TempDir()
+	e := []wittydvd.FileExtent{{File: "a.m2ts", Length: 192}}
+	list, err := WriteConcat(dir, "out", []Segment{{Extents: e, Duration: 10, Outpoint: 12.5}, {Extents: e, Duration: 5}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(b), "outpoint"); got != 1 || !strings.Contains(string(b), "duration 10.000000\noutpoint 12.500000\n") {
+		t.Errorf("%s", b)
+	}
+}

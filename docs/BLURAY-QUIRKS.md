@@ -100,6 +100,7 @@ own menu, or from the list of extras, avoids the guess.
 | No time-base table | A damaged clip could crash the older code | Handled | Unit |
 | 4:3 on a Blu-ray | Standard-definition extras can be either shape | Shape read from the clip | None |
 | Late audio or video | Separately muxed sub-paths have their own clock | Mapped through the sub play item's sync point | Unit |
+| Play item ending or starting between keyframes | Its IN and OUT times need not be entry points, and a picture shown after OUT may be needed to decode one before it | Read past both, decode, and leave out what lies outside by time; the next item carries on in the same read when it continues the same clip | Unit |
 
 ## Menus
 

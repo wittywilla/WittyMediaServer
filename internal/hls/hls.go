@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,6 +87,9 @@ type Spec struct {
 	// frozen moment and then a skip. It costs the decoding of this much at each
 	// start, so it is only for inputs that need it: a GOP or two is enough.
 	SeekMargin float64
+	// Holes are stretches of the input's clock to leave out of the stream, for an
+	// input that holds more than it should show. Only for a stream being converted.
+	Holes []Hole
 	// HoldLastFrame pads video (and audio) to Duration by repeating the last
 	// frame. DVD menus and transitions are often a single still picture
 	// shown for many seconds; without this the stream would be one frame
@@ -861,10 +865,15 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		// plenty ahead of the viewer without filling the disk for nothing.
 		args = append(args, "-readrate", "4")
 	}
+	read := start
 	if start > 0 && sp.AudioInput > 0 {
-		for _, a := range sp.InputArgs {
+		for i, a := range sp.InputArgs {
 			if a == "-i" {
-				args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+				at := start
+				if !slices.Contains(sp.InputArgs[:i], "-i") {
+					at += holesPassed(sp.Holes, start)
+				}
+				args = append(args, "-ss", strconv.FormatFloat(at, 'f', 3, 64))
 			}
 			args = append(args, a)
 		}
@@ -873,12 +882,15 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.SubtitleIndex >= 0 || sp.CopyVideo { // burning in lines up with the input's own clock; a copy starts at a keyframe
 			margin = 0
 		}
-		read := max(0, start-margin)
+		read = max(0, start-margin)
 		if read > 0 {
-			args = append(args, "-ss", strconv.FormatFloat(read, 'f', 3, 64))
+			args = append(args, "-ss", strconv.FormatFloat(read+holesPassed(sp.Holes, read), 'f', 6, 64))
 		}
 		args = append(args, sp.InputArgs...)
 		if cut := start - read; cut > 0 {
+			if len(sp.Holes) > 0 {
+				cut = max(0, cut-holeSlack)
+			}
 			args = append(args, "-ss", strconv.FormatFloat(cut, 'f', 3, 64))
 		}
 	}
@@ -896,6 +908,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 	} else {
 		var vf []string
+		if f := holeFilter(sp.Holes, read, "select", "setpts"); f != "" {
+			vf = append(vf, f)
+		}
 		if sp.VideoFilter != "" {
 			vf = append(vf, sp.VideoFilter)
 		}
@@ -945,6 +960,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		af := "aresample=async=1:first_pts=0"
 		if sp.AudioFilter != "" {
 			af = sp.AudioFilter + "," + af
+		}
+		if f := holeFilter(sp.Holes, read, "aselect", "asetpts"); f != "" && sp.AudioInput == 0 {
+			af = f + "," + af
 		}
 		if sp.HoldLastFrame {
 			af += ",apad"
@@ -1025,6 +1043,55 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	}, "cat", "transcode", "session", logID)
 	logging.Go("ffmpeg watch", func() { s.watch(j) }, "cat", "transcode", "session", logID)
 	return j, nil
+}
+
+// Hole is a stretch of an input's clock that the stream leaves out: whatever the
+// input holds there is decoded and thrown away. This is the only way to end a
+// stretch of video on any frame: a frame shown after the end may be needed to
+// decode one shown before it, so no cut in the bytes or packets can do it.
+type Hole struct {
+	At     float64 // where it lies on the stream's own timeline, in seconds
+	Length float64 // how much of the input's clock it takes up
+}
+
+// holeSlack is how early a run that started before its first frame stops throwing
+// frames away (seconds). Holes are as long as the times a disc's tables give, which
+// are rounded, so the frames behind them can lie this little ahead of their time.
+// Less than any frame, or it would let in the one before.
+const holeSlack = 0.008
+
+// holesPassed is how far ahead of the stream's time the input's clock is at a
+// point where FFmpeg starts to read. At the very start it reads from the start, so
+// a hole there is still ahead.
+func holesPassed(holes []Hole, read float64) float64 {
+	var d float64
+	for _, h := range holes {
+		if read > 0 && h.At <= read {
+			d += h.Length
+		}
+	}
+	return d
+}
+
+// holeFilter takes the holes still ahead out of a run of FFmpeg that started
+// reading at read, with its clock counting from there. sel and pts are the
+// filters that do it for this kind of stream; "" when there is nothing to do.
+func holeFilter(holes []Hole, read float64, sel, pts string) string {
+	var inside, after []string
+	var passed float64
+	for _, h := range holes {
+		if read > 0 && h.At <= read {
+			continue
+		}
+		from := h.At - read + passed
+		passed += h.Length
+		inside = append(inside, fmt.Sprintf("between(t,%.6f,%.6f)", from, from+h.Length))
+		after = append(after, fmt.Sprintf("gte(T,%.6f)*%.6f", from+h.Length, h.Length))
+	}
+	if len(inside) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%s='not(%s)',%s='PTS-(%s)/TB'", sel, strings.Join(inside, "+"), pts, strings.Join(after, "+"))
 }
 
 // textSubtitleFilter draws text subtitles from the file itself. The filter

@@ -694,6 +694,35 @@ func TestBadExtentsAreRefused(t *testing.T) {
 }
 
 // The checks by themselves, for an image and a folder.
+// A helper from before this question keeps the disc, and a lie is refused.
+func TestClipLeadThroughOlderAndBadHelpers(t *testing.T) {
+	path := clearDisc(t)
+	older := newWorld(t, func() process {
+		return &inProc{tamper: func(method string, blob []byte, err error) ([]byte, error) {
+			if method == "cliplead" {
+				return nil, &wittymodule.CallError{Code: "unknown-method", Message: "this version doesn't know that"}
+			}
+			return blob, err
+		}}
+	})
+	older.open(path)
+	if got := older.engine.ClipLead("00001", 0x1011, 0); got != 0 || older.engine.h == nil {
+		t.Errorf("lead %v, helper kept: %v", got, older.engine.h != nil)
+	}
+	bad := newWorld(t, func() process {
+		return &inProc{tamper: func(method string, blob []byte, err error) ([]byte, error) {
+			if method == "cliplead" {
+				return gobbed(t, &helper.Lead{Seconds: 1e9}), nil
+			}
+			return blob, err
+		}}
+	})
+	bad.open(path)
+	if got := bad.engine.ClipLead("00001", 0x1011, 0); got > maxClipLead || bad.engine.h != nil {
+		t.Errorf("lead %v, helper kept: %v", got, bad.engine.h != nil)
+	}
+}
+
 func TestExtentChecks(t *testing.T) {
 	dir := t.TempDir()
 	img := filepath.Join(dir, "disc.iso")
@@ -1042,6 +1071,9 @@ func TestDiscAnswersMatch(t *testing.T) {
 		equal("extents", a, b)
 		if (aerr == nil) != (berr == nil) {
 			t.Errorf("extents of %s: %v, want %v", name, aerr, berr)
+		}
+		if a, b := r.Disc.ClipLead(name, 0x1011, 0), d.ClipLead(name, 0x1011, 0); a != b {
+			t.Errorf("lead of %s: %v, want %v", name, a, b)
 		}
 	}
 	if a, b := r.Disc.Sounds(), d.Sounds(); (a == nil) != (b == nil) {

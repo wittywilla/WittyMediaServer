@@ -263,6 +263,11 @@ type Segment struct {
 	// directly, but it seeks to get there, and that can land a whole group of
 	// pictures in.)
 	Lead float64
+	// Outpoint is the time on the segment's own clock (seconds) to stop reading at,
+	// when its bytes run on further than it needs; 0 reads them all. FFmpeg stops at
+	// the first packet of any stream that is decoded at this time or later, so it
+	// doesn't end a segment on a chosen frame.
+	Outpoint float64
 }
 
 // SubfileURL builds a subfile protocol URL for one extent.
@@ -323,6 +328,9 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 				d -= segs[i+1].Lead
 			}
 			fmt.Fprintf(&b, "duration %.6f\n", max(d, 0.001))
+		}
+		if s.Outpoint > 0 {
+			fmt.Fprintf(&b, "outpoint %.6f\n", s.Outpoint)
 		}
 	}
 	p := filepath.Join(dir, name+".ffconcat")

@@ -264,6 +264,19 @@ func localImages(dir string) []artCandidate {
 	return out
 }
 
+// gameImages lists pictures named after one game file.
+func gameImages(dir, game string) []artCandidate {
+	stem := strings.TrimSuffix(filepath.Base(game), filepath.Ext(game))
+	out := []artCandidate{}
+	for _, c := range localImages(dir) {
+		n := filepath.Base(c.URL)
+		if strings.HasPrefix(n, stem+".") || strings.HasPrefix(n, stem+"-") {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // handleArtwork lists poster/backdrop candidates for an item or a show:
 // GET /api/items/{id}/artwork?kind=poster|backdrop, /api/shows/{id}/artwork?kind=...
 func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
@@ -333,6 +346,16 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 		dir := filepath.Dir(it.Path)
 		if it.Kind == "dvd-folder" {
 			dir = it.Path
+		}
+		if it.Kind == "game" {
+			// One folder can hold thousands of games: only this game's pictures, and
+			// whatever the sources have found for it.
+			add(gameImages(dir, it.Path)...)
+			for _, c := range s.Store.GameArtCandidates(ctx, it.ID, backdrop) {
+				add(artCandidate{URL: c, Source: "game"})
+			}
+			writeJSON(w, 200, map[string]any{"candidates": out, "warning": ""})
+			return
 		}
 		add(localImages(dir)...)
 		if key := s.DB.GetSetting(ctx, "tmdbKey", ""); key != "" && it.ShowID == nil {

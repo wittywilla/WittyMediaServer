@@ -20,6 +20,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
+	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
@@ -383,6 +384,9 @@ func schemaTypes() map[string]reflect.Type {
 		"ThemeMeta": ty(themes.Meta{}), "ThemeTokens": ty(themes.Tokens{}), "UpdateStatus": ty(update.Status{}), "UpdateInfo": ty(update.Info{}),
 		"ModuleReport": ty(modmgr.Report{}), "ModuleStatus": ty(modmgr.Status{}), "ModuleOffer": ty(modmgr.Offer{}),
 		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}),
+		"GameDetails": ty(library.GameDetails{}), "GameArt": ty(library.GameArt{}), "GameScore": ty(gamemeta.Score{}), "GameAgeRating": ty(gamemeta.AgeRating{}), "GameCredit": ty(gamemeta.Credit{}),
+		"GameFacets": ty(library.GameFacets{}), "GameFacet": ty(library.GameFacet{}), "GameMetaStatus": ty(library.GameMetaStatus{}), "GameConsoleTally": ty(library.GameConsoleTally{}), "GameSourcePause": ty(library.GameSourcePause{}),
+		"GameCandidate": ty(gamemeta.Candidate{}), "GameSourceSetting": ty(library.GameSourceSetting{}),
 	}
 }
 

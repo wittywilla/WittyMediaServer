@@ -5,6 +5,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Game details and ratings
+
+- **Games now get covers, summaries, ratings and more**, in the background, with no account needed: the libretro
+  database recognises your exact files by checksum without unpacking them, libretro's thumbnails add box art and
+  screenshots, and Wikidata and Wikipedia add summaries.
+- **More with a free key:** IGDB, ScreenScraper, RAWG and TheGamesDB, each in the setup wizard and in **Settings, Metadata
+  agents**, with a link to get a key, what it costs and a test button. Choose which are on and which is believed first.
+- **Age ratings count.** ESRB, PEGI, CERO and others reach Kids and Guest profiles, and a game above a profile's limit is
+  hidden exactly as a film would be. Critic and player scores show who gave them.
+- **Right matches, or none.** Checksums first, then disc codes, then the name and console. Each game shows how it was matched
+  and how sure that is, and can be fixed with a search, locked, or looked up again.
+- **The Games page** sorts by title, rating, year or date added, and filters by genre, decade, players, rating and console.
+  A game's page looks like a film's, with a backdrop, scores, screenshots and credits.
+- **Kind to free services.** Requests are batched and paced to each source's rules, nothing is asked twice, and a restart carries on
+  where it stopped. Nothing is written next to your games unless saving next to your media is on.
+
 ### Games in archives
 
 - **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.gz`, `.tar`, `.tar.gz` and `.tgz`, for every

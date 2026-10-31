@@ -6,22 +6,23 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittyplay"
 )
 
 // Games libraries: one console, or wittyplay.Auto for a folder holding many. See
 // docs/GAMING.md. ROM files are only listed here, never opened beyond a look at
-// which files an archive, .cue or .m3u names.
+// which files an archive, .cue or .m3u names. What's known about them comes later,
+// in the background: see games_meta.go.
 
 // gameSkipDirs hold things that belong to an emulator rather than games.
 var gameSkipDirs = map[string]bool{"bios": true, "system": true, "saves": true, "savestates": true, "states": true, "screenshots": true,
@@ -246,36 +247,9 @@ func referencedFiles(path string) []string {
 	return out
 }
 
-// gameTagRe is the (USA), (Rev 1), [!] and similar that game file names carry.
-var gameTagRe = regexp.MustCompile(`\s*[\(\[][^\)\]]*[\)\]]`)
-
 // ParseGameName splits a game's file name into its title and a short note made
 // of its tags, e.g. "Mega Game, The (USA) (Rev 1)" -> "The Mega Game", "USA, Rev 1".
-func ParseGameName(base string) (title, note string) {
-	var tags []string
-	for _, m := range gameTagRe.FindAllString(base, -1) {
-		t := strings.Trim(strings.TrimSpace(m), "()[]")
-		if t != "" && t != "!" {
-			tags = append(tags, t)
-		}
-	}
-	title = strings.TrimSpace(gameTagRe.ReplaceAllString(base, ""))
-	title = strings.TrimSpace(strings.ReplaceAll(title, "_", " "))
-	for _, art := range []string{"The", "A", "An"} {
-		if s, ok := strings.CutSuffix(title, ", "+art); ok {
-			title = art + " " + s
-			break
-		}
-		if a, b, ok := strings.Cut(title, ", "+art+" - "); ok {
-			title = art + " " + a + " - " + b
-			break
-		}
-	}
-	if title == "" {
-		title = base
-	}
-	return title, strings.Join(tags, ", ")
-}
+func ParseGameName(base string) (title, note string) { return gamemeta.CleanName(base) }
 
 // gameBaseName is a game's file name without its extension. For an archive that's
 // everything that makes it one, and the game's own extension if the name carries it
@@ -308,6 +282,18 @@ func gameArt(dir, base string) string {
 	return ""
 }
 
+// gameBackdrop finds a wide picture for a game beside it, under the name saving
+// metadata uses.
+func gameBackdrop(dir, base string) string {
+	for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+		p := filepath.Join(dir, base+"-fanart"+ext)
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p
+		}
+	}
+	return ""
+}
+
 func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing && existing.Console == c.console {
@@ -323,21 +309,34 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	it.SortTitle = SortTitle(it.Title)
 	it.Container = strings.TrimPrefix(strings.ToLower(filepath.Ext(c.path)), ".")
 	it.Poster = gameArt(dir, base)
+	it.Backdrop = gameBackdrop(dir, base)
+	parsed, tags := it.Title, it.Tagline
 	for _, nfo := range []string{filepath.Join(dir, base+".nfo")} {
 		if applyNFO(it, nfo) {
 			break
 		}
 	}
+	// What the owner's own files say stays: sources only fill in the rest.
+	local := localGameFields(it, parsed, tags)
 	if existing != nil && existing.Provider != "" {
 		it.Provider, it.ProviderID = existing.Provider, existing.ProviderID
 	}
 	if existing != nil {
 		// Scans never take away what someone chose or a source already found.
+		if existing.Provider != "" && !slices.Contains(local, "title") {
+			it.Title, it.SortTitle = existing.Title, existing.SortTitle
+		}
 		if it.Poster == "" {
 			it.Poster = existing.Poster
 		}
+		if it.Backdrop == "" {
+			it.Backdrop = existing.Backdrop
+		}
 		if it.Overview == "" {
 			it.Overview = existing.Overview
+		}
+		if it.Tagline == "" {
+			it.Tagline = existing.Tagline
 		}
 		if it.Year == nil {
 			it.Year = existing.Year
@@ -348,15 +347,59 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 		if it.Studio == "" {
 			it.Studio = existing.Studio
 		}
-	}
-	if it.Overview == "" && it.Provider == "" && c.console != wittyplay.TestConsole && (s.WikidataOn == nil || s.WikidataOn()) {
-		wctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-		if err := (&Wikidata{Client: SafeClient}).EnrichGame(wctx, it); err != nil && !errors.Is(err, ErrNotFound) {
-			s.Log.Debug("wikidata", "game", it.Title, "err", err)
+		if it.Rating == nil {
+			it.Rating = existing.Rating
 		}
-		cancel()
+		if it.ContentRating == "" {
+			it.ContentRating = existing.ContentRating
+		}
 	}
-	return s.Store.upsertItem(ctx, it)
+	if err := s.Store.upsertItem(ctx, it); err != nil {
+		return err
+	}
+	// Finding out about it happens in the background, so a scan never waits on the internet.
+	// A file that's back where it was is the same game: what's known about it still holds.
+	if existing != nil && existing.SizeBytes == c.size && existing.MTime == c.mtime && existing.Console == c.console {
+		return nil
+	}
+	return s.Store.enqueueGame(ctx, it, local)
+}
+
+// localGameFields says what came from the owner's own files beside a game, rather
+// than from its file name.
+func localGameFields(it *Item, parsedTitle, parsedTags string) []string {
+	var out []string
+	if it.Title != parsedTitle {
+		out = append(out, "title")
+	}
+	if it.Tagline != parsedTags {
+		out = append(out, "tagline")
+	}
+	if it.Overview != "" {
+		out = append(out, "overview")
+	}
+	if it.Year != nil {
+		out = append(out, "year")
+	}
+	if len(it.Genres) > 0 {
+		out = append(out, "genres")
+	}
+	if it.Studio != "" {
+		out = append(out, "studio")
+	}
+	if it.Rating != nil {
+		out = append(out, "rating")
+	}
+	if it.ContentRating != "" {
+		out = append(out, "contentRating")
+	}
+	if it.Poster != "" {
+		out = append(out, "poster")
+	}
+	if it.Backdrop != "" {
+		out = append(out, "backdrop")
+	}
+	return out
 }
 
 // A person's saved controller layouts, one row per kind and key.
@@ -405,93 +448,4 @@ func (s *Store) SetGameControl(ctx context.Context, userID int64, console, kind,
 		ON CONFLICT(user_id, console, kind, key) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
 		userID, console, kind, key, string(data), db.Now())
 	return err
-}
-
-const wdDeveloper = "P178"
-
-// EnrichGame fills empty fields of a game from Wikidata, which is public domain
-// (CC0): the year, developer, genres and a short summary. Box art is not taken
-// from there, because it is copyrighted. It changes nothing when no video game of
-// that name is found.
-func (w *Wikidata) EnrichGame(ctx context.Context, it *Item) error {
-	var search struct {
-		Search []struct {
-			ID          string `json:"id"`
-			Description string `json:"description"`
-		} `json:"search"`
-	}
-	q := url.Values{"action": {"wbsearchentities"}, "search": {it.Title}, "language": {"en"}, "type": {"item"}, "limit": {"10"}, "format": {"json"}}
-	if err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &search); err != nil {
-		return err
-	}
-	id := ""
-	for _, r := range search.Search {
-		d := strings.ToLower(r.Description)
-		if strings.Contains(d, "video game") && !containsAny(d, "series", "franchise", "character", "company", "soundtrack", "console") {
-			id = r.ID
-			break
-		}
-	}
-	if id == "" {
-		return ErrNotFound
-	}
-	ents, err := w.entities(ctx, []string{id}, "claims|descriptions|sitelinks")
-	if err != nil {
-		return err
-	}
-	e, ok := ents[id]
-	if !ok {
-		return ErrNotFound
-	}
-	if c := e.Claims[wdPublication]; len(c) > 0 && it.Year == nil {
-		if y, err := strconv.Atoi(firstN(c[0].Mainsnak.time(), 4)); err == nil {
-			it.Year = &y
-		}
-	}
-	var refs []string
-	dev := ""
-	if c := e.Claims[wdDeveloper]; len(c) > 0 {
-		dev = c[0].Mainsnak.itemID()
-		refs = append(refs, dev)
-	}
-	for _, c := range e.Claims[wdGenre] {
-		if g := c.Mainsnak.itemID(); g != "" && len(refs) < 6 {
-			refs = append(refs, g)
-		}
-	}
-	if len(refs) > 0 {
-		if names, err := w.entities(ctx, refs, "labels"); err == nil {
-			var genres []string
-			for _, r := range refs {
-				l := names[r].Labels["en"].Value
-				switch {
-				case l == "":
-				case r == dev:
-					if it.Studio == "" {
-						it.Studio = l
-					}
-				default:
-					genres = append(genres, titleCase(strings.TrimSuffix(l, " video game")))
-				}
-			}
-			if len(it.Genres) == 0 {
-				it.Genres = genres
-			}
-		}
-	}
-	if it.Overview == "" {
-		if page := e.Sitelinks["enwiki"].Title; page != "" {
-			var sum struct {
-				Extract string `json:"extract"`
-			}
-			if w.get(ctx, "https://en.wikipedia.org/api/rest_v1/page/summary/"+url.PathEscape(strings.ReplaceAll(page, " ", "_")), &sum) == nil {
-				it.Overview = sum.Extract
-			}
-		}
-		if it.Overview == "" {
-			it.Overview = e.Descriptions["en"].Value
-		}
-	}
-	it.Provider, it.ProviderID = "wikidata", id
-	return nil
 }

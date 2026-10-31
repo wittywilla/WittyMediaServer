@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../../icons'
 import { toast } from '../../state'
+import { GameSourcesSettings } from '../GameMeta'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
@@ -37,6 +38,8 @@ export default function MetadataSettings() {
         <KeyRow provider="tvdb" label="TheTVDB" desc={<>Detailed TV episode information. Get a free key at <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">thetvdb.com</a>. Metadata provided by TheTVDB.</>}
           value={s.tvdbKey || ''} onChange={(v) => set('tvdbKey', v)} placeholder="API key (v4)" pin={s.tvdbPin || ''} onPin={(v) => set('tvdbPin', v)} />
       </Section>
+
+      <GameSourcesSettings />
 
       <CustomAgents />
 

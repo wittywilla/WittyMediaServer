@@ -228,6 +228,12 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		DiscContent: r.URL.Query().Get("discContent"),
 		// console=<id>: games for one console; played=1: games this user has played
 		Console: r.URL.Query().Get("console"),
+		// Games: minRating out of 10, decade=1990, players=2 (at least this many)
+		Decade:  qInt(r, "decade", 0),
+		Players: qInt(r, "players", 0),
+	}
+	if v, err := strconv.ParseFloat(r.URL.Query().Get("minRating"), 64); err == nil {
+		q.MinRating = v
 	}
 	if qBool(r, "played") {
 		q.PlayedBy = userFrom(r).ID
@@ -348,6 +354,24 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Backdrop != nil {
 		it.Backdrop = *b.Backdrop
+	}
+	if it.Kind == "game" {
+		// Sources leave alone what someone typed. A game's details are looked up in
+		// the background, so refreshing one only puts it back in the queue.
+		edited := map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "tagline": b.Tagline != nil,
+			"contentRating": b.ContentRating != nil, "genres": b.Genres != nil, "poster": b.Poster != nil, "backdrop": b.Backdrop != nil}
+		for f, on := range edited {
+			if on {
+				_ = s.Store.MarkGameEdited(r.Context(), it.ID, f)
+			}
+		}
+		if b.Refresh {
+			if err := s.GameMeta.Refresh(r.Context(), it); err != nil {
+				writeErr(w, sourceStatus(err), sourceMessage(err))
+				return
+			}
+			b.Refresh = false
+		}
 	}
 	if b.Refresh {
 		// The owner's own agents first; they fill only what is empty.

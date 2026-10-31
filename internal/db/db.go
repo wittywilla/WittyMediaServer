@@ -280,6 +280,30 @@ var migrations = []string{
 	   path TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER NOT NULL,
 	   exts TEXT NOT NULL, problem TEXT NOT NULL,
 	   PRIMARY KEY(library_id, path));`,
+	// 18: what's known about games. game_meta is the result, and the queue: a row with
+	// status pending is still to be looked up, so a restart carries on where it stopped.
+	// game_meta_sources keeps each source's answer, so changing the order of sources
+	// asks nobody anything, and adding one only asks that one.
+	`CREATE TABLE IF NOT EXISTS game_meta (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   status TEXT NOT NULL DEFAULT 'pending', next_try INTEGER NOT NULL DEFAULT 0, tries INTEGER NOT NULL DEFAULT 0,
+	   locked INTEGER NOT NULL DEFAULT 0, edited TEXT NOT NULL DEFAULT '', applied TEXT NOT NULL DEFAULT '',
+	   file_size INTEGER NOT NULL DEFAULT -1, file_mtime INTEGER NOT NULL DEFAULT -1, crcs TEXT NOT NULL DEFAULT '', crc_size INTEGER NOT NULL DEFAULT 0, serial TEXT NOT NULL DEFAULT '',
+	   query_title TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '',
+	   match_source TEXT NOT NULL DEFAULT '', match_id TEXT NOT NULL DEFAULT '', match_method TEXT NOT NULL DEFAULT '', confidence INTEGER NOT NULL DEFAULT 0,
+	   released TEXT NOT NULL DEFAULT '', developer TEXT NOT NULL DEFAULT '', publisher TEXT NOT NULL DEFAULT '', franchise TEXT NOT NULL DEFAULT '', players INTEGER NOT NULL DEFAULT 0,
+	   scores TEXT NOT NULL DEFAULT '', ages TEXT NOT NULL DEFAULT '', art TEXT NOT NULL DEFAULT '', credits TEXT NOT NULL DEFAULT '',
+	   poster_refs TEXT NOT NULL DEFAULT '', backdrop_refs TEXT NOT NULL DEFAULT '', poster_ref TEXT NOT NULL DEFAULT '', backdrop_ref TEXT NOT NULL DEFAULT '', art_wanted INTEGER NOT NULL DEFAULT 0, art_tries INTEGER NOT NULL DEFAULT 0, art_next INTEGER NOT NULL DEFAULT 0,
+	   fetched_at INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS game_meta_queue ON game_meta(status, next_try);
+	 CREATE INDEX IF NOT EXISTS game_meta_art ON game_meta(art_wanted, art_next);
+	 CREATE INDEX IF NOT EXISTS game_meta_lib ON game_meta(library_id, players);
+	 CREATE TABLE IF NOT EXISTS game_meta_sources (
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   source TEXT NOT NULL, source_id TEXT NOT NULL DEFAULT '', method TEXT NOT NULL DEFAULT '', confidence INTEGER NOT NULL DEFAULT 0,
+	   data TEXT NOT NULL DEFAULT '', fetched_at INTEGER NOT NULL,
+	   PRIMARY KEY(item_id, source));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

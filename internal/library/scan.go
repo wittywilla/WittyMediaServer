@@ -43,6 +43,8 @@ type Scanner struct {
 	AnimeTitles func() string
 	// Agents returns the custom metadata agents, in the order they run.
 	Agents func() []Agent
+	// GameMeta finds out about games after a scan has listed them.
+	GameMeta *GameMeta
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -295,6 +297,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.Store.DB.Optimize(ctx)
 	s.Log.Info("scan done", "library", lib.Name, "items", len(all))
+	if lib.Type == "games" {
+		s.GameMeta.Kick()
+	}
 	return nil
 }
 

@@ -44,6 +44,26 @@ export type Item = {
   // Games: the console it runs on.
   console?: string
 }
+// What's known about a game beyond what its item holds (GET /games/{id}/metadata).
+export type GameScore = { source: string; kind: 'critic' | 'user' | string; value: number; votes?: number; url?: string }
+export type GameDetailsInfo = {
+  itemId: number; status: 'pending' | 'done' | string; locked: boolean; matchSource: string; matchMethod: string; confidence: number
+  tags: string; released: string; developer: string; publisher: string; franchise: string; players: number
+  scores: GameScore[]; ages: { system: string; value: string; age: number | null }[]; art: { kind: string; url: string }[]
+  credits: { source: string; name: string; site: string; text: string; license: string; url?: string }[]
+  crcs?: string; serial?: string
+}
+export type GameCandidate = { source: string; id: string; title: string; year?: number; console?: string; poster?: string; score: number }
+export type GameFacet = { value: string; count: number }
+export type GameFacets = { genres: GameFacet[]; decades: GameFacet[]; players: GameFacet[]; rated: number }
+export type GameMetaStatus = {
+  running: boolean; phase: string; total: number; pending: number; matched: number; byChecksum: number; pictures: number; withPoster: number; withDetails: number
+  consoles: Record<string, { total: number; matched: number; byChecksum: number }>; paused: { source: string; until: number; why: string }[]; keysSet: boolean
+}
+export type GameSource = {
+  id: string; name: string; site: string; why: string; gives: string[]; fields: { setting: string; label: string; hint?: string }[]; keyUrl?: string; cost: string; steps?: string[]
+  limit: string; sends: string; credit: string; license: string; unavailable?: string; on: boolean; ready: boolean; saved: string[]; used?: number; allowance?: number; period?: string
+}
 export type GameCore = { id: string; name: string; license: string; source?: string; sha256?: string; nonCommercial?: boolean }
 export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]

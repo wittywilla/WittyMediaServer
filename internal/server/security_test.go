@@ -352,6 +352,8 @@ func TestAdminRoutes(t *testing.T) {
 		{"GET", "/api/podcasts/search?q=ab"}, {"POST", "/api/podcasts"}, {"PUT", "/api/podcasts/1"}, {"POST", "/api/podcasts/1/refresh"}, {"DELETE", "/api/podcasts/1"}, {"POST", "/api/items/1/download"},
 		{"GET", "/api/settings"}, {"PUT", "/api/settings"}, {"PUT", "/api/branding/logo"}, {"DELETE", "/api/branding/logo"}, {"GET", "/api/system"},
 		{"GET", "/api/fs?path=/"}, {"POST", "/api/fs/pick"}, {"POST", "/api/metadata/test"}, {"GET", "/api/agents"}, {"PUT", "/api/agents"}, {"POST", "/api/agents/test"},
+		{"GET", "/api/gamemeta/status"}, {"POST", "/api/gamemeta/refetch"}, {"GET", "/api/gamemeta/sources"}, {"PUT", "/api/gamemeta/sources"}, {"POST", "/api/gamemeta/sources/igdb/test"},
+		{"GET", "/api/games/1/metadata/search"}, {"PUT", "/api/games/1/metadata/match"}, {"DELETE", "/api/games/1/metadata/match"}, {"POST", "/api/games/1/metadata/refresh"},
 		{"GET", "/api/logs"}, {"PUT", "/api/logs"}, {"GET", "/api/logs/files/wms-x.log"}, {"POST", "/api/logs/open"}, {"GET", "/api/update"}, {"POST", "/api/update/check"}, {"POST", "/api/update/apply"},
 	} {
 		for who, tok := range map[string]string{"adult": adult, "kids": kid} {

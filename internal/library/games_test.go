@@ -3,14 +3,11 @@ package library
 import (
 	"archive/zip"
 	"context"
-	"errors"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -124,37 +121,6 @@ func TestParseGameName(t *testing.T) {
 		if title != c.title || note != c.note {
 			t.Errorf("ParseGameName(%q) = %q, %q; want %q, %q", c.in, title, note, c.title, c.note)
 		}
-	}
-}
-
-type wikiStub struct{ answers map[string]string }
-
-func (w wikiStub) RoundTrip(r *http.Request) (*http.Response, error) {
-	body := `{}`
-	for k, v := range w.answers {
-		if strings.Contains(r.URL.String(), k) {
-			body = v
-		}
-	}
-	return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
-}
-
-func TestEnrichGame(t *testing.T) {
-	client := &http.Client{Transport: wikiStub{answers: map[string]string{
-		"wbsearchentities": `{"search":[{"id":"Q1","description":"video game series"},{"id":"Q2","description":"1990 platform video game"}]}`,
-		"ids=Q2":           `{"entities":{"Q2":{"id":"Q2","descriptions":{"en":{"value":"1990 platform video game"}},"claims":{"P577":[{"mainsnak":{"datavalue":{"value":{"time":"+1990-11-21T00:00:00Z"}}}}],"P178":[{"mainsnak":{"datavalue":{"value":{"id":"Q3"}}}}],"P136":[{"mainsnak":{"datavalue":{"value":{"id":"Q4"}}}}]}}}}`,
-		"ids=Q3":           `{"entities":{"Q3":{"id":"Q3","labels":{"en":{"value":"A Studio"}}},"Q4":{"id":"Q4","labels":{"en":{"value":"platform video game"}}}}}`,
-	}}}
-	it := &Item{Title: "Mega Game"}
-	if err := (&Wikidata{Client: client}).EnrichGame(context.Background(), it); err != nil {
-		t.Fatal(err)
-	}
-	if it.Year == nil || *it.Year != 1990 || it.Studio != "A Studio" || len(it.Genres) != 1 || it.Genres[0] != "Platform" || it.Overview == "" || it.ProviderID != "Q2" {
-		t.Fatalf("got %+v", it)
-	}
-	nothing := &http.Client{Transport: wikiStub{answers: map[string]string{"wbsearchentities": `{"search":[{"id":"Q9","description":"a film"}]}`}}}
-	if err := (&Wikidata{Client: nothing}).EnrichGame(context.Background(), &Item{Title: "x"}); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("got %v", err)
 	}
 }
 

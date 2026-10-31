@@ -26,6 +26,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
@@ -124,6 +125,10 @@ func cmdServe(args []string) int {
 		return library.ParseAgents(database.GetSetting(context.Background(), "agents", ""))
 	}
 	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
+	gamemeta.UserAgent = "WittyMediaServer/" + version + " (https://github.com/wittywilla/WittyMediaServer)"
+	gameMeta := library.NewGameMeta(store, cfg.ImagesDir, cfg.CacheDir, log)
+	gameMeta.SaveMeta, gameMeta.Save = scanner.SaveMeta, scanner.SaveItemMetadata
+	scanner.GameMeta = gameMeta
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
@@ -174,7 +179,7 @@ func cmdServe(args []string) int {
 		webFS = os.DirFS(filepath.Join("web", "dist"))
 	}
 	srv := &server.Server{
-		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
+		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr,
 	}
@@ -230,6 +235,7 @@ func cmdServe(args []string) int {
 	defer stop()
 	ctx, cancel := context.WithCancel(sigCtx)
 	defer cancel()
+	go gameMeta.Run(ctx)
 	if cfg.WatchStdin {
 		// The tray launcher holds our stdin open; when it closes the pipe we
 		// shut down gracefully (Windows has no SIGTERM to deliver).

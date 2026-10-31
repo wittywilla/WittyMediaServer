@@ -1,6 +1,9 @@
 package server
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"go/ast"
@@ -515,15 +518,27 @@ func updateSchemas(t *testing.T, generated map[string]any) {
 	}
 }
 
+// otherServers holds the SHA-256 of each lowercase name the docs must not use,
+// so the check itself doesn't write them out.
+var otherServers = map[string]bool{
+	"cf6dd0b6bcff0572500cdd087008918592ada20f16f5d17c527c153bb4f63e78": true,
+	"28d81f2e7f99e2f862924d4748a4b71c4fd94e3ec26e0c6da17ce1252992af68": true,
+	"bb7b6e6a71481cc50663b3339cc71e07402012a002d13e09f73330b27a508bff": true,
+	"972e92b2ee3757ece2112bc17f21879ec2df77e7996338d07372beed0280f0ec": true,
+	"db6900cfa129905df4efb0332e5dbcc7c6322eee57fd4afd39425353f7d33b2a": true,
+}
+
 func TestDocsNameNoOtherServers(t *testing.T) {
-	banned := regexp.MustCompile(`(?i)\b(plex|jellyfin|emby|kodi|ampchor)\b`)
+	word := regexp.MustCompile(`[A-Za-z]+`)
 	for _, p := range []string{openapiPath, clientDoc} {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if m := banned.Find(b); m != nil {
-			t.Errorf("%s names %q", p, m)
+		for _, w := range word.FindAll(b, -1) {
+			if sum := sha256.Sum256(bytes.ToLower(w)); otherServers[hex.EncodeToString(sum[:])] {
+				t.Errorf("%s names %q", p, w)
+			}
 		}
 	}
 }

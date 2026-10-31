@@ -424,7 +424,6 @@ func safeName(s string) string {
 	return s
 }
 
-
 // Download saves an episode into the library's first folder:
 // <folder>/<podcast>/<date> <title>.<ext>, and the item then plays from disk.
 func (s *Scanner) Download(ctx context.Context, it *Item) error {

@@ -159,8 +159,12 @@ func ArchiveName(id, ver, goos, goarch string) string {
 }
 
 // SumsName is the signed list of a release's hashes; its signature adds .sig.
-func SumsName(id, ver string) string { return id + "-" + strings.TrimPrefix(ver, "v") + "-SHA256SUMS.txt" }
+func SumsName(id, ver string) string {
+	return id + "-" + strings.TrimPrefix(ver, "v") + "-SHA256SUMS.txt"
+}
 
 // ManifestName is the copy of the manifest attached to a release, so it can be
 // judged before anything large is downloaded.
-func ManifestName(id, ver string) string { return id + "-" + strings.TrimPrefix(ver, "v") + "-module.json" }
+func ManifestName(id, ver string) string {
+	return id + "-" + strings.TrimPrefix(ver, "v") + "-module.json"
+}

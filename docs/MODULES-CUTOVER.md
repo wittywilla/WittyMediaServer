@@ -160,6 +160,9 @@ The real thing:
 - [ ] `scripts/cutover-modules.sh --apply --require-merged branch-one,branch-two`. Use the machine
       where `gh` and `git push` are signed in. It stops at the first failure and can be run again:
       what is already released is left alone, and tags never move.
+      If a release workflow fails, open the run it names. For a passing problem, click *Re-run
+      failed jobs* and run the script again once it is green. If something has to change, change it
+      in the module's folder and run the script again: it publishes one patch version higher.
 - [ ] It leaves branch `modules-cutover` with the server's change, unpushed. Open a pull request.
 
 After:

@@ -66,7 +66,7 @@ edit('.github/workflows/ci.yml', (t) => {
     `$1          server="$(go run ./cmd/wms version | awk '{print $2}')"
           # The tool wants each manifest in a folder named for its module.
           tmp="$(mktemp -d)"
-          for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/${OWNER}/' | grep -v '/wittymodule$$'); do
+          for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/${OWNER}/' | grep -vE '/(wittymodule|wittymediaserver)$$'); do
             cp -r "$(go list -m -f '{{.Dir}}' "$m")" "$tmp/\${m##*/}"
           done
           for f in web/module-manifests/*.json; do
@@ -188,28 +188,59 @@ func testJar() string {
 }
 `)
 
-edit('internal/modules/modules_test.go', (t) => {
-  t = must(t, '[]string{"run", "./modules/wittymodule/cmd/wittymodule"}', `[]string{"run", "${goModule('WittyModule')}/cmd/wittymodule"}`)
-  t = must(t, `	tool("check", "modules/wittyphotos")
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, "modules/wittyphotos")
-	raw, err := os.ReadFile(filepath.Join(root, "modules", "wittyphotos", "module.json"))
-`, `	// The released source, in a folder named for the module, as its own repository is.
-	list := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "${goModule('WittyPhotos')}")
-	list.Dir = root
-	released, err := list.Output()
+// Any other test that reads or builds a module's folder: the same, wherever it is.
+function goTests(dir) {
+  return readdirSync(join(root, dir), { withFileTypes: true }).flatMap((e) => {
+    const p = dir + '/' + e.name
+    if (e.isDirectory()) return e.name === 'testdata' ? [] : goTests(p)
+    return e.name.endsWith('_test.go') ? [p] : []
+  })
+}
+for (const path of goTests('internal')) {
+  if (!/"web", "src", "modules"/.test(readFileSync(join(root, path), 'utf8'))) continue
+  edit(path, (t) => t.replace(/"web", "src", "modules", (\w+), "module\.json"/g, '"web", "module-manifests", $1+".json"'))
+}
+const helped = new Set()
+for (const path of goTests('internal')) {
+  const before = readFileSync(join(root, path), 'utf8')
+  if (!/"\.\/modules\/witty|"modules\/witty|"modules", *"witty/.test(before)) continue
+  edit(path, (t) => {
+    t = t.replace(/"\.\/modules\/(witty[a-z]+)\/cmd\/([^"]+)"/g, `"github.com/${OWNER}/$1/cmd/$2"`)
+    t = t.replace(/"modules\/(witty[a-z]+)"/g, 'releasedModule(t, "$1")')
+    t = t.replace(/filepath\.Join\((?:root|"\.\.", "\.\."), "modules", "(witty[a-z]+)"\)/g, 'releasedModule(t, "$1")')
+    return t.replace(/filepath\.Join\((?:root|"\.\.", "\.\."), "modules", "(witty[a-z]+)", /g, 'filepath.Join(releasedModule(t, "$1"), ')
+  })
+  const dir = path.slice(0, path.lastIndexOf('/'))
+  if (helped.has(dir)) continue
+  helped.add(dir)
+  const pkg = /^package (\w+)/m.exec(before.replace(/\r\n/g, '\n'))[1]
+  writeFileSync(join(root, dir, 'released_module_test.go'), `package ${pkg}
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// releasedModule is a copy of the source of the version of a module this server requires,
+// in a folder named for it, as its own repository is.
+func releasedModule(t testing.TB, id string) string {
+	t.Helper()
+	dir, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/${OWNER}/"+id).Output()
 	if err != nil {
 		t.Fatal(err)
 	}
-	photos := filepath.Join(t.TempDir(), "wittyphotos")
-	if err := os.CopyFS(photos, os.DirFS(strings.TrimSpace(string(released)))); err != nil {
+	copied := filepath.Join(t.TempDir(), id)
+	if err := os.CopyFS(copied, os.DirFS(strings.TrimSpace(string(dir)))); err != nil {
 		t.Fatal(err)
 	}
-	tool("check", photos)
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, photos)
-	raw, err := os.ReadFile(filepath.Join(photos, "module.json"))
+	return copied
+}
 `)
-  return t
-})
+  console.log(`   wrote ${dir}/released_module_test.go`)
+}
 
 // Raising the server's version checked the modules' folders. CI checks their ranges now.
 edit('scripts/bump-server.sh', (t) => must(t, /# A server past a module's maxServer[^\n]*\nmanifests=[\s\S]*?\n\s*exit 1\n\s*\}\nfi\n/,

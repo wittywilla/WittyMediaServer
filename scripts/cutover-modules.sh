@@ -119,7 +119,6 @@ else
   say "Dry run: nothing here or on GitHub changes"
   for t in python3 zip sha256sum; do command -v "$t" >/dev/null 2>&1 || die "a dry run needs $t"; done
   python3 -c 'import yaml' 2>/dev/null || die "a dry run needs PyYAML (pip install pyyaml)"
-  go_cache=$(go env GOCACHE)
   real_mod=$(go env GOMODCACHE)
   npm_cache=$(npm config get cache)
   source_top=$top
@@ -161,7 +160,8 @@ else
 	insteadOf = ssh://git@github.com/$OWNER/
 	insteadOf = git@github.com:$OWNER/
 EOF
-  export GOCACHE="$go_cache" GOMODCACHE="$work/gomod" GOFLAGS=-modcacherw
+  # Its own build cache too: Go indexes a module in the cache by its path, and these versions are not the real ones.
+  export GOCACHE="$work/gocache" GOMODCACHE="$work/gomod" GOFLAGS=-modcacherw
   export GOPRIVATE="github.com/$OWNER/*"
   export GOPROXY="file://$real_mod/cache/download,https://proxy.golang.org"
   export npm_config_cache="$npm_cache"
@@ -615,7 +615,7 @@ fresh_lock web
 run node web/scripts/sync-module-manifests.mjs
 echo "   web/module-manifests: $(ls web/module-manifests | tr '\n' ' ')"
 
-git add -A -- . ':!web/dist'
+git add -A -- .
 if [ -n "$apply" ]; then
   run git -c user.name="$NAME" -c user.email="$EMAIL" commit -q -m "The modules live in their own repositories, and the server consumes released versions"
 else
@@ -627,7 +627,7 @@ fi
 say "The server builds from released versions, with no modules/ folder"
 for gone in modules web/src/modules apps/wittyreader go.work scripts/mirror.sh; do [ ! -e "$gone" ] || die "$gone is still here"; done
 if grep -q '^replace' go.mod; then die "go.mod still has replace lines"; fi
-leftover=$(git grep -nE '(^|[^a-z/])modules/witty|\./modules/witty|src/modules|apps/wittyreader' -- . ':!docs' ':!CHANGELOG.md' ':!scripts/module-kit' ':!scripts/module-kit.sh' ':!scripts/cutover-modules.sh' ':!scripts/dev-modules.sh' ':!clients/wittymediaclient/docs' || true)
+leftover=$(git grep -nE '(^|[^a-z/])modules/witty|\./modules/witty|"modules", *"witty|"src", "modules"|src/modules|apps/wittyreader' -- . ':!docs' ':!CHANGELOG.md' ':!scripts/module-kit' ':!scripts/module-kit.sh' ':!scripts/cutover-modules.sh' ':!scripts/dev-modules.sh' ':!clients/wittymediaclient/docs' || true)
 if [ -n "$leftover" ]; then printf '%s\n' "$leftover"; die "these still name a module's folder"; fi
 go list -m -f '{{if .Replace}}REPLACED {{.Path}}{{else}}{{.Path}} {{.Version}}{{end}}' all | grep "^github.com/$OWNER/\|^REPLACED" || true
 if go list -m -f '{{if .Replace}}REPLACED{{end}}' all | grep -q REPLACED; then die "something in the build is still replaced"; fi
@@ -641,7 +641,7 @@ fi
 run go vet ./...
 run go build -o "$top/.build/wms-cutover" ./cmd/wms
 run go build -o "$top/.build/wittyplay-host-cutover" "github.com/$OWNER/wittyplay/cmd/wittyplay-host"
-for t in windows/amd64 linux/arm freebsd/arm64 darwin/arm64; do
+for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do
   flags=()
   case $t in freebsd/*) flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std") ;; esac
   say "Cross-compiling for $t"
@@ -709,12 +709,16 @@ $(cat "$released_json")
 Proved here:
   - Every module's folder publishes with its history, and each new tag holds it.
   - Each one, from a clean clone with no sibling folders: its CI's vet, test and every
-    platform's build, its release build, signing on a machine with nothing else, and
-    the checksum list and signature checked by a separate program.
-  - A missing key stops a release. A wrong tag stops a release. A hostile reason in a
-    withdrawal stays text, and the list's serial goes up.
+    platform's build, its release tests, a build from a fresh checkout, signing on a
+    machine with nothing else, and the checksum list and signature checked by a
+    separate program.
+  - A missing key stops a release. A wrong tag stops a release. A checksum list naming
+    another module isn't signed.
+  - A withdrawal: a hostile reason stays text, the list's serial goes up, and a list
+    someone changed, or one with no signature, is refused. (gh is a stand-in here.)
   - Each workflow keeps the rules: pinned actions, no permissions by default, no
-    expressions in commands, the key only where nothing else runs.
+    expressions in commands, the key only where nothing else runs, no tests where
+    a release is packed.
   - The server, with no modules/ folder, no go.work and no replace lines: go.mod and
     package-lock.json name those tags, the web app and every platform build, it starts
     and serves its page, and its tests pass.

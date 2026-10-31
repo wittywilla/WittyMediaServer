@@ -4,6 +4,9 @@ package hostsandbox
 
 import "syscall"
 
+// Confine has nothing to do here: what Apply sets holds for the whole process.
+func Confine(l Limits) error { return nil }
+
 // Apply sets what every Unix has: resource limits and a lower priority.
 func Apply(l Limits) error {
 	_ = syscall.Setrlimit(syscall.RLIMIT_CORE, &syscall.Rlimit{})

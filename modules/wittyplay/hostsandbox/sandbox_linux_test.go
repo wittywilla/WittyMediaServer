@@ -16,6 +16,9 @@ import (
 func TestSandboxRefusesNetworkAndPrograms(t *testing.T) {
 	if os.Getenv("WITTYPLAY_SANDBOX_CHILD") == "1" {
 		save := os.Getenv("WITTYPLAY_SAVE")
+		if err := Confine(Limits{SaveDir: save}); err != nil {
+			t.Fatal(err)
+		}
 		if err := Apply(Limits{SaveDir: save, MemoryMB: 4096}); err != nil {
 			t.Logf("some layers are unavailable: %v", err)
 		}
@@ -117,3 +120,89 @@ func TestFilterCoversThreadsAlreadyRunning(t *testing.T) {
 }
 
 var res = make(chan error)
+
+// A goroutine can land on any thread, so a socket and a write must be refused from
+// threads other than the one that set the limits: one started before they went on,
+// and one started after.
+func TestLimitsHoldOnOtherThreads(t *testing.T) {
+	if os.Getenv("WITTYPLAY_OTHER_THREAD_CHILD") == "1" {
+		limits := Limits{SaveDir: os.Getenv("WITTYPLAY_SAVE")}
+		if err := Confine(limits); err != nil {
+			t.Fatal(err)
+		}
+		if !landlockAvailable() {
+			t.Log("this kernel has no Landlock, so only the socket is checked")
+		}
+		runtime.LockOSThread()
+		self := unix.Gettid()
+		write := func(dir string) error {
+			return os.WriteFile(filepath.Join(dir, "probe"), []byte("x"), 0o644)
+		}
+		probe := func(name string, on func(func() error) error) {
+			if err := on(func() error {
+				_, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, 0)
+				return err
+			}); !errors.Is(err, unix.EPERM) {
+				t.Errorf("%s: socket: got %v, want EPERM", name, err)
+			}
+			if err := on(func() error { return write(limits.SaveDir) }); err != nil {
+				t.Errorf("%s: the save folder must stay writable: %v", name, err)
+			}
+			if landlockAvailable() {
+				if err := on(func() error { return write(os.Getenv("WITTYPLAY_OUTSIDE")) }); !errors.Is(err, unix.EACCES) {
+					t.Errorf("%s: writing outside the save folder: got %v, want EACCES", name, err)
+				}
+			}
+		}
+		before := otherThread(t, self)
+		// Writing is limited from the restart on, with Apply still to come.
+		if landlockAvailable() {
+			if err := before(func() error { return write(os.Getenv("WITTYPLAY_OUTSIDE")) }); !errors.Is(err, unix.EACCES) {
+				t.Errorf("before Apply: writing outside the save folder: got %v, want EACCES", err)
+			}
+		}
+		if err := Apply(limits); err != nil {
+			t.Logf("some layers are unavailable: %v", err)
+		}
+		probe("a thread started before", before)
+		probe("a thread started after", otherThread(t, self))
+		return
+	}
+	outside := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestLimitsHoldOnOtherThreads", "-test.v")
+	cmd.Env = append(os.Environ(), "WITTYPLAY_OTHER_THREAD_CHILD=1", "WITTYPLAY_SAVE="+t.TempDir(), "WITTYPLAY_OUTSIDE="+outside)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "probe")); err == nil {
+		t.Fatalf("a write got out of the save folder\n%s", out)
+	}
+	t.Logf("%s", out)
+}
+
+// otherThread starts a thread that isn't self and runs what it's handed there.
+func otherThread(t *testing.T, self int) func(func() error) error {
+	t.Helper()
+	calls := make(chan func() error)
+	results := make(chan error)
+	go func() {
+		runtime.LockOSThread()
+		for f := range calls {
+			results <- f()
+		}
+	}()
+	on := func(f func() error) error {
+		calls <- f
+		return <-results
+	}
+	if err := on(func() error {
+		if tid := unix.Gettid(); tid == self {
+			return errors.New("the same thread")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return on
+}

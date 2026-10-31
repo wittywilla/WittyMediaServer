@@ -762,7 +762,8 @@ Treat a ROM as hostile and a core as buggy:
 - Only the core the server picked runs: the request names a game, never a file. Core files come
   from the server's own list.
 - **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter
-  refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder; memory and
+  refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder, both on every
+  thread (the runner sets Landlock, then starts itself again so that all its threads inherit it); memory and
   file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve
   far more than they use (one holding 30 MB had reserved 1.9 GB); lower priority; killed when the server dies.
 - **Windows:** a job object that kills it with the server, limits memory and forbids child

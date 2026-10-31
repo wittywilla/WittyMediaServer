@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
 
@@ -250,13 +252,39 @@ func (m *Manager) running() map[int64]context.CancelFunc {
 	return m.recordingCancels
 }
 
+// failInterrupted runs once at startup: anything marked as recording was
+// interrupted by a restart.
+func (m *Manager) failInterrupted() {
+	rows, err := m.DB.Query(`SELECT id FROM recordings WHERE status = 'recording'`)
+	if err != nil {
+		return
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	for _, id := range ids {
+		m.finish(id, "failed", "the server stopped during this recording", "")
+	}
+}
+
+// recLog is the logger of one recording. Its session comes from the recording's
+// ID, so what a recording says can be found from the recording.
+func (m *Manager) recLog(id int64) *slog.Logger {
+	return m.Log.With("session", recSession(id), "recording", id)
+}
+
+func recSession(id int64) string { return "rec-" + strconv.FormatInt(id, 10) }
+
 // dvrLoop starts recordings when their time comes. It does almost nothing
 // when none are due.
 func (m *Manager) dvrLoop() {
 	t := time.NewTicker(15 * time.Second)
 	defer t.Stop()
-	// Anything marked as recording was interrupted by a restart.
-	_, _ = m.DB.Exec(`UPDATE recordings SET status = 'failed', error = 'the server stopped during this recording' WHERE status = 'recording'`)
 	n := 0
 	for {
 		if n%20 == 0 {
@@ -291,19 +319,37 @@ func (m *Manager) startDue(ctx context.Context) {
 			continue
 		}
 		_, _ = m.DB.ExecContext(ctx, `UPDATE recordings SET status = 'recording' WHERE id = ?`, r.ID)
-		go m.record(r)
+		logging.Go("recording", func() { m.record(r) }, "cat", "tv", "session", recSession(r.ID))
 	}
 }
 
+// finish is where every recording ends, so each that fails leaves a record here.
 func (m *Manager) finish(id int64, status, msg, path string) {
-	_, _ = m.DB.Exec(`UPDATE recordings SET status = ?, error = ?, path = CASE WHEN ? <> '' THEN ? ELSE path END WHERE id = ?`, status, msg, path, path, id)
+	_, err := m.DB.Exec(`UPDATE recordings SET status = ?, error = ?, path = CASE WHEN ? <> '' THEN ? ELSE path END WHERE id = ?`, status, msg, path, path, id)
+	log := m.recLog(id)
+	if status == "failed" {
+		log.Error("recording failed", "reason", msg, "file", path)
+	} else {
+		log.Info("recording finished", "status", status)
+	}
+	if err != nil {
+		log.Error("could not save how a recording ended", "status", status, "err", err)
+	}
 }
 
 // record runs one recording to its end.
 func (m *Manager) record(r *Recording) {
 	end := time.Unix(r.Stop+padAfter, 0)
-	ctx, cancel := context.WithDeadline(m.stopCtx, end)
+	ctx, cancel := context.WithDeadline(logging.WithSession(m.stopCtx, recSession(r.ID)), end)
 	defer cancel()
+	log := m.recLog(r.ID)
+	log.Info("recording started", "channel", r.ChannelID)
+	defer func() {
+		if p := recover(); p != nil {
+			logging.ReportPanic("recording", p, "cat", "tv", "session", recSession(r.ID))
+			m.finish(r.ID, "failed", "this recording stopped on an internal error", "")
+		}
+	}()
 	m.mu.Lock()
 	m.running()[r.ID] = cancel
 	m.mu.Unlock()
@@ -328,7 +374,7 @@ func (m *Manager) record(r *Recording) {
 		return
 	}
 	_, _ = m.DB.Exec(`UPDATE recordings SET path = ? WHERE id = ?`, path, r.ID)
-	err = m.write(ctx, opened, path)
+	err = m.write(ctx, log, opened, path)
 	if err != nil && wittytuner.IsEncrypted(err) {
 		_ = os.Remove(path)
 		m.finish(r.ID, "failed", wittytuner.RefusalMessage(opened.Channel.Name, err).Error(), "")
@@ -371,7 +417,7 @@ func (m *Manager) openForRecording(ctx context.Context, channelID int64) (*Opene
 	return nil, last
 }
 
-func (m *Manager) write(ctx context.Context, o *Opened, path string) error {
+func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path string) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
 	if err != nil {
 		return err
@@ -393,7 +439,12 @@ func (m *Manager) write(ctx context.Context, o *Opened, path string) error {
 	args = append(args, "-map", "0", "-c", "copy", "-f", "mpegts", "pipe:1")
 	cmd := ffmpeg.Command(ctx, m.Tools.FFmpeg, args...)
 	cmd.Stdout = f
-	return cmd.Run()
+	var stderr logging.Tail
+	cmd.Stderr = &stderr
+	started := time.Now()
+	err = cmd.Run()
+	logging.ChildExit(log, "ffmpeg", err, ctx.Err() != nil, &stderr, started)
+	return err
 }
 
 var unsafeName = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)

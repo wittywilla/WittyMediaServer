@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -177,7 +178,7 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 		return nil, ErrBusy
 	}
 	id := newID()
-	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
+	s := &Session{id: id, runnerSaid: tailWriter{max: 16 << 10}, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id), done: make(chan struct{}), paused: true,
 		viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
 		audioCh: make(chan []byte, 32)}
 	m.sessions[id] = s
@@ -245,6 +246,9 @@ type Session struct {
 	stopOnce  sync.Once
 	cleanOnce sync.Once
 	exitErr   atomic.Value
+	// What the runner said on stderr, and whether its going is what was asked for.
+	runnerSaid tailWriter
+	stopping   atomic.Bool
 
 	frameMu    sync.Mutex
 	frame      []byte // the newest frame
@@ -315,6 +319,7 @@ func (s *Session) start() error {
 	s.cmd, s.stdin = cmd, stdin
 	s.box = lockDown(cmd, s.cfg.MemoryMB, s.log) // before any core is loaded
 	s.wrote.Add(2)
+	started := time.Now()
 	go s.logStderr(stderr)
 
 	// Give up on a game that won't load, however it fails.
@@ -325,9 +330,15 @@ func (s *Session) start() error {
 	go func() {
 		// Wait closes the pipes, so it comes after the last save has been read.
 		s.wrote.Wait()
-		if err := cmd.Wait(); err != nil && s.exitErr.Load() == nil {
+		err := cmd.Wait()
+		if err != nil && s.exitErr.Load() == nil {
 			s.exitErr.Store(err.Error())
 		}
+		lv := slog.LevelDebug
+		if err != nil && !s.stopping.Load() {
+			lv = slog.LevelWarn
+		}
+		s.log.Log(context.Background(), lv, "the runner ended", "topic", "runner", "err", err, "stderr", s.runnerSaid.String(), "ran", time.Since(started).Round(time.Millisecond).String())
 		s.finish()
 		close(s.done)
 	}()
@@ -345,6 +356,7 @@ func (s *Session) start() error {
 			return err
 		}
 	case <-time.After(30 * time.Second):
+		s.log.Warn("the game took too long to load; stopping it")
 		s.kill()
 		<-s.done
 		return errors.New("the game took too long to load")
@@ -383,10 +395,15 @@ func (s *Session) command(t byte, parts ...[]byte) error {
 
 func (s *Session) logStderr(r io.Reader) {
 	defer s.wrote.Done()
-	b, _ := io.ReadAll(io.LimitReader(r, 1<<16))
-	_, _ = io.Copy(io.Discard, r)
-	if len(b) > 0 {
-		s.log.Info("runner says", "output", string(b))
+	_, _ = io.Copy(&s.runnerSaid, r) // however much it says, the end is what's kept
+}
+
+// guard is for a goroutine that handles what the runner sends: a bug on bad input
+// ends this game and not the server.
+func (s *Session) guard(where string) {
+	if p := recover(); p != nil {
+		s.log.Error("a part of the game stream crashed", "where", where, "panic", fmt.Sprint(p), "stack", string(debug.Stack()))
+		s.kill()
 	}
 }
 
@@ -394,6 +411,7 @@ func (s *Session) logStderr(r io.Reader) {
 // long, or the game itself stalls behind the pipe.
 func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 	defer s.wrote.Done()
+	defer s.guard("runner reader")
 	rd := ipc.NewReader(r)
 	isReady := false
 	fail := func(err error) {
@@ -490,7 +508,7 @@ func (s *Session) handleEvent(p []byte) {
 	}
 	switch e.Type {
 	case "log":
-		s.log.Debug("core", "text", truncate(e.Text, 300))
+		s.log.Debug("core", "topic", "core", "text", truncate(e.Text, 300))
 		return
 	case "shutdown":
 		s.log.Info("the game shut itself down")
@@ -651,6 +669,7 @@ func (s *Session) deliverState(id uint32, b []byte) {
 // Stop saves the game and ends it. It returns once everything is written.
 func (s *Session) Stop() {
 	s.stopOnce.Do(func() {
+		s.stopping.Store(true)
 		if err := s.command(ipc.CmdQuit, []byte{1}); err != nil {
 			s.kill()
 		}

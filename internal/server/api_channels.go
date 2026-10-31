@@ -629,7 +629,7 @@ func fromSchedule(p channels.Programme) guideProgramme {
 func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChannel {
 	list, err := s.Channels.List(ctx)
 	if err != nil {
-		s.Log.Warn("guide", "err", err)
+		s.Log.WarnContext(ctx, "could not read the guide's channels", "cat", "tv", "err", err)
 		return nil
 	}
 	user, a := userFrom(u), s.access(u)
@@ -731,7 +731,7 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 	}
 	list, err := s.Channels.Window(ctx, c, from, to)
 	if err != nil {
-		s.Log.Warn("guide", "channel", row.Name, "err", err)
+		s.Log.WarnContext(ctx, "could not read a channel's guide", "cat", "tv", "channel", row.Name, "err", err)
 		return out
 	}
 	// A rows' worth of bumpers tells a viewer nothing: they join the show

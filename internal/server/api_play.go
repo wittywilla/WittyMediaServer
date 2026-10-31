@@ -202,7 +202,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if d.Mode == playback.Direct && s.fitsCap(r, it.SizeBytes, pr.Duration()) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
-		s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
+		s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
 		writeJSON(w, 200, info)
 		return
 	}
@@ -232,7 +232,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	} else if d.Mode == playback.Direct && q.CapRate != "" {
 		reason = "over the limit for viewers away from home"
 	}
-	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "transcode", "reason", reason,
+	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "session", hid, "item", it.ID, "title", it.Title, "mode", "transcode", "why", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
 	writeJSON(w, 200, info)
 }
@@ -359,7 +359,9 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	if sess.Spec.Growing {
 		b, err := sess.GrowingPlaylist(r.Context(), seg)
 		if err != nil {
-			s.Log.Warn("playlist", "id", id, "err", err)
+			if !errors.Is(err, context.Canceled) {
+				s.Log.WarnContext(r.Context(), "could not serve a playlist", "cat", "transcode", "session", sess.LogSession(), "stream", id, "err", err)
+			}
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -399,7 +401,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return // the viewer moved on
 	}
 	if err != nil {
-		s.Log.Warn("segment", "id", id, "n", name, "err", err)
+		s.Log.WarnContext(r.Context(), "could not serve a segment", "cat", "transcode", "session", sess.LogSession(), "stream", id, "segment", name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
@@ -414,6 +416,8 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/hls/{id}: this viewer is done (another device may still watch).
 func (s *Server) handleHLSStop(w http.ResponseWriter, r *http.Request) {
-	s.HLS.Leave(r.PathValue("id"), auth.TokenFrom(r))
+	id := r.PathValue("id")
+	s.HLS.Leave(id, auth.TokenFrom(r))
+	s.Log.InfoContext(r.Context(), "viewer left a stream", "cat", "playback", "session", id)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

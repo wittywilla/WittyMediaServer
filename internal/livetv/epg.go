@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner/mpegts"
 	"github.com/wittywilla/wittytuner/xmltv"
 )
@@ -113,11 +114,11 @@ func (m *Manager) AddSource(ctx context.Context, name, place string) (*EPGSource
 	}
 	id, _ := res.LastInsertId()
 	m.Start()
-	go func() {
+	logging.Go("guide refresh", func() {
 		if err := m.FetchSource(context.WithoutCancel(ctx), id); err != nil {
-			m.Log.Info("guide source", "cat", "tv", "err", err)
+			m.Log.Warn("guide refresh failed", "name", name, "err", err)
 		}
-	}()
+	}, "cat", "tv")
 	return &EPGSource{ID: id, Name: name, URL: place}, nil
 }
 
@@ -158,7 +159,9 @@ func (m *Manager) refreshDue(ctx context.Context) {
 			continue
 		}
 		if err := m.FetchSource(ctx, s.ID); err != nil {
-			m.Log.Info("guide source", "cat", "tv", "source", s.Name, "err", err)
+			if ctx.Err() == nil {
+				m.Log.Warn("guide refresh failed", "name", s.Name, "err", err)
+			}
 		}
 	}
 }
@@ -373,7 +376,7 @@ func (m *Manager) broadcastEvents(c *Channel) func(mpegts.Event) {
 		}
 		list := buf
 		buf, last = nil, time.Now()
-		go m.storeBroadcast(key, list)
+		logging.Go("guide from broadcast", func() { m.storeBroadcast(key, list) }, "cat", "tv")
 	}
 }
 

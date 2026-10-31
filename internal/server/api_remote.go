@@ -80,7 +80,7 @@ func (s *Server) loadRemote(ctx context.Context) remoteSettings {
 	r := defaultRemote()
 	if raw := s.DB.GetSetting(ctx, remoteSettingKey, ""); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &r); err != nil {
-			s.Log.Warn("remote access settings are unreadable; treating them as off", "err", err)
+			s.Log.WarnContext(ctx, "remote access settings are unreadable; treating them as off", "cat", "remote", "err", err)
 			return defaultRemote()
 		}
 	}
@@ -180,13 +180,13 @@ func (s *Server) reloadNet(ctx context.Context) *netState {
 	st.on = cfg.Enabled || st.forced
 	var err error
 	if st.policy.Trusted, err = remote.ParseNets(trusted); err != nil {
-		s.Log.Warn("trusted proxies", "err", err)
+		s.Log.Warn("could not read the trusted proxies", "cat", "remote", "err", err)
 	}
 	if st.policy.Home, err = remote.ParseNets(cfg.HomeNets); err != nil {
-		s.Log.Warn("home networks", "err", err)
+		s.Log.Warn("could not read the home networks", "cat", "remote", "err", err)
 	}
 	if st.policy.Away, err = remote.ParseNets(cfg.AwayNets); err != nil {
-		s.Log.Warn("away networks", "err", err)
+		s.Log.Warn("could not read the away networks", "cat", "remote", "err", err)
 	}
 	st.publicURL = cfg.PublicURL
 	if st.publicURL == "" && s.Cfg != nil {
@@ -213,9 +213,9 @@ func (s *Server) reloadNet(ctx context.Context) *netState {
 // port serves.
 func (s *Server) StartRemote(ctx context.Context, handler http.Handler) {
 	s.HTTPS = remote.NewHTTPS(handler, s.Cfg.DataDir, s.Log)
-	s.Mapper = &portmap.Keeper{Log: s.Log}
+	s.Mapper = &portmap.Keeper{Log: s.Log.With("cat", "remote")}
 	if err := s.applyNet(ctx); err != nil {
-		s.Log.Warn("remote access", "err", err)
+		s.Log.WarnContext(ctx, "could not set up remote access", "cat", "remote", "err", err)
 	}
 }
 
@@ -271,10 +271,13 @@ func (s *Server) handlePutRemote(w http.ResponseWriter, r *http.Request) {
 	}
 	// The outside test proved the old way in, not this one.
 	if cur.Method != prev.Method || (prev.Enabled && !cur.Enabled) {
-		_ = s.DB.SetSetting(r.Context(), "remoteLastProof", "")
+		if err := s.DB.SetSetting(r.Context(), "remoteLastProof", ""); err != nil {
+			s.Log.WarnContext(r.Context(), "could not forget the last outside test", "cat", "remote", "err", err)
+		}
 	}
-	s.Log.Info("remote access settings changed", "cat", "signin", "by", userFrom(r).Name, "enabled", cur.Enabled, "method", cur.Method, "https", cur.HTTPSMode, "mapping", cur.PortMapping)
+	s.Log.InfoContext(r.Context(), "remote access settings changed", "cat", "remote", "user", userFrom(r).Name, "enabled", cur.Enabled, "method", cur.Method, "https", cur.HTTPSMode, "mapping", cur.PortMapping)
 	if err := s.applyNet(r.Context()); err != nil {
+		s.Log.WarnContext(r.Context(), "could not apply the remote access settings", "cat", "remote", "err", err)
 		// Saved and reported: the status shows what is wrong and how it stands.
 		writeJSON(w, 200, s.remoteStatus(r, err.Error()))
 		return
@@ -638,7 +641,9 @@ func (s *Server) handleReach(w http.ResponseWriter, r *http.Request) {
 	t.mu.Unlock()
 	if hit.Proof {
 		if raw, err := json.Marshal(hit); err == nil {
-			_ = s.DB.SetSetting(r.Context(), "remoteLastProof", string(raw))
+			if err := s.DB.SetSetting(r.Context(), "remoteLastProof", string(raw)); err != nil {
+				s.Log.WarnContext(r.Context(), "could not save the outside test", "cat", "remote", "err", err)
+			}
 		}
 		fmt.Fprintf(w, reachPage, "It works!", "Your server answered from outside your home. You can close this page and go back to Settings.")
 		return

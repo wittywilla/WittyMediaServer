@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -151,6 +152,7 @@ func applyNFO(it *Item, path string) bool {
 		b = b[:i+len("</movie>")]
 	}
 	if err := xml.Unmarshal(b, &m); err != nil {
+		slog.Default().Warn("could not read an NFO file; ignoring it", "cat", "library", "file", path, "err", err)
 		return false
 	}
 	if m.Title != "" {
@@ -246,7 +248,8 @@ func applySidecarJSON(it *Item, path string) bool {
 		return false
 	}
 	var m sidecarJSON
-	if json.Unmarshal(b, &m) != nil {
+	if err := json.Unmarshal(b, &m); err != nil {
+		slog.Default().Warn("could not read a metadata file; ignoring it", "cat", "library", "file", path, "err", err)
 		return false
 	}
 	if m.Title != "" {

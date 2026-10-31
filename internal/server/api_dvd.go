@@ -97,6 +97,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		default:
 			p = sess.Start(r.Context())
 		}
+		s.logDiscOpened(r, it, sess.ID, "bluray", b.Mode, p)
 		writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": p, "stereo3d": sess.Stereo3D()})
 		return
 	}
@@ -116,7 +117,18 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p = sess.Start(r.Context())
 	}
+	s.logDiscOpened(r, it, sess.ID, "dvd", b.Mode, p)
 	writeJSON(w, 200, map[string]any{"sessionId": sess.ID, "presentation": p})
+}
+
+// logDiscOpened ties the request that opened a disc to its session. A disc's
+// path to the screen is the same whatever is on it, so its decision is "disc".
+func (s *Server) logDiscOpened(r *http.Request, it *library.Item, session, kind, mode string, p *dvdsession.Presentation) {
+	shows := ""
+	if p != nil {
+		shows = p.Kind
+	}
+	s.Log.InfoContext(r.Context(), "disc session opened", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "mode", "disc", "format", kind, "open", mode, "shows", shows)
 }
 
 func (s *Server) intSetting(ctx context.Context, key string) int {
@@ -179,6 +191,7 @@ func (s *Server) handleDVDClose(w http.ResponseWriter, r *http.Request) {
 	} else {
 		s.DVD.CloseSession(sid)
 	}
+	s.Log.InfoContext(r.Context(), "disc session closed", "cat", "playback", "session", sid)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -281,6 +294,9 @@ func (s *Server) handleBDJStatus(w http.ResponseWriter, r *http.Request) {
 	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, path)
 	if err != nil {
 		out["error"] = err.Error()
+		if out["enabled"] == true {
+			s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
+		}
 	} else {
 		out["version"], out["path"] = version, where
 	}

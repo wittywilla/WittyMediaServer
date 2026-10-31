@@ -13,6 +13,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -69,7 +70,7 @@ func TestRedactQuery(t *testing.T) {
 	if got := redactQuery("%74oken=abcdef0123"); strings.Contains(got, "abcdef") {
 		t.Fatalf("an escaped parameter name got through: %q", got)
 	}
-	if got := tokenRe.ReplaceAllString(`GET /api/x?token=abc123&f=1 failed`, "token=REDACTED"); strings.Contains(got, "abc123") {
+	if got := logging.Redact(`GET /api/x?token=abc123&f=1 failed`); strings.Contains(got, "abc123") {
 		t.Fatalf("client log not redacted: %q", got)
 	}
 }
@@ -352,7 +353,7 @@ func TestAdminRoutes(t *testing.T) {
 		{"GET", "/api/podcasts/search?q=ab"}, {"POST", "/api/podcasts"}, {"PUT", "/api/podcasts/1"}, {"POST", "/api/podcasts/1/refresh"}, {"DELETE", "/api/podcasts/1"}, {"POST", "/api/items/1/download"},
 		{"GET", "/api/settings"}, {"PUT", "/api/settings"}, {"PUT", "/api/branding/logo"}, {"DELETE", "/api/branding/logo"}, {"GET", "/api/system"},
 		{"GET", "/api/fs?path=/"}, {"POST", "/api/fs/pick"}, {"POST", "/api/metadata/test"}, {"GET", "/api/agents"}, {"PUT", "/api/agents"}, {"POST", "/api/agents/test"},
-		{"GET", "/api/logs"}, {"PUT", "/api/logs"}, {"GET", "/api/logs/files/wms-x.log"}, {"POST", "/api/logs/open"}, {"GET", "/api/update"}, {"POST", "/api/update/check"}, {"POST", "/api/update/apply"},
+		{"GET", "/api/logs"}, {"PUT", "/api/logs"}, {"GET", "/api/logs/files/wms-x.log"}, {"POST", "/api/logs/open"}, {"GET", "/api/logs/entries"}, {"GET", "/api/logs/summary"}, {"GET", "/api/logs/crashes"}, {"GET", "/api/logs/crashes/x"}, {"POST", "/api/logs/crashes/x/seen"}, {"DELETE", "/api/logs/crashes/x"}, {"GET", "/api/logs/bundle"}, {"GET", "/api/logs/bundle/preview"}, {"GET", "/api/update"}, {"POST", "/api/update/check"}, {"POST", "/api/update/apply"},
 	} {
 		for who, tok := range map[string]string{"adult": adult, "kids": kid} {
 			if w := ts.do(t, rt.m, rt.p, tok, nil); w.Code != 403 {

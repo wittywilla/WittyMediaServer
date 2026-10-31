@@ -1,6 +1,7 @@
 package hls
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -67,20 +69,6 @@ func TestSessionIDsMatchCleanup(t *testing.T) {
 	s := m.Ensure(Spec{ID: "v-" + Key("/a/b.mkv") + "-a0-s-1-h0-c2-aac-abc123", Duration: 10})
 	if !sessionDirRe.MatchString(filepath.Base(s.Dir)) {
 		t.Fatalf("cleanRoot would not recognise %s", s.Dir)
-	}
-}
-
-func TestTailBufferKeepsTheEnd(t *testing.T) {
-	var b tailBuffer
-	for i := 0; i < 2000; i++ {
-		_, _ = b.Write([]byte(strings.Repeat("x", 1000)))
-	}
-	_, _ = b.Write([]byte("the last words"))
-	if !strings.HasSuffix(b.String(), "the last words") {
-		t.Error("the end is gone")
-	}
-	if len(b.b) > 2*stderrTail+1024 {
-		t.Errorf("kept %d bytes", len(b.b))
 	}
 }
 
@@ -285,10 +273,10 @@ func TestGrowingStreamsCannotPileUp(t *testing.T) {
 	}
 }
 
-// With a real FFmpeg (skipped where there is none): a remux in each kind of
-// segment gives a playlist and segments a player can use, and leaves nothing
-// outside the stream's folder.
-func TestRemuxForReal(t *testing.T) {
+// realFFmpeg finds an FFmpeg to test with; tests that need one are skipped
+// where there is none.
+func realFFmpeg(t *testing.T) string {
+	t.Helper()
 	bin := os.Getenv("WMS_FFMPEG")
 	if bin == "" {
 		var err error
@@ -296,6 +284,136 @@ func TestRemuxForReal(t *testing.T) {
 			t.Skip("no ffmpeg here")
 		}
 	}
+	return bin
+}
+
+type lockedBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (l *lockedBuffer) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.Write(p)
+}
+
+func (l *lockedBuffer) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.String()
+}
+
+// logLine waits for a line of the log holding all of want. FFmpeg's ending is
+// logged just after the stream hears of it.
+func logLine(t *testing.T, out *lockedBuffer, want ...string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		for _, line := range strings.Split(out.String(), "\n") {
+			all := line != ""
+			for _, w := range want {
+				all = all && strings.Contains(line, w)
+			}
+			if all {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no line with %q in:\n%s", want, out.String())
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func capturingManager(t *testing.T, bin string) (*Manager, *lockedBuffer) {
+	t.Helper()
+	var out lockedBuffer
+	log := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	tools := &ffmpeg.Tools{FFmpeg: bin, Encoders: map[string]bool{"libx264": true}}
+	// Not t.TempDir: FFmpeg may need a moment to let go of its files.
+	root, err := os.MkdirTemp("", "wms-hls")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: 2}
+	t.Cleanup(func() {
+		m.StopAll()
+		m.StopAllLive()
+		time.AfterFunc(time.Second, func() { _ = os.RemoveAll(root) })
+	})
+	return m, &out
+}
+
+func damagedFile(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "damaged.mkv")
+	if err := os.WriteFile(p, bytes.Repeat([]byte("not a video "), 4096), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// A damaged file: what FFmpeg said and how it ended are in the log, under the
+// session of whoever is watching (here a disc's), not the stream's own ID.
+func TestFailureIsTiedToTheSession(t *testing.T) {
+	m, out := capturingManager(t, realFFmpeg(t))
+	s := m.Ensure(Spec{ID: "dvd-abc-t1", LogSession: "dcafe", InputArgs: ffmpeg.FileInput(damagedFile(t)), Duration: 60, AudioIndex: -1, SubtitleIndex: -1, Preset: "ultrafast"})
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	if _, err := s.Segment(ctx, 0); err == nil {
+		t.Fatal("a damaged file made a segment")
+	}
+	logLine(t, out, "level=WARN", `msg="process ended"`, "cat=transcode", "session=dcafe", "process=ffmpeg", "reason=", "stderr=", "args=")
+	logLine(t, out, "level=INFO", `msg="transcode started"`, "session=dcafe")
+	if strings.Contains(out.String(), "session=dvd-abc") {
+		t.Errorf("logged under the stream's own ID:\n%s", out.String())
+	}
+}
+
+// A stream with no session of its own logs under its ID. Stopping it on purpose
+// says nothing is wrong, and the next disc session to use it takes it over.
+func TestStoppingOnPurposeIsNoFailure(t *testing.T) {
+	m, out := capturingManager(t, realFFmpeg(t))
+	s := m.Ensure(Spec{ID: "v-running", InputArgs: []string{"-f", "lavfi", "-i", "testsrc2=s=160x90:r=5"}, Duration: 600, AudioIndex: -1, SubtitleIndex: -1, Preset: "ultrafast"})
+	if got := s.LogSession(); got != "v-running" {
+		t.Errorf("logs under %q", got)
+	}
+	s.Warm()
+	logLine(t, out, `msg="transcode started"`, "session=v-running")
+	s.TieTo("dnext")
+	if got := s.LogSession(); got != "dnext" {
+		t.Errorf("logs under %q", got)
+	}
+	m.Stop("v-running")
+	logLine(t, out, "level=DEBUG", `msg="process ended"`, "session=dnext")
+	if strings.Contains(out.String(), "level=WARN") {
+		t.Errorf("a stop on purpose was reported:\n%s", out.String())
+	}
+}
+
+// A live run that fails still tells its feed what FFmpeg said (an unknown audio
+// format is found this way), and the log has the same.
+func TestLiveFailureIsLoggedAndHeard(t *testing.T) {
+	m, out := capturingManager(t, realFFmpeg(t))
+	s := m.newLive(LiveSpec{ID: "tun-7", Quality: ffmpeg.Quality{Preset: "ultrafast"}})
+	var heard string
+	in := &LiveInput{InputArgs: ffmpeg.FileInput(damagedFile(t)), AudioIndex: 0, Realtime: true, OnFail: func(stderr string) { heard = stderr }}
+	err := runLiveFFmpeg(context.Background(), s, in, 1, false)
+	if err == nil {
+		t.Fatal("a damaged file played")
+	}
+	if heard == "" {
+		t.Error("OnFail heard nothing")
+	}
+	logLine(t, out, "level=WARN", `msg="process ended"`, "cat=transcode", "session=tun-7", "stderr=")
+}
+
+// With a real FFmpeg (skipped where there is none): a remux in each kind of
+// segment gives a playlist and segments a player can use, and leaves nothing
+// outside the stream's folder.
+func TestRemuxForReal(t *testing.T) {
+	bin := realFFmpeg(t)
 	tools := &ffmpeg.Tools{FFmpeg: bin, Encoders: map[string]bool{"libx264": true}}
 	dir := t.TempDir()
 	clip := filepath.Join(dir, "clip.mkv")

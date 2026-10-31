@@ -28,6 +28,7 @@ export interface PlayHost {
   controls(device: string): Promise<ControlsData>
   saveControl(s: SaveControl): Promise<void>
   close(): void // leave the player
+  report?(level: 'error' | 'warn', message: string): void // for the app's error log, if it keeps one
 }
 
 type Panel = null | 'menu' | 'save' | 'load' | 'controllers' | 'connection' | 'touch'
@@ -116,6 +117,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         if (stale()) { t.close(); return }
         t.onLost = () => {
           if (closing.current || transportRef.current !== t) return
+          host.report?.('error', `The game stream was lost (${kind})`)
           skip.add(kind)
           void connect(s, m, skip)
         }
@@ -129,9 +131,11 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         t.close()
         if (stale()) return
         last = e?.message || String(e)
+        host.report?.('error', `The game stream could not connect (${kind}): ${last}`)
         skip.add(kind)
       }
     }
+    host.report?.('error', 'Every way of connecting to the game failed')
     setError('The game is running, but this browser couldn’t connect to it' + (last ? `: ${last}` : '.'))
   }, [host, input, onEvent])
 
@@ -144,7 +148,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
       setInfo(s)
       if (s.resumed) say('Back where you left off')
       void connect(s, mode)
-    }).catch((e) => setError(e?.message || 'The game could not start.'))
+    }).catch((e) => { host.report?.('error', `The game could not start: ${e?.message || e}`); setError(e?.message || 'The game could not start.') })
     input.start()
     input.onChange = () => {
       const pads = input.listPads()

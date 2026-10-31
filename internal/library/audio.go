@@ -30,8 +30,10 @@ func IsAudioLibrary(t string) bool { return t == "music" || t == "audiobooks" ||
 
 func discoverAudio(root string) ([]candidate, error) {
 	var out []candidate
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil // unreadable folders are skipped, not fatal
 		}
 		name := d.Name()
@@ -51,7 +53,7 @@ func discoverAudio(root string) ([]candidate, error) {
 		out = append(out, candidate{path: p, kind: "audio", size: st.Size(), mtime: st.ModTime().Unix()})
 		return nil
 	})
-	return out, err
+	return out, bad.with(err)
 }
 
 // tag reads a tag case-insensitively from the format, then the audio stream.

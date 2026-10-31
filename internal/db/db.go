@@ -26,7 +26,7 @@ func Open(dataDir string) (*DB, error) {
 	// One that reads first and writes later fails at once, without waiting, if
 	// another write lands in between: busy_timeout can't help it.
 	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", name)
-	sdb, err := sql.Open("sqlite", dsn)
+	sdb, err := sql.Open(driverName, dsn) // the SQLite driver with failures logged: logged.go
 	if err != nil {
 		return nil, err
 	}
@@ -277,11 +277,15 @@ var migrations = []string{
 }
 
 func (d *DB) migrate(ctx context.Context) error {
-	var version int
-	if err := d.QueryRowContext(ctx, `SELECT version FROM schema LIMIT 1`).Scan(&version); err != nil {
-		// No schema table or row: a new database. Anything else (busy, damaged)
-		// must not be mistaken for that.
-		if !errors.Is(err, sql.ErrNoRows) && !strings.Contains(err.Error(), "no such table") {
+	// No schema table or row: a new database. Anything else (busy, damaged) must
+	// not be mistaken for that. It asks first because a missing table is an error
+	// worth logging everywhere but here.
+	var version, tables int
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'schema'`).Scan(&tables); err != nil {
+		return fmt.Errorf("reading the schema version: %w", err)
+	}
+	if tables > 0 {
+		if err := d.QueryRowContext(ctx, `SELECT version FROM schema LIMIT 1`).Scan(&version); err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("reading the schema version: %w", err)
 		}
 	}

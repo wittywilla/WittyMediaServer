@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -134,6 +135,8 @@ type Config struct {
 	// happens on its own.
 	CheckEnabled func() bool
 	AutoInstall  func() bool
+	// LogEnv is how the owner wants a module logged, as environment for its helper.
+	LogEnv func(id string) []string
 	// For tests.
 	Keys  []ed25519.PublicKey
 	Fetch *update.Fetcher
@@ -164,6 +167,7 @@ func New(cfg Config) *Manager {
 	if m.log == nil {
 		m.log = slog.Default()
 	}
+	m.log = m.log.With("cat", "modules")
 	if m.keys == nil {
 		m.keys = update.TrustedKeys()
 	}
@@ -315,12 +319,13 @@ func (m *Manager) resolve(id string, e *entry) {
 		break
 	}
 	if e.proc != nil {
-		go e.proc.Close()
+		logging.Go("module close", e.proc.Close, "cat", "modules")
 		e.proc = nil
 	}
 	e.fails = 0
 	if pick != nil {
 		e.man, e.proc = pick, newProc(pick, pickDir, func() error { return verifyInstalled(pickDir, id, pick.Version, m.keys) }, m.log)
+		e.proc.logEnv = m.cfg.LogEnv
 	} else {
 		e.man = e.builtin
 	}

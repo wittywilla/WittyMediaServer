@@ -308,7 +308,7 @@ func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 		}
 		if err := s.Store.upsertItem(ctx, it); err != nil {
 			// One bad entry (the same file listed twice) must not hide the rest.
-			s.Log.Info("podcast episode skipped", "cat", "library", "podcast", p.Title, "episode", it.Title, "err", err)
+			s.Log.WarnContext(ctx, "podcast episode skipped", "show", p.Title, "episode", it.Title, "err", err)
 		}
 	}
 	if p.AutoDownload > 0 {
@@ -509,7 +509,7 @@ func (s *Scanner) autoDownload(ctx context.Context, p *Podcast) {
 	}
 	for _, it := range items {
 		if err := s.Download(ctx, it); err != nil {
-			s.Log.Info("podcast download failed", "cat", "library", "episode", it.Title, "err", err)
+			s.Log.WarnContext(ctx, "podcast download failed", "episode", it.Title, "err", err)
 		}
 	}
 }
@@ -522,7 +522,7 @@ func (s *Scanner) RefreshPodcasts(ctx context.Context) {
 	}
 	for i := range all {
 		if err := s.RefreshPodcast(ctx, &all[i]); err != nil {
-			s.Log.Info("podcast refresh failed", "cat", "library", "podcast", all[i].Title, "err", err)
+			s.Log.WarnContext(ctx, "podcast refresh failed", "show", all[i].Title, "err", err)
 		}
 	}
 }

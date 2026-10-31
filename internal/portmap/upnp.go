@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // upnpClient talks to one router's WANIPConnection or WANPPPConnection service.
@@ -150,15 +152,15 @@ func discoverUPnP(ctx context.Context) (router, error) {
 	found := make(chan ssdpAnswer, 16)
 	for _, ip := range ips {
 		wg.Add(1)
-		go func() {
+		logging.Go("router search", func() {
 			defer wg.Done()
 			ssdpSearch(sctx, ip, found)
-		}()
+		}, "cat", "remote")
 	}
-	go func() {
+	logging.Go("router search", func() {
 		wg.Wait()
 		close(found)
-	}()
+	}, "cat", "remote")
 	seen := map[string]bool{}
 	for a := range found {
 		if seen[a.location] {

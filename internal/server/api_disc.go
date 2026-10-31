@@ -188,6 +188,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if it.Disc != nil && it.Disc.Scrambled {
+		s.Log.DebugContext(r.Context(), "no thumbnail for an encrypted disc", "cat", "discs", "item", it.ID)
 		writeErr(w, 404, errNoPicture.Error()) // protected discs are never read
 		return
 	}
@@ -257,7 +258,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	if err != nil || len(ext) == 0 {
 		return fmt.Errorf("cannot read the chapter")
 	}
-	_ = os.MkdirAll(filepath.Dir(out), 0o755)
+	_ = os.MkdirAll(filepath.Dir(out), 0o755) // a failure shows when FFmpeg can't write the picture
 	list, err := ffmpeg.WriteConcat(filepath.Join(s.Cfg.CacheDir, "lists"), strings.TrimSuffix(filepath.Base(out), ".jpg"), []ffmpeg.Segment{{Extents: ext, Duration: cell.Cell.Duration}})
 	if err != nil {
 		return err

@@ -27,11 +27,15 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Spec describes one transcode.
 type Spec struct {
-	ID          string
+	ID string
+	// LogSession is the session this stream logs under when it is part of
+	// something bigger (a disc's streams use the disc's); "" = its own ID.
+	LogSession  string
 	InputArgs   []string // input options and -i
 	Duration    float64  // total seconds (required)
 	VideoFilter string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
@@ -105,34 +109,9 @@ type job struct {
 	cmd      *exec.Cmd
 	done     chan struct{}
 	err      error
-	stderr   tailBuffer
+	stderr   logging.Tail // FFmpeg can warn for every frame of a damaged file for hours
 	lastSeg  atomic.Int64 // the newest finished segment, kept current by watch
 	stopped  atomic.Bool  // ended on purpose: how it exits says nothing
-}
-
-// tailBuffer keeps the end of what is written to it: FFmpeg can warn for
-// every frame of a damaged file for hours, and only the end explains a failure.
-type tailBuffer struct {
-	mu sync.Mutex
-	b  []byte
-}
-
-const stderrTail = 16 << 10
-
-func (t *tailBuffer) Write(p []byte) (int, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.b = append(t.b, p...)
-	if len(t.b) > 2*stderrTail {
-		t.b = append(t.b[:0], t.b[len(t.b)-stderrTail:]...)
-	}
-	return len(p), nil
-}
-
-func (t *tailBuffer) String() string {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return string(t.b)
 }
 
 // Session is a running or idle transcode.
@@ -144,7 +123,8 @@ type Session struct {
 	lastUsed time.Time
 	used     atomic.Int64 // lastUsed as Unix nanoseconds, for the manager to read without taking mu
 	tools    *ffmpeg.Tools
-	log      *slog.Logger
+	log      *slog.Logger // guarded by mu: TieTo can change it
+	logID    string       // the session it logs under
 	m        *Manager
 	// lastAsked is the newest segment a viewer asked for; FFmpeg rests once it
 	// is far ahead of this.
@@ -203,8 +183,10 @@ func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Ma
 	}
 	m := &Manager{tools: tools, root: root, log: log, session: map[string]*Session{}, max: max}
 	cleanRoot(root)
-	_ = os.MkdirAll(root, 0o755)
-	go m.sweep()
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		log.Error("could not make the transcode folder", "cat", "transcode", "dir", root, "err", err)
+	}
+	logging.Loop("hls sweep", m.sweep, "cat", "transcode")
 	return m
 }
 
@@ -284,7 +266,7 @@ func (m *Manager) makeRoom(s *Session) error {
 		return nil
 	}
 	if time.Since(oldestUsed) > yieldAfter {
-		m.log.Info("transcode limit reached: pausing an idle stream", "cat", "ffmpeg", "hls", oldest.Spec.ID, "idle", time.Since(oldestUsed).Round(time.Second))
+		oldest.logger().Info("transcode limit reached: pausing an idle stream", "idle", time.Since(oldestUsed).Round(time.Second).String())
 		oldest.stop()
 		return nil
 	}
@@ -322,14 +304,46 @@ func (m *Manager) ensure(spec Spec) (s *Session, created bool) {
 			spec.SegmentSec = 2
 		}
 	}
-	s = &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m, viewers: map[string]time.Time{}}
+	logID := spec.LogSession
+	if logID == "" {
+		logID = spec.ID
+	}
+	s = &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.sessionLog(logID), logID: logID, m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
-	_ = os.MkdirAll(s.Dir, 0o755)
+	_ = os.MkdirAll(s.Dir, 0o755) // tried again before FFmpeg starts, which logs a failure
 	if spec.Growing {
 		m.evictGrowing(maxGrowing - 1)
 	}
 	m.session[spec.ID] = s
 	return s, true
+}
+
+func (m *Manager) sessionLog(id string) *slog.Logger {
+	return m.log.With("cat", "transcode", "session", id)
+}
+
+// logger is what this stream logs through.
+func (s *Session) logger() *slog.Logger {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.log
+}
+
+// LogSession is the session this stream logs under.
+func (s *Session) LogSession() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.logID
+}
+
+// TieTo moves the stream's logging to another session: a stream outlives the
+// disc session that made it, and the next one to open that disc takes it over.
+func (s *Session) TieTo(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if id != "" && id != s.logID {
+		s.log, s.logID = s.m.sessionLog(id), id
+	}
 }
 
 // dropOldestLocked ends the least recently used stream. Call with m.mu held.
@@ -750,7 +764,7 @@ func (s *Session) wake(n int) {
 	for i, end := n+1, min(n+wakeSegs, s.SegmentCount()); i < end; i++ {
 		if !fileReady(s.segPath(i)) {
 			if _, err := s.ensureJob(i, i); err != nil {
-				s.log.Debug("resume failed", "err", err)
+				s.logFailedStart("could not resume a transcode", err)
 			}
 			return
 		}
@@ -781,8 +795,18 @@ func (s *Session) Warm() {
 		return
 	}
 	if _, err := s.ensureJob(0, 0); err != nil {
-		s.log.Debug("warm failed", "err", err)
+		s.logFailedStart("could not start a transcode ahead of the viewer", err)
 	}
+}
+
+// logFailedStart is for starts nobody is waiting on, so nobody receives the
+// error. A server at its limit will try again when the viewer gets there.
+func (s *Session) logFailedStart(msg string, err error) {
+	if errors.Is(err, ErrBusy) {
+		s.logger().Debug(msg, "err", err)
+		return
+	}
+	s.logger().Warn(msg, "err", err)
 }
 
 func fileReady(p string) bool {
@@ -801,7 +825,10 @@ func (j *job) finished() bool {
 
 func (s *Session) startLocked(fromSeg int) (*job, error) {
 	sp := s.Spec
-	_ = os.MkdirAll(s.Dir, 0o755) // the segments of an idle session may have been cleaned up
+	// The segments of an idle session may have been cleaned up.
+	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
+		s.log.Warn("could not make the stream's folder", "dir", s.Dir, "err", err)
+	}
 	start := float64(fromSeg) * sp.SegmentSec
 	// Damaged discs and rips often carry runs of broken audio frames; ffmpeg
 	// would abort once 2/3 of the frames failed to decode and leave the
@@ -954,19 +981,26 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{})}
 	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
-	s.log.Info("ffmpeg start", "cat", "ffmpeg", "hls", s.Spec.ID, "from", fromSeg, "args", strings.Join(args, " "))
+	cmdline := ffmpeg.RedactArgs(args)
+	encoder := plan.Name
+	if sp.CopyVideo {
+		encoder = "copy"
+	}
+	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", sp.MaxHeight)
+	s.log.Debug("ffmpeg command", "args", cmdline)
+	started := time.Now()
 	if err := cmd.Start(); err != nil {
+		s.log.Error("ffmpeg could not start", "reason", logging.ExitReason(err), "err", err, "args", cmdline)
 		return nil, err
 	}
 	s.job = j
-	go func() {
+	logID := s.logID
+	logging.Go("ffmpeg wait", func() {
 		j.err = cmd.Wait()
 		close(j.done)
-		if j.err != nil && !j.stopped.Load() {
-			s.log.Warn("ffmpeg exited", "err", j.err, "stderr", tail(j.stderr.String(), 800))
-		}
-	}()
-	go s.watch(j)
+		logging.ChildExit(s.logger(), "ffmpeg", j.err, j.stopped.Load(), &j.stderr, started, "segment", fromSeg, "args", cmdline)
+	}, "cat", "transcode", "session", logID)
+	logging.Go("ffmpeg watch", func() { s.watch(j) }, "cat", "transcode", "session", logID)
 	return j, nil
 }
 
@@ -1007,7 +1041,7 @@ func (s *Session) watch(j *job) {
 		if !s.Spec.HoldLastFrame && j.lastSeg.Load()-s.lastAsked.Load() > maxAheadSegs {
 			s.mu.Lock()
 			if s.job == j {
-				s.log.Debug("resting: far ahead of the viewer", "cat", "ffmpeg", "at", j.lastSeg.Load())
+				s.log.Debug("resting: far ahead of the viewer", "at", j.lastSeg.Load())
 				s.stopLocked()
 			}
 			s.mu.Unlock()

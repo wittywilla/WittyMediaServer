@@ -201,9 +201,12 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		} else {
 			err = readFLV(stdout, emit)
 		}
-		_ = cmd.Wait()
+		werr := cmd.Wait()
 		select {
 		case <-e.got:
+			if werr != nil && ctx.Err() == nil {
+				s.log.Warn("the video encoder stopped during the game", "encoder", name, "err", werr, "stderr", stderr.String())
+			}
 		default:
 			if ctx.Err() == nil { // it never produced a frame, and nobody stopped it
 				s.log.Warn("video encoder failed to start; trying the next", "encoder", name, "err", err, "stderr", stderr.String())
@@ -237,6 +240,7 @@ func (e *videoEncoder) stop() {
 // only this loop: the frames that arrive in the meantime replace each other, so
 // a queue can never build up and add delay.
 func (s *Session) videoLoop() {
+	defer s.guard("video loop")
 	var feed []byte
 	var hdr ipc.VideoHeader
 	// A paused game makes no frames, but encoders hold on to their output until
@@ -513,7 +517,9 @@ func (s *Session) startOpusLocked() {
 	s.opus = &audioEncoder{stdin: stdin, cancel: cancel}
 	go func() {
 		_ = readOgg(stdout, s.deliverOpus)
-		_ = cmd.Wait()
+		if err := cmd.Wait(); err != nil && ctx.Err() == nil {
+			s.log.Warn("the audio encoder stopped during the game", "err", err)
+		}
 	}()
 }
 
@@ -527,6 +533,7 @@ func (s *Session) stopOpusLocked() {
 
 // audioLoop hands the game's sound to the encoder and to WebSocket viewers.
 func (s *Session) audioLoop() {
+	defer s.guard("audio loop")
 	for {
 		select {
 		case <-s.done:

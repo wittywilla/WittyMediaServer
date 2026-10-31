@@ -165,7 +165,7 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	if len(cut) == 0 {
 		return fmt.Errorf("cannot read the chapter")
 	}
-	_ = os.MkdirAll(filepath.Dir(out), 0o755)
+	_ = os.MkdirAll(filepath.Dir(out), 0o755) // a failure shows when FFmpeg can't write the picture
 	list, err := ffmpeg.WriteConcat(filepath.Join(s.Cfg.CacheDir, "lists"), strings.TrimSuffix(filepath.Base(out), ".jpg"), []ffmpeg.Segment{{Extents: cut}}, int(c.VideoPID()))
 	if err != nil {
 		return err

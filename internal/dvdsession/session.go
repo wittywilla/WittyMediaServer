@@ -24,6 +24,7 @@ import (
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Presentation is what the client should show right now.
@@ -205,7 +206,7 @@ type Manager struct {
 
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
 	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
-	go m.sweep()
+	logging.Loop("dvd sweep", m.sweep, "cat", "discs")
 	return m
 }
 
@@ -248,6 +249,7 @@ type Session struct {
 	ItemID   int64
 	Path     string
 	m        *Manager
+	log      *slog.Logger
 	opened   *wittydvd.Opened
 	nav      *wittydvd.Nav
 	prefs    Prefs
@@ -299,6 +301,11 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
 		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
+	base := m.Log
+	if base == nil {
+		base = slog.Default()
+	}
+	s.log = base.With("cat", "discs", "module", "wittydvd", "session", s.ID)
 	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
@@ -325,6 +332,7 @@ func (m *Manager) CloseSession(id string) {
 	m.mu.Unlock()
 	if s != nil {
 		s.Close()
+		s.log.Info("disc session closed")
 	}
 }
 
@@ -474,6 +482,7 @@ func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 }
 
 func (s *Session) press(ctx context.Context, n int) *Presentation {
+	s.log.Debug("button pressed", "topic", "menus", "button", n)
 	cur := s.current
 	if cur == nil || cur.Menu == nil {
 		return s.show(ctx, s.nav.PressButton(n, nil))
@@ -616,10 +625,8 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 	if st == nil {
 		return s.current
 	}
-	if s.m.Log != nil {
-		s.m.Log.Info("dvd step", "cat", "dvd", "session", s.ID, "kind", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN,
-			"cell", st.CellN, "serial", st.Serial, "still", st.StillSec, "loop", st.Loop, "reason", st.Reason)
-	}
+	s.log.Debug("dvd step", "topic", "nav", "step", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN,
+		"cell", st.CellN, "serial", st.Serial, "still", st.StillSec, "loop", st.Loop, "note", st.Reason)
 	if cur := s.current; !rebuild && cur != nil && cur.Serial == st.Serial && cur.Kind != "stop" && st.Kind != wittydvd.StepStop {
 		p := *cur
 		p.Reason = st.Reason
@@ -675,11 +682,28 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 	if t := s.nav.Registers().SPRM[wittydvd.SprmNavTimer]; t > 0 && p.Kind != "stop" {
 		p.TimerSec = float64(t)
 	}
+	if p.Kind == "stop" {
+		s.logStop(st, p)
+	}
 	s.current = p
 	if p.Kind == "menu" {
 		s.prefetchNext(st, p)
 	}
 	return p
+}
+
+// logStop leaves a record of why the disc stopped playing for the viewer: the
+// navigator came to a dead end, or a step couldn't be built. A player asking again
+// after a stop adds nothing.
+func (s *Session) logStop(st *wittydvd.Step, p *Presentation) {
+	if cur := s.current; cur != nil && cur.Kind == "stop" && cur.Reason == p.Reason {
+		return
+	}
+	msg := "disc navigation stopped"
+	if p.Scrambled {
+		msg = "encrypted disc refused"
+	}
+	s.log.Warn(msg, "reason", p.Reason, "step", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN)
 }
 
 // title returns the flattened title (cached per session).
@@ -781,6 +805,9 @@ func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
 	if err == nil && interactive(pic) {
 		return nil
 	}
+	if err != nil {
+		s.log.Debug("could not look for in-title buttons", "topic", "menus", "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "err", err)
+	}
 	return &playingTitle{ts: ts, idx: idx}
 }
 
@@ -803,10 +830,13 @@ func (s *Session) prefetchNext(st *wittydvd.Step, p *Presentation) {
 	if nx == nil || nx.Kind != wittydvd.StepMenu || nx.CellDuration <= stillMaxSec {
 		return
 	}
-	if id, err := s.menuHLS(wittydvd.SpaceFor(nx.Domain, nx.VTS), nx, 0); err == nil {
-		if h := s.m.HLS.Get(id); h != nil {
-			h.Warm()
-		}
+	id, err := s.menuHLS(wittydvd.SpaceFor(nx.Domain, nx.VTS), nx, 0)
+	if err != nil {
+		s.log.Debug("could not prepare the next clip", "topic", "nav", "vts", nx.VTS, "pgc", nx.PGCN, "cell", nx.CellN, "err", err)
+		return
+	}
+	if h := s.m.HLS.Get(id); h != nil {
+		h.Warm()
 	}
 }
 
@@ -853,6 +883,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	if errors.Is(err, wittydvd.ErrNoNav) {
 		// The cell does not start with a NAV pack (damaged sectors, junk
 		// cells): play what is there without buttons rather than stop.
+		s.log.Warn("a menu cell can't be read: playing it without buttons", "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "err", err)
 		v := s.videoAttr(st)
 		pic, err = &wittydvd.MenuPicture{Aspect: 4.0 / 3.0, NoButtons: true}, nil
 		pic.FrameW, pic.FrameH = v.Size()
@@ -863,6 +894,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	if err != nil {
 		return err
 	}
+	s.log.Debug("menu read", "topic", "menus", "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "buttons", len(pic.Buttons))
 	if pic.Scrambled {
 		p.Scrambled = true
 		return errors.New("this disc is CSS-scrambled; decrypt it before adding it to the library")
@@ -1016,7 +1048,8 @@ func (s *Session) titleAudio(v *wittydvd.VTS, pgc *wittydvd.PGC) int {
 func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (string, error) {
 	name := fmt.Sprintf("m-%s-%d-%d-%d-a%x%s", st.DomainName, st.VTS, st.PGCN, st.CellN, audio, s.codecTag())
 	id := fmt.Sprintf("dvd-%s-%s", s.key, name)
-	if s.m.HLS.Get(id) != nil {
+	if h := s.m.HLS.Get(id); h != nil {
+		h.TieTo(s.ID)
 		return id, nil
 	}
 	segs, err := s.stepSegments(sp, st)
@@ -1032,7 +1065,7 @@ func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (stri
 		return "", err
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
+		ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
 		AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, LowLatency: true, HoldLastFrame: true, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 	})
 	return id, nil
@@ -1053,7 +1086,7 @@ func (s *Session) renderStill(ctx context.Context, sp wittydvd.Space, st *wittyd
 	if err != nil {
 		return "", err
 	}
-	tctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	tctx, cancel := context.WithTimeout(logging.WithSession(ctx, s.ID), 30*time.Second)
 	defer cancel()
 	// Short still cells often fade in: prefer a frame near the end, then fall back to the first.
 	at := 0.0
@@ -1142,7 +1175,9 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 		audioFilter = "pan=stereo|c0=FL|c1=FR" // the backing track only
 	}
 	id := fmt.Sprintf("dvd-%s-%s", s.key, name)
-	if s.m.HLS.Get(id) == nil {
+	if h := s.m.HLS.Get(id); h != nil {
+		h.TieTo(s.ID)
+	} else {
 		ids := []int{wittydvd.VideoStreamID}
 		if audioID > 0 {
 			ids = append(ids, audioID)
@@ -1152,7 +1187,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 			return err
 		}
 		s.m.HLS.Ensure(hls.Spec{
-			ID: id, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false),
+			ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false),
 			AudioIndex: audioIdx, AudioChannels: channels, AudioFilter: audioFilter, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 		})
 	}
@@ -1265,7 +1300,7 @@ func encodePNG(r *wittydvd.RGBA, w, h int) []byte {
 		}
 	}
 	var buf bytes.Buffer
-	_ = pngEnc.Encode(&buf, img)
+	_ = pngEnc.Encode(&buf, img) // fails only for a frame with no size, which shows nothing anyway
 	return buf.Bytes()
 }
 

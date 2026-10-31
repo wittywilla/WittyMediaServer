@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -237,7 +238,7 @@ func TestLogsHideStreamTokens(t *testing.T) {
 	if strings.Contains(got, "st_secret") || !strings.Contains(got, "start=10") {
 		t.Errorf("redactQuery = %q", got)
 	}
-	if got := streamTokenRe.ReplaceAllString(`GET /api/x?st=st_abc&f=1 failed`, "st=REDACTED"); strings.Contains(got, "st_abc") {
+	if got := logging.Redact(`GET /api/x?st=st_abc&f=1 failed`); strings.Contains(got, "st_abc") {
 		t.Errorf("client log: %q", got)
 	}
 }

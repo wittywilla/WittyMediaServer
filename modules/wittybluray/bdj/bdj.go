@@ -27,9 +27,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittybluray"
@@ -172,6 +174,9 @@ type Options struct {
 	CacheDir, WorkDir, PersistDir string
 	OnEvent                       func(Event)
 	Log                           func(string)
+	// OnExit hears how the process ended, once it has. stopped means Close asked
+	// it to go; otherwise it ended by itself, or sent something it shouldn't.
+	OnExit func(err error, stopped bool)
 }
 
 // Host is one running Java process with one disc's applications.
@@ -184,6 +189,8 @@ type Host struct {
 	out  chan string
 	stop chan struct{}
 	once sync.Once
+	// closed: Close was called before the process ended by itself.
+	closed atomic.Bool
 
 	fmu     sync.Mutex
 	frame   *image.NRGBA
@@ -291,6 +298,10 @@ func (h *Host) drainLog(r io.Reader) {
 	for sc.Scan() {
 		h.logf(sc.Text())
 	}
+	if errors.Is(sc.Err(), bufio.ErrTooLong) {
+		h.logf("a line from the runtime was too long; the rest of what it said is not kept")
+		_, _ = io.Copy(io.Discard, r) // or Java would stop when the pipe fills
+	}
 }
 
 // read handles everything the runtime sends. It is the trust boundary on this
@@ -298,7 +309,12 @@ func (h *Host) drainLog(r io.Reader) {
 // anything is read, and nonsense ends the process.
 func (h *Host) read(r io.Reader, ready chan struct{}) {
 	defer func() {
-		h.Close()
+		// What comes down this pipe is a disc's to choose: a bug it finds here
+		// ends this process, not the server.
+		if p := recover(); p != nil {
+			h.logf(fmt.Sprintf("crashed reading from the runtime: %v\n%s", p, debug.Stack()))
+		}
+		h.end()
 		close(h.done)
 		h.notify()
 		if h.o.OnEvent != nil {
@@ -311,6 +327,9 @@ func (h *Host) read(r io.Reader, ready chan struct{}) {
 	for {
 		line, err := readLine(br)
 		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				h.logf("could not read from the runtime: " + err.Error())
+			}
 			return
 		}
 		w := strings.Split(line, " ")
@@ -510,14 +529,25 @@ func (h *Host) Done() <-chan struct{} { return h.done }
 
 // Close ends the process and removes the session's files.
 func (h *Host) Close() {
+	h.closed.Store(true)
+	h.end()
+}
+
+// end is Close, or the process having ended by itself; whichever came first
+// says how it ended.
+func (h *Host) end() {
 	h.once.Do(func() {
+		stopped := h.closed.Load()
 		close(h.stop)
 		if h.cmd.Process != nil {
 			go func() {
 				time.Sleep(500 * time.Millisecond)
 				_ = h.cmd.Process.Kill()
-				_ = h.cmd.Wait()
+				err := h.cmd.Wait()
 				_ = os.RemoveAll(h.o.WorkDir)
+				if h.o.OnExit != nil {
+					h.o.OnExit(err, stopped)
+				}
 			}()
 		}
 	})

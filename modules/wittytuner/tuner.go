@@ -13,9 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
@@ -159,6 +161,16 @@ type Env struct {
 	Command func(ctx context.Context, name string, args ...string) *exec.Cmd
 	// AllowCommands: the owner has allowed the custom command driver.
 	AllowCommands bool
+	// Log is where drivers say what went wrong; nil says nothing. Records are
+	// written with the context the host passed in, so its session comes along.
+	Log *slog.Logger
+}
+
+func (e Env) logger() *slog.Logger {
+	if e.Log != nil {
+		return e.Log
+	}
+	return slog.New(slog.DiscardHandler)
 }
 
 func (e Env) http() *http.Client {
@@ -355,6 +367,12 @@ func Discover(ctx context.Context, env Env) []Found {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			// What answers on the network isn't to be trusted to parse cleanly.
+			defer func() {
+				if p := recover(); p != nil {
+					env.logger().ErrorContext(ctx, "tuner discovery crashed", "panic", fmt.Sprint(p), "stack", string(debug.Stack()))
+				}
+			}()
 			r := f(ctx, env)
 			mu.Lock()
 			out = append(out, r...)

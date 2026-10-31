@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -281,8 +282,11 @@ func (m *Manager) Install(id string) error {
 	}
 	e.busy, e.phase, e.lastError, e.done, e.total = true, PhaseDownloading, "", 0, e.rel.archive.Size
 	rel := *e.rel
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	session := logging.NewID("mod")
+	log := m.log.With("session", session, "module", id, "version", rel.version)
+	log.Info("modules: installing")
+	logging.Go("module install", func() {
+		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 30*time.Minute)
 		defer cancel()
 		err := m.install(ctx, id, e, &rel)
 		m.mu.Lock()
@@ -290,13 +294,13 @@ func (m *Manager) Install(id string) error {
 		e.busy = false
 		if err != nil {
 			e.phase, e.lastError = PhaseFailed, sentence(err.Error())
-			m.log.Error("modules: install failed; nothing changed", "module", id, "version", rel.version, "err", err)
+			log.Error("modules: install failed; nothing changed", "err", err)
 			m.prune(id, e)
 			return
 		}
 		e.phase = PhaseIdle
-		m.log.Info("modules: installed", "module", id, "version", rel.version)
-	}()
+		log.Info("modules: installed")
+	}, "cat", "modules", "session", session)
 	return nil
 }
 

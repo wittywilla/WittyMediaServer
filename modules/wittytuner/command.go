@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Custom command: the owner's own program writes MPEG-TS to standard output.
@@ -128,6 +129,9 @@ func (c *command) Open(ctx context.Context, ch Channel) (*Stream, error) {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	cmd := c.env.command(ctx, c.args[0], args...)
+	stderr := &stderrTail{}
+	cmd.Stderr = stderr
+	cmd.WaitDelay = 2 * time.Second // a child holding stderr open mustn't hold Close
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		cancel()
@@ -137,5 +141,5 @@ func (c *command) Open(ctx context.Context, ch Channel) (*Stream, error) {
 		cancel()
 		return nil, fmt.Errorf("the command could not start: %w", err)
 	}
-	return guarded(&procReader{ReadCloser: out, cancel: cancel, wait: cmd.Wait}), nil
+	return guarded(&procReader{ReadCloser: out, cancel: cancel, wait: cmd.Wait, ctx: ctx, log: c.env.logger(), what: "tuner command", stderr: stderr, started: time.Now()}), nil
 }

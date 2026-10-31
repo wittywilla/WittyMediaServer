@@ -11,12 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 func init() {
@@ -530,6 +534,9 @@ func relay(ctx context.Context, env Env, input []string) (*Stream, error) {
 	args = append(args, "-map", "0", "-c", "copy", "-f", "mpegts", "pipe:1")
 	ctx, cancel := context.WithCancel(ctx)
 	cmd := env.command(ctx, env.FFmpeg, args...)
+	stderr := &stderrTail{}
+	cmd.Stderr = stderr
+	cmd.WaitDelay = 2 * time.Second // a child holding stderr open mustn't hold Close
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		cancel()
@@ -539,20 +546,78 @@ func relay(ctx context.Context, env Env, input []string) (*Stream, error) {
 		cancel()
 		return nil, err
 	}
-	return guarded(&procReader{ReadCloser: out, cancel: cancel, wait: cmd.Wait}), nil
+	return guarded(&procReader{ReadCloser: out, cancel: cancel, wait: cmd.Wait, ctx: ctx, log: env.logger(), what: "ffmpeg", stderr: stderr, started: time.Now()}), nil
 }
 
 type procReader struct {
 	io.ReadCloser
 	cancel context.CancelFunc
 	wait   func() error
+
+	ctx      context.Context
+	log      *slog.Logger
+	what     string
+	stderr   *stderrTail
+	started  time.Time
+	ended    atomic.Bool // what it was writing ran out before anyone closed it
+	waitOnce sync.Once
 }
 
+func (p *procReader) Read(b []byte) (int, error) {
+	n, err := p.ReadCloser.Read(b)
+	if err != nil {
+		p.ended.Store(true)
+	}
+	return n, err
+}
+
+// Close stops the process, and says how it ended if that wasn't this.
 func (p *procReader) Close() error {
+	ownAccord := p.ended.Load() && p.ctx.Err() == nil
 	p.cancel()
 	err := p.ReadCloser.Close()
-	_ = p.wait()
+	p.waitOnce.Do(func() {
+		werr := p.wait()
+		lv := slog.LevelDebug
+		if ownAccord && werr != nil {
+			lv = slog.LevelWarn
+		}
+		p.log.Log(p.ctx, lv, "process ended", "topic", "tuner", "process", p.what, "err", werr, "stderr", p.stderr.String(),
+			"ran", time.Since(p.started).Round(time.Millisecond).String())
+	})
 	return err
+}
+
+// stderrTail keeps the end of what a process prints, whatever it prints.
+type stderrTail struct {
+	mu sync.Mutex
+	b  []byte
+}
+
+const stderrKeep = 8 << 10
+
+func (t *stderrTail) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	n := len(p)
+	if len(p) >= stderrKeep {
+		t.b, p = t.b[:0], p[len(p)-stderrKeep:]
+	}
+	t.b = append(t.b, p...)
+	if len(t.b) > 2*stderrKeep {
+		t.b = append(t.b[:0], t.b[len(t.b)-stderrKeep:]...)
+	}
+	return n, nil
+}
+
+func (t *stderrTail) String() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	b := t.b
+	if len(b) > stderrKeep {
+		b = b[len(b)-stderrKeep:]
+	}
+	return strings.TrimSpace(string(b))
 }
 
 // basicAuth is the header for a login.

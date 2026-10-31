@@ -32,8 +32,10 @@ var gameSkipDirs = map[string]bool{"bios": true, "system": true, "saves": true, 
 func discoverGames(root, console string) ([]candidate, error) {
 	var found []candidate
 	hidden := map[string]bool{}
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil
 		}
 		name := d.Name()
@@ -73,7 +75,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 			out = append(out, c)
 		}
 	}
-	return out, err
+	return out, bad.with(err)
 }
 
 // gameLikeExts are files that are probably games. One that gameConsole turns down
@@ -344,7 +346,7 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	if it.Overview == "" && it.Provider == "" && c.console != wittyplay.TestConsole && (s.WikidataOn == nil || s.WikidataOn()) {
 		wctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		if err := (&Wikidata{Client: SafeClient}).EnrichGame(wctx, it); err != nil && !errors.Is(err, ErrNotFound) {
-			s.Log.Debug("wikidata", "game", it.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", "wikidata", "game", it.Title)
 		}
 		cancel()
 	}

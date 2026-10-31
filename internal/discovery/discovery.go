@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"golang.org/x/net/ipv4"
 )
 
@@ -191,24 +192,24 @@ func (s *Service) start(info Info, nets localNets) *running {
 	for _, n := range nets {
 		c, err := openMDNS(n)
 		if err != nil {
-			s.Log.Debug("mdns", "interface", n.ifi.Name, "err", err)
+			s.Log.Debug("could not listen for discovery on a network", "interface", n.ifi.Name, "err", err)
 			continue
 		}
 		conns = append(conns, c)
 		wg.Add(1)
-		go func() {
+		logging.Go("discovery", func() {
 			defer wg.Done()
 			c.serve(ctx, info, s.Log)
-		}()
+		}, "cat", "remote")
 	}
 	if udp, err := net.ListenUDP("udp4", &net.UDPAddr{Port: UDPPort}); err != nil {
 		s.Log.Debug("discovery by UDP is off", "err", err) // something else has the port
 	} else {
 		wg.Add(1)
-		go func() {
+		logging.Go("discovery", func() {
 			defer wg.Done()
 			serveUDP(ctx, udp, info)
-		}()
+		}, "cat", "remote")
 	}
 	if len(conns) > 0 {
 		s.Log.Info("announcing on the local network", "service", ServiceType, "interfaces", len(conns))
@@ -264,15 +265,15 @@ func (m *mdnsConn) onThisNetwork(ip net.IP) bool {
 func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger) {
 	done := make(chan struct{})
 	defer close(done)
-	go func() {
+	logging.Go("discovery", func() {
 		select {
 		case <-ctx.Done():
 		case <-done:
 		}
 		_ = m.c.Close()
-	}()
+	}, "cat", "remote")
 	// Say we are here, twice, a moment apart, as RFC 6762 asks.
-	go func() {
+	logging.Go("discovery", func() {
 		for _, wait := range []time.Duration{0, time.Second} {
 			select {
 			case <-ctx.Done():
@@ -283,11 +284,14 @@ func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger) {
 				m.send(b, nil)
 			}
 		}
-	}()
+	}, "cat", "remote")
 	buf := make([]byte, 9000)
 	for {
 		n, src, err := m.c.ReadFromUDP(buf)
 		if err != nil {
+			if ctx.Err() == nil { // it can't be found on this network until the next look
+				log.Warn("stopped answering discovery on a network", "interface", m.n.ifi.Name, "err", err)
+			}
 			return
 		}
 		if !m.onThisNetwork(src.IP) {
@@ -345,13 +349,13 @@ const udpLimit = 40 // answers per 10 seconds
 func serveUDP(ctx context.Context, c *net.UDPConn, info Info) {
 	done := make(chan struct{})
 	defer close(done)
-	go func() {
+	logging.Go("discovery", func() {
 		select {
 		case <-ctx.Done():
 		case <-done:
 		}
 		_ = c.Close()
-	}()
+	}, "cat", "remote")
 	buf := make([]byte, 64)
 	window, count := time.Now(), 0
 	for {

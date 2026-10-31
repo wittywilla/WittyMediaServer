@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Books, comics and manga. Files that share a name in a folder are one
@@ -39,8 +40,10 @@ func discoverBooks(root string) ([]candidate, error) {
 		rank int
 	}
 	best := map[string]pick{} // folder + name without extension -> best format
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil
 		}
 		name := d.Name()
@@ -70,7 +73,7 @@ func discoverBooks(root string) ([]candidate, error) {
 		out = append(out, v.c)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].path < out[j].path })
-	return out, err
+	return out, bad.with(err)
 }
 
 // "Series Name 145 (2023) (Digital) (group)", "Series v03", "Series #12"
@@ -576,14 +579,16 @@ type cachedArchive struct {
 
 func sweepArchives() {
 	for range time.Tick(archiveIdle / 2) {
-		archiveCache.Lock()
-		for k, c := range archiveCache.m {
-			if c.readers == 0 && time.Since(c.used) > archiveIdle {
-				c.zr.Close()
-				delete(archiveCache.m, k)
+		func() {
+			archiveCache.Lock()
+			defer archiveCache.Unlock()
+			for k, c := range archiveCache.m {
+				if c.readers == 0 && time.Since(c.used) > archiveIdle {
+					c.zr.Close()
+					delete(archiveCache.m, k)
+				}
 			}
-		}
-		archiveCache.Unlock()
+		}()
 	}
 }
 
@@ -593,7 +598,7 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	archiveCache.sweeper.Do(func() { go sweepArchives() })
+	archiveCache.sweeper.Do(func() { logging.Loop("archive sweep", sweepArchives, "cat", "library") })
 	archiveCache.Lock()
 	defer archiveCache.Unlock()
 	cur := archiveCache.m[p]

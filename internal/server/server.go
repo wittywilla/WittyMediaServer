@@ -21,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/channels"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
@@ -50,6 +51,10 @@ type Server struct {
 	Web     fs.FS
 	Version string
 	Logs    *logging.Logger
+	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods logModules          // how each module is logged
+	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
+	BundleExtras func() []logging.BundleFile
 	Update  *update.Updater // nil: this build can't update itself
 	Modules *modmgr.Manager // nil: modules can't be updated here
 	// Discovery announces the server on the home network; nil when it can't
@@ -88,6 +93,8 @@ type Server struct {
 	audioSlots    chan struct{} // audio transcodes running at once
 	gameOnce      sync.Once
 	gameSvc       *gameService
+	diagOnce      sync.Once
+	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
 }
 
 type ctxKey int
@@ -240,6 +247,14 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/logs/files/{name}", s.requireAdmin(s.handleLogFile))
 	m.Handle("POST /api/logs/open", s.requireAdmin(s.handleOpenLogs))
 	m.Handle("POST /api/logs/client", a(s.handleClientLog))
+	m.Handle("GET /api/logs/entries", s.requireAdmin(s.handleLogEntries))
+	m.Handle("GET /api/logs/summary", s.requireAdmin(s.handleSummary))
+	m.Handle("GET /api/logs/crashes", s.requireAdmin(s.handleCrashes))
+	m.Handle("GET /api/logs/crashes/{id}", s.requireAdmin(s.handleCrash))
+	m.Handle("POST /api/logs/crashes/{id}/seen", s.requireAdmin(s.handleCrashSeen))
+	m.Handle("DELETE /api/logs/crashes/{id}", s.requireAdmin(s.handleCrashDelete))
+	m.Handle("GET /api/logs/bundle", s.requireAdmin(s.handleBundle))
+	m.Handle("GET /api/logs/bundle/preview", s.requireAdmin(s.handleBundlePreview))
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
@@ -326,6 +341,7 @@ func (s *Server) Handler() http.Handler {
 
 	s.channelRoutes(m)
 	s.gameRoutes(m)
+	s.diagnoseRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
@@ -357,35 +373,133 @@ func (s *Server) limits(next http.Handler) http.Handler {
 	})
 }
 
+// logging gives every request an ID that ties together whatever it logs, catches
+// panics, and records requests that fail. A request that goes well costs a clock
+// reading and is only written when the owner asks for that detail.
 func (s *Server) logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Only measured when the owner turned on request logging.
-		if s.Logs == nil || !s.Logs.On("http") {
-			next.ServeHTTP(w, r)
-			return
-		}
+		id := logging.NewID("r")
+		w.Header().Set("X-Request-Id", id)
+		ctx := logging.WithRequest(r.Context(), id)
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, code: 200}
-		next.ServeHTTP(sw, r)
-		if strings.HasPrefix(r.URL.Path, "/assets/") {
-			return
-		}
-		ip := ""
-		if p := clientIP(r); p != nil {
-			ip = p.String()
-		}
-		s.Log.Info("http", "cat", "http", "from", ip, "m", r.Method, "p", redactPath(r.URL.Path), "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds())
+		defer func() {
+			if p := recover(); p != nil {
+				if p == http.ErrAbortHandler { //nolint:errorlint // the standard library's sentinel
+					panic(p)
+				}
+				logging.ReportPanic("web request", p, "cat", "http", "m", r.Method, "p", redactPath(r.URL.Path), "req", id)
+				if !sw.wrote {
+					writeErr(sw, 500, "Something went wrong on the server. It is in the log, under request "+id+".")
+				}
+			}
+			s.logRequest(r, id, sw, start)
+		}()
+		next.ServeHTTP(sw, r.WithContext(ctx))
 	})
 }
 
-type statusWriter struct {
-	http.ResponseWriter
-	code int
+// quietPaths are asked for constantly and would only bury everything else.
+func quietPath(p string) bool {
+	return strings.HasPrefix(p, "/assets/") || p == "/api/logs/entries" || p == "/api/health" || p == "/api/logs/client"
 }
 
-func (w *statusWriter) WriteHeader(c int)           { w.code = c; w.ResponseWriter.WriteHeader(c) }
+func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start time.Time) {
+	if s.Logs == nil {
+		return
+	}
+	var lv slog.Level
+	switch {
+	case sw.code >= 500:
+		lv = slog.LevelError
+		if sw.code == 502 || sw.code == 503 || sw.code == 504 || sw.code == 501 {
+			lv = slog.LevelWarn // waiting for something else, or a feature this system lacks
+		}
+	case sw.code >= 400:
+		lv = slog.LevelInfo
+	default:
+		lv = slog.LevelDebug
+	}
+	if !s.Logs.Accepts("http", lv) || quietPath(r.URL.Path) && lv < slog.LevelWarn {
+		return
+	}
+	ip := ""
+	if p := clientIP(r); p != nil {
+		ip = p.String()
+	}
+	ctx := logging.WithRequest(r.Context(), id)
+	if sess := s.mediaSession(r.URL.Path); sess != "" {
+		ctx = logging.WithSession(ctx, sess)
+	}
+	args := []any{"cat", "http", "from", ip, "m", r.Method, "p", redactPath(r.URL.Path), "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds()}
+	if sw.errBody != nil {
+		args = append(args, "err", string(sw.errBody))
+	}
+	s.Log.Log(ctx, lv, "http", args...)
+}
+
+// mediaSession is sessionFromPath, except that a disc's streams log under the
+// disc's session, and their requests should show up beside the rest of it.
+func (s *Server) mediaSession(p string) string {
+	sess := sessionFromPath(p)
+	if strings.HasPrefix(p, "/api/hls/") && s.HLS != nil {
+		if h := s.HLS.Get(sess); h != nil {
+			return h.LogSession()
+		}
+	}
+	return sess
+}
+
+// sessionFromPath finds the session a media address belongs to, so the requests
+// of a playback show up beside everything else about it.
+func sessionFromPath(p string) string {
+	for _, prefix := range []string{"/api/hls/", "/api/dvd/", "/api/play/"} {
+		if rest, ok := strings.CutPrefix(p, prefix); ok {
+			if i := strings.IndexByte(rest, '/'); i >= 0 {
+				rest = rest[:i]
+			}
+			return logging.ValidSession(rest)
+		}
+	}
+	return ""
+}
+
+// statusWriter notes how a request went. It stays out of the way of the fast
+// paths: Unwrap for the response controller and ReadFrom for sending files with
+// the system's own copy.
+type statusWriter struct {
+	http.ResponseWriter
+	code    int
+	wrote   bool
+	errBody []byte // the start of what a failed request said
+}
+
+func (w *statusWriter) WriteHeader(c int) {
+	if !w.wrote {
+		w.code, w.wrote = c, true
+	}
+	w.ResponseWriter.WriteHeader(c)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if !w.wrote {
+		w.wrote = true
+	}
+	if w.code >= 400 && w.errBody == nil {
+		n := min(len(b), 300)
+		w.errBody = append([]byte(nil), b[:n]...)
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *statusWriter) ReadFrom(r io.Reader) (int64, error) {
+	w.wrote = true
+	return io.Copy(w.ResponseWriter, r)
+}
+
 func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 func (w *statusWriter) Flush() {
+	w.wrote = true
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}

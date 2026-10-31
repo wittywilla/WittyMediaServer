@@ -199,11 +199,15 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 	}
 	res, err := library.SafeClient.Do(req)
 	if err != nil {
+		if r.Context().Err() == nil {
+			s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "err", err)
+		}
 		writeErr(w, 502, "the podcast server did not answer")
 		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 && res.StatusCode != 206 && res.StatusCode != 416 {
+		s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "status", res.StatusCode)
 		writeErr(w, 502, "the podcast server answered "+res.Status)
 		return
 	}
@@ -214,7 +218,10 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 	}
 	w.Header().Set("Content-Type", episodeType(res.Header.Get("Content-Type")))
 	w.WriteHeader(res.StatusCode)
-	_, _ = io.Copy(w, res.Body)
+	// Too late to tell the listener, and usually it's they who went.
+	if _, err := io.Copy(w, res.Body); err != nil && r.Context().Err() == nil {
+		s.Log.DebugContext(r.Context(), "a podcast episode stopped part-way", "cat", "playback", "item", it.ID, "err", err)
+	}
 }
 
 // episodeType keeps the type a podcast server gave only when it is audio or

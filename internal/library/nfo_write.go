@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -134,7 +135,10 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 func writeNFO(path string, doc any) error {
 	if old, err := readPlain(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
 		if _, err := os.Lstat(path + ".bak"); os.IsNotExist(err) {
-			_ = writeBeside(path+".bak", old)
+			// Saving goes on regardless, so their own file is about to go.
+			if err := writeBeside(path+".bak", old); err != nil {
+				slog.Default().Warn("could not keep a copy of an NFO before replacing it", "cat", "library", "file", path, "err", err)
+			}
 		}
 	}
 	b, err := xml.MarshalIndent(doc, "", "  ")
@@ -322,7 +326,7 @@ func (s *Scanner) saveOnScan(ctx context.Context, it *Item) {
 		return
 	}
 	if err := s.SaveItemMetadata(ctx, it); err != nil {
-		s.Log.Debug("save metadata", "path", it.Path, "err", err)
+		s.minorFailure(ctx, "could not save metadata beside the media", err, "file", it.Path)
 	}
 }
 
@@ -334,7 +338,7 @@ func (s *Scanner) saveShowOnScan(ctx context.Context, sh *Show) {
 		return
 	}
 	if err := s.SaveShowMetadata(ctx, sh); err != nil {
-		s.Log.Debug("save show metadata", "path", sh.Path, "err", err)
+		s.minorFailure(ctx, "could not save metadata beside the media", err, "dir", sh.Path)
 	}
 	_ = s.Store.UpsertShow(ctx, sh)
 }

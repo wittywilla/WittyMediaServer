@@ -26,6 +26,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // The presentation types are dvdsession's: the client is the same.
@@ -57,7 +58,7 @@ type Manager struct {
 // NewManager makes a manager; idle sessions are closed after 30 minutes.
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
 	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
-	go m.sweep()
+	logging.Loop("bluray sweep", m.sweep, "cat", "discs")
 	return m
 }
 
@@ -98,6 +99,7 @@ type Session struct {
 	ID     string
 	ItemID int64
 	m      *Manager
+	log    *slog.Logger
 	key    string
 	prefs  Prefs
 	disc   *wittybluray.Disc
@@ -190,6 +192,11 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hls.Key(path), prefs: prefs, disc: d, last: time.Now(),
 		menus: map[int]*menuArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*subPic{}}
+	base := m.Log
+	if base == nil {
+		base = slog.Default()
+	}
+	s.log = base.With("cat", "discs", "module", "wittybluray", "session", s.ID)
 	s.nav = wittybluray.NewNav(d, wittybluray.NavOptions{Registers: wittybluray.RegisterOptions{
 		AudioLang: lang3(prefs.AudioLanguage), SubtitleLang: lang3(prefs.SubtitleLanguage), MenuLang: lang3(prefs.MenuLanguage),
 		Region: prefs.BDRegion, Parental: prefs.BDAge, Country: strings.ToUpper(prefs.Country),
@@ -222,6 +229,7 @@ func (m *Manager) CloseSession(id string) {
 	m.mu.Unlock()
 	if s != nil {
 		s.Close()
+		s.log.Info("disc session closed")
 	}
 }
 
@@ -409,6 +417,7 @@ func (s *Session) touchMenuState() {
 
 // press runs a menu button's commands.
 func (s *Session) press(ctx context.Context, n int) *Presentation {
+	s.log.Debug("button pressed", "topic", "menus", "button", n)
 	ms, cur := s.menu, s.current
 	if ms == nil || cur == nil || cur.Menu == nil {
 		return cur
@@ -439,6 +448,7 @@ func (s *Session) press(ctx context.Context, n int) *Presentation {
 			// The pop-up menu changed page or buttons: same film, new layer.
 			p := *cur
 			if err := s.menuView(&p, ms.menu, true, s.videoRate(s.step)); err != nil {
+				s.log.Warn("could not redraw a pop-up menu", "err", err)
 				return cur
 			}
 			s.current = &p
@@ -597,10 +607,24 @@ func (s *Session) url(parts ...string) string {
 }
 
 func (s *Session) stop(reason string, scrambled bool) *Presentation {
+	s.logStop(reason, scrambled)
 	s.serial++
 	p := &Presentation{Kind: "stop", Serial: s.serial, Reason: reason, Media: &Media{Type: "none"}, Scrambled: scrambled}
 	s.current, s.menu, s.playlist = p, nil, nil
 	return p
+}
+
+// logStop leaves a record of why the disc stopped playing for the viewer. A
+// player asking again after a stop adds nothing.
+func (s *Session) logStop(reason string, scrambled bool) {
+	if cur := s.current; cur != nil && cur.Kind == "stop" && cur.Reason == reason {
+		return
+	}
+	msg := "disc navigation stopped"
+	if scrambled {
+		msg = "encrypted disc refused"
+	}
+	s.log.Warn(msg, "reason", reason)
 }
 
 func (s *Session) show(ctx context.Context, st *wittybluray.Step) *Presentation {
@@ -613,9 +637,7 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 	if st == nil {
 		return s.current
 	}
-	if s.m.Log != nil {
-		s.m.Log.Info("bluray step", "cat", "dvd", "session", s.ID, "kind", st.Kind, "reason", st.Reason, "menu", st.Menu, "title", st.Title)
-	}
+	s.log.Debug("bluray step", "topic", "nav", "step", st.Kind, "note", st.Reason, "menu", st.Menu, "ttn", st.Title)
 	switch st.Kind {
 	case wittybluray.StepStay:
 		return s.current
@@ -664,6 +686,7 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 		}
 	}
 	if err != nil {
+		s.logStop(err.Error(), false)
 		s.current = &Presentation{Kind: "stop", Serial: s.serial, Reason: err.Error(), Media: &Media{Type: "none"}}
 		return s.current
 	}
@@ -695,6 +718,7 @@ func (s *Session) presentBDJ(ctx context.Context, st *wittybluray.Step, rebuild 
 	if pl == nil {
 		return s.stop(st.Reason, false)
 	}
+	s.log.Info("a BD-J title isn't running here: playing from the disc's playlists", "object", st.BDJ, "playlist", pl.Number)
 	st2 := s.nav.PlayPlaylist(pl, 0, 0)
 	st2.Reason = "This disc's menu is a BD-J (Java) program. Playing the main feature."
 	return s.present(ctx, st2, rebuild)
@@ -980,7 +1004,8 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 		name += fmt.Sprintf("-s%d-%x", audio.SubPath, audio.PID)
 	}
 	id := s.hlsID(name)
-	if s.m.HLS.Get(id) != nil {
+	if h := s.m.HLS.Get(id); h != nil {
+		h.TieTo(s.ID)
 		return id, audioIdx, nil
 	}
 	var input []string
@@ -1018,7 +1043,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 		audioInput = 1
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
+		ID: id, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
 		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})
@@ -1052,10 +1077,10 @@ func (s *Session) loadMenu(st *wittybluray.Step) *wittybluray.Menu {
 	}
 	m, err := s.disc.LoadMenu(clip, st.IGPID, limit)
 	if err != nil || len(m.Pages) == 0 {
-		if s.m.Log != nil {
-			s.m.Log.Warn("bluray menu", "cat", "dvd", "clip", clip, "err", err)
-		}
+		s.log.Warn("a menu can't be read", "clip", clip, "err", err)
 		m = nil
+	} else {
+		s.log.Debug("menu read", "topic", "menus", "clip", clip, "pages", len(m.Pages))
 	}
 	s.menuCache[key] = m
 	return m

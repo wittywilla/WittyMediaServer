@@ -12,6 +12,7 @@ import (
 	"github.com/wittywilla/wittybluray"
 	"github.com/wittywilla/wittybluray/bdj"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // BD-J titles: the disc's applications run in a Java process (package bdj),
@@ -63,19 +64,25 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 	}
 	java, err := bdj.Find(path)
 	if err != nil {
-		s.warn("BD-J", err)
+		s.warn("BD-J can't run: no Java", err)
 		return nil
 	}
 	st := &bdjState{events: make(chan bdj.Event, 4096)}
+	// Everything Java and the disc's applications say: only debug lines while it
+	// runs, and the first and last of it when it ends badly.
+	said := &logging.Tail{}
+	started := time.Now()
 	host, err := bdj.Start(ctx, s.disc, bdj.Options{
 		Java:       java,
 		CacheDir:   filepath.Join(s.m.CacheDir, "bdj"),
 		WorkDir:    filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID),
 		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", s.key),
 		Log: func(l string) {
-			if s.m.Log != nil {
-				s.m.Log.Debug("bd-j", "cat", "dvd", "session", s.ID, "msg", l)
-			}
+			_, _ = said.Write([]byte(l + "\n"))
+			s.log.Debug("bd-j said", "topic", "bdj", "output", l)
+		},
+		OnExit: func(err error, stopped bool) {
+			logging.ChildExit(s.log, "java", err, stopped, said, started, "topic", "bdj")
 		},
 		OnEvent: func(e bdj.Event) {
 			select {
@@ -85,31 +92,37 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 		},
 	})
 	if err != nil {
-		s.warn("BD-J", err)
+		s.warn("BD-J could not start", err)
 		return nil
 	}
 	st.host = host
 	s.bd = st
-	go s.bdjLoop(st)
+	logging.Go("bd-j events", func() { s.bdjLoop(st) }, "cat", "discs", "session", s.ID)
 	return host
 }
 
 func (s *Session) warn(what string, err error) {
-	if s.m.Log != nil {
-		s.m.Log.Warn(what, "cat", "dvd", "session", s.ID, "err", err)
-	}
+	s.log.Warn(what, "err", err)
 }
 
 func (s *Session) bdjLoop(st *bdjState) {
 	for e := range st.events {
-		s.mu.Lock()
-		if s.bd == st {
-			s.bdjEvent(st, e)
-		}
-		s.mu.Unlock()
+		s.bdjHandle(st, e)
 		if e.Kind == "exit" {
 			return
 		}
+	}
+}
+
+// bdjHandle takes one event. What's in it came from a disc: a panic on one is
+// reported, and the disc carries on with the next.
+func (s *Session) bdjHandle(st *bdjState, e bdj.Event) {
+	defer logging.Recover("bd-j event", "cat", "discs", "module", "wittybluray", "session", s.ID, "event", e.Kind)
+	s.log.Debug("bd-j event", "topic", "bdj", "event", e.Kind, "values", e.Args)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.bd == st {
+		s.bdjEvent(st, e)
 	}
 }
 
@@ -193,7 +206,7 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 		st.host.Kick()
 	case "appfailed":
 		st.failed++
-		s.warn("BD-J application", fmt.Errorf("%s", strings.Join(e.Args, " ")))
+		s.warn("a BD-J application failed", fmt.Errorf("%s", strings.Join(e.Args, " ")))
 		// A title whose applications will not run is what happens without
 		// Java, so it ends the same way: the disc plays from its playlists.
 		if st.obj != nil && st.failed >= len(st.obj.Autostart()) && st.host.Version() == 0 {
@@ -203,6 +216,7 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 		st.active = false
 		s.bd = nil
 		if s.current != nil && s.current.BDJ != nil {
+			s.log.Warn("BD-J stopped while it was on screen: playing the main feature")
 			s.bdjFallbackStep(ctx, "This disc's menu stopped unexpectedly. Playing the main feature.")
 		}
 	}
@@ -225,6 +239,7 @@ func playerSetting(n int) bool {
 
 // bdjFallback ends the applications and plays the feature.
 func (s *Session) bdjFallback(ctx context.Context, st *bdjState, why string) {
+	s.log.Warn("BD-J gave up: playing the main feature", "reason", why)
 	st.host.Send("stopapps")
 	st.active = false
 	s.bdjFallbackStep(ctx, why)
@@ -271,7 +286,7 @@ func (s *Session) startBDJTitle(ctx context.Context, st *wittybluray.Step) (*Pre
 	obj, err := s.disc.BDJObject(st.BDJ)
 	if err != nil || len(obj.Autostart()) == 0 {
 		if err != nil {
-			s.warn("BD-J object", err)
+			s.warn("a BD-J title can't be read", err)
 		}
 		return nil, false
 	}
@@ -292,6 +307,7 @@ func (s *Session) startBDJTitle(ctx context.Context, st *wittybluray.Step) (*Pre
 func (s *Session) bdjPlay(ctx context.Context, st *bdjState, n, item, mark int, at float64) {
 	pl := s.disc.Playlist(n)
 	if pl == nil || len(pl.Items) == 0 {
+		s.log.Warn("a BD-J application asked for a playlist the disc doesn't have", "playlist", n)
 		st.host.Send("playfailed no-such-playlist")
 		return
 	}
@@ -317,6 +333,7 @@ func (s *Session) bdjPlay(ctx context.Context, st *bdjState, n, item, mark int, 
 		err = s.buildMenu(ctx, step, p)
 	}
 	if err != nil {
+		s.log.Warn("could not play what a BD-J application asked for", "playlist", n, "err", err)
 		st.host.Send("playfailed %s", strings.ReplaceAll(err.Error(), " ", "-"))
 		return
 	}

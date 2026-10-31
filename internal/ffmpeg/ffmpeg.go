@@ -7,15 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Tools holds resolved binary paths and encoder capabilities.
@@ -72,12 +75,12 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-version").Output(); err == nil {
+	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-version"}); err == nil {
 		if line, _, ok := bytes.Cut(out, []byte("\n")); ok {
 			t.Version = strings.TrimSpace(string(line))
 		}
 	}
-	if out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-encoders").Output(); err == nil {
+	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-encoders"}); err == nil {
 		for _, line := range strings.Split(string(out), "\n") {
 			f := strings.Fields(line)
 			if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
@@ -221,12 +224,9 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	}
 	args := []string{"-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"}
 	args = append(args, input...)
-	cmd := Command(ctx, t.FFprobe, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
+	out, stderr, err := Run(ctx, t.FFprobe, args)
 	if err != nil {
-		return nil, fmt.Errorf("ffprobe: %w: %s", err, strings.TrimSpace(stderr.String()))
+		return nil, fmt.Errorf("ffprobe: %w: %s", err, stderr.String())
 	}
 	var p Probe
 	if err := json.Unmarshal(out, &p); err != nil {
@@ -335,11 +335,8 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 		vf += ",format=yuvj420p"
 	}
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "3", out)
-	cmd := Command(ctx, t.FFmpeg, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg still: %w: %s", err, strings.TrimSpace(stderr.String()))
+	if _, stderr, err := Run(ctx, t.FFmpeg, args); err != nil {
+		return fmt.Errorf("ffmpeg still: %w: %s", err, stderr.String())
 	}
 	return nil
 }
@@ -373,11 +370,8 @@ func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width,
 	}
 	vf += fmt.Sprintf("scale='min(%d,iw)':'min(%d,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuvj420p", width, width)
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "4", "-update", "1", out)
-	cmd := Command(ctx, t.FFmpeg, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg image: %w: %s", err, strings.TrimSpace(stderr.String()))
+	if _, stderr, err := Run(ctx, t.FFmpeg, args); err != nil {
+		return fmt.Errorf("ffmpeg image: %w: %s", err, stderr.String())
 	}
 	return nil
 }
@@ -388,4 +382,46 @@ func Command(ctx context.Context, path string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, path, args...)
 	hideWindow(cmd)
 	return cmd
+}
+
+// Run runs a short FFmpeg or ffprobe job and waits for it, returning its output
+// and what it said. It leaves a record of how the job ended, tied to the session
+// in ctx (see logging.WithSession); attrs say what it was for.
+func Run(ctx context.Context, path string, args []string, attrs ...any) ([]byte, *logging.Tail, error) {
+	cmd := Command(ctx, path, args...)
+	stderr := &logging.Tail{}
+	cmd.Stderr = stderr
+	started := time.Now()
+	out, err := cmd.Output()
+	// A job killed for its context says only "exit status 1". The context says why.
+	why := err
+	if err != nil && ctx.Err() != nil {
+		why = ctx.Err()
+	}
+	log := slog.Default().With("cat", "transcode")
+	if id := logging.SessionFrom(ctx); id != "" {
+		log = log.With("session", id)
+	}
+	if id := logging.RequestFrom(ctx); id != "" {
+		attrs = append(attrs, "request", id)
+	}
+	logging.ChildExit(log, strings.TrimSuffix(filepath.Base(path), ".exe"), why, errors.Is(ctx.Err(), context.Canceled), stderr, started,
+		append([]any{"args", RedactArgs(args)}, attrs...)...)
+	return out, stderr, err
+}
+
+// Hidden from the log: a stream address can carry a login.
+var urlCreds = regexp.MustCompile(`([a-z0-9+]+://)[^/@\s]+@`)
+
+// RedactArgs is a command line for the log, without the headers and logins a
+// stream's input options can carry.
+func RedactArgs(args []string) string {
+	out := make([]string, len(args))
+	for i, a := range args {
+		if i > 0 && args[i-1] == "-headers" {
+			a = "(hidden)"
+		}
+		out[i] = urlCreds.ReplaceAllString(a, "$1(hidden)@")
+	}
+	return strings.Join(out, " ")
 }

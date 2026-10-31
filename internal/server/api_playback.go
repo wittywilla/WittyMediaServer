@@ -20,6 +20,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 )
 
@@ -368,6 +369,8 @@ func (s *Server) playbackDisc(r *http.Request, it *library.Item, out *playbackRe
 		d.ResumeTitle = *it.Progress.DiscTitle
 	}
 	out.Decision, out.Protocol, out.Disc = "disc", "disc-session", d
+	// The disc's own session starts when the client opens it (handleDVDOpen).
+	s.Log.InfoContext(r.Context(), "playback decided", "cat", "playback", "item", it.ID, "title", it.Title, "mode", out.Decision, "format", d.Type)
 }
 
 func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Profile, b playbackRequest, out *playbackResponse) {
@@ -395,6 +398,7 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 		out.StartAtSec = *b.StartSec
 	}
 	out.URL = withStream(u, out.StreamToken)
+	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "profile", p.ID, "mode", out.Decision, "codec", it.VideoCodec)
 }
 
 // playbackVideo decides how to play a video file and sets the stream up.
@@ -450,19 +454,22 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 		out.Intro = &in
 	}
-	s.Log.Info("play", "cat", "playback", "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle)
+	logStarted := func(session string) {
+		s.Log.InfoContext(ctx, "playback started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle)
+	}
 
 	token := out.StreamToken
 	subURL := func(i int) string {
 		return withStream(fmt.Sprintf("/api/items/%d/subtitles/%d.vtt", it.ID, i), token)
 	}
 	if d.Mode == playback.Direct {
+		logStarted("") // nothing runs here, so only the request ties to it
 		out.Protocol = "file"
 		out.StartAtSec = start
 		out.URL = withStream(fmt.Sprintf("/api/items/%d/file", it.ID), token)
 		fillSubtitles(out, src, p, true, subURL)
 		if d.Subtitle == playback.SubSidecar {
-			s.warmSubtitle(it.Path, chosen.Subtitle)
+			s.warmSubtitle("", it.Path, chosen.Subtitle)
 		}
 		return nil
 	}
@@ -526,6 +533,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	sum := sha1.Sum([]byte(fmt.Sprint(p.ID, d, chosen, spec.MaxHeight, q, start*boolFloat(spec.Growing), vf, len(v.Subtitles), v.Codecs)))
 	spec.ID = fmt.Sprintf("v-%s-n%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
 	s.HLS.Ensure(spec)
+	logStarted(spec.ID)
 	out.StreamID = spec.ID
 	out.Protocol = "hls"
 	if len(v.Subtitles) > 0 {
@@ -535,7 +543,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {
-		s.warmSubtitle(it.Path, chosen.Subtitle)
+		s.warmSubtitle(spec.ID, it.Path, chosen.Subtitle)
 	}
 	return nil
 }
@@ -613,7 +621,8 @@ func (s *Server) subtitleVTT(ctx context.Context, path string, n int) (string, e
 	if !busy {
 		done = make(chan struct{})
 		sf.running[out] = done
-		go func() {
+		session := logging.SessionFrom(ctx)
+		logging.Go("subtitle conversion", func() {
 			defer func() {
 				sf.mu.Lock()
 				delete(sf.running, out)
@@ -622,10 +631,10 @@ func (s *Server) subtitleVTT(ctx context.Context, path string, n int) (string, e
 			}()
 			subtitleSlots <- struct{}{}
 			defer func() { <-subtitleSlots }()
-			if err := s.convertSubtitle(path, n, out); err != nil {
-				s.Log.Warn("subtitle", "cat", "ffmpeg", "err", err)
+			if err := s.convertSubtitle(session, path, n, out); err != nil {
+				s.Log.Warn("could not convert a subtitle track", "cat", "transcode", "session", session, "file", path, "track", n, "err", err)
 			}
-		}()
+		}, "cat", "transcode", "session", session)
 	}
 	sf.mu.Unlock()
 	select {
@@ -639,34 +648,34 @@ func (s *Server) subtitleVTT(ctx context.Context, path string, n int) (string, e
 	return out, nil
 }
 
-func (s *Server) convertSubtitle(path string, n int, out string) error {
+func (s *Server) convertSubtitle(session, path string, n int, out string) error {
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 15*time.Minute)
 	defer cancel()
 	tmp := out + ".tmp"
 	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin", "-y"}
 	args = append(args, ffmpeg.FileInput(path)...)
 	args = append(args, "-map", fmt.Sprintf("0:s:%d", n), "-vn", "-an", "-c:s", "webvtt", "-f", "webvtt", tmp)
-	if b, err := ffmpeg.Command(ctx, s.Tools.FFmpeg, args...).CombinedOutput(); err != nil {
+	if _, stderr, err := ffmpeg.Run(ctx, s.Tools.FFmpeg, args, "track", n); err != nil {
 		_ = os.Remove(tmp)
-		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(b)))
+		return fmt.Errorf("%w: %s", err, stderr.Last(400))
 	}
 	return os.Rename(tmp, out)
 }
 
 // warmSubtitle starts converting the chosen track, so it is ready soon after
 // the picture starts.
-func (s *Server) warmSubtitle(path string, n int) {
+func (s *Server) warmSubtitle(session, path string, n int) {
 	if n < 0 || s.Cfg == nil {
 		return
 	}
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	logging.Go("subtitle warm-up", func() {
+		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 15*time.Minute)
 		defer cancel()
-		_, _ = s.subtitleVTT(ctx, path, n)
-	}()
+		_, _ = s.subtitleVTT(ctx, path, n) // nobody is waiting yet; subtitleVTT logs a failure
+	}, "cat", "transcode", "session", session)
 }
 
 var vttFile = regexp.MustCompile(`^([0-9]{1,3})\.vtt$`)
@@ -757,7 +766,7 @@ func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(sess.SubtitlePlaylist(withStream(fmt.Sprintf("%d.vtt", n), r.URL.Query().Get("st"))))
 		return
 	}
-	p, err := s.subtitleVTT(r.Context(), sess.Spec.Source, sess.Spec.Variant.Subtitles[n].Stream)
+	p, err := s.subtitleVTT(logging.WithSession(r.Context(), sess.LogSession()), sess.Spec.Source, sess.Spec.Variant.Subtitles[n].Stream)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -781,9 +790,9 @@ func (s *Server) hlsStartPTS(ctx context.Context, sess *hls.Session) int64 {
 	}
 	p, err := sess.Segment(ctx, 0)
 	if err != nil {
-		return 0
+		return 0 // FFmpeg's failure has its own record, and so has a failed probe below
 	}
-	pctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	pctx, cancel := context.WithTimeout(logging.WithSession(ctx, sess.LogSession()), 10*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, p)
 	if err != nil {

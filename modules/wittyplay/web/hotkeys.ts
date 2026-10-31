@@ -23,7 +23,13 @@ export class Hotkeys {
   private lastMask = 0
   private swallowed = 0
 
-  constructor(private fire: (a: HotAction, down: boolean) => void, private keyInUse: (code: string) => boolean) {}
+  private fire: (a: HotAction, down: boolean) => void
+  private keyInUse: (code: string) => boolean
+
+  constructor(fire: (a: HotAction, down: boolean) => void, keyInUse: (code: string) => boolean) {
+    this.fire = fire
+    this.keyInUse = keyInUse
+  }
 
   configure(v: DisplayValues) {
     this.keyOf.clear()

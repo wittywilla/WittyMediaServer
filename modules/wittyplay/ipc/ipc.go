@@ -174,7 +174,7 @@ type Ready struct {
 
 // Event is something a player should be told about.
 type Event struct {
-	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | options | stats | statefail
+	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | options | stats | statefail | frame
 	Port     int     `json:"port,omitempty"`
 	Effect   int     `json:"effect,omitempty"`
 	Strength int     `json:"strength,omitempty"`

@@ -6,7 +6,7 @@
   --wp-panel: var(--bg-2, #171a22);
   --wp-fg: var(--fg, #f2f4f8);
   --wp-muted: var(--fg-2, #a9b1c0);
-  --wp-line: var(--line, rgba(255, 255, 255, .16));
+  --wp-line: var(--border-strong, var(--border, rgba(127, 127, 127, .4)));
   position: fixed; inset: 0; z-index: 100; background: #000; color: #f2f4f8;
   display: flex; flex-direction: column; overflow: hidden;
   font: 14px/1.4 system-ui, sans-serif;
@@ -113,7 +113,7 @@
 .wp-menu h3 { margin: 6px 0 0; font-size: 12.5px; letter-spacing: .03em; text-transform: uppercase; color: var(--wp-muted); }
 /* Beside the game rather than over it, so that a change can be seen as it's made. */
 .wp-side { background: transparent; justify-content: flex-end; align-items: stretch; padding: 0; }
-.wp-side .wp-menu { width: min(420px, 100%); max-height: 100%; border-radius: 0; border-width: 0 0 0 1px; background: color-mix(in srgb, var(--wp-panel) 92%, transparent); }
+.wp-side .wp-menu { width: min(420px, 100%); max-height: 100%; border-radius: 0; border-width: 0 0 0 1px; background: var(--wp-panel); background: color-mix(in srgb, var(--wp-panel) 94%, transparent); }
 .wp-portrait .wp-side { align-items: flex-end; }
 .wp-portrait .wp-side .wp-menu { width: 100%; max-height: 62%; border-width: 1px 0 0; }
 .wp-section { display: flex; flex-direction: column; gap: 8px; margin: 0; }
@@ -139,6 +139,7 @@
 .wp-cycler-arrow { width: 30px; font-size: 18px; line-height: 1; }
 .wp-cycler-arrow:hover, .wp-cycler-value:hover { background: rgba(127, 127, 127, .16); }
 .wp-cycler-value { min-width: 90px; padding: 0 6px; overflow-wrap: anywhere; }
+.wp-cycler-value:focus-visible { outline-offset: -3px; }
 .wp-slider { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
 .wp-slider input { flex: 1 1 auto; min-width: 0; height: 32px; accent-color: var(--wp-accent); }
 .wp-slider output { flex: 0 0 auto; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
@@ -187,7 +188,7 @@
 .wp-touchbar .wp-btn { min-height: 40px; padding: 4px 8px; font-size: 12px; background: rgba(20, 22, 30, .55); color: #fff; border-color: transparent; touch-action: none; white-space: normal; max-width: 78px; }
 
 /* The settings page */
-.wp-screen { --wp-accent: var(--accent, #7c9cff); --wp-accent-fg: var(--accent-fg, #0b1020); --wp-panel: var(--bg-2, #171a22); --wp-fg: var(--fg, #f2f4f8); --wp-muted: var(--fg-2, #a9b1c0); --wp-line: var(--line, var(--border-strong, rgba(127, 127, 127, .35))); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.wp-screen { --wp-accent: var(--accent, #7c9cff); --wp-accent-fg: var(--accent-fg, #0b1020); --wp-panel: var(--bg-2, #171a22); --wp-fg: var(--fg, #f2f4f8); --wp-muted: var(--fg-2, #a9b1c0); --wp-line: var(--border-strong, var(--border, rgba(127, 127, 127, .4))); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .wp-screen-console { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .wp-screen-body { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .wp-screen-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

@@ -253,7 +253,13 @@ export function CorePanel({ host, itemId, api, view, level, levels, onLevel, con
   useEffect(() => { void load() }, [load])
   const res = view.resolved
   const offered = new Map((core?.options || []).map((o) => [o.key, o]))
-  const valueOf = (key: string, fallback: string) => res.coreOptions[key] ?? core?.running[key] ?? fallback
+  // What a core ignored isn't what it's using, so that's not what to show.
+  const valueOf = (key: string, fallback: string) => {
+    const chosen = res.coreOptions[key]
+    const offer = offered.get(key)
+    if (chosen !== undefined && (!offer || offer.choices.includes(chosen))) return chosen
+    return core?.running[key] ?? fallback
+  }
   const list = (core?.options || []).filter((o) => !filter || (o.label + ' ' + o.key).toLowerCase().includes(filter.toLowerCase()))
   if (!core) return <p className="wp-muted" role="status">Asking the core…</p>
   return (
@@ -397,7 +403,7 @@ export function JsonEditor({ host, api, view, scope, level, levels, onLevel, con
     setDirty(true)
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(s + snippet.length, s + snippet.length) })
   }
-  const issues = [...(report?.errors || []).map((x) => ({ ...x, bad: true })), ...(report?.ignored || []).map((x) => ({ ...x, bad: false }))]
+  const issues = [...(report?.errors || []).map((x) => ({ ...x, bad: true })), ...(report?.ignored || []).map((x) => ({ ...x, bad: false }))].sort((a, b) => (a.line || 0) - (b.line || 0))
   const options = (core?.options || []).filter((o) => !filter || (o.label + ' ' + o.key).toLowerCase().includes(filter.toLowerCase()))
   return (
     <>
@@ -416,7 +422,7 @@ export function JsonEditor({ host, api, view, scope, level, levels, onLevel, con
           {issues.map((x, i) => (
             <li key={i} className={x.bad ? 'bad' : 'warn'}>
               <button type="button" className="wp-link" onClick={() => goTo(x)}>{x.line ? `Line ${x.line}` : 'File'}</button>{' '}
-              {x.bad ? '' : 'Ignored: '}{x.message}
+              {x.message}
             </li>
           ))}
         </ul>
@@ -570,7 +576,7 @@ export function SlotsPanel({ host, schema, itemId, kind, confirm, act, say, onDo
 }) {
   const [slots, setSlots] = useState<SaveSlot[] | null>(null)
   const [busy, setBusy] = useState(false)
-  const [arming, setArming] = useState(0)
+  const [arming, setArming] = useState(-1)
   const [manage, setManage] = useState(false)
   const load = useCallback(() => host.request<SaveSlot[]>('GET', `/games/${itemId}/saves`).then(setSlots).catch(() => setSlots([])), [host, itemId])
   useEffect(() => { void load() }, [load])

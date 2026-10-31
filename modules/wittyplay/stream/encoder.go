@@ -92,8 +92,11 @@ func encoderArgs(name string, bps int, gop int) (args, inputArgs []string, uploa
 	case "h264_videotoolbox":
 		args = []string{"-realtime", "1", "-prio_speed", "1", "-b:v", b, "-bf", "0", "-profile:v", "baseline", "-allow_sw", "1"}
 	case "libx264":
+		// Sliced threads, a few at most: frame threads hold back a frame per thread,
+		// which came to a quarter of a second on a machine with many cores.
+		threads := strconv.Itoa(min(runtime.NumCPU(), 4))
 		args = []string{"-preset", "ultrafast", "-tune", "zerolatency", "-profile:v", "baseline", "-b:v", b, "-maxrate", b, "-bufsize", half,
-			"-x264-params", "scenecut=0:rc-lookahead=0:sync-lookahead=0:sliced-threads=0"}
+			"-x264-params", "scenecut=0:rc-lookahead=0:sync-lookahead=0:sliced-threads=1:threads=" + threads}
 	case "libopenh264":
 		args = []string{"-b:v", b, "-profile:v", "constrained_baseline", "-rc_mode", "bitrate"}
 	case "libvpx":

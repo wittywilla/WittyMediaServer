@@ -160,7 +160,7 @@ var Settings = []Setting{
 	{Key: "hotkeys.pad.menu", Group: GroupHotkeys, Section: "Controller", Label: "Menu", Kind: KindChoice, Default: "b", Choices: padButtons},
 
 	{Key: "hotkeys.key.fastForward", Group: GroupHotkeys, Section: "Keyboard", Label: "Fast-forward", Kind: KindChoice, Default: "Space", Choices: hotkeyKeys},
-	{Key: "hotkeys.key.rewind", Group: GroupHotkeys, Section: "Keyboard", Label: "Rewind", Kind: KindChoice, Default: "KeyR", Choices: hotkeyKeys},
+	{Key: "hotkeys.key.rewind", Group: GroupHotkeys, Section: "Keyboard", Label: "Rewind", Kind: KindChoice, Default: "Backspace", Choices: hotkeyKeys},
 	{Key: "hotkeys.key.quickSave", Group: GroupHotkeys, Section: "Keyboard", Label: "Quick save", Kind: KindChoice, Default: "F2", Choices: hotkeyKeys},
 	{Key: "hotkeys.key.quickLoad", Group: GroupHotkeys, Section: "Keyboard", Label: "Quick load", Kind: KindChoice, Default: "F4", Choices: hotkeyKeys},
 	{Key: "hotkeys.key.slow", Group: GroupHotkeys, Section: "Keyboard", Label: "Slow motion", Kind: KindChoice, Default: "KeyB", Choices: hotkeyKeys},

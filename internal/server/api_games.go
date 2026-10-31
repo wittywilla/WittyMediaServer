@@ -431,6 +431,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	sess, err := g.mgr.Start(opts)
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {
+			if opts.Cleanup != nil { // it never became a session that would clean up after itself
+				opts.Cleanup()
+			}
 			writeErr(w, 503, err.Error())
 			return
 		}
@@ -664,18 +667,27 @@ func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dir := s.games().saveDir(userFrom(r).ID, it.ID)
+	// One look at the folder, rather than asking after every slot there could be.
+	found := map[string]os.FileInfo{}
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, e := range entries {
+			if info, err := e.Info(); err == nil && !e.IsDir() {
+				found[e.Name()] = info
+			}
+		}
+	}
 	out := []saveSlot{}
 	for slot := 0; slot <= stream.SlotPrevAuto; slot++ {
 		name, err := stream.SlotName(slot)
 		if err != nil {
 			continue
 		}
-		st, err := os.Stat(filepath.Join(dir, name+".state"))
-		if err != nil {
+		st, ok := found[name+".state"]
+		if !ok {
 			continue
 		}
-		_, terr := os.Stat(filepath.Join(dir, name+".png"))
-		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: terr == nil, Core: slotCore(dir, name)})
+		_, thumb := found[name+".png"]
+		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: thumb, Core: slotCore(dir, name)})
 	}
 	writeJSON(w, 200, out)
 }

@@ -43,6 +43,11 @@ follows you. See [GAMING.md](docs/GAMING.md).
 - **The game's page:** favourites, your own notes, play count, last played, and a resume banner with a picture.
   Administrators can set what everyone starts with.
 
+### Lower delay
+
+- **Games on the software encoder lost about a quarter of a second of delay** on machines with many cores: it was
+  holding back a frame for each of its threads. The new encode-time number showed it.
+
 ### For client developers
 
 - API 1.4: game settings, cheats, patches, images, saved-file transfer and session numbers, listed in

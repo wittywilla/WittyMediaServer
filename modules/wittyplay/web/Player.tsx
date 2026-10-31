@@ -126,6 +126,8 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
     else if (e.type === 'shutdown') { say('The game has ended'); leave() }
     else if (e.type === 'geometry' || e.type === 'avinfo') {
       if (e.width && e.height) setInfo((i) => i && ({ ...i, width: e.width!, height: e.height!, aspect: e.aspect || 0 }))
+    } else if (e.type === 'frame') {
+      if (e.width && e.height) setInfo((i) => i && ({ ...i, width: e.width!, height: e.height! }))
     } else if (e.type === 'rotation') setInfo((i) => i && ({ ...i, turns: (e.turns || 0) & 3 }))
   }, [input])
 
@@ -162,6 +164,8 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         setTransport(t)
         setStatus('')
         setNeedsTap(t.needsUnmute())
+        // A picture has arrived, so the real size of the game's pixels is known now.
+        host.request<SessionInfo>('GET', `/play/${s.id}?client=browser`).then((now) => setInfo((i) => i && ({ ...i, width: now.width, height: now.height }))).catch(() => {})
         return
       } catch (e: any) {
         t.close()
@@ -363,7 +367,8 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
       case 'quickLoad': act('load', quickSlot()).then(() => say(`Loaded slot ${quickSlot()}`), (e) => say(e?.message || 'That didn’t work')); break
       case 'pause': setFrozen((x) => !x); break
       case 'advance':
-        setFrozen((x) => { if (x) void act('advance', undefined, undefined, { value: 1 }).catch(() => {}); return true })
+        if (frozenRef.current) void act('advance', undefined, undefined, { value: 1 }).catch(() => {})
+        else setFrozen(true)
         break
       case 'screenshot': void screenshot(); break
       case 'menu': setPanel((p) => (p ? null : 'menu')); break
@@ -371,6 +376,8 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
       case 'osd': settings.set('person', 'osd.on', v['osd.on'] !== true); break
     }
   }, [act, say, screenshot, settings.set])
+  const frozenRef = useRef(frozen)
+  frozenRef.current = frozen
   const hot = useMemo(() => new Hotkeys((a, d) => fireRef.current(a, d), (code) => input.isBound(code)), [input])
   const fireRef = useRef(fire)
   fireRef.current = fire
@@ -412,6 +419,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   // hand, or a remote would have nothing to move from.
   const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    if (menuRef.current) menuRef.current.scrollTop = 0
     const first = menuRef.current?.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]')
     first?.focus({ preventScroll: true })
   }, [panel])

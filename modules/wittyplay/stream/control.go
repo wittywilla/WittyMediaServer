@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -47,6 +48,7 @@ type controlState struct {
 	optionOnce sync.Once
 	run        ipc.RunStats
 
+	noAutoSave atomic.Bool
 	framesIn   atomic.Int64
 	framesFed  atomic.Int64
 	dropped    atomic.Int64
@@ -69,8 +71,14 @@ type statSample struct {
 	shownPerSec, gamePer float64
 }
 
-func (s *Session) noteFrame() {
+func (s *Session) noteFrame(sizeChanged bool, hdr ipc.VideoHeader) {
 	s.framesIn.Add(1)
+	if sizeChanged {
+		// What's drawn on the viewer's device needs the game's real pixels, which aren't
+		// always what the core first said, and the video may be scaled on its way there.
+		b, _ := json.Marshal(ipc.Event{Type: "frame", Width: hdr.Width, Height: hdr.Height})
+		s.broadcastEvent(b)
+	}
 	if s.framePend.Swap(true) {
 		s.dropped.Add(1) // the last one was replaced before it reached the encoder
 	}
@@ -123,8 +131,12 @@ func (s *Session) Stats() Stats {
 	if speed == 0 {
 		speed = 1
 	}
-	return Stats{GameFPS: float64(s.run.Ran), SentFPS: float64(s.run.Shown), Skipped: s.run.Skipped, EncodedFPS: p.fps, EncodeMs: p.encMs, Kbps: p.kbps,
-		DroppedFrames: s.dropped.Load(), Width: hdrW, Height: hdrH, Core: core, Encoder: enc0, Speed: speed, Paused: paused, RewindBytes: s.run.RewindBytes, RewindFrames: s.run.RewindFrames}
+	run := s.run
+	if paused { // a paused runner reports nothing, and what it last said is out of date
+		run.Ran, run.Shown, run.Skipped = 0, 0, 0
+	}
+	return Stats{GameFPS: float64(run.Ran), SentFPS: float64(run.Shown), Skipped: run.Skipped, EncodedFPS: p.fps, EncodeMs: p.encMs, Kbps: p.kbps,
+		DroppedFrames: s.dropped.Load(), Width: hdrW, Height: hdrH, Core: core, Encoder: enc0, Speed: speed, Paused: paused, RewindBytes: run.RewindBytes, RewindFrames: run.RewindFrames}
 }
 
 // auDuration is how long a frame lasts on the wire: the real time since the last one.
@@ -211,19 +223,24 @@ func (s *Session) Apply(c ipc.Control, coreOptions map[string]string) error {
 			return err
 		}
 	}
+	// An option nobody sets any more goes back to the core's own default. One set to
+	// something the core doesn't list is left as it is: it would be ignored anyway.
 	for _, o := range opts {
 		want, ok := coreOptions[o.Key]
-		if !ok && o.Value != o.Choices[0] && len(coreOptions) == 0 {
-			continue
+		if !ok {
+			want = o.Choices[0]
 		}
-		if ok && want != o.Value {
-			if err := s.SetOption(o.Key, want); err != nil {
+		if want != o.Value && slices.Contains(o.Choices, want) {
+			if err := s.sendOption(o.Key, want); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
 }
+
+// SetAutoSave says whether leaving writes the resume state.
+func (s *Session) SetAutoSave(on bool) { s.noAutoSave.Store(!on) }
 
 func diffControl(a, b ipc.Control) ipc.Control {
 	var d ipc.Control
@@ -242,8 +259,25 @@ func diffControl(a, b ipc.Control) ipc.Control {
 	return d
 }
 
-// SetOption changes one core option. The runner checks it against what the core offered.
+// SetOption changes one core option for this session. It's refused here when it can be,
+// so that a client gets an answer. The runner checks again whatever it's sent.
 func (s *Session) SetOption(key, value string) error {
+	s.ctlMu.Lock()
+	var offered *ipc.Option
+	for i := range s.options {
+		if s.options[i].Key == key {
+			offered = &s.options[i]
+		}
+	}
+	ok := offered != nil && slices.Contains(offered.Choices, value)
+	s.ctlMu.Unlock()
+	if !ok {
+		return errors.New("this core doesn't offer that option or value")
+	}
+	return s.sendOption(key, value)
+}
+
+func (s *Session) sendOption(key, value string) error {
 	b, err := json.Marshal(ipc.OptionSet{Key: key, Value: value})
 	if err != nil {
 		return err
@@ -351,6 +385,7 @@ func (s *Session) noteEvent(e ipc.Event) (handled bool) {
 
 // sendStart gives a runner what it should have from the first frame.
 func (s *Session) sendStart() {
+	s.noAutoSave.Store(s.opt.NoAutoSave)
 	if s.opt.SafeMode {
 		return
 	}

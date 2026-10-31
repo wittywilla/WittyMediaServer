@@ -106,7 +106,8 @@ step in the player's settings.
   Quick Sync, VideoToolbox, AMF, VAAPI), then `libx264`, then `libopenh264`, then `libvpx`. A
   failed start falls through to the next one.
 - **Settings:** no B-frames, no lookahead, a keyframe every second so a lost packet heals quickly,
-  and the fastest preset of each encoder.
+  and the fastest preset of each encoder. `libx264` uses sliced threads, because frame threads hold back
+  a frame per thread: about 250 ms on a machine with many cores.
 - **Sharp pixels:** retro games are small and 4:2:0 chroma smears pixel art, so frames up to 400
   pixels wide are doubled with nearest-neighbour before encoding. On a server with fewer than
   four CPU threads and no hardware encoder they are not doubled. The source resolution is so low

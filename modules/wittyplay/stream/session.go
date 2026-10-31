@@ -310,9 +310,16 @@ func (s *Session) ItemID() int64 { return s.opt.ItemID }
 
 // Info describes the session for a browser.
 func (s *Session) Info() Info {
+	s.frameMu.Lock()
+	frame := s.frameHdr
+	s.frameMu.Unlock()
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
-	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
+	width, height := s.info.Width, s.info.Height
+	if frame.Width > 0 { // what the core really draws, once it has
+		width, height = frame.Width, frame.Height
+	}
+	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: width, Height: height,
 		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, SafeMode: s.opt.SafeMode, MaxSpeed: s.maxSpeed(), Notices: s.opt.Notices}
 }
 
@@ -464,9 +471,10 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			}
 			s.frameMu.Lock()
 			s.frame = append(s.frame[:0], data...)
+			changed := hdr.Width != s.frameHdr.Width || hdr.Height != s.frameHdr.Height
 			s.frameHdr = hdr
 			s.frameMu.Unlock()
-			s.noteFrame()
+			s.noteFrame(changed, hdr)
 			s.signalFrame()
 		case ipc.MsgDupe:
 			s.signalFrame()
@@ -701,7 +709,7 @@ func (s *Session) deliverState(id uint32, b []byte) {
 func (s *Session) Stop() {
 	s.stopOnce.Do(func() {
 		keep := byte(1)
-		if s.opt.NoAutoSave {
+		if s.noAutoSave.Load() {
 			keep = 0
 		}
 		if err := s.command(ipc.CmdQuit, []byte{keep}); err != nil {

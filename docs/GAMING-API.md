@@ -248,6 +248,10 @@ app to act on when opening a game.
 Save and load take slots 1 to 99, and load also takes 0 (automatic), 100 (from before the last load) and 101 (the
 automatic save from before starting over). `GET /games/{id}/saves` lists what exists, with the `core` that made each.
 
+Events also bring `frame`, with the `width` and `height` of what the core really draws, whenever that changes. `GET
+/play/{id}` says the same once a picture exists. What a client draws on top needs this, because the video may be
+scaled on the way and the size in the first answer is only what the core expected.
+
 `GET /play/{id}/stats` gives `gameFps`, `sentFps`, `skipped`, `encodedFps`, `encodeMs`, `kbps`, `droppedFrames`, `width`,
 `height`, `core`, `encoder`, `speed`, `paused`, `rewindBytes` and `rewindFrames`. Ask at most once a second, and only
 while showing them. `GET /play/{id}/screenshot` gives a PNG with no effects on it.

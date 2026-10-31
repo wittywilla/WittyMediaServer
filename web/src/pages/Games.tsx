@@ -261,8 +261,8 @@ export function GameDetails({ it }: { it: Item }) {
       )}
       <section aria-label="Saves">
         <div className="game-save-tools">
-          <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>
-          <button className="btn sm ghost" onClick={() => void battery()}>Replace battery save…</button>
+          {meta?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>}
+          <button className="btn sm ghost" onClick={() => void battery()}>{meta?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
         </div>
       </section>
       {saves.length > 0 && (
@@ -287,7 +287,7 @@ export function GameDetails({ it }: { it: Item }) {
   )
 }
 
-type GameMeta = { favourite: boolean; note: string; plays: number; lastPlayed: number; cheats: unknown[] }
+type GameMeta = { favourite: boolean; note: string; plays: number; lastPlayed: number; cheats: unknown[]; hasBattery?: boolean }
 
 const thumbUrl = (id: number, slot: number, v: number) => {
   const u = mediaUrl(`/api/games/${id}/saves/${slot}/thumb`)

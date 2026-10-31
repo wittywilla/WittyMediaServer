@@ -54,6 +54,7 @@ type GameMeta struct {
 	Plays      int               `json:"plays"`
 	LastPlayed int64             `json:"lastPlayed"` // seconds since 1970; 0 for never
 	Cheats     []wittyplay.Cheat `json:"cheats"`
+	HasBattery bool              `json:"hasBattery"` // it has a battery save to download
 }
 
 // GetGameMeta reads what a person keeps about a game.

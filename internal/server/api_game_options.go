@@ -320,6 +320,10 @@ func (s *Server) applyToRunningGame(ctx context.Context, userID int64, console s
 		return
 	}
 	res := wittyplay.Resolve(s.gameLayers(ctx, userID, it.Console, it.ID))
+	if sess.Safe() {
+		return
+	}
+	sess.SetAutoSave(res.Values["states.autoSave"] != false)
 	if err := sess.Apply(wittyplay.ControlFor(res.Values, s.gameLimits(ctx)), res.CoreOptions); err != nil {
 		s.Log.Debug("applying game settings", "err", err)
 	}
@@ -362,6 +366,9 @@ func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console st
 	if err != nil {
 		s.Log.Debug("asking a core for its options", "core", coreID, "err", err)
 		return nil, coreID
+	}
+	if len(opts) == 0 {
+		return nil, coreID // this core only says with a game loaded
 	}
 	s.keepCoreOptions(coreID, opts)
 	out := make([]wittyplay.OptionInfo, 0, len(opts))
@@ -493,6 +500,8 @@ func (s *Server) handleGameMeta(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	_, statErr := os.Stat(filepath.Join(s.games().saveDir(userFrom(r).ID, it.ID), "save.srm"))
+	m.HasBattery = statErr == nil
 	writeJSON(w, 200, m)
 }
 
@@ -533,6 +542,8 @@ func (s *Server) handleGameMetaPut(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	_, statErr := os.Stat(filepath.Join(s.games().saveDir(id, it.ID), "save.srm"))
+	m.HasBattery = statErr == nil
 	writeJSON(w, 200, m)
 }
 

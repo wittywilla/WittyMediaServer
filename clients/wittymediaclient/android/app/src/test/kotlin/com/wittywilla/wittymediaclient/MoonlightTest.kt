@@ -1,5 +1,6 @@
 package com.wittywilla.wittymediaclient
 
+import com.wittywilla.wittymediaclient.net.GAME_PCS_PATH
 import com.wittywilla.wittymediaclient.net.Item
 import com.wittywilla.wittymediaclient.net.MoonlightStart
 import com.wittywilla.wittymediaclient.net.RigChoice
@@ -12,6 +13,11 @@ import com.wittywilla.wittymediaclient.net.json
 import com.wittywilla.wittymediaclient.net.moonlightStart
 import com.wittywilla.wittymediaclient.net.moonlightStoreLinks
 import com.wittywilla.wittymediaclient.net.rigChoice
+import com.wittywilla.wittymediaclient.net.rigOtherChoice
+import com.wittywilla.wittymediaclient.net.rigPlayerPath
+import com.wittywilla.wittymediaclient.net.sameServer
+import com.wittywilla.wittymediaclient.net.sessionCookie
+import com.wittywilla.wittymediaclient.net.staysInWebPlayer
 import com.wittywilla.wittymediaclient.net.rigOsName
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
@@ -23,7 +29,7 @@ import org.junit.Test
 class MoonlightTest {
     private val extras = mapOf("UUID" to "ABC-123", "AppId" to "42", "AppName" to "Space Game")
     private val intent = RigMethod(kind = "intent", packageName = "com.limelight", activity = "com.limelight.ShortcutTrampoline", extras = extras, note = "Pair first.")
-    private val bridge = RigMethod(kind = "bridge", url = "https://home.example:47900/wms-ticket/x", note = "Keyboard only.")
+    private val client = RigMethod(kind = "client", label = "Play here", note = "Keyboard only.")
     private val steps = RigMethod(kind = "steps", steps = listOf("Open the Moonlight app."))
 
     @Test
@@ -79,20 +85,59 @@ class MoonlightTest {
     private fun play(vararg methods: RigMethod) = RigPlay(ready = true, methods = methods.toList())
 
     @Test
-    fun theIntentComesFirst() {
-        val choice = rigChoice(play(bridge, intent, steps), isTv = false)
-        assertEquals("Pair first.", (choice as RigChoice.Open).note)
+    fun phonesPlayInThePageWithMoonlightSecond() {
+        val answer = play(client, intent, steps)
+        assertEquals(RigChoice.InPage("Keyboard only."), rigChoice(answer, isTv = false))
+        assertEquals("Pair first.", (rigOtherChoice(answer, isTv = false) as RigChoice.Open).note)
     }
 
     @Test
-    fun aBrowserIsOnlyOfferedOffATv() {
-        assertEquals(RigChoice.Browser(bridge.url, bridge.note), rigChoice(play(bridge, steps), isTv = false))
-        assertEquals(RigChoice.Steps(steps.steps), rigChoice(play(bridge, steps), isTv = true))
+    fun tvsGoToMoonlightWithThePageSecond() {
+        val answer = play(client, intent, steps)
+        assertEquals("Pair first.", (rigChoice(answer, isTv = true) as RigChoice.Open).note)
+        assertEquals(RigChoice.InPage("Keyboard only."), rigOtherChoice(answer, isTv = true))
     }
 
     @Test
-    fun onlyWebLinksGoToABrowser() {
-        assertEquals(RigChoice.Steps(steps.steps), rigChoice(play(bridge.copy(url = "intent://x#Intent;end"), steps), isTv = false))
+    fun aTvWithNoMoonlightRouteStillHasThePage() {
+        assertEquals(RigChoice.InPage("Keyboard only."), rigChoice(play(client), isTv = true))
+        assertNull(rigOtherChoice(play(client), isTv = true))
+    }
+
+    @Test
+    fun withoutThePageMoonlightOrStepsAreLeft() {
+        assertEquals("Pair first.", (rigChoice(play(intent, steps), isTv = false) as RigChoice.Open).note)
+        assertEquals(RigChoice.Steps(steps.steps), rigChoice(play(steps), isTv = false))
+        assertNull(rigOtherChoice(play(steps), isTv = false))
+    }
+
+    @Test
+    fun theWebPlayerKeepsToItsOwnPages() {
+        assertEquals("/moonlight-rig/7", rigPlayerPath(7))
+        for (path in listOf(GAME_PCS_PATH, "/moonlight/3", "/moonlight/3/play/9", "/moonlight-rig/7")) assertTrue(path, staysInWebPlayer(path))
+        for (path in listOf("/", "/item/7", "/moonlights", "/settings", "/login")) assertFalse(path, staysInWebPlayer(path))
+    }
+
+    @Test
+    fun onlyTheSameServerStaysInTheWebView() {
+        val base = "http://192.168.1.5:9797"
+        assertTrue(sameServer("http://192.168.1.5:9797/moonlight-rig/7", base))
+        assertFalse(sameServer("http://192.168.1.5:9798/", base))
+        assertFalse(sameServer("https://192.168.1.5:9797/", base))
+        assertFalse(sameServer("http://192.168.1.5.example.com:9797/", base))
+        assertFalse(sameServer("https://github.com/moonlight-stream", base))
+        assertFalse(sameServer("intent://x#Intent;end", base))
+        assertFalse(sameServer("file:///etc/passwd", base))
+        assertTrue(sameServer("https://home.example/x", "https://home.example:443"))
+    }
+
+    @Test
+    fun theSignInCookieIsTheServersOwnShape() {
+        assertEquals("wms_token=abc123; Path=/; HttpOnly; SameSite=Lax", sessionCookie("abc123", https = false))
+        assertEquals("wms_token=abc123; Path=/; HttpOnly; SameSite=Lax; Secure", sessionCookie("abc123", https = true))
+        assertNull(sessionCookie("", https = false))
+        assertNull(sessionCookie("abc; Domain=example.com", https = false))
+        assertNull(sessionCookie("abc\r\nX: y", https = false))
     }
 
     @Test

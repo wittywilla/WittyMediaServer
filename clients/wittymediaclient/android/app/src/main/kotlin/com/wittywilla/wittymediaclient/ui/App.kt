@@ -43,6 +43,7 @@ sealed interface Route {
     data class Show(val id: Long) : Route { override val key = "show-$id" }
     data class Item(val id: Long) : Route { override val key = "item-$id" }
     data class Player(val id: Long, val startOver: Boolean) : Route { override val key = "player-$id" }
+    data class Web(val path: String) : Route { override val key = "web-$path" }
 }
 
 // How long a saved server's ID is looked for when its address stops answering.
@@ -269,6 +270,7 @@ fun AppRoot(app: WittyApp) {
                 is Route.Show -> ShowScreen(nav, route.id)
                 is Route.Item -> ItemScreen(nav, route.id)
                 is Route.Player -> PlayerScreen(nav, route.id, route.startOver)
+                is Route.Web -> WebPlayerScreen(nav, route)
             }
         }
     }

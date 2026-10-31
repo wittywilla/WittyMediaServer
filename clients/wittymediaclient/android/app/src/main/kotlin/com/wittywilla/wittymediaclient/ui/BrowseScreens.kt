@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.wittywilla.wittymediaclient.net.GAME_PCS_PATH
 import com.wittywilla.wittymediaclient.net.Home
 import com.wittywilla.wittymediaclient.net.Item
 import com.wittywilla.wittymediaclient.net.Library
@@ -77,6 +78,11 @@ fun HomeScreen(nav: Nav, s: Map<String, String>) {
     var home by remember { mutableStateOf<Home?>(null) }
     var error by remember { mutableStateOf("") }
     var attempt by remember { mutableStateOf(0) }
+    var gamePcs by remember { mutableStateOf(false) }
+    // Phones and tablets only: see rigChoice for why TVs don't play in the page.
+    LaunchedEffect(Unit) {
+        if (!nav.app.isTv && !nav.app.isFireTv) gamePcs = runCatching { nav.app.api.moonlightStatus().allowed }.getOrDefault(false)
+    }
     LaunchedEffect(attempt) {
         error = ""
         try {
@@ -97,6 +103,7 @@ fun HomeScreen(nav: Nav, s: Map<String, String>) {
                         items(libraries, key = { it.id }) { lib ->
                             ActionButton(lib.name, { nav.push(Route.Library(lib)) }, requestFocus = lib.id == libraries.first().id)
                         }
+                        if (gamePcs) item(key = "gamepcs") { ActionButton("Game PCs", { nav.push(Route.Web(GAME_PCS_PATH)) }) }
                         item(key = "signout") { ActionButton("Switch profile", nav::signOut) }
                     }
                 }

@@ -1,11 +1,15 @@
 import Foundation
 
-// A game on someone's own PC, which plays in the separately installed Moonlight app.
+// A game on someone's own PC. On iPhone and iPad it plays in the server's own page, in a web
+// view. The separately installed Moonlight app is the fallback.
 //
-// Why these apps can't simply start it: no Moonlight client on an Apple device has a URL
-// scheme, so nothing can open it or even tell whether it's installed. And Moonlight's code
-// can never go inside this app, because GPL-3.0 and App Store terms don't mix. So on Apple
-// TV, iPhone and iPad the app starts the game on the PC and says plainly what to do next.
+// Why these apps can't simply start Moonlight: no Moonlight client on an Apple device has a URL
+// scheme, so nothing can open it or even tell whether it's installed. And Moonlight's code can
+// never go inside this app, because GPL-3.0 and App Store terms are widely held to conflict.
+//
+// Apple TV has no web view at all, as tvOS doesn't offer WebKit to apps, so there the app can
+// only start the game on the PC and say plainly what to do next. A separate Apple TV app under
+// the GPL, published on its own terms, is the only way to do better: that's the owner's decision.
 
 public struct RigInfo: Decodable, Equatable {
     public let id: Int64
@@ -18,7 +22,6 @@ public struct RigMethod: Decodable, Equatable {
     public let kind: String
     public let label: String?
     public let note: String?
-    public let url: String?
     public let args: [String]?
     public let steps: [String]?
 }
@@ -50,9 +53,11 @@ public struct RigPlay: Decodable, Equatable {
 
     public var isReady: Bool { ready == true }
 
-    /// Browser play. The link is good once, for two minutes, so ask again just before using it.
-    public var bridgeURL: URL? {
-        methods?.first { $0.kind == "bridge" }?.url.flatMap(RigPlay.webLink)
+    /// Whether the server's own page can play this here, which it offers first when it can.
+    public var playsInPage: Bool { methods?.first?.kind == "client" }
+
+    public var inPageNote: String? {
+        methods?.first { $0.kind == "client" }?.note
     }
 
     /// What the desktop Moonlight would be run with, if the server offered that and it's safe.
@@ -74,6 +79,35 @@ public struct RigStarted: Decodable, Equatable {
 public struct RigWake: Decodable, Equatable {
     public let ok: Bool?
     public let note: String?
+}
+
+/// The server's own pages for playing, kept to that server in a web view.
+public enum WebPlayer {
+    public static let gamePCsPath = "/moonlight"
+    public static func rigPath(_ gameId: Int64) -> String { "/moonlight-rig/\(gameId)" }
+
+    /// Going anywhere else in the web interface means going back to this app's own screens.
+    public static func staysInside(path: String) -> Bool {
+        path == gamePCsPath || path.hasPrefix(gamePCsPath + "/") || path.hasPrefix("/moonlight-rig/")
+    }
+
+    private static func effectivePort(_ url: URL) -> Int? {
+        if let port = url.port { return port }
+        switch url.scheme?.lowercased() {
+        case "https": return 443
+        case "http": return 80
+        default: return nil
+        }
+    }
+
+    public static func sameServer(_ url: URL, base: String) -> Bool {
+        guard let server = URL(string: base), let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              let host = url.host else { return false }
+        return scheme == server.scheme?.lowercased() && host.lowercased() == server.host?.lowercased() && effectivePort(url) == effectivePort(server)
+    }
+
+    /// Only web links leave for a browser: anything else could open other apps.
+    public static func isWebLink(_ url: URL) -> Bool { RigPlay.webLink(url.absoluteString) != nil }
 }
 
 /// Starting the desktop Moonlight program on a Mac. A server could send anything, so what it

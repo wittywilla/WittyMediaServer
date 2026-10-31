@@ -89,6 +89,16 @@ function findMoonlight({ platform = process.platform, env = process.env, home = 
   return flatpak && installed ? { command: flatpak, prefix: ['run', FLATPAK_APP] } : null
 }
 
+const ANY_PAGE = new Set(['fullscreen', 'clipboard-sanitized-write'])
+
+// What a page may have. The player in the server's page locks the mouse to the video, and
+// that's for the server's own origin, not whatever else ends up in a frame.
+function permissionAllowed(permission, url, server) {
+  if (ANY_PAGE.has(permission)) return true
+  if (permission !== 'pointerLock' || !server) return false
+  try { return new URL(url).origin === server } catch { return false }
+}
+
 const status = (find = findMoonlight) => ({ installed: find() !== null })
 
 // One launcher per app, so the gap between starts holds whoever asks.
@@ -109,4 +119,4 @@ function launcher({ find = findMoonlight, run = spawn, now = Date.now } = {}) {
   })
 }
 
-module.exports = { validArgs, validHost, validApp, findMoonlight, status, launcher, MIN_GAP_MS, NOT_INSTALLED, REFUSED, FAILED, TOO_SOON }
+module.exports = { permissionAllowed, validArgs, validHost, validApp, findMoonlight, status, launcher, MIN_GAP_MS, NOT_INSTALLED, REFUSED, FAILED, TOO_SOON }

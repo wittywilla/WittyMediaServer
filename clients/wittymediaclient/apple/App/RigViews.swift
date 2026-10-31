@@ -1,8 +1,9 @@
 import SwiftUI
 import WittyKit
 
-// A game on someone's own PC. The honest reason this doesn't simply open Moonlight, and why
-// Moonlight is never inside this app (GPL-3.0 and App Store), is at the top of WittyKit's Rigs.swift.
+// A game on someone's own PC. Why iPhone and iPad use the server's page, why Apple TV can't, why
+// nothing here can open Moonlight, and why Moonlight is never inside this app (GPL-3.0 and the App
+// Store) are all at the top of WittyKit's Rigs.swift.
 
 #if os(tvOS)
 private let rigOS = "tvos"
@@ -13,7 +14,7 @@ private let rigOS = "ios"
 #endif
 
 // The server only offers a command to run for the desktop kind of client. A Mac is the one
-// Apple device that has that kind of Moonlight, so it asks as one.
+// Apple device that has that kind of Moonlight, so it asks as one, on purpose.
 #if os(macOS)
 private let rigClient = "desktop"
 #else
@@ -43,7 +44,6 @@ private func runMoonlight(_ args: [String]) -> Bool {
 /// Nothing here is ever disabled, because on Apple TV a disabled button loses the focus.
 struct RigPlayPanel: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.openURL) private var openURL
     let item: Item
     @State private var play: RigPlay?
     @State private var steps: [String] = []
@@ -71,7 +71,17 @@ struct RigPlayPanel: View {
     }
 
     @ViewBuilder private func playing(_ play: RigPlay) -> some View {
+        #if os(iOS)
+        if play.playsInPage {
+            if let note = play.inPageNote, !note.isEmpty { Text(note).foregroundStyle(.secondary) }
+            NavigationLink("Play here", value: Route.web(WebPlayer.rigPath(item.id)))
+        }
+        #endif
         #if os(macOS)
+        if play.playsInPage, let url = model.client.mediaURL(WebPlayer.rigPath(item.id)) {
+            // No web view here, as a Mac has real browsers. It may need signing in there.
+            Link("Play in your browser", destination: url)
+        }
         if let args = play.moonlightArgs, FileManager.default.isExecutableFile(atPath: MoonlightCommand.macProgram) {
             Button("Open in Moonlight") {
                 if !runMoonlight(args) { error = "Moonlight couldn't be started. Start the game on the PC instead." }
@@ -84,17 +94,6 @@ struct RigPlayPanel: View {
                 steps = started.steps ?? []
             }
         }
-        #if !os(tvOS)
-        if play.bridgeURL != nil {
-            // Its link only works once and soon, so get a fresh one for the press.
-            Button("Play in your browser") {
-                work {
-                    try await ask()
-                    if let url = self.play?.bridgeURL { openURL(url) }
-                }
-            }
-        }
-        #endif
     }
 
     var body: some View {

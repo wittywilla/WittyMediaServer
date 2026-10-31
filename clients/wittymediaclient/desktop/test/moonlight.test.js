@@ -3,7 +3,21 @@ const test = require('node:test')
 const assert = require('node:assert')
 const { EventEmitter } = require('node:events')
 const path = require('node:path')
-const { validArgs, validHost, validApp, findMoonlight, status, launcher, MIN_GAP_MS, NOT_INSTALLED, REFUSED, FAILED, TOO_SOON } = require('../moonlight.js')
+const { permissionAllowed, validArgs, validHost, validApp, findMoonlight, status, launcher, MIN_GAP_MS, NOT_INSTALLED, REFUSED, FAILED, TOO_SOON } = require('../moonlight.js')
+
+test('only the server page can lock the mouse, and nothing else new is allowed', () => {
+  const server = 'http://192.168.1.5:9797'
+  assert.ok(permissionAllowed('pointerLock', 'http://192.168.1.5:9797/moonlight-rig/7', server))
+  assert.ok(permissionAllowed('pointerLock', 'http://192.168.1.5:9797/', server))
+  assert.ok(!permissionAllowed('pointerLock', 'http://192.168.1.5:9798/', server))
+  assert.ok(!permissionAllowed('pointerLock', 'https://example.com/', server))
+  assert.ok(!permissionAllowed('pointerLock', 'file:///connect/index.html', ''))
+  assert.ok(!permissionAllowed('pointerLock', 'not a url', server))
+  assert.ok(permissionAllowed('fullscreen', 'https://example.com/', server))
+  for (const perm of ['media', 'geolocation', 'notifications', 'keyboardLock', 'display-capture', 'openExternal']) {
+    assert.ok(!permissionAllowed(perm, 'http://192.168.1.5:9797/', server), perm)
+  }
+})
 
 test('addresses: names, IPv4 and [IPv6], with a port if needed', () => {
   for (const good of ['gaming-pc', 'pc.local', 'pc.example.com', '192.168.1.20', '192.168.1.20:48010', 'pc:47989', '[::1]', '[fd00::20]:48010', '[2001:db8::1]']) {

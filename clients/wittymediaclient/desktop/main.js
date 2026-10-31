@@ -269,10 +269,12 @@ else {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus() } })
   app.whenReady().then(() => {
     saved = state.load(stateFile())
-    // Pages may go fullscreen and copy text. Camera, location and the rest stay off.
-    const allow = new Set(['fullscreen', 'clipboard-sanitized-write'])
-    session.defaultSession.setPermissionRequestHandler((_wc, perm, done) => done(allow.has(perm)))
-    session.defaultSession.setPermissionCheckHandler((_wc, perm) => allow.has(perm))
+    // Pages may go fullscreen and copy text, and the server's own may lock the mouse for a
+    // game. Camera, location and the rest stay off. WebRTC to receive a stream and the
+    // Gamepad API don't ask for anything.
+    const allowed = (perm, url) => moonlight.permissionAllowed(perm, url, server)
+    session.defaultSession.setPermissionRequestHandler((_wc, perm, done, details) => done(allowed(perm, details.requestingUrl)))
+    session.defaultSession.setPermissionCheckHandler((_wc, perm, origin) => allowed(perm, origin))
     createWindow()
   })
   app.on('window-all-closed', () => app.quit())

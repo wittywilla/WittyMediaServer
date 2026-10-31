@@ -59,6 +59,10 @@ public struct Library: Decodable, Identifiable, Hashable {
     public var isRigGames: Bool { type == "games" && console == "rig" }
 }
 
+public struct MoonlightStatus: Decodable, Equatable {
+    public let allowed: Bool?
+}
+
 public struct Progress: Decodable, Equatable {
     public let positionSec: Double?
     public let durationSec: Double?

@@ -99,10 +99,14 @@ struct HomeView: View {
     @EnvironmentObject private var model: AppModel
     @State private var home: Home?
     @State private var error = ""
+    @State private var gamePCs = false
 
     private func load() async {
         error = ""
         do { home = try await model.client.home() } catch { self.error = model.handle(error) }
+        #if os(iOS)
+        gamePCs = (try? await model.client.moonlightStatus())?.allowed == true
+        #endif
     }
 
     var body: some View {
@@ -121,6 +125,7 @@ struct HomeView: View {
                                 ForEach((home.libraries ?? []).filter { browsableTypes.contains($0.type) || $0.isRigGames }) { library in
                                     NavigationLink(library.name, value: Route.library(library))
                                 }
+                                if gamePCs { NavigationLink("Game PCs", value: Route.web(WebPlayer.gamePCsPath)) }
                                 Button("Switch profile") { model.signOut() }
                             }
                             .padding(.vertical, 8)

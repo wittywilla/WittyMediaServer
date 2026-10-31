@@ -228,7 +228,6 @@ data class RigMethod(
     val kind: String = "",
     val label: String = "",
     val note: String = "",
-    val url: String = "",
     @SerialName("package") val packageName: String = "",
     val activity: String = "",
     val extras: Map<String, String> = emptyMap(),
@@ -253,6 +252,9 @@ data class RigPlay(
     val install: RigInstall? = null,
     val setup: List<String> = emptyList(),
 )
+
+@Serializable
+data class MoonlightStatus(val allowed: Boolean = false)
 
 @Serializable
 data class RigWake(val ok: Boolean = false, val note: String = "")

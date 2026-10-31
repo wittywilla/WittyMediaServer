@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,10 +22,11 @@ import com.wittywilla.wittymediaclient.net.RigChoice
 import com.wittywilla.wittymediaclient.net.RigInstall
 import com.wittywilla.wittymediaclient.net.RigPlay
 import com.wittywilla.wittymediaclient.net.RigPlayRequest
-import com.wittywilla.wittymediaclient.net.isWebLink
 import com.wittywilla.wittymediaclient.net.moonlightStoreLinks
 import com.wittywilla.wittymediaclient.net.rigChoice
+import com.wittywilla.wittymediaclient.net.rigOtherChoice
 import com.wittywilla.wittymediaclient.net.rigOsName
+import com.wittywilla.wittymediaclient.net.rigPlayerPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -54,9 +56,9 @@ private fun missingMoonlight(install: RigInstall?, storeOpened: Boolean): String
     else "Moonlight isn't on this device, or is too old, and the store couldn't be opened. Search this device's store for $name, then press Play again."
 }
 
-// A game on someone's own PC. Play asks the server what this device can do, and hands over
-// to Moonlight where that's possible. Nothing here is ever disabled, because a disabled
-// button loses the focus and leaves a remote with nowhere to go.
+// A game on someone's own PC. Play asks the server what this device can do, then plays it in
+// the server's page or hands over to Moonlight (see rigChoice). Nothing here is ever disabled,
+// because a disabled button loses the focus and leaves a remote with nowhere to go.
 @Composable
 fun RigPlayPanel(nav: Nav, item: Item) {
     val context = LocalContext.current
@@ -95,11 +97,26 @@ fun RigPlayPanel(nav: Nav, item: Item) {
         }
     }
 
-    fun ask() = work {
+    suspend fun fetch(): RigPlay {
         val answer = app.api.rigPlay(item.id, RigPlayRequest("android", rigOsName(app.isTv, app.isFireTv)))
         play = answer
-        val choice = if (answer.ready) rigChoice(answer, isTv) else null
-        if (choice is RigChoice.Open && !openMoonlight(context, choice.start)) getMoonlight(answer.install)
+        return answer
+    }
+
+    fun go(choice: RigChoice, answer: RigPlay) {
+        when (choice) {
+            is RigChoice.InPage -> nav.push(Route.Web(rigPlayerPath(item.id)))
+            is RigChoice.Open -> if (!openMoonlight(context, choice.start)) getMoonlight(answer.install)
+            else -> Unit
+        }
+    }
+
+    // It starts nothing on the PC, so it can say up front whether the PC is awake.
+    LaunchedEffect(item.id) { work { fetch() } }
+
+    fun ask() = work {
+        val answer = fetch()
+        if (answer.ready) go(rigChoice(answer, isTv), answer)
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -115,24 +132,22 @@ fun RigPlayPanel(nav: Nav, item: Item) {
                 }
             } else {
                 when (val choice = rigChoice(p, isTv)) {
-                    is RigChoice.Open -> {
-                        if (choice.note.isNotEmpty()) Secondary(choice.note)
-                        if (missing) ActionButton("Get Moonlight", { getMoonlight(p.install) })
-                    }
-                    is RigChoice.Browser -> {
-                        ActionButton("Open in your browser", {
-                            if (isWebLink(choice.url) && !openLink(context, choice.url)) said = "This device has no browser to open it in."
-                        })
-                        if (choice.note.isNotEmpty()) Secondary(choice.note)
-                    }
+                    is RigChoice.InPage -> if (choice.note.isNotEmpty()) Secondary(choice.note)
+                    is RigChoice.Open -> if (choice.note.isNotEmpty()) Secondary(choice.note)
                     is RigChoice.Steps -> choice.steps.forEach { Secondary(it) }
                     RigChoice.None -> if (p.message.isEmpty()) Secondary("Nothing on this device can reach this PC from here.")
                 }
+                when (val other = rigOtherChoice(p, isTv)) {
+                    is RigChoice.Open -> ActionButton("Open in Moonlight instead", { go(other, p) })
+                    is RigChoice.InPage -> ActionButton("Play in this app instead", { go(other, p) })
+                    else -> Unit
+                }
+                if (missing) ActionButton("Get Moonlight", { getMoonlight(p.install) })
                 if (missing || rigChoice(p, isTv) is RigChoice.Steps) p.install?.let { install ->
                     val license = if (install.license.isEmpty()) "" else " (${install.license})"
                     Secondary("${install.name} is a separate, free app$license. ${install.note}".trim())
                 }
-                if (p.setup.isNotEmpty()) {
+                if (p.setup.isNotEmpty() && (missing || rigChoice(p, isTv) !is RigChoice.InPage)) {
                     ActionButton(if (showSetup) "Hide the setup steps" else "How to set up Moonlight", { showSetup = !showSetup })
                     if (showSetup) p.setup.forEach { Secondary(it) }
                 }

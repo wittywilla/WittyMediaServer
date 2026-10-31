@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -249,8 +250,9 @@ func TestOnARealNetwork(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	info := testInfo
 	info.Name = "Discovery test"
-	on := true
-	s := &Service{Info: func() Info { return info }, Enabled: func() bool { return on }, Log: log}
+	var on atomic.Bool
+	on.Store(true)
+	s := &Service{Info: func() Info { return info }, Enabled: on.Load, Log: log}
 	nets := s.interfaces()
 	if len(nets) == 0 {
 		t.Skip("no network here that multicasts")
@@ -296,7 +298,7 @@ func TestOnARealNetwork(t *testing.T) {
 	} else if !strings.Contains(string(reply), info.ID) {
 		t.Errorf("UDP reply: %s", reply)
 	}
-	on = false
+	on.Store(false)
 	s.Refresh()
 	time.Sleep(600 * time.Millisecond)
 	if b := ask(&net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}, question(t, 6, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET)); b != nil {

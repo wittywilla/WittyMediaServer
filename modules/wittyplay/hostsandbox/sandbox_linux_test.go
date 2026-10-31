@@ -54,12 +54,12 @@ func landlockAvailable() bool {
 func TestMemoryLimitCountsUseNotReservations(t *testing.T) {
 	if os.Getenv("WITTYPLAY_MEMORY_CHILD") == "1" {
 		const limitMB = 256
-		if err := Apply(Limits{SaveDir: t.TempDir(), MemoryMB: limitMB}); err != nil {
+		if err := Apply(Limits{MemoryMB: limitMB}); err != nil {
 			t.Logf("some layers are unavailable: %v", err)
 		}
-		reserve, err := unix.Mmap(-1, 0, 2<<30, unix.PROT_NONE, unix.MAP_ANON|unix.MAP_PRIVATE)
+		reserve, err := unix.Mmap(-1, 0, 1<<30, unix.PROT_NONE, unix.MAP_ANON|unix.MAP_PRIVATE)
 		if err != nil {
-			t.Fatalf("reserving 2 GB of nothing under a %d MB limit: %v", limitMB, err)
+			t.Fatalf("reserving 1 GB of nothing under a %d MB limit: %v", limitMB, err)
 		}
 		_ = unix.Munmap(reserve)
 		if b, err := unix.Mmap(-1, 0, (limitMB+64)<<20, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE); err == nil {

@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittyplay/engine"
@@ -155,6 +156,7 @@ type videoEncoder struct {
 	sent    timeRing      // when each frame still inside the encoder went in
 	gotOnce sync.Once
 	stopped chan struct{}
+	asked   atomic.Bool // stop was called, so ending without a frame is no failure
 }
 
 func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps float64) (*videoEncoder, error) {
@@ -226,7 +228,7 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		select {
 		case <-e.got:
 		default:
-			if ctx.Err() == nil { // it never produced a frame, and nobody stopped it
+			if ctx.Err() == nil && !e.asked.Load() { // it never produced a frame, and nobody stopped it
 				s.log.Warn("video encoder failed to start; trying the next", "encoder", name, "err", err, "stderr", stderr.String())
 				s.markBadEncoder(name)
 				s.encoderDied(e)
@@ -244,6 +246,7 @@ func encoderPixFmt(name string) string {
 }
 
 func (e *videoEncoder) stop() {
+	e.asked.Store(true)
 	_ = e.stdin.Close()
 	go func() {
 		select {

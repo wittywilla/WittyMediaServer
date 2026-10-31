@@ -507,5 +507,25 @@ func TestGPUGamesPreferHardwareEncoders(t *testing.T) {
 	soft := &Session{m: m, cfg: m.config()}
 	if got := soft.chain("h264"); got[0] != "h264_qsv" {
 		t.Errorf("software game's encoders: %v", got)
+
+// A game can change resolution twice in a moment, so an encoder can be stopped
+// before it has made a frame. That says nothing against the encoder.
+func TestStoppingAnEncoderEarlyIsNoFailure(t *testing.T) {
+	ff := findFFmpeg(t)
+	has := haveEncoder(ff)
+	name := "libx264"
+	if !has(name) {
+		t.Skip("this FFmpeg has no libx264")
+	}
+	m := NewManager(Config{FFmpeg: ff, HaveEncoder: has})
+	s := &Session{m: m, cfg: m.cfg, log: m.log}
+	e, err := s.startVideoEncoder("h264", name, ipc.VideoHeader{Width: 64, Height: 64, Format: 1}, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.stop()
+	<-e.stopped
+	if m.badEnc[name] {
+		t.Fatal("the encoder was blamed for being stopped")
 	}
 }

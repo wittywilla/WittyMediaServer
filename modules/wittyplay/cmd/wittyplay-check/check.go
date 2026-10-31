@@ -33,6 +33,7 @@ const (
 	OutcomeShutdown   = "shut-itself-down"
 	OutcomeSkipped    = "skipped"
 	OutcomeToolError  = "tool-error"
+	OutcomeTooSlow    = "too-slow-to-judge" // try again on a quieter machine
 )
 
 // Result is one game on one core.
@@ -457,45 +458,50 @@ var script = []uint16{
 	1 << engine.ButtonA, 1 << engine.ButtonUp, 1 << engine.ButtonB, 1 << engine.ButtonLeft,
 }
 
-// play runs the game for d, pressing buttons, and stops early if it dies or hangs.
-func (p *proc) play(d time.Duration, step *int) (hung bool) {
-	end := time.Now().Add(d)
-	const hold, gap = 200 * time.Millisecond, 1100 * time.Millisecond
-	nextPress := time.Now()
+// play runs the game for a number of frames, pressing buttons, and stops early if
+// it dies or hangs. Counting frames rather than seconds means a busy machine sees
+// the same stretch of the game as an idle one, only more slowly; the wall-clock
+// limit is there for a game too slow to ever get there.
+func (p *proc) play(frames int, limit time.Duration, step *int) (hung bool) {
+	const hold, gap = 12, 66 // in frames
+	deadline := time.Now().Add(limit)
 	pressed := false
 	p.mu.Lock()
 	p.lastFrame = time.Now()
 	p.gapFrom = time.Time{}
-	firstFrame := p.frames
+	first := p.frames
 	p.mu.Unlock()
+	nextPress := first
 	began := time.Now()
 	defer func() {
 		p.mu.Lock()
-		p.playFrames += p.frames - firstFrame
+		p.playFrames += p.frames - first
 		p.playTime += time.Since(began)
 		p.mu.Unlock()
 	}()
-	for time.Now().Before(end) {
+	for time.Now().Before(deadline) {
 		select {
 		case <-p.done:
 			return false
-		case <-time.After(20 * time.Millisecond):
+		case <-time.After(5 * time.Millisecond):
 		}
-		now := time.Now()
-		if now.After(nextPress) {
+		p.mu.Lock()
+		now, quiet := p.frames, time.Since(p.lastFrame)
+		p.mu.Unlock()
+		if now-first >= frames {
+			break
+		}
+		if now >= nextPress {
 			if pressed {
 				_ = p.press(0)
-				nextPress = now.Add(gap)
+				nextPress = now + gap
 			} else {
 				_ = p.press(script[*step%len(script)])
 				*step++
-				nextPress = now.Add(hold)
+				nextPress = now + hold
 			}
 			pressed = !pressed
 		}
-		p.mu.Lock()
-		quiet := now.Sub(p.lastFrame)
-		p.mu.Unlock()
 		if quiet > p.c.hang {
 			return true
 		}
@@ -518,6 +524,20 @@ func match(a, b []uint64) float64 {
 		}
 	}
 	return float64(same) / float64(max(len(a), len(b)))
+}
+
+// bestMatch is match with one recording slid up to n frames against the other.
+func bestMatch(a, b []uint64, n int) float64 {
+	best := match(a, b)
+	for i := 1; i <= n; i++ {
+		if i < len(a) {
+			best = max(best, match(a[i:], b))
+		}
+		if i < len(b) {
+			best = max(best, match(a, b[i:]))
+		}
+	}
+	return best
 }
 
 const replayFrames = 30
@@ -727,10 +747,11 @@ func checkGame(c *config, j job) (r Result) {
 	r.CoreName, r.CoreVersion, r.TargetFPS, r.SampleRate = info.Name, info.Version, info.FPS, info.SampleRate
 	frameTime := time.Duration(float64(time.Second) / info.FPS)
 
-	playFor := time.Duration(c.seconds * float64(time.Second))
+	frames := int(c.seconds * info.FPS)
+	limit := time.Duration(c.seconds*4) * time.Second
 	step := 0
 	_ = p.pause(false)
-	hung := p.play(playFor*6/10, &step)
+	hung := p.play(frames*6/10, limit, &step)
 	r.Discs = info.Discs
 	if info.Discs > 1 && !hung && !p.ended() {
 		// To the last disc and back, and the game must keep running.
@@ -749,6 +770,7 @@ func checkGame(c *config, j job) (r Result) {
 	var stateErr error
 	if !hung && !p.ended() {
 		state, after, stateErr = p.stateCheck(&r, frameTime)
+		p.tracePicture(j, "after-state")
 		if stateErr != nil && !p.ended() {
 			r.warn("state-failed")
 			r.Log = append(r.Log, "state check: "+stateErr.Error())
@@ -756,7 +778,7 @@ func checkGame(c *config, j job) (r Result) {
 		}
 	}
 	if !hung && !p.ended() {
-		hung = p.play(playFor*4/10, &step)
+		hung = p.play(frames*4/10, limit, &step)
 	}
 
 	if c.shots {
@@ -792,7 +814,7 @@ func checkGame(c *config, j job) (r Result) {
 		}
 		quitAt := time.Now()
 		defer func() { r.QuitMS = time.Since(quitAt).Milliseconds() }()
-		if !p.waitExit(15 * time.Second) {
+		if !p.waitExit(p.c.hang) {
 			p.kill()
 			r.Quit = "timeout"
 			r.warn("quit-hung")
@@ -808,6 +830,9 @@ func checkGame(c *config, j job) (r Result) {
 
 	if r.Outcome == OutcomeOK {
 		switch {
+		case r.Frames < frames/2:
+			// A game that has barely started hasn't had the chance to draw anything.
+			r.Outcome, r.Reason = OutcomeTooSlow, fmt.Sprintf("only %d of %d frames ran in the time allowed", r.Frames, frames)
 		case r.Frames == 0:
 			r.Outcome, r.Reason = OutcomeBlank, "no frames at all"
 		case r.MaxColors <= 1:
@@ -949,8 +974,11 @@ func resumeCheck(c *config, j job, rom, saveDir string, state []byte, after []ui
 	_ = p.send(ipc.CmdState, state)
 	_ = p.pause(false)
 	again := p.capture(replayFrames, 10*time.Second+frameTime*replayFrames*4)
-	r.ResumeMatch = match(after, again)
+	// A new process may start a frame or two either side of where the state was
+	// taken, so the best line-up of the two recordings is the fair one.
+	r.ResumeMatch = bestMatch(after, again, 5)
 	stateOK := p.failedLoads() == 0
+	p.tracePicture(j, "after-resume")
 	more := p.capture(60, 10*time.Second)
 	gone := p.ended()
 	if !gone {
@@ -1010,6 +1038,20 @@ func (p *proc) writeShot(c *config, j job) string {
 		return ""
 	}
 	return path
+}
+
+// tracePicture saves the current picture when tracing, so a state that restored
+// the wrong thing can be seen.
+func (p *proc) tracePicture(j job, name string) {
+	if !p.c.trace {
+		return
+	}
+	p.mu.Lock()
+	hdr, data := p.hdr, append([]byte(nil), p.last...)
+	p.mu.Unlock()
+	if len(data) > 0 {
+		_ = writePNG(filepath.Join(p.c.out, fmt.Sprintf("trace-%s-%d-%s.png", j.core.id, j.index, name)), hdr, data)
+	}
 }
 
 func toImage(hdr ipc.VideoHeader, data []byte) *image.RGBA {

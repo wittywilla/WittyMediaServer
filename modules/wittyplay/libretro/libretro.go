@@ -116,7 +116,6 @@ type Core struct {
 	problemLvl  int
 	disk        *diskControl
 	ports       int     // how many controller ports the core described
-	quirks      uint64  // what the core said about its save states
 	fnFrameTime uintptr // called before each frame with the time since the last
 	frameRef    int64
 	lastRun     time.Time
@@ -315,20 +314,6 @@ func (c *Core) Run() {
 // Reset is the console's reset button.
 func (c *Core) Reset() { purego.SyscallN(c.fnReset) }
 
-// quirkMustInitialize is RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE: the core has to
-// run before a state can be restored or taken.
-const quirkMustInitialize = 1 << 1
-
-// NeedsFramesBeforeState says how many frames must run before a state can be
-// restored. A core that asks for this gets a few, as "initialized" isn't defined
-// more exactly than that.
-func (c *Core) NeedsFramesBeforeState() int {
-	if c.quirks&quirkMustInitialize != 0 {
-		return 2
-	}
-	return 0
-}
-
 // SaveState returns a snapshot of the machine, or nil when the core has none.
 func (c *Core) SaveState() []byte {
 	n, _, _ := purego.SyscallN(c.fnSerializeSize)
@@ -347,6 +332,9 @@ func (c *Core) LoadState(b []byte) bool {
 	if len(b) == 0 {
 		return false
 	}
+	// Some cores only learn their state size when asked for it, and refuse a state
+	// until they have been: a new process hasn't saved one yet.
+	purego.SyscallN(c.fnSerializeSize)
 	ok, _, _ := purego.SyscallN(c.fnUnserialize, uintptr(unsafe.Pointer(&b[0])), uintptr(len(b)))
 	return ok&0xff != 0
 }
@@ -613,8 +601,6 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		// The extended form only adds to the end of the same list.
 		c.disk = &diskControl{}
 		*c.disk = *(*diskControl)(data)
-	case envSetQuirks:
-		c.quirks = *(*uint64)(data)
 	case envSetControllerInfo:
 		c.ports = countControllerPorts(data)
 	case envGetInputBitmasks:
@@ -662,7 +648,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Shutdown != nil {
 			c.h.Shutdown()
 		}
-	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo, envSetSupportNoGame, envSetMemoryMaps, envSetAchievements:
+	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo, envSetSupportNoGame, envSetMemoryMaps, envSetAchievements, envSetQuirks:
 		// Noted, and needed by nothing here.
 	case envGetJITCapable:
 		*(*bool)(data) = true

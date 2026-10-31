@@ -52,13 +52,13 @@ func main() {
 	flag.IntVar(&c.memoryMB, "memory-mb", 2048, "the runner's memory limit, as on a server")
 	flag.IntVar(&c.limit, "limit", 0, "stop after this many games per core")
 	flag.IntVar(&c.every, "every", 1, "test only every Nth game")
-	flag.Float64Var(&c.seconds, "seconds", 30, "seconds to play each game")
-	flag.DurationVar(&c.loadTimeout, "load-timeout", 30*time.Second, "how long a game may take to load, as on a server")
-	flag.DurationVar(&c.hang, "hang", 15*time.Second, "no frame for this long is a hang")
+	flag.Float64Var(&c.seconds, "seconds", 30, "how much of each game to play, in seconds of game time; a busy machine takes longer")
+	flag.DurationVar(&c.loadTimeout, "load-timeout", 2*time.Minute, "how long a game may take to load; a server allows 30s, and a busy machine needs more")
+	flag.DurationVar(&c.hang, "hang", time.Minute, "no frame for this long is a hang")
 	flag.BoolVar(&c.install, "install", false, "install the console's offered cores with the app's own installer first")
 	flag.BoolVar(&c.smoke, "smoke", false, "with no games: check that each core opens in the sandboxed runner and refuses junk without crashing")
 	flag.BoolVar(&c.shots, "shots", true, "write each game's last picture, and contact sheets, to the report folder")
-	flag.BoolVar(&c.keepGoing, "continue", false, "skip games already in the report folder's results.jsonl")
+	flag.BoolVar(&c.keepGoing, "continue", false, "skip games already in the report folder's results.jsonl, except those too slow to judge")
 	flag.BoolVar(&c.trace, "trace", false, "write everything each core says, and what it was refused, to trace-*.log in the report folder")
 	flag.StringVar(&opts, "options", "", "core options: key=value,key=value")
 	flag.Usage = func() {
@@ -159,7 +159,9 @@ func run(c *config, args []string) error {
 	all = append(all, done...)
 	seen := map[string]bool{}
 	for _, r := range done {
-		seen[r.key()] = true
+		if r.Outcome != OutcomeTooSlow {
+			seen[r.key()] = true
+		}
 	}
 
 	var work []job

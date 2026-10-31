@@ -778,11 +778,13 @@ func (s *Session) Done() <-chan struct{} { return s.done }
 // why before their connections close, or they would only see a lost connection.
 func (s *Session) finish() {
 	s.m.remove(s)
+	why := "This game was stopped and saved. It may have been started on another device."
 	if v := s.exitErr.Load(); v != nil && !s.stopping.Load() {
-		if b, err := json.Marshal(ipc.Event{Type: "ended", Text: truncate(v.(string), 300)}); err == nil && len(s.snapshotViewers()) > 0 {
-			s.broadcastEvent(b)
-			time.Sleep(300 * time.Millisecond)
-		}
+		why = v.(string)
+	}
+	if b, err := json.Marshal(ipc.Event{Type: "ended", Text: truncate(why, 300)}); err == nil && len(s.snapshotViewers()) > 0 {
+		s.broadcastEvent(b)
+		time.Sleep(300 * time.Millisecond)
 	}
 	s.viewMu.Lock()
 	vs := make([]*viewer, 0, len(s.viewers))

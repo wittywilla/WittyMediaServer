@@ -266,7 +266,7 @@ function Banner({ info }: { info: TuneInfo }) {
   return (
     <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
       <div className="ctv-banner-ch">
-        {info.logo ? <img src={logoSrc(info.logo)} alt="" /> : null}
+        {logoSrc(info.logo) ? <img src={logoSrc(info.logo)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
         <b>{info.number}</b><span>{info.name}</span>
       </div>
       <div className="ctv-banner-main">

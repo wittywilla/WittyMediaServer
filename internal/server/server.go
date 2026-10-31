@@ -66,9 +66,10 @@ type Server struct {
 	HTTPS     *remote.HTTPS   // the HTTPS port; nil until StartRemote
 	Mapper    *portmap.Keeper // automatic port mapping; nil until StartRemote
 	// Channels and Live TV (see api_channels.go, api_tuners.go).
-	Channels *channels.Store
-	TV       *livetv.Manager
-	silent   sync.Map // tuner channels whose sound can't be decoded here
+	Channels   *channels.Store
+	TV         *livetv.Manager
+	silent     sync.Map // tuner channels whose sound can't be decoded here
+	logoMisses sync.Map // channel logos and sites that gave nothing lately, and when to try again
 
 	mux        *http.ServeMux
 	logins     loginLimiter

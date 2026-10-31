@@ -202,6 +202,10 @@ follows you. See [GAMING.md](docs/GAMING.md).
   dictionary service and podcast search now have their credits.
 - **Removed from the README:** older screenshots. Docs use made-up titles. Every module's README has a Legal
   section. None of this is legal advice.
+- **Privacy:** live TV channel logos now load through the server, so the sites a playlist names never see a
+  viewer's address. Only internet addresses are fetched, never devices on the home network. As with other
+  artwork, SVG logos are not served, so a channel with one shows no logo. **WittyTuner 0.1.1** ignores a
+  playlist logo that isn't a web address.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

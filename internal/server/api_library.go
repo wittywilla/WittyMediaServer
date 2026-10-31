@@ -704,6 +704,11 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 		writeErr(w, 404, "no artwork")
 		return
 	}
+	s.serveArtFile(w, r, f, p)
+}
+
+// serveArtFile sends an open picture, closing it. Anything else is refused.
+func (s *Server) serveArtFile(w http.ResponseWriter, r *http.Request, f *os.File, p string) {
 	defer f.Close()
 	st, err := f.Stat()
 	ct := imageType(f, p)
@@ -744,21 +749,34 @@ func imageType(f io.ReadSeeker, name string) string {
 // cachedRemote downloads a remote image once into the cache, from the
 // internet only (a feed or catalogue must not reach devices on this network).
 func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
+	return s.fetchRemote(ctx, u, 20*time.Second, maxRemoteImage)
+}
+
+// remoteArtPath is where a remote image is kept. The file's name is ours alone:
+// nothing from the address becomes part of it.
+func (s *Server) remoteArtPath(u string) string {
 	h := sha1.Sum([]byte(u))
-	// The file's name is ours alone: nothing from the address becomes part of it.
-	p := filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10]))
+	return filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10]))
+}
+
+// errArtUnreachable: the site gave no answer, or none that could be read to the end.
+var errArtUnreachable = errors.New("artwork fetch failed")
+
+func (s *Server) fetchRemote(ctx context.Context, u string, timeout time.Duration, limit int64) (string, error) {
+	p := s.remoteArtPath(u)
 	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
 		return p, nil
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return "", err
 	}
+	req.Header.Set("User-Agent", "WittyMediaServer") // some sites refuse a request that doesn't say who it is
 	res, err := library.SafeClient.Do(req)
 	if err != nil {
-		return "", errors.New("artwork fetch failed")
+		return "", errArtUnreachable
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -775,16 +793,16 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 	defer os.Remove(tmp)
 	defer f.Close()
 	// A picture bigger than the limit is refused rather than cut short.
-	n, err := io.Copy(f, io.LimitReader(res.Body, maxRemoteImage+1))
+	n, err := io.Copy(f, io.LimitReader(res.Body, limit+1))
 	if err == nil {
 		_, err = f.Seek(0, io.SeekStart)
 	}
 	if err != nil {
-		return "", errors.New("artwork fetch failed")
+		return "", errArtUnreachable
 	}
 	// Only whole pictures stay in the cache: anything else would be kept and
 	// refused again on every request.
-	if n > maxRemoteImage || imageType(f, p) == "" {
+	if n > limit || imageType(f, p) == "" {
 		return "", errors.New("artwork fetch failed: not a picture")
 	}
 	f.Close()

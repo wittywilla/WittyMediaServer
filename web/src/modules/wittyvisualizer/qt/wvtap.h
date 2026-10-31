@@ -6,7 +6,9 @@
 
 #include "wvanalysis.h"
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -20,7 +22,7 @@ public:
     // Audio thread: interleaved 16-bit stereo, as it goes to the device.
     void write(const int16_t *frames, int count)
     {
-        if (!enabled_.load(std::memory_order_relaxed) || count <= 0)
+        if (!enabled() || count <= 0)
             return;
         uint64_t head = head_.load(std::memory_order_relaxed);
         for (int done = 0; done < count;) {
@@ -33,23 +35,52 @@ public:
         head_.store(head, std::memory_order_release);
     }
 
-    void setEnabled(bool on) { enabled_.store(on, std::memory_order_relaxed); }
-    bool enabled() const { return enabled_.load(std::memory_order_relaxed); }
+    // On while anyone wants it: the visualizer is user 1.
+    void setUser(int bit, bool on)
+    {
+        if (on)
+            users_.fetch_or(bit, std::memory_order_relaxed);
+        else
+            users_.fetch_and(~bit, std::memory_order_relaxed);
+    }
+    void setEnabled(bool on) { setUser(1, on); }
+    bool enabled() const { return users_.load(std::memory_order_relaxed) != 0; }
+    uint64_t written() const { return head_.load(std::memory_order_acquire); }
     void setRate(int rate) { rate_.store(rate, std::memory_order_relaxed); }
     int rate() const { return rate_.load(std::memory_order_relaxed); }
     // The sound is handed over this far ahead of being heard, so the picture waits for it.
     void setDelayFrames(int frames) { delay_.store(frames, std::memory_order_relaxed); }
 
-    // Fills both with the kFftSize frames being heard about now. False if nothing has come
-    // in lately, which means something other than this path is making the sound.
+    // The newest frames, interleaved, oldest first, leaving out what's still to be heard.
+    void readInterleaved(int16_t *out, int frames, int behind) const
+    {
+        const uint64_t head = head_.load(std::memory_order_acquire);
+        const uint64_t want = uint64_t(frames) + uint64_t(behind);
+        for (int i = 0; i < frames; i++) {
+            if (head + uint64_t(i) < want) {
+                out[size_t(i) * 2] = out[size_t(i) * 2 + 1] = 0;
+                continue;
+            }
+            const size_t at = size_t((head + uint64_t(i) - want) % kCapacity) * 2;
+            out[size_t(i) * 2] = ring_[at];
+            out[size_t(i) * 2 + 1] = ring_[at + 1];
+        }
+    }
+
+    // Fills both with the kFftSize frames being heard about now. A device that has stopped
+    // pulling (a pause) reads as silence. False if nothing new has come in, and if that goes on
+    // from the start, something other than this path is making the sound.
     bool read(float *left, float *right) const
     {
         const uint64_t head = head_.load(std::memory_order_acquire);
         const uint64_t want = uint64_t(kFftSize) + uint64_t(delay_.load(std::memory_order_relaxed));
         const bool moving = head != lastHead_;
-        if (moving)
+        const auto now = std::chrono::steady_clock::now();
+        if (moving) {
             lastHead_ = head;
-        if (head < want) {
+            lastMoved_ = now;
+        }
+        if (head < want || now - lastMoved_ > std::chrono::milliseconds(300)) {
             std::fill(left, left + kFftSize, 0.f);
             std::fill(right, right + kFftSize, 0.f);
             return moving;
@@ -63,14 +94,16 @@ public:
         return moving;
     }
 
-private:
     static constexpr int kCapacity = 1 << 15; // over half a second at any common rate
+
+private:
     std::vector<int16_t> ring_;
     std::atomic<uint64_t> head_{0};
-    std::atomic<bool> enabled_{false};
+    std::atomic<int> users_{0};
     std::atomic<int> rate_{48000};
     std::atomic<int> delay_{0};
-    mutable uint64_t lastHead_ = 0; // the reader's own
+    mutable uint64_t lastHead_ = 0; // these two are the reader's own
+    mutable std::chrono::steady_clock::time_point lastMoved_{};
 };
 
 } // namespace wv

@@ -1,6 +1,7 @@
 #include "player.h"
 
 #include "audiooutput.h"
+#include "cdstream.h"
 #include "extentreader.h"
 #include "vlcplayback.h"
 
@@ -208,7 +209,7 @@ struct Session {
     // threads it knows about.
     QThread *demuxThread = nullptr, *videoThread = nullptr, *audioThread = nullptr;
 
-    std::unique_ptr<ExtentReader> reader;
+    std::unique_ptr<ByteSource> reader;
     AVFormatContext *fmt = nullptr;
     std::atomic<int> vIndex{-1}, aIndex{-1}, sIndex{-1};
     // Streams stay put when the demuxer finds a new one; its list of them may not.
@@ -551,17 +552,36 @@ struct Session {
         fmt->format_whitelist = av_strdup(kFormats);
         fmt->protocol_whitelist = av_strdup("file");
         const QString native = spec.filePath;
-        int rc = avformat_open_input(&fmt, native.toUtf8().constData(), nullptr, nullptr);
-        if (rc < 0) {
-            fail(QFile::exists(spec.filePath) ? QStringLiteral("WittyMediaPlayer can't read this kind of file.")
-                                              : QStringLiteral("This file can't be found."));
-            return false;
+        int rc;
+        if (spec.cd) {
+            auto stream = std::make_unique<CdStream>(spec.filePath);
+            QString why;
+            if (!stream->begin(&why)) {
+                fail(why);
+                return false;
+            }
+            reader = std::move(stream);
+            fmt->pb = reader->avio();
+            fmt->flags |= AVFMT_FLAG_CUSTOM_IO;
+            rc = avformat_open_input(&fmt, nullptr, av_find_input_format("wav"), nullptr);
+            if (rc < 0) {
+                fail(QStringLiteral("This CD couldn't be read."));
+                return false;
+            }
+        } else {
+            rc = avformat_open_input(&fmt, native.toUtf8().constData(), nullptr, nullptr);
+            if (rc < 0) {
+                fail(QFile::exists(spec.filePath) ? QStringLiteral("WittyMediaPlayer can't read this kind of file.")
+                                                  : QStringLiteral("This file can't be found."));
+                return false;
+            }
         }
         if (avformat_find_stream_info(fmt, nullptr) < 0) {
             fail(QStringLiteral("This file is damaged or isn't a media file."));
             return false;
         }
-        loadSidecars();
+        if (!spec.cd)
+            loadSidecars();
         listTracks();
         // The stream the file itself prefers, and no more decoders than needed.
         vIndex = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -1597,7 +1617,7 @@ void Player::open(const MediaSpec &spec)
 {
     if (vlc_)
         vlc_->stop();
-    vlcActive_ = useVlc_ && vlc_ && vlc_->loaded();
+    vlcActive_ = useVlc_ && vlc_ && vlc_->loaded() && !spec.cd;
     if (vlcActive_) {
         auto previous = session_;
         session_.reset();
@@ -1626,7 +1646,11 @@ void Player::open(const MediaSpec &spec)
     s->paused.store(paused_);
     s->pauseWall(paused_);
     session_ = s;
-    s->demuxThread = QThread::create([p = s.get()] { p->demuxLoop(); });
+    s->demuxThread = QThread::create([p = s.get()] {
+        p->demuxLoop();
+        if (p->reader)
+            p->reader->finishedReading();
+    });
     s->demuxThread->start();
 }
 

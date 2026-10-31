@@ -25,6 +25,8 @@ struct Segment {
 struct MediaSpec {
     // An ordinary file, when set. Everything else then comes from the file.
     QString filePath;
+    // That path is an audio CD, a drive or an image, read through the helper as one WAV.
+    bool cd = false;
 
     // A disc: byte ranges to decode as one stream.
     QString token;

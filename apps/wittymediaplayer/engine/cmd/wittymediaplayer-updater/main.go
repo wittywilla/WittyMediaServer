@@ -4,15 +4,24 @@
 //
 //	wittymediaplayer-updater --check
 //	wittymediaplayer-updater --install <module> <version>
+//
+// It also looks CDs up in MusicBrainz, when the viewer asks, sending only the disc's table
+// of contents:
+//
+//	wittymediaplayer-updater --cd-lookup <disc id> <toc> <tracks>
+//	wittymediaplayer-updater --cd-cover <release id>
 package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 
+	"github.com/wittywilla/wittymediaplayer/engine/internal/cdlookup"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/disc"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/modupdate"
 )
@@ -34,6 +43,19 @@ func main() {
 			offers = append(offers, c.Check(ctx, mod))
 		}
 		_ = enc.Encode(map[string]any{"offers": offers})
+	case len(args) == 4 && args[0] == "--cd-lookup":
+		tracks, _ := strconv.Atoi(args[3])
+		found, err := cdlookup.New().Lookup(ctx, args[1], args[2], tracks)
+		if err != nil {
+			fail(enc, err)
+		}
+		_ = enc.Encode(map[string]any{"matches": found})
+	case len(args) == 2 && args[0] == "--cd-cover":
+		b, err := cdlookup.New().Cover(ctx, args[1])
+		if err != nil {
+			fail(enc, err)
+		}
+		_ = enc.Encode(map[string]any{"cover": base64.StdEncoding.EncodeToString(b)})
 	case len(args) == 3 && args[0] == "--install":
 		mod, ok := m.Module(args[1])
 		if !ok {

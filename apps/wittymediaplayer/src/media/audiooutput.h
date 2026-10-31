@@ -53,8 +53,14 @@ public:
     int64_t framesWritten() const { return framesWritten_.load(); }
     int64_t underruns() const { return underruns_.load(); }
 
-    // What the visualizer reads. Off, and all but free, until it's turned on.
+    // The tap: a copy of the sound on its way to the speakers, for anything that wants to
+    // follow it. It costs one atomic read until something turns it on. WittyVisualizer reads it
+    // directly. tapRead gives the most recent stereo frames, about as they're being heard,
+    // oldest first, and silence while nothing is playing, so a reader needs no idea of the
+    // player's state.
     wv::SampleTap *tap() { return &tap_; }
+    void setTapEnabled(bool on);
+    int tapRead(qint16 *stereo, int frames) const;
 
     // Called by the device side.
     qint64 pull(char *out, qint64 max);
@@ -92,6 +98,7 @@ private:
     size_t head_ = 0, count_ = 0;
     uint64_t written_ = 0, read_ = 0; // bytes through the ring, real sound only
     std::deque<Mark> marks_;
+    mutable uint64_t tapLastRead_ = 0; // tapRead's own
     uint64_t generation_ = 0;
     uint64_t served_ = 0;    // bytes given to the device, silence included
     uint64_t realInDevice_ = 0; // of those, how far the real sound reaches

@@ -73,12 +73,17 @@ archives or Docker image.
 | **Qt 6.10** (Core, Gui, Widgets, Multimedia) | LGPL-3.0 | Shared libraries beside the program, so they can be replaced. Source: <https://download.qt.io/official_releases/qt/6.10/>. |
 | **FFmpeg 8.1** (avcodec, avformat, avfilter, avutil, swresample, swscale) | LGPL-3.0-or-later | Shared libraries, built by `apps/wittymediaplayer/scripts/setup-toolchain.sh` with no GPL or non-free parts, no network code, and no `libbluray`, `libdvdread` or `libdvdnav`. Source: <https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz>, with a copy to go beside each release. |
 | zlib 1.3.1 (inside FFmpeg) | Zlib | <https://zlib.net> |
+| LAME 3.100 (inside FFmpeg) | LGPL-2.0-or-later | Writes MP3 when copying CDs. Source goes with each release. <https://lame.sourceforge.io> |
+| Opus 1.5.2, libvorbis 1.3.7, libogg 1.3.5 (inside FFmpeg) | BSD-3-Clause | Write Opus and Ogg Vorbis when copying CDs. <https://xiph.org> |
 | GCC runtime libraries | GPL-3.0 with the GCC Runtime Library Exception | Allowed to ship with programs under any licence. |
 | mingw-w64 winpthreads | MIT and BSD | |
 | Go standard library (in the helper) | BSD-3-Clause | |
 
 **VLC and libVLC** (VideoLAN and the VLC contributors, LGPL-2.1-or-later, <https://www.videolan.org>) are an option in its
 Settings. It loads them at run time from a VLC already on the computer, and no part of VLC ships with it.
+
+**MusicBrainz and the Cover Art Archive** supply CD names and covers, only when someone presses **Look up names**. Their data
+isn't shipped.
 
 Not shipped, used only for building or testing it: MinGW GCC, CMake, Ninja and NASM, and a general LGPL FFmpeg
 that makes the tests' short clips.

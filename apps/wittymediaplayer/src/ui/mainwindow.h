@@ -21,6 +21,7 @@ class VisualizerWidget;
 
 namespace wmp {
 
+class CdPage;
 class ControlBar;
 class DiscController;
 class EngineClient;
@@ -39,6 +40,7 @@ public:
 
     Player *player() const { return player_; }
     DiscController *disc() const { return disc_; }
+    CdPage *cd() const { return cd_; }
     VideoView *view() const { return view_; }
     wv::VisualizerWidget *visualizer() const { return viz_; }
     bool visualizerShowing() const;
@@ -95,6 +97,9 @@ private:
     void setVisualizer(bool on);
     void cycleSubtitle();
     void updateFileSubtitles();
+    bool cdOn() const;
+    void showCd(const QJsonObject &info);
+    void leaveCd();
 
     Player *player_ = nullptr;
     VideoView *view_ = nullptr;
@@ -102,6 +107,7 @@ private:
     QAction *actViz_ = nullptr;
     EngineClient *engine_ = nullptr;
     DiscController *disc_ = nullptr;
+    CdPage *cd_ = nullptr;
     ControlBar *bar_ = nullptr;
     QWidget *central_ = nullptr;
     QWidget *start_ = nullptr;

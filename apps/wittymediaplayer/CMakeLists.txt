@@ -30,6 +30,11 @@ qt_add_library(wmpcore STATIC
     src/media/mediaspec.h
     src/media/ffmpeg.h
     src/media/extentreader.h src/media/extentreader.cpp
+    src/media/cdstream.h src/media/cdstream.cpp
+    src/cd/audioencoder.h src/cd/audioencoder.cpp
+    src/cd/cdripper.h src/cd/cdripper.cpp
+    src/cd/cdpage.h src/cd/cdpage.cpp
+    src/visual/visualizer.h src/visual/visualizer.cpp
     src/media/audiooutput.h src/media/audiooutput.cpp
     src/media/player.h src/media/player.cpp
     src/media/vlcplayback.h src/media/vlcplayback.cpp

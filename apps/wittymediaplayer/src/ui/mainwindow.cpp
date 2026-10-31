@@ -3,6 +3,7 @@
 #include "wvengine.h"
 #include "wvwidget.h"
 
+#include "../cd/cdpage.h"
 #include "../disc/disccontroller.h"
 #include "../engine/engineclient.h"
 #include "../media/audiooutput.h"
@@ -171,6 +172,11 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
     audioCaption_->hide();
 
     message_ = new MessageOverlay(central_);
+    cd_ = new CdPage(player_, &settings_, central_);
+    cd_->hide();
+    connect(cd_, &CdPage::backRequested, this, [this] { stopPlayback(); });
+    connect(cd_, &CdPage::volumeChanged, this, &MainWindow::setVolumePercent);
+    connect(cd_, &CdPage::statusChanged, this, &MainWindow::setStatus);
 
     buildStartPage();
     buildMenus();
@@ -203,6 +209,8 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
     connect(player_, &Player::failed, this, [this](const QString &m) { showMessage(m, !disc_->active()); });
     connect(player_, &Player::discTrouble, this, [this](const QString &m) { setStatus(m); });
     connect(player_, &Player::discLost, this, [this] {
+        if (cdOn())
+            cd_->closeDisc();
         stopPlayback();
         showMessage(QStringLiteral("The disc was taken out of the drive."));
     });
@@ -231,6 +239,8 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
         }
     });
     connect(player_, &Player::ended, this, [this] {
+        if (cdOn())
+            return; // the CD screen has its own idea of this
         if (!disc_->active()) {
             ended_ = true;
             player_->setPaused(true);
@@ -412,11 +422,14 @@ void MainWindow::buildMenus()
     });
     help->addAction(QStringLiteral("About WittyMediaPlayer"), this, [this] {
         QMessageBox::about(this, QStringLiteral("About WittyMediaPlayer"),
-            QStringLiteral("<b>WittyMediaPlayer %1</b><br>Plays video, audio, DVDs and Blu-rays on this computer. "
-                           "Nothing leaves it, and it collects nothing.<br><br>"
+            QStringLiteral("<b>WittyMediaPlayer %1</b><br>Plays video, audio, CDs, DVDs and Blu-rays on this computer, and copies CDs. "
+                           "It collects nothing, and nothing leaves the computer unless you press a button that says so: "
+                           "looking a CD up sends only its track layout to MusicBrainz.<br><br>"
                            "WittyMediaPlayer, developed by WittyWilla. Apache License 2.0.<br>"
-                           "Uses WittyDVD, WittyBluray and WittyDisc, developed by WittyWilla.<br>"
+                           "Uses WittyCD, WittyDVD, WittyBluray and WittyDisc, developed by WittyWilla.<br>"
                            "Uses Qt and FFmpeg under the LGPL: they're separate libraries in its folder, which you can replace. "
+                           "FFmpeg here includes the LAME MP3 encoder (LGPL) and the Opus, Vorbis and Ogg libraries (BSD), for copying CDs. "
+                           "CD names and covers come from MusicBrainz and the Cover Art Archive. "
                            "See the licenses folder.<br><br>"
                            "If you choose it in Settings, playback can use the <b>VLC libraries</b> from a VLC on your computer. %2")
                 .arg(QCoreApplication::applicationVersion(), SettingsDialog::vlcCredit()));
@@ -495,7 +508,7 @@ void MainWindow::refreshDrives()
             const bool media = d.value("media").toBool(), audio = d.value("audio").toBool();
             const QString what = !media ? QStringLiteral("no disc") : audio ? QStringLiteral("audio CD") : (label.isEmpty() ? QStringLiteral("disc") : label);
             QAction *a = menuDrives_->addAction(QStringLiteral("%1 (%2)").arg(name, what));
-            a->setEnabled(media && !audio);
+            a->setEnabled(media);
             connect(a, &QAction::triggered, this, [this, path] { openPath(path); });
 
             auto *rowW = new QWidget;
@@ -504,13 +517,14 @@ void MainWindow::refreshDrives()
             auto *rowL = new QHBoxLayout(rowW);
             rowL->setContentsMargins(14, 10, 10, 10);
             auto *caption = new QLabel(QStringLiteral("%1  %2").arg(name, what), rowW);
-            auto *playBtn = new QPushButton(QStringLiteral("Play"), rowW);
-            playBtn->setAccessibleName(QStringLiteral("Play the disc in %1").arg(name));
-            playBtn->setEnabled(media && !audio);
+            auto *playBtn = new QPushButton(audio ? QStringLiteral("Open CD") : QStringLiteral("Play"), rowW);
+            playBtn->setAccessibleName(QStringLiteral("%1 the disc in %2").arg(audio ? QStringLiteral("Open") : QStringLiteral("Play"), name));
+            playBtn->setEnabled(media);
             connect(playBtn, &QPushButton::clicked, this, [this, path] { openPath(path); });
             auto *imgBtn = new QPushButton(QStringLiteral("Make image"), rowW);
             imgBtn->setAccessibleName(QStringLiteral("Make a disc image from %1").arg(name));
             imgBtn->setEnabled(media && !audio);
+            imgBtn->setVisible(!audio); // a CD's are made from its own screen
             connect(imgBtn, &QPushButton::clicked, this, [this, path] { makeImage(path); });
             rowL->addWidget(caption, 1);
             rowL->addWidget(playBtn);
@@ -684,7 +698,7 @@ void MainWindow::rebuildDiscMenus()
 void MainWindow::openDialog()
 {
     const QString p = QFileDialog::getOpenFileName(this, QStringLiteral("Open a file"), settings_.value(QStringLiteral("lastDir")).toString(),
-        QStringLiteral("Media and disc images (*.mkv *.mp4 *.m4v *.mov *.avi *.webm *.ts *.m2ts *.mts *.mpg *.mpeg *.vob *.wmv *.flv *.ogv *.3gp *.mp3 *.m4a *.aac *.flac *.wav *.ogg *.oga *.opus *.wma *.ac3 *.dts *.iso *.img);;All files (*)"));
+        QStringLiteral("Media and disc images (*.mkv *.mp4 *.m4v *.mov *.avi *.webm *.ts *.m2ts *.mts *.mpg *.mpeg *.vob *.wmv *.flv *.ogv *.3gp *.mp3 *.m4a *.aac *.flac *.wav *.ogg *.oga *.opus *.wma *.ac3 *.dts *.cue *.toc *.ccd *.nrg *.chd *.bin *.iso *.img);;All files (*)"));
     if (!p.isEmpty())
         openPath(p);
 }
@@ -696,8 +710,42 @@ void MainWindow::openFolderDialog()
         openPath(p);
 }
 
+bool MainWindow::cdOn() const
+{
+    return cd_ && cd_->isVisible();
+}
+
+void MainWindow::showCd(const QJsonObject &info)
+{
+    isFile_ = false;
+    start_->hide();
+    bar_->hide();
+    audioCaption_->hide();
+    const CdInfo cd = CdInfo::fromJson(info);
+    cd_->setDisc(cd);
+    cd_->setVolumePercent(volume_);
+    cd_->show();
+    cd_->raise();
+    layoutOverlays();
+    setWindowTitle(QStringLiteral("%1 - WittyMediaPlayer").arg(cd.title.isEmpty() ? QStringLiteral("Audio CD") : cd.title));
+}
+
+void MainWindow::leaveCd()
+{
+    if (!cd_->isVisible())
+        return;
+    cd_->closeDisc();
+    cd_->hide();
+    bar_->show();
+}
+
 void MainWindow::openPath(const QString &path)
 {
+    if (cd_->busy()) {
+        showMessage(QStringLiteral("A CD is being copied. Stop that or let it finish first."));
+        return;
+    }
+    leaveCd();
     message_->hide();
     settings_.setValue(QStringLiteral("lastDir"), QFileInfo(path).absolutePath());
     const QString locale = QLocale::system().name().left(2);
@@ -737,6 +785,12 @@ void MainWindow::openPath(const QString &path)
         const QString kind = o.value(QStringLiteral("kind")).toString();
         currentPath_ = path;
         ended_ = false;
+        if (kind == QLatin1String("audiocd")) {
+            rememberRecent(path);
+            setStatus({});
+            showCd(o.value(QStringLiteral("cd")).toObject());
+            return;
+        }
         start_->hide();
         bar_->setHasMedia(true);
         rememberRecent(path);
@@ -767,6 +821,9 @@ void MainWindow::openPath(const QString &path)
 
 void MainWindow::stopPlayback(bool showStart)
 {
+    if (cd_->busy())
+        return; // its own screen has the Stop button
+    leaveCd();
     if (disc_->active())
         disc_->close();
     player_->stop();
@@ -872,6 +929,10 @@ void MainWindow::makeImage(const QString &source)
 
 void MainWindow::togglePlay()
 {
+    if (cdOn()) {
+        cd_->togglePlay();
+        return;
+    }
     if (!player_->hasMedia())
         return;
     if (disc_->active() && !disc_->togglePauseAllowed())
@@ -891,6 +952,8 @@ void MainWindow::togglePlay()
 
 void MainWindow::setVolumePercent(int percent)
 {
+    if (cd_ && cd_->isVisible())
+        cd_->setVolumePercent(percent);
     volume_ = qBound(0, percent, 100);
     // Loudness is heard on a curve, so the slider's middle sounds like the middle.
     const double v = muted_ ? 0.0 : std::pow(volume_ / 100.0, 2.0);
@@ -938,6 +1001,8 @@ void MainWindow::cycleSubtitle()
 
 bool MainWindow::handleKey(int key, Qt::KeyboardModifiers)
 {
+    if (cdOn())
+        return cd_->handleKey(key, QApplication::focusWidget());
     const bool discOn = disc_->active();
     const bool menuOn = discOn && disc_->inMenu();
     const bool has = player_->hasMedia();
@@ -1060,6 +1125,8 @@ bool MainWindow::eventFilter(QObject *o, QEvent *e)
         if (k->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))
             return QMainWindow::eventFilter(o, e);
         QWidget *focus = QApplication::focusWidget();
+        if (cdOn())
+            return cd_->handleKey(k->key(), focus) || QMainWindow::eventFilter(o, e);
         // The focused control keeps what it needs: arrows on the sliders, and Space
         // and Enter on a button.
         const bool arrow = k->key() == Qt::Key_Left || k->key() == Qt::Key_Right || k->key() == Qt::Key_Up || k->key() == Qt::Key_Down || k->key() == Qt::Key_Home || k->key() == Qt::Key_End;
@@ -1103,6 +1170,8 @@ bool MainWindow::visualizerShowing() const
 
 void MainWindow::setVisualizer(bool on)
 {
+    if (on && cdOn())
+        return; // the CD screen has its own place for a picture
     if (on && (!player_->hasMedia() || !player_->isAudioOnly())) {
         if (bar_->visualizerButton()->isChecked())
             bar_->visualizerButton()->setChecked(false);
@@ -1133,6 +1202,8 @@ void MainWindow::showControls()
 {
     if (viz_)
         viz_->setControlsVisible(true);
+    if (cdOn())
+        return;
     if (!bar_->isVisible())
         bar_->show();
     unsetCursor();
@@ -1209,6 +1280,9 @@ void MainWindow::layoutOverlays()
     bar_->setGeometry(0, all.height() - barH, all.width(), barH);
     bar_->raise();
     start_->setGeometry(0, 0, all.width(), qMax(0, all.height() - (fullscreen_ ? 0 : barH)));
+    cd_->setGeometry(all);
+    if (cd_->isVisible())
+        cd_->raise();
     if (start_->isVisible())
         start_->raise();
     const int w = qMin(520, all.width() - 40);
@@ -1287,7 +1361,7 @@ void MainWindow::showMessage(const QString &text, bool stopsPlayback)
 
 void MainWindow::onTick()
 {
-    if (!player_->hasMedia())
+    if (!player_->hasMedia() || cdOn())
         return;
     const double pos = player_->position();
     if (disc_->active()) {

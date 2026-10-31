@@ -156,7 +156,7 @@ The disc modules follow the same rules as WittyMediaServer's modules. See `docs/
   that can't start other programs and ends with the player, and a call time limit.
 - **Copy protection is checked by the built-in copy** before a downloaded version sees a disc, and imaging always uses the built-in copy, so
   what a download says about protection is never taken on trust.
-- **The network:** only `wittymediaplayer-updater` has network code, and it runs only when the viewer asks, or at start if they've turned that on.
+- **The network:** only `wittymediaplayer-updater` has network code, and it runs only when the viewer asks, or at start if they've turned that on. CD lookups go through it too (below).
   It talks only to GitHub over HTTPS. A test checks that `wittymediaplayer-engine` has none.
 
 **Releasing one:** in the module's own repository, tag `wittydvdplayer-vX.Y.Z` on a release, with these files from
@@ -164,6 +164,49 @@ The disc modules follow the same rules as WittyMediaServer's modules. See `docs/
 
 **Not yet here, on the server's branch:** the signed list of withdrawn versions, choosing an older version, pinning, and forks. They can follow once that
 branch is merged, since they build on `wittymodule` 0.2.
+
+## Audio CDs
+
+**Reading.** `engine/internal/cdrip` has one `Source`, by sector: a drive, through the same ioctls any CD player uses
+(`IOCTL_CDROM_READ_TOC` and `IOCTL_CDROM_RAW_READ`), or an image, through WittyCD, which already reads every form images
+come in. Nothing here issues vendor commands, reads subchannels to get around anything, or treats a failing disc as a
+puzzle: a disc that won't read gets `ErrNoRead`'s plain message, and a track that's mostly unreadable stops there.
+
+**Careful reads.** Careful mode reads each chunk (about half a second) twice and compares checksums, without keeping any of
+the first pass on disk: only its checksums are held. A chunk that differs is read until two reads in a row agree. A read
+that fails is retried, then taken apart sector by sector, and sectors that never read become silence and are counted, so
+one scratch costs a short re-read and a true count rather than a lost track. The drive offset shifts which samples are read,
+and reaches past the disc's ends as silence. An image can't vary, so it's read once.
+
+**The split.** The helper reads; the window encodes. `--cd-rip` sends JSON lines with the samples between them, so the
+helper never writes a music file and the encoders stay in the FFmpeg libraries the window already has. `--cd-image` is the
+exception, because a `.bin` needs no encoding: it writes `.part` files and renames them at the end. An image holds a disc's
+audio only. A data track on the same disc is left out, since reading it needs a different kind of read, and the image's
+sheet is rebased to match.
+
+**Playing.** `--cd-stream` answers requests for ranges of a WAV covering the disc, which `CdStream` hands to the demuxer in
+place of a file. So a CD goes through the normal player: seeking, sound, clock and all. A sector that won't read plays as
+silence. CDs always use the built-in decoder, even with the VLC option on, since there's no reason to hand that library a
+source it would then try to treat as its own.
+
+**Encoders.** FFmpeg gained FLAC, ALAC, AAC and PCM (its own), MP3 (LAME), Opus and Vorbis. The list is still explicit,
+and `check-package.sh` fails the build if any are missing or if the licence stops being LGPL. Tags go in the container's
+metadata; covers go in as an attached picture, or as the picture tag Ogg files use. WAV takes neither reliably, so it's left
+without a cover.
+
+**Lookups.** The helper still has no network code, and a test still checks that. `wittymediaplayer-updater --cd-lookup` asks
+MusicBrainz, and `--cd-cover` the Cover Art Archive, only when the viewer presses **Look up names**. Its inputs are checked
+to be a disc ID and numbers, so nothing else can go out. Names that come back are untrusted, and `ripRelativePath` is where
+they become files: each part is cleaned, so a title can't climb out of the chosen folder or take a name Windows reserves.
+
+**The screen.** `CdPage` is original work: the gel buttons, seven-segment time, disc artwork and glass are all drawn in code,
+with its own blue, teal and amber. It evokes that early-desktop feeling without borrowing any product's skin, layout or
+artwork. It can follow the app theme instead.
+
+**The visualizer.** `AudioOutput` has a tap: `setTapEnabled` and `tapRead` give the most recent samples about as they're
+heard, and cost nothing when off. The built-in `VisualizerView` draws from it on the processor, small and scaled up, and
+stops when hidden. `CdPage::setVisualizer` puts another widget in its place, which is where the shared WittyVisualizer's Qt
+host goes when it exists: it needs only that tap.
 
 ## Other platforms
 
@@ -183,4 +226,4 @@ Nothing here closes a door. The window is Qt, the helper is pure Go, and these a
 - **Built-in sound is stereo.** Surround tracks are mixed down.
 - **DVD subtitles** use FFmpeg's decoder. Colour changes within a subtitle (CHG_COLCON) that the engine's own
   decoder handles aren't shown.
-- **Audio CDs** aren't supported.
+- **Audio CDs from a drive** are written for Windows only; images work wherever the helper runs.

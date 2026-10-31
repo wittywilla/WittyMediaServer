@@ -46,7 +46,9 @@ Built for the web app and WittyMediaPlayer. Still open:
 
 - **WittyMediaPlayer**, with WittyDVD and WittyBluray as plugins: a first Windows build exists under
   `apps/wittymediaplayer`, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
-  images for a server's library, the VLC libraries as an option in Settings, and WittyDVD and WittyBluray updating on their own. Playing in a real window, sound, disc menus by eye and anything with a physical
+  images for a server's library, the VLC libraries as an option in Settings, WittyDVD and WittyBluray updating on their own,
+  and playing and copying audio CDs on a CD screen with a visualizer. Copying has been tested with generated images only, since the
+  laptop it was built on has no drive; the README has a short checklist for a real disc. The shared WittyVisualizer isn't plugged in yet. Playing in a real window, sound, disc menus by eye and anything with a physical
   drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
   It has no published repository yet, which is the owner's step.
 - **Updating modules on their own:** built and tested, and waiting for [the cutover](MODULES-CUTOVER.md), which needs your go-ahead, your signing key in each repository, and any missing repositories made. [MODULES.md](MODULES.md) says plainly what each module can and can't do. Still with the server: library scanning of discs, Blu-ray Java menus, some tuner kinds, and game streaming.

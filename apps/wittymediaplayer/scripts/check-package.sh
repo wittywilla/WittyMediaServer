@@ -27,6 +27,10 @@ for d in tls networkinformation; do [ ! -e "$PKG/$d" ] || say "Qt's $d plugins m
 for f in "$PKG"/av*.dll; do
   if grep -qa -- "http_protocol\|tcp_protocol\|tls_protocol" "$f"; then say "$(basename "$f") has network code"; fi
 done
+# Copying CDs needs every encoder the screen offers.
+for enc in libmp3lame libopus libvorbis; do
+  grep -qa -- "$enc" "$PKG"/avcodec-*.dll || say "FFmpeg was built without $enc"
+done
 if grep -qa -- "--enable-network" "$PKG"/avformat-*.dll; then say "FFmpeg was built with its network code"; fi
 
 # FFmpeg must be the LGPL build.

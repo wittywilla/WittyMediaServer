@@ -28,7 +28,10 @@ func TestEveryConsoleHasACompleteLayout(t *testing.T) {
 		}
 		seen := map[int]bool{}
 		p := Pad(c.ID)
-		for _, list := range [][]PadButton{p.Face, p.Shoulder, p.Meta} {
+		if p.Art == "" {
+			t.Errorf("%s: no picture", c.ID)
+		}
+		for _, list := range [][]PadButton{p.Face, p.Shoulder, p.Meta, p.Extra} {
 			for _, b := range list {
 				if b.ID < 0 || b.ID >= retroButtons || b.ID == RetroUp || b.ID == RetroDown || b.ID == RetroLeft || b.ID == RetroRight {
 					t.Errorf("%s: %s has a bad button number %d", c.ID, b.Label, b.ID)

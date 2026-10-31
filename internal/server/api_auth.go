@@ -459,6 +459,7 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.removeUserGameFiles(id)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

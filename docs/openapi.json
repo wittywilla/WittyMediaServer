@@ -331,6 +331,121 @@
         ],
         "type": "object"
       },
+      "ControllerData": {
+        "properties": {
+          "layouts": {
+            "additionalProperties": {
+              "properties": {
+                "axes": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "buttons": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "a": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "b": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "d": {
+                            "type": "integer"
+                          },
+                          "h": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "r": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "axes",
+                "buttons"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "pads": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "layout": {
+                  "type": "string"
+                },
+                "linuxLayout": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "style": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "style"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "layouts",
+          "pads"
+        ],
+        "type": "object"
+      },
       "DiscAction": {
         "properties": {
           "button": {
@@ -885,6 +1000,185 @@
         },
         "required": [
           "error"
+        ],
+        "type": "object"
+      },
+      "GameBackground": {
+        "properties": {
+          "dim": {
+            "type": "integer"
+          },
+          "fit": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dim",
+          "fit",
+          "version",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "GameProfile": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "console": {
+            "type": "string"
+          },
+          "controller": {
+            "type": "string"
+          },
+          "controllerName": {
+            "type": "string"
+          },
+          "game": {
+            "type": "integer"
+          },
+          "gameTitle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "keys": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "map": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "a": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "b": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "d": {
+                      "type": "integer"
+                    },
+                    "h": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "r": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "options": {
+            "properties": {
+              "calibration": {
+                "additionalProperties": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "type": "object"
+              },
+              "deadzone": {
+                "type": "number"
+              },
+              "noRumble": {
+                "type": "boolean"
+              },
+              "stickDpad": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "turbo": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "turboHz": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "raw": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "controller",
+          "id",
+          "kind",
+          "name",
+          "options",
+          "updatedAt"
         ],
         "type": "object"
       },
@@ -3040,7 +3334,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5846,6 +6140,606 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/game-background": {
+      "delete": {
+        "operationId": "deleteGameBackground",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameBackground"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Removes the picture.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getGameBackground",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameBackground"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's controller screen background: fit, position and dimming.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGameBackground",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameBackground"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes its fit, position and dimming.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-background/image": {
+      "get": {
+        "operationId": "getGameBackgroundImage",
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's own picture.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGameBackgroundImage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameBackground"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Uploads a picture as the body: PNG, JPEG or WebP, up to 10 MB.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-controllers": {
+      "get": {
+        "operationId": "getGameControllers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControllerData"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Controllers this server knows by vendor and product.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles": {
+      "get": {
+        "operationId": "getGameProfiles",
+        "parameters": [
+          {
+            "description": "gamepad or keyboard",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only those that can apply on this console",
+            "in": "query",
+            "name": "console",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GameProfile"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's controller profiles.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postGameProfiles",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameProfile"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Makes a controller profile.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/export": {
+      "get": {
+        "operationId": "getGameProfilesExport",
+        "parameters": [
+          {
+            "description": "A profile, once per profile",
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A file of these profiles, or of all of them.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/import": {
+      "post": {
+        "operationId": "postGameProfilesImport",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adds the profiles in an exported file.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/resolve": {
+      "get": {
+        "operationId": "getGameProfilesResolve",
+        "parameters": [
+          {
+            "description": "gamepad (the default) or keyboard",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model, such as 054c:0ce6",
+            "in": "query",
+            "name": "controller",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The console's id",
+            "in": "query",
+            "name": "console",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The game's item id",
+            "in": "query",
+            "name": "game",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 if the controller is not in W3C standard numbers",
+            "in": "query",
+            "name": "raw",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which profile and mapping apply to a controller here.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/{id}": {
+      "delete": {
+        "operationId": "deleteGameProfilesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes a controller profile.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getGameProfilesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameProfile"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One controller profile.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGameProfilesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameProfile"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replaces a controller profile.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/{id}/active": {
+      "post": {
+        "operationId": "postGameProfilesIdActive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameProfile"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Puts a controller profile in or out of use.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-profiles/{id}/copy": {
+      "post": {
+        "operationId": "postGameProfilesIdCopy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameProfile"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copies a controller profile.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/games/consoles": {

@@ -141,7 +141,7 @@ export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
 }
 // While a game is being played its controls belong to the game; its menus use the
 // normal navigation again.
-const inGame = () => !!document.querySelector('.wp-playing')
+const inGame = () => !!document.querySelector('.wp-playing, .wp-capture')
 
 function onKey(e: KeyboardEvent) {
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return

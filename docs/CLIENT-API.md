@@ -923,6 +923,22 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
+| `GET /game-controllers` | user | Controllers this server knows by vendor and product. |
+| `GET /game-profiles` | user | This account's controller profiles. |
+| `POST /game-profiles` | user | Makes a controller profile. |
+| `GET /game-profiles/resolve` | user | Which profile and mapping apply to a controller here. |
+| `GET /game-profiles/export` | user | A file of these profiles, or of all of them. |
+| `POST /game-profiles/import` | user | Adds the profiles in an exported file. |
+| `GET /game-profiles/{id}` | user | One controller profile. |
+| `PUT /game-profiles/{id}` | user | Replaces a controller profile. |
+| `DELETE /game-profiles/{id}` | user | Deletes a controller profile. |
+| `POST /game-profiles/{id}/copy` | user | Copies a controller profile. |
+| `POST /game-profiles/{id}/active` | user | Puts a controller profile in or out of use. |
+| `GET /game-background` | user | This account's controller screen background: fit, position and dimming. |
+| `PUT /game-background` | user | Changes its fit, position and dimming. |
+| `DELETE /game-background` | user | Removes the picture. |
+| `GET /game-background/image` | user | This account's own picture. |
+| `PUT /game-background/image` | user | Uploads a picture as the body: PNG, JPEG or WebP, up to 10 MB. |
 
 ### Photos
 

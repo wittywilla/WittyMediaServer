@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api, inMainMenus } from './api'
-import { IconFilm, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
+import { IconFilm, IconGamepad, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -16,6 +16,7 @@ import { Announcer, useDialogs } from './a11y'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
+const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
@@ -114,6 +115,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
             <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
+            <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -179,7 +181,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
 // ProfileMenu: the avatar in the corner, with settings, switching profiles
 // (back to "Who's watching?") and signing out.
 function ProfileMenu() {
-  const { user, setUser } = useApp()
+  const { user, setUser, libraries } = useApp()
   const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
@@ -204,6 +206,7 @@ function ProfileMenu() {
           <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
           <Link role="menuitem" to="/review"><IconStar /> Your year</Link>
           <Link role="menuitem" to="/settings/appearance"><IconPalette /> Appearance</Link>
+          {libraries.some((l) => l.type === 'games') && <Link role="menuitem" to="/controllers"><IconGamepad /> Controllers</Link>}
           <Link role="menuitem" to="/settings"><IconSettings /> Settings</Link>
           {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair"><IconTv /> Sign in a TV</Link>}
           <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>

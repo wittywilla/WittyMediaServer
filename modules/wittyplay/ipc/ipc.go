@@ -40,6 +40,7 @@ const (
 	CmdReset     byte = 69
 	CmdPause     byte = 70 // one byte: 1 paused, 0 running
 	CmdQuit      byte = 71 // one byte: 1 sends a save state first; battery save is always sent
+	CmdDevice    byte = 80 // DeviceSize bytes: plug a kind of controller into a port
 )
 
 // Size limits. MaxVideoFrame is far above what a console produces (4K at four
@@ -62,7 +63,7 @@ func limit(t byte) int {
 		return MaxJSON
 	case MsgState, MsgSaveRAM, CmdSaveRAM, CmdState:
 		return MaxBlob
-	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput:
+	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput, CmdDevice:
 		return 16
 	}
 	return 0
@@ -150,6 +151,8 @@ type Load struct {
 	System  string            `json:"system"`
 	Save    string            `json:"save"`
 	Options map[string]string `json:"options,omitempty"`
+	// PreferDevices names the controller to plug in, by words in its name, best first.
+	PreferDevices []string `json:"preferDevices,omitempty"`
 }
 
 // TestCore is the Load.Core value for the built-in test core.
@@ -164,6 +167,21 @@ type Ready struct {
 	Aspect     float64 `json:"aspect"`
 	FPS        float64 `json:"fps"`
 	SampleRate float64 `json:"sampleRate"`
+	// Devices: the kinds of controller this core offers, when it offers a choice.
+	Devices []PortDevices `json:"devices,omitempty"`
+}
+
+// PortDevices lists what can be plugged into one port.
+type PortDevices struct {
+	Port    int          `json:"port"`
+	Types   []DeviceType `json:"types"`
+	Current uint32       `json:"current"`
+}
+
+// DeviceType is one kind of controller.
+type DeviceType struct {
+	ID   uint32 `json:"id"`
+	Name string `json:"name"`
 }
 
 // Event is something a player should be told about.
@@ -219,12 +237,27 @@ func ParseVideo(p []byte) (VideoHeader, []byte, error) {
 }
 
 // InputSize is the size of a CmdInput payload: port, buttons, then the left and
-// right sticks' X and Y. A browser sends the same bytes.
-const InputSize = 11
+// right sticks' X and Y. A browser sends the same bytes. InputSizeFull adds how far
+// the L2 and R2 triggers are held, 0 to 255, for clients that can tell.
+const (
+	InputSize     = 11
+	InputSizeFull = 13
+)
+
+// ParseTriggers reads the analog triggers of a state, which are 0 when it has none.
+func ParseTriggers(p []byte) (l2, r2 uint8) {
+	if len(p) != InputSizeFull {
+		return 0, 0
+	}
+	return p[11], p[12]
+}
+
+// DeviceSize is the size of a CmdDevice payload: port, then a u32 device type.
+const DeviceSize = 5
 
 // ParseInput reads one player's state.
 func ParseInput(p []byte) (port int, buttons uint16, lx, ly, rx, ry int16, ok bool) {
-	if len(p) != InputSize {
+	if len(p) != InputSize && len(p) != InputSizeFull {
 		return 0, 0, 0, 0, 0, 0, false
 	}
 	return int(p[0]), binary.LittleEndian.Uint16(p[1:]), int16(binary.LittleEndian.Uint16(p[3:])), int16(binary.LittleEndian.Uint16(p[5:])),

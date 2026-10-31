@@ -15,7 +15,7 @@ WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the 
 | Module | Licence |
 |---|---|
 | modernc.org/sqlite (and its modernc.org/libc family) | BSD-3-Clause |
-| golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net | BSD-3-Clause |
+| golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net, golang.org/x/image (reading WebP pictures, and resizing) | BSD-3-Clause |
 | github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, interceptor and others) | MIT |
 | github.com/coder/websocket | ISC |
 | github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/text (transitive) | BSD / MIT |

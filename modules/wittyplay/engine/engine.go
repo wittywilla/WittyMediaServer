@@ -45,6 +45,7 @@ type PadState struct {
 	Buttons uint16
 	LX, LY  int16
 	RX, RY  int16
+	L2, R2  uint8 // how far the analog triggers are held; 0 when only their buttons are known
 }
 
 // Handlers receive what an engine produces. All are called on the thread
@@ -78,6 +79,25 @@ type SystemInfo struct {
 	Extensions    []string
 	NeedFullPath  bool
 	BlockExtract  bool
+}
+
+// DeviceType is a kind of controller a game can have plugged in.
+type DeviceType struct {
+	ID   uint32
+	Name string
+}
+
+// PortDevices is what can be plugged into one player's port.
+type PortDevices struct {
+	Port    int
+	Types   []DeviceType
+	Current uint32
+}
+
+// Devices is an engine that offers a choice of controller for its ports.
+type Devices interface {
+	ControllerPorts() []PortDevices
+	SetDevice(port int, id uint32)
 }
 
 // Engine runs one game. Every method is called from one locked OS thread.

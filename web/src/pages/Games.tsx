@@ -4,7 +4,7 @@ import { api, getToken, mediaUrl, posterUrl, serverBase, type GameConsole, type 
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
-import type { PlayHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
+import type { Background, ControllerData, ControlsData, PlayHost, Profile, ProfileHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
 import './games.css'
 
 // Games: the library page, a game's own page, and the page that holds the player.
@@ -12,6 +12,41 @@ import './games.css'
 // is opened.
 
 const GamePlayer = lazy(() => import('@wittywilla/wittyplay'))
+const Controllers = lazy(() => import('@wittywilla/wittyplay').then((m) => ({ default: m.ControllersPage })))
+
+// Controller profiles and the background, through the same routes a TV app uses.
+const profileHost: ProfileHost = {
+  list: () => api.get<Profile[]>('/game-profiles'),
+  create: (p) => api.post<Profile>('/game-profiles', p),
+  update: (id, p) => api.put<Profile>(`/game-profiles/${id}`, p),
+  remove: async (id) => { await api.del(`/game-profiles/${id}`) },
+  copy: (id) => api.post<Profile>(`/game-profiles/${id}/copy`),
+  setActive: (id, active) => api.post<Profile>(`/game-profiles/${id}/active`, { active }),
+  exportFile: async (ids) => JSON.stringify(await api.get(`/game-profiles/export?${(ids || []).map((i) => `id=${i}`).join('&')}`), null, 2),
+  importFile: (text) => sendBytes('POST', '/game-profiles/import', text),
+  setBackground: (b) => api.put<Background>('/game-background', b),
+  uploadBackground: (f) => sendBytes('PUT', '/game-background/image', f),
+  removeBackground: () => api.del<Background>('/game-background'),
+  backgroundUrl: (v) => mediaUrl('/api/game-background/image') + (mediaUrl('/api/game-background/image').includes('?') ? '&' : '?') + `v=${v}`,
+}
+
+// The body as it is, for a picture or a file. The server looks inside to see what it is.
+async function sendBytes<T>(method: string, path: string, body: BodyInit): Promise<T> {
+  const headers: Record<string, string> = {}
+  const tok = getToken()
+  if (tok) headers.Authorization = 'Bearer ' + tok
+  const res = await fetch(`${serverBase()}/api${path}`, { method, headers, body, credentials: 'same-origin' })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(data?.error || 'That didn’t work')
+  return data as T
+}
+
+let knownControllers: Promise<ControllerData> | null = null
+const getControllers = () => {
+  if (!knownControllers) knownControllers = api.get<ControllerData>('/game-controllers')
+  knownControllers.catch(() => { knownControllers = null })
+  return knownControllers
+}
 
 let consolesCache: Promise<GameConsole[]> | null = null
 export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
@@ -21,7 +56,7 @@ export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
 
 export function useConsoles() {
   const [list, setList] = useState<GameConsole[]>([])
-  useEffect(() => { getConsoles().then(setList).catch(() => {}) }, [])
+  useEffect(() => { getConsoles().then((l) => { for (const c of l) knownConsoles.set(c.id, c.short); setList(l) }).catch(() => {}) }, [])
   return list
 }
 
@@ -182,6 +217,7 @@ export function GameDetails({ it }: { it: Item }) {
           <div className="game-actions">
             {auto && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
             {ready && <button className={'btn' + (auto ? '' : ' primary')} onClick={() => nav(`/game/${it.id}`)}><IconPlay /> {auto ? 'Start over' : 'Play'}</button>}
+            <Link className="btn" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Controllers</Link>
           </div>
           {c && !ready && (
             <div className="game-note" role="status">
@@ -224,7 +260,7 @@ export function GamePage() {
   const [params] = useSearchParams()
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
-  useEffect(() => { api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message)) }, [id])
+  useEffect(() => { Promise.all([api.get<Item>(`/items/${id}`), getConsoles().then((l) => { for (const c of l) knownConsoles.set(c.id, c.short) }).catch(() => {})]).then(([i]) => setIt(i)).catch((e) => setErr(e.message)) }, [id])
   const host = useMemo<PlayHost | null>(() => {
     if (!it) return null
     const wsBase = () => {
@@ -234,7 +270,8 @@ export function GamePage() {
     return {
       itemId: it.id, title: it.title, consoleId: it.console || '', resume: params.get('resume') === '1',
       start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }),
-      controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}`),
+      controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}&game=${it.id}`),
+      controllers: getControllers, profiles: profileHost, consoleName: consoleName(it.console || ''),
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
       stop: async (sid) => { await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
@@ -242,7 +279,7 @@ export function GamePage() {
         const tok = getToken()
         return `${wsBase()}/api/play/${sid}/ws?video=${video}` + (tok ? `&token=${encodeURIComponent(tok)}` : '')
       },
-      action: async (sid, type, slot, on) => { await api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on }) },
+      action: async (sid, type, slot, on, extra) => { await api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }) },
       saves: () => api.get<SaveSlot[]>(`/games/${it.id}/saves`),
       thumbUrl: (slot, v) => mediaUrl(`/api/games/${it.id}/saves/${slot}/thumb`) + `&v=${v}`,
       close: () => nav(`/item/${it.id}`, { replace: true }),
@@ -251,6 +288,26 @@ export function GamePage() {
   if (err) return <div className="error" role="alert">{err}</div>
   if (!host) return <Spinner />
   return <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>
+}
+
+const consoleName = (id: string) => knownConsoles.get(id) || id.toUpperCase()
+const knownConsoles = new Map<string, string>()
+
+// The controller screen on a page of its own: the game menu has the same one.
+export function ControllersScreen() {
+  const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const consoles = useConsoles()
+  const playable = consoles.filter((c) => !c.unavailable || c.id === 'n64' || c.id === 'nds' || c.id === 'psp' || c.id === 'dc')
+  const consoleId = params.get('console') || playable.find((c) => c.ready)?.id || playable[0]?.id || ''
+  const controls = useMemo(() => (id: string, device: string) => api.get<ControlsData>(`/consoles/${encodeURIComponent(id)}/controls?device=${encodeURIComponent(device)}`), [])
+  if (!consoleId) return <Spinner />
+  return (
+    <Suspense fallback={<Spinner />}>
+      <Controllers profiles={profileHost} controls={controls} controllers={getControllers} consoles={playable} consoleId={consoleId}
+        onConsole={(id) => setParams({ console: id }, { replace: true })} saveControl={async (id, s) => { await api.put(`/consoles/${id}/controls`, s) }} onClose={() => nav(-1)} />
+    </Suspense>
+  )
 }
 
 // The console picker in the add-library flow and the library editor.

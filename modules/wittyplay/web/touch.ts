@@ -1,4 +1,5 @@
 import { DOWN, LEFT, RIGHT, UP, type Control, type ControlsData, type Layout, type Orientation } from './consoles'
+import { STICK_LX_NEG } from './mapping'
 
 // On-screen controls. Layouts come from the server, and all numbers in them are
 // fractions of the play area, so a layout survives a change of window size. What
@@ -30,6 +31,9 @@ export function dpadMask(dx: number, dy: number): number {
   return 0
 }
 
+// The same directions on the left stick, pushed all the way.
+const asStick = (m: number) => ((m >> LEFT) & 1 ? 1 << STICK_LX_NEG : 0) | ((m >> RIGHT) & 1 ? 1 << (STICK_LX_NEG + 1) : 0) | ((m >> UP) & 1 ? 1 << (STICK_LX_NEG + 2) : 0) | ((m >> DOWN) & 1 ? 1 << (STICK_LX_NEG + 3) : 0)
+
 export type Rect = { w: number; h: number }
 
 // The mask for a set of finger positions, in pixels within the play area. A finger
@@ -46,7 +50,7 @@ export function touchMask(points: { x: number; y: number }[], controls: Control[
       const half = (p.size * unit) / 2
       if (c.kind === 'dpad') {
         const dx = (pt.x - cx) / half, dy = (pt.y - cy) / half
-        if (Math.hypot(dx, dy) <= 1.35) mask |= dpadMask(dx, dy)
+        if (Math.hypot(dx, dy) <= 1.35) mask |= c.stick ? asStick(dpadMask(dx, dy)) : dpadMask(dx, dy)
       } else if (Math.hypot(pt.x - cx, pt.y - cy) <= half * 1.18) {
         mask |= 1 << c.id
       }

@@ -1,0 +1,31 @@
+{
+  "_": "Which profile applies. The Go server and the web player each read this file, so the two can't drift apart.",
+  "profiles": [
+    { "id": 1, "name": "any pad anywhere", "kind": "gamepad", "controller": "", "active": true },
+    { "id": 2, "name": "this pad anywhere", "kind": "gamepad", "controller": "054c:0ce6", "active": true },
+    { "id": 3, "name": "any pad on snes", "kind": "gamepad", "controller": "", "console": "snes", "active": true },
+    { "id": 4, "name": "this pad on snes", "kind": "gamepad", "controller": "054c:0ce6", "console": "snes", "active": true },
+    { "id": 5, "name": "any pad, game 7", "kind": "gamepad", "controller": "", "console": "snes", "game": 7, "active": true },
+    { "id": 6, "name": "this pad, game 7", "kind": "gamepad", "controller": "054c:0ce6", "console": "snes", "game": 7, "active": true },
+    { "id": 7, "name": "switched off", "kind": "gamepad", "controller": "045e:028e", "console": "snes", "active": false },
+    { "id": 8, "name": "own numbers", "kind": "gamepad", "controller": "0079:0006", "console": "snes", "raw": true, "active": true },
+    { "id": 9, "name": "keys on nes", "kind": "keyboard", "controller": "keyboard", "console": "nes", "active": true },
+    { "id": 10, "name": "keys anywhere", "kind": "keyboard", "controller": "keyboard", "active": true },
+    { "id": 11, "name": "on nes only", "kind": "gamepad", "controller": "", "console": "nes", "active": true }
+  ],
+  "cases": [
+    { "why": "game and pad beat all", "kind": "gamepad", "controller": "054c:0ce6", "console": "snes", "game": 7, "want": 6 },
+    { "why": "game beats console and controller, for another pad", "kind": "gamepad", "controller": "045e:028e", "console": "snes", "game": 7, "want": 5 },
+    { "why": "console and pad, in another game", "kind": "gamepad", "controller": "054c:0ce6", "console": "snes", "game": 8, "want": 4 },
+    { "why": "console and pad, with no game", "kind": "gamepad", "controller": "054c:0ce6", "console": "snes", "game": 0, "want": 4 },
+    { "why": "an inactive profile doesn't count", "kind": "gamepad", "controller": "045e:028e", "console": "snes", "game": 0, "want": 3 },
+    { "why": "controller beats anything-anywhere", "kind": "gamepad", "controller": "054c:0ce6", "console": "md", "game": 0, "want": 2 },
+    { "why": "anything-anywhere is the last profile", "kind": "gamepad", "controller": "045e:028e", "console": "md", "game": 0, "want": 1 },
+    { "why": "a console's profile stays on its console", "kind": "gamepad", "controller": "1234:5678", "console": "nes", "game": 0, "want": 11 },
+    { "why": "a pad of unknown order only takes its own numbers", "kind": "gamepad", "controller": "0079:0006", "console": "snes", "game": 0, "raw": true, "want": 8 },
+    { "why": "and nothing at all on another console", "kind": "gamepad", "controller": "0079:0006", "console": "md", "game": 0, "raw": true, "want": 0 },
+    { "why": "a pad in standard order ignores profiles of raw numbers", "kind": "gamepad", "controller": "0079:0006", "console": "snes", "game": 0, "want": 3 },
+    { "why": "keyboards have their own", "kind": "keyboard", "controller": "keyboard", "console": "nes", "game": 0, "want": 9 },
+    { "why": "and fall back the same way", "kind": "keyboard", "controller": "keyboard", "console": "md", "game": 0, "want": 10 }
+  ]
+}

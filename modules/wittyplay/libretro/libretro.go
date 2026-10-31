@@ -61,6 +61,8 @@ const (
 	deviceJoypad = 1
 	deviceAnalog = 5
 	idBitmask    = 256 // the whole pad as one value
+
+	indexAnalogButton = 2 // an analog device's index for pressure on a button
 )
 
 // Paths are the folders a core is told about.
@@ -88,6 +90,7 @@ type Core struct {
 	options  map[string]string
 	pinned   [][]byte
 	input    *[engine.MaxPorts]engine.PadState
+	devices  []engine.PortDevices // from SET_CONTROLLER_INFO
 	gameData []byte
 	loaded   bool
 }
@@ -364,6 +367,8 @@ func onInputState(port, device, index, id uintptr) uintptr {
 			v = st.RX
 		case index == 1 && id == 1:
 			v = st.RY
+		case index == indexAnalogButton && id < 16:
+			v = analogButton(st, id)
 		}
 	}
 	return uintptr(uint16(v))
@@ -459,7 +464,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Shutdown != nil {
 			c.h.Shutdown()
 		}
-	case envSetPerformance, envSetInputDescs, envSetControllerInfo, envSetSubsystemInfo:
+	case envSetControllerInfo:
+		c.devices = readControllerInfo(data)
+	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo:
 		// Noted, and needed by nothing here.
 	case envGetAudioVideoEn:
 		*(*int32)(data) = 3 // both on

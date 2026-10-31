@@ -496,6 +496,25 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, why)
 		return
 	}
+	if console.ID == "snes" && wittyplay.IsSatellaview(rom) {
+		// Every other core loads these happily and shows nothing, so nothing else is tried.
+		core := g.cores.AllForConsole(console, wittyplay.SatellaviewCore)
+		problem := ""
+		if _, err := os.Stat(filepath.Join(systemDir, wittyplay.SatellaviewBIOS)); err != nil {
+			problem = "This is a Satellaview broadcast game, which needs the receiver's cartridge. Put a copy of yours named " + wittyplay.SatellaviewBIOS + " in a folder named " + wittyplay.BIOSFolderName + " beside your " + console.Name + " games, and it will be found when you play. BIOS files are never downloaded for you."
+		} else if len(core) == 0 || core[0].ID != wittyplay.SatellaviewCore {
+			problem = "This is a Satellaview broadcast game, which only plays on Mesen-S. An admin can install that core in Settings, Gaming."
+		}
+		if problem != "" {
+			if cleanup != nil {
+				cleanup()
+			}
+			writeJSON(w, 409, map[string]any{"error": problem, "console": console.ID, "file": wittyplay.SatellaviewBIOS})
+			return
+		}
+		corePath, fallbacks = core[0].Path, nil
+		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
+	}
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,

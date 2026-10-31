@@ -97,6 +97,10 @@ func TestHostileAppNames(t *testing.T) {
 	if a := MoonlightArgs(tg); a[1] != "[fd00::1]:48000" {
 		t.Errorf("%v", a)
 	}
+	tg.Port = 0
+	if a := MoonlightArgs(tg); a[1] != "[fd00::1]" {
+		t.Errorf("%v", a)
+	}
 	if PairArgs("-x", 0, "1234") != nil || PairArgs("pc", 0, "12") != nil {
 		t.Error("bad pair arguments")
 	}
@@ -472,5 +476,205 @@ func TestConfigKeepsItOffTheNetwork(t *testing.T) {
 	}
 	if c.WebRTC.Range.Min != 40000 {
 		t.Errorf("%+v", c.WebRTC.Range)
+	}
+}
+
+// TestMain lets this test program stand in for the bridge: when it's started the way the
+// bridge is, it acts as one. The stand-in is written from the bridge's published API types,
+// and holds requests to them, but it isn't the bridge: see docs/GAME-RIGS.md for what has
+// and hasn't been run for real.
+func TestMain(m *testing.M) {
+	if len(os.Args) == 4 && os.Args[1] == "-c" && os.Args[3] == "run" {
+		fakeBridge(os.Args[2])
+		return
+	}
+	os.Exit(m.Run())
+}
+
+func fakeBridge(configPath string) {
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		os.Exit(3)
+	}
+	var cfg struct {
+		Web struct {
+			Bind   string `json:"bind_address"`
+			Create *bool  `json:"first_login_create_admin"`
+			Assign *bool  `json:"first_login_assign_global_hosts"`
+		} `json:"web_server"`
+		Storage struct {
+			Type string `json:"type"`
+			Path string `json:"path"`
+		} `json:"data_storage"`
+	}
+	if err := json.Unmarshal(raw, &cfg); err != nil || cfg.Web.Create == nil || cfg.Web.Assign == nil || cfg.Storage.Type != "json" || cfg.Storage.Path == "" {
+		os.Exit(4) // the real one panics on these
+	}
+	admin, adminPassword := "", ""
+	var state struct{ RoleLocked, Shared bool }
+	mux := http.NewServeMux()
+	authed := func(r *http.Request) bool { return r.Header.Get("Authorization") == "Bearer "+strings.Repeat("ab", 32) }
+	mux.HandleFunc("GET /api/authenticate", func(w http.ResponseWriter, r *http.Request) {
+		if !authed(r) {
+			w.WriteHeader(401)
+		}
+	})
+	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			Name     string `json:"name"`
+			Password string `json:"password"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&b)
+		if admin == "" {
+			admin, adminPassword = b.Name, b.Password
+		}
+		if b.Name != admin || b.Password != adminPassword {
+			w.WriteHeader(401)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{Name: "mlSession", Value: strings.Repeat("ab", 32)})
+	})
+	mux.HandleFunc("GET /api/role/default", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"id":3}`))
+	})
+	mux.HandleFunc("PATCH /api/role", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			ID          uint32 `json:"id"`
+			Ty          string `json:"ty"`
+			Permissions struct {
+				AddHosts   *bool `json:"allow_add_hosts"`
+				WebSockets *bool `json:"allow_transport_websockets"`
+				WebRTC     *bool `json:"allow_transport_webrtc"`
+				H264       *bool `json:"allow_codec_h264"`
+				H265       *bool `json:"allow_codec_h265"`
+				AV1        *bool `json:"allow_codec_av1"`
+				HDR        *bool `json:"allow_hdr"`
+			} `json:"permissions"`
+		}
+		p := &b.Permissions
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !authed(r) || b.ID != 3 || b.Ty != "User" || p.AddHosts == nil || *p.AddHosts || p.WebSockets == nil || *p.WebSockets ||
+			p.WebRTC == nil || !*p.WebRTC || p.H264 == nil || p.H265 == nil || p.AV1 == nil || p.HDR == nil {
+			w.WriteHeader(400)
+			return
+		}
+		state.RoleLocked = true
+	})
+	mux.HandleFunc("POST /api/host", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			Address string  `json:"address"`
+			Port    *uint16 `json:"http_port"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !authed(r) || b.Address == "" {
+			w.WriteHeader(404)
+			return
+		}
+		_, _ = w.Write([]byte(`{"host":{"host_id":42,"name":"Rig","paired":"NotPaired"}}`))
+	})
+	mux.HandleFunc("POST /api/pair", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			HostID *uint32 `json:"host_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !authed(r) || b.HostID == nil || *b.HostID != 42 {
+			w.WriteHeader(400)
+			return
+		}
+		_, _ = w.Write([]byte("{\"Pin\":\"5678\"}\n"))
+		w.(http.Flusher).Flush()
+		_, _ = w.Write([]byte("{\"Paired\":{\"host_id\":42}}\n"))
+	})
+	mux.HandleFunc("PATCH /api/host", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			HostID *uint32 `json:"host_id"`
+			Change bool    `json:"change_owner"`
+			Owner  *uint32 `json:"owner"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !authed(r) || b.HostID == nil || !b.Change || b.Owner != nil {
+			w.WriteHeader(400)
+			return
+		}
+		state.Shared = true
+	})
+	mux.HandleFunc("DELETE /api/host", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("host_id") != "42" || !authed(r) {
+			w.WriteHeader(403)
+		}
+	})
+	_ = http.ListenAndServe(cfg.Web.Bind, mux)
+}
+
+func installFake(t *testing.T) *Bridge {
+	t.Helper()
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := &Bridge{Dir: filepath.Join(t.TempDir(), "bridge")}
+	if err := os.MkdirAll(b.pkgDir(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.program(), data, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(b.Stop)
+	return b
+}
+
+func TestBridgeRunsAndIsSetUp(t *testing.T) {
+	b := installFake(t)
+	ctx := context.Background()
+	if !b.Installed() {
+		t.Fatal("not installed")
+	}
+	if err := b.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if b.Port() == 0 {
+		t.Fatal("no port")
+	}
+	// Starting it again leaves it running where it is.
+	port := b.Port()
+	if err := b.Start(ctx); err != nil || b.Port() != port {
+		t.Errorf("second start: %v, port %d then %d", err, port, b.Port())
+	}
+	// Its password and data are in its own folder, not the program's.
+	st, err := os.Stat(filepath.Join(b.Dir, "data", "admin.secret"))
+	if err != nil || st.Size() != 64 {
+		t.Errorf("admin secret: %v", err)
+	}
+	host, err := b.AddRig(ctx, "192.168.1.20", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(host) != "42" {
+		t.Errorf("host id %s", host)
+	}
+	pin, done, err := b.PairRig(ctx, host)
+	if err != nil || pin != "5678" {
+		t.Fatalf("pair: %q %v", pin, err)
+	}
+	if err := <-done; err != nil {
+		t.Errorf("pair result: %v", err)
+	}
+	if err := b.ForgetRig(ctx, host); err != nil {
+		t.Errorf("forget: %v", err)
+	}
+	// It comes back with the same password after a restart.
+	b.Stop()
+	if b.Port() != 0 {
+		t.Error("still running")
+	}
+	if err := b.Start(ctx); err != nil {
+		t.Errorf("restart: %v", err)
+	}
+}
+
+func TestBridgeNotThere(t *testing.T) {
+	b := &Bridge{Dir: t.TempDir()}
+	if err := b.Start(context.Background()); err == nil {
+		t.Error("started with nothing installed")
 	}
 }

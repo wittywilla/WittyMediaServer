@@ -924,6 +924,38 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
 
+### Game rigs
+
+Someone's own gaming PC running Sunshine, whose games are a library of its own (`type: games`, `console: rig`).
+[GAME-RIGS.md](GAME-RIGS.md) is the design. To play, call `POST /rigs/games/{id}/play` with
+`{"client": "browser|desktop|android|apple", "os": "windows|mac|linux|chromeos|android|androidtv|firetv|ios|tvos"}`.
+It answers `methods`, best first, each of them something this device can really do. `POST /games/{id}/play` on a
+rig's game answers 409 with `"rig": true`.
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /rigs` | user | The gaming PCs this account can see, and how they are doing. |
+| `POST /rigs` | admin | Add a gaming PC. It has to answer as Sunshine. |
+| `GET /rigs/find` | admin | Look for PCs running Sunshine on the home network. |
+| `PATCH /rigs/{id}` | admin | Change a rig name, address, address away from home or MAC address. |
+| `DELETE /rigs/{id}` | admin | Forget a rig, with its library. |
+| `POST /rigs/{id}/pair` | admin | Start pairing, and get the PIN to type into Sunshine. |
+| `GET /rigs/{id}/pair` | admin | How pairing is going. |
+| `DELETE /rigs/{id}/pair` | admin | Stop waiting for a PIN. |
+| `POST /rigs/{id}/devices` | admin | Type a PIN into Sunshine for a Moonlight app. Sunshine's sign-in is used once and never kept. |
+| `POST /rigs/{id}/sync` | admin | Read a rig's games again. |
+| `GET /rigs/{id}/apps` | admin | Everything a rig offers, shown in the library or not. |
+| `PUT /rigs/{id}/apps/{app}` | admin | Show or hide an app in the library. |
+| `POST /rigs/{id}/wake` | user | Send a registered rig the Wake-on-LAN signal. |
+| `POST /rigs/{id}/quit` | user | End what is running on a rig: for admins and whoever started it. |
+| `POST /rigs/games/{id}/play` | user | What this device can do to play a rig's game. Starts nothing on the PC. |
+| `POST /rigs/games/{id}/start` | user | Start a rig's game on the PC, for a Moonlight app to resume. |
+| `GET /rigs/browser` | admin | Whether browser play is available and installed. |
+| `POST /rigs/browser/install` | admin | Download browser play from its own project's release. |
+| `DELETE /rigs/browser` | admin | Remove browser play and all it holds. |
+| `POST /rigs/{id}/browser` | admin | Pair browser play with a rig. |
+| `DELETE /rigs/{id}/browser` | admin | Stop offering browser play for a rig. |
+
 ### Photos
 
 | Route | Sign-in | What it does |

@@ -29,6 +29,16 @@ Run `go version -m wms` on a binary for the exact module list and versions.
 | github.com/ebitengine/purego | Apache-2.0 |
 | golang.org/x/sys | BSD-3-Clause |
 
+## Game rigs
+
+None of these is bundled, and no code from them is in WittyMediaServer. See `docs/GAME-RIGS.md`.
+
+| Program | Licence | How it's used |
+|---|---|---|
+| [Sunshine](https://github.com/LizardByte/Sunshine) | GPL-3.0 | Installed by the owner on their own gaming PC. Reached over its network protocols only |
+| [Moonlight](https://moonlight-stream.org) (Qt, Android, iOS and tvOS clients) | GPL-3.0 | Installed by each person on their device. Started as a separate program where the device allows that |
+| [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) | GPL-3.0-or-later | Optional. Downloaded at an admin's request from its own release, checked against a recorded digest, and run as a separate program on the loopback address. Its source is on that project's page |
+
 ## Games
 
 Libretro cores are **not bundled**. An administrator installs each one on request from the libretro

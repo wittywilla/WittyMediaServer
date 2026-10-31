@@ -48,28 +48,28 @@ func init() {
 
 // rigRoutes registers the game rigs API.
 func (s *Server) rigRoutes(m *http.ServeMux) {
-	a, admin := s.requireUser, s.requireAdmin
+	a := s.requireUser
 	m.Handle("GET /api/rigs", a(s.handleRigs))
-	m.Handle("GET /api/rigs/find", admin(s.handleRigFind))
-	m.Handle("POST /api/rigs", admin(s.handleRigAdd))
-	m.Handle("PATCH /api/rigs/{id}", admin(s.handleRigUpdate))
-	m.Handle("DELETE /api/rigs/{id}", admin(s.handleRigRemove))
-	m.Handle("POST /api/rigs/{id}/pair", admin(s.handleRigPair))
-	m.Handle("GET /api/rigs/{id}/pair", admin(s.handleRigPairStatus))
-	m.Handle("DELETE /api/rigs/{id}/pair", admin(s.handleRigPairCancel))
-	m.Handle("POST /api/rigs/{id}/devices", admin(s.handleRigDevicePIN))
-	m.Handle("POST /api/rigs/{id}/sync", admin(s.handleRigSync))
-	m.Handle("GET /api/rigs/{id}/apps", admin(s.handleRigApps))
-	m.Handle("PUT /api/rigs/{id}/apps/{app}", admin(s.handleRigAppShown))
+	m.Handle("GET /api/rigs/find", s.requireAdmin(s.handleRigFind))
+	m.Handle("POST /api/rigs", s.requireAdmin(s.handleRigAdd))
+	m.Handle("PATCH /api/rigs/{id}", s.requireAdmin(s.handleRigUpdate))
+	m.Handle("DELETE /api/rigs/{id}", s.requireAdmin(s.handleRigRemove))
+	m.Handle("POST /api/rigs/{id}/pair", s.requireAdmin(s.handleRigPair))
+	m.Handle("GET /api/rigs/{id}/pair", s.requireAdmin(s.handleRigPairStatus))
+	m.Handle("DELETE /api/rigs/{id}/pair", s.requireAdmin(s.handleRigPairCancel))
+	m.Handle("POST /api/rigs/{id}/devices", s.requireAdmin(s.handleRigDevicePIN))
+	m.Handle("POST /api/rigs/{id}/sync", s.requireAdmin(s.handleRigSync))
+	m.Handle("GET /api/rigs/{id}/apps", s.requireAdmin(s.handleRigApps))
+	m.Handle("PUT /api/rigs/{id}/apps/{app}", s.requireAdmin(s.handleRigAppShown))
 	m.Handle("POST /api/rigs/{id}/wake", a(s.handleRigWake))
 	m.Handle("POST /api/rigs/{id}/quit", a(s.handleRigQuit))
 	m.Handle("POST /api/rigs/games/{id}/play", a(s.handleRigPlay))
 	m.Handle("POST /api/rigs/games/{id}/start", a(s.handleRigStart))
-	m.Handle("GET /api/rigs/browser", admin(s.handleRigBrowser))
-	m.Handle("POST /api/rigs/browser/install", admin(s.handleRigBrowserInstall))
-	m.Handle("DELETE /api/rigs/browser", admin(s.handleRigBrowserRemove))
-	m.Handle("POST /api/rigs/{id}/browser", admin(s.handleRigBrowserPair))
-	m.Handle("DELETE /api/rigs/{id}/browser", admin(s.handleRigBrowserForget))
+	m.Handle("GET /api/rigs/browser", s.requireAdmin(s.handleRigBrowser))
+	m.Handle("POST /api/rigs/browser/install", s.requireAdmin(s.handleRigBrowserInstall))
+	m.Handle("DELETE /api/rigs/browser", s.requireAdmin(s.handleRigBrowserRemove))
+	m.Handle("POST /api/rigs/{id}/browser", s.requireAdmin(s.handleRigBrowserPair))
+	m.Handle("DELETE /api/rigs/{id}/browser", s.requireAdmin(s.handleRigBrowserForget))
 }
 
 // rigService is built the first time anything needs it, so a server with no rigs spends

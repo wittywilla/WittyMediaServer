@@ -108,11 +108,11 @@ func quoted(s string) string {
 }
 
 func withPort(address string, port int) string {
+	if strings.Contains(address, ":") { // IPv6
+		address = "[" + address + "]"
+	}
 	if port <= 0 || port == 47989 {
 		return address
-	}
-	if strings.Contains(address, ":") { // IPv6
-		return "[" + address + "]:" + strconv.Itoa(port)
 	}
 	return address + ":" + strconv.Itoa(port)
 }

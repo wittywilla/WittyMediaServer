@@ -350,7 +350,7 @@ func (b *Bridge) Start(ctx context.Context) error {
 	if err := os.WriteFile(cfgPath, cfg, 0o600); err != nil {
 		return err
 	}
-	cmd := exec.Command(b.program(), "run", "-c", cfgPath)
+	cmd := exec.Command(b.program(), "-c", cfgPath, "run")
 	cmd.Dir = b.pkgDir()
 	cmd.Env = bridgeEnv()
 	if err := cmd.Start(); err != nil {

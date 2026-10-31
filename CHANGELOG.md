@@ -5,6 +5,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Game rigs: your own gaming PC as a source of games
+
+- **Add a PC running Sunshine** in **Settings, Game rigs**, by finding it on your network or typing its address, and pair it
+  with a PIN. Several PCs are fine. You'll see if one is online, asleep, off or not running Sunshine, and you can wake it up, even from away.
+- **Its games are a library,** labelled as playing on that PC, with art from the PC and details from Wikidata. Library, age and
+  per-title limits all apply. Kids and Guest profiles see none until given one, and desktop apps start hidden.
+- **Play hands off to Moonlight** where a device allows: one press in the desktop app and on Android and Android TV. On Apple TV,
+  nothing can start Moonlight, so a button starts the game on the PC, and you resume it in Moonlight. On a browser, it says what to do.
+- **Browser play** is optional: it downloads a separate program from its own project when an admin asks. It's limited by game, and
+  doesn't open the PC to the internet. **It has not been run for real yet.**
+- New modules: **WittySunshine** and **WittyMoonlight**. Sunshine and Moonlight are separate GPL-3.0 projects, and none of their
+  code is here. The design, a table of what works per device, and what has really been tested: `docs/GAME-RIGS.md`.
+
 ### Interface audit
 
 - **Fixed:** the TV guide went blank with no channels. The home banner could be an empty box when the newest

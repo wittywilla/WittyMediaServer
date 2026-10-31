@@ -1,0 +1,22 @@
+/* A gaming PC's library and game pages, and its settings page. Colours come from the theme;
+   status words stay in the normal text colour, as only the dot carries the state's colour. */
+.rig-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); color: var(--fg); }
+.rig-status .grow { flex: 1 1 200px; min-width: 0; }
+.rig-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--fg-2); }
+.rig-status.ok .rig-dot { background: var(--ok, var(--accent)); }
+.rig-plan { margin-top: 24px; display: grid; gap: 12px; max-width: 720px; outline: none; }
+.rig-method { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.rig-method h2 { font-size: 1rem; margin: 0 0 8px; }
+.rig-method ol { margin: 0 0 8px; padding-left: 1.4em; }
+.rig-method summary { cursor: pointer; }
+.rig-method p:last-child { margin-bottom: 0; }
+.rig-command { display: block; padding: 8px 10px; margin-bottom: 8px; overflow-x: auto; white-space: pre; border-radius: 6px; background: var(--bg); }
+.rig-pin { font-size: 2.4rem; font-weight: 700; letter-spacing: .25em; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.rig-found { display: grid; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+.rig-found li, .rig-app { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.rig-apps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rig-form { display: grid; gap: 10px; max-width: 480px; }
+.rig-form label { display: grid; gap: 4px; }
+.rig-warn { padding: 10px 12px; margin: 8px 0; border-left: 3px solid var(--danger, var(--accent)); background: var(--bg-2); }
+.rig-steps li { margin-bottom: 6px; }
+.rig-row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

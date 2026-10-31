@@ -23,6 +23,9 @@ final class ClassPatch {
         CALLS.put("java/lang/Class.getClassLoader()Lwitty/shim/Loader;", "getClassLoader(Ljava/lang/Class;)Lwitty/shim/Loader;");
         CALLS.put("*.getContextClassLoader()Lwitty/shim/Loader;", "getContextClassLoader(Ljava/lang/Thread;)Lwitty/shim/Loader;");
         CALLS.put("*.getToolkit()Lwitty/shim/Toolkit;", "getToolkit(Ljava/awt/Component;)Lwitty/shim/Toolkit;");
+        // AWT would answer "ready" and never call back; see Toolkit.prepareImage.
+        CALLS.put("*.prepareImage(Ljava/awt/Image;Ljava/awt/image/ImageObserver;)Z", "prepareImage(Ljava/lang/Object;Ljava/awt/Image;Ljava/awt/image/ImageObserver;)Z");
+        CALLS.put("*.prepareImage(Ljava/awt/Image;IILjava/awt/image/ImageObserver;)Z", "prepareImage(Ljava/lang/Object;Ljava/awt/Image;IILjava/awt/image/ImageObserver;)Z");
         // These JDK methods take a type renamed here, so as named by a disc they would not link.
         CALLS.put("*.printStackTrace(Lwitty/shim/PrintStream;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintStream;)V");
         CALLS.put("*.printStackTrace(Lwitty/shim/PrintWriter;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintWriter;)V");

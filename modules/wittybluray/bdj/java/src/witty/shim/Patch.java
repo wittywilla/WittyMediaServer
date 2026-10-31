@@ -26,6 +26,8 @@ public final class Patch {
     public static Loader getClassLoader(Class<?> c) { return c.getClassLoader() instanceof DiscLoader ? loader() : null; }
     public static Loader getContextClassLoader(Thread t) { return loader(); }
     public static Toolkit getToolkit(Component c) { return Toolkit.getDefaultToolkit(); }
+    public static boolean prepareImage(Object c, java.awt.Image i, java.awt.image.ImageObserver o) { return Toolkit.getDefaultToolkit().prepareImage(i, -1, -1, o); }
+    public static boolean prepareImage(Object c, java.awt.Image i, int w, int h, java.awt.image.ImageObserver o) { return Toolkit.getDefaultToolkit().prepareImage(i, w, h, o); }
     public static void printStackTrace(Object t, PrintStream s) { if (t instanceof Throwable) ((Throwable) t).printStackTrace(s); }
     public static void printStackTrace(Object t, PrintWriter w) { if (t instanceof Throwable) ((Throwable) t).printStackTrace(w); }
     public static void list(Object o, PrintStream s) {

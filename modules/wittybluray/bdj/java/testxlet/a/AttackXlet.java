@@ -26,6 +26,7 @@ public class AttackXlet implements Xlet {
     public static final int DONE = 199;
     private String[] args;
     private int next = FIRST;
+    private XletContext ctx;
 
     private interface Probe {
         /** true: it got through. A throw of any kind means it did not. */
@@ -48,13 +49,19 @@ public class AttackXlet implements Xlet {
         report(gpr, through ? 2 : 1);
     }
 
-    public void initXlet(XletContext c) { args = (String[]) c.getXletProperty(XletContext.ARGS); }
+    public void initXlet(XletContext c) {
+        ctx = c;
+        args = (String[]) c.getXletProperty(XletContext.ARGS);
+    }
 
     public void startXlet() {
         String mode = args != null && args.length > 0 ? args[0] : "probes";
         if (mode.equals("probes")) {
             probes();
             report(DONE, 1);
+        } else if (mode.equals("exit")) {
+            draw();
+            ctx.notifyDestroyed();
         } else if (mode.equals("hang-init")) {
             spin();
         } else {

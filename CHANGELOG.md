@@ -5,6 +5,27 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Blu-ray Java menus tested on more than our own test disc
+
+BD-J has now run open-source sample applications, on Java 8, 21 and 25. It has still not run a retail
+disc: neither Blu-ray image on hand has Java menus.
+
+- **Security:** a hostile test disc found that disc code could read and write any file and reach the network,
+  through XML parsers, colour profiles and RMI. All are closed, and the test now runs every time. Windows share
+  and device names are refused before anything touches them. No socket of the Java process can connect now,
+  whoever asks.
+- **Runaway discs:** past its limits on memory, threads or processor time, a disc's Java process is ended and the
+  feature plays. Message floods and requests for playlists and titles are paced. A disc can no longer fill a drive
+  through a sparse file.
+- **Fixed:** arrow keys stopped reaching a disc's menu after the first press of OK. A disc's saved scores and
+  bookmarks were lost whenever the server restarted. Discs that wait to hear a picture has loaded waited for ever.
+  Animation drawn straight to the screen didn't update. A finished application's picture stayed on screen, and when
+  an application quit the disc had nothing to do; it now returns to the disc's menu. Java stops 3 minutes after the
+  viewer has gone, not 30, and a hard stop no longer leaves copies of discs' programs behind.
+- **Added:** about 300 more platform classes from the published specifications, among them HAVi widgets and focus,
+  Java TV services and timers, DSM-CC files, and `DVBClassLoader`. Several were in the wrong package, or could not
+  be linked by a real disc at all.
+
 ### Interface audit
 
 - **Fixed:** the TV guide went blank with no channels. The home banner could be an empty box when the newest

@@ -215,6 +215,23 @@ public class PlatformXlet implements Xlet {
             Image i = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/p/dot.png"));
             return i != null && i.getWidth(null) == 2 && i.getHeight(null) == 2;
         }});
+        c("waiting for a picture to load", new Check() { public boolean run() throws Throwable {
+            final Object done = new Object();
+            final boolean[] ready = new boolean[1];
+            new java.awt.Component() {}.prepareImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/p/dot.png")), new java.awt.image.ImageObserver() {
+                public boolean imageUpdate(Image i, int flags, int x, int y, int w, int h) {
+                    synchronized (done) {
+                        ready[0] = (flags & java.awt.image.ImageObserver.ALLBITS) != 0;
+                        done.notifyAll();
+                    }
+                    return false;
+                }
+            });
+            synchronized (done) {
+                for (int i = 0; i < 100 && !ready[0]; i++) done.wait(100);
+            }
+            return ready[0];
+        }});
         c("buffered image", new Check() { public boolean run() {
             DVBBufferedImage b = new DVBBufferedImage(8, 8);
             b.createGraphics().dispose();

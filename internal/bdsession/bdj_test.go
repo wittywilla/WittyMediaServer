@@ -315,3 +315,56 @@ func TestBDJRunawayFallsBack(t *testing.T) {
 		}
 	}
 }
+
+// An application that ends itself goes back to the disc's menu, and a menu that
+// does nothing else does not loop for ever.
+func TestBDJApplicationExits(t *testing.T) {
+	java := javaForTest(t)
+	dir := bdjDisc(t, "attack.jar", testBDJO("a.AttackXlet", "exit"))
+	m := testManager(t)
+	m.BDJ = func() (bool, string) { return true, java }
+	s, err := m.Open(1, dir, Prefs{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	if p := s.Start(ctx); p.BDJ == nil {
+		t.Fatalf("no BD-J view: %+v", p)
+	}
+	for end := time.Now().Add(60 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		if p := s.Current(); p != nil && p.BDJ == nil {
+			break
+		}
+		if time.Now().After(end) {
+			t.Fatal("the session stayed in the disc's menu")
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.bd == nil || len(s.bd.menuExits) != bdjMenuExits+1 {
+		t.Fatalf("expected the menu to be started again %d times", bdjMenuExits)
+	}
+}
+
+// A disc's storage follows the disc: the name must not depend on where it is or on
+// anything that changes when the server starts again.
+func TestStorageKey(t *testing.T) {
+	open := func(class string) *wittybluray.Disc {
+		t.Helper()
+		d, err := wittybluray.Open(bdjDisc(t, "00000.jar", testBDJO(class)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { d.Close() })
+		d.Label = "same"
+		return d
+	}
+	a, b, other := storageKey(open("t.One")), storageKey(open("t.One")), storageKey(open("t.Two"))
+	if a != b {
+		t.Errorf("the same disc in two folders: %s and %s", a, b)
+	}
+	if a == other {
+		t.Error("two different discs share their storage")
+	}
+}

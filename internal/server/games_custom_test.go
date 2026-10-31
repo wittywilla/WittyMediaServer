@@ -553,7 +553,7 @@ func TestCustomCoreLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	savePath := filepath.Join(saveDir, "save.srm")
-	if err := os.WriteFile(savePath, []byte("a battery save"), 0o644); err != nil {
+	if err := os.WriteFile(savePath, []byte("battery save 16b"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -592,7 +592,7 @@ func TestCustomCoreLifecycle(t *testing.T) {
 	if w := g.do("POST", "/api/gaming/custom/cores/mine/reapprove", g.admin, map[string]any{"password": testPassword}); w.Code != 200 {
 		t.Fatalf("approving again: %d %s", w.Code, w.Body)
 	}
-	if got, _ := os.ReadFile(savePath); string(got) != "a battery save" {
+	if got, _ := os.ReadFile(savePath); string(got) != "battery save 16b" {
 		t.Errorf("the save became %q", got)
 	}
 	list = decode[CustomStatus](t, g.do("GET", "/api/gaming/custom", g.admin, nil))
@@ -615,7 +615,7 @@ func TestCustomCoreLifecycle(t *testing.T) {
 	if len(replaced.Consoles) != 1 || replaced.Consoles[0] != consoleID || replaced.SHA256 == firstSum {
 		t.Errorf("replaced = %+v", replaced)
 	}
-	if got, _ := os.ReadFile(savePath); string(got) != "a battery save" {
+	if got, _ := os.ReadFile(savePath); string(got) != "battery save 16b" {
 		t.Errorf("the save became %q", got)
 	}
 	// Adding another core under the same name without saying so is refused.
@@ -696,7 +696,7 @@ func TestCustomCoreLifecycle(t *testing.T) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Errorf("its file is still there: %v", err)
 	}
-	if got, _ := os.ReadFile(savePath); string(got) != "a battery save" {
+	if got, _ := os.ReadFile(savePath); string(got) != "battery save 16b" {
 		t.Errorf("the save became %q", got)
 	}
 	if id := g.s.preferredCores(ctx)["snes"]; id != "" {

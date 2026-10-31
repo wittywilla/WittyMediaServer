@@ -308,7 +308,7 @@ func (s *Server) ensureShareStream(r *http.Request, it *library.Item) error {
 		audio = -1
 	}
 	q, maxHeight := s.quality(r)
-	s.HLS.Ensure(hls.Spec{ID: shareStreamID(it), InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, Quality: q, MaxHeight: maxHeight, AudioCodec: "aac"})
+	s.HLS.Ensure(hls.Spec{ID: shareStreamID(it), InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, Quality: q, MaxHeight: maxHeight, AudioCodec: "aac"})
 	return nil
 }
 

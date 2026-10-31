@@ -49,6 +49,15 @@ func TestWriteConcatRefusesLineBreaks(t *testing.T) {
 	}
 }
 
+func TestProbeSeekMargin(t *testing.T) {
+	for name, want := range map[string]float64{"mpegts": 3, "mpeg": 3, "matroska,webm": 0, "mov,mp4,m4a,3gp,3g2,mj2": 0, "": 0} {
+		p := Probe{Format: Format{FormatName: name}}
+		if got := p.SeekMargin(); got != want {
+			t.Errorf("%q: %g, want %g", name, got, want)
+		}
+	}
+}
+
 // A long read goes through several subfile addresses: FFmpeg goes wrong at over
 // 2 GiB in one, and nothing is left out or read twice where they meet.
 func TestWriteConcatSplitsLongReads(t *testing.T) {

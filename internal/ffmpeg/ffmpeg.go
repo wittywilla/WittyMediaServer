@@ -157,6 +157,17 @@ type Probe struct {
 	} `json:"chapters"`
 }
 
+// SeekMargin is how far ahead of a start to begin reading this file, for
+// hls.Spec.SeekMargin: transport and program streams have no index to seek by.
+func (p *Probe) SeekMargin() float64 {
+	for _, f := range strings.Split(p.Format.FormatName, ",") {
+		if f == "mpegts" || f == "mpeg" {
+			return 3
+		}
+	}
+	return 0
+}
+
 func (p *Probe) Duration() float64 {
 	d, _ := strconv.ParseFloat(p.Format.Duration, 64)
 	return d

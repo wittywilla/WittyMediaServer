@@ -16,6 +16,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Fixed:** skipping within a DVD or Blu-ray could hold the first picture for up to half a second. It now lands
   on the right frame.
 - **Fixed:** picking a chapter on a DVD's page could start at your saved place instead of that chapter.
+- **Fixed:** the same late landing on TV recordings and other .ts, .m2ts, .vob and .mpg files when skipping or
+  when conversion starts again.
 - **New for developers:** a measuring check compares a stream with the disc, frame by frame and sound by sound,
   at every chapter. See [DVD.md](docs/DVD.md#diagnosing-a-disc).
 

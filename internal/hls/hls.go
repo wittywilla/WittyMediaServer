@@ -843,7 +843,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 	} else {
 		margin := sp.SeekMargin
-		if sp.SubtitleIndex >= 0 { // burning in lines up with the input's own clock
+		if sp.SubtitleIndex >= 0 || sp.CopyVideo { // burning in lines up with the input's own clock; a copy starts at a keyframe
 			margin = 0
 		}
 		read := max(0, start-margin)

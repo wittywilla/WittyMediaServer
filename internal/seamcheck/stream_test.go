@@ -251,6 +251,52 @@ func TestCellSeams(t *testing.T) {
 	}
 }
 
+// A recording in the library: the probe asks for the margin, and a restart
+// anywhere in the file goes on with the right pictures.
+func TestRestartInARecordingIsExact(t *testing.T) {
+	ff := tools(t)
+	dir := t.TempDir()
+	clip := filepath.Join(dir, "recording.ts")
+	run(t, ff, append(source(testSec), "-c:v", "libx264", "-preset", "veryfast", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-bf", "3", "-b:v", "1500k",
+		"-c:a", "ac3", "-b:a", "192k", "-f", "mpegts", clip)...)
+	ctx := context.Background()
+	pr, err := ff.ProbeFile(ctx, clip)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pr.SeekMargin() == 0 {
+		t.Fatalf("no margin for %q", pr.Format.FormatName)
+	}
+	ref, _, err := Reference(ctx, ff, [][]string{{"-i", clip}}, testFPS, "", "", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := hls.NewManager(ff, filepath.Join(dir, "hls"), 2, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(m.StopAll)
+	for _, n := range []int{1, 3, 5} {
+		m.Stop("v-rec")
+		h := m.Ensure(hls.Spec{ID: "v-rec", InputArgs: ffmpeg.FileInput(clip), Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), AudioIndex: 0, AudioChannels: 2, SubtitleIndex: -1, Preset: "veryfast"})
+		p, err := h.Segment(ctx, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, _, err := Decode(ctx, ff, []string{"-i", p}, testFPS, "", "", dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		from := n * 4 * int(testFPS)
+		if len(got.Frames) != 4*int(testFPS) {
+			t.Errorf("segment %d: %d frames", n, len(got.Frames))
+		}
+		for i := range got.Frames {
+			if d := diff(&got.Frames[i], &ref.Frames[from+i]); d > thumbSize*3 {
+				t.Errorf("segment %d: frame %d isn't the film's frame %d (difference %d)", n, i, from+i, d)
+				break
+			}
+		}
+	}
+}
+
 // A straight read that starts mid-film has its sound ahead of its first picture.
 // The reference has to allow for that, or sound looks out of step when it isn't.
 func TestFirstFrameSecCountsEarlySound(t *testing.T) {
@@ -371,7 +417,7 @@ func TestCopyStreamKeepsEveryFrame(t *testing.T) {
 	for _, start := range []float64{0, 11.5} {
 		m := hls.NewManager(ff, filepath.Join(dir, fmt.Sprintf("copy-hls-%g", start)), 2, slog.New(slog.NewTextHandler(io.Discard, nil)))
 		t.Cleanup(m.StopAll)
-		h := m.Ensure(hls.Spec{ID: fmt.Sprintf("v-copy-%d", int(start)), InputArgs: ffmpeg.FileInput(src), Duration: testSec, AudioIndex: 0, SubtitleIndex: -1, CopyVideo: true, CopyAudio: true, Growing: true, StartSec: start, SegmentSec: 4})
+		h := m.Ensure(hls.Spec{ID: fmt.Sprintf("v-copy-%d", int(start)), InputArgs: ffmpeg.FileInput(src), Duration: testSec, AudioIndex: 0, SubtitleIndex: -1, SeekMargin: 3, CopyVideo: true, CopyAudio: true, Growing: true, StartSec: start, SegmentSec: 4})
 		if _, err := h.GrowingPlaylist(ctx, func(n int) string { return fmt.Sprintf("seg%05d.ts", n) }); err != nil {
 			t.Fatal(err)
 		}

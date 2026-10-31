@@ -44,10 +44,9 @@ const (
 	failureMemory = 30 * time.Second
 	// freeReserve is left free on the disk, whatever the cache's limit.
 	freeReserve = int64(512) << 20
+	// abandonAfter: nobody has asked about an unpack for this long, so stop it.
+	abandonAfter = 2 * time.Minute
 )
-
-// abandonAfter: nobody has asked about an unpack for this long, so stop it.
-var abandonAfter = 2 * time.Minute
 
 // Status says how preparing a game is going.
 type Status struct {
@@ -74,6 +73,8 @@ type manifest struct {
 type Cache struct {
 	Dir   string
 	Limit func() int64
+	// abandonIn replaces abandonAfter, for tests.
+	abandonIn time.Duration
 
 	mu     sync.Mutex
 	jobs   map[string]*job
@@ -284,7 +285,11 @@ func (c *Cache) run(j *job) {
 	watch := make(chan struct{})
 	defer close(watch)
 	go func() {
-		t := time.NewTicker(abandonAfter / 8)
+		abandon := c.abandonIn
+		if abandon <= 0 {
+			abandon = abandonAfter
+		}
+		t := time.NewTicker(abandon / 8)
 		defer t.Stop()
 		for {
 			select {
@@ -292,7 +297,7 @@ func (c *Cache) run(j *job) {
 				return
 			case <-t.C:
 				j.mu.Lock()
-				gone := j.waiters == 0 && time.Since(j.lastSeen) > abandonAfter
+				gone := j.waiters == 0 && time.Since(j.lastSeen) > abandon
 				j.mu.Unlock()
 				if gone {
 					cancel()

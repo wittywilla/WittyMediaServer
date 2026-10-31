@@ -1099,12 +1099,10 @@ func TestClosingStopsAnUnpack(t *testing.T) {
 }
 
 func TestAbandonedUnpacksStop(t *testing.T) {
-	saved := abandonAfter
-	abandonAfter = 80 * time.Millisecond
-	defer func() { abandonAfter = saved }()
 	dir := t.TempDir()
 	p := write(t, filepath.Join(dir, "big.tar"), tarBytes(t, tarFile{name: "big.sfc", data: make([]byte, 1<<20)}))
 	c := newCache(t, 1<<30)
+	c.abandonIn = 80 * time.Millisecond
 	snes := wittyplay.ByID("snes")
 	// Holds the job in its queue, where it can be seen to give up.
 	c.init()

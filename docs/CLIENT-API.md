@@ -734,6 +734,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /modules/{id}/builtin` | admin | Use the built-in copy, without blaming the version in use. |
 | `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |
+| `PUT /modules/{id}/autoupdate` | admin | Whether this module may update by itself while the server's setting is on: `{"on": false}`. It still looks for updates and offers them. Not for modules that update with the server. |
 | `POST /modules/{id}/latest` | admin | End a pin and move to the newest version that fits. 202. |
 | `POST /modules/{id}/add` | admin | Put a module on this server. Works straight away, offline. |
 | `POST /modules/{id}/remove` | admin | Take a module off this server. Answered 409 with `"code": "module-in-use"` and the `libraries` that need it. No data is touched. |

@@ -171,9 +171,9 @@ func cmdServe(args []string) int {
 	})
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
-	bdremote.Use(modMgr)
-	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
+	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
+	bdremote.Use(modMgr)
 
 	webFS := web.Dist()
 	if cfg.Dev {

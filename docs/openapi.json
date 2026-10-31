@@ -1543,6 +1543,9 @@
           "api": {
             "type": "integer"
           },
+          "autoUpdate": {
+            "type": "boolean"
+          },
           "builtinVersion": {
             "type": "string"
           },
@@ -1712,6 +1715,7 @@
         },
         "required": [
           "api",
+          "autoUpdate",
           "builtinVersion",
           "canRollback",
           "delivery",
@@ -10092,6 +10096,61 @@
           }
         ],
         "summary": "Put a module on this server. Works straight away, offline.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/autoupdate": {
+      "put": {
+        "operationId": "putModulesIdAutoupdate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "on": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether this module may update by itself while the server's setting is on.",
         "tags": [
           "Server"
         ],

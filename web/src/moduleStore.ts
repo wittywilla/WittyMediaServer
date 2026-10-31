@@ -15,7 +15,7 @@ export type ModuleStatus = {
   group?: string; summary?: string; needs?: string[]; updates?: string; stays?: string; pin?: string
   withdrawn?: Withdrawn; lastFailure?: string; events?: ModuleEvent[]
   installed: boolean; core?: boolean; libraries?: string[]; requires?: string[]; requiredBy?: string[]
-  source?: ModuleSource; noFork?: string
+  source?: ModuleSource; noFork?: string; autoUpdate: boolean
 }
 export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[] }
 export type ModuleRef = { id: string; name: string; installed: boolean }

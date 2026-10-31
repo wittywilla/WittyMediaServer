@@ -15,6 +15,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
   listing everything.
 
+### Modules become their own projects
+
+- **A module store.** Settings, Modules is now grouped by what each module does, and shows its status, versions, whether it updates by itself or with the server, what it needs, its repository, and its recent activity and failures.
+- **Choose what's on your server.** First-run setup asks before you make libraries, and what's installed decides which libraries can be made. Add library shows the rest greyed out, with a button to add what each needs, there and then.
+- **Choose a version.** Every release is listed with its notes, and older ones can be installed, with a warning, and stay pinned until you go back to the latest. One that doesn't fit this server is shown and explained.
+- **Automatic updates, module by module.** Each module that updates on its own has a switch to leave its updates to you, while still showing what's available.
+- **Withdrawn versions.** A module can withdraw a version with a signed list. One withdrawn for security reasons is refused, and stops being used even if pinned.
+- **More can update apart from the server:** WittyDVD and WittyBluray run in a helper per open disc, WittyTuner's network sources and WittyPlay's game runner update too, along with the file browser and all four reader modules. [MODULES.md](docs/MODULES.md) says exactly what each can and can't do, and each module's built-in copy stays the default and the fallback.
+- **Using someone's fork.** An admin can point a module at a fork, with a key they trust for that module alone. It runs under stricter limits and never updates by itself, and the server still refuses encrypted media whatever it says. WittyTuner can't be forked. Brand-new custom modules are marked as in development.
+- **Stronger limits on helpers.** On Linux a helper can no longer change any file and has a memory limit, applied so that nothing in it can skip them.
+- **Each module can release from its own repository**, with its own workflows, and the steps and script for moving over are in [MODULES-CUTOVER.md](docs/MODULES-CUTOVER.md). Nothing has been published yet.
+- **Versions in one command:** `wittymodule bump` and `scripts/bump-server.sh`, with a check that a changed module has a new number.
+
 ### Modules update on their own
 
 - Every module now has its own version and states the oldest and newest server it works with.

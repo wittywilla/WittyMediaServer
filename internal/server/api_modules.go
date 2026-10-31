@@ -94,6 +94,28 @@ func (s *Server) handleModuleUnpin(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module unpinned", 200, func(id string) error { return s.Modules.Unpin(id) })
 }
 
+// PUT /api/modules/{id}/autoupdate: whether this module may update by itself while the
+// server's setting is on. {"on": false} leaves it to be updated by hand.
+func (s *Server) handleModuleAutoUpdate(w http.ResponseWriter, r *http.Request) {
+	if s.Modules == nil {
+		writeErr(w, 404, "modules can't be updated in this build")
+		return
+	}
+	var b struct {
+		On *bool `json:"on"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256)).Decode(&b); err != nil || b.On == nil {
+		writeErr(w, 400, "say whether it may update by itself: {\"on\": true}")
+		return
+	}
+	if err := s.Modules.SetAutoUpdate(r.PathValue("id"), *b.On); err != nil {
+		writeModuleErr(w, err)
+		return
+	}
+	s.Log.Info("module automatic updates changed", "module", r.PathValue("id"), "on", *b.On, "by", userFrom(r).Name)
+	writeJSON(w, 200, s.Modules.Report())
+}
+
 // POST /api/modules/{id}/latest: end a pin and move to the newest version that fits.
 func (s *Server) handleModuleLatest(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module returning to the latest", 202, func(id string) error { return s.Modules.ToLatest(id) })

@@ -178,6 +178,8 @@ export default function ModulesSettings() {
     run: async () => { await act(() => api.post<ModuleReport>(`/modules/${m.id}/rollback`), `${m.name} went back to ${backTo(m)}`); focusRow(m.id) },
   })
   const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? `${m.name} can update again` : `${m.name} stays on this version`)
+  const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? `${m.name} can update by itself` : `${m.name} will wait for you to update it`)
+  const toLatest = (m: ModuleStatus) => act(() => api.post<ModuleReport>(`/modules/${m.id}/latest`), `${m.name} is going back to the latest`)
   const official = (m: ModuleStatus) => setAsk({
     title: 'Go back to the official version?', action: 'Go back',
     body: <p>{m.name} goes back to the releases of <b>{m.stockRepo}</b>. Versions downloaded from {m.source?.repo} are deleted, and it uses its built-in copy until you choose another.</p>,
@@ -204,7 +206,7 @@ export default function ModulesSettings() {
     <ModuleRow key={m.id} m={m} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
-      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} />
+      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} />
   )
 
   return (
@@ -284,6 +286,7 @@ type RowProps = {
   m: ModuleStatus; isOpen: boolean; marked: boolean; checkedAt?: number; nameOf: (id: string) => string; refused: string
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
+  onAuto: (on: boolean) => void; onLatest: () => void; serverAuto: boolean
 }
 
 // One module: a line to scan, and everything else when it is opened.
@@ -302,7 +305,7 @@ function ModuleRow(p: RowProps) {
           <span className="ms-chev"><IconDown size={20} /></span>
         </button>
         {!m.installed && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Add ${m.name}`}><IconPlus /> <span className="ms-add-word">Add</span></button>}
-        {m.installed && m.latest && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
+        {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
       </div>
       {busy(m) && (
         <div className="upd-progress ms-progress" role="status">
@@ -315,7 +318,7 @@ function ModuleRow(p: RowProps) {
   )
 }
 
-function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial }: RowProps & { id: string }) {
+function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, serverAuto }: RowProps & { id: string }) {
   const working = busy(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
   const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
@@ -360,8 +363,20 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, o
       {m.tooNew && <p className="ms-note">Version {m.tooNew.version} exists but doesn’t fit this server. {m.tooNew.reason}</p>}
       {m.installed && m.pin && <p className="ms-note">Kept on {pinWords(m.pin)} on purpose. Automatic updates leave it alone, though a version withdrawn for security reasons still goes out of use.</p>}
 
+      {m.installed && m.updatable && (
+        <Row label="Update this module by itself" dim={!!m.source || !!m.pin || !serverAuto}
+          desc={m.source ? 'A module from another publisher never updates by itself: you choose each version.'
+            : m.pin ? 'It is pinned, so automatic updates leave it alone whatever this says.'
+            : !serverAuto ? 'Automatic updates are off for the whole server, above, so this changes nothing until they are on.'
+            : m.autoUpdate ? 'Installs new versions when they appear, if they work with this server.'
+            : 'It still looks for new versions and shows them here, and waits for you to install them.'}>
+          <Switch label={`Update ${m.name} by itself`} checked={m.autoUpdate} disabled={working || !!m.source} onChange={onAuto} />
+        </Row>
+      )}
+
       <div className="ms-actions">
-        {m.installed && m.latest && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
+        {m.installed && m.pin && m.pin !== m.latest?.version && (m.latest || m.pin === 'builtin' || m.version !== m.builtinVersion) && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>Go back to the latest</button>}
+        {m.installed && m.latest && !m.pin && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm" disabled={working} onClick={onVersions}>Versions</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm ghost" disabled={working} onClick={onPin}>{m.pin ? 'Unpin' : 'Pin this version'}</button>}
         {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>Go back to {backTo(m)}</button>}

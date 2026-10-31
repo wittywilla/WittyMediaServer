@@ -347,6 +347,7 @@ func randomText() string {
 
 func main() {
 	work := flag.String("work", "", "an empty folder for everything this run makes")
+	hold := flag.Bool("hold", false, "stop after the releases are published, with the server running, to look at it in a browser; ends when the file <work>/stop appears")
 	flag.Parse()
 	if *work == "" {
 		fmt.Println("usage: e2e -work <empty folder>")
@@ -399,11 +400,26 @@ func main() {
 
 	step("first start, and setup through the API")
 	s.start()
-	code, b := s.call("POST", "/setup", map[string]string{"name": "e2e", "password": randomText(), "device": "e2e"})
+	password := randomText()
+	code, b := s.call("POST", "/setup", map[string]string{"name": "e2e", "password": password, "device": "e2e"})
 	ok(code == 200, "setup answers (%d)", code)
 	var setup struct{ Token string }
 	must(json.Unmarshal(b, &setup))
 	s.token = setup.Token
+	if *hold {
+		s.call("PUT", "/settings", map[string]string{"setupDone": "1"})
+		f.mu.Lock()
+		f.repos[repo] = append(f.repos[repo], update.GHRelease{TagName: "not-a-version"})
+		f.mu.Unlock()
+		must(os.WriteFile(filepath.Join(abs, "login.txt"), []byte("http://"+addr+"\ne2e\n"+password+"\n"), 0o600))
+		fmt.Println("holding: address and test sign-in are in", filepath.Join(abs, "login.txt"))
+		for {
+			if _, err := os.Stat(filepath.Join(abs, "stop")); err == nil {
+				return
+			}
+			time.Sleep(time.Second)
+		}
+	}
 	m := s.module()
 	ok(m.State == "builtin", "it starts on its built-in copy (%s %s)", m.Version, m.State)
 	builtin := m.Version

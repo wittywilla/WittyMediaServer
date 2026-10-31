@@ -904,7 +904,13 @@ func TestForkTakesAModulesPlace(t *testing.T) {
 		t.Fatalf("%+v %s", s, m.Report().CheckError)
 	}
 
-	// It never updates by itself, however the settings are.
+	// It never updates by itself, however the settings are, and the switch can't say so.
+	if err := m.SetAutoUpdate("wittyphotos", true); err == nil {
+		t.Fatal("a fork can't be set to update by itself")
+	}
+	if s := one(t, m); s.AutoUpdate {
+		t.Fatalf("%+v", s)
+	}
 	m.autoInstall()
 	if s := wait(t, m); s.Version != builtinVersion {
 		t.Fatalf("installed a fork by itself: %+v", s)
@@ -966,5 +972,61 @@ func TestWittyTunerCantBeForked(t *testing.T) {
 	}
 	if s := one(t, m); s.NoFork == "" || s.Source != nil {
 		t.Fatalf("%+v", s)
+	}
+}
+
+// A module's own switch: it stays on its version when automatic updates run, still offers
+// what is new, and can be updated by hand. A part of the server has no such switch.
+func TestModuleCanLeaveItsUpdatesToYou(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", 1))
+	m := w.manager()
+	check(t, m)
+	if s := one(t, m); !s.AutoUpdate {
+		t.Fatalf("on by default: %+v", s)
+	}
+	if err := m.SetAutoUpdate("wittyphotos", false); err != nil {
+		t.Fatal(err)
+	}
+	m.autoInstall()
+	if s := wait(t, m); s.Version != builtinVersion || s.AutoUpdate || s.Latest == nil {
+		t.Fatalf("should stay, and still offer: %+v", s)
+	}
+	m.Close()
+	m = w.manager() // it survives a restart
+	defer m.Close()
+	m.Check(context.Background(), 0)
+	m.autoInstall()
+	if s := wait(t, m); s.Version != builtinVersion || s.AutoUpdate {
+		t.Fatalf("after a restart: %+v", s)
+	}
+	// By hand still works, and unlike a pin this doesn't hold a version.
+	if s := choose(t, m, "0.2.0"); s.Version != "0.2.0" || s.Pin != "" {
+		t.Fatalf("by hand: %+v", s)
+	}
+	if err := m.SetAutoUpdate("wittyphotos", true); err != nil {
+		t.Fatal(err)
+	}
+	m.autoInstall()
+	if s := wait(t, m); s.Version != "0.3.0" {
+		t.Fatalf("back on: %+v", s)
+	}
+	if err := m.SetAutoUpdate("nothing", false); !errors.Is(err, ErrUnknown) {
+		t.Fatal(err)
+	}
+}
+
+func TestBuiltinPartsHaveNoAutoUpdateSwitch(t *testing.T) {
+	w := newWorld(t)
+	m := storeManager(t, w)
+	defer m.Close()
+	if err := m.SetAutoUpdate("wittyvideo", false); err == nil || !strings.Contains(err.Error(), "updates with it") {
+		t.Fatalf("%v", err)
+	}
+	for _, s := range m.Report().Modules {
+		if s.AutoUpdate {
+			t.Errorf("%s says it updates by itself", s.ID)
+		}
 	}
 }

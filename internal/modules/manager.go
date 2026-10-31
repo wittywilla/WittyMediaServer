@@ -120,6 +120,9 @@ type Status struct {
 	StockRepo string      `json:"stockRepo"`
 	Source    *SourceInfo `json:"source,omitempty"`
 	NoFork    string      `json:"noFork,omitempty"` // why a fork can't replace it
+
+	// AutoUpdate says this module may update by itself when the server's setting is on.
+	AutoUpdate bool `json:"autoUpdate"`
 }
 
 // Event is one thing that happened to a module, newest kept, for the page's log.
@@ -150,6 +153,9 @@ type moduleState struct {
 	Previous string            `json:"previous,omitempty"` // the one before it
 	Blocked  map[string]string `json:"blocked,omitempty"`  // versions taken out of use, and why
 	Pin      string            `json:"pin,omitempty"`      // automatic updates leave this alone
+	// NoAuto: someone wants to choose this module's updates by hand. It keeps offering
+	// them, and unlike a pin it says nothing about which version stays.
+	NoAuto bool `json:"noAuto,omitempty"`
 	// Chosen: the active version was picked by hand, so it is used even when the
 	// built-in copy is newer.
 	Chosen    bool                     `json:"chosen,omitempty"`
@@ -288,7 +294,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.Removed || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
 			saved[id] = s
 		}
 	}
@@ -505,9 +511,24 @@ func (e *entry) status(id string) Status {
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
 		Installed: !e.state.Removed, Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
 		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: noFork[id]}
+	// A release from before a description was written, or a fork's that has none, still
+	// gets one: it is the same module.
 	if st.Group == "" {
 		st.Group = e.builtin.Group
 	}
+	if st.Summary == "" {
+		st.Summary = e.builtin.Summary
+	}
+	if len(st.Needs) == 0 {
+		st.Needs = e.builtin.Needs
+	}
+	if st.Updates == "" {
+		st.Updates = e.builtin.Updates
+	}
+	if st.Stays == "" {
+		st.Stays = e.builtin.Stays
+	}
+	st.AutoUpdate = updatable(e.builtin) && !e.state.NoAuto && e.state.Source == nil
 	inUse := e.dir != ""
 	switch {
 	case inUse && e.notice == "":
@@ -773,6 +794,31 @@ func (m *Manager) Unpin(id string) error {
 	return nil
 }
 
+// SetAutoUpdate says whether this module may update by itself while the server's setting
+// is on. Off, it still looks for updates and offers them, and an admin installs them by
+// hand. A built-in part of the server has no updates of its own to turn off.
+func (m *Manager) SetAutoUpdate(id string, on bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil {
+		return ErrUnknown
+	}
+	if !updatable(e.builtin) {
+		return errors.New(e.builtin.Name + " is built into the server and updates with it")
+	}
+	if on && e.state.Source != nil {
+		return errors.New("a module from another publisher never updates by itself")
+	}
+	old := e.state
+	e.state.NoAuto = !on
+	if err := m.saveState(); err != nil {
+		e.state = old
+		return err
+	}
+	return nil
+}
+
 // UseBuiltin goes back to the built-in copy without blaming the version in use: it
 // stays available to choose again.
 func (m *Manager) UseBuiltin(id string) error {
@@ -892,7 +938,7 @@ func (m *Manager) autoInstall() {
 	var ids []string
 	for _, id := range m.order {
 		e := m.mods[id]
-		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.Removed && e.state.Source == nil {
+		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.NoAuto && !e.state.Removed && e.state.Source == nil {
 			ids = append(ids, id)
 		}
 	}

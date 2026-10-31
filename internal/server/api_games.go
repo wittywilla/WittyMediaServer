@@ -436,6 +436,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	began := time.Now()
 	g := s.games()
 	systemDir := g.systemDir()
 	if err := os.MkdirAll(systemDir, 0o755); err != nil {
@@ -495,6 +496,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,

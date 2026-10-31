@@ -374,6 +374,7 @@ func (s *Session) start() error {
 		s.kill()
 		return err
 	}
+	began := time.Now()
 	// The larger consoles build caches and start whole operating systems.
 	// A security scanner may also hold a program's first start for half a minute.
 	loadLimit := time.Minute
@@ -397,6 +398,7 @@ func (s *Session) start() error {
 		return errors.New("the game took too long to load")
 	}
 
+	s.log.Info("game loaded", "seconds", time.Since(began).Seconds())
 	// Everything is restored before the first frame: the runner waits, paused.
 	if b, err := os.ReadFile(filepath.Join(s.opt.SaveDir, "save.srm")); err == nil && len(b) > 0 {
 		_ = s.command(ipc.CmdSaveRAM, b)

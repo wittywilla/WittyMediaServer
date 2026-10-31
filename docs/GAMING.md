@@ -124,15 +124,24 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
 Measured on one laptop with an RTX 3070 and an 8-core CPU, through the whole path (sandboxed runner, NVENC, WebRTC to
 a browser) while other work was keeping the CPU busy, so these are on the cautious side:
 
-| Game | Picture | Frames a second | Encoder delay | Graphics card | CPU |
-|---|---|---|---|---|---|
-| Nintendo 64, Mupen64Plus-Next | 1280x960 | 59 | 28 ms | 24%, encoder 11% | 0.3 of a thread, and 0.25 for the server |
-| PlayStation 2, LRPS2 | 1024x832 to 1280x896 | 42, with the CPU fully taken by other work | 34 ms | 23%, encoder 5% | 1.1 threads |
+| Game | Picture | Frames a second | Encoder delay |
+|---|---|---|---|
+| Nintendo 64, Mupen64Plus-Next | 1280x960 | 50 to 60 | 28 to 36 ms |
+| PlayStation 2, LRPS2 | 1280x896 | 50 | 31 ms |
+| PSP, PPSSPP | 960x540 | 45 to 60 | 26 ms |
+| Nintendo DS, melonDS, drawn in software | 256x384, doubled | 45 to 53 | 28 ms |
+
+The encoder always kept up: the log's `gameFps` and `fps` matched in every run, so anything under 60 was the game itself
+competing for the CPU. The card itself had room, at about a quarter of its capacity and under half of that for encoding.
 
 On its own, NVENC's part is 22 ms at 1280x960, of which FFmpeg's command line holds one frame (17 ms at 60 frames a
 second). It was 53 ms before `-delay 0`.
 
 Five minutes each of Nintendo 64 and PlayStation 2, running at once, gave no crash and no fault.
+
+**What PPSSPP does by itself:** the first time a PSP game starts for an account, the core unpacks the PSP firmware from
+the updater on that game's own disc into the save folder, about 20 MB, decrypting it as a PSP would. That is part of the
+core, it has no option to turn it off, and nothing in this server asks for it or sees the results.
 
 ### Two graphics cards
 
@@ -183,7 +192,8 @@ finger, and sends a position as fractions of the picture (`docs/GAMING-API.md`).
 pointer device, and work out which screen it fell on. With on-screen controls showing, a finger on a button
 presses the button and a finger anywhere else is the stylus.
 
-DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one.
+DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one. A real DS
+game that's played by touch has been played this way, from its title screen on.
 
 **3DS games must be decrypted.** These cores can't read encrypted game files, and nothing here will decrypt them or
 look for keys. The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files when you press

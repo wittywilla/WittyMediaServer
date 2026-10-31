@@ -16,6 +16,17 @@ close some of these.
 - **Settings, About can say no hardware video was found when it was.** Opening the page starts the
   test, and the answer only shows the next time the page opens.
 
+## WittyVisualizer
+
+Built for the web app and WittyMediaPlayer. Still open:
+
+- **Trying it by eye and on real devices:** it's been run in headless Edge on one PC, with generated music. Real music, real TVs,
+  phones, Firefox and Safari haven't been tried.
+- **A clinical or professional check of the flash limit:** it's measured against the WCAG figures with our own counter, not a
+  certified analyser such as PEAT or Harding.
+- **In the native client apps:** not started. [Embedding](../web/src/modules/wittyvisualizer/wiki/Embedding.md) says what each would need.
+- **Effects written by people in the desktop app:** only the web app can add them, as the desktop bakes its shaders at build time.
+
 ## Client apps
 
 - **Finding a server and entering a security code:** being finished for desktop; Android and Apple are
@@ -37,7 +48,7 @@ close some of these.
   `apps/wittymediaplayer`, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
   images for a server's library, the VLC libraries as an option in Settings, WittyDVD and WittyBluray updating on their own,
   and playing and copying audio CDs on a CD screen with a visualizer. Copying has been tested with generated images only, since the
-  laptop it was built on has no drive; the README has a short checklist for a real disc. The shared WittyVisualizer isn't plugged in yet. Playing in a real window, sound, disc menus by eye and anything with a physical
+  laptop it was built on has no drive; the README has a short checklist for a real disc. WittyVisualizer's effects are on the CD screen too. Playing in a real window, sound, disc menus by eye and anything with a physical
   drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
   It has no published repository yet, which is the owner's step.
 - **A real plugin system:** the modules are separate code, but they're still compiled into the server.

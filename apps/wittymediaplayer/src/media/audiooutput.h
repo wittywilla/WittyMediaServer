@@ -2,6 +2,8 @@
 // a thread of its own. It is also the clock the picture follows.
 #pragma once
 
+#include "wvtap.h"
+
 #include <QByteArray>
 #include <QObject>
 #include <QThread>
@@ -28,7 +30,6 @@ public:
     int sampleRate() const { return rate_.load(); }
     static constexpr int kChannels = 2;
     static constexpr int kBytesPerFrame = 4;
-    static constexpr int kTapFrames = 16384;
 
     // Starts the device thread. noDevice runs on a timer instead of real hardware,
     // for tests and machines with no sound card.
@@ -52,12 +53,8 @@ public:
     int64_t framesWritten() const { return framesWritten_.load(); }
     int64_t underruns() const { return underruns_.load(); }
 
-    // The tap: a copy of the sound on its way to the speakers, for anything that wants to
-    // follow it. It costs nothing until something turns it on. tapRead gives the most recent
-    // stereo frames, about as they're being heard, oldest first. While nothing is playing it
-    // gives silence, so a reader needs no idea of the player's state.
-    void setTapEnabled(bool on);
-    int tapRead(qint16 *stereo, int frames) const;
+    // What the visualizer reads. Off, and all but free, until it's turned on.
+    wv::SampleTap *tap() { return &tap_; }
 
     // Called by the device side.
     qint64 pull(char *out, qint64 max);
@@ -82,6 +79,7 @@ private:
     };
 
     QThread thread_;
+    wv::SampleTap tap_;
     std::atomic<bool> device_{false};
     std::atomic<int> rate_{48000};
     std::atomic<bool> stopped_{false};
@@ -94,11 +92,6 @@ private:
     size_t head_ = 0, count_ = 0;
     uint64_t written_ = 0, read_ = 0; // bytes through the ring, real sound only
     std::deque<Mark> marks_;
-    std::atomic<bool> tapOn_{false};
-    std::vector<qint16> tap_;
-    size_t tapAt_ = 0; // in frames
-    uint64_t tapPulled_ = 0;
-    mutable uint64_t tapLastRead_ = 0;
     uint64_t generation_ = 0;
     uint64_t served_ = 0;    // bytes given to the device, silence included
     uint64_t realInDevice_ = 0; // of those, how far the real sound reaches
@@ -123,7 +116,6 @@ private:
     int stalledTicks_ = 0;
 
     double ptsOf(uint64_t byte) const;
-    void tapFeed(const char *data, size_t bytes);
 };
 
 } // namespace wmp

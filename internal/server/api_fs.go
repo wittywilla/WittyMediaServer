@@ -7,6 +7,7 @@ import (
 	fb "github.com/wittywilla/wittyintegratedfilebrowser"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
 // The built-in folder browser (WittyIntegratedFileBrowser): the server's own
@@ -19,6 +20,7 @@ import (
 // already in libraries). With a path: its folders and files, and a count of
 // the media in it.
 func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
+	browser := modmgr.FileBrowser{M: s.Modules}
 	p := r.URL.Query().Get("path")
 	if p == "" {
 		var libs []fb.Place
@@ -33,10 +35,10 @@ func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		writeJSON(w, 200, map[string]any{"path": "", "parent": nil, "sep": string(filepath.Separator), "places": fb.Places(libs...)})
+		writeJSON(w, 200, map[string]any{"path": "", "parent": nil, "sep": string(filepath.Separator), "places": browser.Places(libs...)})
 		return
 	}
-	l, err := fb.List(p, fb.Options{ShowHidden: r.URL.Query().Get("hidden") == "1", Kind: library.FileKind})
+	l, err := browser.List(p, fb.Options{ShowHidden: r.URL.Query().Get("hidden") == "1", Kind: library.FileKind})
 	switch err {
 	case nil:
 		writeJSON(w, 200, l)

@@ -5,13 +5,17 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 
-const LIBS = { wittypdf: ['react', 'pdfjs-dist'] }
+const LIBS = { wittypdf: ['react', 'pdfjs-dist'], wittyvisualizer: ['react', 'react-dom'] }
 const USES = { wittyebook: ['wittyink'], wittypdf: ['wittyink'], wittycomics: ['wittyink'] }
 const root = resolve(import.meta.dirname, '../src/modules')
 const files = (dir) => readdirSync(dir).flatMap((f) => {
+  if (f === 'dist') return [] // a built bundle
   const p = join(dir, f)
   return statSync(p).isDirectory() ? files(p) : /\.(tsx?|css)$/.test(f) ? [p] : []
 })
+
+const text = (f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n')
+const buildScript = text(resolve(import.meta.dirname, 'build-module-bundle.mjs'))
 
 let bad = 0
 for (const mod of readdirSync(root)) {
@@ -19,6 +23,8 @@ for (const mod of readdirSync(root)) {
   if (!statSync(dir).isDirectory()) continue
   const libs = LIBS[mod] || ['react']
   const uses = (USES[mod] || []).map((m) => '@wittywilla/' + m)
+  // Each module carries the bundle build so its own repository can run it.
+  if (text(join(dir, 'build-bundle.mjs')) !== buildScript) { bad++; console.error(`${mod}: build-bundle.mjs differs from scripts/build-module-bundle.mjs; copy it again`) }
   for (const f of files(dir)) {
     const src = readFileSync(f, 'utf8')
     for (const m of src.matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|@import\s+['"]([^'"]+)['"]|^\s*import\s+['"]([^'"]+)['"]/gm)) {

@@ -27,6 +27,10 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class QVBoxLayout;
 
+namespace wv {
+class VisualizerWidget;
+}
+
 namespace wmp {
 
 class CoverView;
@@ -58,6 +62,12 @@ public:
     // Another visualizer can stand where the built-in one does.
     void setVisualizer(QWidget *visualizer);
     VisualizerView *visualizer() const { return visual_; }
+    // WittyVisualizer's effects in place of the built-in pictures. Made the first time they're
+    // wanted, and they ask first, as they flash.
+    void setEffects(bool on);
+    bool effectsShowing() const;
+    // The effects over the whole screen, and back.
+    void setVisualFull(bool on);
 
     void playTrack(int index);
     void togglePlay();
@@ -86,12 +96,14 @@ public:
 
 signals:
     void backRequested();
+    void fullscreenRequested();
     void volumeChanged(int percent);
     void statusChanged(const QString &text);
     void ripFinished();
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void resizeEvent(QResizeEvent *e) override;
 
 private:
     void build();
@@ -135,6 +147,8 @@ private:
     QVBoxLayout *visualHolder_ = nullptr;
     QWidget *visualWidget_ = nullptr;
     VisualizerView *visual_ = nullptr;
+    wv::VisualizerWidget *effects_ = nullptr;
+    bool visualFull_ = false;
     CoverView *coverView_ = nullptr;
     LcdReadout *lcd_ = nullptr;
     QLabel *headTitle_ = nullptr, *nowTitle_ = nullptr, *nowArtist_ = nullptr, *statusLabel_ = nullptr, *visualName_ = nullptr, *offsetLabel_ = nullptr;
@@ -146,7 +160,7 @@ private:
     QComboBox *format_ = nullptr, *quality_ = nullptr, *look_ = nullptr;
     QCheckBox *secure_ = nullptr;
     QSpinBox *offset_ = nullptr;
-    QPushButton *chooseBtn_ = nullptr, *ripBtn_ = nullptr, *imageBtn_ = nullptr, *lookupBtn_ = nullptr, *stopRipBtn_ = nullptr, *visualBtn_ = nullptr, *backBtn_ = nullptr;
+    QPushButton *effectsBtn_ = nullptr, *chooseBtn_ = nullptr, *ripBtn_ = nullptr, *imageBtn_ = nullptr, *lookupBtn_ = nullptr, *stopRipBtn_ = nullptr, *visualBtn_ = nullptr, *backBtn_ = nullptr;
     QProgressBar *overall_ = nullptr;
     int ripTotal_ = 0, ripDone_ = 0;
     int ripPercent_ = 0;

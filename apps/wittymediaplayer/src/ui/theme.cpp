@@ -197,6 +197,12 @@ QIcon Themes::icon(const QString &name)
     } else if (name == QLatin1String("pause")) {
         p.drawRoundedRect(QRectF(12, 9, 8, 30), 2, 2);
         p.drawRoundedRect(QRectF(28, 9, 8, 30), 2, 2);
+    } else if (name == QLatin1String("visualizer")) {
+        p.setPen(Qt::NoPen);
+        p.drawRoundedRect(QRectF(8, 26, 6, 14), 1, 1);
+        p.drawRoundedRect(QRectF(17, 10, 6, 30), 1, 1);
+        p.drawRoundedRect(QRectF(26, 20, 6, 20), 1, 1);
+        p.drawRoundedRect(QRectF(35, 6, 6, 34), 1, 1);
     } else if (name == QLatin1String("stop")) {
         p.drawRoundedRect(QRectF(12, 12, 24, 24), 3, 3);
     } else if (name == QLatin1String("prev")) {

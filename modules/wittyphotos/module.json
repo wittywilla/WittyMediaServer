@@ -9,6 +9,39 @@
   "minServer": "0.4.0-alpha",
   "maxServer": "0.5.x",
   "capabilities": {
-    "rawExtensions": [".3fr", ".arw", ".cr2", ".cr3", ".crw", ".dcr", ".dng", ".erf", ".fff", ".iiq", ".kdc", ".mef", ".mos", ".mrw", ".nef", ".nrw", ".orf", ".pef", ".raf", ".rw2", ".rwl", ".sr2", ".srf", ".srw", ".x3f"]
-  }
+    "rawExtensions": [
+      ".3fr",
+      ".arw",
+      ".cr2",
+      ".cr3",
+      ".crw",
+      ".dcr",
+      ".dng",
+      ".erf",
+      ".fff",
+      ".iiq",
+      ".kdc",
+      ".mef",
+      ".mos",
+      ".mrw",
+      ".nef",
+      ".nrw",
+      ".orf",
+      ".pef",
+      ".raf",
+      ".rw2",
+      ".rwl",
+      ".sr2",
+      ".srf",
+      ".srw",
+      ".x3f"
+    ]
+  },
+  "group": "photos",
+  "summary": "Photo libraries: what a photo says about itself, including RAW files, without decoding it.",
+  "libraries": [
+    "photos"
+  ],
+  "updates": "Reading EXIF, picture sizes, and the preview inside RAW files.",
+  "stays": "The photo pages in the app."
 }

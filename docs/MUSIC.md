@@ -71,4 +71,4 @@ For safety, feeds and episodes are only ever fetched from the internet: the serv
 connect to itself or to devices on your local network on a feed's behalf.
 
 ---
-<sub>WittyMediaServer 0.4.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.5.0-alpha documentation</sub>

@@ -89,6 +89,8 @@ VisualizerView::VisualizerView(AudioOutput *audio, QWidget *parent) : QWidget(pa
     high_ = QColor(0xff, 0xb4, 0x3c);
     bg_ = QColor(0x05, 0x08, 0x12);
     samples_.assign(kFrames * 2, 0);
+    left_.assign(wv::kFftSize, 0);
+    right_.assign(wv::kFftSize, 0);
     bands_.assign(kBands, 0);
     peaks_.assign(kBands, 0);
     fall_.assign(kBands, 0);
@@ -126,7 +128,7 @@ void VisualizerView::setColors(const QColor &low, const QColor &high, const QCol
 void VisualizerView::showEvent(QShowEvent *)
 {
     if (audio_)
-        audio_->setTapEnabled(true);
+        audio_->tap()->setEnabled(true);
     timer_.start();
 }
 
@@ -134,7 +136,7 @@ void VisualizerView::hideEvent(QHideEvent *)
 {
     timer_.stop();
     if (audio_)
-        audio_->setTapEnabled(false);
+        audio_->tap()->setEnabled(false);
 }
 
 void VisualizerView::mouseReleaseEvent(QMouseEvent *e)
@@ -145,9 +147,16 @@ void VisualizerView::mouseReleaseEvent(QMouseEvent *e)
 
 void VisualizerView::step()
 {
-    int got = audio_ ? audio_->tapRead(samples_.data(), kFrames) : 0;
-    if (got < kFrames)
-        std::fill(samples_.begin() + got * 2, samples_.end(), qint16(0));
+    // Nothing new means nothing's being heard: paused, stopped or between tracks.
+    if (audio_ && audio_->tap()->read(left_.data(), right_.data())) {
+        const int from = wv::kFftSize - kFrames;
+        for (int i = 0; i < kFrames; i++) {
+            samples_[size_t(i) * 2] = qint16(left_[size_t(from + i)] * 32767.f);
+            samples_[size_t(i) * 2 + 1] = qint16(right_[size_t(from + i)] * 32767.f);
+        }
+    } else {
+        std::fill(samples_.begin(), samples_.end(), qint16(0));
+    }
     std::vector<float> now(kBands);
     spectrumBands(samples_.data(), kFrames, audio_ ? audio_->sampleRate() : 48000, now.data(), kBands);
     float sum = 0, bassNow = 0;

@@ -138,4 +138,4 @@ release a short summary of what changed.
   request* on GitHub so you can review the diff before it lands on `master`.
 
 ---
-<sub>WittyMediaServer 0.4.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.5.0-alpha documentation</sub>

@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSettings>
 #include <QStringList>
 #include <QThread>
 #include <QTimer>
@@ -140,6 +141,10 @@ struct Runner {
             window->cd()->playTrack(arg.toInt());
         } else if (cmd == QLatin1String("cdvisual")) {
             window->cd()->visualizer()->setStyle(arg.toInt());
+        } else if (cmd == QLatin1String("cdeffects")) {
+            // A check mustn't stop at the notice, which is a dialog.
+            QSettings(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("WittyMediaPlayer"), QStringLiteral("WittyMediaPlayer")).setValue(QStringLiteral("visualizer/notice"), true);
+            window->cd()->setEffects(arg == QLatin1String("on"));
         } else if (cmd == QLatin1String("cdlook")) {
             window->cd()->setClassicLook(arg == QLatin1String("classic"));
         } else if (cmd == QLatin1String("cdfolder")) {

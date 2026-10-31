@@ -1,10 +1,12 @@
 #include "cdpage.h"
 
+#include "media/audiooutput.h"
 #include "media/player.h"
 #include "ui/controlbar.h"
 #include "ui/theme.h"
 #include "visual/visualizer.h"
 #include "engine/engineclient.h"
+#include "wvwidget.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -447,6 +449,11 @@ void CdPage::build()
     visualBtn_->setAccessibleName(QStringLiteral("Next visualizer style"));
     connect(visualBtn_, &QPushButton::clicked, visual_, &VisualizerView::nextStyle);
     visualRow->addWidget(visualBtn_);
+    effectsBtn_ = new QPushButton(QStringLiteral("More effects"), nowPanel);
+    effectsBtn_->setAccessibleName(QStringLiteral("Switch to WittyVisualizer's effects"));
+    effectsBtn_->setToolTip(QStringLiteral("WittyVisualizer's seventeen effects, drawn by your graphics card, with a flash limiter and a calm mode (E)"));
+    connect(effectsBtn_, &QPushButton::clicked, this, [this] { setEffects(!effectsShowing()); });
+    visualRow->addWidget(effectsBtn_);
     now->addLayout(visualRow);
     const auto showStyle = [this](int s) {
         visualName_->setText(VisualizerView::styleNames().value(s));
@@ -836,13 +843,73 @@ void CdPage::setVisualizer(QWidget *visualizer)
 {
     while (QLayoutItem *it = visualHolder_->takeAt(0)) {
         if (it->widget())
-            it->widget()->hide();
+            it->widget()->hide(); // the one leaving lets go of the tap before the next takes it
         delete it;
     }
     visualHolder_->addWidget(visualizer);
     visualizer->show();
     visualBtn_->setVisible(visualizer == visual_);
     visualName_->setVisible(visualizer == visual_);
+}
+
+bool CdPage::effectsShowing() const
+{
+    return effects_ && effects_->isVisibleTo(this);
+}
+
+void CdPage::setEffects(bool on)
+{
+    if (on == effectsShowing())
+        return;
+    if (on) {
+        if (!effects_) {
+            effects_ = new wv::VisualizerWidget(player_->audio()->tap(), settings_, visualWidget_);
+            effects_->hide();
+            connect(effects_, &wv::VisualizerWidget::closeRequested, this, [this] {
+                if (visualFull_)
+                    emit fullscreenRequested();
+                setEffects(false);
+            });
+            connect(effects_, &wv::VisualizerWidget::fullscreenRequested, this, &CdPage::fullscreenRequested);
+        }
+        if (!effects_->confirmFirstUse())
+            return;
+        setVisualizer(effects_);
+        effects_->view()->setFocus();
+    } else {
+        setVisualFull(false);
+        setVisualizer(visual_);
+    }
+    effectsBtn_->setText(on ? QStringLiteral("Simple visuals") : QStringLiteral("More effects"));
+    effectsBtn_->setAccessibleName(on ? QStringLiteral("Back to the simple visualizer") : QStringLiteral("Switch to WittyVisualizer's effects"));
+}
+
+void CdPage::setVisualFull(bool on)
+{
+    if (!effects_ || on == visualFull_)
+        return;
+    if (on && !effectsShowing())
+        return;
+    visualFull_ = on;
+    if (on) {
+        visualHolder_->removeWidget(effects_);
+        effects_->setParent(this);
+        effects_->setGeometry(rect());
+        effects_->show();
+        effects_->raise();
+    } else {
+        effects_->setParent(visualWidget_);
+        visualHolder_->addWidget(effects_);
+        effects_->show();
+    }
+    effects_->view()->setFocus();
+}
+
+void CdPage::resizeEvent(QResizeEvent *e)
+{
+    QWidget::resizeEvent(e);
+    if (visualFull_ && effects_)
+        effects_->setGeometry(rect());
 }
 
 void CdPage::setDisc(const CdInfo &info)
@@ -893,6 +960,7 @@ void CdPage::closeDisc()
     stopPlaying();
     tick_.stop();
     stopRip();
+    setEffects(false);
     if (imageProc_)
         imageProc_->closeWriteChannel();
     if (lookup_)
@@ -904,6 +972,9 @@ bool CdPage::handleKey(int key, QWidget *focus)
     const bool typing = qobject_cast<QLineEdit *>(focus) || qobject_cast<QComboBox *>(focus) || qobject_cast<QSpinBox *>(focus);
     if (typing)
         return false;
+    // On its picture, the effects' own keys come first: the arrows change effect.
+    if (effectsShowing() && (visualFull_ || effects_->view()->hasFocus()) && effects_->handleKey(key))
+        return true;
     const bool onSlider = qobject_cast<QAbstractSlider *>(focus);
     const bool onButton = qobject_cast<QAbstractButton *>(focus);
     const bool onList = focus == tree_ || (focus && tree_->isAncestorOf(focus));
@@ -927,7 +998,11 @@ bool CdPage::handleKey(int key, QWidget *focus)
         stopPlaying();
         return true;
     case Qt::Key_V:
-        visual_->nextStyle();
+        if (!effectsShowing())
+            visual_->nextStyle();
+        return true;
+    case Qt::Key_E:
+        setEffects(!effectsShowing());
         return true;
     case Qt::Key_Left:
     case Qt::Key_Right:

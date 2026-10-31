@@ -156,6 +156,71 @@ func Main(manifest []byte, h Handler) {
 	}
 }
 
+// StreamHandler answers one call for a stream with the answer to send, and what to
+// write after it. The stream ends when write returns or the server stops reading.
+type StreamHandler func(method string, params json.RawMessage) (result any, write func(io.Writer) error, err error)
+
+// ServeStream is Serve for a process that answers one call with a stream: nothing
+// else can be said on the pipe afterwards, so the process exits when the stream ends.
+func ServeStream(in io.Reader, out io.Writer, hello Hello, h StreamHandler) error {
+	r, w := bufio.NewReaderSize(in, MaxLine), bufio.NewWriter(out)
+	if err := writeLine(w, hello); err != nil {
+		return err
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	line, err := readLine(r)
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var req request
+	if err := json.Unmarshal(line, &req); err != nil {
+		return fmt.Errorf("unreadable call: %w", err)
+	}
+	res := response{ID: req.ID}
+	result, write, err := h(req.Method, req.Params)
+	if err == nil && write == nil {
+		err = errors.New("no stream")
+	}
+	if err != nil {
+		res.Error = err.Error()
+		var ce *CallError
+		if errors.As(err, &ce) {
+			res.Code = ce.Code
+		}
+		if werr := writeLine(w, res); werr != nil {
+			return werr
+		}
+		return w.Flush()
+	}
+	if result != nil {
+		if res.Result, err = json.Marshal(result); err != nil {
+			return err
+		}
+	}
+	if err := writeLine(w, res); err != nil {
+		return err
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	// Closing stdin is how the server says stop, so the stream ends with it.
+	stop := make(chan error, 1)
+	go func() { stop <- write(out) }()
+	eof := make(chan struct{})
+	go func() { _, _ = io.Copy(io.Discard, r); close(eof) }()
+	select {
+	case err := <-stop:
+		return err
+	case <-eof:
+		return nil
+	}
+}
+
 // Conn is the server's end of the protocol. It makes one call at a time.
 type Conn struct {
 	r    *bufio.Reader
@@ -231,4 +296,13 @@ func (c *Conn) Call(method string, params, out any) ([]byte, error) {
 		}
 	}
 	return blob, nil
+}
+
+// Stream makes a call that a helper answers with a stream (ServeStream). It returns
+// what comes after the answer. Nothing else can be asked on this Conn afterwards.
+func (c *Conn) Stream(method string, params, out any) (io.Reader, error) {
+	if _, err := c.Call(method, params, out); err != nil {
+		return nil, err
+	}
+	return c.r, nil
 }

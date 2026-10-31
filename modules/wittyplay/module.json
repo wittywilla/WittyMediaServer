@@ -3,8 +3,25 @@
   "name": "WittyPlay",
   "version": "0.1.0",
   "repo": "wittywilla/WittyPlay",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "program",
+  "entry": "wittyplay-host",
+  "api": 2,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "capabilities": {
+    "ipc": [
+      "1"
+    ]
+  },
+  "group": "games",
+  "summary": "Console games streamed to a browser or an app, with every controller and a touch layout editor.",
+  "libraries": [
+    "games"
+  ],
+  "needs": [
+    "FFmpeg, which comes with the server",
+    "Game cores, which you add in Settings, Gaming"
+  ],
+  "updates": "Running games: how the game runner uses cores, and its picture, sound and controller input.",
+  "stays": "The streaming half (WebRTC and encoding), the console tables, and the player in the app. If WittyRetroArch is installed and chosen, it runs the games instead."
 }

@@ -203,10 +203,10 @@ they become files: each part is cleaned, so a title can't climb out of the chose
 with its own blue, teal and amber. It evokes that early-desktop feeling without borrowing any product's skin, layout or
 artwork. It can follow the app theme instead.
 
-**The visualizer.** `AudioOutput` has a tap: `setTapEnabled` and `tapRead` give the most recent samples about as they're
-heard, and cost nothing when off. The built-in `VisualizerView` draws from it on the processor, small and scaled up, and
-stops when hidden. `CdPage::setVisualizer` puts another widget in its place, which is where the shared WittyVisualizer's Qt
-host goes when it exists: it needs only that tap.
+**The visualizer.** Everything reads WittyVisualizer's `SampleTap` in `AudioOutput`, which costs one atomic read when off.
+The screen's own `VisualizerView` draws on the processor, small and scaled up, and stops when hidden, so a machine with no
+useful graphics card still has something to watch. **More effects** puts the shared `wv::VisualizerWidget` in its place; only
+one is ever on, and the one leaving turns the tap off before the next turns it on.
 
 ## Other platforms
 

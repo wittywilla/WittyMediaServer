@@ -1,7 +1,7 @@
-// Pictures that move with the sound. It reads the player's audio tap (AudioOutput::tapRead)
-// and draws on the processor, small and scaled up, so it stays light on modest machines,
-// and it stops altogether when it isn't on screen. Another visualizer can take its place in
-// the now-playing area: all it needs is that tap.
+// Pictures that move with the sound, for the CD screen. It reads the player's audio tap and
+// draws on the processor, small and scaled up, so it stays light on modest machines and needs
+// no graphics card, and it stops altogether when it isn't on screen. WittyVisualizer's shader
+// effects are the richer choice beside it, from the same tap.
 #pragma once
 
 #include <QColor>
@@ -57,6 +57,7 @@ private:
     int style_ = Bars;
     QColor low_, high_, bg_;
     std::vector<qint16> samples_;
+    std::vector<float> left_, right_;
     std::vector<float> bands_, peaks_, fall_;
     float level_ = 0;
     float bass_ = 0;

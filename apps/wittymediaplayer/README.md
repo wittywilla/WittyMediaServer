@@ -18,6 +18,8 @@
 - **Plays and copies audio CDs,** from a drive or an image (`.cue`, `.toc`, `.ccd`, `.nrg`, `.chd`, `.bin`), on a CD screen
   with its own glossy look and a visualizer: tick the tracks and copy them to FLAC, ALAC, WAV, MP3, AAC, Opus or Ogg
   Vorbis, with careful reading, tags and cover art, or make a `.cue` and `.bin` image of the disc.
+- **Shows music as light:** [WittyVisualizer](../../web/src/modules/wittyvisualizer) brings seventeen effects to audio files, full
+  screen, with a flash limiter and a calm mode. It's off until you turn it on (V), and it costs nothing until then.
 - **Says no plainly:** a copy-protected disc gets a clear message. Nothing here unlocks copy protection.
 - **Runs well on small machines:** the picture is drawn by the graphics card, and hardware decoding is used where
   the card has it.
@@ -99,7 +101,8 @@ a tick beside each, and waits for you to press play.
 | S | Stop |
 | Left and Right | Back and forward 10 seconds |
 | Up and Down | Volume |
-| V | Next visualizer style |
+| V | Next style of the simple visualizer |
+| E | Switch between the simple visualizer and WittyVisualizer's effects |
 | Enter on a track | Play it |
 | F2 on a track | Change its name |
 
@@ -120,6 +123,10 @@ A disc that can't be read the ordinary way gets a plain message. WittyMediaPlaye
 any more than on a DVD.
 
 **The look:** the box at the top right switches between the Classic look and your app theme.
+
+**The visuals:** Bars, Scope, Rings and Plasma are drawn on the processor, so they run anywhere. **More effects** brings in
+WittyVisualizer's seventeen effects, drawn by your graphics card, full screen if you like. It tells you about flashing
+light the first time, and has a flash limiter and a calm mode.
 
 ### Trying a real CD
 

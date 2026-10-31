@@ -247,6 +247,21 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/modules/check", s.requireAdmin(s.handleModulesCheck))
 	m.Handle("POST /api/modules/{id}/install", s.requireAdmin(s.handleModuleInstall))
 	m.Handle("POST /api/modules/{id}/rollback", s.requireAdmin(s.handleModuleRollback))
+	m.Handle("GET /api/modules/{id}/versions", s.requireAdmin(s.handleModuleVersions))
+	m.Handle("POST /api/modules/{id}/pin", s.requireAdmin(s.handleModulePin))
+	m.Handle("DELETE /api/modules/{id}/pin", s.requireAdmin(s.handleModuleUnpin))
+	m.Handle("POST /api/modules/{id}/latest", s.requireAdmin(s.handleModuleLatest))
+	m.Handle("POST /api/modules/{id}/builtin", s.requireAdmin(s.handleModuleUseBuiltin))
+	m.Handle("PUT /api/modules/{id}/source", s.requireAdmin(s.handleModuleSource))
+	m.Handle("DELETE /api/modules/{id}/source", s.requireAdmin(s.handleModuleSourceClear))
+	m.Handle("POST /api/modules/{id}/add", s.requireAdmin(s.handleModuleAdd))
+	m.Handle("POST /api/modules/{id}/remove", s.requireAdmin(s.handleModuleRemove))
+	m.Handle("PUT /api/modules/installed", s.requireAdmin(s.handleModulesInstalled))
+	m.Handle("GET /api/modules/libraries", s.requireUser(s.handleModulesLibraries))
+	// A bundle runs in the browser of whoever is reading, so these are for anyone signed in.
+	m.Handle("GET /api/modules/web", s.requireUser(s.handleModulesWeb))
+	m.Handle("GET /api/modules/{id}/web/{version}/{path...}", s.requireUser(s.handleModuleWebFile))
+	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
 	s.remoteRoutes(m)
 
 	// WittyPhotos

@@ -227,6 +227,8 @@ ControlBar::ControlBar(QWidget *parent) : QWidget(parent)
     subs_ = tool(QStringLiteral("subtitles"), QStringLiteral("Subtitles"), QStringLiteral("Subtitles (S)"));
     audio_->setPopupMode(QToolButton::InstantPopup);
     subs_->setPopupMode(QToolButton::InstantPopup);
+    viz_ = tool(QStringLiteral("visualizer"), QStringLiteral("Visualizer"), QStringLiteral("Visualizer (V)"));
+    viz_->setCheckable(true);
     full_ = tool(QStringLiteral("fullscreen"), QStringLiteral("Full screen"), QStringLiteral("Full screen (F)"));
 
     row->addWidget(prev_);
@@ -241,6 +243,7 @@ ControlBar::ControlBar(QWidget *parent) : QWidget(parent)
     row->addSpacing(8);
     row->addWidget(audio_);
     row->addWidget(subs_);
+    row->addWidget(viz_);
     row->addWidget(full_);
     col->addLayout(row);
 
@@ -250,6 +253,7 @@ ControlBar::ControlBar(QWidget *parent) : QWidget(parent)
     connect(mute_, &QToolButton::clicked, this, &ControlBar::muteToggled);
     connect(menu_, &QToolButton::clicked, this, &ControlBar::rootMenu);
     connect(title_, &QToolButton::clicked, this, &ControlBar::titleMenu);
+    connect(viz_, &QToolButton::clicked, this, &ControlBar::visualizer);
     connect(full_, &QToolButton::clicked, this, &ControlBar::fullscreen);
     connect(volume_, &QSlider::valueChanged, this, &ControlBar::volumeChanged);
     connect(seek_, &SeekBar::seekRequested, this, &ControlBar::seekTo);

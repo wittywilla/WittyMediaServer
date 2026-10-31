@@ -416,6 +416,7 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"clientLogs":  s.Logs != nil && s.Logs.On("client"),
 		"shareLinks":  s.DB.GetSetting(ctx, "shareLinks", "1") == "1",
 		"uploads":     s.DB.GetSetting(ctx, "uploads", "1") == "1",
+		"visualizer":  s.Modules == nil || s.Modules.Installed("wittyvisualizer"),
 	})
 }
 

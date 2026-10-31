@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
-import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
+import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop, IconVisualizer } from '../icons'
 import { setSpeed, SPEEDS } from '../player/Controls'
 import { toast } from '../state'
+import { VisualizerView, visualizerWantedWithPlayer } from './visualizer'
 
 // The audio player: music, audiobooks and podcasts. One <audio> element for
 // the whole app, a queue, and a bar along the bottom that keeps playing
@@ -48,6 +49,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [sleepAt, setSleepAt] = useState<number | 'chapter' | null>(null)
   const [full, setFull] = useState(false)
+  // The visualizer: off until someone turns it on, and off again with each new page.
+  const [viz, setViz] = useState<'off' | 'panel' | 'full'>('off')
+  const [vizHere, setVizHere] = useState(true) // the owner can take the plugin off the server
+  useEffect(() => { getPrefs().then((p) => setVizHere(p.visualizer !== false)).catch(() => {}) }, [])
+  const mediaEl = useCallback(() => audio.current, [])
+  const vizPlace = useCallback((p: 'panel' | 'mini' | 'full') => setViz(p === 'full' ? 'full' : 'panel'), [])
+  const vizOff = useCallback(() => setViz('off'), [])
   const offset = useRef(0) // where a converted stream started
   const current = queue[index] || null
   const loc = useLocation()
@@ -77,12 +85,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // is a panel beside the library, which stays usable, so browsing doesn't
   // close it.
   const docked = () => window.matchMedia('(min-width: 1000px)').matches
-  const openFull = () => { setFull(true); if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '') }
+  const openFull = () => {
+    setFull(true)
+    if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '')
+    // Opening the player is a press, so a saved choice to show it here can start now.
+    if (viz === 'off') visualizerWantedWithPlayer().then((on) => { if (on) setViz('panel') })
+  }
   const closeFull = () => { if (history.state?.wmsAudioFull) history.back(); else setFull(false) }
   useEffect(() => {
     if (!full) return
     const pop = () => setFull(false)
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFull() }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.wv-dialog-back')) closeFull() }
     window.addEventListener('popstate', pop)
     window.addEventListener('keydown', esc)
     return () => { window.removeEventListener('popstate', pop); window.removeEventListener('keydown', esc) }
@@ -194,6 +207,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, next, prev])
 
+  // V for the visualizer, wherever the music is playing from.
+  useEffect(() => {
+    if (!current) return
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (!vizHere || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || loc.pathname.startsWith('/play/')) return
+      e.preventDefault()
+      setViz(viz === 'off' ? 'full' : 'off')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [current?.id, viz, vizHere, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A video takes over: nothing should be drawing behind it.
+  useEffect(() => { if (loc.pathname.startsWith('/play/')) setViz('off') }, [loc.pathname])
+
   // "<" and ">" step through the speeds, as in the video player.
   useEffect(() => {
     if (!current) return
@@ -247,10 +275,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
               {albumUrl ? <button className="btn ghost sm" onClick={goAlbum}>{books ? 'Go to book' : 'Go to album'}</button> : <span />}
             </div>
           )}
-          {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined }} />}
+          {full && (viz === 'panel' || viz === 'full'
+            ? <div className="ab-art-big ab-viz"><VisualizerView media={mediaEl} place={viz} onPlace={vizPlace} onClose={vizOff} /></div>
+            : <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined }} />)}
           <button className="ab-art" onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
-            {current.poster ? <img src={posterUrl(current)} alt="" /> : <IconAudio />}
+            {viz === 'panel' && !full
+              ? <VisualizerView media={mediaEl} place="mini" onClose={vizOff} />
+              : current.poster ? <img src={posterUrl(current)} alt="" /> : <IconAudio />}
           </button>
+          {viz === 'full' && !full && <VisualizerView media={mediaEl} place="full" onPlace={vizPlace} onClose={vizOff} />}
           {full ? (
             <div className="ab-info">
               <div className="ab-title">{current.title}</div>
@@ -290,6 +323,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
               </select>
             )}
             <span className="muted ab-count">{index + 1} / {queue.length}</span>
+            {vizHere && <button className={'ibtn ab-viz-btn' + (viz !== 'off' ? ' on' : '')} aria-pressed={viz !== 'off'} aria-label="Visualizer" title="Visualizer (V)" onClick={() => setViz(viz !== 'off' ? 'off' : full ? 'panel' : 'full')}><IconVisualizer /></button>}
             {!full && <button className="ibtn" onClick={openFull} aria-label="Full player" title="Full player"><IconExpand /></button>}
             {full
               ? <button className="btn sm ghost" onClick={ctx.stop} title="Stop playing and close the player"><IconStop /> Stop</button>

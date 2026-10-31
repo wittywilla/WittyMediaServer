@@ -85,6 +85,10 @@ type github struct {
 	requests int
 	offline  bool
 	notFound bool
+	limited  bool // answers every request as GitHub does when it has had enough
+	apiCalls int  // to the release list
+	full     int  // of those, how many cost a full answer rather than a 304
+	sawAgent string
 }
 
 func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -100,9 +104,22 @@ func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
 	if g.notFound {
 		return answer(404, nil)
 	}
+	if g.limited {
+		res, _ := answer(403, nil)
+		res.Header.Set("X-RateLimit-Reset", fmt.Sprint(time.Now().Add(30*time.Minute).Unix()))
+		return res, nil
+	}
 	if req.URL.Host == "api.github.com" {
+		g.apiCalls++
 		b, _ := json.Marshal(g.rels)
-		return answer(200, b)
+		tag := `"` + sha(b) + `"`
+		if req.Header.Get("If-None-Match") == tag {
+			return answer(304, nil)
+		}
+		g.full++
+		res, err := answer(200, b)
+		res.Header.Set("ETag", tag)
+		return res, err
 	}
 	if b, ok := g.files[req.URL.Path]; ok {
 		return answer(200, b)
@@ -328,7 +345,7 @@ func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", 1))
 	w.publish("0.3.0", manifestJSON("0.3.0", "0.5.0", "0.5.x", 1))
-	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", 2)) // a newer module API
+	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", wittymodule.API+1)) // a newer module API
 	m := w.manager()
 	defer m.Close()
 	s := check(t, m)

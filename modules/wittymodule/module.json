@@ -1,0 +1,14 @@
+{
+  "id": "wittymodule",
+  "name": "WittyModule",
+  "version": "0.2.0",
+  "repo": "wittywilla/WittyModule",
+  "delivery": "library",
+  "api": 2,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x",
+  "group": "system",
+  "core": true,
+  "summary": "What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool.",
+  "updates": "Nothing on its own: it reaches a server inside the modules built with it."
+}

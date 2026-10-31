@@ -10,8 +10,14 @@
     ".": "./index.ts",
     "./kit.css": "./kit.css"
   },
+  "scripts": {
+    "build:bundle": "node build-bundle.mjs"
+  },
   "repository": "github:wittywilla/WittyInk",
   "peerDependencies": {
     "react": ">=18"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0"
   }
 }

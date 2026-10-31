@@ -6,5 +6,11 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "tv",
+  "summary": "Live TV and recording: network tuners, IPTV playlists, capture cards and guide data. Encrypted channels are refused.",
+  "needs": [
+    "FFmpeg, which comes with the server",
+    "A tuner or an IPTV playlist"
+  ]
 }

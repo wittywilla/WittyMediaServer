@@ -105,7 +105,7 @@ struct HomeView: View {
         error = ""
         do { home = try await model.client.home() } catch { self.error = model.handle(error) }
         #if os(iOS)
-        gamePCs = (try? await model.client.moonlightStatus())?.allowed == true
+        gamePCs = (try? await model.client.couchStatus())?.allowed == true
         #endif
     }
 

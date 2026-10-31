@@ -120,7 +120,7 @@ class Api(val base: String, val token: String, private val quick: Boolean = fals
     suspend fun rigWake(rigId: Long): RigWake =
         json.decodeFromString(call("POST", "/rigs/$rigId/wake", "{}"))
 
-    suspend fun moonlightStatus(): MoonlightStatus = get("/moonlight")
+    suspend fun couchStatus(): CouchStatus = get("/couch")
 
     suspend fun logout() {
         call("POST", "/logout", "{}")

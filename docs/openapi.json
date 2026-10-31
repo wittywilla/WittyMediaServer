@@ -9653,9 +9653,9 @@
         "x-wms-auth": "admin"
       }
     },
-    "/moonlight": {
+    "/couch": {
       "get": {
-        "operationId": "getMoonlight",
+        "operationId": "getCouch",
         "parameters": [],
         "responses": {
           "200": {
@@ -9684,9 +9684,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/find": {
+    "/couch/find": {
       "get": {
-        "operationId": "getMoonlightFind",
+        "operationId": "getCouchFind",
         "parameters": [],
         "responses": {
           "200": {
@@ -9715,9 +9715,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts": {
+    "/couch/hosts": {
       "get": {
-        "operationId": "getMoonlightHosts",
+        "operationId": "getCouchHosts",
         "parameters": [],
         "responses": {
           "200": {
@@ -9746,7 +9746,7 @@
         "x-wms-auth": "user"
       },
       "post": {
-        "operationId": "postMoonlightHosts",
+        "operationId": "postCouchHosts",
         "parameters": [],
         "responses": {
           "200": {
@@ -9775,9 +9775,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}": {
+    "/couch/hosts/{id}": {
       "delete": {
-        "operationId": "deleteMoonlightHostsId",
+        "operationId": "deleteCouchHostsId",
         "parameters": [
           {
             "in": "path",
@@ -9815,7 +9815,7 @@
         "x-wms-auth": "user"
       },
       "patch": {
-        "operationId": "patchMoonlightHostsId",
+        "operationId": "patchCouchHostsId",
         "parameters": [
           {
             "in": "path",
@@ -9853,9 +9853,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/apps": {
+    "/couch/hosts/{id}/apps": {
       "get": {
-        "operationId": "getMoonlightHostsIdApps",
+        "operationId": "getCouchHostsIdApps",
         "parameters": [
           {
             "in": "path",
@@ -9893,9 +9893,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/apps/{app}/art": {
+    "/couch/hosts/{id}/apps/{app}/art": {
       "get": {
-        "operationId": "getMoonlightHostsIdAppsAppArt",
+        "operationId": "getCouchHostsIdAppsAppArt",
         "parameters": [
           {
             "in": "path",
@@ -9941,9 +9941,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/apps/{app}/play": {
+    "/couch/hosts/{id}/apps/{app}/play": {
       "post": {
-        "operationId": "postMoonlightHostsIdAppsAppPlay",
+        "operationId": "postCouchHostsIdAppsAppPlay",
         "parameters": [
           {
             "in": "path",
@@ -9989,9 +9989,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/pair": {
+    "/couch/hosts/{id}/pair": {
       "delete": {
-        "operationId": "deleteMoonlightHostsIdPair",
+        "operationId": "deleteCouchHostsIdPair",
         "parameters": [
           {
             "in": "path",
@@ -10029,7 +10029,7 @@
         "x-wms-auth": "user"
       },
       "get": {
-        "operationId": "getMoonlightHostsIdPair",
+        "operationId": "getCouchHostsIdPair",
         "parameters": [
           {
             "in": "path",
@@ -10067,7 +10067,7 @@
         "x-wms-auth": "user"
       },
       "post": {
-        "operationId": "postMoonlightHostsIdPair",
+        "operationId": "postCouchHostsIdPair",
         "parameters": [
           {
             "in": "path",
@@ -10105,9 +10105,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/quit": {
+    "/couch/hosts/{id}/quit": {
       "post": {
-        "operationId": "postMoonlightHostsIdQuit",
+        "operationId": "postCouchHostsIdQuit",
         "parameters": [
           {
             "in": "path",
@@ -10145,9 +10145,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/hosts/{id}/wake": {
+    "/couch/hosts/{id}/wake": {
       "post": {
-        "operationId": "postMoonlightHostsIdWake",
+        "operationId": "postCouchHostsIdWake",
         "parameters": [
           {
             "in": "path",
@@ -10185,9 +10185,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/sessions/{sid}": {
+    "/couch/sessions/{sid}": {
       "delete": {
-        "operationId": "deleteMoonlightSessionsSid",
+        "operationId": "deleteCouchSessionsSid",
         "parameters": [
           {
             "in": "path",
@@ -10225,7 +10225,7 @@
         "x-wms-auth": "user"
       },
       "get": {
-        "operationId": "getMoonlightSessionsSid",
+        "operationId": "getCouchSessionsSid",
         "parameters": [
           {
             "in": "path",
@@ -10263,9 +10263,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/moonlight/sessions/{sid}/webrtc": {
+    "/couch/sessions/{sid}/webrtc": {
       "post": {
-        "operationId": "postMoonlightSessionsSidWebrtc",
+        "operationId": "postCouchSessionsSidWebrtc",
         "parameters": [
           {
             "in": "path",
@@ -14388,7 +14388,7 @@
         "x-wms-auth": "public"
       }
     },
-    "/sunshine": {
+    "/wittyrigs": {
       "get": {
         "operationId": "getSunshine",
         "parameters": [],
@@ -14412,7 +14412,7 @@
             "bearer": []
           }
         ],
-        "summary": "WittySunshine: whether it is on, and whether Sunshine is on this machine.",
+        "summary": "WittyRigs: whether it is on, and whether Sunshine is on this machine.",
         "tags": [
           "Game PCs"
         ],
@@ -14441,7 +14441,7 @@
             "bearer": []
           }
         ],
-        "summary": "Turn WittySunshine on or off.",
+        "summary": "Turn WittyRigs on or off.",
         "tags": [
           "Game PCs"
         ],

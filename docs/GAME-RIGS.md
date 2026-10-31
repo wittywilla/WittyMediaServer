@@ -1,4 +1,4 @@
-# Game PCs: WittyMoonlight and WittySunshine
+# Game PCs: WittyCouch and WittyRigs
 
 People play the games on any PC running Sunshine, in their browser or in WittyMediaClient, through this server. That PC might be
 theirs or a friend's. Nothing needs installing on the device they're holding.
@@ -7,8 +7,8 @@ Two modules, which aren't to be confused:
 
 | | What it is | Who it's for | On by default |
 |---|---|---|---|
-| **WittyMoonlight** | **The main feature.** A Moonlight client in the page: finding a PC, pairing with a PIN, its games, and playing them with controllers, keyboard, mouse or touch | Anyone an admin allows, connecting to **any** Sunshine server | Yes, for adult profiles with no limits |
-| **WittySunshine** | **An advanced option.** Hosting demanding PC games on this server's own hardware, through Sunshine as a separate program. It isn't a way to reach other PCs | An admin whose server has a good graphics card, in Settings, Advanced | No |
+| **WittyCouch** | **The main feature.** A Moonlight client in the page: finding a PC, pairing with a PIN, its games, and playing them with controllers, keyboard, mouse or touch | Anyone an admin allows, connecting to **any** Sunshine server | Yes, for adult profiles with no limits |
+| **WittyRigs** | **An advanced option.** Hosting demanding PC games on this server's own hardware, through Sunshine as a separate program. It isn't a way to reach other PCs | An admin whose server has a good graphics card, in Settings, Advanced | No |
 
 Handing off to the separately installed Moonlight app is still there, as the fallback for devices that can't play in a page.
 
@@ -18,9 +18,9 @@ input reaching Sunshine. See [What has been tested](#what-has-been-tested). A re
 ## How a stream travels
 
 ```
- PC running Sunshine            wittymoonlight-host          wms (this server)              Browser or app
+ PC running Sunshine            wittycouch-host          wms (this server)              Browser or app
 ┌────────────────┐  GameStream ┌───────────────────┐  pipes ┌──────────────────────┐ WebRTC ┌──────────────────┐
-│ the game       │────────────►│ moonlight-common-c│───────►│ WittyMoonlight relay │───────►│ <video>          │
+│ the game       │────────────►│ moonlight-common-c│───────►│ WittyCouch relay │───────►│ <video>          │
 │ its encoder    │  encrypted  │ whole frames, not │ frames │ never decodes either │  H.264 │ Gamepad, keys,   │
 │ virtual pads   │◄────────────│ decoded           │◄───────│ checks all input     │◄───────│ mouse, touch     │
 └────────────────┘    input    └───────────────────┘  input └──────────────────────┘  Opus  └──────────────────┘
@@ -28,13 +28,13 @@ input reaching Sunshine. See [What has been tested](#what-has-been-tested). A re
                                                                                                   Apache-2.0
 ```
 
-- **`wms` talks to the PC's client API directly**, in its own Go code (`modules/wittymoonlight/gamestream`): identifying it, pairing, its games and art, and asking it to start one.
+- **`wms` talks to the PC's client API directly**, in its own Go code (`modules/wittycouch/gamestream`): identifying it, pairing, its games and art, and asking it to start one.
 - **The stream itself** goes through Moonlight's real streaming core, in a program of its own. Moonlight's core is "too powerful a tool to make in house": RTSP, ENet control, encrypted video with error correction, and every Sunshine feature as it arrives.
 - **The relay is thin.** It reads whole frames and Opus packets from a pipe and writes them to a WebRTC track. Frames are never decoded or re-encoded, so a low-end server can carry a 4K stream.
 
 ## What each device gets
 
-"In the page" means WittyMoonlight's own client. Moonlight's app is only needed where it says so.
+"In the page" means WittyCouch's own client. Moonlight's app is only needed where it says so.
 
 | Device | What Play does | Needs | How far it was checked |
 |---|---|---|---|
@@ -57,7 +57,7 @@ published on its own terms. The App Store and GPL-3.0 are widely held to conflic
 ## Design decisions
 
 **Moonlight's real code, in a program of its own.** It's the owner's call, and the right one: this protocol has years of quirks in it, and Sunshine changes. So the part that speaks the stream is
-Moonlight's. The boundary is a documented protocol over pipes (`modules/wittymoonlighthost/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
+Moonlight's. The boundary is a documented protocol over pipes (`modules/wittycouchhost/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
 frames arrive whole, in order, ready to send on.
 
 **Why this and not the existing web bridge.** [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) already bridges Moonlight to WebRTC, and an earlier version of this design used it, but never
@@ -66,12 +66,12 @@ server's accounts and remote access on the same port, and asks for encrypted vid
 
 **The same origin, unlike that design.** With our own client and relay there's no third party's page to keep apart, so the player is an ordinary part of the app, and it goes over the same port as everything else.
 
-**Each person's own PCs.** A person's list, certificate and pairings are theirs (`wittymoonlight_hosts`, one key file per account). One account's pairing can't be used by another.
+**Each person's own PCs.** A person's list, certificate and pairings are theirs (`wittycouch_hosts`, one key file per account). One account's pairing can't be used by another.
 
 **A shared PC is still possible.** An admin can pair a PC once for everyone, from Settings, Game PCs. It gets a library of its own (`type: games`, `console: rig`), and its games are ordinary items, so every access rule applies with no new code. Kids and Guest
 profiles (which don't allow unrated titles) see none of its games until given one. That's the way to give a child one game without giving them the PC.
 
-**WittySunshine is just this, for this machine.** Turning it on makes that same kind of library for a Sunshine at `127.0.0.1`. It isn't a way to reach anything else.
+**WittyRigs is just this, for this machine.** Turning it on makes that same kind of library for a Sunshine at `127.0.0.1`. It isn't a way to reach anything else.
 
 **Desktop apps stay out of the way.** Sunshine's "Desktop" app hands over the whole computer. In a shared library, anything like it stays out until an admin adds it. On someone's own PC it's behind one more press. Game streams give keyboard and mouse, which can often get out of a game to the desktop, and Sunshine
 has no way to limit that: the settings page says so.
@@ -154,13 +154,13 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 | What | Where | License | Why |
 |---|---|---|---|
-| **WittyMoonlight Host** | `modules/wittymoonlighthost/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
+| **WittyCouch Host** | `modules/wittycouchhost/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
 | moonlight-common-c | Fetched at a pinned commit, into that program | GPL-3.0 | Moonlight's streaming core, unchanged |
 | ENet, nanors | Inside moonlight-common-c | MIT | |
 | Mbed TLS | Linked into that program, under the Apache-2.0 it offers | Apache-2.0 | Compatible with GPL-3.0 |
-| **WittyMoonlight** relay, client protocol, player | `modules/wittymoonlight/` (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
+| **WittyCouch** relay, client protocol, player | `modules/wittycouch/` (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
 | The API and pages in the server | `internal/server/api_moonlight.go`, `web/src/pages/Moonlight.tsx` | **Apache-2.0**, with the server | Same |
-| **WittySunshine** | `modules/wittysunshine/` | **Apache-2.0** | It only looks for a program and talks to it over the network |
+| **WittyRigs** | `modules/wittyrigs/` | **Apache-2.0** | It only looks for a program and talks to it over the network |
 | WittyMediaServer, WittyMediaClient, WittyPlay and everything else | | **Unchanged** | They contain nothing of the above |
 | Sunshine | On someone's PC, or this server if an admin installs it | GPL-3.0 | Installed separately by whoever owns that computer |
 | Moonlight's own apps | On someone's device | GPL-3.0 | Installed separately. Only started, where a device allows |
@@ -175,7 +175,9 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 ### The names
 
-**WittySunshine and WittyMoonlight can be mistaken for official releases of those projects**, or for forks, especially now that one is built on Moonlight's code. They're neither, and the GPL gives rights to code, not names. The READMEs and NOTICE files say so, and the app calls the feature **Game PCs**, naming Sunshine and Moonlight only as the separate things they are. For less risk, **WittyRigs** and **WittyCouch** say the same with no one else's name in them, and the host program would become **WittyCouch Host**. Renaming is cheap until a repository and a release exist, so that's the time to decide.
+**WittyCouch, WittyCouch Host and WittyRigs** have no one else's name in them, so they can't be taken for official releases of Sunshine or Moonlight. They began as WittyMoonlight, WittyMoonlight Host and WittySunshine, and the owner renamed them before anything was released, because the GPL gives rights to code, not names. WittyCouch Host is still built on Moonlight's code, so its README and NOTICE, and those of the other two, say plainly that they aren't official. The words Moonlight and Sunshine remain wherever the real projects are meant: the Moonlight app on a device, Sunshine on a PC, moonlight-common-c, and the code that starts Moonlight's app.
+
+The page people use is still called **Game PCs**. WittyRigs is named for the rig this server becomes when it hosts games of its own.
 
 ## What has been tested
 
@@ -204,7 +206,7 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 ### A checklist for the first real test
 
 1. On the gaming PC, install Sunshine and set its password (the steps are in **Game PCs**, under How to install Sunshine).
-2. Put `wittymoonlight-host` beside the server (`sh scripts/build.sh` in `modules/wittymoonlighthost` builds it).
+2. Put `wittycouch-host` beside the server (`sh scripts/build.sh` in `modules/wittycouchhost` builds it).
 3. In **Game PCs**, press **Find PCs on the network**. Does it appear? If not, does typing its address work?
 4. Press **Pair this PC**, and type the PIN into Sunshine's PIN page. Do its games appear, with their pictures?
 5. Press Play on a real game, with a real controller. Is it smooth? Does the controller work? Does sound come through? Does rumble?

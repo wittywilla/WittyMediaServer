@@ -113,15 +113,15 @@ class MoonlightTest {
 
     @Test
     fun theWebPlayerKeepsToItsOwnPages() {
-        assertEquals("/moonlight-rig/7", rigPlayerPath(7))
-        for (path in listOf(GAME_PCS_PATH, "/moonlight/3", "/moonlight/3/play/9", "/moonlight-rig/7")) assertTrue(path, staysInWebPlayer(path))
-        for (path in listOf("/", "/item/7", "/moonlights", "/settings", "/login")) assertFalse(path, staysInWebPlayer(path))
+        assertEquals("/couch-rig/7", rigPlayerPath(7))
+        for (path in listOf(GAME_PCS_PATH, "/couch/3", "/couch/3/play/9", "/couch-rig/7")) assertTrue(path, staysInWebPlayer(path))
+        for (path in listOf("/", "/item/7", "/couches", "/settings", "/login")) assertFalse(path, staysInWebPlayer(path))
     }
 
     @Test
     fun onlyTheSameServerStaysInTheWebView() {
         val base = "http://192.168.1.5:9797"
-        assertTrue(sameServer("http://192.168.1.5:9797/moonlight-rig/7", base))
+        assertTrue(sameServer("http://192.168.1.5:9797/couch-rig/7", base))
         assertFalse(sameServer("http://192.168.1.5:9798/", base))
         assertFalse(sameServer("https://192.168.1.5:9797/", base))
         assertFalse(sameServer("http://192.168.1.5.example.com:9797/", base))

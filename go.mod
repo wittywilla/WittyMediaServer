@@ -9,14 +9,14 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/wittywilla/wittybluray v0.1.0
+	github.com/wittywilla/wittycouch v0.1.0
 	github.com/wittywilla/wittydisc v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
 	github.com/wittywilla/wittymodule v0.1.0
-	github.com/wittywilla/wittymoonlight v0.1.0
-	github.com/wittywilla/wittysunshine v0.1.0
 	github.com/wittywilla/wittyphotos v0.2.0
 	github.com/wittywilla/wittyplay v0.1.0
+	github.com/wittywilla/wittyrigs v0.1.0
 	github.com/wittywilla/wittytuner v0.1.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.60.0
@@ -72,5 +72,6 @@ replace github.com/wittywilla/wittytuner => ./modules/wittytuner
 
 replace github.com/wittywilla/wittyplay => ./modules/wittyplay
 
-replace github.com/wittywilla/wittymoonlight => ./modules/wittymoonlight
-replace github.com/wittywilla/wittysunshine => ./modules/wittysunshine
+replace github.com/wittywilla/wittycouch => ./modules/wittycouch
+
+replace github.com/wittywilla/wittyrigs => ./modules/wittyrigs

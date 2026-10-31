@@ -1,0 +1,17 @@
+{
+  "name": "@wittywilla/wittycouch",
+  "version": "0.1.0",
+  "description": "The browser half of WittyCouch: a player for game streams from any PC running Sunshine, with controllers, keyboard, mouse and touch.",
+  "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "repository": "github:wittywilla/WittyCouch",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

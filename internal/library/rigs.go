@@ -76,7 +76,7 @@ func (s *Store) SaveRigGame(ctx context.Context, libraryID int64, path, title, t
 
 // rigEnriched marks a rig's game as already looked up online, found or not, so that
 // refreshing a rig's games doesn't ask again each time.
-const rigEnriched = "wittysunshine"
+const rigEnriched = "wittyrigs"
 
 // EnrichRigGame fills a game's empty details from Wikidata, once, as a scan does for a game
 // file. The title stays the PC's, and box art isn't taken from there.

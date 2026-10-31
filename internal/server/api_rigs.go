@@ -16,11 +16,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittycouch"
+	"github.com/wittywilla/wittycouch/gamestream"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
-	"github.com/wittywilla/wittymoonlight"
-	"github.com/wittywilla/wittymoonlight/gamestream"
 )
 
 // Game rigs: someone's own gaming PC running Sunshine, as a source of games. See
@@ -149,7 +149,7 @@ func scanRig(row interface{ Scan(...any) error }) (*rigRow, error) {
 }
 
 func (s *Server) rigRows(ctx context.Context) ([]*rigRow, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+rigCols+` FROM wittysunshine_rigs ORDER BY name COLLATE NOCASE`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+rigCols+` FROM wittyrigs_rigs ORDER BY name COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (s *Server) rigRows(ctx context.Context) ([]*rigRow, error) {
 }
 
 func (s *Server) rigByID(ctx context.Context, id int64) (*rigRow, error) {
-	return scanRig(s.DB.QueryRowContext(ctx, `SELECT `+rigCols+` FROM wittysunshine_rigs WHERE id = ?`, id))
+	return scanRig(s.DB.QueryRowContext(ctx, `SELECT `+rigCols+` FROM wittyrigs_rigs WHERE id = ?`, id))
 }
 
 // rigForRequest loads the rig in the path. Anyone not allowed to see it gets "not found".
@@ -264,14 +264,14 @@ func (s *Server) rigStatusNow(ctx context.Context, rig *rigRow) rigState {
 		// The PC only says its MAC address to someone it trusts, and it's what wakes it.
 		if err == nil && info.MAC != rig.MAC {
 			if _, merr := gamestream.ParseMAC(info.MAC); merr == nil {
-				_, _ = s.DB.ExecContext(ctx, `UPDATE wittysunshine_rigs SET mac = ? WHERE id = ?`, info.MAC, rig.ID)
+				_, _ = s.DB.ExecContext(ctx, `UPDATE wittyrigs_rigs SET mac = ? WHERE id = ?`, info.MAC, rig.ID)
 				rig.MAC = info.MAC
 			}
 		}
 	}
 	if view.currentApp > 0 {
 		var title string
-		if err := s.DB.QueryRowContext(ctx, `SELECT title FROM wittysunshine_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, view.currentApp).Scan(&title); err == nil {
+		if err := s.DB.QueryRowContext(ctx, `SELECT title FROM wittyrigs_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, view.currentApp).Scan(&title); err == nil {
 			view.CurrentGame = title
 		}
 	}
@@ -437,7 +437,7 @@ func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f gamestream.Found) 
 	if _, err := moved.Status(ctx); err != nil {
 		return
 	}
-	if _, err := s.DB.ExecContext(ctx, `UPDATE wittysunshine_rigs SET address = ?, port = ? WHERE id = ?`, f.Address, f.Port, rig.ID); err == nil {
+	if _, err := s.DB.ExecContext(ctx, `UPDATE wittyrigs_rigs SET address = ?, port = ? WHERE id = ?`, f.Address, f.Port, rig.ID); err == nil {
 		s.Log.Info("rig moved to a new address", "rig", rig.Name)
 		s.forgetRigStatus(rig.ID)
 	}
@@ -518,7 +518,7 @@ func (s *Server) handleRigAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO wittysunshine_rigs(library_id, name, address, port, allow_public, uuid, created_at) VALUES(?,?,?,?,?,?,?)`,
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO wittyrigs_rigs(library_id, name, address, port, allow_public, uuid, created_at) VALUES(?,?,?,?,?,?,?)`,
 		lib.ID, name, host, port, reach == gamestream.Public, info.UUID, db.Now())
 	if err != nil {
 		_ = s.Store.DeleteLibrary(ctx, lib.ID)
@@ -605,7 +605,7 @@ func (s *Server) handleRigUpdate(w http.ResponseWriter, r *http.Request) {
 			rig.MAC = hw.String()
 		}
 	}
-	if _, err := s.DB.ExecContext(ctx, `UPDATE wittysunshine_rigs SET name=?, address=?, port=?, remote_address=?, allow_public=?, mac=? WHERE id=?`,
+	if _, err := s.DB.ExecContext(ctx, `UPDATE wittyrigs_rigs SET name=?, address=?, port=?, remote_address=?, allow_public=?, mac=? WHERE id=?`,
 		rig.Name, rig.Address, rig.Port, rig.RemoteAddress, rig.AllowPublic, rig.MAC, rig.ID); err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -633,7 +633,7 @@ func (s *Server) forgetRig(rig *rigRow) {
 // rigLibraryGoing is told a library is being deleted from the library settings, in case it's
 // a rig's: the rig goes with it.
 func (s *Server) rigLibraryGoing(ctx context.Context, libraryID int64) {
-	if rig, err := scanRig(s.DB.QueryRowContext(ctx, `SELECT `+rigCols+` FROM wittysunshine_rigs WHERE library_id = ?`, libraryID)); err == nil {
+	if rig, err := scanRig(s.DB.QueryRowContext(ctx, `SELECT `+rigCols+` FROM wittyrigs_rigs WHERE library_id = ?`, libraryID)); err == nil {
 		s.forgetRig(rig)
 	}
 }
@@ -706,7 +706,7 @@ func (s *Server) runRigPair(ctx context.Context, cancel context.CancelFunc, rig 
 	// A PC that was already paired comes back as itself. If it's another one, the old
 	// certificate going away is what the admin just agreed to by typing a PIN into it.
 	bg := context.Background()
-	if _, err := s.DB.ExecContext(bg, `UPDATE wittysunshine_rigs SET cert = ?, paired_at = ? WHERE id = ?`, string(cert), db.Now(), rig.ID); err != nil {
+	if _, err := s.DB.ExecContext(bg, `UPDATE wittyrigs_rigs SET cert = ?, paired_at = ? WHERE id = ?`, string(cert), db.Now(), rig.ID); err != nil {
 		finish("failed", err.Error())
 		return
 	}
@@ -817,7 +817,7 @@ type rigApp struct {
 }
 
 func (s *Server) rigAppList(ctx context.Context, rigID int64) ([]rigApp, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT app_id, title, shown, item_id FROM wittysunshine_apps WHERE rig_id = ? ORDER BY title COLLATE NOCASE`, rigID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT app_id, title, shown, item_id FROM wittyrigs_apps WHERE rig_id = ? ORDER BY title COLLATE NOCASE`, rigID)
 	if err != nil {
 		return nil, err
 	}
@@ -928,7 +928,7 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 		} else if had && old.ItemID != nil {
 			_ = s.Store.RemoveRigGame(ctx, *old.ItemID)
 		}
-		if _, err := s.DB.ExecContext(ctx, `INSERT INTO wittysunshine_apps(rig_id, app_id, title, shown, item_id) VALUES(?,?,?,?,?)
+		if _, err := s.DB.ExecContext(ctx, `INSERT INTO wittyrigs_apps(rig_id, app_id, title, shown, item_id) VALUES(?,?,?,?,?)
 			ON CONFLICT(rig_id, app_id) DO UPDATE SET title = excluded.title, shown = excluded.shown, item_id = excluded.item_id`,
 			rig.ID, app.ID, app.Title, shown, itemID); err != nil {
 			return nil, err
@@ -941,7 +941,7 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 		if old.ItemID != nil {
 			_ = s.Store.RemoveRigGame(ctx, *old.ItemID)
 		}
-		_, _ = s.DB.ExecContext(ctx, `DELETE FROM wittysunshine_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, old.ID)
+		_, _ = s.DB.ExecContext(ctx, `DELETE FROM wittyrigs_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, old.ID)
 	}
 	s.enrichRigGames(fresh)
 	return s.rigAppList(ctx, rig.ID)
@@ -1040,7 +1040,7 @@ func (s *Server) handleRigAppShown(w http.ResponseWriter, r *http.Request) {
 	}
 	var title string
 	var item sql.NullInt64
-	if err := s.DB.QueryRowContext(ctx, `SELECT title, item_id FROM wittysunshine_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, appID).Scan(&title, &item); err != nil {
+	if err := s.DB.QueryRowContext(ctx, `SELECT title, item_id FROM wittyrigs_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, appID).Scan(&title, &item); err != nil {
 		writeErr(w, 404, "not found")
 		return
 	}
@@ -1055,7 +1055,7 @@ func (s *Server) handleRigAppShown(w http.ResponseWriter, r *http.Request) {
 	} else if item.Valid {
 		_ = s.Store.RemoveRigGame(ctx, item.Int64)
 	}
-	if _, err := s.DB.ExecContext(ctx, `UPDATE wittysunshine_apps SET shown = ?, item_id = ? WHERE rig_id = ? AND app_id = ?`, b.Shown, itemID, rig.ID, appID); err != nil {
+	if _, err := s.DB.ExecContext(ctx, `UPDATE wittyrigs_apps SET shown = ?, item_id = ? WHERE rig_id = ? AND app_id = ?`, b.Shown, itemID, rig.ID, appID); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
@@ -1153,7 +1153,7 @@ func (s *Server) rigGameFor(w http.ResponseWriter, r *http.Request) (*library.It
 func (s *Server) rigOfItem(ctx context.Context, itemID int64) (*rigRow, int, error) {
 	var rigID int64
 	var appID int
-	if err := s.DB.QueryRowContext(ctx, `SELECT rig_id, app_id FROM wittysunshine_apps WHERE item_id = ?`, itemID).Scan(&rigID, &appID); err != nil {
+	if err := s.DB.QueryRowContext(ctx, `SELECT rig_id, app_id FROM wittyrigs_apps WHERE item_id = ?`, itemID).Scan(&rigID, &appID); err != nil {
 		return nil, 0, err
 	}
 	rig, err := s.rigByID(ctx, rigID)
@@ -1162,14 +1162,14 @@ func (s *Server) rigOfItem(ctx context.Context, itemID int64) (*rigRow, int, err
 
 // rigPlayView is everything a device needs to get to a game.
 type rigPlayView struct {
-	Rig     rigView                 `json:"rig"`
-	Game    rigPlayGame             `json:"game"`
-	Away    bool                    `json:"away"`
-	Ready   bool                    `json:"ready"`
-	Message string                  `json:"message,omitempty"`
-	Methods []wittymoonlight.Method `json:"methods"`
-	Install *wittymoonlight.Install `json:"install,omitempty"`
-	Setup   []string                `json:"setup,omitempty"`
+	Rig     rigView             `json:"rig"`
+	Game    rigPlayGame         `json:"game"`
+	Away    bool                `json:"away"`
+	Ready   bool                `json:"ready"`
+	Message string              `json:"message,omitempty"`
+	Methods []wittycouch.Method `json:"methods"`
+	Install *wittycouch.Install `json:"install,omitempty"`
+	Setup   []string            `json:"setup,omitempty"`
 }
 
 type rigPlayGame struct {
@@ -1220,7 +1220,7 @@ func (s *Server) handleRigPlay(w http.ResponseWriter, r *http.Request) {
 	if it == nil {
 		return
 	}
-	var b wittymoonlight.Device
+	var b wittycouch.Device
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
@@ -1235,8 +1235,8 @@ func (s *Server) handleRigPlay(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
 	st := s.rigStatus(ctx, rig)
 	addr, away := rigAddressFor(r, rig)
-	t := wittymoonlight.Target{RigName: rig.Name, Address: addr, Port: rig.Port, UUID: rig.UUID, AppID: appID, AppName: it.Title, Away: away}
-	view := rigPlayView{Rig: s.rigViewFor(ctx, r, rig), Game: rigPlayGame{ID: it.ID, Title: it.Title}, Away: away, Install: wittymoonlight.InstallFor(b.OS)}
+	t := wittycouch.Target{RigName: rig.Name, Address: addr, Port: rig.Port, UUID: rig.UUID, AppID: appID, AppName: it.Title, Away: away}
+	view := rigPlayView{Rig: s.rigViewFor(ctx, r, rig), Game: rigPlayGame{ID: it.ID, Title: it.Title}, Away: away, Install: wittycouch.InstallFor(b.OS)}
 	view.Ready = st.State == "online" || st.State == "busy"
 	if st.State == "busy" && st.currentApp != appID {
 		view.Ready = false
@@ -1249,15 +1249,15 @@ func (s *Server) handleRigPlay(w http.ResponseWriter, r *http.Request) {
 		view.Message = view.Rig.Message
 	}
 	if addr != "" && b.OS != "" {
-		view.Setup = wittymoonlight.SetupSteps(b.OS, rig.Name, addr, rig.Port)
+		view.Setup = wittycouch.SetupSteps(b.OS, rig.Name, addr, rig.Port)
 	}
 	if away && addr == "" {
 		view.Message = strings.TrimSpace(view.Message + " You're away from home, and Moonlight can't reach this PC from here unless you connect both to a private network first: see the guide.")
 	}
-	inPage := view.Ready && s.moonlightProgram() != "" && s.rigMayJoin(rig, st, appID, u.ID, u.IsAdmin)
-	view.Methods = wittymoonlight.Plan(b, t, inPage, "")
+	inPage := view.Ready && s.couchProgram() != "" && s.rigMayJoin(rig, st, appID, u.ID, u.IsAdmin)
+	view.Methods = wittycouch.Plan(b, t, inPage, "")
 	if view.Methods == nil {
-		view.Methods = []wittymoonlight.Method{}
+		view.Methods = []wittycouch.Method{}
 	}
 	writeJSON(w, 200, view)
 }

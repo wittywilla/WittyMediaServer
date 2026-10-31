@@ -81,7 +81,7 @@ fun HomeScreen(nav: Nav, s: Map<String, String>) {
     var gamePcs by remember { mutableStateOf(false) }
     // Phones and tablets only: see rigChoice for why TVs don't play in the page.
     LaunchedEffect(Unit) {
-        if (!nav.app.isTv && !nav.app.isFireTv) gamePcs = runCatching { nav.app.api.moonlightStatus().allowed }.getOrDefault(false)
+        if (!nav.app.isTv && !nav.app.isFireTv) gamePcs = runCatching { nav.app.api.couchStatus().allowed }.getOrDefault(false)
     }
     LaunchedEffect(attempt) {
         error = ""

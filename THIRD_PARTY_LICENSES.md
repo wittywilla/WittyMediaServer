@@ -35,10 +35,10 @@ None of these is in the server's release, and no code from them is in WittyMedia
 
 | Program | License | How it's used |
 |---|---|---|
-| **WittyMoonlight Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittymoonlighthost`, with its complete source offered beside each release |
-| [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyMoonlight Host |
+| **WittyCouch Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittycouchhost`, with its complete source offered beside each release |
+| [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyCouch Host |
 | [ENet](https://github.com/cgutman/enet), [nanors](https://github.com/sleepybishop/nanors) | MIT | Inside moonlight-common-c |
-| [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyMoonlight Host |
+| [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyCouch Host |
 | [Sunshine](https://github.com/LizardByte/Sunshine) | GPL-3.0 | Installed by whoever owns the PC. Reached over its network protocols only |
 | [Moonlight's apps](https://moonlight-stream.org) | GPL-3.0 | Installed by each person on their device, as a fallback. Started as a separate program where the device allows that |
 

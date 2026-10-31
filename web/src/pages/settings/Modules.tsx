@@ -30,7 +30,7 @@ export default function ModulesSettings() {
   useEffect(() => {
     api.get<Report>('/modules').then(setR).catch((e) => toast(e.message))
     api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
-    api.get<{ ready: boolean }>('/moonlight').then((m) => setHostReady(m.ready)).catch(() => {})
+    api.get<{ ready: boolean }>('/couch').then((m) => setHostReady(m.ready)).catch(() => {})
   }, [])
 
   // While something installs, follow it.
@@ -139,7 +139,7 @@ export default function ModulesSettings() {
       <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
         <div className="mod-list">
           <div className="mod-row">
-            <span className="mod-name"><b>WittyMoonlight Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: GPL-3.0. <a href="https://github.com/wittywilla/WittyMoonlightHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
+            <span className="mod-name"><b>WittyCouch Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: GPL-3.0. <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
             <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
           </div>
         </div>

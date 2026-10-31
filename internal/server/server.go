@@ -91,7 +91,7 @@ type Server struct {
 	rigOnce       sync.Once
 	rigSvc        *rigService
 	moonOnce      sync.Once
-	moonSvc       *moonlightService
+	couchSvc      *couchService
 }
 
 type ctxKey int
@@ -331,8 +331,8 @@ func (s *Server) Handler() http.Handler {
 	s.channelRoutes(m)
 	s.gameRoutes(m)
 	s.rigRoutes(m)
-	s.moonlightRoutes(m)
-	s.sunshineRoutes(m)
+	s.couchRoutes(m)
+	s.wittyRigsRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

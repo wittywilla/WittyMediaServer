@@ -16,7 +16,7 @@ export const TRANSPORT_LABELS: Record<TransportKind, string> = {
 
 export type Stats = { rttMs?: number; fps?: number; kbps?: number; jitterMs?: number; lost?: number; codec?: string; decodeMs?: number }
 
-export type PlayEvent = { type: string; port?: number; strength?: number; text?: string; effect?: number; aspect?: number; width?: number; height?: number; turns?: number }
+export type PlayEvent = { type: string; port?: number; strength?: number; text?: string; effect?: number; aspect?: number; width?: number; height?: number; turns?: number; index?: number; count?: number }
 
 export interface Transport {
   readonly kind: TransportKind

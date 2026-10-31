@@ -64,6 +64,13 @@ type Handlers struct {
 	Trace    func(text string) // everything a core says and is refused; only set when testing
 }
 
+// Discs is what an engine has if it can change discs: the game may ask for the
+// next one, and the player has to be able to put it in.
+type Discs interface {
+	Disc() (index, count int)
+	ChangeDisc(index int) bool
+}
+
 // AVInfo is what an engine says about its output.
 type AVInfo struct {
 	BaseWidth, BaseHeight int

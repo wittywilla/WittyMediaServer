@@ -398,6 +398,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	g := s.games()
 	corePath := ipc.TestCore
+	var coreOptions map[string]string
 	if console.ID != wittyplay.TestConsole {
 		core := g.cores.ForConsole(console, s.preferredCores(ctx)[console.ID])
 		if core == nil {
@@ -405,6 +406,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		corePath = core.Path
+		coreOptions = wittyplay.CoreOptions(core.ID)
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")
@@ -423,7 +425,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
-		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
+		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), CoreOptions: coreOptions, Cleanup: cleanup,
 	})
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {
@@ -431,7 +433,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.Warn("starting a game", "item", it.ID, "err", err)
-		writeErr(w, 500, "This game could not start: "+err.Error())
+		writeErr(w, 500, "This game could not start. "+err.Error())
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
@@ -614,6 +616,8 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.Reset()
 	case "pause":
 		err = sess.Pause(b.On)
+	case "disc":
+		err = sess.ChangeDisc(b.Slot)
 	default:
 		writeErr(w, 400, "unknown action")
 		return

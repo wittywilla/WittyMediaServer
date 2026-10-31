@@ -40,13 +40,12 @@ type runner struct {
 	out    io.Writer
 	writeE error
 
-	mu    sync.Mutex
-	input [engine.MaxPorts]engine.PadState
-	snap  [engine.MaxPorts]engine.PadState
+	pads pads
 
 	audio []byte
 	video []byte
 	stop  bool
+	fps   float64 // a new frame rate the game has asked for
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
@@ -79,12 +78,7 @@ func (r *runner) handlers() engine.Handlers {
 				r.audio = binary.LittleEndian.AppendUint16(r.audio, uint16(v))
 			}
 		},
-		Input: func() *[engine.MaxPorts]engine.PadState {
-			r.mu.Lock()
-			r.snap = r.input
-			r.mu.Unlock()
-			return &r.snap
-		},
+		Input: r.pads.poll,
 		Rumble: func(port, effect, strength int) {
 			r.event(ipc.Event{Type: "rumble", Port: port, Effect: effect, Strength: strength})
 		},
@@ -99,6 +93,7 @@ func (r *runner) handlers() engine.Handlers {
 		},
 		Rotation: func(n int) { r.event(ipc.Event{Type: "rotation", Turns: n}) },
 		AVInfo: func(a engine.AVInfo) {
+			r.fps = a.FPS
 			r.event(ipc.Event{Type: "avinfo", Width: a.BaseWidth, Height: a.BaseHeight, Aspect: a.Aspect, FPS: a.FPS, Rate: a.SampleRate})
 		},
 		Shutdown: func() { r.event(ipc.Event{Type: "shutdown"}); r.stop = true },
@@ -125,9 +120,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 			if t == ipc.CmdInput {
 				// Input skips the queue: the newest state is all that matters.
 				if port, b, lx, ly, rx, ry, ok := ipc.ParseInput(p); ok && port < engine.MaxPorts {
-					r.mu.Lock()
-					r.input[port] = engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry}
-					r.mu.Unlock()
+					r.pads.set(port, engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry})
 				}
 				continue
 			}
@@ -165,11 +158,23 @@ func (r *runner) run(in io.Reader, open Open) error {
 		av.FPS = 60
 	}
 	info := eng.SystemInfo()
-	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate})
+	discs, _ := eng.(engine.Discs)
+	disc, discCount := 0, 0
+	if discs != nil {
+		disc, discCount = discs.Disc()
+	}
+	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount})
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
 	next := time.Now()
+	// A core that can't restore a state until it has run says so. A state that
+	// arrives before then waits for those frames.
+	var settle int
+	var heldState []byte
+	if q, ok := eng.(interface{ NeedsFramesBeforeState() int }); ok {
+		settle = q.NeedsFramesBeforeState()
+	}
 	paused := true // until the server has a viewer
 	var lastSave []byte
 	lastSaveAt := time.Now()
@@ -182,13 +187,23 @@ func (r *runner) run(in io.Reader, open Open) error {
 				lastSave = append(lastSave[:0], ram...)
 			}
 		case ipc.CmdState:
-			if !eng.LoadState(c.p) {
+			if settle > 0 {
+				heldState = c.p
+			} else if !eng.LoadState(c.p) {
 				r.event(ipc.Event{Type: "statefail"})
 			}
 		case ipc.CmdSaveState:
 			r.write(ipc.MsgState, c.p, eng.SaveState())
 		case ipc.CmdReset:
 			eng.Reset()
+		case ipc.CmdDisc:
+			if discs != nil && len(c.p) > 0 {
+				if !discs.ChangeDisc(int(c.p[0])) {
+					r.event(ipc.Event{Type: "message", Text: "That disc could not be loaded."})
+				}
+				i, n := discs.Disc()
+				r.event(ipc.Event{Type: "disc", Index: i, Count: n})
+			}
 		case ipc.CmdPause:
 			paused = len(c.p) > 0 && c.p[0] != 0
 			next = time.Now()
@@ -237,6 +252,19 @@ func (r *runner) run(in io.Reader, open Open) error {
 			continue
 		}
 		eng.Run()
+		r.pads.frameDone()
+		if settle > 0 {
+			if settle--; settle == 0 && heldState != nil {
+				if !eng.LoadState(heldState) {
+					r.event(ipc.Event{Type: "statefail"})
+				}
+				heldState = nil
+			}
+		}
+		if r.fps > 0 && r.fps <= 240 {
+			frame = time.Duration(float64(time.Second) / r.fps)
+			r.fps = 0
+		}
 		if len(r.audio) > 0 {
 			r.write(ipc.MsgAudio, r.audio)
 			r.audio = r.audio[:0]
@@ -261,4 +289,42 @@ func (r *runner) run(in io.Reader, open Open) error {
 		r.write(ipc.MsgSaveRAM, ram)
 	}
 	return r.writeE
+}
+
+// pads holds the players' input. A press and its release can arrive together, in a
+// short tap or a bunched-up packet, and a game only looks once a frame. So a button
+// pressed since the last frame reads as held for one frame, however briefly it was.
+type pads struct {
+	mu      sync.Mutex
+	state   [engine.MaxPorts]engine.PadState
+	pending [engine.MaxPorts]uint16 // pressed since the last frame looked
+	active  [engine.MaxPorts]uint16 // what this frame is keeping pressed
+	snap    [engine.MaxPorts]engine.PadState
+}
+
+func (p *pads) set(port int, st engine.PadState) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.pending[port] |= st.Buttons &^ p.state[port].Buttons
+	p.state[port] = st
+}
+
+// poll is what a core sees. It may look several times in one frame and sees the
+// same presses each time.
+func (p *pads) poll() *[engine.MaxPorts]engine.PadState {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i := range p.state {
+		p.active[i] |= p.pending[i]
+		p.pending[i] = 0
+		p.snap[i] = p.state[i]
+		p.snap[i].Buttons |= p.active[i]
+	}
+	return &p.snap
+}
+
+func (p *pads) frameDone() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.active = [engine.MaxPorts]uint16{}
 }

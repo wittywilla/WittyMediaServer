@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittyplay/engine"
 	"github.com/wittywilla/wittyplay/ipc"
 	"github.com/wittywilla/wittyplay/stream"
@@ -74,6 +75,8 @@ type Result struct {
 	ResumeMatch float64 `json:"resumeMatch"`    // as StateReplay, in the new process
 	SaveRAM     int     `json:"saveRam"`        // battery save size
 	SaveRAMBack string  `json:"saveRamRestore"` // ok | differs | "" when the game has none
+	Discs       int     `json:"discs,omitempty"`
+	DiscChange  string  `json:"discChange,omitempty"` // ok | failed: the game kept running on the next disc
 
 	CPUPercent float64  `json:"cpuPercent"` // of one CPU thread
 	PeakMB     float64  `json:"peakMb"`
@@ -130,6 +133,7 @@ type proc struct {
 	logs       []string
 	shutdown   bool
 	stateFail  int
+	lastDisc   int
 	saveRAM    []byte
 	autoState  []byte
 
@@ -273,6 +277,8 @@ func (p *proc) read() {
 				p.shutdown = true
 			case "statefail":
 				p.stateFail++
+			case "disc":
+				p.lastDisc = e.Index
 			}
 			p.mu.Unlock()
 		case ipc.MsgError:
@@ -576,6 +582,17 @@ func (p *proc) stateCheck(r *Result, frameTime time.Duration) (state []byte, aft
 	return state, after, nil
 }
 
+func (p *proc) discRefused() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, l := range p.logs {
+		if l == "That disc could not be loaded." {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *proc) failedLoads() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -670,7 +687,7 @@ func checkGame(c *config, j job) (r Result) {
 		p.trace, _ = os.Create(filepath.Join(c.out, fmt.Sprintf("trace-%s-%d.log", j.core.id, j.index)))
 		defer p.trace.Close()
 	}
-	load, _ := json.Marshal(ipc.Load{Core: j.core.path, ROM: rom, System: c.systemDir, Save: saveDir, Options: c.options, Trace: c.trace})
+	load, _ := json.Marshal(ipc.Load{Core: j.core.path, ROM: rom, System: c.systemDir, Save: saveDir, Options: gameOptions(c, j), Trace: c.trace})
 	t0 := time.Now()
 	if err := p.send(ipc.CmdLoad, load); err != nil {
 		r.Outcome, r.Reason = OutcomeToolError, err.Error()
@@ -707,6 +724,19 @@ func checkGame(c *config, j job) (r Result) {
 	step := 0
 	_ = p.pause(false)
 	hung := p.play(playFor*6/10, &step)
+	r.Discs = info.Discs
+	if info.Discs > 1 && !hung && !p.ended() {
+		// To the last disc and back, and the game must keep running.
+		r.DiscChange = "ok"
+		for _, d := range []int{info.Discs - 1, info.Disc} {
+			_ = p.send(ipc.CmdDisc, []byte{byte(d)})
+			if len(p.capture(30, 15*time.Second)) == 0 || p.discRefused() {
+				r.DiscChange = "failed"
+				r.warn("disc-change-failed")
+				break
+			}
+		}
+	}
 	var state []byte
 	var after []uint64
 	var stateErr error
@@ -868,6 +898,18 @@ func classify(r *Result, state []byte, after []uint64, p *proc) {
 	}
 }
 
+// gameOptions are what the server starts this core with, plus any from -options.
+func gameOptions(c *config, j job) map[string]string {
+	out := wittyplay.CoreOptions(j.core.id)
+	if out == nil {
+		out = map[string]string{}
+	}
+	for k, v := range c.options {
+		out[k] = v
+	}
+	return out
+}
+
 // resumeCheck starts a new process and restores the way a session does: battery
 // save, then state, both before the first frame.
 func resumeCheck(c *config, j job, rom, saveDir string, state []byte, after []uint64, ram []byte, r *Result, frameTime time.Duration) {
@@ -876,7 +918,7 @@ func resumeCheck(c *config, j job, rom, saveDir string, state []byte, after []ui
 	if err != nil {
 		return
 	}
-	load, _ := json.Marshal(ipc.Load{Core: j.core.path, ROM: rom, System: c.systemDir, Save: saveDir, Options: c.options, Trace: c.trace})
+	load, _ := json.Marshal(ipc.Load{Core: j.core.path, ROM: rom, System: c.systemDir, Save: saveDir, Options: gameOptions(c, j), Trace: c.trace})
 	if err := p.send(ipc.CmdLoad, load); err != nil {
 		p.kill()
 		return

@@ -370,6 +370,11 @@ func (s *Session) start() error {
 		s.kill()
 		return err
 	}
+	// The larger consoles build caches and start whole operating systems.
+	loadLimit := 30 * time.Second
+	if s.opt.GPU {
+		loadLimit = 2 * time.Minute
+	}
 	select {
 	case err := <-readyCh:
 		if err != nil {
@@ -380,7 +385,7 @@ func (s *Session) start() error {
 			}
 			return err
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(loadLimit):
 		s.stopping.Store(true)
 		s.kill()
 		<-s.done

@@ -789,7 +789,7 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	}
 	g.gpuOnce.Do(func() {
 		if runner != "" {
-			g.gpu = stream.ProbeGPU(runner, g.dir, s.Log)
+			g.gpu = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), s.Log)
 		}
 	})
 	writeJSON(w, 200, map[string]any{

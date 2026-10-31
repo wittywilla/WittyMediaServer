@@ -24,20 +24,22 @@ type GPUProbe struct {
 
 // ProbeGPU asks the runner which graphics card games would draw with, in the same
 // sandbox a game gets, so the answer is the one a game will see. A hidden window
-// is the most it opens.
+// is the most it opens. The folder is made writable to a sandboxed process, so it
+// must be one with nothing else in it.
 func ProbeGPU(runner, dir string, log *slog.Logger) GPUProbe {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return GPUProbe{Error: err.Error()}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, runner, "-probe-gpu", "-save", dir)
 	cmd.Dir = dir
 	cmd.Env = runnerEnv()
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	var out, errOut bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &errOut
 	prepareSandbox(cmd, dir, log)
 	if err := cmd.Run(); err != nil {
+		log.Warn("checking for a graphics card", "err", err, "stderr", truncate(errOut.String(), 500))
 		return GPUProbe{Error: "the runner could not check: " + err.Error()}
 	}
 	line := strings.TrimSpace(out.String())

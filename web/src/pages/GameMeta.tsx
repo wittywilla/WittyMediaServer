@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, artPreviewUrl, mediaUrl, type GameCandidate, type GameDetailsInfo, type GameMetaStatus, type GameSource, type Item } from '../api'
 import { IconCheck, IconClose, IconDown, IconLock, IconRefresh, IconSearch, IconUp } from '../icons'
@@ -246,6 +246,7 @@ export function GameKeyFields({ source, values, onChange }: { source: GameSource
   return (
     <div className="gm-key">
       {source.keyUrl && <p><a href={source.keyUrl} target="_blank" rel="noreferrer">Get a key</a> · {source.cost}</p>}
+      {source.unavailable && <div className="set-note bad">{source.unavailable}</div>}
       {source.steps && <ol className="op-steps">{source.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>}
       <div className="gm-key-fields">
         {fields.map((f) => (
@@ -271,6 +272,14 @@ export function GameSourcesSettings() {
   const [open, setOpen] = useState<string | null>(null)
   const load = () => api.get<{ sources: GameSource[] }>('/gamemeta/sources').then((r) => setSources(r.sources)).catch((e) => toast(e.message))
   useEffect(() => { load(); api.get<GameMetaStatus>('/gamemeta/status').then(setStatus).catch(() => {}) }, [])
+  // Arriving from the Games page's "Add a key".
+  const anchored = useRef(false)
+  useEffect(() => {
+    if (sources && !anchored.current && window.location.hash === '#games') {
+      anchored.current = true
+      document.getElementById('games')?.scrollIntoView()
+    }
+  }, [sources])
   const store = async (list: GameSource[]) => {
     setSources(list)
     try {
@@ -301,19 +310,28 @@ export function GameSourcesSettings() {
     <Section id="games" title="Video games" desc="Sources run in the background, batched and at each source's own pace. Your game files never leave this server: only their names, checksums or sizes are looked up, as each source says below. Higher in the list is believed first."
       actions={<button className="btn sm ghost" onClick={refetch}><IconRefresh /> Look up all again</button>}>
       {sources === null ? <div className="spinner" /> : (
-        <ol className="set-list">
+        <ol className="gm-sources">
           {sources.map((s, i) => {
             const needsKey = s.fields.length > 0
             const shown = open === s.id
             return (
-              <li key={s.id} className={'set-item gm-source' + (s.on ? '' : ' off')}>
-                <div className="set-item-text">
-                  <b>{s.name}</b> <span className="set-pill">{!needsKey ? 'No API key needed' : s.ready ? 'Key saved' : 'Needs a key'}</span>
-                  <span>{s.why}</span>
-                  <small className="muted">{s.cost}. {s.limit}{s.allowance ? ` Used ${(s.used || 0).toLocaleString()} of ${s.allowance.toLocaleString()} this ${s.period}.` : ''} Sends: {s.sends}. Licence: {s.license}. <a href={s.site} target="_blank" rel="noreferrer">Website</a></small>
-                  {s.unavailable && <small className="set-note bad">{s.unavailable}</small>}
+              <li key={s.id} className={'gm-source' + (s.on ? '' : ' off')}>
+                <div className="gm-source-text">
+                  <div className="gm-source-head"><b>{s.name}</b><span className="pill">{!needsKey ? 'No API key needed' : s.ready ? 'Key saved' : 'Needs a key'}</span><span className="muted">{s.cost}</span></div>
+                  <p>{s.why}</p>
+                  {s.unavailable && <div className="set-note bad">{s.unavailable}</div>}
+                  <details>
+                    <summary>What it sends and its limits</summary>
+                    <dl>
+                      <dt>Sends</dt><dd>{s.sends}.</dd>
+                      <dt>Limit</dt><dd>{s.limit}{s.allowance ? ` Used ${(s.used || 0).toLocaleString()} of ${s.allowance.toLocaleString()} ${s.period === 'day' ? 'today' : `this ${s.period}`}.` : ''}</dd>
+                      <dt>Licence</dt><dd>{s.license}.</dd>
+                      <dt>Gives</dt><dd>{s.gives.join(', ')}.</dd>
+                    </dl>
+                    <a href={s.site} target="_blank" rel="noreferrer">{s.name} website</a>
+                  </details>
                 </div>
-                <div className="set-item-actions">
+                <div className="gm-source-actions">
                   {needsKey && <button className="btn sm" aria-expanded={shown} onClick={() => setOpen(shown ? null : s.id)}>{s.ready ? 'Change key' : 'Add a key'}</button>}
                   <button className="btn sm ghost square" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Believe ${s.name} sooner`} title="Sooner"><IconUp /></button>
                   <button className="btn sm ghost square" disabled={i === sources.length - 1} onClick={() => move(i, 1)} aria-label={`Believe ${s.name} later`} title="Later"><IconDown /></button>

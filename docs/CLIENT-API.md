@@ -719,10 +719,26 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /agents` | admin | Replace the list of agents, 20 at most. |
 | `POST /agents/test` | admin | Ask an agent about a title without changing anything. |
 | `GET /logs` | admin | What is logged, where, and the log files. |
-| `PUT /logs` | admin | Change log categories, level or folder. |
+| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder. Takes effect at once, with no restart. |
 | `GET /logs/files/{name}` | admin | Download one log file. |
 | `POST /logs/open` | admin | Open the log folder on the server's own screen. |
-| `POST /logs/client` | user | Report an error from a client. Only stored when the owner turned on app errors; 204 otherwise; rate limited. |
+| `POST /logs/client` | user | Report errors from a client: `{app, version, device, events: [{level, kind, message, stack, page, session, request, count, time}]}`. `session` is the stream, disc or game session in play, and `request` the `X-Request-Id` of a failed request. 64 KB and 25 events a request, 60 events a minute per account; 429 past that. 204 when stored, or when the owner turned app errors off. |
+| `GET /logs/entries` | admin | The log viewer: `level`, `cat`, `session`, `module`, `q`, `after` (a seq, for a live tail), `before` (a time, for going back), `limit`, `history`. |
+| `GET /logs/summary` | admin | Version, modules, system, GPU and encoders, disk space and settings that matter. No secrets. |
+| `GET /logs/crashes` | admin | Crash reports, newest first. |
+| `GET /logs/crashes/{id}` | admin | One crash report's text. |
+| `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
+| `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
+| `GET /logs/bundle` | admin | The support bundle, a zip made on request: `days`, `redact=1` hides titles and paths. Nothing is uploaded anywhere. |
+| `GET /logs/bundle/preview` | admin | What the support bundle would hold. |
+| `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
+| `GET /diagnose/browse` | admin | Folders and disc images inside the libraries and data folders only. |
+| `POST /diagnose/disc` | admin | Start checking a disc: `{path, crawl, damage}`. 202 with the job; 429 when too many wait. Read-only. |
+| `POST /diagnose/storage` | admin | Start checking folders: `{targets, readTest, writeTest, walk}`. 202 with the job. Target IDs only, never paths. |
+| `GET /diagnose/jobs` | admin | Checks running or waiting, then saved reports. |
+| `GET /diagnose/jobs/{id}` | admin | One check, with progress and findings. |
+| `DELETE /diagnose/jobs/{id}` | admin | Cancel a check. |
+| `GET /diagnose/jobs/{id}/report` | admin | The report as a file: `format=json` or `txt`, `redact=1` hides the disc name and file names. Nothing copyrighted is in it. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |

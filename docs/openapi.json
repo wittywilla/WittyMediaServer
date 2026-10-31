@@ -331,6 +331,226 @@
         ],
         "type": "object"
       },
+      "BundlePreview": {
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "parts": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "description",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "redact": {
+            "type": "boolean"
+          },
+          "sample": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "parts",
+          "redact",
+          "sample",
+          "total"
+        ],
+        "type": "object"
+      },
+      "CrashReport": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "seen": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "time": {
+            "properties": {},
+            "type": "object"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "seen",
+          "size",
+          "summary",
+          "time"
+        ],
+        "type": "object"
+      },
+      "DiagnoseJob": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "dropped": {
+            "type": "integer"
+          },
+          "findings": {
+            "items": {
+              "properties": {
+                "details": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "fix": {
+                  "type": "string"
+                },
+                "more": {
+                  "type": "integer"
+                },
+                "names": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "targetPlain": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "what": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "severity",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "finished": {
+            "type": "integer"
+          },
+          "fraction": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "queued": {
+            "type": "integer"
+          },
+          "redacted": {
+            "type": "boolean"
+          },
+          "saved": {
+            "type": "boolean"
+          },
+          "started": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "worst": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "counts",
+          "findings",
+          "fraction",
+          "id",
+          "kind",
+          "queued",
+          "saved",
+          "state",
+          "subject"
+        ],
+        "type": "object"
+      },
       "DiscAction": {
         "properties": {
           "button": {
@@ -1254,6 +1474,253 @@
         ],
         "type": "object"
       },
+      "LogEntry": {
+        "properties": {
+          "attrs": {
+            "items": {
+              "properties": {
+                "k": {
+                  "type": "string"
+                },
+                "v": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "k",
+                "v"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cat": {
+            "type": "string"
+          },
+          "explain": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fix": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "what": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fix",
+                  "id",
+                  "title",
+                  "what"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "req": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "session": {
+            "type": "string"
+          },
+          "t": {
+            "properties": {},
+            "type": "object"
+          },
+          "topic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cat",
+          "level",
+          "msg",
+          "seq",
+          "t"
+        ],
+        "type": "object"
+      },
+      "LogModule": {
+        "properties": {
+          "delivery": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "integer"
+          },
+          "firstSeen": {
+            "properties": {},
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "integer"
+          },
+          "missing": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "topics": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "on": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "description",
+                "id",
+                "label",
+                "on"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "errors",
+          "firstSeen",
+          "id",
+          "level",
+          "lines",
+          "name",
+          "topics",
+          "version",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "LogPage": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "health": {
+            "anyOf": [
+              {
+                "properties": {
+                  "dropped": {
+                    "type": "integer"
+                  },
+                  "error": {
+                    "type": "string"
+                  },
+                  "keepDays": {
+                    "type": "integer"
+                  },
+                  "lost": {
+                    "type": "integer"
+                  },
+                  "lowDisk": {
+                    "type": "boolean"
+                  },
+                  "maxSize": {
+                    "type": "integer"
+                  },
+                  "quieted": {
+                    "type": "integer"
+                  },
+                  "since": {
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "totalSize": {
+                    "type": "integer"
+                  },
+                  "writing": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "keepDays",
+                  "maxSize",
+                  "writing"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last": {
+            "type": "integer"
+          },
+          "more": {
+            "type": "boolean"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "entries",
+          "last",
+          "more",
+          "partial"
+        ],
+        "type": "object"
+      },
       "LogsView": {
         "properties": {
           "canOpen": {
@@ -1262,6 +1729,9 @@
           "categories": {
             "items": {
               "properties": {
+                "default": {
+                  "type": "string"
+                },
                 "description": {
                   "type": "string"
                 },
@@ -1273,11 +1743,21 @@
                 }
               },
               "required": [
+                "default",
                 "description",
                 "id",
                 "label"
               ],
               "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "crashes": {
+            "items": {
+              "$ref": "#/components/schemas/CrashReport"
             },
             "type": [
               "array",
@@ -1313,8 +1793,64 @@
               "null"
             ]
           },
+          "health": {
+            "properties": {
+              "dropped": {
+                "type": "integer"
+              },
+              "error": {
+                "type": "string"
+              },
+              "keepDays": {
+                "type": "integer"
+              },
+              "lost": {
+                "type": "integer"
+              },
+              "lowDisk": {
+                "type": "boolean"
+              },
+              "maxSize": {
+                "type": "integer"
+              },
+              "quieted": {
+                "type": "integer"
+              },
+              "since": {
+                "properties": {},
+                "type": "object"
+              },
+              "totalSize": {
+                "type": "integer"
+              },
+              "writing": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "keepDays",
+              "maxSize",
+              "writing"
+            ],
+            "type": "object"
+          },
           "level": {
             "type": "string"
+          },
+          "levels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/LogModule"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "on": {
             "items": {
@@ -1329,9 +1865,13 @@
         "required": [
           "canOpen",
           "categories",
+          "crashes",
           "dir",
           "files",
+          "health",
           "level",
+          "levels",
+          "modules",
           "on"
         ],
         "type": "object"
@@ -2710,6 +3250,227 @@
           "w",
           "x",
           "y"
+        ],
+        "type": "object"
+      },
+      "SystemSummary": {
+        "properties": {
+          "encoders": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "ffmpeg": {
+            "type": "string"
+          },
+          "ffmpegInfo": {
+            "type": "string"
+          },
+          "folders": {
+            "items": {
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "free": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "free",
+                "path",
+                "role",
+                "total"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "go": {
+            "type": "string"
+          },
+          "hardware": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "hardwareTested": {
+            "type": "boolean"
+          },
+          "libraries": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "log": {
+            "properties": {
+              "dropped": {
+                "type": "integer"
+              },
+              "error": {
+                "type": "string"
+              },
+              "keepDays": {
+                "type": "integer"
+              },
+              "lost": {
+                "type": "integer"
+              },
+              "lowDisk": {
+                "type": "boolean"
+              },
+              "maxSize": {
+                "type": "integer"
+              },
+              "quieted": {
+                "type": "integer"
+              },
+              "since": {
+                "properties": {},
+                "type": "object"
+              },
+              "totalSize": {
+                "type": "integer"
+              },
+              "writing": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "keepDays",
+              "maxSize",
+              "writing"
+            ],
+            "type": "object"
+          },
+          "logLevels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "maxTranscode": {
+            "type": "integer"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleInfo"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "secretsSet": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "settings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "started": {
+            "properties": {},
+            "type": "object"
+          },
+          "system": {
+            "properties": {
+              "arch": {
+                "type": "string"
+              },
+              "container": {
+                "type": "boolean"
+              },
+              "cores": {
+                "type": "integer"
+              },
+              "cpu": {
+                "type": "string"
+              },
+              "freeMemoryMB": {
+                "type": "integer"
+              },
+              "gpus": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "memoryMB": {
+                "type": "integer"
+              },
+              "os": {
+                "type": "string"
+              },
+              "release": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "arch",
+              "cores",
+              "os",
+              "release"
+            ],
+            "type": "object"
+          },
+          "time": {
+            "properties": {},
+            "type": "object"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "encoders",
+          "ffmpeg",
+          "ffmpegInfo",
+          "folders",
+          "go",
+          "hardwareTested",
+          "libraries",
+          "log",
+          "logLevels",
+          "maxTranscode",
+          "modules",
+          "secretsSet",
+          "settings",
+          "started",
+          "system",
+          "time",
+          "version"
         ],
         "type": "object"
       },
@@ -4893,6 +5654,358 @@
           "Vertical and creator videos"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/diagnose/browse": {
+      "get": {
+        "operationId": "getDiagnoseBrowse",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Folders and disc images inside the libraries and data folders. No path gives where to start; anywhere else is refused.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/disc": {
+      "post": {
+        "operationId": "postDiagnoseDisc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "crawl": {
+                    "type": "boolean"
+                  },
+                  "damage": {
+                    "type": "boolean"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseJob"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start checking a DVD or Blu-ray: encryption, structure, menus and damage. Read-only. 429 when too many are waiting.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/jobs": {
+      "get": {
+        "operationId": "getDiagnoseJobs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "jobs": {
+                      "items": {
+                        "$ref": "#/components/schemas/DiagnoseJob"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Checks running or waiting, then saved reports, newest first.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/jobs/{id}": {
+      "delete": {
+        "operationId": "deleteDiagnoseJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseJob"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a check.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getDiagnoseJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseJob"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One check, with its progress and findings.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/jobs/{id}/report": {
+      "get": {
+        "operationId": "getDiagnoseReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "json or txt",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "hide the disc name and file names",
+            "in": "query",
+            "name": "redact",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The report as a file, with nothing copyrighted in it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/storage": {
+      "post": {
+        "operationId": "postDiagnoseStorage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "readTest": {
+                    "type": "boolean"
+                  },
+                  "targets": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "walk": {
+                    "type": "boolean"
+                  },
+                  "writeTest": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseJob"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start checking folders by target ID: space, permissions, speed, file system and drive health. The only write is a small temporary file, and never in a media folder.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/diagnose/targets": {
+      "get": {
+        "operationId": "getDiagnoseTargets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "WittyDiagnoser: the libraries, data folders and known discs that can be checked.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/dictionary": {
@@ -8970,6 +10083,35 @@
                   "level": {
                     "type": "string"
                   },
+                  "levels": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Each category's level: debug, info, warn, error or off. Live, with no restart.",
+                    "type": "object"
+                  },
+                  "modules": {
+                    "additionalProperties": {
+                      "properties": {
+                        "level": {
+                          "type": "string"
+                        },
+                        "topics": {
+                          "additionalProperties": {
+                            "type": "boolean"
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "description": "How each module is logged: its level (empty to follow its area) and its advanced options.",
+                    "type": "object"
+                  },
+                  "modulesSeen": {
+                    "description": "An admin has seen the modules marked new.",
+                    "type": "boolean"
+                  },
                   "on": {
                     "items": {
                       "type": "string"
@@ -9010,6 +10152,104 @@
         "x-wms-auth": "admin"
       }
     },
+    "/logs/bundle": {
+      "get": {
+        "operationId": "getLogBundle",
+        "parameters": [
+          {
+            "description": "how far back, 1 to 14",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "hide titles and file paths",
+            "in": "query",
+            "name": "redact",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The support bundle: a zip of recent logs, crash reports and the system summary, made on request. Nothing is uploaded anywhere.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/bundle/preview": {
+      "get": {
+        "operationId": "getLogBundlePreview",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redact",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BundlePreview"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the support bundle would hold.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/logs/client": {
       "post": {
         "operationId": "postLogsClient",
@@ -9021,6 +10261,47 @@
                   "app": {
                     "type": "string"
                   },
+                  "device": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "items": {
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "level": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "string"
+                        },
+                        "request": {
+                          "type": "string"
+                        },
+                        "session": {
+                          "type": "string"
+                        },
+                        "stack": {
+                          "type": "string"
+                        },
+                        "time": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
                   "level": {
                     "type": "string"
                   },
@@ -9030,7 +10311,13 @@
                   "page": {
                     "type": "string"
                   },
+                  "session": {
+                    "type": "string"
+                  },
                   "stack": {
+                    "type": "string"
+                  },
+                  "version": {
                     "type": "string"
                   }
                 },
@@ -9053,11 +10340,297 @@
             "bearer": []
           }
         ],
-        "summary": "Report an error from a client. Only stored when the owner turned on app errors; 204 otherwise; rate limited.",
+        "summary": "Report errors from a client: limited to 64 KB, and 60 events a minute per account. 204 when stored or when the owner turned app errors off; 429 past the limit.",
         "tags": [
           "Server"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/logs/crashes": {
+      "get": {
+        "operationId": "getLogCrashes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "crashes": {
+                      "items": {
+                        "$ref": "#/components/schemas/CrashReport"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crash reports, newest first.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/crashes/{id}": {
+      "delete": {
+        "operationId": "deleteLogCrash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a crash report.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getLogCrash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "download",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One crash report's text.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/crashes/{id}/seen": {
+      "post": {
+        "operationId": "postLogCrashSeen",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop pointing this report out.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/entries": {
+      "get": {
+        "operationId": "getLogEntries",
+        "parameters": [
+          {
+            "description": "debug, info, warn or error: this and above",
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "categories, separated by commas",
+            "in": "query",
+            "name": "cat",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "a session or request ID; also searches the files",
+            "in": "query",
+            "name": "session",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "text anywhere in the record",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "only records newer than this seq: the live tail",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "only records older than this time",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "look in the files too",
+            "in": "query",
+            "name": "history",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "only what this module logged",
+            "in": "query",
+            "name": "module",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogPage"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The log viewer: records, newest last, filtered. Poll with after for a live tail.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/logs/files/{name}": {
@@ -9130,6 +10703,36 @@
           }
         ],
         "summary": "Open the log folder on the server's own screen.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/summary": {
+      "get": {
+        "operationId": "getLogSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemSummary"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Version, modules, system, GPU and encoders, disk space and settings that matter. No secrets.",
         "tags": [
           "Server"
         ],

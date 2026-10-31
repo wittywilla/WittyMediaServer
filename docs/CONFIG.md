@@ -65,7 +65,7 @@ Every setting is optional. Leave out what you don't need.
 | `metadataDir` | downloaded posters, backdrops and generated thumbnails | `<cacheDir>/images` |
 | `cacheDir` | other cached files (disc playlists, menu stills) | `<dataDir>/cache` |
 | `transcodeDir` | temporary video while transcoding — put it on a fast SSD or RAM disk | `<dataDir>/transcode` |
-| `logDir` | log files (can also be changed in *Settings → Logs & privacy*) | `<dataDir>/logs` |
+| `logDir` | log files (can also be changed in *Settings → WittyLog*) | `<dataDir>/logs` |
 | `logLevel` | `error`, `warn`, `info` or `debug` | `info` |
 | `ffmpeg`, `ffprobe` | use these FFmpeg programs instead of the bundled ones | bundled, then `PATH` |
 | `maxTranscodes` | how many videos may be transcoded at once; lower it on small machines. When all are in use, a stream nobody has asked anything of for 20 seconds gives way, otherwise the next viewer waits | `4` |
@@ -122,23 +122,38 @@ rescanned. The same works for `transcodeDir` (it only holds temporary files).
 
 ## Logs
 
-Logs are plain text files named `wms-<date>.log`, one per day (a new file starts after 50 MB),
-kept for 14 days.
+Logs are plain text files named `wms-<date>.log`, one line per message. A new file starts after 20 MB. They
+are kept for 14 days and 200 MB in all, whichever comes first. If the disk has under 100 MB free, only warnings
+and errors are written and old logs are removed; if the folder can't be written, the log stays in memory and the
+settings page says so.
 
 **Logs never leave your server.** Nothing is uploaded or sent anywhere; nobody sees them
 unless you send a file yourself, for example with a bug report.
 
-*Settings → Logs & privacy* shows:
+*Settings → WittyLog*, the server's logging, has:
 
-- **What to log** — warnings and errors are always logged. Detailed logging is split into
-  categories that are **off until you turn them on**: Playback, Discs, FFmpeg commands, Library
-  scans, Web requests, App errors. Each switch says what it adds (some add file names or the
-  titles of what you watch).
+- **The viewer** — a live tail you can filter by level, area, session and text. Each failure has an explanation
+  in plain words and a suggested fix where there is one, and one press shows everything from the same session:
+  the request that started a playback, what FFmpeg said, and what the player reported.
+- **Modules** — every module is listed with a level of its own and, under **Advanced**, the kinds of detail
+  it can add, such as a helper's every call or a disc's navigation. A newly installed module is noticed and
+  listed by itself, marked **New**. Changes take effect at once.
+- **What to log** — each area (playback, transcoding, discs, games, Live TV, library, modules, updates, remote
+  access, sign-ins, app errors, web requests, storage) has its own level, which changes at once with no restart.
+  Areas that name what you watch or who signs in (playback, discs, sign-ins, app errors, web requests) keep to
+  warnings and errors until you ask for more. Each one says what it adds.
 - **Where the logs are** — the folder, an **Open folder** button (when the browser runs on the
   server itself), and a picker to choose another folder.
-- **Log files** — download any file to attach to a bug report.
+- **Crash reports** — if the server crashes, or stops without shutting down (a power cut, say), the next start
+  writes a report and points it out here. They're in `crash/` inside the data folder.
+- **Support bundle** — a zip of recent logs, crash reports and a summary of your system, to send with a bug
+  report. It shows you what's inside first, and can hide titles and file paths. It's made when you ask and
+  downloaded by you: nothing is uploaded.
 
-Sign-in tokens, passwords, API keys and PINs are removed from every log line automatically.
+Passwords, sign-in tokens, stream tokens, API keys, PINs, cookies and setup codes are removed from every log line
+automatically. Apps report their errors only to your own server, and you can turn that off.
+
+For developers: [how every part of the project logs](LOGGING.md).
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>

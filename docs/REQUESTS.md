@@ -26,7 +26,9 @@ close some of these.
   channels and photos aren't started there.
 - **Apple TV themes:** only the theme's colours are used, with no theme picker.
 - **A server build for Android TV**, for boxes such as the NVIDIA Shield: not started.
-- **Logs in the client apps:** logging, its folder and the link to open it exist only on the server.
+- **Logs in the client apps:** each app now keeps its own log and reports errors to its server (see the client's
+  README). Still to do: a way to reach the log file on Android and Apple, which have no settings screen to put it
+  on, and trying all of it on real devices.
 - **Remotes, every game controller and screen readers:** written, but not tried on real devices.
 - **Tidy-up:** the older `clients/desktop` and `clients/mobile` folders sit beside the new client, and
   the client has no published repository yet.
@@ -51,9 +53,9 @@ close some of these.
 
 ## Disc tools and engines
 
-- **A diagnostic file:** one report that collects what's useful for fixing a disc problem, with nothing
-  copyrighted in it. Today the tools only print to the terminal.
-- **A small Windows and macOS app** that makes that file: not started.
+- **A diagnostic file:** done in the app. [WittyDiagnoser](DIAGNOSER.md) makes a report of what's useful for
+  fixing a disc or storage problem, with nothing copyrighted in it, in *Settings → WittyDiagnoser*.
+- **A small Windows and macOS app** that makes that file without a server: not started.
 - **Clearer program names:** nothing in the package explains what each program does.
 - **Blu-ray:** secondary audio, picture-in-picture and MVC 3D decoding. Testing on retail discs, including
   Java menus, 4K and HDR, waits for discs from the owner.

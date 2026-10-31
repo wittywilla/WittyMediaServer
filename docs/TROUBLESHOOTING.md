@@ -1,8 +1,9 @@
 # Troubleshooting
 
-Quick answers to the problems people run into most. Still stuck? Turn on the relevant category in
-*Settings → Logs & privacy*, reproduce the problem, and attach the log (it never contains passwords
-or session tokens) to an issue.
+Quick answers to the problems people run into most. Still stuck? Open *Settings → WittyLog*: the viewer
+explains common failures in plain words. Reproduce the problem, then attach a **support bundle** to an issue (it
+never contains passwords or tokens, shows you what's inside first, and can hide titles and file paths). For anything
+to do with discs or drives, run *Settings → WittyDiagnoser*.
 
 | Problem | What to do |
 |---|---|
@@ -14,7 +15,9 @@ or session tokens) to an issue.
 | **“ffmpeg not found”** | Keep `bin/ffmpeg` next to the program, install FFmpeg on `PATH`, or set `WMS_FFMPEG`. *Settings → About* shows which one is used. |
 | **Video stalls or has no sound in one browser** | Some Chromium builds lack AAC. Set *Settings → Transcoding → Stream audio codec* to MP3. |
 | **“This disc is CSS-scrambled” / “encrypted (AACS)”** | The image is still protected. WittyMediaServer never decrypts anything; make a decrypted image of a disc you own with a tool that is legal where you live. |
-| **A DVD or Blu-ray menu shows no buttons** | Run `wms dvd walk disc.iso` or `wms bluray walk disc.iso` and attach the output to an issue (never the disc image). |
+| **A DVD or Blu-ray menu shows no buttons** | Run a check of the disc in *Settings → [WittyDiagnoser](DIAGNOSER.md)* with *Press every menu button* on, and attach its report to an issue (never the disc image). On the command line, `wms dvd walk disc.iso` or `wms bluray walk disc.iso` shows the same steps. |
+| **A disc won't play, stutters or stops partway** | *Settings → [WittyDiagnoser](DIAGNOSER.md)* says what's wrong with a copy: scrambled, incomplete, or with sectors that can't be read. |
+| **Video stalls, or a folder or drive misbehaves** | *Settings → [WittyDiagnoser](DIAGNOSER.md) → Storage* checks free space, permissions, read speed and known trouble such as a database on a network drive. |
 | **Seeking in a DVD title lands slightly off** | DVD video is seeked by estimated bit-rate, then FFmpeg decodes forward to the exact point; on very high-bitrate discs this can take a second. |
 | **A title is named strangely** | Rename the file (`Title (Year).ext`), or use **Edit** on its page. Titles named by an earlier faulty parse are corrected on the next scan. |
 | **Everything from one drive is still listed while it is away** | That's on purpose: a library folder that can't be reached, or is empty (an unmounted drive looks like that), keeps its items until it is back. Files really deleted from a folder that is there disappear at the next scan. |

@@ -1,8 +1,12 @@
 // Checks that need no one at the screen. They run with Qt's offscreen platform, make
 // their own short clips with a test copy of FFmpeg (WMP_TEST_FFMPEG), and read real
 // discs only when told where (WITTY_TEST_DVD, WITTY_TEST_BD).
+#include "cd/audioencoder.h"
+#include "cd/cdpage.h"
+#include "cd/cdripper.h"
 #include "disc/disccontroller.h"
 #include "engine/engineclient.h"
+#include "media/audiooutput.h"
 #include "media/extentreader.h"
 #include "media/player.h"
 #include "media/vlcplayback.h"
@@ -12,6 +16,7 @@
 #include "ui/settingsdialog.h"
 #include "ui/theme.h"
 #include "video/videoview.h"
+#include "visual/visualizer.h"
 
 #include <QDir>
 #include <QFile>
@@ -22,6 +27,8 @@
 #include <QProcess>
 #include <QSettings>
 #include <QSignalSpy>
+#include <QBuffer>
+#include <QImage>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -57,12 +64,107 @@ bool ffmpeg(const QStringList &args)
     return p.waitForFinished(120000) && p.exitCode() == 0;
 }
 
+// CD audio made here: a different tone each side, so a swap or a shift would show.
+QByteArray cdTone(int sectors, double hz = 440)
+{
+    QByteArray pcm(sectors * 2352, Qt::Uninitialized);
+    auto *d = reinterpret_cast<qint16 *>(pcm.data());
+    const int frames = sectors * 588;
+    for (int i = 0; i < frames; i++) {
+        d[i * 2] = qint16(11000 * std::sin(2 * M_PI * hz * i / 44100));
+        d[i * 2 + 1] = qint16(7000 * std::sin(2 * M_PI * hz * 1.5 * i / 44100));
+    }
+    return pcm;
+}
+
+// A cue and bin in dir, with these tracks' lengths in sectors.
+QString makeCdImage(const QString &dir, const QVector<int> &tracks, QByteArray *pcm)
+{
+    QByteArray cue = "PERFORMER \"The Testers\"\nTITLE \"Made Here\"\nFILE \"disc.bin\" BINARY\n";
+    int at = 0;
+    pcm->clear();
+    for (int i = 0; i < tracks.size(); i++) {
+        pcm->append(cdTone(tracks[i], 220.0 * (i + 1)));
+        cue += QStringLiteral("  TRACK %1 AUDIO\n    TITLE \"Song %2\"\n    INDEX 01 %3:%4:%5\n")
+                   .arg(i + 1, 2, 10, QLatin1Char('0'))
+                   .arg(i + 1)
+                   .arg(at / 75 / 60, 2, 10, QLatin1Char('0'))
+                   .arg(at / 75 % 60, 2, 10, QLatin1Char('0'))
+                   .arg(at % 75, 2, 10, QLatin1Char('0'))
+                   .toUtf8();
+        at += tracks[i];
+    }
+    QFile bin(QDir(dir).filePath(QStringLiteral("disc.bin")));
+    QFile sheet(QDir(dir).filePath(QStringLiteral("disc.cue")));
+    if (!bin.open(QIODevice::WriteOnly) || !sheet.open(QIODevice::WriteOnly))
+        return {};
+    bin.write(*pcm);
+    sheet.write(cue);
+    return sheet.fileName();
+}
+
+QByteArray decodePcm(const QString &file)
+{
+    QProcess p;
+    p.start(testFfmpeg(), {QStringLiteral("-hide_banner"), QStringLiteral("-loglevel"), QStringLiteral("error"), QStringLiteral("-i"), file,
+                           QStringLiteral("-map"), QStringLiteral("0:a"), QStringLiteral("-f"), QStringLiteral("s16le"), QStringLiteral("-ar"), QStringLiteral("44100"), QStringLiteral("-ac"), QStringLiteral("2"), QStringLiteral("-")});
+    p.waitForFinished(60000);
+    return p.readAllStandardOutput();
+}
+
+QString describe(const QString &file)
+{
+    QProcess p;
+    p.start(testFfmpeg(), {QStringLiteral("-hide_banner"), QStringLiteral("-i"), file});
+    p.waitForFinished(60000);
+    return QString::fromUtf8(p.readAllStandardError());
+}
+
+// How alike two runs of samples sound, 1 being the same.
+double likeness(const QByteArray &a, const QByteArray &b)
+{
+    const auto *x = reinterpret_cast<const qint16 *>(a.constData());
+    const auto *y = reinterpret_cast<const qint16 *>(b.constData());
+    const qsizetype n = qMin(a.size(), b.size()) / 2;
+    double xy = 0, xx = 0, yy = 0;
+    for (qsizetype i = 0; i < n; i++) {
+        xy += double(x[i]) * y[i];
+        xx += double(x[i]) * x[i];
+        yy += double(y[i]) * y[i];
+    }
+    return xx > 0 && yy > 0 ? xy / std::sqrt(xx * yy) : 0;
+}
+
+QByteArray smallJpeg()
+{
+    QImage img(64, 64, QImage::Format_RGB32);
+    img.fill(QColor(200, 80, 40));
+    QByteArray out;
+    QBuffer b(&out);
+    b.open(QIODevice::WriteOnly);
+    img.save(&b, "JPEG");
+    return out;
+}
+
 } // namespace
 
 class Tests : public QObject {
     Q_OBJECT
 private slots:
     void initTestCase();
+
+    void ripNamesAreSafe();
+    void ripNamesNeverOverwrite();
+    void everyFormatEncodes();
+    void losslessIsExact();
+    void spectrumFindsTheTone();
+    void tapFollowsTheSound();
+    void cdPlaysAndSeeks();
+    void ripperCopiesTracks();
+    void ripperStopLeavesNothing();
+    void cdScreenCopies();
+    void cdScreenKeysAndNames();
+    void cdScreenMakesImage();
 
     void timeFormat();
     void fitKeepsShape();
@@ -748,6 +850,372 @@ void Tests::realBluray()
     QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() > 1.0, 30000);
     w.disc()->seekTo(600);
     QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() >= 600 && w.player()->position() < 615, 30000);
+    w.close();
+}
+
+void Tests::ripNamesAreSafe()
+{
+    RipNames n;
+    n.artist = QStringLiteral("AC/DC");
+    n.album = QStringLiteral("..\\..\\Windows");
+    n.title = QStringLiteral("What? <Now>: \"Yes\" | no*");
+    n.track = 3;
+    n.tracks = 12;
+    n.year = QStringLiteral("2001-05-01");
+    QCOMPARE(ripRelativePath(defaultRipTemplate(), n, QStringLiteral("flac")), QStringLiteral("AC_DC/_.._Windows/03 What_ _Now__ _Yes_ _ no_.flac"));
+    QCOMPARE(ripRelativePath(QStringLiteral("{year} {album}/{track}"), n, QStringLiteral("mp3")), QStringLiteral("2001 _.._Windows/03.mp3"));
+    // A template can't climb out of the folder either.
+    for (const QString &t : {QStringLiteral("../../x/{title}"), QStringLiteral("..\\..\\{track}"), QStringLiteral("C:/x/{track}"), QStringLiteral("/{track}")}) {
+        const QString path = ripRelativePath(t, n, QStringLiteral("flac"));
+        QVERIFY2(!path.startsWith(QLatin1Char('/')) && !path.contains(QStringLiteral("../")) && !path.contains(QLatin1Char(':')), qPrintable(path));
+    }
+    RipNames blank;
+    blank.track = 1;
+    QCOMPARE(ripRelativePath(defaultRipTemplate(), blank, QStringLiteral("wav")), QStringLiteral("Unknown artist/Unknown album/01 Track 01.wav"));
+    QCOMPARE(ripRelativePath(QString(), blank, QStringLiteral("wav")), QStringLiteral("Track 01.wav"));
+    n.title = QStringLiteral("CON");
+    QCOMPARE(ripRelativePath(QStringLiteral("{title}"), n, QStringLiteral("wav")), QStringLiteral("_CON.wav"));
+    n.title = QStringLiteral("x").repeated(500);
+    QVERIFY(ripRelativePath(QStringLiteral("{title}"), n, QStringLiteral("wav")).size() < 130);
+}
+
+void Tests::ripNamesNeverOverwrite()
+{
+    QTemporaryDir dir;
+    const QString a = dir.filePath(QStringLiteral("song.flac"));
+    QCOMPARE(uniquePath(a), a);
+    QFile(a).open(QIODevice::WriteOnly);
+    QCOMPARE(uniquePath(a), dir.filePath(QStringLiteral("song (2).flac")));
+    QFile(dir.filePath(QStringLiteral("song (2).flac.part"))).open(QIODevice::WriteOnly);
+    QCOMPARE(uniquePath(a), dir.filePath(QStringLiteral("song (3).flac")));
+}
+
+void Tests::everyFormatEncodes()
+{
+    if (testFfmpeg().isEmpty())
+        QSKIP("no test FFmpeg");
+    QTemporaryDir dir;
+    const QByteArray pcm = cdTone(75 * 4);
+    TrackTags tags;
+    tags.title = QStringLiteral("Sång of Tests");
+    tags.artist = QStringLiteral("The Testers");
+    tags.album = QStringLiteral("Made Here");
+    tags.albumArtist = QStringLiteral("Various");
+    tags.date = QStringLiteral("2001");
+    tags.track = 3;
+    tags.trackTotal = 9;
+    tags.cover = smallJpeg();
+    for (const RipFormat &f : ripFormats()) {
+        for (const RipQuality &q : f.qualities) {
+            const QString path = dir.filePath(QStringLiteral("%1-%2.%3").arg(f.id, q.id, f.extension));
+            AudioEncoder enc;
+            QString why;
+            QVERIFY2(enc.open(path, f.id, q.id, tags, &why), qPrintable(f.id + QLatin1Char(' ') + why));
+            for (qsizetype at = 0; at < pcm.size(); at += 40000)
+                QVERIFY2(enc.write(pcm.constData() + at, qMin<qsizetype>(40000, pcm.size() - at)), qPrintable(enc.error()));
+            QVERIFY2(enc.finish(), qPrintable(f.id + QLatin1Char(' ') + enc.error()));
+            const QByteArray back = decodePcm(path);
+            // Encoders pad the ends a little.
+            QVERIFY2(qAbs(back.size() - pcm.size()) < 44100, qPrintable(QStringLiteral("%1: %2 of %3 bytes").arg(path).arg(back.size()).arg(pcm.size())));
+            // A tone comes through a lossy encoder as the same tone, once its delay's found.
+            double best = 0;
+            for (int shift = 0; shift < 8192 && best < 0.9; shift += 4)
+                best = qMax(best, likeness(pcm.mid(4000, 100000), back.mid(4000 + shift, 100000)));
+            QVERIFY2(best > 0.9, qPrintable(QStringLiteral("%1: likeness %2").arg(path).arg(best)));
+            const QString info = describe(path);
+            if (f.id != QLatin1String("wav")) {
+                QVERIFY2(info.contains(QStringLiteral("Sång of Tests")) && info.contains(QStringLiteral("Made Here")) && info.contains(QStringLiteral("The Testers")), qPrintable(info));
+                QVERIFY2(info.contains(QStringLiteral("attached pic")) || info.contains(QStringLiteral("cover")), qPrintable(info));
+            }
+        }
+    }
+    // A format it doesn't have, and a place it can't write, are plain answers.
+    AudioEncoder enc;
+    QString why;
+    QVERIFY(!enc.open(dir.filePath(QStringLiteral("x")), QStringLiteral("nonsense"), {}, {}, &why));
+    QVERIFY(!why.isEmpty());
+    QVERIFY(!enc.open(dir.filePath(QStringLiteral("no/such/folder/x.flac")), QStringLiteral("flac"), {}, {}, &why));
+}
+
+void Tests::losslessIsExact()
+{
+    if (testFfmpeg().isEmpty())
+        QSKIP("no test FFmpeg");
+    QTemporaryDir dir;
+    const QByteArray pcm = cdTone(75 * 3 + 17);
+    for (const QString &id : {QStringLiteral("flac"), QStringLiteral("alac"), QStringLiteral("wav")}) {
+        const QString path = dir.filePath(QStringLiteral("x.") + ripFormat(id)->extension);
+        AudioEncoder enc;
+        QString why;
+        QVERIFY2(enc.open(path, id, {}, {}, &why), qPrintable(why));
+        QVERIFY(enc.write(pcm.constData(), pcm.size()));
+        QVERIFY2(enc.finish(), qPrintable(enc.error()));
+        QVERIFY2(decodePcm(path) == pcm, qPrintable(id));
+    }
+}
+
+void Tests::spectrumFindsTheTone()
+{
+    const int frames = 1024, rate = 44100;
+    std::vector<qint16> s(size_t(frames) * 2);
+    const auto strongest = [&](double hz) {
+        for (int i = 0; i < frames; i++)
+            s[size_t(i) * 2] = s[size_t(i) * 2 + 1] = qint16(16000 * std::sin(2 * M_PI * hz * i / rate));
+        float bands[28];
+        spectrumBands(s.data(), frames, rate, bands, 28);
+        return int(std::max_element(bands, bands + 28) - bands);
+    };
+    const int low = strongest(200), mid = strongest(1000), high = strongest(8000);
+    QVERIFY(low < mid && mid < high);
+    float bands[28];
+    std::fill(s.begin(), s.end(), qint16(0));
+    spectrumBands(s.data(), frames, rate, bands, 28);
+    for (float b : bands)
+        QCOMPARE(b, 0.f);
+}
+
+void Tests::tapFollowsTheSound()
+{
+    AudioOutput a;
+    qint16 out[2048];
+    QCOMPARE(a.tapRead(out, 1024), 0); // off, it keeps nothing
+    a.setTapEnabled(true);
+    a.start(true);
+    std::vector<qint16> tone(9600);
+    for (size_t i = 0; i + 1 < tone.size(); i += 2)
+        tone[i] = tone[i + 1] = qint16(12000 * std::sin(2 * M_PI * 440.0 * double(i / 2) / a.sampleRate()));
+    for (int i = 0; i < 40; i++) {
+        std::atomic<bool> abort{false};
+        a.write(reinterpret_cast<const char *>(tone.data()), qsizetype(tone.size() * 2), 0.1 * i, 0, &abort);
+    }
+    bool heard = false;
+    for (int t = 0; t < 100 && !heard; t++) {
+        QTest::qWait(20);
+        QCOMPARE(a.tapRead(out, 1024), 1024);
+        for (int i = 0; i < 2048 && !heard; i++)
+            heard = qAbs(out[i]) > 8000;
+    }
+    QVERIFY(heard);
+    a.stop();
+}
+
+void Tests::cdPlaysAndSeeks()
+{
+    QTemporaryDir dir;
+    QByteArray pcm;
+    const QString cue = makeCdImage(dir.path(), {75 * 8, 75 * 8}, &pcm);
+    if (!QFile::exists(EngineClient::enginePath()))
+        QSKIP("no helper program");
+    Player p;
+    p.initAudio(true);
+    CountingSink sink;
+    p.setVideoSink(&sink);
+    QSignalSpy opened(&p, &Player::opened);
+    QSignalSpy failed(&p, &Player::failed);
+    MediaSpec spec;
+    spec.filePath = cue;
+    spec.cd = true;
+    p.open(spec);
+    QTRY_VERIFY_WITH_TIMEOUT(opened.size() > 0 || failed.size() > 0, 15000);
+    QVERIFY(failed.isEmpty());
+    QVERIFY(qAbs(p.duration() - 16) < 0.1);
+    QVERIFY(p.isAudioOnly());
+    QTRY_VERIFY_WITH_TIMEOUT(p.position() > 0.5, 10000);
+    p.seek(9);
+    QTRY_VERIFY_WITH_TIMEOUT(p.position() >= 9 && p.position() < 11, 10000);
+    p.stop();
+    // A CD that isn't there is a message, and no hang.
+    QSignalSpy failed2(&p, &Player::failed);
+    spec.filePath = dir.filePath(QStringLiteral("gone.cue"));
+    p.open(spec);
+    QTRY_VERIFY_WITH_TIMEOUT(failed2.size() > 0, 15000);
+    p.stop();
+}
+
+void Tests::ripperCopiesTracks()
+{
+    if (testFfmpeg().isEmpty() || !QFile::exists(EngineClient::enginePath()))
+        QSKIP("no test FFmpeg or helper");
+    QTemporaryDir src, out;
+    QByteArray pcm;
+    const QString cue = makeCdImage(src.path(), {150, 225, 100}, &pcm);
+    RipJob job;
+    job.source = cue;
+    job.format = QStringLiteral("flac");
+    job.quality = QStringLiteral("5");
+    job.folder = out.path();
+    job.nameTemplate = defaultRipTemplate();
+    job.album = QStringLiteral("Made Here");
+    for (int n : {3, 1}) {
+        RipTrackJob t;
+        t.number = n;
+        t.names.albumArtist = QStringLiteral("The Testers");
+        t.names.album = job.album;
+        t.names.title = QStringLiteral("Song %1").arg(n);
+        t.names.track = n;
+        t.tags.title = t.names.title;
+        t.tags.track = n;
+        job.tracks.push_back(t);
+    }
+    CdRipper r;
+    QSignalSpy finished(&r, &CdRipper::finished);
+    QSignalSpy done(&r, &CdRipper::trackFinished);
+    r.start(job);
+    QTRY_VERIFY_WITH_TIMEOUT(finished.size() == 1, 60000);
+    QCOMPARE(finished[0][1].toString(), QString());
+    QCOMPARE(done.size(), 2);
+    const QString one = out.filePath(QStringLiteral("The Testers/Made Here/01 Song 1.flac"));
+    const QString three = out.filePath(QStringLiteral("The Testers/Made Here/03 Song 3.flac"));
+    QCOMPARE(decodePcm(one), pcm.left(150 * 2352));
+    QCOMPARE(decodePcm(three), pcm.mid(375 * 2352));
+    QVERIFY(!QFile::exists(one + QStringLiteral(".part")));
+    const RipResult first = done[1][0].value<RipResult>();
+    QVERIFY(first.ok && !first.crc.isEmpty() && first.unreadable == 0);
+    // The report says what happened, track by track, in the same folder.
+    QFile report(finished[0][2].toString());
+    QVERIFY(report.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(report.readAll());
+    QVERIFY2(text.contains(QStringLiteral("Track 01")) && text.contains(first.crc) && QFileInfo(report).absolutePath() == QFileInfo(one).absolutePath(), qPrintable(text));
+    // A second copy keeps the first.
+    QSignalSpy again(&r, &CdRipper::finished);
+    QTRY_VERIFY(!r.running());
+    r.start(job);
+    QTRY_VERIFY_WITH_TIMEOUT(again.size() == 1, 60000);
+    QVERIFY(QFile::exists(out.filePath(QStringLiteral("The Testers/Made Here/01 Song 1 (2).flac"))));
+}
+
+void Tests::ripperStopLeavesNothing()
+{
+    if (!QFile::exists(EngineClient::enginePath()))
+        QSKIP("no helper");
+    QTemporaryDir src, out;
+    QByteArray pcm;
+    const QString cue = makeCdImage(src.path(), {75 * 900}, &pcm); // long enough to be caught part way
+    RipJob job;
+    job.source = cue;
+    job.format = QStringLiteral("flac");
+    job.quality = QStringLiteral("8");
+    job.folder = out.path();
+    job.nameTemplate = QStringLiteral("{track}");
+    RipTrackJob t;
+    t.number = 1;
+    t.names.track = 1;
+    job.tracks.push_back(t);
+    CdRipper r;
+    QSignalSpy finished(&r, &CdRipper::finished);
+    QSignalSpy progress(&r, &CdRipper::trackProgress);
+    r.start(job);
+    QTRY_VERIFY_WITH_TIMEOUT(progress.size() > 0 || finished.size() > 0, 20000);
+    r.stop();
+    QTRY_VERIFY_WITH_TIMEOUT(finished.size() == 1, 30000);
+    QVERIFY(finished[0][0].toBool());
+    QVERIFY2(QDir(out.path()).entryList(QDir::Files | QDir::NoDotAndDotDot).isEmpty(), qPrintable(QDir(out.path()).entryList().join(QLatin1Char(','))));
+}
+
+void Tests::cdScreenCopies()
+{
+    if (testFfmpeg().isEmpty() || !QFile::exists(EngineClient::enginePath()))
+        QSKIP("no test FFmpeg or helper");
+    QTemporaryDir src, out;
+    QByteArray pcm;
+    const QString cue = makeCdImage(src.path(), {150, 150}, &pcm);
+    MainWindow w(true);
+    w.show();
+    w.openPath(cue);
+    QTRY_VERIFY_WITH_TIMEOUT(w.cd()->isVisible(), 15000);
+    QCOMPARE(w.cd()->disc().tracks.size(), 2);
+    QCOMPARE(w.cd()->disc().title, QStringLiteral("Made Here"));
+    QCOMPARE(w.cd()->checkedTracks(), QVector<int>({1, 2}));
+    // Nothing ticked, or nowhere to put it, is a plain word.
+    w.cd()->setChecked({});
+    w.cd()->startRip();
+    QVERIFY(!w.cd()->busy());
+    w.cd()->setChecked({2});
+    w.cd()->setRipOptions(QStringLiteral("alac"), {}, out.filePath(QStringLiteral("not-here")), QStringLiteral("{track} {title}"), true, 0);
+    w.cd()->startRip();
+    QVERIFY(!w.cd()->busy());
+    w.cd()->setRipOptions(QStringLiteral("alac"), {}, out.path(), QStringLiteral("{track} {title}"), true, 0);
+    QSignalSpy finished(w.cd(), &CdPage::ripFinished);
+    w.cd()->startRip();
+    QVERIFY(w.cd()->busy());
+    // Nothing else opens over a copy that's under way.
+    w.openPath(cue);
+    QVERIFY(w.shownMessage().contains(QStringLiteral("being copied")));
+    QTRY_VERIFY_WITH_TIMEOUT(finished.size() == 1, 60000);
+    QTRY_VERIFY(!w.cd()->busy());
+    QVERIFY2(w.cd()->statusText().contains(QStringLiteral("Copied 1 of 1")), qPrintable(w.cd()->statusText()));
+    QCOMPARE(decodePcm(out.filePath(QStringLiteral("02 Song 2.m4a"))), pcm.mid(150 * 2352));
+    w.close();
+}
+
+void Tests::cdScreenKeysAndNames()
+{
+    if (!QFile::exists(EngineClient::enginePath()))
+        QSKIP("no helper");
+    QTemporaryDir src;
+    QByteArray pcm;
+    const QString cue = makeCdImage(src.path(), {75 * 6, 75 * 6, 75 * 6}, &pcm);
+    MainWindow w(true);
+    w.show();
+    w.openPath(cue);
+    QTRY_VERIFY_WITH_TIMEOUT(w.cd()->isVisible(), 15000);
+    CdPage *c = w.cd();
+    QVERIFY(!c->playing()); // an opened CD waits to be asked
+    QVERIFY(w.handleKey(Qt::Key_K));
+    QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() > 0.3, 15000);
+    QVERIFY(c->playing());
+    QVERIFY(w.handleKey(Qt::Key_N));
+    QCOMPARE(c->currentTrack(), 1);
+    QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() >= 6 && w.player()->position() < 8, 15000);
+    QVERIFY(w.handleKey(Qt::Key_K));
+    QVERIFY(!c->playing());
+    QVERIFY(w.handleKey(Qt::Key_S));
+    QVERIFY(!w.player()->hasMedia());
+    // Names from a lookup land where they should, and a bad position is ignored.
+    const QJsonObject match = QJsonDocument::fromJson(R"({"title":"An Album","artist":"A Band","date":"1999-02-03","releaseId":"x",
+        "tracks":[{"number":1,"title":"First"},{"number":2,"title":"Second","artist":"A Guest"},{"number":99,"title":"Nope"},{"number":-1,"title":"Nope"}]})").object();
+    c->applyMatch(match);
+    QCOMPARE(c->disc().tracks[1].performer, QStringLiteral("A Guest"));
+    // A picture that isn't one changes nothing; both looks draw without trouble.
+    c->setCover(QByteArrayLiteral("not a picture"));
+    c->setClassicLook(false);
+    QVERIFY(!c->classicLook());
+    QVERIFY(!c->grab().isNull());
+    c->setClassicLook(true);
+    QVERIFY(!c->grab().isNull());
+    for (int i = 0; i < VisualizerView::StyleCount; i++) {
+        c->visualizer()->setStyle(i);
+        c->visualizer()->step();
+        c->visualizer()->step();
+        QVERIFY(!c->visualizer()->grab().isNull());
+    }
+    c->visualizer()->setStyle(0);
+    w.close();
+}
+
+void Tests::cdScreenMakesImage()
+{
+    if (!QFile::exists(EngineClient::enginePath()))
+        QSKIP("no helper");
+    QTemporaryDir src, out;
+    QByteArray pcm;
+    const QString cue = makeCdImage(src.path(), {150, 150}, &pcm);
+    MainWindow w(true);
+    w.show();
+    w.openPath(cue);
+    QTRY_VERIFY_WITH_TIMEOUT(w.cd()->isVisible(), 15000);
+    QSignalSpy finished(w.cd(), &CdPage::ripFinished);
+    const QString dst = out.filePath(QStringLiteral("copy.cue"));
+    w.cd()->makeImage(dst);
+    QTRY_VERIFY_WITH_TIMEOUT(finished.size() == 1, 30000);
+    QVERIFY2(w.cd()->statusText().contains(QStringLiteral("matches the disc")), qPrintable(w.cd()->statusText()));
+    QFile bin(out.filePath(QStringLiteral("copy.bin")));
+    QVERIFY(bin.open(QIODevice::ReadOnly));
+    QVERIFY(bin.readAll() == pcm);
+    // The image it made opens as the same disc.
+    w.openPath(dst);
+    QTRY_VERIFY_WITH_TIMEOUT(w.cd()->isVisible() && w.cd()->disc().path.endsWith(QStringLiteral("copy.cue")), 15000);
+    QCOMPARE(w.cd()->disc().tracks.size(), 2);
     w.close();
 }
 

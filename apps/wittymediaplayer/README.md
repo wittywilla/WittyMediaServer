@@ -15,6 +15,9 @@
 - **Plays from a disc drive directly,** as well as from `.iso` and `.img` images and `VIDEO_TS` or `BDMV` folders.
 - **Makes disc images:** copies a disc to one `.iso` or `.img` file to keep, play later, or add to a
   WittyMediaServer library.
+- **Plays and copies audio CDs,** from a drive or an image (`.cue`, `.toc`, `.ccd`, `.nrg`, `.chd`, `.bin`), on a CD screen
+  with its own glossy look and a visualizer: tick the tracks and copy them to FLAC, ALAC, WAV, MP3, AAC, Opus or Ogg
+  Vorbis, with careful reading, tags and cover art, or make a `.cue` and `.bin` image of the disc.
 - **Says no plainly:** a copy-protected disc gets a clear message. Nothing here unlocks copy protection.
 - **Runs well on small machines:** the picture is drawn by the graphics card, and hardware decoding is used where
   the card has it.
@@ -23,8 +26,9 @@
   sound. Thank you to VideoLAN and the VLC contributors, who make them. They aren't included here and aren't needed.
 - **Updates its disc modules one at a time:** WittyDVD and WittyBluray can each take a newer signed version without a new
   player, from **File, Settings**. A version that keeps failing is taken back out by itself, and the built-in copy always works.
-- **Keeps to itself:** no telemetry, and nothing leaves your computer. Pressing **Look for updates** in Settings is the one
-  time it uses the internet, and it talks only to GitHub. Its FFmpeg and its disc helper are built with no network code, and only a
+- **Keeps to itself:** no telemetry, and nothing leaves your computer unless you press a button that says so. **Look for
+  updates** in Settings talks only to GitHub. **Look up names** on the CD screen sends only the disc's track layout to
+  MusicBrainz, and fetches its cover from the Cover Art Archive. Its FFmpeg and its disc helper are built with no network code, and only a
   small updater program has any. (`Qt6Network.dll` is in the folder only because Qt's sound library won't load without it.
   Nothing calls it.)
 
@@ -81,7 +85,56 @@ scan the library. The same copy runs from a command line, and never overwrites a
 wittymediaplayer-engine.exe --image D: "C:\Discs\film.iso"
 ```
 
-Discs protected with CSS or AACS are refused before anything is written. Audio CDs have no files to image.
+Discs protected with CSS or AACS are refused before anything is written. Audio CDs are imaged from the CD screen.
+
+### Audio CDs
+
+Open a CD from the start page or **File, Play from drive**, or open an image of one. The CD screen shows the tracks with
+a tick beside each, and waits for you to press play.
+
+| Key | What it does |
+|---|---|
+| Space or K | Play or pause |
+| N and P | Next and previous track |
+| S | Stop |
+| Left and Right | Back and forward 10 seconds |
+| Up and Down | Volume |
+| V | Next visualizer style |
+| Enter on a track | Play it |
+| F2 on a track | Change its name |
+
+**Copying:** tick the tracks, choose a format, a quality and a folder, then press **Copy ticked tracks**. Each row shows its
+own progress. A file is written under a temporary name and only takes its real name when it's finished, so a stopped copy
+leaves nothing behind, and nothing is ever overwritten: a second copy gets `(2)` in its name. A short report goes in the
+same folder, with each track's checksum and how its reading went.
+
+**Names:** the box takes `{albumartist}`, `{artist}`, `{album}`, `{title}`, `{track}`, `{tracks}`, `{disc}` and `{year}`, and a
+slash makes a folder. The default is `{albumartist}/{album}/{track} {title}`.
+
+**Careful reading:** with **Check every read twice** on, each track is read twice, and read again wherever the two disagree,
+until two reads match. A spot that never reads becomes silence, and that track's row and the report say how much.
+**Drive offset** corrects a drive that reads a few samples early or late. Leave it at 0 unless you know your drive's figure.
+An image reads the same every time, so it needs neither.
+
+A disc that can't be read the ordinary way gets a plain message. WittyMediaPlayer has no way around copy protection on a CD
+any more than on a DVD.
+
+**The look:** the box at the top right switches between the Classic look and your app theme.
+
+### Trying a real CD
+
+This was built on a laptop with no disc drive, so a real disc is yours to try:
+
+1. Put in an ordinary music CD. On the start page, its row should say **audio CD**. Press **Open CD**.
+2. The tracks should be listed with the right lengths. Press play and listen, then try next, previous and seeking.
+3. Press **Look up names**. Album, artist, track names and cover should fill in, or it says MusicBrainz doesn't know the disc.
+4. Tick two short tracks, choose FLAC and a folder, and press **Copy ticked tracks**. Both should finish as "Done, checked".
+   Play the files in the player, and read the report beside them.
+5. Do the same with MP3. Check the tags and the cover show in another program.
+6. Press **Make image**, then open the `.cue` it wrote. It should show the same tracks and sound the same.
+7. Press **Stop copying** part way through a copy. The unfinished file should be gone.
+8. If you have a scratched disc, try it: the row should say how many sectors were bad, rather than stopping or hiding it.
+9. Take the disc out while it plays. It should say the disc was taken out.
 
 ## What doesn't work yet
 

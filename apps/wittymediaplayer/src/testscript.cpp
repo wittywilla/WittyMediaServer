@@ -1,5 +1,6 @@
 #include "testscript.h"
 
+#include "cd/cdpage.h"
 #include "disc/disccontroller.h"
 #include "media/audiooutput.h"
 #include "media/player.h"
@@ -7,6 +8,7 @@
 #include "ui/settingsdialog.h"
 #include "ui/mainwindow.h"
 #include "video/videoview.h"
+#include "visual/visualizer.h"
 
 #include <QApplication>
 #include <QFile>
@@ -55,6 +57,9 @@ void writeReport(MainWindow *w, const QString &file)
         {"videoCodec", st.videoCodec},
         {"audioCodec", st.audioCodec},
         {"status", w->statusText()},
+        {"cdLevel", double(w->cd()->visualizer()->level())},
+        {"cdStatus", w->cd()->statusText()},
+        {"cdTrack", w->cd()->currentTrack()},
         {"message", w->shownMessage()},
         {"discKind", d->active() ? d->presentationKind() : QString()},
         {"discTitle", d->ttn()},
@@ -131,6 +136,20 @@ struct Runner {
             window->grab().save(arg);
         } else if (cmd == QLatin1String("report")) {
             writeReport(window, arg);
+        } else if (cmd == QLatin1String("cdplay")) {
+            window->cd()->playTrack(arg.toInt());
+        } else if (cmd == QLatin1String("cdvisual")) {
+            window->cd()->visualizer()->setStyle(arg.toInt());
+        } else if (cmd == QLatin1String("cdlook")) {
+            window->cd()->setClassicLook(arg == QLatin1String("classic"));
+        } else if (cmd == QLatin1String("cdfolder")) {
+            window->cd()->setRipOptions(QStringLiteral("flac"), QStringLiteral("5"), arg, {}, true, 0);
+        } else if (cmd == QLatin1String("cdrip")) {
+            window->cd()->startRip();
+        } else if (cmd == QLatin1String("cdcover")) {
+            QFile f(arg);
+            if (f.open(QIODevice::ReadOnly))
+                window->cd()->setCover(f.readAll());
         } else if (cmd == QLatin1String("quit")) {
             qApp->quit();
             return;

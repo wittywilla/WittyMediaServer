@@ -237,7 +237,54 @@ qint64 AudioOutput::pull(char *out, qint64 max)
             underruns_.fetch_add(1);
     }
     served_ += uint64_t(want);
+    if (tapOn_.load())
+        tapFeed(out, size_t(want));
     return want;
+}
+
+void AudioOutput::tapFeed(const char *data, size_t bytes)
+{
+    const auto *from = reinterpret_cast<const qint16 *>(data);
+    const size_t frames = bytes / kBytesPerFrame;
+    const size_t size = tap_.size() / kChannels;
+    for (size_t i = 0; i < frames; i++) {
+        tap_[tapAt_ * kChannels] = from[i * kChannels];
+        tap_[tapAt_ * kChannels + 1] = from[i * kChannels + 1];
+        tapAt_ = (tapAt_ + 1) % size;
+    }
+    tapPulled_ += frames;
+}
+
+void AudioOutput::setTapEnabled(bool on)
+{
+    std::lock_guard<std::mutex> l(mu_);
+    if (on && tap_.empty())
+        tap_.assign(size_t(kTapFrames * kChannels), 0);
+    tapOn_.store(on);
+}
+
+int AudioOutput::tapRead(qint16 *stereo, int frames) const
+{
+    std::lock_guard<std::mutex> l(mu_);
+    if (tap_.empty() || frames <= 0)
+        return 0;
+    const int size = int(tap_.size()) / kChannels;
+    frames = qMin(frames, size / 2);
+    // A paused or stopped device stops pulling: then there's nothing being heard.
+    if (tapPulled_ == tapLastRead_ && (paused_ || idle_ || count_ == 0)) {
+        std::memset(stereo, 0, size_t(frames) * kBytesPerFrame);
+        return frames;
+    }
+    tapLastRead_ = tapPulled_;
+    // What the device has been given but not played yet is about half its buffer.
+    const int delay = hasDevice() ? rate_.load() / 10 : 0;
+    const int newest = (int(tapAt_) - qMin(delay, size - frames) + size) % size;
+    for (int i = 0; i < frames; i++) {
+        const int at = (newest - frames + i + size) % size;
+        stereo[i * kChannels] = tap_[size_t(at) * kChannels];
+        stereo[i * kChannels + 1] = tap_[size_t(at) * kChannels + 1];
+    }
+    return frames;
 }
 
 double AudioOutput::ptsOf(uint64_t byte) const
@@ -269,6 +316,11 @@ void AudioOutput::onTick()
             take -= take % kBytesPerFrame;
             nullLast_ = now;
             take = std::min(take, count_);
+            if (tapOn_.load() && !ring_.empty()) {
+                const size_t first = std::min(take, ring_.size() - head_);
+                tapFeed(ring_.data() + head_, first);
+                tapFeed(ring_.data(), take - first);
+            }
             head_ = ring_.empty() ? 0 : (head_ + take) % ring_.size();
             count_ -= take;
             read_ += take;

@@ -7,6 +7,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ### WittyMediaPlayer
 
+- **Plays and copies audio CDs**, from a drive or an image, on a CD screen with a tracklist, a big now-playing area and a
+  visualizer. Copies go to FLAC, ALAC, WAV, MP3, AAC, Opus or Ogg Vorbis, with naming templates, tags and cover art, and
+  careful reads that retry, compare two passes, correct for the drive's offset and report on every track. It can also make
+  a `.cue` and `.bin` image of a disc. Names and covers come from MusicBrainz only when you press the button, which sends
+  nothing but the disc's track layout. Discs that won't read normally get a plain message.
 - **A new desktop app**, under `apps/wittymediaplayer`, that needs no server. It's a first release for Windows amd64,
   as a portable folder, built with Qt 6 and FFmpeg's libraries.
 - **Plays ordinary video and audio files**, with audio and subtitle track choice, seeking, volume, full screen, keyboard

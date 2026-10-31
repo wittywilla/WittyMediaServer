@@ -23,7 +23,7 @@ constexpr int kAvioBuffer = 128 * 1024;
 
 int avioRead(void *opaque, uint8_t *buf, int size)
 {
-    auto *r = static_cast<ExtentReader *>(opaque);
+    auto *r = static_cast<ByteSource *>(opaque);
     int n = r->read(buf, size);
     if (n < 0)
         return AVERROR_EXIT;
@@ -32,7 +32,7 @@ int avioRead(void *opaque, uint8_t *buf, int size)
 
 int64_t avioSeek(void *opaque, int64_t pos, int whence)
 {
-    auto *r = static_cast<ExtentReader *>(opaque);
+    auto *r = static_cast<ByteSource *>(opaque);
     if (whence & AVSEEK_SIZE)
         return r->size();
     switch (whence & ~AVSEEK_FORCE) {
@@ -57,7 +57,7 @@ ExtentReader::ExtentReader(const QStringList &files, const QVector<Extent> &exte
     files_.resize(names_.size());
 }
 
-ExtentReader::~ExtentReader()
+ByteSource::~ByteSource()
 {
     if (avio_) {
         av_freep(&avio_->buffer);
@@ -65,7 +65,7 @@ ExtentReader::~ExtentReader()
     }
 }
 
-AVIOContext *ExtentReader::avio()
+AVIOContext *ByteSource::avio()
 {
     if (!avio_) {
         auto *buffer = static_cast<unsigned char *>(av_malloc(kAvioBuffer));

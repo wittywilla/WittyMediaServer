@@ -15,24 +15,39 @@ struct AVIOContext;
 
 namespace wmp {
 
-class ExtentReader {
+// Something the demuxer reads bytes from.
+class ByteSource {
+public:
+    virtual ~ByteSource();
+
+    virtual int64_t size() const = 0;
+    virtual int read(uint8_t *buf, int want) = 0; // bytes read, 0 at the end, -1 when stopped
+    virtual int64_t seek(int64_t pos) = 0;
+    // Stop any read in progress and refuse further ones. Safe from another thread.
+    virtual void stop() = 0;
+    // Skipped because they wouldn't read.
+    virtual int64_t badBlocks() const { return 0; }
+    virtual bool discLost() const { return false; }
+    // Called on the reading thread once it won't read any more.
+    virtual void finishedReading() {}
+
+    // A context for FFmpeg, owned by this source.
+    AVIOContext *avio();
+
+private:
+    AVIOContext *avio_ = nullptr;
+};
+
+class ExtentReader : public ByteSource {
 public:
     ExtentReader(const QStringList &files, const QVector<Extent> &extents);
-    ~ExtentReader();
 
-    int64_t size() const { return total_; }
-    int read(uint8_t *buf, int want); // bytes read, 0 at the end, -1 when stopped
-    int64_t seek(int64_t pos);
-
-    // Stop any read in progress and refuse further ones. Safe from another thread.
-    void stop();
-
-    // Skipped because they wouldn't read.
-    int64_t badBlocks() const { return bad_.load(); }
-    bool discLost() const { return lost_.load(); }
-
-    // A context for FFmpeg, owned by this reader.
-    AVIOContext *avio();
+    int64_t size() const override { return total_; }
+    int read(uint8_t *buf, int want) override;
+    int64_t seek(int64_t pos) override;
+    void stop() override;
+    int64_t badBlocks() const override { return bad_.load(); }
+    bool discLost() const override { return lost_.load(); }
 
     // Where a read lands, for tests: the extent index and offset within it.
     bool locate(int64_t pos, int *extent, int64_t *within) const;
@@ -47,7 +62,6 @@ private:
     std::vector<std::unique_ptr<QFile>> files_;
     int64_t total_ = 0;
     int64_t pos_ = 0;
-    AVIOContext *avio_ = nullptr;
     std::atomic<bool> stopped_{false};
     std::atomic<int64_t> bad_{0};
     std::atomic<bool> lost_{false};

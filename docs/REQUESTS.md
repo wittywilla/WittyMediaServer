@@ -35,7 +35,9 @@ close some of these.
 
 - **WittyMediaPlayer**, with WittyDVD and WittyBluray as plugins: a first Windows build exists under
   `apps/wittymediaplayer`, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
-  images for a server's library, the VLC libraries as an option in Settings, and WittyDVD and WittyBluray updating on their own. Playing in a real window, sound, disc menus by eye and anything with a physical
+  images for a server's library, the VLC libraries as an option in Settings, WittyDVD and WittyBluray updating on their own,
+  and playing and copying audio CDs on a CD screen with a visualizer. Copying has been tested with generated images only, since the
+  laptop it was built on has no drive; the README has a short checklist for a real disc. The shared WittyVisualizer isn't plugged in yet. Playing in a real window, sound, disc menus by eye and anything with a physical
   drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
   It has no published repository yet, which is the owner's step.
 - **A real plugin system:** the modules are separate code, but they're still compiled into the server.

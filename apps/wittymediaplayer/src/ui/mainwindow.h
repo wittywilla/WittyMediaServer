@@ -17,6 +17,7 @@ class QVBoxLayout;
 
 namespace wmp {
 
+class CdPage;
 class ControlBar;
 class DiscController;
 class EngineClient;
@@ -35,6 +36,7 @@ public:
 
     Player *player() const { return player_; }
     DiscController *disc() const { return disc_; }
+    CdPage *cd() const { return cd_; }
     VideoView *view() const { return view_; }
     EngineClient *engine() const { return engine_; }
 
@@ -87,11 +89,15 @@ private:
     void cycleAudio();
     void cycleSubtitle();
     void updateFileSubtitles();
+    bool cdOn() const;
+    void showCd(const QJsonObject &info);
+    void leaveCd();
 
     Player *player_ = nullptr;
     VideoView *view_ = nullptr;
     EngineClient *engine_ = nullptr;
     DiscController *disc_ = nullptr;
+    CdPage *cd_ = nullptr;
     ControlBar *bar_ = nullptr;
     QWidget *central_ = nullptr;
     QWidget *start_ = nullptr;

@@ -8,6 +8,7 @@ import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type Mo
 import { toast } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
+import LegalNote from '../../components/LegalNote'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
@@ -214,6 +215,7 @@ export default function ModulesSettings() {
   return (
     <div className="ms-page">
       <PageHead title="Modules" desc="What this server can do, one piece at a time. Add what you want and remove what you don’t. All of it is already part of the server, so adding a module is instant and downloads nothing." />
+      <LegalNote kind="modules" className="set-legal" />
 
       <Section title="Updates" desc="Some modules can update without a new server. Each update is signed, this server installs only what it can verify, and it takes effect straight away, with no restart."
         actions={<button className="btn ghost sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>

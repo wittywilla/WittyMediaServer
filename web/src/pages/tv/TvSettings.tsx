@@ -8,6 +8,7 @@ import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
 import { forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
 import './tvsettings.css'
+import LegalNote from '../../components/LegalNote'
 
 // Settings → Channels & tuners. Everything starts from the simplest thing:
 // one click makes a channel; more detail is there for whoever wants it.
@@ -29,6 +30,7 @@ function Overview() {
     <>
       <PageHead title="Channels & tuners" desc="Always-on TV channels made from your library, and live TV from tuners and IPTV, side by side in one guide."
         actions={<Link className="btn" to="/tv"><IconTv /> Open the guide</Link>} />
+      <LegalNote kind="tv" className="set-legal" />
       <LibraryChannels />
       <Tuners />
       <GuideSources />

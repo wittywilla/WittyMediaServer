@@ -7,6 +7,7 @@ import { IconEdit, IconRefresh, IconSearch } from '../../icons'
 import { useApp, toast } from '../../state'
 import { Avatar, LoadMore, SubscribeButton, useVideoList, VideoTile } from './parts'
 import '../../creators.css'
+import LegalNote from '../../components/LegalNote'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
@@ -73,6 +74,7 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
         : tab === 'subs' ? <Grid query={query} empty="Subscribe to a channel and its videos appear here." />
         : tab === 'history' ? <Grid query={query} empty="What you watch appears here. Only you can see it." />
         : <Grid query={query} empty="Videos you like appear here." />}
+      <LegalNote kind="creators" />
     </div>
   )
 }
@@ -202,6 +204,7 @@ export function CreatorPage() {
           {c.url && <p><a href={c.url} target="_blank" rel="noopener noreferrer nofollow">{c.url}</a></p>}
         </div>
       )}
+      <LegalNote kind="creators" />
       {editing && <CreatorDialog c={c} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); load() }} />}
     </div>
   )

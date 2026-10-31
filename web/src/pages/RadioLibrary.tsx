@@ -6,6 +6,7 @@ import { BackLink, CardRow, EmptyState, Placeholder, SkeletonGrid, Spinner } fro
 import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconStar, IconTrash, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import '../radio.css'
+import LegalNote from '../components/LegalNote'
 
 // Internet radio: stations from a free community directory or by address, played
 // through the server. docs/COLLECTIONS.md has what contacts what.
@@ -156,6 +157,7 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
             : <EmptyState icon={<IconSearch />} title="No stations match" text="Try a different genre or country." action={<button className="btn" onClick={() => { setText(''); setParams({}, { replace: true }) }}>Show all stations</button>} />}
         </>
       )}
+      <LegalNote kind="webMedia" />
       {adding && <AddStations lib={lib} onClose={() => setAdding(false)} onChanged={load} />}
     </>
   )

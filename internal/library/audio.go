@@ -218,8 +218,8 @@ func samePath(p string, roots ...string) bool {
 
 var coverNameRe = regexp.MustCompile(`(?i)^(cover|folder|front|album|albumart.*|poster)\.(jpe?g|png|webp)$`)
 
-// albumCover picks the largest cover image in an album folder: players such
-// as Windows Media Player leave a 200 px Folder.jpg next to a bigger
+// albumCover picks the largest cover image in an album folder: some players
+// leave a 200 px Folder.jpg next to a bigger
 // AlbumArt_..._Large.jpg.
 func albumCover(dir string) string {
 	entries, err := os.ReadDir(dir)

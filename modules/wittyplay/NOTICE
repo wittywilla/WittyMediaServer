@@ -22,3 +22,7 @@ Third-party components:
 Libretro cores, RetroArch, WittyRetroArch, ROMs and BIOS files are not part of
 WittyPlay. Cores and RetroArch programs are separate files with their own
 licences, and run only as separate processes.
+
+Console names belong to their owners and only describe which games a core can run.
+WittyPlay is not associated with, sponsored by or endorsed by any console maker,
+game publisher or core author.

@@ -85,14 +85,14 @@ func checkBluray(ctx context.Context, j *Job, src *discSource, o DiscOptions) {
 func blurayEncryption(j *Job, d *wittybluray.Disc) {
 	switch {
 	case d.Encrypted:
-		j.Add(Finding{Severity: SevProblem, Title: "This Blu-ray is encrypted", What: "Its streams are protected with AACS. The server never decrypts anything, so it won't play here.", Fix: decryptAdvice})
+		j.Add(Finding{Severity: SevProblem, Title: "This Blu-ray is encrypted", What: "Its streams are protected with AACS. The server never decrypts anything, so it won't play here.", Fix: encryptedAdvice})
 	case d.AACSFolder:
 		j.Add(Finding{Severity: SevOK, Title: "The video isn't encrypted", What: "The disc still has an AACS folder, as decrypted copies usually do, but samples of the streams are clear."})
 	default:
 		j.Add(Finding{Severity: SevOK, Title: "The video isn't encrypted", What: "Samples of the streams are clear, and the disc has no AACS folder."})
 	}
 	if d.BDPlus {
-		j.Add(Finding{Severity: SevWarn, Title: "This Blu-ray has a BD+ program", What: "The server doesn't run BD+. On a copy that wasn't fully converted, parts of the picture can be damaged on purpose, and only the disc's own program would repair them.", Fix: "If the picture breaks up, " + strings.ToLower(decryptAdvice[:1]) + decryptAdvice[1:]})
+		j.Add(Finding{Severity: SevWarn, Title: "This Blu-ray has a BD+ program", What: "The server doesn't run BD+. On a copy that wasn't fully converted, parts of the picture can be damaged on purpose, and only the disc's own program would repair them.", Fix: "If the picture breaks up, " + strings.ToLower(encryptedAdvice[:1]) + encryptedAdvice[1:]})
 	}
 }
 

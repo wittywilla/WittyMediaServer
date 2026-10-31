@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, normalizeServer, serverBase, setServerBase } from '../api'
 import { Brand, BrandMark } from './common'
+import LegalNote from './LegalNote'
 
 // The apps' choice of server: the web pages come with the app, so it has to
 // be told where the server is, at home or outside. In a browser this is never
@@ -46,6 +47,7 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
           {err && <div className="error" role="alert">{err}</div>}
           <button className="btn primary" disabled={busy || !addr.trim()} style={{ justifyContent: 'center' }}>{busy ? 'Connecting…' : 'Connect'}</button>
           {onCancel && <button type="button" className="btn ghost" onClick={onCancel} style={{ justifyContent: 'center' }}>Cancel</button>}
+          <LegalNote kind="connect" />
         </div>
       </form>
     </div>

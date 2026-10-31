@@ -23,7 +23,7 @@ type explainRule struct {
 var explainRules = []explainRule{
 	{regexp.MustCompile(`(?i)CSS[- ]scrambled|\bAACS\b|\bBD\+|encrypted|copy protect`), Explanation{"encrypted", "This disc is copy-protected",
 		"The image or folder is still encrypted. WittyMediaServer never decrypts anything, so it can't play it.",
-		"Make a decrypted copy of a disc you own, with a tool that is legal where you live."}},
+		"Encrypted media isn't supported, and nothing here can change that. A disc or file without copy protection will play."}},
 	{regexp.MustCompile(`(?i)no space left|not enough space|disk full|ENOSPC|quota exceeded`), Explanation{"disk-full", "A disk is full",
 		"Something couldn't be written because the disk has no room left.",
 		"Free some space, or move the transcode folder to a bigger disk. Settings, WittyDiagnoser shows every folder's free space."}},

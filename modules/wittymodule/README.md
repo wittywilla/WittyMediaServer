@@ -25,6 +25,14 @@ The design, including what each version range means, is in
 
 WittyModule is developed by WittyWilla. Apache-2.0.
 
+## Legal
+
+WittyModule is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by any publisher, rights holder, service or other media software project. A module built
+with it comes from whoever published that module. Any third-party names here only describe what it
+works with, and belong to their owners. It's provided “as is”, with no warranty; see
+[LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.
+
 <!-- module-kit -->
 ## Releasing
 

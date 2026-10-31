@@ -19,10 +19,12 @@ import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
+import LegalNote from '../components/LegalNote'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const LogSettings = lazy(() => import('./LogSettings'))
+const LegalSettings = lazy(() => import('./settings/Legal'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const MoonlightSettings = lazy(() => import('./settings/Moonlight'))
 const SunshineSettings = lazy(() => import('./settings/Sunshine'))
@@ -59,7 +61,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'logs', label: 'WittyLog', icon: <IconShield />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconDrive />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
+    { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
+    { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
   ] },
 ]
 
@@ -120,6 +123,7 @@ export default function SettingsPage() {
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />
+          <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>
       </main>
@@ -185,6 +189,7 @@ function Libraries() {
     <>
       <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
+      <LegalNote kind="local" className="set-legal" />
       {libraries.length > 0 && (
         <div className="set-lib-summary">
           <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
@@ -374,12 +379,12 @@ function About() {
     return () => clearTimeout(t)
   }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
-  useEffect(() => { if (loc.hash === '#modules' && about) document.getElementById('modules')?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
+  useEffect(() => { if (loc.hash && about) document.getElementById(loc.hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
   const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, its license, and every third-party license." />
+      <PageHead title="About" desc="This server's version, the modules inside it, its system, its license, every third-party license, and the services it relies on." />
       <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
@@ -422,16 +427,16 @@ function About() {
           <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the license and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
         </div>
       </Section>
-      <Section title="Your media, your responsibility">
+      <Section title="Legal">
         <div className="set-prose">
-          <p>WittyMediaServer organizes and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
-          <p><b>No circumvention.</b> Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused, and only unprotected content plays.</p>
+          <p>Terms of use, who’s responsible for what, trademarks, copy protection, privacy and more are on the <Link to="/settings/legal">Legal</Link> page.</p>
         </div>
       </Section>
+      <div id="licenses" />
       <Section title="Third-party licenses" desc="Everything in this server that someone else made, and what it’s under.">
         <LicenseList />
       </Section>
-      <Section title="No warranty">
+      <Section title="Third-party components and services">
         <div className="set-prose">
           <p><b>WittyMoonlight</b> is this server’s client for PCs running Sunshine. License: <b>Apache-2.0</b>. <a href="https://github.com/wittywilla/WittyMoonlight" target="_blank" rel="noreferrer">Source</a>. Built on: <b>WittyMoonlight Host</b>, a separate program it starts, under the <b>GPL-3.0</b> (<a href="https://github.com/wittywilla/WittyMoonlightHost" target="_blank" rel="noreferrer">source</a>), which contains <a href="https://github.com/moonlight-stream/moonlight-common-c" target="_blank" rel="noreferrer">moonlight-common-c</a> by the Moonlight project (GPL-3.0). It’s installed separately, and nothing else here contains it. Settings, Game PCs lists every piece.</p>
           <p><b>WittySunshine</b> is an advanced option for hosting games on this server. License: <b>Apache-2.0</b>. <a href="https://github.com/wittywilla/WittySunshine" target="_blank" rel="noreferrer">Source</a>. Built on: <a href="https://github.com/LizardByte/Sunshine" target="_blank" rel="noreferrer">Sunshine</a> by LizardByte (GPL-3.0), which you install yourself. The Moonlight and Sunshine projects didn’t make these, and don’t endorse them.</p>

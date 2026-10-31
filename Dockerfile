@@ -12,6 +12,8 @@ COPY web/ ./
 COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
 COPY modules/wittyplay/web/ /src/modules/wittyplay/web/
 COPY modules/wittymoonlight/web/ /src/modules/wittymoonlight/web/
+# The legal notices' wording, shared with the server.
+COPY internal/legal/ /src/internal/legal/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS build

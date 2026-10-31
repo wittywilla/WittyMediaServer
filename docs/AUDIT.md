@@ -15,7 +15,7 @@ why.
   Blu-ray; every page and reader in a browser, watching the console. The media folder was compared
   before and after: **nothing was written to it**.
 - **Tools:** `go vet`, `staticcheck`, `govulncheck`, `npm audit` (0 findings), a new fuzz target.
-- **Real discs after the changes:** `wms dvd crawl` on Shrek 2: 268 screens, 0 problems.
+- **Real discs after the changes:** `wms dvd crawl` on a test disc: 268 screens, 0 problems.
 
 ## Numbers
 

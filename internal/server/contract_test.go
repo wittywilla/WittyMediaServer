@@ -22,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
+	"github.com/wittywilla/wittymediaserver/internal/legal"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -401,6 +402,7 @@ func schemaTypes() map[string]reflect.Type {
 		"ModuleEvent": ty(modmgr.Event{}), "ModuleVersionList": ty(modmgr.VersionList{}), "ModuleVersion": ty(modmgr.VersionInfo{}), "ModuleWithdrawn": ty(wittymodule.Withdrawn{}),
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),
+		"LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
 	}
 }
 

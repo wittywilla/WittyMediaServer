@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Item } from '../api'
 import { toast, useApp } from '../state'
+import LegalNote from '../components/LegalNote'
 
 // Podcasts: following a show (search Apple's free directory or paste its RSS
 // feed), and the controls on a podcast's page.
@@ -54,6 +55,7 @@ export function PodcastFinder({ libraryId, onAdded }: { libraryId: number; onAdd
         </>
       )}
       {err && <div className="error" role="alert">{err}</div>}
+      <LegalNote kind="webResults" />
       {mode === 'search' && hits && (
         <div className="podcast-hits">
           {hits.length === 0 && <p className="muted">No podcasts found for “{q.trim()}”.</p>}

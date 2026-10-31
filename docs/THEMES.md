@@ -35,7 +35,7 @@ download any of them as a starting point for your own.
 
 *Settings → Appearance → Name* (administrators) replaces "WittyMediaServer" in the sidebar, on
 the sign-in page and in the browser tab title. Leave it empty to go back to the default. The
-Apache-2.0 attribution in *Settings → About & legal* always remains, as the licence requires.
+Apache-2.0 attribution in *Settings → About* always remains, as the licence requires.
 
 A theme can additionally restyle the name: it is rendered as `.brand .brand-name` (custom name)
 or `.brand span` with `.brand span b` for the highlighted "Media" (default name); the logo is
@@ -270,8 +270,9 @@ body { background: var(--bg) url("assets/backdrop.jpg") center / cover fixed; }
 ```
 
 Keep images reasonably small (each file ≤ 10 MB, the whole ZIP ≤ 25 MB); WebP/AVIF give the
-smallest files. Google Fonts and other external URLs also work in `@import`/`url()`, but then
-every viewer's browser contacts that site — bundle fonts in the ZIP for privacy and offline use.
+smallest files. External fonts and stylesheets are blocked. Remote images in `url()` load, but then every viewer's
+browser contacts that site, so bundle what you can in the ZIP. Check that the license of any font or
+image you bundle lets you share it.
 
 ## Recipes
 

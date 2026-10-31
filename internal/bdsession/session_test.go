@@ -19,13 +19,13 @@ func testManager(t *testing.T) *Manager {
 	return &Manager{HLS: hls.NewManager(tools, dir+"/hls", 2, log), Tools: tools, CacheDir: dir, BaseURL: "/api", sessions: map[string]*Session{}}
 }
 
-// TestRealDisc walks a decrypted Blu-ray when WMS_TEST_BD points at one
+// TestRealDisc walks an unencrypted Blu-ray when WMS_TEST_BD points at one
 // (skipped otherwise): first play to a menu or title, its buttons, the
 // feature, a menu call and back, and the feature's subtitles.
 func TestRealDisc(t *testing.T) {
 	p := os.Getenv("WMS_TEST_BD")
 	if p == "" {
-		t.Skip("set WMS_TEST_BD to a decrypted Blu-ray image or folder")
+		t.Skip("set WMS_TEST_BD to an unencrypted Blu-ray image or folder")
 	}
 	m := testManager(t)
 	s, err := m.Open(1, p, Prefs{AudioLanguage: "en"})

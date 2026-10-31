@@ -10,6 +10,7 @@ import { lastChannel, useLook, type Layout, type Colours } from './look'
 import Preview from './Preview'
 import { fmtClock, fmtDay, fmtSpan, getLineup, logoSrc, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
+import LegalNote from '../../components/LegalNote'
 
 // The programme guide. Two layouts over one real ARIA grid: the classic box of
 // the early 2000s, and clean streaming rows with a line down every channel at
@@ -415,6 +416,7 @@ export default function GuidePage() {
         <button className="ctv-key c" onClick={() => setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' }))}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
         <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · I Info · R Record</span>
       </footer>
+      <LegalNote kind="tv" className="ctv-legal" />
 
       {details && <Details ch={details.ch} p={details.p} now={now} onClose={() => setDetails(null)} onWatch={() => nav(`/tv/watch/${details.ch.key}`)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}

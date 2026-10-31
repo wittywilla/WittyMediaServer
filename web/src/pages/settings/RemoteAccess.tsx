@@ -6,6 +6,7 @@ import { toast } from '../../state'
 import QrCode from './QrCode'
 import { PageHead, Row, Section, Switch } from './ui'
 import './remote.css'
+import LegalNote from '../../components/LegalNote'
 
 // Settings → Remote Access: reaching the server from outside the home. It says
 // plainly whether that works, from where and how; guides the owner through one
@@ -97,6 +98,7 @@ export default function RemoteAccess() {
   return (
     <>
       <PageHead title="Remote Access" desc="Watch and listen when you are away from home, without opening your server to the whole internet by accident. Everything here is off until you turn it on, and this server doesn't contact anyone to do it unless a step below says so." />
+      <LegalNote kind="remote" className="set-legal" />
       <StatusCard st={st} />
       <Section title="Allow connections from outside your home">
         <Row label="Remote Access" desc={st.forced

@@ -24,6 +24,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [Choices that follow the account](#choices-that-follow-the-account)
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
 - [Game details](#game-details)
+- [Legal notices](#legal-notices)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
 
@@ -731,6 +732,40 @@ A game with no `poster` should use art made from its title and console, as the w
 
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
 rules allow. `GET /gamemeta/status` says how it's going, for administrators.
+## Legal notices
+
+Every client shows the same short notices beside third-party and local content, so a person gets the
+same words everywhere. `GET /legal/notices` needs no sign-in and returns them by kind:
+
+```json
+{
+  "version": 1,
+  "ackVersion": 1,
+  "linkText": "Legal",
+  "ack": "I understand: ...",
+  "page": "/legal",
+  "owner": { "notice": "", "contact": "" },
+  "notices": {
+    "webResults": { "text": "These results come from third-party services on the web. ...", "section": "third-party" }
+  }
+}
+```
+
+- Show `text` as it is, small, near the content, with a link to the server's `page` (a web page anyone
+  can open) or your own view of `GET /legal`. `section` is the part of that page it's about, as an
+  address's `#section`.
+- [LEGAL-NOTICES-CHECKLIST.md](LEGAL-NOTICES-CHECKLIST.md) says which kind goes on which screen. An
+  unknown kind is a newer server's: ignore it. Don't hard-code the words, except where your app has to
+  say something before it has a server: `legalConnect` in the shared strings is the `connect` notice.
+- `owner.notice` and `owner.contact` are written by the server's owner. They're plain text: never show
+  them as HTML.
+- `GET /legal` returns `sections` (each with `id`, `title` and paragraphs in `body`), `services` (the
+  privacy list) and the same `owner`. A paragraph starting with `- ` is a bullet. Inline, only
+  `**bold**`, `[text](address)` and `[[FILL IN: ...]]` appear; an address starting with `/` is a page of
+  the web app.
+- `/status` has `legalAck`: false only for an administrator who hasn't seen the first-run notice. Show
+  them `ack` once, then call `POST /legal/acknowledge`. `POST /setup` takes `acknowledgedLegal: true`
+  when a client's own setup screen has shown it. Neither sends anything off the server.
 
 ## Adding to the API
 
@@ -775,6 +810,9 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /about` | user | Server version and the engines built into it. |
 | `GET /licenses` | user | Everything in this server someone else made, with its license: `{groups, components}`. |
 | `GET /licenses/{id}` | user | One component's full license text: `{text}`. |
+| `GET /legal/notices` | none | The short legal notices, by kind, and what this server's owner wrote. See "Legal notices". |
+| `GET /legal` | none | The full Legal page, with the privacy list and what this server's owner wrote. |
+| `POST /legal/acknowledge` | admin | Record that an administrator has seen the first-run notice, so `legalAck` in `/status` turns true. |
 | `GET /prefs` | user | Server-wide playback defaults every viewer needs. |
 | `GET /branding/logo` | none | The custom logo, if the server has one (404 otherwise). The `brandLogo` value in `/status` changes when it does. |
 | `PUT /branding/logo` | admin | Replace the logo: the PNG or JPEG itself as the body, 2 MB at most. |

@@ -96,6 +96,9 @@ WittyCD is in, on its branch. Still to do:
 - **A real image from each ripping tool.** There were none to test with, so the formats were checked with generated images: CHD and TOC against the real
   tools, CCD and NRG only against their published descriptions.
 - **WittyMediaPlayer and the native apps** can use the routes in `docs/CLIENT-API.md`, but none has a CD player yet.
+  Java menus, 4K and HDR, waits for discs from the owner.
+- **Confirm by watching:** a disc's warning screen, the interactive games and the Idol credits have
+  fixes, but the owner hasn't confirmed them.
 
 ## Live TV and recording
 

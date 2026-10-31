@@ -4,6 +4,7 @@ import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../..
 import { toast } from '../../state'
 import { GameSourcesSettings } from '../GameMeta'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
+import LegalNote from '../../components/LegalNote'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
 // (some need a free API key), the owner's own custom agents, and what is
@@ -22,12 +23,13 @@ export default function MetadataSettings() {
     <>
       <PageHead title="Media Indexers and Metadata Agents"
         desc="Where titles, posters, plots and ratings come from. Information inside your files and NFO files always comes first; then your custom agents, in order; then the built-in agents." />
+      <LegalNote kind="webResults" className="set-legal" />
 
       <Section title="Built-in agents" desc="Agents marked “No API key needed” work straight away. The others need a free key from their website.">
         <Row label="TVmaze" badge={NO_KEY} desc="TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.">
           <Switch label="Use TVmaze" checked={on('tvmaze')} onChange={(v) => set('tvmaze', v ? '1' : '0')} />
         </Row>
-        <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies: facts, ratings and plot summaries (no posters). Used until you add a TMDB key.">
+        <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies and games: facts, ratings and plot summaries (no posters). For movies, used until you add a TMDB key.">
           <Switch label="Use Wikidata" checked={on('wikidata')} onChange={(v) => set('wikidata', v ? '1' : '0')} />
         </Row>
         <Row label="Radio Browser" badge={NO_KEY} desc="Internet radio: a free community directory of stations to search, with logos, genres and countries. Your server contacts it when you search, and once a day for stations you added from it, sending only their IDs. It is never told what anyone listens to.">
@@ -39,12 +41,12 @@ export default function MetadataSettings() {
         <Row label="MusicBrainz and the Cover Art Archive" badge={NO_KEY} desc="Audio CD images: album and track names and covers. A disc is looked up by its table of contents, the track lengths and nothing else: no names, no audio. Album data is CC0.">
           <Switch label="Use MusicBrainz" checked={on('musicbrainz')} onChange={(v) => set('musicbrainz', v ? '1' : '0')} />
         </Row>
-        <Row label="AniList" badge={NO_KEY} desc="Anime libraries: titles in your chosen language, plots, posters and episode numbering.">
+        <Row label="AniList" badge={NO_KEY} desc="Anime libraries: titles in your chosen language, plots, posters and episode numbering. Anime titles are sent to AniList.">
           <span className="set-pill">Always on</span>
         </Row>
-        <KeyRow provider="tmdb" label="The Movie Database (TMDB)" desc={<>Posters, plots and ratings for movies and TV. Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org</a>. This product uses the TMDB API but is not endorsed by TMDB.</>}
+        <KeyRow provider="tmdb" label="The Movie Database (TMDB)" desc={<>Posters, plots and ratings for movies and TV. Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</>}
           value={s.tmdbKey || ''} onChange={(v) => set('tmdbKey', v)} placeholder="API key (v3)" />
-        <KeyRow provider="tvdb" label="TheTVDB" desc={<>Detailed TV episode information. Get a free key at <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">thetvdb.com</a>. Metadata provided by TheTVDB.</>}
+        <KeyRow provider="tvdb" label="TheTVDB" desc={<>Detailed TV episode information. Get a key at <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">thetvdb.com</a>. Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>.</>}
           value={s.tvdbKey || ''} onChange={(v) => set('tvdbKey', v)} placeholder="API key (v4)" pin={s.tvdbPin || ''} onPin={(v) => set('tvdbPin', v)} />
       </Section>
 
@@ -59,11 +61,11 @@ export default function MetadataSettings() {
             <option value="anime">Only the Anime library</option>
           </select>
         </Row>
-        <Row label="Title language" desc="How anime titles are written. The titles in this list are only examples.">
+        <Row label="Title language" desc="How anime titles are written.">
           <select className="select" value={s.animeTitles || 'english'} onChange={(e) => set('animeTitles', e.target.value)}>
-            <option value="english">English (Ex. Attack on Titan)</option>
-            <option value="romaji">Rōmaji (Ex. Shingeki no Kyojin)</option>
-            <option value="native">Japanese (Ex. 進撃の巨人)</option>
+            <option value="english">English</option>
+            <option value="romaji">Rōmaji</option>
+            <option value="native">Japanese</option>
           </select>
         </Row>
       </Section>
@@ -187,7 +189,7 @@ function AgentEditor({ agent, onClose, onSave }: { agent: Agent; onClose: () => 
           <div className="set-test">
             <b>Try it</b>
             <div className="set-test-row">
-              <input className="input" value={q.title} onChange={(e) => setQ({ ...q, title: e.target.value })} placeholder="A title, e.g. The Lorax" aria-label="Title to look up" />
+              <input className="input" value={q.title} onChange={(e) => setQ({ ...q, title: e.target.value })} placeholder="A title" aria-label="Title to look up" />
               <input className="input year" value={q.year} onChange={(e) => setQ({ ...q, year: e.target.value.replace(/\D/g, '').slice(0, 4) })} placeholder="Year" aria-label="Year" inputMode="numeric" />
               <button className="btn sm" onClick={test} disabled={!valid || !q.title.trim() || result?.busy}>{result?.busy ? 'Asking…' : 'Look up'}</button>
             </div>

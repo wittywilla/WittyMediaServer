@@ -2,6 +2,11 @@
 
 Every repository the project has or needs, kept up to date as work adds them.
 
+Every repository's README ends with a **Legal** section: no affiliation, no warranty, no media included,
+and what its names mean. Those in this repository's folders already have one. For one that isn't here
+(WittyCD, WittyVisualizer, WittyMediaPlayer and those still to create), copy the wording from
+[LEGAL-NOTICES-CHECKLIST.md](LEGAL-NOTICES-CHECKLIST.md#module-readmes).
+
 ## To create
 
 Nothing has to be created until the work it's for is ready to publish. Create each one on GitHub under

@@ -9,6 +9,7 @@ import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
 import './games.css'
+import LegalNote from '../components/LegalNote'
 
 // Games: the library page, a game's own page, and the page that holds the player.
 // The player itself is WittyPlay (modules/wittyplay/web), loaded only when a game
@@ -271,6 +272,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
             {hasMore && <div ref={more} className="gm-more"><Spinner /></div>}
           </>
         )}
+      <LegalNote kind="games" />
     </>
   )
 }
@@ -429,6 +431,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
           <div className="page-back"><BackLink to={`/library/${it.libraryId}`} label="Back to library" /></div>
         </div>
       </div>
+      <LegalNote kind="games" />
       {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
       {art && <ArtworkPicker base={`/items/${it.id}`} onClose={() => setArt(false)}
         onPick={async (kind, url) => { await api.put<Item>(`/items/${it.id}`, { [kind]: url }); reload?.(); toast(kind === 'poster' ? 'Cover updated' : 'Backdrop updated') }} />}

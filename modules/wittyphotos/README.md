@@ -21,6 +21,14 @@ are fuzz-tested: `go test -fuzz=FuzzParse`.
 
 Developed by WittyWilla. Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
+## Legal
+
+WittyPhotos is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by any publisher, rights holder, service or other media software project. It reads the
+files you give it, and doesn't provide or check them. Any third-party names here only describe what
+it works with, and belong to their owners. It's provided “as is”, with no warranty; see
+[LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.
+
 <!-- module-kit -->
 ## Releasing
 

@@ -27,7 +27,7 @@ const (
 	longTitleSec   = 600 // past this, a title is the film: the walk stops there
 )
 
-const decryptAdvice = "Make a decrypted copy of a disc you own, with a tool that is legal where you live."
+const encryptedAdvice = "Encrypted discs aren't supported, and nothing here can change that. A disc without copy protection will play."
 
 func checkDVD(ctx context.Context, j *Job, src *discSource, o DiscOptions) {
 	j.Step("Reading the DVD's index files", 0.05)
@@ -326,7 +326,7 @@ func dvdEncryption(ctx context.Context, j *Job, d *wittydvd.Opened) (scrambled, 
 		}
 		j.Add(Finding{Severity: SevProblem, Title: "This DVD is scrambled",
 			What: fmt.Sprintf("%.0f%% of the sound and picture sampled is CSS-scrambled. %s The server never decrypts anything, so scrambled video won't play here.", 100*float64(all.scrambled)/float64(all.total), part),
-			Fix:  decryptAdvice, Details: lines})
+			Fix:  encryptedAdvice, Details: lines})
 	}
 	return all.scrambled > 0, menu.scrambled > 0
 }

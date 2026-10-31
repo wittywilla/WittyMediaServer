@@ -14,3 +14,7 @@ display of the derivative work.
 WittyDVD is an original implementation of the DVD-Video navigation model
 written from the publicly documented disc structure. It contains no code from
 libdvdnav, libdvdread or libdvdcss, and it does not decrypt CSS-scrambled discs.
+
+"DVD" is a trademark of DVD Format/Logo Licensing Corporation. WittyDVD is not a
+licensed or certified DVD product, is not associated with that organization, and
+uses the name only to describe which discs it reads.

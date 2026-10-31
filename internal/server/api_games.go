@@ -225,7 +225,7 @@ func (s *Server) awaitHardwareProbe(ctx context.Context) {
 func runnerFailed(err error) bool {
 	var pe *fs.PathError
 	msg := err.Error()
-	return errors.Is(err, stream.ErrStopped) || (errors.As(err, &pe) && pe.Op == "write") ||
+	return errors.Is(err, stream.ErrStopped) || errors.Is(err, stream.ErrRunnerDied) || (errors.As(err, &pe) && pe.Op == "write") ||
 		strings.HasPrefix(msg, "starting the game runner") || strings.HasPrefix(msg, "ipc:") || strings.HasPrefix(msg, "the runner described")
 }
 
@@ -706,7 +706,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.WarnContext(r.Context(), "could not start a game", "cat", "games", "item", it.ID, "game", it.Title, "err", err)
-		if version != "" && runnerFailed(err) {
+		// A custom core runs inside the runner, so its crash isn't a fault of this version.
+		if version != "" && runnerFailed(err) && (playing == nil || playing.Source != cores.SourceCustom) {
 			_ = s.Modules.ReportFailure(wittyPlayID, version, "the game runner stopped before the game was ready: "+err.Error())
 		}
 		if playing != nil {

@@ -897,7 +897,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	s.log.Debug("menu read", "topic", "menus", "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "buttons", len(pic.Buttons))
 	if pic.Scrambled {
 		p.Scrambled = true
-		return errors.New("this disc is CSS-scrambled; decrypt it before adding it to the library")
+		return errors.New("this disc is CSS-scrambled, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection")
 	}
 	s.menus[st.Serial] = &menuArt{pic: pic, highlights: map[int][]byte{}}
 	for k := range s.menus {

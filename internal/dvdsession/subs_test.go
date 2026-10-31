@@ -37,12 +37,12 @@ func TestRenderSubFrames(t *testing.T) {
 }
 
 // TestRealDiscSubtitles lists the main feature's first subtitle events from
-// a decrypted DVD image when WMS_TEST_ISO points at one (skipped otherwise)
+// an unencrypted DVD image when WMS_TEST_ISO points at one (skipped otherwise)
 // and fetches each picture by the name in its URL.
 func TestRealDiscSubtitles(t *testing.T) {
 	p := os.Getenv("WMS_TEST_ISO")
 	if p == "" {
-		t.Skip("set WMS_TEST_ISO to a decrypted DVD image")
+		t.Skip("set WMS_TEST_ISO to an unencrypted DVD image")
 	}
 	m := &Manager{BaseURL: "/api", sessions: map[string]*Session{}}
 	s, err := m.Open(1, p, Prefs{Wide: true})

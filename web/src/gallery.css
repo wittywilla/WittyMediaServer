@@ -88,6 +88,9 @@
 @media (hover: none) { .gal-nav { display: none; } }
 .gal-v-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); background: #0b0c10; flex-wrap: wrap; }
 .gal-v-bar .ibtn { font-size: 20px; }
+/* The viewer is dark in every theme. */
+.gal-v-legal { flex-basis: 100%; margin: 0; max-width: none; color: var(--fg-2); }
+.gal-v-legal a { color: var(--fg); }
 .gal-v-bar .ibtn.on { color: var(--accent-text, var(--accent)); }
 .gal-v-title { flex: 1; min-width: 130px; display: grid; }
 .gal-v-title b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }

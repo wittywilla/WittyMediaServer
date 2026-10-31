@@ -79,12 +79,12 @@ func TestRun(t *testing.T) {
 	}
 }
 
-// TestRealDisc checks the parsers against a decrypted Blu-ray when
+// TestRealDisc checks the parsers against an unencrypted Blu-ray when
 // WMS_TEST_BD points at an image or a BDMV folder (skipped otherwise).
 func TestRealDisc(t *testing.T) {
 	p := os.Getenv("WMS_TEST_BD")
 	if p == "" {
-		t.Skip("set WMS_TEST_BD to a decrypted Blu-ray image or folder")
+		t.Skip("set WMS_TEST_BD to an unencrypted Blu-ray image or folder")
 	}
 	d, err := Open(p)
 	if err != nil {

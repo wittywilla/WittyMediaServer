@@ -173,9 +173,9 @@ export function Brand({ name }: { name: string }) {
 }
 
 // UpdateDot: admins see that a newer version can be installed (Settings,
-// About & legal, Updates).
+// About, Updates).
 export function UpdateDot() {
   const { update, user } = useApp()
   if (!update || !user?.isAdmin) return null
-  return <i className="upd-dot" role="img" aria-label={`Version ${update} is available`} title={`Version ${update} is available: Settings, About & legal`} />
+  return <i className="upd-dot" role="img" aria-label={`Version ${update} is available`} title={`Version ${update} is available: Settings, About`} />
 }

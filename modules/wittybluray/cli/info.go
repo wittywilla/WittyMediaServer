@@ -118,7 +118,7 @@ func info(d *wittybluray.Disc) int {
 		flags = append(flags, "has an AACS folder, streams are clear")
 	}
 	if d.BDPlus {
-		flags = append(flags, "BD+ (not run; some of the picture may be damaged on a copy that was not converted)")
+		flags = append(flags, "BD+ (not run; some of the picture may be damaged)")
 	}
 	if d.Recording {
 		flags = append(flags, "recording: clips listed as playlists")

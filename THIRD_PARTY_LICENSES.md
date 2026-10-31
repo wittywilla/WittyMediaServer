@@ -95,6 +95,7 @@ belong to their stations.
 | React, React DOM | MIT |
 | react-router-dom | MIT |
 | hls.js | Apache-2.0 |
+| Some interface icons in `web/src/icons.tsx` follow the shapes of Material Icons | Apache-2.0 |
 | The map's outline of the world's land (`web/public/world-land.txt`, loaded only when the photo map is opened), made from [Natural Earth](https://www.naturalearthdata.com) 1:110m land via world-atlas (ISC) | Public domain |
 | pdf.js (pdfjs-dist; loaded only when a PDF is opened) | Apache-2.0 |
 | Vite, TypeScript (build only) | MIT / Apache-2.0 |
@@ -111,6 +112,19 @@ Audio CDs are identified with [MusicBrainz](https://musicbrainz.org), whose core
 
 WittyCD is an original implementation with no third-party code. It contains no code from libcdio, cdparanoia,
 cdrdao or any other GPL library, and its FLAC and LZMA code is its own, written from the published formats.
+**TheTVDB** — optional. Metadata provided by TheTVDB. <https://thetvdb.com>
+
+**TVmaze** — on by default. CC BY-SA 4.0. <https://www.tvmaze.com>
+
+**AniList** — for Anime libraries. <https://anilist.co>
+
+**Free Dictionary API** — when someone presses Define in a reader. It publishes no terms.
+<https://dictionaryapi.dev>
+
+**Apple Podcasts directory** — when an administrator searches for a podcast.
+
+None of these is associated with, or endorses, WittyMediaServer. Their terms apply to their data.
+*Settings → Legal → Privacy* in the app says what each one receives.
 
 ## DVD-Video
 

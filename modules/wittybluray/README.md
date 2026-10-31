@@ -50,7 +50,7 @@ bytes to play, when, and what to draw over them*.
 
 ```bash
 go install github.com/wittywilla/wittybluray/cmd/wittybluray@latest
-wittybluray info THE_LORAX.iso
+wittybluray info MY_DISC.iso
 ```
 
 Needs Go 1.26 or newer; the tool lands in `$(go env GOPATH)/bin`. To use the library in your own
@@ -75,7 +75,7 @@ built into WittyMediaServer as `wms bluray …`.
 ```go
 import "github.com/wittywilla/wittybluray"
 
-d, err := wittybluray.Open("THE_LORAX.iso")   // an image, or a folder holding BDMV
+d, err := wittybluray.Open("MY_DISC.iso")   // an image, or a folder holding BDMV
 if err != nil { return err }
 defer d.Close()
 if d.Encrypted { return errors.New("AACS") }
@@ -146,7 +146,7 @@ can't loop for ever (100 000 commands per run), and the parsers are fuzz-tested.
 
 | Not yet | What happens instead |
 |---|---|
-| AACS-encrypted discs | refused; make decrypted images of discs you own with a tool that is legal where you live |
+| AACS-encrypted discs | refused: encrypted media isn't supported |
 | Secondary audio, picture-in-picture | the disc's choice is recorded, not mixed in |
 | MVC 3D | the 2D view plays; the second view is reported, not decoded |
 
@@ -166,6 +166,17 @@ seen yet. Reports with `wittybluray info` and `walk` output are very welcome.
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyBluray, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+## Legal
+
+WittyBluray is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by the Blu-ray Disc Association, any film studio or any other player project. “Blu-ray” and
+“Blu-ray Disc” are trademarks of the Blu-ray Disc Association; WittyBluray isn't a licensed or
+certified Blu-ray product and uses no Blu-ray logo. AACS-encrypted discs are refused, BD+ isn't run,
+nothing is decrypted, and no media comes with it: you're responsible for having the rights to what
+you open. Any third-party names here only describe what it works with, and belong to their owners.
+It's provided “as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use
+it. This isn't legal advice.
 
 <!-- module-kit -->
 ## Releasing

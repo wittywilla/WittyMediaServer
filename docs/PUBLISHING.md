@@ -124,7 +124,7 @@ static build (`scripts/build-ffmpeg-static.sh`, run on FreeBSD).
 In GitHub Desktop you create the tag via *History → right-click the commit → Create Tag…*, then
 *Push origin*. Before tagging, update the version in `cmd/wms/main.go`, `cmd/wms-tray/main.go` and `cmd/wms-setup/main_windows.go` (the default
 `version`), and add a section to `CHANGELOG.md`. Installed servers show the release's
-description from GitHub as its notes under *Settings → About & legal → Updates*, so give the
+description from GitHub as its notes under *Settings → About → Updates*, so give the
 release a short summary of what changed.
 
 ## Good habits

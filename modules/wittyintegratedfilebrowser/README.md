@@ -82,6 +82,15 @@ import FileBrowser from '@wittywilla/wittyintegratedfilebrowser'
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyIntegratedFileBrowser, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
 
+## Legal
+
+WittyIntegratedFileBrowser is an independent open-source project. It isn't associated with,
+sponsored by or endorsed by any publisher, rights holder, service or other media software project.
+It lists folders on the machine it runs on, and doesn't provide or check what's in them. Any
+third-party names here only describe what it works with, and belong to their owners. It's provided
+“as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't
+legal advice.
+
 <!-- module-kit -->
 ## Releasing
 

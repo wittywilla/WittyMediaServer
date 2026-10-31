@@ -283,4 +283,4 @@ func (b *bounds) check(ext []wittydvd.FileExtent) error {
 	return nil
 }
 
-var errScrambled = errors.New("this disc is CSS-scrambled; decrypt it before adding it to the library")
+var errScrambled = errors.New("this disc is CSS-scrambled, and encrypted media isn't supported")

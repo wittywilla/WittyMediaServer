@@ -16,8 +16,8 @@ Any layout works as long as the files are tagged. Without tags, folders are used
 
 ```
 Music/
-  Adele/21/01 Rolling In The Deep.mp3          artist / album / "track title"
-  Adele - 21/01 Rolling In The Deep.mp3        album folder only (artist from the tags)
+  Some Artist/An Album/01 First Song.mp3       artist / album / "track title"
+  Some Artist - An Album/01 First Song.mp3     album folder only (artist from the tags)
 Audiobooks/
   Jane Author/A Short Book/01 Chapter 1.m4b   author / book / chapter
   Jane Author/Another Book.m4b                one file per book

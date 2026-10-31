@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "ackVersion": 1,
+  "linkText": "Legal",
+  "ack": "I understand: the files I add and what I host or share are my own. The WittyMediaServer project doesn't provide, host, own or check them, and I'm responsible for having the rights to what I add and share.",
+  "notices": {
+    "general": {
+      "text": "Media on this server comes from its owner and from third parties. None of it is provided, hosted, owned, endorsed or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "searchResults": {
+      "text": "These results list what's on this server, with details that can come from third-party services. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "webResults": {
+      "text": "These results come from third-party services on the web. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "metadata": {
+      "text": "Details and artwork come from the media's own files or from third-party services, and the media belongs to whoever added it. None of this is created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "webMedia": {
+      "text": "This media comes from third parties on the web. It isn't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "tv": {
+      "text": "Channels and guide listings come from tuners, providers and sources this server's owner chose, or from the owner's own library. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "third-party"
+    },
+    "games": {
+      "text": "Game files are supplied by this server's owner: the WittyMediaServer project provides no games, ROMs or BIOS files. Game details come from third parties. None of this is created by, associated with, endorsed by or checked by the project, its contributors or affiliates. Games can contain flashing images.",
+      "section": "games"
+    },
+    "creators": {
+      "text": "These videos are files added by this server's owner. The people and channels named here aren't associated with this server, and neither they nor the videos are associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "your-content"
+    },
+    "reader": {
+      "text": "Books and comics here are files added by this server's owner. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates. Definitions come from a third-party service.",
+      "section": "your-content"
+    },
+    "local": {
+      "text": "Your files and what you host are yours. The WittyMediaServer project doesn't provide, host, own or check them. You're responsible for having the rights to what you add and share.",
+      "section": "your-content"
+    },
+    "thirdPartyServer": {
+      "text": "This connects to a server someone else runs. It and what it offers aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates. Whoever runs it is responsible for it.",
+      "section": "third-party"
+    },
+    "connect": {
+      "text": "This app connects to a server its owner runs. What's on that server is theirs, not the WittyMediaServer project's: the project, its contributors and affiliates don't provide, host, endorse or check it.",
+      "section": "third-party"
+    },
+    "cores": {
+      "text": "Cores are third-party programs under their own licenses. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates. You choose what to install, and no games or BIOS files come with them.",
+      "section": "games"
+    },
+    "modules": {
+      "text": "Modules from anywhere other than this project's own repositories are third-party software. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates. Every module comes with no warranty.",
+      "section": "no-warranty"
+    },
+    "sharing": {
+      "text": "You're responsible for what you share and who you share it with, including having the rights to share it. The WittyMediaServer project doesn't host, see or check what you share.",
+      "section": "sharing"
+    },
+    "sharedView": {
+      "text": "Shared by someone using a server they run themselves. It isn't provided, hosted, endorsed or checked by the WittyMediaServer project, its contributors or affiliates. Ask the person who sent the link about what's here.",
+      "section": "sharing"
+    },
+    "remote": {
+      "text": "This lets people reach your server from outside your home. You run it, so what you host and who you let in are your responsibility, and the law where you and they are applies. The WittyMediaServer project doesn't host, see or check any of it.",
+      "section": "sharing"
+    },
+    "ratings": {
+      "text": "Age limits rely on ratings from files and third-party services, which can be missing or wrong. A Kids profile helps, but it isn't a guarantee: please check what's suitable yourself.",
+      "section": "ratings"
+    },
+    "flashing": {
+      "text": "This can show flashing lights and fast-changing patterns, which may affect people with photosensitive conditions.",
+      "section": "flashing"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, artPreviewUrl, type ArtCandidate } from '../api'
 import { Spinner } from './common'
+import LegalNote from './LegalNote'
 
 // Lets an admin pick a poster or backdrop from the candidates the server
 // finds: images beside the media, TMDB (movies) and TheTVDB (shows).
@@ -43,6 +44,7 @@ export default function ArtworkPicker({ base, onPick, onClose }: { base: string;
           <button className="btn" disabled={!url || saving} onClick={() => pick(url)}>Use</button>
         </div>
         <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>The chosen image is saved next to the media (poster.jpg / fanart.jpg or &lt;name&gt;-poster.jpg) so other media software picks it up too.</p>
+        <LegalNote kind="webResults" />
         <div className="actions"><button className="btn ghost" onClick={onClose}>Close</button></div>
       </div>
     </div>

@@ -183,6 +183,25 @@ follows you. See [GAMING.md](docs/GAMING.md).
   administrator rights. Nothing is changed. The only thing written is a small temporary file, never in a media folder.
 - Long checks run in the background, one at a time, with progress and cancel, and give way to anyone watching.
   [What it checks](docs/DIAGNOSER.md).
+### Legal notices
+
+- **Short notices across the app** say that web results and third-party content aren't created by,
+  associated with, endorsed by or checked by the project, and that a person's own files and what they host are
+  theirs. They come from one source, so every screen says the same thing, and apps get the words from
+  `GET /api/legal/notices`. The connect screens of the WittyMediaClient apps show one too.
+- **A Legal page** in Settings, and at `/legal` for anyone: terms of use, no warranty, no affiliation, who's
+  responsible for what, trademarks, games and BIOS files, copy protection, flashing images, age ratings, and a
+  privacy list of every outside service, what it receives and what controls it.
+  *About & legal* is now *About* and *Legal*.
+- **A server's owner can add their own notice** and contact details for the people using their server.
+- **One tick in setup** confirms that your files and what you share are your responsibility. Servers set up
+  earlier show a one-time bar. The answer stays on your server.
+- **Corrected:** the README and setup said nothing leaves your home except titles. Update checks, other
+  lookups and more do: the list is on the Legal page. Messages and docs about encrypted discs now just say
+  they're refused. Share links say they show your profile name. TheTVDB, Wikipedia on game pages, the
+  dictionary service and podcast search now have their credits.
+- **Removed from the README:** older screenshots. Docs use made-up titles. Every module's README has a Legal
+  section. None of this is legal advice.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback
@@ -663,7 +682,7 @@ as well (see its section below).
 ### WittyDVD
 
 - **Angles work**: interleaved multi-angle blocks are read per angle, so intros no longer flicker
-  between language versions (Shrek). Pick a *Video version* while watching; playback continues
+  between language versions. Pick a *Video version* while watching; playback continues
   from the same moment.
 - **Disc memory**: the audio language, subtitles and angle you pick are remembered per disc and
   put back next time, like a DVD player's last-memory feature.
@@ -830,7 +849,7 @@ as well (see its section below).
 ### WittyDVD (the DVD engine, formerly `internal/disc/dvd`)
 
 - Renamed the DVD engine to **WittyDVD** (`internal/wittydvd`).
-- **Interactive titles**: buttons inside titles (games, quizzes, voting such as Shrek 2's
+- **Interactive titles**: buttons inside titles (games, quizzes, voting, such as one disc's
   *Far Far Away Idol*) now work; such titles play cell by cell with their buttons and timers.
 - **Insert DVD** button with an optional disc-tray animation and synthesized drive sound
   (per disc and server-wide), and a per-disc start mode (menu or main feature).

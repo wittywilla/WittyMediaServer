@@ -65,6 +65,11 @@ To check a whole disc's menus: `go run ./cmd/wms dvd crawl /path/to/disc.iso`.
 - Match the surrounding code style; explain *why* in comments, not *what*.
 - New settings need a sensible default, a tooltip in the UI and a line in the docs.
 - For disc bugs, attach `wms dvd info` and `wms dvd crawl` output — never disc images.
+- A new screen that shows third-party or web content, or where people add or share media, takes a
+  `<LegalNote>`: [docs/LEGAL-NOTICES-CHECKLIST.md](docs/LEGAL-NOTICES-CHECKLIST.md) says which. A new outside
+  service goes on the privacy list in `internal/legal/legal.json`; a test fails otherwise.
+- No real films, shows, music, games or people in screenshots, examples or test files: make something up, or use
+  openly licensed media. Never tell people how to get around copy protection, and never link to ROMs or BIOS files.
 - Contributions are licensed under the Apache License 2.0 (see `LICENSE`).
 
 ## Sending a change

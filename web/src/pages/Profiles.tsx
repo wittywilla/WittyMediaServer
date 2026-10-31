@@ -3,6 +3,7 @@ import { api, type Access, type Item, type Library, type Show, type User, type U
 import { IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import { Avatar } from './AuthPage'
+import LegalNote from '../components/LegalNote'
 
 // Settings → Users: your account, the profiles you may manage, and their
 // limits. The admin manages everyone; adults manage Kids profiles unless the
@@ -122,6 +123,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
             {kind === 'kids' && 'Only shows titles up to the age you choose. A password or PIN is optional: without one, kids sign in with a tap on your home network.'}
             {kind === 'guest' && 'For visitors: limited titles, no settings. Only the administrator can change Guest limits.'}
           </p>
+          {kind !== 'adult' && <LegalNote kind="ratings" />}
           <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={40} /></label>
           <label>{needsPw ? 'Password' : 'Password or PIN (optional)'}<input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" /></label>
           {kind === 'adult' && admin && <label className="check-row"><input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} /> Administrator (can change everything)</label>}
@@ -226,6 +228,7 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
           <div className="chips"><span className="muted">Always:</span>{chips(a.allowShows, 's', 'allowShows')}{chips(a.allowItems, 'i', 'allowItems')}</div>
           <div className="chips"><span className="muted">Never:</span>{chips(a.blockShows, 's', 'blockShows')}{chips(a.blockItems, 'i', 'blockItems')}</div>
 
+          <LegalNote kind="ratings" />
           <h3>Live TV</h3>
           <label className="check-row"><input type="checkbox" checked={a.liveTv} onChange={(e) => set({ liveTv: e.target.checked })} /> Live TV</label>
           <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.libraryChannels} onChange={(e) => set({ libraryChannels: e.target.checked })} /> Channels made from this server's libraries</label>

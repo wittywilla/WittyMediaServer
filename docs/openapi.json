@@ -3253,6 +3253,83 @@
         ],
         "type": "object"
       },
+      "LegalNotice": {
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "text"
+        ],
+        "type": "object"
+      },
+      "LegalSection": {
+        "properties": {
+          "body": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body",
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "LegalService": {
+        "properties": {
+          "control": {
+            "type": "string"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "setting": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "control",
+          "gets",
+          "hosts",
+          "name",
+          "setting",
+          "when"
+        ],
+        "type": "object"
+      },
       "Library": {
         "properties": {
           "console": {
@@ -15026,6 +15103,160 @@
         "x-wms-auth": "user"
       }
     },
+    "/legal": {
+      "get": {
+        "operationId": "getLegal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "owner": {
+                      "description": "What this server's owner wrote. Plain text: never show it as HTML.",
+                      "properties": {
+                        "contact": {
+                          "type": "string"
+                        },
+                        "notice": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "page": {
+                      "type": "string"
+                    },
+                    "sections": {
+                      "items": {
+                        "$ref": "#/components/schemas/LegalSection"
+                      },
+                      "type": "array"
+                    },
+                    "services": {
+                      "items": {
+                        "$ref": "#/components/schemas/LegalService"
+                      },
+                      "type": "array"
+                    },
+                    "updated": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "The full Legal page, with the privacy list and this server owner's notice.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/legal/acknowledge": {
+      "post": {
+        "operationId": "acknowledgeLegal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record that an administrator has seen the first-run notice.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/legal/notices": {
+      "get": {
+        "operationId": "getLegalNotices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ack": {
+                      "type": "string"
+                    },
+                    "ackVersion": {
+                      "type": "integer"
+                    },
+                    "linkText": {
+                      "type": "string"
+                    },
+                    "notices": {
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/LegalNotice"
+                      },
+                      "type": "object"
+                    },
+                    "owner": {
+                      "description": "What this server's owner wrote. Plain text: never show it as HTML.",
+                      "properties": {
+                        "contact": {
+                          "type": "string"
+                        },
+                        "notice": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "page": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "The short legal notices, by kind, for clients to show beside content.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
     "/libraries": {
       "get": {
         "operationId": "getLibraries",
@@ -22757,6 +22988,10 @@
                     },
                     "brandName": {
                       "type": "string"
+                    },
+                    "legalAck": {
+                      "description": "False while an administrator should still see the first-run notice.",
+                      "type": "boolean"
                     },
                     "name": {
                       "type": "string"

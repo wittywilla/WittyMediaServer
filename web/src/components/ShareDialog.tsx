@@ -4,6 +4,8 @@ import { copyText, type ShareLink } from '../gallery'
 import { IconClose } from '../icons'
 import { toast } from '../state'
 import { useEffect } from 'react'
+import LegalNote from './LegalNote'
+import '../gallery.css'
 
 // Sharing something: a link inside this server for other profiles, or (pictures,
 // videos and albums) a link for someone with no account, with its own end date.
@@ -34,6 +36,7 @@ export default function ShareDialog({ kind, id, title, onClose, internalPath }: 
           <h2 id="share-h">Share “{title}”</h2>
           <button className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
         </div>
+        <LegalNote kind="sharing" />
         <h3>With other profiles here</h3>
         <p className="muted">Anyone signed in to this server who can open this library.</p>
         <div className="share-link"><input className="input" readOnly value={internal} aria-label="Link for other profiles" onFocus={(e) => e.target.select()} /><button className="btn" onClick={() => copy(internal)}>Copy</button></div>
@@ -46,7 +49,7 @@ export default function ShareDialog({ kind, id, title, onClose, internalPath }: 
             </>
           ) : (
             <>
-              <p className="muted">They see only this, without signing in. Pictures are re-encoded, so camera details and locations stay here. It works wherever your server can be reached.</p>
+              <p className="muted">They see only this and your profile name, without signing in. Pictures are re-encoded, so camera details and locations stay here. It works wherever your server can be reached.</p>
               <div className="share-opts">
                 <label>Ends after <select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}>{DAYS.map(([d, l]) => <option key={d} value={d}>{l}</option>)}</select></label>
                 <label className="share-check"><input type="checkbox" checked={download} onChange={(e) => setDownload(e.target.checked)} /> Allow downloading the original files</label>

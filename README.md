@@ -24,11 +24,6 @@
   <a href="docs/REFERENCE.md">Reference</a>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/dvd-main-menu.png" width="820" alt="A DVD's animated main menu playing in the browser, with a button highlighted">
-  <br><sub>A real DVD's animated menu, played in the browser and driven with the on-screen remote.</sub>
-</p>
-
 > **Alpha.** Version 0.5.0-alpha is usable every day but still changing quickly. Back up your data
 > folder before upgrading, and please report anything that goes wrong.
 
@@ -119,17 +114,11 @@ Saves follow your profile. [How it works](docs/GAMING.md).
 
 ## Screenshots
 
-| Home | A library |
+| Setup | Choosing folders from any device |
 |:---:|:---:|
-| ![Home: a featured title, your libraries as tiles and what to watch next](docs/screenshots/home.png) | ![A DVD and Blu-ray library with format badges, filters and genres](docs/screenshots/library.png) |
-| **A disc's page** | **Scenes, while watching** |
-| ![A DVD's page with Insert DVD, Resume and Main menu, its details and the disc's facts](docs/screenshots/detail.png) | ![The player's scene picker: every scene as a picture with its time, the one playing marked](docs/screenshots/scenes.png) |
-| **A DVD's still menu** | **A DVD's animated menu, with the remote** |
-| ![A DVD language menu with a highlighted button](docs/screenshots/dvd-language-menu.png) | ![A DVD's animated main menu with the on-screen remote](docs/screenshots/dvd-main-menu.png) |
-| **Music, docked beside the library** | **Setup** |
-| ![An album with the full player docked on the right and the queue below](docs/screenshots/music.png) | ![The setup wizard's welcome page](docs/screenshots/setup.png) |
-| **Choosing folders from any device** | **Themes and layout** |
-| ![The built-in folder browser: drives, your folders and folders in your libraries](docs/screenshots/file-browser.png) | ![Settings, Appearance: layouts and themes](docs/screenshots/settings.png) |
+| ![The setup wizard's welcome page](docs/screenshots/setup.png) | ![The built-in folder browser: drives, your folders and folders in your libraries](docs/screenshots/file-browser.png) |
+| **Themes and layout** | |
+| ![Settings, Appearance: layouts and themes](docs/screenshots/settings.png) | |
 
 ## Get started
 
@@ -169,6 +158,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |
 | 📡 | [Client API](docs/CLIENT-API.md) · [OpenAPI](docs/openapi.json) | for apps and tools: TV sign-in, playback profiles, stream tokens, disc menus |
 | ❓ | [Troubleshooting](docs/TROUBLESHOOTING.md) | the common problems and their fixes |
+| ⚖️ | [Legal notices](docs/LEGAL-NOTICES-CHECKLIST.md) | which notice goes where |
 | 🧩 | [Modules & apps](docs/MODULES.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) | how the pieces fit, and what's next |
 
 ## The Witty family
@@ -206,10 +196,13 @@ starts in about half a second. Details: [Reference → Architecture](docs/REFERE
 
 ## Privacy & security
 
-- **Nothing leaves your home** except the titles of your media, and only for the metadata agents you
-  keep switched on. Audio CDs are looked up by their table of contents alone: no names, no audio.
+- **Audio CDs** are looked up by their table of contents alone: no names, no audio.
 - **No telemetry, no accounts with anyone, no cloud.** Logs stay on your computer and never contain
   passwords or session tokens.
+- **Your files stay here.** By default, names taken from your file and folder names go to the metadata
+  services you keep switched on, and the server asks GitHub for updates twice a day. Everything else
+  is off until you use it. *Settings → Legal → Privacy* lists every outside service, what it receives
+  and what controls it.
 - **Hardened by default:** cross-site requests are refused, artwork and books can't run scripts, feeds
   and agents can't reach other devices on your network, and copy protection is never bypassed.
 
@@ -229,25 +222,40 @@ developed by WittyWilla”*, in your distribution, documentation or About screen
 <details>
 <summary><b>Your media, third parties and warranty</b></summary>
 
-**Your media, your responsibility.** WittyMediaServer organises and streams media you already own
-and have the right to use. It does not supply, index, search for or share any content. Server
-operators and users are responsible for the files they add and for following the laws where they and
-their viewers live. The authors and contributors accept no liability for media stored on, played
-from or shared through a server, nor for how a server is used.
+The app's own **Legal** page (*Settings → Legal*, or `/legal` on any server) has the full text. This is
+plain-language information, not legal advice.
+
+**Your media, your responsibility.** WittyMediaServer organises and streams media you already have the
+right to use. It doesn't provide, host, own or check any of it. Server operators and users are
+responsible for the files they add and share, and for following the laws where they and their viewers
+live. The authors and contributors accept no liability for media stored on, played from or shared
+through a server, nor for how a server is used.
+
+**Web results and third-party content.** Search results, details, artwork, podcasts, radio stations, TV
+channels and guides, and game details come from third parties. They aren't created by, associated with,
+endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.
+
+**Games.** No games, ROMs or BIOS files come with this software, and the project doesn't link to them.
+Use only files you've obtained legally.
 
 **No circumvention.** Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and
-AACS-encrypted Blu-rays are refused. Whether you may make unprotected copies of discs you own is a
-matter of local law.
+AACS-encrypted Blu-rays are refused. Encrypted media isn't supported, and no plugin or setting changes
+that.
 
 **Third parties.** Video is converted by **FFmpeg**, run as a separate program; the bundled builds
 are GPL-licensed, with sources linked from [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). This
 product uses the **TMDB** API but is not endorsed or certified by TMDB. TV information is provided by
-**TheTVDB** and **TVmaze** (CC BY-SA 4.0); movie facts by **Wikidata** (CC0) and **Wikipedia**
-(CC BY-SA 4.0); anime by **AniList**. Each service's terms apply to its data.
+**[TheTVDB](https://thetvdb.com)** and **TVmaze** (CC BY-SA 4.0); movie and game facts by **Wikidata**
+(CC0) and **Wikipedia** (CC BY-SA 4.0); anime by **AniList**; definitions by the **Free Dictionary API**;
+podcast search by the **Apple Podcasts** directory. Each service's terms apply to its data.
 
-**No warranty.** Provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated
-with any other media software project, studio or rights holder; all trademarks belong to their
-owners.
+**No warranty.** Provided “as is”, without warranty of any kind.
+
+**No affiliation, and trademarks.** WittyMediaServer is not affiliated with any other media software
+project, studio, console maker, service or rights holder. Third-party names only describe compatibility
+or where information came from, and belong to their owners. “DVD” is a trademark of DVD Format/Logo
+Licensing Corporation; “Blu-ray” and “Blu-ray Disc” are trademarks of the Blu-ray Disc Association. This
+software isn't a licensed or certified DVD or Blu-ray product.
 
 </details>
 

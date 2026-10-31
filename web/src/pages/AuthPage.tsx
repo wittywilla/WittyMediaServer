@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, ApiError, isNativeShell, setToken, type User } from '../api'
 import ConnectServer from '../components/ConnectServer'
 import { Brand, BrandMark, VersionTag } from '../components/common'
@@ -56,7 +57,7 @@ export default function AuthPage() {
         {tapErr && <div className="error" role="alert">{tapErr}</div>}
         <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
         {changeServer}
-        <div className="auth-version"><VersionTag version={version} /></div>
+        <div className="auth-version"><VersionTag version={version} /> · <Link to="/legal">Legal</Link></div>
       </div>
     )
   }
@@ -64,7 +65,7 @@ export default function AuthPage() {
     <div className="center">
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
       {changeServer}
-      <div className="auth-version"><VersionTag version={version} /></div>
+      <div className="auth-version"><VersionTag version={version} /> · <Link to="/legal">Legal</Link></div>
     </div>
   )
 }

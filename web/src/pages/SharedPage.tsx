@@ -5,6 +5,7 @@ import { Spinner } from '../components/common'
 import { IconClose, IconLeft, IconRight } from '../icons'
 import { useSource } from '../player/hooks'
 import '../gallery.css'
+import LegalNote from '../components/LegalNote'
 
 // What someone sees when they open a link they were sent: only this, and no way
 // into the server. No account, no navigation, nothing but what was shared.
@@ -33,6 +34,7 @@ export default function SharedPage() {
       <header className="gal-public-head">
         <h1>{data.title}</h1>
         <p className="muted">Shared by {data.owner}{data.expiresAt ? ` · until ${new Date(data.expiresAt * 1000).toLocaleDateString()}` : ''}</p>
+        <LegalNote kind="sharedView" newTab />
       </header>
       <div className="gal-grid">
         {data.items.map((p, i) => {
@@ -61,6 +63,7 @@ export default function SharedPage() {
             <button className="ibtn" autoFocus onClick={() => setOpen(null)} aria-label="Close"><IconClose /></button>
             <div className="gal-v-title"><b>{it.title}</b></div>
             {data.allowDownload && <a className="btn sm" href={`${base}/original/${it.id}`} download>Download</a>}
+            <LegalNote kind="sharedView" newTab className="gal-v-legal" />
           </div>
         </div>
       )}

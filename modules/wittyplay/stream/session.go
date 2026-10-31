@@ -123,6 +123,8 @@ var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
 	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
+	// ErrRunnerDied is behind the plain words for a runner that ended by itself.
+	ErrRunnerDied = errors.New("the game runner ended by itself")
 	ErrNoSlot  = errors.New("there is no such save slot")
 	// ErrNoDevice: the core didn't offer that kind of controller for that port.
 	ErrNoDevice = errors.New("this game has no such kind of controller")
@@ -395,6 +397,7 @@ type Session struct {
 	stopOnce  sync.Once
 	cleanOnce sync.Once
 	exitErr   atomic.Value
+	died      atomic.Bool
 	// What the runner said on stderr, and whether its going is what was asked for.
 	runnerSaid tailWriter
 
@@ -493,6 +496,7 @@ func (s *Session) start() error {
 		err := cmd.Wait()
 		if err != nil && s.exitErr.Load() == nil {
 			s.exitErr.Store(describeExit(s.stderr.String()))
+			s.died.Store(true)
 		}
 		lv := slog.LevelDebug
 		if err != nil && !s.stopping.Load() {
@@ -524,6 +528,9 @@ func (s *Session) start() error {
 			s.kill()
 			<-s.done
 			if v := s.exitErr.Load(); v != nil { // it knows why by now
+				if s.died.Load() {
+					return diedError(v.(string))
+				}
 				return errors.New(v.(string))
 			}
 			return err
@@ -585,6 +592,12 @@ func (s *Session) guard(where string) {
 		s.kill()
 	}
 }
+
+// diedError reads as what happened and still says it was the runner that went away.
+type diedError string
+
+func (e diedError) Error() string        { return string(e) }
+func (e diedError) Is(target error) bool { return target == ErrRunnerDied }
 
 // describeExit says in plain words why a runner ended by itself, from what it left
 // on its error stream.

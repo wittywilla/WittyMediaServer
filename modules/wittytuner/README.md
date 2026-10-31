@@ -84,6 +84,16 @@ The custom command driver runs a program, so it stays off unless the host sets
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Developed by WittyWilla as part of
 [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
 
+## Legal
+
+WittyTuner is an independent open-source project. It isn't associated with, sponsored by or endorsed
+by any tuner maker, broadcaster, IPTV provider or guide service. No channel lists or stream
+addresses come with it. Encrypted channels are refused and nothing is decrypted. What a tuner or a
+provider offers belongs to them, and you're responsible for having the rights to what you receive
+and record. Any third-party names here only describe what it works with, and belong to their owners.
+It's provided “as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use
+it. This isn't legal advice.
+
 <!-- module-kit -->
 ## Releasing
 

@@ -7,6 +7,7 @@ import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, SeenBadge, Spinner } from '../components/common'
 import { IconCheck, IconEdit, IconImage, IconInfo, IconPlay, IconRefresh } from '../icons'
 import { toast, useApp } from '../state'
+import LegalNote from '../components/LegalNote'
 
 export default function ShowPage() {
   const { id } = useParams()
@@ -95,9 +96,10 @@ export default function ShowPage() {
             </div>
           )}
           <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label="Back to library" /></div>
-          {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by TheTVDB. Please consider adding missing information or subscribing.</p>}
+          {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. Please consider adding missing information or subscribing.</p>}
           {show.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
           {show.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
+          <LegalNote kind="metadata" />
         </div>
       </div>
       {edit && <ShowEditor show={show} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load() }} />}

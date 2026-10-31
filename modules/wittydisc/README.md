@@ -40,7 +40,7 @@ go get github.com/wittywilla/wittydisc@latest
 ```go
 import "github.com/wittywilla/wittydisc/isofs"
 
-d, err := isofs.Open("SHREK_2.ISO")
+d, err := isofs.Open("MY_DISC.ISO")
 if err != nil { return err }
 defer d.Close()
 
@@ -75,6 +75,15 @@ No cgo and no dependencies beyond the standard library. Go 1.26 or newer.
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyDisc, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+## Legal
+
+WittyDisc is an independent open-source project. It isn't associated with, sponsored by or endorsed
+by the owners of the DVD or Blu-ray formats, any film studio or any other player project. It reads
+disc images you already have. It doesn't decrypt anything and no media comes with it: you're
+responsible for having the rights to what you open. Any third-party names here only describe what it
+works with, and belong to their owners. It's provided “as is”, with no warranty; see
+[LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.
 
 <!-- module-kit -->
 ## Releasing

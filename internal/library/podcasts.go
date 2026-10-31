@@ -142,7 +142,7 @@ type rssFeed struct {
 		Title       string `xml:"title"`
 		Author      string `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd author"`
 		Description string `xml:"description"`
-		// <image><url> (RSS) and <itunes:image href> share a local name, and
+		// <image><url> (RSS) and the podcast namespace's <image href> share a local name, and
 		// encoding/xml matches an un-namespaced tag in any namespace, so both
 		// are collected here and told apart afterwards.
 		Images []struct {
@@ -273,7 +273,7 @@ func (s *Scanner) RefreshPodcast(ctx context.Context, p *Podcast) error {
 func (s *Scanner) applyFeed(ctx context.Context, p *Podcast, f *rssFeed) error {
 	ch := f.Channel
 	image := ""
-	for _, im := range ch.Images { // the iTunes image is usually the larger one
+	for _, im := range ch.Images { // the namespaced image is usually the larger one
 		if webURL(im.Href) != "" {
 			image = im.Href
 			break

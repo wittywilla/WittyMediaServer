@@ -6,6 +6,7 @@ import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import CustomCoresSection, { ConsoleCoreSelect, licenseText } from './GamingCustom'
 import { PageHead, Section } from './ui'
+import LegalNote from '../../components/LegalNote'
 
 // Settings, Gaming: which cores this server has, and how games reach players.
 // A core is someone else's program, so nothing is installed without being asked
@@ -77,7 +78,8 @@ export default function GamingSettings() {
         </dl>
         <p className="muted gaming-bios">Where BIOS files go: the easy way is a folder named <code>{st.biosFolder}</code> inside a console’s games folder, such as <code>PS2/{st.biosFolder}</code>. Folders inside it are fine, it’s never listed as a game, and the server copies what it needs to the BIOS folder above when you press Play. You can also put files straight into that folder: a PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it. BIOS files are never downloaded for you.</p>
       </Section>
-      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own." actions={<a className="btn sm ghost" href="#custom-cores">Add your own</a>}>
+      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own, legally obtained." actions={<a className="btn sm ghost" href="#custom-cores">Add your own</a>}>
+        <LegalNote kind="cores" />
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
         <div className="gaming-consoles">
           {st.consoles.map((c) => (
@@ -173,7 +175,7 @@ export default function GamingSettings() {
               <select className="select" value={settings.gamingRunner || 'auto'} onChange={(e) => put({ gamingRunner: e.target.value })}>
                 <option value="auto">Automatic</option>
                 <option value="builtin">Built in</option>
-                <option value="retroarch">WittyRetroArch, when installed</option>
+                <option value="retroarch">A separate RetroArch-based runner, when installed</option>
               </select>
             </label>
             <label>Space for unpacked games (GB)
@@ -202,6 +204,7 @@ export default function GamingSettings() {
             <h2>Install {confirm.name}?</h2>
             <p>This downloads a program from <b>buildbot.libretro.com</b>, the libretro project’s build server, and runs it on this server in a boxed-in process whenever someone plays.</p>
             <p>Its license is <b>{confirm.license}</b>. The core is its authors’ work and stays a separate program from this server.</p>
+            <LegalNote kind="cores" />
             <div className="actions">
               <button className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button>
               <button className="btn primary" onClick={install}>Install</button>

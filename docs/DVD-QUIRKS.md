@@ -6,8 +6,7 @@ to *use* discs, see [DVD.md](DVD.md).
 
 Each entry says what the feature or quirk is, what a hardware player does with it, what WittyDVD
 does (checked in the code, with the file named), and what changed in 0.4.0-alpha. "Test discs" are
-the four PAL discs used for regression runs: *Shrek*, *Shrek 2*, *Shrek the Third* and *Shrek
-Forever After*. Their counts come from scanning every program chain (PGC), cell and NAV pack on
+the discs used for regression runs. Their counts come from scanning every program chain (PGC), cell and NAV pack on
 them.
 
 - [How this was checked](#how-this-was-checked)
@@ -18,7 +17,7 @@ them.
 - [Structure: angles, interleaving, timing, chapters](#structure-angles-interleaving-timing-chapters)
 - [Damaged and protected discs](#damaged-and-protected-discs)
 - [Regions and parental management](#regions-and-parental-management)
-- [Late video: Shrek 2's Far Far Away Idol credits](#late-video-shrek-2s-far-far-away-idol-credits)
+- [Late video: credits on a bonus short](#late-video-credits-on-a-bonus-short)
 - [Not handled](#not-handled)
 - [Sources](#sources)
 
@@ -48,7 +47,7 @@ them.
 | **Next / Prev / GoUp PGC links** | Each PGC names the next, previous and "up" PGC | Used by links and by the RETURN key | `LinkNextPGC`/`PrevPGC`/`GoUpPGC` follow them. RETURN follows GoUp, or resumes the title when there is none. A title PGC with no post-command link continues with its next PGC |
 | **Pre, post and cell commands** | Run around a PGC and after each cell | Cell command after the cell's still time; PGC still after the last cell; then post-commands | Same order (`afterCell`). 70–80 PGCs per test disc have no cells at all: pure "dispatcher" PGCs that run their commands and move on |
 | **Random and shuffle PGCs** | PGC playback mode (byte 0xA3): bit 7 random (0) or shuffle (1), bits 6–0 how many programs to play | Draws programs: random may repeat, shuffle plays each once. Then the post-commands | **New.** Implemented in `pickProgram`. A random title starts with a drawn program; a chosen chapter counts as the first. The PGC still follows whichever program ends the run. The session plays such PGCs cell by cell. None on the test discs; they use `g0 = rnd n` commands instead, which already worked |
-| **Parental management jumps** | `SetTmpPML level, line`: ask to change the parental level, and go to a line if allowed. Discs also compare SPRM 13 | Asks for the PIN when parental control is on | SetTmpPML sets SPRM 13 and jumps (the parental level is a setting; there is no PIN). *Shrek 2* uses it (VMGM PGC 22) together with an `s13 >= 3` check (PGC 21). For parental *blocks*, see [Regions and parental management](#regions-and-parental-management) |
+| **Parental management jumps** | `SetTmpPML level, line`: ask to change the parental level, and go to a line if allowed. Discs also compare SPRM 13 | Asks for the PIN when parental control is on | SetTmpPML sets SPRM 13 and jumps (the parental level is a setting; there is no PIN). one test disc uses it (VMGM PGC 22) together with an `s13 >= 3` check (PGC 21). For parental *blocks*, see [Regions and parental management](#regions-and-parental-management) |
 
 ## Cells, stills and VOBUs
 
@@ -57,7 +56,7 @@ them.
 | **Cell still time** | 1–254 seconds, or 255 = until the viewer acts, after a cell | Holds the last picture. Buttons stay active | `Step.StillSec`. The session holds the last frame (stills shorter than 1.5 s become a picture). 131–358 infinite cell stills per test disc; no finite ones |
 | **PGC still time** | The same, after the last cell | Holds after the last cell's command | Added to the last cell when it has no command. Otherwise the navigator holds after the command (`Step.Hold`). For random PGCs, after the last program played |
 | **Infinite still with no buttons** | A picture that waits for the viewer | The Play key ("still off") goes on | **New:** the player shows **Continue**. Clips already had **Skip** |
-| **VOBU stills** | One picture (an I-frame and a sequence end code), then VOBUs with sound only. Used for slide shows, galleries, stills with narration | The decoder keeps the picture until new video comes | Clips are padded with the last frame to the cell's length (HoldLastFrame). 20–131 such cells per test disc, for example *Shrek the Third* VTS 29 (a picture gallery) and *Shrek* VTS 8. See [Late video](#late-video-shrek-2s-far-far-away-idol-credits) |
+| **VOBU stills** | One picture (an I-frame and a sequence end code), then VOBUs with sound only. Used for slide shows, galleries, stills with narration | The decoder keeps the picture until new video comes | Clips are padded with the last frame to the cell's length (HoldLastFrame). 20–131 such cells per test disc, for example a picture gallery in VTS 29 of one disc. See [Late video](#late-video-credits-on-a-bonus-short) |
 | **Zero-length cells** | Cells of 0 s or a single VOBU (dummy titles of 0.48 s are common: 9–10 per test disc) | Pass through | A cell shorter than 1.5 s is shown as a still picture for its still time (at least 0.3 s) |
 | **Cells that cannot be played** | Sectors that run backwards, or start past the end of the VOB | Skip them | **New:** the navigator passes over them (`playable`) and still runs their cell commands. The VOB sizes come from the IFO; on the test discs they match the real file sizes exactly. A PGC made only of such cells that loops on itself stops after 1000 skips |
 
@@ -68,9 +67,9 @@ them.
 | **Menu language units** | Each title set's menus come in language units; SPRM 0 picks one | Uses the unit for the menu language, else a default | Unit for SPRM 0, else the first. **New:** when that unit lacks the requested menu (root, chapter…), a unit that has it is used and remembered, so the menu's own links stay inside that unit. The session asks the navigator which PGC a step plays (`Nav.StepPGC`) instead of guessing again. The test discs have one unit each |
 | **Highlight start** (HLI_S_PTM) | Buttons appear part-way into a clip (after an intro animation) | Buttons inactive until then | `buttonsFromSec`. The player shows "Waiting for the menu…" |
 | **Highlight end and selection end** (HLI_E_PTM, BTN_SL_E_PTM) | Buttons stop working before the clip ends; after selection end, the viewer is ignored | Highlight removed; input ignored | **New:** `buttonsUntilSec`, the earlier of the two. The player hides the buttons from then on; a looping clip brings them back. On the test discs both times fall on the cell's end (or are 0xFFFFFFFF, "never"), so nothing changes there |
-| **Forced select** (FOSL_BTNN) | The button highlighted when the menu appears | Wins over SPRM 8 | Applied when the highlight is new (status 1). Used by the *Shrek 2* games |
+| **Forced select** (FOSL_BTNN) | The button highlighted when the menu appears | Wins over SPRM 8 | Applied when the highlight is new (status 1). Used by the a test disc's games |
 | **Forced activate** (FOAC_BTNN) | The button the disc presses by itself | At selection end | Pressed at `actionAtSec`, in clips and on stills. The references do not say when; selection end is the only time that makes sense |
-| **Auto-action buttons** | Selecting the button activates it | No Enter needed | Moving onto one presses it (remote keys and on-screen remote). Common in the *Shrek* games |
+| **Auto-action buttons** | Selecting the button activates it | No Enter needed | Moving onto one presses it (remote keys and on-screen remote). Common in the a test disc's games |
 | **Button groups** | Up to three button layouts for 16:9, letterbox and pan-scan. Group type bits: 1 = 16:9/normal, 2 = letterbox, 4 = pan-scan (the test discs' menus confirm this) | Uses the group for its display mode | The browser always shows the whole 16:9 frame, so the session uses the normal group and the matching wide sub-picture stream. The letterbox group is used only for a viewer who asks for 4:3 (no client does). **Changed:** `wittydvd crawl` and `walk` now read the same group as the player. Tested |
 | **Highlight status 2 and 3** | "Same highlight as the previous VOBU" | Keeps the buttons | The button table is read from every VOBU whose status is not 0. A looping cell may never repeat a status 1 VOBU |
 | **Highlight colours** | Select and action colour/contrast per button | Draws the selected look | Pre-rendered per button (`menu.go`, `spu.go`) |
@@ -79,7 +78,7 @@ them.
 
 | Feature | What it is | Hardware player | WittyDVD |
 |---|---|---|---|
-| **Several control sequences in one unit** | A sub-picture unit is a bitmap plus a chain of display control sequences, each applied at its own delay. They can change colours, area or pixel data, or start and stop display again (blinking) | Applies each at its time | **New:** `DecodeSPUFrames` returns one picture per state, each with its own start and stop, and the session makes one subtitle event of each. Before, everything folded into one picture (first start, first stop, last colours). A start before the display area is known shows from the sequence that completes it. Delays that go back in time are clamped. All 7,299 units of *Shrek 2*'s feature are single pictures, so normal subtitles are unchanged |
+| **Several control sequences in one unit** | A sub-picture unit is a bitmap plus a chain of display control sequences, each applied at its own delay. They can change colours, area or pixel data, or start and stop display again (blinking) | Applies each at its time | **New:** `DecodeSPUFrames` returns one picture per state, each with its own start and stop, and the session makes one subtitle event of each. Before, everything folded into one picture (first start, first stop, last colours). A start before the display area is known shows from the sequence that completes it. Delays that go back in time are clamped. All 7,299 units of one test disc's feature are single pictures, so normal subtitles are unchanged |
 | **Changing display areas** | `SET_DAREA` or `SET_DSPXA` in a later sequence: the picture moves, or shows another part of the bitmap | Re-draws | Covered by the above. Each state has its own area and bitmap |
 | **CHG_COLCON** | Colour and contrast changes for line ranges and columns of the picture (karaoke wipes, two-colour subtitles, menu artwork) | Applies them | **New:** parsed (`parseColCon`) and applied when a sub-picture is drawn with its own look. A button highlight still wins inside its button, as on players. The parameter area is size-checked and fuzzed |
 | **Forced subtitles** | `FSTA_DSP` (forced start): shows even with subtitles off (signs, alien speech) | Shows them | `SPU.Forced`. The player shows forced events of the active stream when subtitles are off (`forcedStream`). Can be turned off in the viewing settings |
@@ -92,9 +91,9 @@ them.
 
 | Feature | What it is | Hardware player | WittyDVD |
 |---|---|---|---|
-| **Angle blocks** | Cells in a block, one per camera angle (cell type 1–3, block type 1) | Plays the cell for SPRM 3 | `angleCell`. Titles are flattened per angle (`TitleAngle`), and the Angle picker restarts the stream at the same moment. *Shrek* has a 2-angle block in its feature |
+| **Angle blocks** | Cells in a block, one per camera angle (cell type 1–3, block type 1) | Plays the cell for SPRM 3 | `angleCell`. Titles are flattened per angle (`TitleAngle`), and the Angle picker restarts the stream at the same moment. one test disc has a 2-angle block in its feature |
 | **Interleaved blocks and seamless branching** | Cells stored interleaved on disc, in ILVUs | Reads only the VOBUs of the playing cell, jumping ILVU to ILVU | `CellRanges` follows the VOB and cell ids in each VOBU's DSI, so another angle or branch never plays in between. The DSI's seamless (ILVU and PREU) flags and angle jump tables are documented in the references; walking the VOBUs gives the same result without them |
-| **STC discontinuities** | A cell's timestamps start over (444 cells on *Shrek*) | Resets its clock | Every cell is its own entry in the converter's concat list, so timestamps are rebased per cell |
+| **STC discontinuities** | A cell's timestamps start over (444 cells on one test disc) | Resets its clock | Every cell is its own entry in the converter's concat list, so timestamps are rebased per cell |
 | **Chapter table vs PGCs** | A title's chapter table (PTT) names PGC/program pairs, which need not match how the PGCs link | Chapter search uses the table | Chapters come from the table. A title PGC without a next link continues with the next PGC the table names (`nextTitlePGC`). **New:** a table entry naming a PGC that does not exist starts the title at its entry PGC. A program that does not exist starts at the PGC's first cell |
 | **Title types** | TT_SRPT: one-sequential-PGC titles or not, and which commands are present | Restricts some operations | Parsed (`PlayType`); used only for diagnostics |
 
@@ -104,7 +103,7 @@ them.
 |---|---|---|---|
 | **CSS scrambling** | Encrypted sectors (PES scrambling control bits set) | Decrypts with licensed keys | **Refused.** Scrambled packs are detected in menu scans and subtitle reads (`PackScrambled`), and the disc stops with a message. WittyMediaServer never decrypts anything, and never will |
 | **Broken IFO, intact backup** | VIDEO_TS.IFO or VTS_xx_0.IFO is unreadable, zeroed or truncated; the .BUP copy is fine | Reads the backup | **Changed:** before, the .BUP was used only when the IFO file was missing. Now it is also used when the IFO does not parse (`readIFO`). Tested with a zeroed title set IFO and a truncated VMG |
-| **Junk titles and PGCs** (ARccOS- and RipGuard-style structural protection) | Decoy titles that replay the feature's cells in scrambled order or many times over; cells pointing outside the VOB; unreadable sectors; PGCs that link in circles | Follows only what the menus do, so it never meets the junk | Nothing is decrypted or bypassed; these are structural defences, and WittyDVD simply plays safely through them. **New:** unplayable cells are skipped, and **Play movie** chooses the title with the most *distinct* video, preferring titles that play their cells in disc order over decoys of the same length. Already in place: hop and step limits on the navigator and VM (`maxHops`, `maxVMSteps`), so circular links stop with a message, and the feature guard bypass (see DVD.md). Tested with a synthetic decoy title and a junk-cell loop |
+| **Junk titles and PGCs** (damaged or decoy structures on some discs) | Decoy titles that replay the feature's cells in scrambled order or many times over; cells pointing outside the VOB; unreadable sectors; PGCs that link in circles | Follows only what the menus do, so it never meets the junk | Nothing is decrypted or removed; WittyDVD follows the disc's navigation like a hardware player and doesn't stop on what it can't play. **New:** unplayable cells are skipped, and **Play movie** chooses the title with the most *distinct* video, preferring titles that play their cells in disc order over decoys of the same length. Already in place: hop and step limits on the navigator and VM (`maxHops`, `maxVMSteps`), so circular links stop with a message, and direct play of the feature (see DVD.md). Tested with a synthetic decoy title and a junk-cell loop |
 | **Bad sectors in images** | Zero-filled where the disc could not be read | Skips | **New:** a cell that does not start with a NAV pack plays without buttons instead of stopping. The interleave scan stops at the first sector that is not a NAV pack and uses what it has; subtitle reads skip what they cannot parse |
 
 ## Regions and parental management
@@ -115,10 +114,10 @@ them.
 | **Multi-region discs** | Several regions allowed; some discs branch on SPRM 20 (trailers per region) | Its own region | The lowest allowed region |
 | **Parental blocks** | Alternative versions of a scene as consecutive title PGCs (PGC category block type 1, modes first/middle/last). Each has a parental ID mask; the VMG's parental table (PTL_MAIT) gives, per country and level 1–8, the mask of each title set | Plays the PGC whose mask matches the table for its level and country | **New:** the table is parsed (`parsePTLMAIT`) and the navigator picks the matching PGC when it enters a block (`parentalPGC`). With parental control off (SPRM 13 = 15) it acts at level 8, which permits everything (the references do not define this case). A country the table does not list uses its first entry. Tested |
 
-## Late video: Shrek 2's Far Far Away Idol credits
+## Late video: credits on a bonus short
 
-**What the disc does.** The credits of the *Far Far Away Idol* short (*Shrek 2*, VTS 11 PGC 13,
-cell 1, 173.3 s) are 31 different credit cards, encoded as 31 consecutive frames of a normal
+**What the disc does.** The credits of a bonus short on one test disc (VTS 11 PGC 13, cell 1,
+173.3 s) are 31 different credit cards, encoded as 31 consecutive frames of a normal
 I/P/B group of pictures at 25 frames a second. That is 1.24 s of video in the first two VOBUs.
 The remaining 172 s are VOBUs with sound only: the DSI's first-reference address is 0, and the
 VOBU search information says no later VOBU has video. There is no sequence end code, no still
@@ -184,7 +183,6 @@ A frame-rate filter was tried and made no difference, so it was not added.
   [FFmpeg development list, 2006](https://ffmpeg.org/pipermail/ffmpeg-devel/2006-December/008283.html).
 - VOBU presentation periods and slide shows on DVD-Video:
   [EP 1665268](https://data.epo.org/gpi/EP1665268A2).
-- The *Far Far Away Idol* credits: [Shrek wiki](https://shrek.fandom.com/wiki/Far_Far_Away_Idol)
   (as quoted by search results; the page could not be fetched).
 
 ---

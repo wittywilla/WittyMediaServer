@@ -37,7 +37,7 @@ DVD-Video navigation model.
 | 🧭 | **Navigates like a player** | first play, menus and titles, resume points, stills, menu loops, random and shuffled programs, parental blocks, chapter skipping, and the title, root, audio, subtitle, angle and chapter menu keys |
 | 🔘 | **Reads NAV packs** | button positions, colours and links (PCI), cell timing and seamless branching (DSI), interleaved multi-angle cells |
 | 🖼️ | **Decodes sub-pictures** | menu highlights and subtitles rendered to RGBA with the disc's palette, cropped to the button or line; every display control sequence and CHG_COLCON colour region |
-| 🩹 | **Copes with damaged discs** | a broken IFO is read from its backup (.BUP); junk cells and decoy titles used as structural copy protection are passed over safely |
+| 🩹 | **Copes with damaged discs** | a broken IFO is read from its backup (.BUP); junk cells and decoy titles don't stop it; nothing is decrypted or removed |
 | 🔒 | **Refuses scrambled discs** | CSS-protected images are detected and refused; nothing is ever decrypted |
 | 🛠️ | **Diagnoses discs** | the `wittydvd` tool reports all of the above and simulates a run through the menus |
 
@@ -48,7 +48,7 @@ to play, when, and what to draw over them*.
 
 ```bash
 go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest
-wittydvd info SHREK_2.ISO
+wittydvd info MY_DISC.ISO
 ```
 
 Needs Go 1.26 or newer; the tool lands in `$(go env GOPATH)/bin`. To use the library in your own
@@ -73,7 +73,7 @@ built into WittyMediaServer as `wms dvd …`.
 ```go
 import "github.com/wittywilla/wittydvd"
 
-o, err := wittydvd.Open("SHREK_2.ISO")     // an image or a VIDEO_TS folder
+o, err := wittydvd.Open("MY_DISC.ISO")     // an image or a VIDEO_TS folder
 if err != nil { return err }
 defer o.Close()
 
@@ -150,6 +150,16 @@ refused rather than trusted, and the parsers are fuzz-tested.
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyDVD, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+## Legal
+
+WittyDVD is an independent open-source project. It isn't associated with, sponsored by or endorsed
+by the DVD format's owners, any film studio or any other player project. “DVD” is a trademark of DVD
+Format/Logo Licensing Corporation; WittyDVD isn't a licensed or certified DVD product and uses no
+DVD logo. CSS-scrambled discs are refused, nothing is decrypted, and no media comes with it: you're
+responsible for having the rights to what you open. Any third-party names here only describe what it
+works with, and belong to their owners. It's provided “as is”, with no warranty; see
+[LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.
 
 <!-- module-kit -->
 ## Releasing

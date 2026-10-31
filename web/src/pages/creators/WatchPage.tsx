@@ -10,6 +10,7 @@ import InlinePlayer from '../../player/InlinePlayer'
 import { useApp } from '../../state'
 import { Avatar, Comments, EditVideoDialog, LikeButtons, SubscribeButton, viewsOf } from './parts'
 import '../../creators.css'
+import LegalNote from '../../components/LegalNote'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -88,6 +89,7 @@ export default function WatchPage() {
           </>
         )}
         {!d && !err && <Spinner />}
+        {d && <LegalNote kind="creators" />}
       </div>
       <aside className="ch-next" aria-label="Up next">
         <div className="ch-next-head">

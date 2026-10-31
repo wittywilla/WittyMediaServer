@@ -590,6 +590,41 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .legal h3 { margin: var(--sp-5) 0 6px; font-size: var(--text-base); }
 .legal code { background: var(--bg-3); padding: 1px 6px; border-radius: var(--r-xs); }
 
+/* The short legal notices (components/LegalNote). */
+.legal-note { margin: var(--sp-4) 0 0; max-width: 72ch; color: var(--fg-3); font-size: var(--text-xs); line-height: 1.5; }
+.legal-note a, .auth-version a, .oobe-ack a, .legal-ack-bar a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
+.legal-top { margin: 0 0 var(--sp-4); }
+.set-legal { margin: 0 0 var(--sp-4); }
+/* The page's own notice says more than the general one, and settings show no media. */
+.legal-foot { margin: var(--section-gap) auto 0; text-align: center; }
+.content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
+.legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
+.legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
+.oobe-ack { display: flex; align-items: flex-start; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
+.oobe-ack input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.ctv-legal { margin: var(--sp-2) 0; padding: 0 var(--sp-3); max-width: none; color: var(--ctv-soft); }
+.ctv-legal a { color: var(--ctv-text); }
+/* The full Legal page (pages/settings/Legal.tsx). */
+.legal-doc [id] { scroll-margin-top: 72px; }
+.legal-toc { margin: 0 0 var(--sp-4); font-size: var(--text-sm); }
+.legal-toc ul { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); list-style: none; margin: 0; padding: 0; }
+.legal-toc a { display: inline-block; padding: 4px 0; color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
+.legal-fill { padding: 1px 4px; border-radius: var(--r-xs); background: var(--bg-3); color: var(--fg); outline: 1px dashed var(--fg-3); }
+.legal-owner { white-space: pre-wrap; overflow-wrap: anywhere; }
+.legal-owner-input { width: 100%; }
+.legal-updated { max-width: 72ch; font-size: var(--text-sm); }
+.legal-services { display: grid; gap: var(--sp-3); margin: var(--sp-3) 0 0; padding: 0; list-style: none; max-width: 72ch; }
+.legal-services li { padding-top: var(--sp-3); border-top: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
+.legal-services b { color: var(--fg); }
+.legal-services dl { margin: var(--sp-1) 0 0; }
+.legal-services dl div { display: grid; grid-template-columns: 5.5em 1fr; gap: var(--sp-2); }
+.legal-services dt { color: var(--fg-3); }
+.legal-services dd { margin: 0; overflow-wrap: anywhere; }
+.legal-services a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.legal-public { max-width: 880px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) var(--section-gap); }
+.legal-public-head { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.legal-public-head h1 { margin: 0; }
+
 /* ---------------------------------------------------------------- disc page */
 .disc-sections { margin-top: var(--sp-3); }
 .disc-sections section { margin-top: var(--sp-2); }

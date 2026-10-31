@@ -496,7 +496,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		input = abs // fMP4 streams run FFmpeg in another folder
 	}
 	spec := hls.Spec{
-		SubtitleText: s.textBurn(burn, pr), InputArgs: ffmpeg.FileInput(input), Source: input, Duration: pr.Duration(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
+		SubtitleText: s.textBurn(burn, pr), InputArgs: ffmpeg.FileInput(input), Source: input, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
 		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: "aac",
 	}
 	spec.MaxHeight = playback.Smallest(spec.MaxHeight, p.MaxHeight)

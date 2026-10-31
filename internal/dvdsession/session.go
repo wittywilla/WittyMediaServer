@@ -1121,16 +1121,13 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 	if audioN < len(v.Audio) && v.Audio[audioN].Channels > 2 {
 		channels = 6
 	}
+	runs, err := s.opened.TitleRuns(sp, ts.Cells)
+	if err != nil {
+		return err
+	}
 	var segs []ffmpeg.Segment
-	for _, c := range ts.Cells {
-		ext, err := s.opened.CellExtents(sp, c.Cell)
-		if err != nil {
-			return err
-		}
-		if len(ext) == 0 {
-			continue
-		}
-		segs = append(segs, ffmpeg.Segment{Extents: ext, Duration: c.Cell.Duration})
+	for _, r := range runs {
+		segs = append(segs, ffmpeg.Segment{Extents: r.Extents, Duration: r.Duration, Lead: r.Lead})
 	}
 	// Subtitles are rendered by the client from the disc's sub-pictures, so
 	// the stream only depends on the audio track.
@@ -1152,7 +1149,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 			return err
 		}
 		s.m.HLS.Ensure(hls.Spec{
-			ID: id, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false),
+			ID: id, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false), SeekMargin: 1.5,
 			AudioIndex: audioIdx, AudioChannels: channels, AudioFilter: audioFilter, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 		})
 	}

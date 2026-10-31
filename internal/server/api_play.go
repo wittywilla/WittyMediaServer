@@ -221,7 +221,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), VideoFilter: vf,
+		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"

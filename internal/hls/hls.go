@@ -75,6 +75,13 @@ type Spec struct {
 	// Preset overrides the libx264 preset (e.g. "superfast" for DVD menus or
 	// low-power machines). Ignored by hardware encoders.
 	Preset string
+	// SeekMargin is how far (seconds) before where it should start FFmpeg begins
+	// reading, then cuts to the exact frame. Transport and program streams have
+	// no index: a seek in them lands up to about a second late, and FFmpeg fills
+	// the gap by holding the first picture. That shows at every restart as a
+	// frozen moment and then a skip. It costs the decoding of this much at each
+	// start, so it is only for inputs that need it: a GOP or two is enough.
+	SeekMargin float64
 	// HoldLastFrame pads video (and audio) to Duration by repeating the last
 	// frame. DVD menus and transitions are often a single still picture
 	// shown for many seconds; without this the stream would be one frame
@@ -835,10 +842,18 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			args = append(args, a)
 		}
 	} else {
-		if start > 0 {
-			args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+		margin := sp.SeekMargin
+		if sp.SubtitleIndex >= 0 || sp.CopyVideo { // burning in lines up with the input's own clock; a copy starts at a keyframe
+			margin = 0
+		}
+		read := max(0, start-margin)
+		if read > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(read, 'f', 3, 64))
 		}
 		args = append(args, sp.InputArgs...)
+		if cut := start - read; cut > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(cut, 'f', 3, 64))
+		}
 	}
 	args = append(args, "-map", "0:v:0")
 	if sp.AudioIndex >= 0 {
@@ -936,6 +951,14 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		args = append(args, "-hls_segment_type", "fmp4", "-hls_fmp4_init_filename", "init.mp4")
 	} else {
 		args = append(args, "-hls_segment_type", "mpegts")
+		if !sp.CopyVideo {
+			// The encoder's first frames have decode times below zero when it
+			// starts at zero, and by default the muxers move the whole run later
+			// to avoid them (by two frames, or so). A restart further on has
+			// nothing to avoid, so the first restart would jump back by that much
+			// and the player would lose those frames. Both muxers need telling.
+			args = append(args, "-avoid_negative_ts", "disabled", "-hls_segment_options", "avoid_negative_ts=disabled")
+		}
 	}
 	if sp.Growing {
 		args = append(args, "-hls_playlist_type", "event")

@@ -1019,11 +1019,14 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 	}
 	s.m.HLS.Ensure(hls.Spec{
 		ID: id, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
-		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold,
+		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})
 	return id, audioIdx, nil
 }
+
+// seekMargin: a Blu-ray's groups of pictures run to a second or more.
+const seekMargin = 3.0
 
 func idsKey(ids []int) int {
 	k := 0

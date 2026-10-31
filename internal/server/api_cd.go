@@ -24,8 +24,9 @@ import (
 // map isn't, and a player asks for several ranges in a row. Nothing stays open for
 // long, and a changed sheet is read afresh.
 type cdDiscs struct {
-	mu sync.Mutex
-	m  map[string]*cdOpen
+	mu       sync.Mutex
+	m        map[string]*cdOpen
+	sweeping bool
 }
 
 type cdOpen struct {
@@ -54,12 +55,7 @@ func (c *cdDiscs) open(path string) (*wittycd.Disc, func(), error) {
 		c.m = map[string]*cdOpen{}
 	}
 	now := time.Now()
-	for p, o := range c.m {
-		if o.refs == 0 && now.Sub(o.used) > cdOpenIdle {
-			o.d.Close()
-			delete(c.m, p)
-		}
-	}
+	c.closeIdle(now, cdOpenIdle)
 	o := c.m[path]
 	if o != nil && (!o.mod.Equal(st.ModTime()) || o.size != st.Size()) {
 		delete(c.m, path)
@@ -98,8 +94,42 @@ func (c *cdDiscs) open(path string) (*wittycd.Disc, func(), error) {
 			if o.gone && o.refs == 0 {
 				o.d.Close()
 			}
+			// An image left open keeps the owner from moving or deleting it on Windows,
+			// so it is let go of even if nobody plays anything again.
+			if !c.sweeping {
+				c.sweeping = true
+				time.AfterFunc(cdOpenIdle+time.Second, c.sweep)
+			}
 		})
 	}, nil
+}
+
+// closeIdle closes what nobody has used for a while. The lock is held by the caller.
+func (c *cdDiscs) closeIdle(now time.Time, idle time.Duration) {
+	for p, o := range c.m {
+		if o.refs == 0 && now.Sub(o.used) >= idle {
+			o.d.Close()
+			delete(c.m, p)
+		}
+	}
+}
+
+func (c *cdDiscs) sweep() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closeIdle(time.Now(), cdOpenIdle)
+	c.sweeping = false
+	if len(c.m) > 0 {
+		c.sweeping = true
+		time.AfterFunc(cdOpenIdle+time.Second, c.sweep)
+	}
+}
+
+// closeAll lets go of everything nobody is using.
+func (c *cdDiscs) closeAll() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closeIdle(time.Now(), 0)
 }
 
 // cdItem finds a disc item a person may see, and opens it.

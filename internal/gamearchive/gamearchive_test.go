@@ -464,8 +464,9 @@ func TestAnArchiveThatKillsTheWorkerOnlyKillsTheWorker(t *testing.T) {
 	bad := write(t, filepath.Join(dir, "bad.7z"), sevenZipHeader(huge))
 	l := NewLister()
 	defer l.Close()
-	_, err := l.List(bad, 0)
-	if err == nil || !errors.Is(err, ErrDamaged) || !Transient(err) {
+	// On 64 bits this ends the worker. On 32 the decoder can tell it's impossible, and
+	// says so. Either way it's a damaged archive, and only that.
+	if _, err := l.List(bad, 0); !errors.Is(err, ErrDamaged) {
 		t.Fatalf("got %v", err)
 	}
 	got, err := l.List("testdata/cart.7z", 0)
@@ -1090,7 +1091,7 @@ func TestClosingStopsAnUnpack(t *testing.T) {
 	// Random data, so this takes long enough to be stopped halfway.
 	big := make([]byte, 64<<20)
 	for i := range big {
-		big[i] = byte(i * 2654435761 >> 13)
+		big[i] = byte(uint64(i) * 2654435761 >> 13)
 	}
 	p := write(t, filepath.Join(dir, "big.tar"), tarBytes(t, tarFile{name: "big.sfc", data: big}))
 	c := &Cache{Dir: filepath.Join(dir, "unpacked"), Limit: func() int64 { return 1 << 30 }}
@@ -1159,6 +1160,10 @@ func TestAbandonedUnpacksStop(t *testing.T) {
 func TestWorkerAnswersOnlyWithCodes(t *testing.T) {
 	if got := CodeOf(plainError(io.ErrUnexpectedEOF)); got != ErrDamaged.Code {
 		t.Fatalf("got %q", got)
+	}
+	// A worker that stopped says nothing lasting about the file; a damaged file does.
+	if !Transient(errWorkerGone) || !errors.Is(errWorkerGone, ErrDamaged) || Transient(ErrDamaged) || CodeOf(errWorkerGone) != ErrDamaged.Code {
+		t.Fatal("a worker that stopped should count as damage for now, and be asked about again")
 	}
 	bad := &Listing{Entries: []Entry{{Name: "../evil"}}}
 	if err := bad.check(); !errors.Is(err, ErrUnsafe) {

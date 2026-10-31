@@ -92,7 +92,7 @@ func (p *proc) env() []string {
 func (p *proc) newCmd() *exec.Cmd {
 	// More address space than the job's limit on Windows, which counts only memory in
 	// use: Go asks for more than it touches. GOMEMLIMIT keeps real use to softMemory.
-	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, p.network, []string{wittymodule.HelperFlag})
+	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, p.network, p.strict, []string{wittymodule.HelperFlag})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()

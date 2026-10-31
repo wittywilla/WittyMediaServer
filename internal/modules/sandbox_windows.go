@@ -53,7 +53,7 @@ func lowIntegrityToken() (windows.Token, error) {
 	return tok, nil
 }
 
-func launchWith(launcher, program string, memoryMB int64, devices bool, args []string) (string, []string) {
+func launchWith(launcher, program string, memoryMB int64, devices, strict bool, args []string) (string, []string) {
 	return program, args
 }
 

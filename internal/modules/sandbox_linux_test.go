@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -67,5 +68,5 @@ func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
 		return
 	}
 	os.Setenv("WMS_SANDBOX_CHILD", "1")
-	os.Exit(RunSandboxed([]string{"2048", "0", exe, "-test.run=TestLauncherStopsWritesAndHoldsMemory"}))
+	os.Exit(RunSandboxed([]string{"2048", strconv.Itoa(sandboxStrict), exe, "-test.run=TestLauncherStopsWritesAndHoldsMemory"}))
 }

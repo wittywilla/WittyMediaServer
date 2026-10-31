@@ -43,16 +43,25 @@ const SandboxFlag = "__module-sandbox"
 // launchWith wraps a helper's start in the server itself, which applies limits to its
 // own process and then becomes the helper. They survive that, and nothing in the helper
 // can skip them, so they hold for code this project didn't write too.
-func launchWith(launcher, program string, memoryMB int64, devices bool, args []string) (string, []string) {
+func launchWith(launcher, program string, memoryMB int64, devices, strict bool, args []string) (string, []string) {
 	if launcher == "" {
 		return program, args
 	}
-	dev := "0"
+	mode := 0
 	if devices {
-		dev = "1"
+		mode |= sandboxDevices
 	}
-	return launcher, append([]string{SandboxFlag, strconv.FormatInt(memoryMB, 10), dev, program}, args...)
+	if strict {
+		mode |= sandboxStrict
+	}
+	return launcher, append([]string{SandboxFlag, strconv.FormatInt(memoryMB, 10), strconv.Itoa(mode), program}, args...)
 }
+
+// What the launcher is asked to allow and to insist on.
+const (
+	sandboxDevices = 1 << iota // a tuner opens its device for writing
+	sandboxStrict              // a fork: if a limit can't be applied, it doesn't run
+)
 
 // The Landlock system calls and write access rights, from the kernel's stable ABI.
 const (
@@ -64,20 +73,22 @@ const (
 	landlockWrite = 1<<1 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<8 | 1<<9 | 1<<10 | 1<<11 | 1<<12
 )
 
-// RunSandboxed is the server's other life as a launcher: args are memory in MiB, whether
-// devices may be opened for writing, the program, and its arguments. It never returns if
-// all goes well. A layer this kernel lacks is skipped, as with the other limits; no new
-// privileges and the memory limit are expected everywhere.
+// RunSandboxed is the server's other life as a launcher: args are memory in MiB, the mode,
+// the program, and its arguments. It never returns if all goes well. A layer this kernel
+// lacks is skipped for a stock helper, as with the other limits; for a fork it means not
+// running. No new privileges is expected everywhere.
 func RunSandboxed(args []string) int {
 	if len(args) < 3 {
 		fmt.Fprintln(os.Stderr, "this is how the server starts a module's helper; there is nothing to do by hand")
 		return 2
 	}
 	mem, err := strconv.ParseUint(args[0], 10, 32)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "unreadable memory limit")
+	mode, merr := strconv.Atoi(args[1])
+	if err != nil || merr != nil {
+		fmt.Fprintln(os.Stderr, "unreadable limits")
 		return 2
 	}
+	strict := mode&sandboxStrict != 0
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		fmt.Fprintln(os.Stderr, "no new privileges:", err)
 		return 1
@@ -87,14 +98,23 @@ func RunSandboxed(args []string) int {
 		n := mem << 20
 		if err := unix.Setrlimit(unix.RLIMIT_AS, &unix.Rlimit{Cur: n, Max: n}); err != nil {
 			fmt.Fprintln(os.Stderr, "memory limit:", err)
+			if strict {
+				return 1
+			}
 		}
 	}
 	var writable []string
-	if args[1] == "1" {
-		writable = append(writable, "/dev") // a tuner opens its device for writing
+	if mode&sandboxDevices != 0 {
+		writable = append(writable, "/dev")
 	}
-	if err := denyWrites(writable); err != nil && !errors.Is(err, syscall.ENOSYS) && !errors.Is(err, syscall.EOPNOTSUPP) {
-		fmt.Fprintln(os.Stderr, "write limits:", err)
+	if err := denyWrites(writable); err != nil {
+		if strict {
+			fmt.Fprintln(os.Stderr, "this system won't stop a module from another publisher changing files:", err)
+			return 1
+		}
+		if !errors.Is(err, syscall.ENOSYS) && !errors.Is(err, syscall.EOPNOTSUPP) {
+			fmt.Fprintln(os.Stderr, "write limits:", err)
+		}
 	}
 	err = syscall.Exec(args[2], args[2:], os.Environ())
 	fmt.Fprintln(os.Stderr, "could not start:", err)

@@ -14,7 +14,7 @@ func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool { return
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
 
-func launchWith(launcher, program string, memoryMB int64, devices bool, args []string) (string, []string) {
+func launchWith(launcher, program string, memoryMB int64, devices, strict bool, args []string) (string, []string) {
 	return program, args
 }
 

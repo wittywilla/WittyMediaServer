@@ -46,6 +46,9 @@ type ErrInUse struct {
 }
 
 func (e *ErrInUse) Error() string {
+	if len(e.Libraries) == 1 {
+		return fmt.Sprintf("%s can't be removed while your library %s needs it. Remove that library first.", e.Module, e.Libraries[0])
+	}
 	return fmt.Sprintf("%s can't be removed while %d of your libraries need it (%s). Remove those libraries first.", e.Module, len(e.Libraries), joinNames(e.Libraries))
 }
 

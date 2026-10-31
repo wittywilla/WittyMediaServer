@@ -206,8 +206,8 @@
         "accent": "#6d4fe0",
         "onAccent": "#ffffff",
         "accentText": "#6d4fe0",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#cf2537",
+        "ok": "#117b50"
       }
     },
     {
@@ -225,8 +225,8 @@
         "accent": "#2563eb",
         "onAccent": "#ffffff",
         "accentText": "#1e5eea",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -244,8 +244,8 @@
         "accent": "#966319",
         "onAccent": "#ffffff",
         "accentText": "#8f5f18",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -263,8 +263,8 @@
         "accent": "#117f3a",
         "onAccent": "#ffffff",
         "accentText": "#107b38",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -282,8 +282,8 @@
         "accent": "#be480a",
         "onAccent": "#ffffff",
         "accentText": "#b7450a",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -301,8 +301,8 @@
         "accent": "#db2777",
         "onAccent": "#ffffff",
         "accentText": "#c7216b",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -320,8 +320,8 @@
         "accent": "#6d4fe0",
         "onAccent": "#ffffff",
         "accentText": "#6d4fe0",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -339,8 +339,8 @@
         "accent": "#dc2626",
         "onAccent": "#ffffff",
         "accentText": "#cd2121",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {
@@ -358,8 +358,8 @@
         "accent": "#0b7a70",
         "onAccent": "#ffffff",
         "accentText": "#0b756c",
-        "danger": "#d92d3f",
-        "ok": "#14915f"
+        "danger": "#ca2536",
+        "ok": "#11784f"
       }
     },
     {

@@ -31,7 +31,11 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
-      - run: WMS_TEST_LAN=1 go test ./... -count=1
+      - name: Tests
+        run: |
+          WMS_TEST_LAN=1 go test ./... -count=1 -json > "$RUNNER_TEMP/go-test.json" || failed=1
+          python3 scripts/ci-test-report.py "$RUNNER_TEMP/go-test.json"
+          exit ${failed:-0}
       # Transcodes, disc sessions and scans run concurrently; only this finds data races.
       - name: Race detector
         run: CGO_ENABLED=1 go test -race -count=1 ./internal/...

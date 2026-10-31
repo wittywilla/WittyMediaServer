@@ -11,7 +11,7 @@ import { PageHead, Section } from './ui'
 
 type Status = {
   runner: string; encoders: string[]; consoles: GameConsole[]; cores: GameCore[]; canDownload: boolean
-  coresDir: string; systemDir: string; running: number
+  coresDir: string; systemDir: string; running: number; unpackedBytes?: number
 }
 
 export default function GamingSettings() {
@@ -115,6 +115,10 @@ export default function GamingSettings() {
                 <option value="builtin">Built in</option>
                 <option value="retroarch">WittyRetroArch, when installed</option>
               </select>
+            </label>
+            <label>Space for unpacked games (GB)
+              <input className="input" type="number" min={1} max={100000} defaultValue={settings.gamingUnpackGB || '16'} onBlur={(e) => put({ gamingUnpackGB: e.target.value })} />
+              <small className="muted">Games in archives are unpacked here when played, and kept for next time. The longest unplayed go first when it fills up.{st?.unpackedBytes ? ` In use now: ${(st.unpackedBytes / 1073741824).toFixed(1)} GB.` : ''}</small>
             </label>
             <label>UDP port for WebRTC
               <input className="input" type="number" min={0} max={65535} defaultValue={settings.gamingUdpPort || ''} placeholder="Any free port" onBlur={(e) => put({ gamingUdpPort: e.target.value })} />

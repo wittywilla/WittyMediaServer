@@ -209,6 +209,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 
 	var all []candidate
 	var offline []string
+	var archives *archiveIndex
+	if lib.Type == "games" {
+		archives = newArchiveIndex(s.Store, libraryID)
+		defer archives.close()
+	}
 	for _, root := range lib.Paths {
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
 		// A drive or share that is away (an unmounted mount point reads as an
@@ -231,7 +236,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		case lib.Type == CommercialsType, lib.Type == "videos":
 			find = discoverClips
 		case lib.Type == "games":
-			find = func(root string) ([]candidate, error) { return discoverGames(root, lib.Console) }
+			find = func(root string) ([]candidate, error) { return archives.discover(root, lib.Console) }
 		}
 		c, err := find(root)
 		if err != nil {
@@ -243,7 +248,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		all = append(all, c...)
 	}
 	if lib.Type == "games" {
-		s.Store.noteSkippedGames(ctx, lib)
+		s.Store.noteSkippedGames(ctx, lib, archives)
+		archives.save(ctx, len(offline) == 0)
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}

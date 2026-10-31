@@ -12,12 +12,15 @@ import './play.css'
 
 export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; modes: { id: string }[] }
 export type SaveSlot = { slot: number; updatedAt: number; size: number; hasThumb: boolean }
+export type PrepareStatus = { state: 'ready' | 'waiting' | 'reading' | 'unpacking'; done: number; total: number }
 
 export interface PlayHost {
   itemId: number
   title: string
   consoleId: string
   resume: boolean
+  // Gets a game ready, for one that has to be unpacked first. Called until it's ready.
+  prepare?(): Promise<PrepareStatus>
   start(resume: boolean): Promise<SessionInfo>
   stop(sessionId: string): Promise<void>
   answer(sessionId: string, sdp: string, prefer?: string): Promise<string>
@@ -34,6 +37,23 @@ type Panel = null | 'menu' | 'save' | 'load' | 'controllers' | 'connection' | 't
 
 const MODE_KEY = 'wittyplay.mode'
 const TOUCH_KEY = 'wittyplay.touch'
+
+// prepared waits for a game that has to be unpacked before it can start, saying how
+// that's going. A large disc can take minutes on a small server.
+async function prepared(host: PlayHost, say: (s: string) => void, cancelled: () => boolean) {
+  if (!host.prepare) return
+  for (let waited = false; ; waited = true) {
+    const p = await host.prepare()
+    if (cancelled()) return
+    if (p.state === 'ready') {
+      if (waited) say('Starting the game…')
+      return
+    }
+    if (p.state === 'waiting') say('Waiting for another game to finish unpacking…')
+    else say(p.state === 'unpacking' && p.total > 0 ? `Unpacking the game… ${Math.min(99, Math.floor((p.done / p.total) * 100))}%` : 'Unpacking the game…')
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+}
 
 export default function GamePlayer({ host }: { host: PlayHost }) {
   const [controls, setControls] = useState<ControlsData | null>(null)
@@ -138,13 +158,13 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   useEffect(() => {
     let cancelled = false
     closing.current = false
-    host.start(host.resume).then((s) => {
+    prepared(host, setStatus, () => cancelled).then(() => (cancelled ? Promise.reject(new Error('stopped')) : host.start(host.resume))).then((s) => {
       if (cancelled) { void host.stop(s.id).catch(() => {}); return }
       sessionRef.current = s
       setInfo(s)
       if (s.resumed) say('Back where you left off')
       void connect(s, mode)
-    }).catch((e) => setError(e?.message || 'The game could not start.'))
+    }).catch((e) => { if (!cancelled) setError(e?.message || 'The game could not start.') })
     input.start()
     input.onChange = () => {
       const pads = input.listPads()

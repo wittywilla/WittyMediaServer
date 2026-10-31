@@ -920,6 +920,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
+| `POST /games/{id}/prepare` | user | Game prepare. |
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |

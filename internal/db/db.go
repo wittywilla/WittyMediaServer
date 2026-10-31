@@ -274,6 +274,12 @@ var migrations = []string{
 	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
 	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(user_id, console, kind, key));`,
+	// What's inside each archive in a games library, so a scan reads one only once.
+	`CREATE TABLE IF NOT EXISTS game_archives (
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+	   path TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER NOT NULL,
+	   exts TEXT NOT NULL, problem TEXT NOT NULL,
+	   PRIMARY KEY(library_id, path));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

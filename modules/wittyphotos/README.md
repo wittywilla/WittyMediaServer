@@ -1,9 +1,13 @@
 # WittyPhotos
 
 What a photo says about itself, read without decoding it: EXIF (when, with what camera, where),
-the picture's dimensions, and the JPEG preview inside a camera RAW file. Pure Go with no
-dependencies. Used by the WittyPhotos library in
+the picture's dimensions, and the JPEG preview inside a camera RAW file. Pure Go, and the library
+itself has no dependencies. Used by the WittyPhotos library in
 [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
+
+`cmd/wittyphotos-module` is the same code as a helper process, so a new version can reach a server
+without a new server. Its `module.json` says which servers it works with, and a `v*` tag publishes a
+signed release of it. See WittyMediaServer's `docs/MODULES.md`.
 
 ```go
 info, err := wittyphotos.ReadFile("IMG_0001.heic")   // JPEG, TIFF, RAW, HEIC, AVIF, PNG, WebP

@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -150,6 +151,24 @@ func cmdServe(args []string) int {
 		}
 	}
 
+	// Modules: which version of each to use. Nothing here goes online; only Run does,
+	// and only while the settings allow it.
+	modMgr := modules.New(modules.Config{
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(modules.GoManifests(), web.ModuleManifests()...),
+		Transport: library.SafeClient.Transport, Log: log,
+		CheckEnabled: func() bool {
+			ctx := context.Background()
+			v := database.GetSetting(ctx, "moduleUpdateCheck", "")
+			if v == "" {
+				v = database.GetSetting(ctx, "updateCheck", "1")
+			}
+			return v == "1"
+		},
+		AutoInstall: func() bool { return database.GetSetting(context.Background(), "moduleAutoInstall", "0") == "1" },
+	})
+	defer modMgr.Close()
+	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
+
 	webFS := web.Dist()
 	if cfg.Dev {
 		webFS = os.DirFS(filepath.Join("web", "dist"))
@@ -157,7 +176,7 @@ func cmdServe(args []string) int {
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
-		Update: updater,
+		Update: updater, Modules: modMgr,
 	}
 	handler := srv.Handler()
 	httpServer := &http.Server{
@@ -238,6 +257,7 @@ func cmdServe(args []string) int {
 		go d.Run(ctx)
 	}
 	go updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
+	go modMgr.Run(ctx)
 	var restarting atomic.Bool
 	go func() {
 		select {

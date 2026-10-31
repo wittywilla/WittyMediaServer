@@ -1,0 +1,10 @@
+{
+  "id": "wittydvd",
+  "name": "WittyDVD",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyDVD",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x"
+}

@@ -14,6 +14,7 @@ import (
 //
 //	WMS_UPDATE_FEED  address of a releases list in GitHub's format
 //	WMS_UPDATE_KEY   base64 public key of a throwaway signing key
+//	WMS_MODULE_FEED  address of folder with a <Repository>.json list per plugin
 //
 // Downloads may then also come from this machine (loopback addresses).
 // Release builds never include this file.
@@ -21,7 +22,9 @@ func init() {
 	if k := os.Getenv("WMS_UPDATE_KEY"); k != "" {
 		devKeys = append(devKeys, k)
 	}
-	if f := os.Getenv("WMS_UPDATE_FEED"); f != "" {
+	devModuleFeed = os.Getenv("WMS_MODULE_FEED") // <address>/<Repository>.json
+	f := os.Getenv("WMS_UPDATE_FEED")
+	if f != "" || devModuleFeed != "" {
 		devFeedURL = f
 		devAllowURL = func(u *url.URL) bool {
 			ip := net.ParseIP(u.Hostname())

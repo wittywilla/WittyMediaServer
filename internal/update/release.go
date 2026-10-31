@@ -29,10 +29,11 @@ const (
 // Overrides for development builds made with -tags updatetest (see
 // devfeed_updatetest.go). They are never set in release builds.
 var (
-	devKeys      []string              // extra trusted public keys
-	devFeedURL   string                // replaces the GitHub releases API
-	devAllowURL  func(u *url.URL) bool // extra hosts downloads may come from
-	devTransport http.RoundTripper     // replaces the internet-only transport
+	devKeys       []string              // extra trusted public keys
+	devFeedURL    string                // replaces the GitHub releases API
+	devModuleFeed string                // replaces it for plugins: <this>/<Repository>.json
+	devAllowURL   func(u *url.URL) bool // extra hosts downloads may come from
+	devTransport  http.RoundTripper     // replaces the internet-only transport
 )
 
 // Asset is one file attached to a release.
@@ -58,7 +59,10 @@ type Release struct {
 // Signed: the release carries a checksum list and its signature.
 func (r *Release) Signed() bool { return r.Sums.URL != "" && r.Sig.URL != "" }
 
-type ghRelease struct {
+type ghRelease = GHRelease
+
+// GHRelease is one entry of GitHub's list of a repository's releases.
+type GHRelease struct {
 	TagName     string    `json:"tag_name"`
 	Name        string    `json:"name"`
 	Body        string    `json:"body"`
@@ -105,14 +109,6 @@ func allowedURL(u *url.URL) bool {
 	return false
 }
 
-func checkURL(raw string) (*url.URL, error) {
-	u, err := url.Parse(raw)
-	if err != nil || !allowedURL(u) {
-		return nil, fmt.Errorf("refusing to download from %q (only GitHub release files are allowed)", raw)
-	}
-	return u, nil
-}
-
 // latest picks the newest release above current that has a package for
 // goos/goarch. Drafts and unreadable versions are skipped.
 func latest(rels []ghRelease, current, goos, goarch string) *Release {
@@ -152,16 +148,31 @@ func latest(rels []ghRelease, current, goos, goarch string) *Release {
 	return best
 }
 
+// ErrNotFound: GitHub has no such repository or file.
+var ErrNotFound = errors.New("GitHub answered 404 Not Found")
+
+// Fetcher downloads from GitHub, and from nowhere else. Plugins' releases use
+// it too (internal/modules), so everything this server installs comes the same
+// way.
+type Fetcher struct {
+	UserAgent string
+	Transport http.RoundTripper
+}
+
+func (f *Fetcher) allowed(u *url.URL) bool {
+	return allowedURL(u)
+}
+
 // client builds an HTTP client that only follows redirects to allowed hosts.
-func (u *Updater) client() *http.Client {
-	tr := u.Transport
+func (f *Fetcher) client() *http.Client {
+	tr := f.Transport
 	if devTransport != nil {
 		tr = devTransport
 	}
 	return &http.Client{
 		Transport: tr,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 || !allowedURL(req.URL) {
+			if len(via) >= 5 || !f.allowed(req.URL) {
 				return errors.New("refusing a redirect away from GitHub")
 			}
 			return nil
@@ -169,19 +180,21 @@ func (u *Updater) client() *http.Client {
 	}
 }
 
-func (u *Updater) get(ctx context.Context, raw string, accept string) (*http.Response, error) {
-	if _, err := checkURL(raw); err != nil {
-		return nil, err
+// Get asks for an address; the caller closes the answer's body.
+func (f *Fetcher) Get(ctx context.Context, raw string, accept string) (*http.Response, error) {
+	u, err := url.Parse(raw)
+	if err != nil || !f.allowed(u) {
+		return nil, fmt.Errorf("refusing to download from %q (only GitHub release files are allowed)", raw)
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", raw, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "WittyMediaServer/"+u.Current)
+	req.Header.Set("User-Agent", f.UserAgent)
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
-	res, err := u.client().Do(req)
+	res, err := f.client().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -190,15 +203,18 @@ func (u *Updater) get(ctx context.Context, raw string, accept string) (*http.Res
 		if res.StatusCode == 403 || res.StatusCode == 429 {
 			return nil, errors.New("GitHub is limiting requests from this network; try again in an hour")
 		}
+		if res.StatusCode == 404 {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("GitHub answered %s", res.Status)
 	}
 	return res, nil
 }
 
-// fetchSmall downloads a small file completely, refusing anything larger
-// than limit.
-func (u *Updater) fetchSmall(ctx context.Context, raw string, limit int64) ([]byte, error) {
-	res, err := u.get(ctx, raw, "")
+// Small downloads a small file completely, refusing anything larger than
+// limit.
+func (f *Fetcher) Small(ctx context.Context, raw string, limit int64) ([]byte, error) {
+	res, err := f.Get(ctx, raw, "")
 	if err != nil {
 		return nil, err
 	}
@@ -213,19 +229,44 @@ func (u *Updater) fetchSmall(ctx context.Context, raw string, limit int64) ([]by
 	return b, nil
 }
 
+// Releases lists a repository's releases, newest first as GitHub gives them.
+func (f *Fetcher) Releases(ctx context.Context, repo string) ([]GHRelease, error) {
+	feed := "https://api.github.com/repos/" + repo + "/releases?per_page=20"
+	if devModuleFeed != "" {
+		feed = devModuleFeed + "/" + repo[strings.LastIndexByte(repo, '/')+1:] + ".json"
+	}
+	return f.feed(ctx, feed)
+}
+
+func (f *Fetcher) feed(ctx context.Context, feed string) ([]GHRelease, error) {
+	res, err := f.Get(ctx, feed, "application/vnd.github+json")
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	var rels []GHRelease
+	if err := json.NewDecoder(io.LimitReader(res.Body, maxFeedBytes)).Decode(&rels); err != nil {
+		return nil, fmt.Errorf("unreadable release list: %w", err)
+	}
+	return rels, nil
+}
+
+func (u *Updater) fetcher() *Fetcher {
+	return &Fetcher{UserAgent: "WittyMediaServer/" + u.Current, Transport: u.Transport}
+}
+
+func (u *Updater) get(ctx context.Context, raw string, accept string) (*http.Response, error) {
+	return u.fetcher().Get(ctx, raw, accept)
+}
+
+func (u *Updater) fetchSmall(ctx context.Context, raw string, limit int64) ([]byte, error) {
+	return u.fetcher().Small(ctx, raw, limit)
+}
+
 func (u *Updater) fetchReleases(ctx context.Context) ([]ghRelease, error) {
 	feed := apiURL
 	if devFeedURL != "" {
 		feed = devFeedURL
 	}
-	res, err := u.get(ctx, feed, "application/vnd.github+json")
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	var rels []ghRelease
-	if err := json.NewDecoder(io.LimitReader(res.Body, maxFeedBytes)).Decode(&rels); err != nil {
-		return nil, fmt.Errorf("unreadable release list: %w", err)
-	}
-	return rels, nil
+	return u.fetcher().feed(ctx, feed)
 }

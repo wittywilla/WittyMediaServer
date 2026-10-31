@@ -8,6 +8,7 @@ use (
 	./modules/wittydisc
 	./modules/wittydvd
 	./modules/wittyintegratedfilebrowser
+	./modules/wittymodule
 	./modules/wittyphotos
 	./modules/wittytuner
 	./modules/wittyplay

@@ -23,7 +23,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery"}
+	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -34,6 +34,10 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	"libraryGrouping": "combine",
 	// updateCheck: look for new releases on GitHub twice a day.
 	"updateCheck": "1",
+	// moduleAutoInstall: install compatible module updates without asking. Off
+	// unless the owner turns it on. moduleUpdateCheck has no default on purpose:
+	// until it is set, it follows updateCheck.
+	"moduleAutoInstall": "0",
 	// uploads and shareLinks: adults may add photos from their devices, and make
 	// links for people without an account. mapTiles (off when empty) is an online
 	// map provider's address for the photo map; nothing else ever contacts one.
@@ -44,15 +48,17 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
 var settingChecks = map[string]func(string) bool{
-	"crf":            intBetween(0, 51),
-	"maxHeight":      intBetween(0, 4320),
-	"maxSpeed":       floatBetween(1, 16),
-	"x264Preset":     oneOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"),
-	"qualityMode":    oneOf("easy", "advanced", "expert"),
-	"qualityProfile": oneOf("speed", "balanced", "quality"),
-	"audioCodec":     oneOf("aac", "mp3"),
-	"maxBitrate":     bitrateRe.MatchString,
-	"audioBitrate":   bitrateRe.MatchString,
+	"crf":               intBetween(0, 51),
+	"maxHeight":         intBetween(0, 4320),
+	"maxSpeed":          floatBetween(1, 16),
+	"x264Preset":        oneOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"),
+	"qualityMode":       oneOf("easy", "advanced", "expert"),
+	"qualityProfile":    oneOf("speed", "balanced", "quality"),
+	"audioCodec":        oneOf("aac", "mp3"),
+	"maxBitrate":        bitrateRe.MatchString,
+	"audioBitrate":      bitrateRe.MatchString,
+	"moduleUpdateCheck": oneOf("", "0", "1"),
+	"moduleAutoInstall": oneOf("0", "1"),
 }
 
 var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)

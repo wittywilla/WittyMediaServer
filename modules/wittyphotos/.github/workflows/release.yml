@@ -1,0 +1,41 @@
+# Runs in WittyPhotos's own repository, where this folder is the root. A version
+# tag builds every platform, signs the checksum list and publishes the release.
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: go vet ./... && go test ./... -count=1
+      - name: The tag must match module.json
+        run: |
+          want="$(sed -n 's/.*"version": *"\(.*\)".*/\1/p' module.json | head -1)"
+          [ "v$want" = "$GITHUB_REF_NAME" ] || { echo "module.json says $want, the tag is $GITHUB_REF_NAME"; exit 1; }
+      - name: Build and sign
+        env:
+          KEY: ${{ secrets.WMS_SIGNING_KEY }}
+        run: |
+          [ -n "$KEY" ] || { echo "the secret WMS_SIGNING_KEY is missing, and an unsigned release can't be installed"; exit 1; }
+          umask 077
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/release.key"
+          ver="${GITHUB_REF_NAME#v}"
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule check .
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule pack -out release .
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule sign -key "$RUNNER_TEMP/release.key" "release/wittyphotos-$ver-SHA256SUMS.txt"
+          rm -f "$RUNNER_TEMP/release.key"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=""
+          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" release/* --title "WittyPhotos ${GITHUB_REF_NAME#v}" --generate-notes $flags

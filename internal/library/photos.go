@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -28,9 +29,39 @@ var photoExts = map[string]bool{
 	".tif": true, ".tiff": true, ".heic": true, ".heif": true, ".hif": true, ".avif": true, ".jxl": true,
 }
 
+// PhotoEngine reads what photos say about themselves. The built-in copy of
+// WittyPhotos does this until a newer version replaces it (internal/modules).
+type PhotoEngine interface {
+	ReadFile(path string) (*wittyphotos.Info, error)
+	Dimensions(path string) (w, h int)
+	RawPreview(path string) ([]byte, error)
+	IsRaw(name string) bool
+}
+
+type builtinPhotos struct{}
+
+func (builtinPhotos) ReadFile(path string) (*wittyphotos.Info, error) {
+	return wittyphotos.ReadFile(path)
+}
+func (builtinPhotos) Dimensions(path string) (w, h int)      { return wittyphotos.Dimensions(path) }
+func (builtinPhotos) RawPreview(path string) ([]byte, error) { return wittyphotos.RawPreview(path) }
+func (builtinPhotos) IsRaw(name string) bool                 { return wittyphotos.IsRaw(name) }
+
+var photoEngine atomic.Pointer[PhotoEngine]
+
+// SetPhotoEngine chooses what reads photos, once at start.
+func SetPhotoEngine(e PhotoEngine) { photoEngine.Store(&e) }
+
+func photos() PhotoEngine {
+	if e := photoEngine.Load(); e != nil {
+		return *e
+	}
+	return builtinPhotos{}
+}
+
 // IsPhotoFile: a picture or camera RAW file by its name.
 func IsPhotoFile(name string) bool {
-	return photoExts[strings.ToLower(filepath.Ext(name))] || wittyphotos.IsRaw(name)
+	return photoExts[strings.ToLower(filepath.Ext(name))] || photos().IsRaw(name)
 }
 
 // IsVideoFile: a video file by its name.
@@ -95,7 +126,7 @@ func pairPhotos(c []candidate) []candidate {
 		if x.kind != "photo" {
 			continue
 		}
-		if j, ok := still[stem(x.path)]; ok && wittyphotos.IsRaw(c[j].path) {
+		if j, ok := still[stem(x.path)]; ok && photos().IsRaw(c[j].path) {
 			still[stem(x.path)] = i // the developed picture wins over its RAW
 		} else if !ok {
 			still[stem(x.path)] = i
@@ -195,7 +226,7 @@ func (s *Scanner) indexPhoto(ctx context.Context, lib *Library, c candidate) err
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	it.Title, it.SortTitle = base, SortTitle(base)
 	it.Container = strings.TrimPrefix(strings.ToLower(filepath.Ext(c.path)), ".")
-	m := photoMeta{Folder: relFolder(lib, c.path), Motion: c.motion, Raw: wittyphotos.IsRaw(c.path)}
+	m := photoMeta{Folder: relFolder(lib, c.path), Motion: c.motion, Raw: photos().IsRaw(c.path)}
 	if c.kind == "video" {
 		s.probeVideo(ctx, it)
 		s.videoDate(ctx, it, &m)
@@ -218,7 +249,7 @@ func (s *Scanner) indexPhoto(ctx context.Context, lib *Library, c candidate) err
 }
 
 func (s *Scanner) readPhoto(ctx context.Context, it *Item, m *photoMeta) {
-	in, err := wittyphotos.ReadFile(it.Path)
+	in, err := photos().ReadFile(it.Path)
 	if err == nil {
 		m.Make, m.Model, m.Lens, m.Exposure = in.Make, in.Model, in.Lens, in.Exposure
 		m.FNumber, m.Focal, m.ISO, m.Orientation = in.FNumber, in.FocalMM, in.ISO, in.Orientation
@@ -231,7 +262,7 @@ func (s *Scanner) readPhoto(ctx context.Context, it *Item, m *photoMeta) {
 		}
 		it.Width, it.Height = in.Width, in.Height
 	}
-	if w, h := wittyphotos.Dimensions(it.Path); w > 0 {
+	if w, h := photos().Dimensions(it.Path); w > 0 {
 		it.Width, it.Height = w, h // the picture's own header beats EXIF, which editors leave stale
 	} else if it.Width == 0 && !m.Raw {
 		pctx, cancel := context.WithTimeout(ctx, 20*time.Second)

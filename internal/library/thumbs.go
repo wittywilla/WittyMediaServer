@@ -138,9 +138,9 @@ func (s *Scanner) makeThumb(ctx context.Context, it *Item, width int, out string
 	if it.Height > longSide {
 		longSide = it.Height
 	}
-	if wittyphotos.IsRaw(it.Path) {
+	if photos().IsRaw(it.Path) {
 		// A camera's own development of the picture, stored in the file.
-		preview, err := wittyphotos.RawPreview(it.Path)
+		preview, err := photos().RawPreview(it.Path)
 		if err == nil {
 			src = out + ".raw.jpg"
 			if err := os.WriteFile(src, preview, 0o644); err != nil {

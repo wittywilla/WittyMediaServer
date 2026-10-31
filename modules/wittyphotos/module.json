@@ -1,0 +1,14 @@
+{
+  "id": "wittyphotos",
+  "name": "WittyPhotos",
+  "version": "0.2.0",
+  "repo": "wittywilla/WittyPhotos",
+  "delivery": "helper",
+  "entry": "wittyphotos-module",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x",
+  "capabilities": {
+    "rawExtensions": [".3fr", ".arw", ".cr2", ".cr3", ".crw", ".dcr", ".dng", ".erf", ".fff", ".iiq", ".kdc", ".mef", ".mos", ".mrw", ".nef", ".nrw", ".orf", ".pef", ".raf", ".rw2", ".rwl", ".sr2", ".srf", ".srw", ".x3f"]
+  }
+}

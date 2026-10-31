@@ -726,6 +726,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
+| `GET /modules` | admin | Every module: version in use, supported range, status and what is available (404 in builds that can't update them). |
+| `POST /modules/check` | admin | Look for module updates now. |
+| `POST /modules/{id}/install` | admin | Download, verify and install the version the last check found, with no restart. 202; follow it with `GET /modules`. |
+| `POST /modules/{id}/rollback` | admin | Go back to the previous version or the built-in copy. |
 
 ### Sign-in and accounts
 

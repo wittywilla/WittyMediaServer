@@ -42,14 +42,22 @@ jobs:
       # WittyPlay's streaming tests run a real game runner through a real FFmpeg.
       - name: Install FFmpeg for the WittyPlay tests
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: WittyDisc, WittyDVD, WittyBluray, WittyIntegratedFileBrowser, WittyTuner and WittyPlay modules (their own go.mod)
+      - name: Modules (their own go.mod)
         run: |
+          (cd modules/wittymodule && go vet ./... && go test ./... -count=1)
+          (cd modules/wittyphotos && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyphotos-module)
           (cd modules/wittydisc && go vet ./... && go test ./... -count=1)
           (cd modules/wittydvd && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittydvd)
           (cd modules/wittybluray && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittybluray)
           (cd modules/wittyintegratedfilebrowser && go vet ./... && go test ./... -count=1)
           (cd modules/wittytuner && go vet ./... && go test ./... -count=1)
           (cd modules/wittyplay && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyplay-host)
+      # Every manifest is sound, its range valid, and this server is inside it. A new
+      # server version that falls outside a range fails here until maxServer is raised.
+      - name: Module manifests and version ranges
+        run: |
+          server="$(go run ./cmd/wms version | awk '{print $2}')"
+          go run ./modules/wittymodule/cmd/wittymodule check -server "$server" $(ls -d modules/*/ web/src/modules/*/ | grep -v wittymodule)
       # What `go install …@version` sees: released dependencies only. Fails while an engine relies
       # on WittyDisc changes that are not released yet, which only matters for the next release.
       - name: Modules build on their own (GOWORK=off)
@@ -64,6 +72,7 @@ jobs:
             case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms-tray || exit 1 ;; esac
             flags=""; case $t in freebsd/*) flags="github.com/ebitengine/purego/internal/fakecgo=-std" ;; esac
             (cd modules/wittyplay && GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -gcflags="$flags" -o /dev/null ./cmd/wittyplay-host) || exit 1
+            (cd modules/wittyphotos && GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyphotos-module) || exit 1
           done
       - name: Build-script smoke test (no FFmpeg downloads)
         run: SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64

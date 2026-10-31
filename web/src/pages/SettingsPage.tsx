@@ -13,6 +13,7 @@ import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
 import GamingSettings from './settings/Gaming'
+import ModulesSettings from './settings/Modules'
 import { ConsolePicker } from './Games'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
@@ -45,6 +46,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
+    { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'Versions, supported servers and updates' },
     { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
   ] },
 ]
@@ -89,6 +91,7 @@ export default function SettingsPage() {
           <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Nothing is ever sent anywhere." /><LogSettings /></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
+          <Route path="modules" element={<ModulesSettings />} />
           <Route path="about" element={<About />} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>

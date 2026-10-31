@@ -15,6 +15,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
   listing everything.
 
+### Modules update on their own
+
+- Every module now has its own version and states the oldest and newest server it works with.
+  **Settings, Modules** lists them with their status, and a version that doesn't fit is refused with a
+  plain reason while the built-in copy carries on.
+- **WittyPhotos** is the first that can update without a new server: signed like server updates, installed
+  with no restart, and taken back out by itself if it keeps failing. Other modules follow. Looking for
+  updates follows the existing update setting, and installing them automatically is off unless turned on.
+  See [MODULES.md](docs/MODULES.md).
+
 ### New libraries
 
 - **WittyPhotos**: a gallery with a timeline, albums, favourites, folders and a map. JPEG, PNG, GIF, WebP,

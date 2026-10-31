@@ -1,6 +1,7 @@
 package libretro
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -164,3 +165,5 @@ func ProbeGPU() (string, error) {
 	defer o.destroy()
 	return o.renderer, nil
 }
+
+var errCoreThread = errors.New("the system would not start a thread for the core")

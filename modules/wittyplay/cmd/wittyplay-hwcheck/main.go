@@ -28,6 +28,13 @@ func (m *multi) String() string     { return strings.Join(*m, ",") }
 func (m *multi) Set(v string) error { *m = append(*m, v); return nil }
 
 func main() {
+	if err := libretro.OnCoreThread(check); err != nil {
+		fail(err)
+	}
+}
+
+func check() {
+	runtime.LockOSThread()
 	core := flag.String("core", "", "the core's shared library")
 	rom := flag.String("rom", "", "the game")
 	system := flag.String("system", "", "the BIOS folder")
@@ -48,7 +55,6 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	runtime.LockOSThread()
 	if *system == "" {
 		*system = filepath.Dir(*rom)
 	}

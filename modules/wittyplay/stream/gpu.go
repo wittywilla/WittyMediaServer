@@ -84,6 +84,7 @@ func (e *videoEncoder) mark() { e.sent.push(time.Now()) }
 
 // EncodeStats counts frames through the encoder.
 type EncodeStats struct {
+	made    atomic.Int64 // frames the game made, repeats included
 	frames  atomic.Int64
 	totalUS atomic.Int64
 	maxUS   atomic.Int64
@@ -132,8 +133,10 @@ func (s *Session) logStats() {
 			return
 		case <-t.C:
 			frames, mean, worst := s.stats.Take()
+			made := s.stats.made.Swap(0)
 			if frames > 0 {
-				s.log.Info("streaming", "encoder", s.Info().Encoder, "fps", float64(frames)/time.Since(last).Seconds(), "encodeMs", mean, "worstMs", worst, "renderer", s.info.Renderer)
+				el := time.Since(last).Seconds()
+				s.log.Info("streaming", "encoder", s.Info().Encoder, "gameFps", float64(made)/el, "fps", float64(frames)/el, "encodeMs", mean, "worstMs", worst, "renderer", s.info.Renderer)
 			}
 			last = time.Now()
 		}

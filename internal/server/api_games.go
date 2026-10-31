@@ -444,6 +444,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	corePath := ipc.TestCore
 	var coreOptions map[string]string
+	var runnerArgs []string
 	gpu := false
 	if console.ID != wittyplay.TestConsole {
 		preferred := s.preferredCores(ctx)[console.ID]
@@ -466,6 +467,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath = core.Path
 		gpu = wittyplay.Traits(core.ID).GPU
+		runnerArgs = wittyplay.RunnerArgs(core.ID)
 		coreOptions = wittyplay.StartOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
 	if gpu {
@@ -497,7 +499,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
-			GPU: gpu, CoreOptions: coreOptions,
+			GPU: gpu, RunnerArgs: runnerArgs, CoreOptions: coreOptions,
 	})
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) || errors.Is(err, stream.ErrGPUBusy) {

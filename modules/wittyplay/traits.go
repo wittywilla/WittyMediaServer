@@ -18,6 +18,9 @@ type CoreTraits struct {
 	// GPU cores draw with a graphics card. They count against the GPU limit and
 	// their runner gets what a graphics driver needs. docs/GAMING.md has the list.
 	GPU bool
+	// Demanding cores can't play at low priority on a machine doing anything else.
+	// Everything drawn on a graphics card is, as well as these.
+	Demanding bool
 	// Assets is the name of the core's support files on the build server, for
 	// cores that won't run without them. They go in the system folder.
 	Assets string
@@ -85,8 +88,8 @@ var traits = map[string]CoreTraits{
 	// The DS cores read the stylus from the pointer device. Their software renderers
 	// are all a DS needs, so these need no graphics card at all. melonDS's fast memory
 	// faults on purpose, in a way this runner's process can't recover from.
-	"melonds": {Options: map[string]string{"melonds_touch_mode": "Touch", "melonds_screen_layout": "Top/Bottom", "melonds_jit_fast_memory": "disabled", "melonds_threaded_renderer": "enabled"}},
-	"desmume": {Options: map[string]string{"desmume_pointer_type": "touch", "desmume_pointer_mouse": "enabled", "desmume_screens_layout": "top/bottom", "desmume_opengl_mode": "disabled"}},
+	"melonds": {Demanding: true, Options: map[string]string{"melonds_touch_mode": "Touch", "melonds_screen_layout": "Top/Bottom", "melonds_jit_fast_memory": "disabled", "melonds_threaded_renderer": "enabled"}},
+	"desmume": {Demanding: true, Options: map[string]string{"desmume_pointer_type": "touch", "desmume_pointer_mouse": "enabled", "desmume_screens_layout": "top/bottom", "desmume_opengl_mode": "disabled"}},
 	"azahar": {GPU: true, Options: map[string]string{"citra_enable_touch_touchscreen": "enabled", "citra_enable_mouse_touchscreen": "disabled", "citra_enable_touch_pointer_timeout": "disabled", "citra_layout_option": "default"},
 		Resolution: pick("citra_resolution_factor", "1", "2", "3", "4")},
 	"panda3ds": {GPU: true},
@@ -102,6 +105,20 @@ func Traits(id string) CoreTraits {
 		return CoreTraits{} // a software-rendered core from the console table
 	}
 	return CoreTraits{GPU: true}
+}
+
+// RunnerArgs are what a runner is told about the core it will load, before it loads
+// it. A core nobody knows gets the same as a demanding one.
+func RunnerArgs(coreID string) []string {
+	t := Traits(coreID)
+	var out []string
+	if t.GPU {
+		out = append(out, "-gpu")
+	}
+	if t.GPU || t.Demanding {
+		out = append(out, "-normal-priority")
+	}
+	return out
 }
 
 // DefaultResolution is how many times native a console renders at with the

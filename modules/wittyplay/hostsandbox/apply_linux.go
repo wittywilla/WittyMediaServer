@@ -30,7 +30,9 @@ func Apply(l Limits) error {
 			}
 		}
 	}
-	_ = syscall.Setpriority(syscall.PRIO_PROCESS, 0, 5)
+	if !l.Normal {
+		_ = syscall.Setpriority(syscall.PRIO_PROCESS, 0, 5)
+	}
 	_ = unix.Prctl(unix.PR_SET_PDEATHSIG, uintptr(unix.SIGKILL), 0, 0, 0)
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		errs = append(errs, err)

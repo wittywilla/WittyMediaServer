@@ -54,10 +54,11 @@ type Options struct {
 	Core           string // a shared library path, or ipc.TestCore
 	ROM            string
 	SystemDir      string
-	SaveDir        string // this account's folder for this game
-	Resume         bool   // continue from auto.state
-	Quality        string // "" (auto) | low | high
-	GPU            bool   // the core draws with a graphics card
+	SaveDir        string   // this account's folder for this game
+	Resume         bool     // continue from auto.state
+	Quality        string   // "" (auto) | low | high
+	GPU            bool     // the core draws with a graphics card
+	RunnerArgs     []string // extra arguments for this game's runner: wittyplay.RunnerArgs
 	CoreOptions    map[string]string
 	Cleanup        func() // runs when the session has ended
 }
@@ -337,10 +338,10 @@ func (s *Session) start() error {
 	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
 		return err
 	}
-	args, memory := s.cfg.RunnerArgs, s.cfg.MemoryMB
+	args, memory := append(append([]string(nil), s.cfg.RunnerArgs...), s.opt.RunnerArgs...), s.cfg.MemoryMB
 	if s.opt.GPU {
 		// A graphics driver needs what a software-rendered game never should.
-		args, memory = append(append([]string(nil), args...), "-gpu"), s.cfg.GPUMemoryMB
+		memory = s.cfg.GPUMemoryMB
 	}
 	rn, err := StartRunner(s.cfg.Runner, args, s.opt.SaveDir, memory, s.log)
 	if err != nil {
@@ -374,7 +375,8 @@ func (s *Session) start() error {
 		return err
 	}
 	// The larger consoles build caches and start whole operating systems.
-	loadLimit := 30 * time.Second
+	// A security scanner may also hold a program's first start for half a minute.
+	loadLimit := time.Minute
 	if s.opt.GPU {
 		loadLimit = 2 * time.Minute
 	}
@@ -496,9 +498,11 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			s.frameHdr, s.frameFresh = hdr, true
 			s.frameMu.Unlock()
 			s.lastFrame.Store(time.Now().UnixNano())
+			s.stats.made.Add(1)
 			s.signalFrame()
 		case ipc.MsgDupe:
 			s.lastFrame.Store(time.Now().UnixNano())
+			s.stats.made.Add(1)
 			s.signalFrame()
 		case ipc.MsgAudio:
 			if len(p)%4 == 0 {

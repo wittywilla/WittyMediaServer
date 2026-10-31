@@ -130,8 +130,7 @@ a browser) while other work was keeping the CPU busy, so these are on the cautio
 | PlayStation 2, LRPS2 | 1024x832 to 1280x896 | 42, with the CPU fully taken by other work | 34 ms | 23%, encoder 5% | 1.1 threads |
 
 On its own, NVENC's part is 22 ms at 1280x960, of which FFmpeg's command line holds one frame (17 ms at 60 frames a
-second). It was 53 ms before `-delay 0`. The runner runs at below-normal priority so a game never starves a film, which
-means a server with its CPU fully taken by other work will slow a game right down: to 4 frames a second, in one test.
+second). It was 53 ms before `-delay 0`.
 
 Five minutes each of Nintendo 64 and PlayStation 2, running at once, gave no crash and no fault.
 
@@ -230,8 +229,10 @@ step in the player's settings.
 ### What low-end servers can expect
 
 A retro console at 2x is about 512x448 at 60 frames a second. Two sessions is the default limit.
-The host runs at below-normal priority so a game never starves a film being transcoded. Audio
-costs about 1% of a core.
+The host runs at below-normal priority so a game never starves a film being transcoded, except
+for games on a graphics card and the Nintendo DS, which run at normal priority. At below-normal,
+a real PSP game got a sixteenth of a core and 2 frames a second on a machine only 77% busy, which
+isn't a game. Audio costs about 1% of a core.
 
 The in-browser mode below is the answer for servers that can't keep up.
 

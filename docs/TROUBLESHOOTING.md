@@ -25,3 +25,11 @@ or session tokens) to an issue.
 
 ---
 <sub>WittyMediaServer documentation · [Back to the README](../README.md)</sub>
+
+## A game takes a long time to start the first time
+
+On Windows, a security scanner may hold a program the first time it runs, which can take half a minute with the game
+runner. It's quick after that.
+
+The first start of a PSP game is also slow: the PSP core sets up its own files in that game's save folder, about 20 MB,
+once per account for each game.

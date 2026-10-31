@@ -10,6 +10,7 @@ type Limits struct {
 	SaveDir  string // the only folder it may write to
 	MemoryMB int64  // memory it may use; 0 for no limit
 	GPU      bool   // a graphics driver will load: docs/GAMING.md says what that opens
+	Normal   bool   // keep normal priority: a demanding game can't play at low priority
 }
 
 // maxFileSize stops a core filling the disk from its save folder. The largest thing

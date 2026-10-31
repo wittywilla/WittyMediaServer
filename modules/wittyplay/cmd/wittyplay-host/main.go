@@ -31,6 +31,7 @@ func main() {
 	saveDir := flag.String("save", "", "the only folder this process may write to")
 	memory := flag.Int64("memory-mb", 0, "address space limit in MiB; 0 for none")
 	gpu := flag.Bool("gpu", false, "this game draws with a graphics card, so allow what a driver needs")
+	normal := flag.Bool("normal-priority", false, "this game can't play at low priority")
 	probe := flag.Bool("probe-gpu", false, "say which graphics card games would draw with, and stop")
 	flag.Parse()
 	if flag.NArg() > 0 {
@@ -43,7 +44,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
 		os.Exit(1)
 	}
-	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory, GPU: *gpu || *probe}); err != nil {
+	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory, GPU: *gpu || *probe, Normal: *normal}); err != nil {
 		// Each layer is best effort, because kernels and containers differ. The
 		// server's log shows which ones this machine lacks.
 		fmt.Fprintln(os.Stderr, "sandbox:", err)

@@ -17,6 +17,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   doesn't open the PC to the internet. **It has not been run for real yet.**
 - New modules: **WittySunshine** and **WittyMoonlight**. Sunshine and Moonlight are separate GPL-3.0 projects, and none of their
   code is here. The design, a table of what works per device, and what has really been tested: `docs/GAME-RIGS.md`.
+## 0.5.0-alpha
 
 ### Interface audit
 
@@ -71,7 +72,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Everything new has JSON routes, plays through standard HLS or direct files, and works with a D-pad, for the
 coming TV apps.
-## Unreleased: security
+### Security
 
 A full security review and its fixes; the details are in `docs/SECURITY-REVIEW.md`. Things you may
 notice:

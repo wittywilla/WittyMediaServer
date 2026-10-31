@@ -50,17 +50,20 @@ type PadState struct {
 // Handlers receive what an engine produces. All are called on the thread
 // running Run, and slices are only valid during the call. Any may be nil.
 type Handlers struct {
-	Video    func(data []byte, width, height, stride, format int)
-	Dupe     func() // the previous frame again
-	Audio    func(stereo []int16)
-	Input    func() *[MaxPorts]PadState // once a frame
-	Rumble   func(port, effect, strength int)
-	Message  func(text string)
-	Log      func(level int, text string)
-	Geometry func(width, height int, aspect float64)
-	Rotation func(quarterTurns int)
-	AVInfo   func(info AVInfo)
-	Shutdown func()
+	Video func(data []byte, width, height, stride, format int)
+	// VideoFlipped is Video for a frame whose first row in memory is the bottom
+	// of the picture, as OpenGL reads them.
+	VideoFlipped func(data []byte, width, height, stride, format int)
+	Dupe         func() // the previous frame again
+	Audio        func(stereo []int16)
+	Input        func() *[MaxPorts]PadState // once a frame
+	Rumble       func(port, effect, strength int)
+	Message      func(text string)
+	Log          func(level int, text string)
+	Geometry     func(width, height int, aspect float64)
+	Rotation     func(quarterTurns int)
+	AVInfo       func(info AVInfo)
+	Shutdown     func()
 }
 
 // AVInfo is what an engine says about its output.

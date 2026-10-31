@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/wittywilla/wittyplay/engine"
 	"github.com/wittywilla/wittyplay/host"
@@ -16,6 +17,15 @@ import (
 	"github.com/wittywilla/wittyplay/libretro"
 	"github.com/wittywilla/wittyplay/testcore"
 )
+
+// boundedClose stops a core from holding the process open: everything has been
+// saved by then, and some cores hang waiting for their own threads.
+type boundedClose struct{ engine.Engine }
+
+func (b boundedClose) Close() {
+	time.AfterFunc(5*time.Second, func() { os.Exit(0) })
+	b.Engine.Close()
+}
 
 func main() {
 	saveDir := flag.String("save", "", "the only folder this process may write to")
@@ -34,7 +44,11 @@ func main() {
 		if l.Core == ipc.TestCore {
 			return testcore.New(h), nil
 		}
-		return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+		c, err := libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+		if err != nil {
+			return nil, err
+		}
+		return boundedClose{c}, nil
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)

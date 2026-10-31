@@ -73,6 +73,17 @@ func (r *runner) handlers() engine.Handlers {
 			}
 			r.write(ipc.MsgVideo, r.video)
 		},
+		VideoFlipped: func(data []byte, w, h, stride, format int) {
+			row := w * engine.BytesPerPixel(format)
+			if w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+				return
+			}
+			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
+			for y := h - 1; y >= 0; y-- {
+				r.video = append(r.video, data[y*stride:y*stride+row]...)
+			}
+			r.write(ipc.MsgVideo, r.video)
+		},
 		Dupe: func() { r.write(ipc.MsgDupe) },
 		Audio: func(s []int16) {
 			for _, v := range s {

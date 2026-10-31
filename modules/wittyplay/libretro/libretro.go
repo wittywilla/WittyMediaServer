@@ -37,6 +37,7 @@ const (
 	envGetRumble         = 23
 	envGetInputCaps      = 24
 	envGetLog            = 27
+	envGetPerf           = 28
 	envGetCoreAssetsDir  = 30
 	envGetSaveDir        = 31
 	envSetSystemAVInfo   = 32
@@ -46,6 +47,7 @@ const (
 	envGetUsername       = 38
 	envGetLanguage       = 39
 	envGetCoreOptVersion = 52
+	envGetPreferredHW    = 56
 	envGetMaxUsers       = 61
 	envSetVariable       = 70
 
@@ -54,6 +56,7 @@ const (
 	envGetTargetRefresh  = 50 | envExperimental
 	envGetAudioVideoEn   = 47 | envExperimental
 	envGetInputBitmasks  = 51 | envExperimental
+	envSetHWShared       = 44 | envExperimental
 	envPrivate           = 0x20000
 )
 
@@ -90,6 +93,10 @@ type Core struct {
 	input    *[engine.MaxPorts]engine.PadState
 	gameData []byte
 	loaded   bool
+
+	hw         *hwState
+	hwRefused  bool
+	optionList []string
 }
 
 var _ engine.Engine = (*Core)(nil)
@@ -110,6 +117,8 @@ func makeCallbacks() {
 	cbState = purego.NewCallback(onInputState)
 	cbLog = purego.NewCallback(onLog)
 	cbRumble = purego.NewCallback(onRumble)
+	cbGetFramebuffer = purego.NewCallback(onGetFramebuffer)
+	cbGetProc = purego.NewCallback(onGetProc)
 }
 
 // Load opens a core and starts it. Call this, and everything else on Core,
@@ -201,6 +210,9 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 		info.data, info.size = unsafe.Pointer(&data[0]), uintptr(len(data))
 	}
 	if ok, _, _ := purego.SyscallN(c.fnLoadGame, uintptr(unsafe.Pointer(&info))); ok&0xff == 0 {
+		if c.hwRefused {
+			return engine.AVInfo{}, fmt.Errorf("%w: the core needs one and none could be used", ErrNoGPU)
+		}
 		return engine.AVInfo{}, errors.New("the core could not load this game")
 	}
 	c.loaded = true
@@ -209,6 +221,9 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 	}
 	var av avInfoC
 	purego.SyscallN(c.fnAVInfo, uintptr(unsafe.Pointer(&av)))
+	if err := c.startHW(int(av.maxW), int(av.maxH)); err != nil {
+		return engine.AVInfo{}, err
+	}
 	return av.convert(), nil
 }
 
@@ -225,8 +240,14 @@ func (av *avInfoC) convert() engine.AVInfo {
 	return engine.AVInfo{BaseWidth: int(av.baseW), BaseHeight: int(av.baseH), MaxWidth: int(av.maxW), MaxHeight: int(av.maxH), Aspect: float64(av.aspect), FPS: av.fps, SampleRate: av.rate}
 }
 
-// Run advances the game one frame.
-func (c *Core) Run() { purego.SyscallN(c.fnRun) }
+// Run advances the game one frame. A frame drawn on the graphics card arrives
+// after the core returns, so its reading back doesn't hold the core up.
+func (c *Core) Run() {
+	purego.SyscallN(c.fnRun)
+	if c.hw != nil && c.hw.gl != nil {
+		c.hw.gl.deliver(c.h)
+	}
+}
 
 // Reset is the console's reset button.
 func (c *Core) Reset() { purego.SyscallN(c.fnReset) }
@@ -265,12 +286,15 @@ func (c *Core) SaveRAM() []byte {
 
 // Close unloads the game and the core.
 func (c *Core) Close() {
+	c.stopCoreHW()
 	if c.loaded {
 		purego.SyscallN(c.fnUnloadGame)
 		c.loaded = false
 	}
 	purego.SyscallN(c.fnDeinit)
-	closeLibrary(c.lib)
+	c.stopHW()
+	// The library stays mapped: the process is about to end, and a core's worker
+	// threads may still be on their way out of its code.
 	cur = nil
 }
 
@@ -307,6 +331,12 @@ func onVideo(data, width, height, pitch uintptr) uintptr {
 	if data == 0 {
 		if c.h.Dupe != nil {
 			c.h.Dupe()
+		}
+		return 0
+	}
+	if data == hwFrameValid {
+		if c.hw != nil && c.hw.gl != nil {
+			c.hw.gl.startRead(int(uint32(width)), int(uint32(height)))
 		}
 		return 0
 	}
@@ -369,13 +399,73 @@ func onInputState(port, device, index, id uintptr) uintptr {
 	return uintptr(uint16(v))
 }
 
-func onLog(level, format uintptr) uintptr {
+func onLog(level, format, a0, a1, a2, a3, a4, a5 uintptr) uintptr {
 	if c := cur; c != nil && c.h.Log != nil {
-		// This C function is variadic. Its other arguments stay unread: the
-		// format string is enough to say what happened.
-		c.h.Log(int(uint32(level)), strings.TrimRight(cString((*byte)(ptr(format))), "\r\n"))
+		text := formatLog(cString((*byte)(ptr(format))), [...]uintptr{a0, a1, a2, a3, a4, a5})
+		c.h.Log(int(uint32(level)), strings.TrimRight(text, "\r\n"))
 	}
 	return 0
+}
+
+// formatLog fills in a printf format from the words a variadic C call left in
+// its argument slots. Floating-point values travel elsewhere, so they aren't
+// shown. It reads no further than the arguments it was given.
+func formatLog(f string, args [6]uintptr) string {
+	var b strings.Builder
+	next := 0
+	for i := 0; i < len(f); i++ {
+		if f[i] != '%' {
+			b.WriteByte(f[i])
+			continue
+		}
+		j := i + 1
+		for j < len(f) && strings.IndexByte("-+ #0123456789.lhzjtLI", f[j]) >= 0 {
+			j++
+		}
+		if j >= len(f) {
+			break
+		}
+		verb, spec := f[j], f[i+1:j]
+		i = j
+		if verb == '%' {
+			b.WriteByte('%')
+			continue
+		}
+		if next >= len(args) {
+			b.WriteString("?")
+			continue
+		}
+		a := args[next]
+		next++
+		long := strings.ContainsAny(spec, "lzjtI")
+		switch verb {
+		case 's':
+			if a == 0 {
+				b.WriteString("(null)")
+			} else {
+				b.WriteString(cString((*byte)(ptr(a))))
+			}
+		case 'd', 'i':
+			if long {
+				fmt.Fprintf(&b, "%d", int64(a))
+			} else {
+				fmt.Fprintf(&b, "%d", int32(a))
+			}
+		case 'u':
+			if long {
+				fmt.Fprintf(&b, "%d", uint64(a))
+			} else {
+				fmt.Fprintf(&b, "%d", uint32(a))
+			}
+		case 'x', 'X', 'p':
+			fmt.Fprintf(&b, "%x", uint64(a))
+		case 'c':
+			b.WriteByte(byte(a))
+		default:
+			b.WriteString("?")
+		}
+	}
+	return b.String()
 }
 
 func onRumble(port, effect, strength uintptr) uintptr {
@@ -443,9 +533,15 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Geometry != nil {
 			c.h.Geometry(int(g.baseW), int(g.baseH), float64(g.aspect))
 		}
+		if c.hw != nil && c.hw.gl != nil {
+			_ = c.hw.gl.resize(int(g.maxW), int(g.maxH))
+		}
 	case envSetSystemAVInfo:
 		if c.h.AVInfo != nil {
 			c.h.AVInfo((*avInfoC)(data).convert())
+		}
+		if c.hw != nil && c.hw.gl != nil {
+			_ = c.hw.gl.resize(int((*avInfoC)(data).maxW), int((*avInfoC)(data).maxH))
 		}
 	case envSetRotation:
 		if c.h.Rotation != nil {
@@ -468,12 +564,22 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
-		return false // software-rendered cores only here; see docs/GAMING.md
+		return c.setHWRender(data)
+	case envSetHWShared:
+	case envGetPreferredHW:
+		*(*uint32)(data) = hwOpenGLCore
 	default:
+		if c.h.Log != nil {
+			c.h.Log(0, fmt.Sprintf("the core asked for environment command %d, which this runner doesn't offer", cmd))
+		}
 		return false
 	}
 	return true
 }
+
+// OptionList is the core's options as it described them, for working out which
+// settings to pass it.
+func (c *Core) OptionList() []string { return c.optionList }
 
 // setVariables reads the core's option list. The first choice is the default,
 // and a value the server passed wins when it is one of the choices.
@@ -485,6 +591,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			return
 		}
 		key := cString(v.key)
+		c.optionList = append(c.optionList, key+" = "+cString(v.value))
 		_, list, _ := strings.Cut(cString(v.value), "; ")
 		choices := strings.Split(list, "|")
 		val := choices[0]

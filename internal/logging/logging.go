@@ -177,7 +177,13 @@ const (
 // Logger owns the log files, the memory ring and the writer goroutine.
 type Logger struct {
 	table atomic.Pointer[levels]
-	floor atomic.Int64 // from -log debug: no category is quieter than this
+	floor atomic.Int64 // from -log debug, or while recording: no category is quieter than this
+	rec   struct {
+		sync.Mutex
+		base  slog.Level // the floor when not recording
+		until time.Time
+		timer *time.Timer
+	}
 	dir   atomic.Pointer[string]
 
 	ring  ring
@@ -210,6 +216,7 @@ func New(dir string, level slog.Level, console io.Writer) (*Logger, error) {
 	}
 	l := &Logger{queue: make(chan *Record, queueSize), ctl: make(chan func(*fileWriter), 8), done: make(chan struct{}), freeFn: FreeSpace}
 	l.floor.Store(int64(LevelOff))
+	l.rec.base = LevelOff
 	by := defaultLevels()
 	by[CatDefault] = level
 	l.table.Store(newLevels(by, nil))
@@ -251,7 +258,46 @@ func (l *Logger) Level() slog.Level { return l.table.Load().by[CatDefault] }
 
 // SetFloor makes every category at least this detailed, whatever its own level
 // says (the -log debug flag). slog.Level above LevelOff, or LevelOff, removes it.
-func (l *Logger) SetFloor(lv slog.Level) { l.floor.Store(int64(lv)) }
+func (l *Logger) SetFloor(lv slog.Level) {
+	l.rec.Lock()
+	defer l.rec.Unlock()
+	l.rec.base = lv
+	if l.rec.timer == nil {
+		l.floor.Store(int64(lv))
+	}
+}
+
+// RecordEverything makes every area and module as detailed as it goes, for a
+// while, to catch a problem while it happens. It ends by itself and changes none
+// of the owner's settings, so nobody is left with detailed logging by mistake. A
+// duration of 0 stops it. It says when it will end.
+func (l *Logger) RecordEverything(d time.Duration) time.Time {
+	l.rec.Lock()
+	defer l.rec.Unlock()
+	if l.rec.timer != nil {
+		l.rec.timer.Stop()
+		l.rec.timer = nil
+	}
+	if d <= 0 {
+		l.rec.until = time.Time{}
+		l.floor.Store(int64(l.rec.base))
+		return time.Time{}
+	}
+	l.rec.until = time.Now().Add(d)
+	l.floor.Store(int64(slog.LevelDebug))
+	l.rec.timer = time.AfterFunc(d, func() {
+		l.RecordEverything(0)
+		l.emit(slog.LevelInfo, "recording everything has finished: logging is back to its usual settings")
+	})
+	return l.rec.until
+}
+
+// RecordingUntil says when RecordEverything will end, if it's on.
+func (l *Logger) RecordingUntil() time.Time {
+	l.rec.Lock()
+	defer l.rec.Unlock()
+	return l.rec.until
+}
 
 // SetCategoryLevel changes one category's level, live.
 func (l *Logger) SetCategoryLevel(cat string, lv slog.Level) {

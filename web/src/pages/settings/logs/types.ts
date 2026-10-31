@@ -22,7 +22,7 @@ export type LogFile = { name: string; size: number; modified: string }
 export type Crash = { id: string; kind: string; time: string; summary: string; version?: string; size: number; seen: boolean }
 export type LogsView = {
   dir: string; level: string; categories: Category[]; levels: Record<string, string>; on: string[]
-  files: LogFile[]; canOpen: boolean; health: Health; crashes: Crash[]; modules: LogModule[]
+  files: LogFile[]; canOpen: boolean; health: Health; crashes: Crash[]; modules: LogModule[]; recordingUntil?: string
 }
 export type BundlePart = { name: string; description: string; size: number }
 export type BundlePreview = { parts: BundlePart[]; total: number; sample: string[]; redact: boolean; days: number }

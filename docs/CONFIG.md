@@ -138,6 +138,8 @@ unless you send a file yourself, for example with a bug report.
 - **Modules** — every module is listed with a level of its own and, under **Advanced**, the kinds of detail
   it can add, such as a helper's every call or a disc's navigation. A newly installed module is noticed and
   listed by itself, marked **New**. Changes take effect at once.
+- **Catch a problem** — one button records everything for up to two hours, then goes back to your usual settings
+  by itself, so you can try to make a problem happen and not have to remember to turn it off.
 - **What to log** — each area (playback, transcoding, discs, games, Live TV, library, modules, updates, remote
   access, sign-ins, app errors, web requests, storage) has its own level, which changes at once with no restart.
   Areas that name what you watch or who signs in (playback, discs, sign-ins, app errors, web requests) keep to

@@ -16,6 +16,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   output, a disc's or game's steps, and what the player reported on your device. One press shows it all.
 - **A viewer in Settings:** live tail, filters by level, area, module, session and text, and common failures
   explained in plain words with a suggested fix. It works on a phone and with a TV remote.
+- **Catch a problem:** one button records everything for a while, then goes back to your usual settings by itself.
 - **Crash reports.** A fatal error, a caught panic, or a run that ended without shutting down (a power cut, say)
   leaves a report that survives, and the next start points it out. Each start also logs a summary: version, modules,
   system, graphics card and encoders, disk space and settings that matter.

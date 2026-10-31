@@ -508,6 +508,38 @@ func TestModuleLogging(t *testing.T) {
 	}
 }
 
+func TestRecordEverythingRoute(t *testing.T) {
+	ts, admin := logServer(t)
+	view := func(body map[string]any) (int, logsView) {
+		w := ts.do(t, "PUT", "/api/logs", admin, body)
+		var v logsView
+		_ = json.Unmarshal(w.Body.Bytes(), &v)
+		return w.Code, v
+	}
+	code, v := view(map[string]any{"recordMinutes": 30})
+	if code != 200 || v.RecordingUntil == nil {
+		t.Fatalf("%d %+v", code, v.RecordingUntil)
+	}
+	ts.Log.Debug("caught", "cat", "playback")
+	if got := logEntries(t, ts, admin, "q=caught"); len(got) != 1 {
+		t.Errorf("%+v", got)
+	}
+	if v.Levels["playback"] != "warn" {
+		t.Errorf("settings changed: %v", v.Levels)
+	}
+	code, v = view(map[string]any{"recordMinutes": 0})
+	if code != 200 || v.RecordingUntil != nil {
+		t.Errorf("%d %+v", code, v.RecordingUntil)
+	}
+	if code, _ := view(map[string]any{"recordMinutes": 100000}); code != 400 {
+		t.Errorf("%d", code)
+	}
+	_, adult := ts.user(t, "someone", "adult", false, "")
+	if w := ts.do(t, "PUT", "/api/logs", adult, map[string]any{"recordMinutes": 30}); w.Code != 403 {
+		t.Errorf("%d", w.Code)
+	}
+}
+
 func TestSessionFromPath(t *testing.T) {
 	for p, want := range map[string]string{
 		"/api/hls/abc123/seg/5":   "abc123",

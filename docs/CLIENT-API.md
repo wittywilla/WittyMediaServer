@@ -719,7 +719,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /agents` | admin | Replace the list of agents, 20 at most. |
 | `POST /agents/test` | admin | Ask an agent about a title without changing anything. |
 | `GET /logs` | admin | What is logged, where, and the log files. |
-| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder. Takes effect at once, with no restart. |
+| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`). Takes effect at once, with no restart. |
 | `GET /logs/files/{name}` | admin | Download one log file. |
 | `POST /logs/open` | admin | Open the log folder on the server's own screen. |
 | `POST /logs/client` | user | Report errors from a client: `{app, version, device, events: [{level, kind, message, stack, page, session, request, count, time}]}`. `session` is the stream, disc or game session in play, and `request` the `X-Request-Id` of a failed request. 64 KB and 25 events a request, 60 events a minute per account; 429 past that. 204 when stored, or when the owner turned app errors off. |

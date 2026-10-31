@@ -31,6 +31,8 @@ type logsView struct {
 	Health     logging.Health     `json:"health"`
 	Crashes    []logging.Crash    `json:"crashes"`
 	Modules    []LogModule        `json:"modules"` // each with a level of its own and its advanced options
+	// RecordingUntil: everything is being recorded until then, to catch a problem.
+	RecordingUntil *time.Time `json:"recordingUntil,omitempty"`
 }
 
 func (s *Server) logsView(r *http.Request) logsView {
@@ -46,7 +48,11 @@ func (s *Server) logsView(r *http.Request) logsView {
 	if crashes == nil {
 		crashes = []logging.Crash{}
 	}
-	return logsView{Dir: s.Logs.Dir(), Level: logging.LevelName(s.Logs.Level()), Categories: logging.Categories, Levels: s.Logs.Levels(), On: on, Files: files, CanOpen: onThisMachine(r), Health: s.Logs.Health(), Crashes: crashes, Modules: s.logModuleViews(r.Context())}
+	var recording *time.Time
+	if t := s.Logs.RecordingUntil(); !t.IsZero() {
+		recording = &t
+	}
+	return logsView{RecordingUntil: recording, Dir: s.Logs.Dir(), Level: logging.LevelName(s.Logs.Level()), Categories: logging.Categories, Levels: s.Logs.Levels(), On: on, Files: files, CanOpen: onThisMachine(r), Health: s.Logs.Health(), Crashes: crashes, Modules: s.logModuleViews(r.Context())}
 }
 
 // GET /api/logs (admin)
@@ -66,6 +72,8 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		// Modules: how each module is logged. ModulesSeen: an admin has seen the new ones.
 		Modules     map[string]moduleLogChange `json:"modules"`
 		ModulesSeen bool                       `json:"modulesSeen"`
+		// RecordMinutes: record everything for this long, up to 4 hours. 0 stops it.
+		RecordMinutes *int `json:"recordMinutes"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -114,6 +122,16 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Logs.SetLevels(want)
 		s.saveLogLevels(r)
+	}
+	if b.RecordMinutes != nil {
+		if m := *b.RecordMinutes; m < 0 || m > 240 {
+			writeErr(w, 400, "recording can run for up to 240 minutes")
+			return
+		}
+		s.Logs.RecordEverything(time.Duration(*b.RecordMinutes) * time.Minute)
+		s.Log.InfoContext(ctx, "recording everything", "minutes", *b.RecordMinutes)
+		writeJSON(w, 200, s.logsView(r))
+		return
 	}
 	if b.Modules != nil || b.ModulesSeen {
 		if why := s.changeLogModules(ctx, b.Modules, b.ModulesSeen); why != "" {

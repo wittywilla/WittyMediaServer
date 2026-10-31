@@ -74,9 +74,19 @@ export default function LogSettings() {
   if (err && !view) return <div className="error" role="alert">{err}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> Try again</button></div></div>
   if (!view) return <Spinner />
   const problems = health ? healthProblems(health) : []
+  const stopRecording = () => { api.put<LogsView>('/logs', { recordMinutes: 0 }).then(onView).catch((e) => toast(e.message)) }
   return (
     <>
       <CrashBanner crashes={view.crashes} onSeen={markSeen} />
+      {view.recordingUntil && (
+        <div className="lg-banner" role="status">
+          <div className="lg-banner-text">
+            <b>Recording everything until {new Date(view.recordingUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b>
+            <p>Try to make the problem happen now. Logging goes back to your usual settings by itself.</p>
+          </div>
+          <div className="lg-banner-actions"><button type="button" className="btn sm" onClick={stopRecording}>Stop now</button></div>
+        </div>
+      )}
       {problems.length > 0 && (
         <div className="lg-banner warn" role="status">
           <div className="lg-banner-text">

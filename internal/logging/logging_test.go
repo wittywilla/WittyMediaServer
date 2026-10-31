@@ -156,6 +156,49 @@ func TestModuleLevelsAndTopics(t *testing.T) {
 	}
 }
 
+// Recording everything is for a while, ends by itself, and touches no settings.
+func TestRecordEverything(t *testing.T) {
+	l, log := newTest(t)
+	before := l.Levels()
+	log.Debug("too quiet before", "cat", "playback")
+	until := l.RecordEverything(150 * time.Millisecond)
+	if until.IsZero() || l.RecordingUntil().IsZero() {
+		t.Fatal("not on")
+	}
+	log.Debug("caught while recording", "cat", "playback")
+	log.Debug("a module too", "cat", "discs", "module", "wittydvd", "topic", "nav")
+	if fmt.Sprint(l.Levels()) != fmt.Sprint(before) {
+		t.Errorf("the owner's settings changed: %v", l.Levels())
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for !l.RecordingUntil().IsZero() && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !l.RecordingUntil().IsZero() {
+		t.Fatal("it never ended")
+	}
+	log.Debug("too quiet after", "cat", "playback")
+	got := read(t, l)
+	for _, want := range []string{"caught while recording", "a module too", "recording everything has finished"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in\n%s", want, got)
+		}
+	}
+	for _, not := range []string{"too quiet before", "too quiet after"} {
+		if strings.Contains(got, not) {
+			t.Errorf("%q should not be in\n%s", not, got)
+		}
+	}
+	// Stopped by hand; and -log debug is still there afterwards.
+	l.SetFloor(slog.LevelDebug)
+	l.RecordEverything(time.Hour)
+	l.RecordEverything(0)
+	log.Debug("the flag still counts", "cat", "playback")
+	if !strings.Contains(read(t, l), "the flag still counts") {
+		t.Error("stopping forgot the -log debug flag")
+	}
+}
+
 // ReportPanicTo logs at the crash level, which goes through whatever the level.
 func ReportPanicTo(log *slog.Logger, msg string, args ...any) {
 	log.Log(context.Background(), LevelCrash, msg, args...)

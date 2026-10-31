@@ -1860,6 +1860,17 @@
               "array",
               "null"
             ]
+          },
+          "recordingUntil": {
+            "anyOf": [
+              {
+                "properties": {},
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -10117,6 +10128,10 @@
                       "type": "string"
                     },
                     "type": "array"
+                  },
+                  "recordMinutes": {
+                    "description": "Record everything for this long, up to 240 minutes, then go back to the usual settings by itself. 0 stops it.",
+                    "type": "integer"
                   }
                 },
                 "type": "object"

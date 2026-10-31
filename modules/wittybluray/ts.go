@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 )
 
 // Reading one elementary stream out of a clip. Blu-ray clips are MPEG
@@ -67,6 +68,77 @@ func (c *clipReader) readAt(buf []byte, off int64) (int, error) {
 		return total, io.EOF
 	}
 	return total, nil
+}
+
+// leadPackets is how much of a stretch is searched for its earliest packet: about
+// half a second at the highest rate a disc plays at, enough for every stream to
+// show up, and little enough to do at the start of a playlist.
+const leadPackets = 16384 // 3 MB
+
+// ClipLead says how long before the first picture a stretch of a clip's earliest
+// packet lies, in seconds: usually sound, stored ahead of its picture. A demuxer
+// puts an input on its timeline by that packet, so whoever joins clips must allow
+// for it. video is the picture's PID; 0 when nothing can be told. only, when given,
+// limits which streams count.
+func (d *Disc) ClipLead(clip string, video uint16, from uint32, only ...uint16) float64 {
+	ext, err := d.ClipExtents(clip)
+	if err != nil {
+		return 0
+	}
+	rd := &clipReader{ext: ext}
+	defer rd.close()
+	buf := make([]byte, leadPackets*packetSize)
+	got, err := rd.readAt(buf, int64(from)*packetSize)
+	if got < packetSize || (err != nil && !errors.Is(err, io.EOF)) {
+		return 0
+	}
+	return scanLead(buf[:got], video, only...)
+}
+
+// scanLead is ClipLead on the bytes themselves.
+func scanLead(b []byte, video uint16, only ...uint16) float64 {
+	seen := map[uint16]bool{}
+	var first, earliest, other int64 = -1, -1, -1
+	for i := 0; i+packetSize <= len(b); i += packetSize {
+		p := b[i+4 : i+packetSize]
+		if p[0] != 0x47 || p[1]&0x40 == 0 {
+			continue
+		}
+		pid := uint16(p[1]&0x1f)<<8 | uint16(p[2])
+		if seen[pid] || (len(only) > 0 && !slices.Contains(only, pid)) {
+			continue
+		}
+		off := 4
+		if p[3]>>4&2 != 0 {
+			off += 1 + int(p[4])
+		}
+		if off+14 > len(p) || p[off] != 0 || p[off+1] != 0 || p[off+2] != 1 || p[off+3] == 0xbf || p[off+7]&0x80 == 0 {
+			continue
+		}
+		q := p[off+9:]
+		pts := int64(q[0]>>1&7)<<30 | int64(q[1])<<22 | int64(q[2]>>1)<<15 | int64(q[3])<<7 | int64(q[4]>>1)
+		seen[pid] = true
+		switch {
+		case pid == video:
+			first = pts
+		case pid >= 0x1200 && pid < 0x1a00: // subtitles and menus
+			if other < 0 || pts < other {
+				other = pts
+			}
+			continue
+		}
+		if earliest < 0 || pts < earliest {
+			earliest = pts
+		}
+	}
+	// Subtitles and menus only count when they lie just ahead of the rest.
+	if other >= 0 && (earliest < 0 || (other < earliest && earliest-other < 90000)) {
+		earliest = other
+	}
+	if first < 0 || earliest < 0 || earliest >= first {
+		return 0
+	}
+	return float64(first-earliest) / 90000
 }
 
 // PESHandler receives one PES packet's payload and 90 kHz presentation

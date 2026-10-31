@@ -138,9 +138,30 @@ type playedItem struct {
 	clip     string
 	start    float64 // seconds into the playlist
 	duration float64
-	startPTS uint32 // the entry point the stream begins at (45 kHz)
+	startPTS uint32 // the first picture the stream shows of it (45 kHz)
 	spn      [2]uint32
+	stop     uint32 // where it ends, when that is part-way through its clip's time base; 0 = at the end
+	joins    bool   // the next item carries straight on from it in the same clip
+	// preroll is how much is read ahead of its first picture to be able to decode
+	// it (seconds), from the entry point before it.
+	preroll float64
 }
+
+const (
+	// epRounding is how much of an entry point's time its table leaves out (45 kHz).
+	epRounding = 256
+	// readOn is how far past an item's end its clip is read (45 kHz). The sound of
+	// its last moments is stored later than their pictures, by as long as a picture
+	// waits in the player's buffer before it is shown.
+	readOn = 2 * 45000
+	// tailHole is the room left after an item ending part-way through a clip for what
+	// was read past its end, and for the next input's sound stored ahead of its
+	// first picture (seconds).
+	tailHole = 4.0
+	// holeGuard is how long before the time they are meant for holes open and close
+	// (seconds): more than the rounding of an entry point, less than any frame.
+	holeGuard = 0.007
+)
 
 type menuState struct {
 	menu              *wittybluray.Menu
@@ -700,9 +721,10 @@ func (s *Session) presentBDJ(ctx context.Context, st *wittybluray.Step, rebuild 
 	return s.present(ctx, st2, rebuild)
 }
 
-// layout puts a playlist's items on one timeline, each starting at the
-// entry point at or before its IN time (the stream begins there). only picks
-// one item (-1 = all).
+// layout puts a playlist's items on one timeline, each from its IN time to its OUT
+// time. only picks one item (-1 = all). What they need read around those times to
+// show them is cut off by holes in the input: see segments. Items without video,
+// and stills, are read from the entry point at or before their IN time instead.
 func (s *Session) layout(pl *wittybluray.Playlist, only int) *playing {
 	out := &playing{pl: pl, only: only}
 	angle := int(s.nav.Registers().PSR[wittybluray.PSRAngle])
@@ -724,11 +746,37 @@ func (s *Session) layout(pl *wittybluray.Playlist, only int) *playing {
 		if f, to, ok := c.STCRange(it.STCID); ok {
 			pi.spn = [2]uint32{f, to}
 		}
+		exact := len(it.Video) > 0 && it.StillMode == 0
 		if e, ok := c.EntryAt(c.VideoPID(), it.STCID, it.In); ok {
 			pi.startPTS, pi.spn[0] = e.PTS, e.SPN
+			// An entry's time is rounded down: the picture a play item starts on
+			// is its IN time when that lies within the rounding.
+			if it.In-e.PTS < epRounding {
+				pi.startPTS = it.In
+			} else if exact && it.In > e.PTS {
+				pi.startPTS, pi.preroll = it.In, float64(it.In-e.PTS)/45000
+			}
 		}
-		if e, ok := c.EntryAt(c.VideoPID(), it.STCID, it.Out); ok && e.SPN > pi.spn[0] && it.Out < c.EndPTS(it.STCID) {
-			pi.spn[1] = e.SPN
+		if it.Out < c.EndPTS(it.STCID) {
+			if exact {
+				// Stopping the read at the keyframe before its end would lose the
+				// pictures since then, up to a second of the film.
+				pi.stop = it.Out
+				if e, ok := c.EntryAfter(c.VideoPID(), it.STCID, it.Out+readOn); ok && e.SPN > pi.spn[0] && e.SPN < pi.spn[1] {
+					pi.spn[1] = e.SPN
+				}
+			} else if e, ok := c.EntryAt(c.VideoPID(), it.STCID, it.Out); ok && e.SPN > pi.spn[0] {
+				pi.spn[1] = e.SPN
+			}
+		}
+		// The next item goes on where this one stops, in the same clip: it is the
+		// same recording, with nothing to put together.
+		if prev := len(out.items) - 1; prev >= 0 && exact {
+			p, pit := &out.items[prev], &pl.Items[out.items[prev].item]
+			if p.clip == clipName && pit.STCID == it.STCID && pit.Out == it.In && p.stop != 0 {
+				p.stop, p.joins = 0, true
+				pi.startPTS, pi.preroll = it.In, 0
+			}
 		}
 		if it.Out > pi.startPTS {
 			pi.duration = float64(it.Out-pi.startPTS) / 45000
@@ -758,20 +806,70 @@ func chapterMarks(pl *wittybluray.Playlist) []wittybluray.Mark {
 	return out
 }
 
-// segments are the FFmpeg inputs for the laid-out playlist.
-func (s *Session) segments(pl *playing) ([]ffmpeg.Segment, error) {
+// segments are the FFmpeg inputs for the laid-out playlist, and the holes to take
+// out of them. An item's input holds what it takes to decode and hear all of it,
+// which can be more than it shows; each input is given room on the clock for the
+// extra, and everything in that room is thrown away after decoding. ids are the
+// streams FFmpeg reads.
+func (s *Session) segments(pl *playing, ids ...int) ([]ffmpeg.Segment, []hls.Hole, error) {
 	var segs []ffmpeg.Segment
-	for _, pi := range pl.items {
-		seg, err := s.clipSegment(pi.clip, pi.spn[0], pi.spn[1], pi.duration)
+	var holes []hls.Hole
+	var starts []playedItem
+	for i := 0; i < len(pl.items); i++ {
+		pi := pl.items[i]
+		// Items that join up are read as one, from the first to the last.
+		last, duration := pi, pi.duration
+		for last.joins && i+1 < len(pl.items) {
+			i++
+			last = pl.items[i]
+			duration += last.duration
+		}
+		length := pi.preroll + duration
+		if pi.preroll > 0 {
+			holes = append(holes, hls.Hole{At: pi.start, Length: pi.preroll})
+		}
+		if last.stop != 0 {
+			holes = append(holes, hls.Hole{At: pi.start + duration, Length: tailHole})
+			length += tailHole
+		}
+		seg, err := s.clipSegment(pi.clip, pi.spn[0], last.spn[1], length)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
+		}
+		if last.stop != 0 {
+			seg.Outpoint = float64(last.stop+readOn) / 45000
 		}
 		segs = append(segs, seg)
+		starts = append(starts, pi)
 	}
 	if len(segs) == 0 {
-		return nil, errors.New("the playlist has no clips")
+		return nil, nil, errors.New("the playlist has no clips")
 	}
-	return segs, nil
+	// Joining needs each input's first picture put in its place; one input has
+	// nothing to join, and its bytes need not be read for this.
+	if len(segs) > 1 {
+		for i, pi := range starts {
+			segs[i].Lead = s.disc.ClipLead(pi.clip, s.disc.Clip(pi.clip).VideoPID(), pi.spn[0])
+		}
+	}
+	// FFmpeg's clock starts at the earliest packet it reads. Part-way through a clip
+	// that is sound stored ahead of the first picture: left in, the stream would
+	// open on a held picture, and everything in it would be late by that much.
+	first := starts[0]
+	video := s.disc.Clip(first.clip).VideoPID()
+	if e, ok := s.disc.Clip(first.clip).EntryAt(video, -1, 0); len(holes) > 0 || (ok && first.spn[0] > e.SPN) {
+		var pids []uint16
+		for _, id := range ids {
+			pids = append(pids, uint16(id))
+		}
+		if lead := s.disc.ClipLead(first.clip, video, first.spn[0], pids...); lead > 0 {
+			holes = append([]hls.Hole{{Length: lead}}, holes...)
+		}
+	}
+	for i := range holes {
+		holes[i].At -= holeGuard
+	}
+	return segs, holes, nil
 }
 
 // clipSegment is a stretch of a clip's stream file as an FFmpeg input.
@@ -984,6 +1082,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 		return id, audioIdx, nil
 	}
 	var input []string
+	var holes []hls.Hole
 	audioInput := 0
 	if !hasVideo {
 		// A music disc: the stream still needs a picture. Low frame rate, since
@@ -992,7 +1091,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 		audioInput = 1
 	}
 	if hasVideo || !outOfMux {
-		segs, err := s.segments(pl)
+		segs, gaps, err := s.segments(pl, ids...)
 		if err != nil {
 			return "", -1, err
 		}
@@ -1001,6 +1100,9 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 			return "", -1, err
 		}
 		input = append(input, ffmpeg.ConcatInputArgs(list)...)
+		if hasVideo {
+			holes = gaps
+		}
 	}
 	if outOfMux {
 		segs, repeat, err := s.subPathSegments(pl.pl, audio)
@@ -1019,7 +1121,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 	}
 	s.m.HLS.Ensure(hls.Spec{
 		ID: id, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
-		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin,
+		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin, Holes: holes,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})
 	return id, audioIdx, nil

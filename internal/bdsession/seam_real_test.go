@@ -58,8 +58,11 @@ func TestRealDiscChapterSeams(t *testing.T) {
 	}
 
 	// The straight read: each item from its first entry point to the end of its
-	// clip, stopping at the item's end time. Nothing is cut at a seam here.
-	var runs [][]string
+	// clip, stopping at the item's end time. Nothing is cut at a seam here, and what
+	// lies before the item's start is only taken off after decoding.
+	t.Logf("playlist %d: %.1f s, %d items, %d chapters, %.3f fps", pl.Number, laid.duration, len(pl.Items), len(laid.chapters), fps)
+	ref := &seamcheck.Pictures{FPS: fps}
+	var refSound []int16
 	for i, pi := range laid.items {
 		c := s.disc.Clip(pi.clip)
 		seg, err := s.clipSegment(pi.clip, pi.spn[0], c.Packets, 0)
@@ -70,13 +73,14 @@ func TestRealDiscChapterSeams(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		in := append(ffmpeg.ConcatInputArgs(list), "-t", strconv.FormatFloat(pi.duration, 'f', 3, 64))
-		runs = append(runs, in)
-	}
-	t.Logf("playlist %d: %.1f s, %d items, %d chapters, %.3f fps", pl.Number, laid.duration, len(pl.Items), len(laid.chapters), fps)
-	ref, refSound, err := seamcheck.Reference(ctx, ff, runs, fps, s.videoFilter(it), audioMap, tmp)
-	if err != nil {
-		t.Fatal(err)
+		in := append(ffmpeg.ConcatInputArgs(list), "-t", strconv.FormatFloat(pi.preroll+pi.duration, 'f', 3, 64))
+		run, sound, err := seamcheck.Reference(ctx, ff, [][]string{in}, fps, s.videoFilter(it), audioMap, tmp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		skip := min(int(pi.preroll*fps+0.5), len(run.Frames))
+		ref.Frames = append(ref.Frames, run.Frames[skip:]...)
+		refSound = append(refSound, sound[min(int(pi.preroll*seamcheck.AudioRate), len(sound)):]...)
 	}
 	t.Logf("reference: %d frames, %d s of sound", len(ref.Frames), len(refSound)/seamcheck.AudioRate)
 	s.nav.SetAudio(1)

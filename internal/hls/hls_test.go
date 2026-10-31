@@ -337,3 +337,31 @@ func TestRemuxForReal(t *testing.T) {
 		t.Error("FFmpeg wrote the init segment outside the stream's folder")
 	}
 }
+
+func TestHoleFilter(t *testing.T) {
+	holes := []Hole{{At: 0, Length: 0.5}, {At: 10, Length: 4}, {At: 20, Length: 4}}
+	// From the very start, every hole is ahead, also one right at the start.
+	want := "select='not(between(t,0.000000,0.500000)+between(t,10.500000,14.500000)+between(t,24.500000,28.500000))'," +
+		"setpts='PTS-(gte(T,0.500000)*0.500000+gte(T,14.500000)*4.000000+gte(T,28.500000)*4.000000)/TB'"
+	if got := holeFilter(holes, 0, "select", "setpts"); got != want {
+		t.Errorf("from the start:\n%s\nwant\n%s", got, want)
+	}
+	if got := holesPassed(holes, 0); got != 0 {
+		t.Errorf("%v passed at the start", got)
+	}
+	// Further on, the clock counts from where it starts and the holes before that
+	// are skipped by reading further on.
+	want = "aselect='not(between(t,8.000000,12.000000))',asetpts='PTS-(gte(T,12.000000)*4.000000)/TB'"
+	if got := holeFilter(holes, 12, "aselect", "asetpts"); got != want {
+		t.Errorf("from 12 s:\n%s\nwant\n%s", got, want)
+	}
+	if got := holesPassed(holes, 12); got != 4.5 {
+		t.Errorf("%v passed at 12 s", got)
+	}
+	if got := holeFilter(holes, 21, "select", "setpts"); got != "" {
+		t.Errorf("past them all: %s", got)
+	}
+	if got := holeFilter(nil, 0, "select", "setpts"); got != "" {
+		t.Errorf("no holes: %s", got)
+	}
+}

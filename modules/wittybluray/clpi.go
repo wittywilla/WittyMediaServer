@@ -122,6 +122,19 @@ func (c *Clip) SPNAt(pid uint16, pts uint32) (e EPEntry, ok bool) {
 // -1 searches the whole map. A stream with no map of its own uses the clip's
 // first one (audio-only clips map their audio).
 func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
+	entries := c.epEntries(pid, stc)
+	if len(entries) == 0 {
+		return EPEntry{}, false
+	}
+	k := sort.Search(len(entries), func(j int) bool { return entries[j].PTS > pts })
+	if k == 0 {
+		return entries[0], true
+	}
+	return entries[k-1], true
+}
+
+// epEntries is a stream's entry points within one time base.
+func (c *Clip) epEntries(pid uint16, stc int) []EPEntry {
 	var m *EPMap
 	for i := range c.EPMaps {
 		if c.EPMaps[i].PID == pid && len(c.EPMaps[i].Entries) > 0 {
@@ -138,7 +151,7 @@ func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
 		}
 	}
 	if m == nil {
-		return EPEntry{}, false
+		return nil
 	}
 	entries := m.Entries
 	if from, to, found := c.STCRange(stc); found {
@@ -148,11 +161,18 @@ func (c *Clip) EntryAt(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
 			entries = entries[lo:hi]
 		}
 	}
+	return entries
+}
+
+// EntryAfter is the first entry point after a time on a video stream, within
+// that time base; ok is false when there is none.
+func (c *Clip) EntryAfter(pid uint16, stc int, pts uint32) (e EPEntry, ok bool) {
+	entries := c.epEntries(pid, stc)
 	k := sort.Search(len(entries), func(j int) bool { return entries[j].PTS > pts })
-	if k == 0 {
-		return entries[0], true
+	if k >= len(entries) {
+		return EPEntry{}, false
 	}
-	return entries[k-1], true
+	return entries[k], true
 }
 
 // STCRange is the source packets of a time base; found is false when the

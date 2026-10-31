@@ -274,7 +274,8 @@ export default function MoonlightPlayer({ host }: { host: MoonlightHost }) {
   const setFps = (fps: number) => setPrefs((p) => ({ ...p, fps, bitrate: defaultBitrate(p.height, fps) }))
 
   return (
-    <div className="ml-root">
+    // "wp-playing" stands the app's TV-style controller and arrow navigation down, as WittyPlay's player does.
+    <div className="ml-root wp-playing">
       <video ref={video} className="ml-video" autoPlay playsInline disablePictureInPicture
         onPointerMove={onMove} onPointerDown={(e) => onPress(e, true)} onPointerUp={(e) => onPress(e, false)} onContextMenu={(e) => e.preventDefault()}
         onWheel={(e) => { if (captured) send(scrollMessage(-e.deltaY, false), true); if (captured && e.deltaX) send(scrollMessage(e.deltaX, true), true) }} />

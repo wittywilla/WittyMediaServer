@@ -61,16 +61,48 @@ public final class WittyClient: @unchecked Sendable {
         request.httpBody = body
         if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
         for (name, value) in authHeaders { request.setValue(value, forHTTPHeaderField: name) }
-        let (data, response) = try await session.data(for: request)
+        let place = "\(method) \(path.split(separator: "?").first.map(String.init) ?? path)"
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            // Leaving a screen cancels what it asked for, which is nothing to report.
+            if !token.isEmpty, !(error is CancellationError), (error as? URLError)?.code != .cancelled {
+                ClientLog.shared.warn("network", "\(place) failed: \((error as? URLError)?.code.rawValue ?? 0)")
+            }
+            throw error
+        }
         guard let http = response as? HTTPURLResponse else {
             throw APIError(status: 0, message: "The server sent an answer that can't be read.")
         }
         guard (200..<300).contains(http.statusCode) else {
             struct Failure: Decodable { let error: String? }
-            let message = (try? decoder.decode(Failure.self, from: data))?.error
-            throw APIError(status: http.statusCode, message: message ?? "The server answered with an error (\(http.statusCode)).")
+            let message = (try? decoder.decode(Failure.self, from: data))?.error ?? "The server answered with an error (\(http.statusCode))."
+            reportFailure(place, method: method, status: http.statusCode, message: message, request: http.value(forHTTPHeaderField: "X-Request-Id") ?? "")
+            throw APIError(status: http.statusCode, message: message)
         }
         return data
+    }
+
+    /// Only for a signed-in connection: an address being tried has its own words on
+    /// screen. A sign-in that has run out and a stream already gone are normal.
+    private func reportFailure(_ place: String, method: String, status: Int, message: String, request: String) {
+        guard !token.isEmpty, status != 401, !(method == "DELETE" && status == 404) else { return }
+        ClientLog.shared.report(status >= 500 ? "error" : "warn", "request", "\(place) answered \(status): \(message)", request: request)
+    }
+
+    /// This app's own errors, for the server's log. The answer is all that comes back:
+    /// it skips `call`, so a report that fails can't become a report of its own.
+    func sendClientLog(_ body: Data) async throws -> Int {
+        guard let url = URL(string: base + apiPath + "/logs/client") else { return 0 }
+        var request = URLRequest(url: url, timeoutInterval: 10)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (name, value) in authHeaders { request.setValue(value, forHTTPHeaderField: name) }
+        let (_, response) = try await session.data(for: request)
+        return (response as? HTTPURLResponse)?.statusCode ?? 0
     }
 
     private func get<T: Decodable>(_ path: String) async throws -> T {

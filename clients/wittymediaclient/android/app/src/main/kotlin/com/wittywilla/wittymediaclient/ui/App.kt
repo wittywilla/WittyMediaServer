@@ -15,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.wittywilla.wittymediaclient.WittyApp
 import com.wittywilla.wittymediaclient.data.SavedServer
+import com.wittywilla.wittymediaclient.diag.ClientLog
 import com.wittywilla.wittymediaclient.net.Api
 import com.wittywilla.wittymediaclient.net.ApiError
 import com.wittywilla.wittymediaclient.net.Identity
@@ -73,6 +74,7 @@ class Nav(val app: WittyApp, private val s: Map<String, String>) {
         server = opening
         app.store.server = opening.url
         app.api = Api(opening.url, token)
+        if (token.isNotEmpty()) ClientLog.kick()
     }
 
     // On to signing in, for a server that has been checked.
@@ -207,6 +209,7 @@ class Nav(val app: WittyApp, private val s: Map<String, String>) {
         val kept = server ?: SavedServer(app.api.base, "WittyMediaServer")
         app.store.signedIn(kept, token)
         app.api = Api(kept.url, token)
+        ClientLog.kick()
         reset(Route.Home)
     }
 

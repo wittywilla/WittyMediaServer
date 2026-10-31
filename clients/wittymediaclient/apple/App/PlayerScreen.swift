@@ -18,6 +18,8 @@ final class PlaybackModel: ObservableObject {
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
     private var failObserver: NSObjectProtocol?
+    private var statusObserver: NSKeyValueObservation?
+    private var failedItem: ObjectIdentifier?
     private var lastSave = 0.0
     private var client: WittyClient?
     private var id: Int64 = 0
@@ -73,6 +75,7 @@ final class PlaybackModel: ObservableObject {
             let answer = try await client.playback(id, PlaybackRequest(profile: profile, audio: audio, subtitle: subtitle, startSec: startSec))
             let changed = answer.url != stream?.url
             stream = answer
+            ClientLog.shared.session = answer.streamId ?? ""
             if changed {
                 guard let url = client.mediaURL(answer.url) else { error = "The server sent an address that can't be used."; return }
                 // The address already carries a short-lived stream token.
@@ -107,14 +110,31 @@ final class PlaybackModel: ObservableObject {
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: next, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.finished() }
         }
+        let itemId = ObjectIdentifier(next)
+        failedItem = nil
         failObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: next, queue: .main) { [weak self] note in
-            let message = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error)?.localizedDescription
-            MainActor.assumeIsolated { self?.failed(message) }
+            let problem = note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
+            MainActor.assumeIsolated { self?.failed(problem, item: itemId) }
+        }
+        // A stream that never starts only shows up here, not in the notification above.
+        statusObserver = next.observe(\.status) { [weak self] item, _ in
+            guard item.status == .failed else { return }
+            let problem = item.error
+            Task { @MainActor [weak self] in self?.failed(problem, item: itemId) }
         }
     }
 
     /// An expired token or a stream that went away: ask again from the same place.
-    private func failed(_ message: String?) {
+    /// One item can say it failed in both of the ways above, which counts as one.
+    private func failed(_ problem: Error?, item: ObjectIdentifier) {
+        guard failedItem != item else { return }
+        failedItem = item
+        let message = problem?.localizedDescription
+        let detail = problem.map { problem -> String in
+            let found = problem as NSError
+            return "\(found.domain) \(found.code): \(found.localizedDescription)"
+        } ?? "no details"
+        ClientLog.shared.report(retries < 2 ? "warn" : "error", "player", "Playback failed: \(detail)", session: stream?.streamId ?? "")
         guard retries < 2 else { error = message ?? "This can't be played."; return }
         retries += 1
         stream = nil
@@ -186,6 +206,8 @@ final class PlaybackModel: ObservableObject {
         endObserver = nil
         if let failObserver { NotificationCenter.default.removeObserver(failObserver) }
         failObserver = nil
+        statusObserver = nil
+        ClientLog.shared.session = ""
         player.replaceCurrentItem(with: nil)
         // Stops the conversion straight away instead of letting it run on.
         if let client, let streamId = stream?.streamId, !streamId.isEmpty {

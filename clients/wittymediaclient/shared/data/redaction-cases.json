@@ -1,0 +1,26 @@
+{
+  "about": "What every client's log must hide. For each case, nothing in 'gone' may survive cleaning the input, and everything in 'kept' must. The values are made up.",
+  "cases": [
+    { "input": "GET /api/hls/v-1/playlist.m3u8?token=PLANTED-query-1&x=1", "gone": ["PLANTED-query-1"], "kept": ["/api/hls/v-1/playlist.m3u8", "x=1"] },
+    { "input": "http://192.168.1.20:9797/api/items/1/file?st=PLANTED-stream-2", "gone": ["PLANTED-stream-2"], "kept": ["192.168.1.20:9797/api/items/1/file"] },
+    { "input": "Authorization: Bearer PLANTEDbearer3", "gone": ["PLANTEDbearer3"], "kept": ["Authorization"] },
+    { "input": "sent Bearer PLANTEDbearer4 to the server", "gone": ["PLANTEDbearer4"], "kept": ["to the server"] },
+    { "input": "password=PLANTEDpass5&user=me", "gone": ["PLANTEDpass5"], "kept": ["user=me"] },
+    { "input": "{\"password\":\"PLANTED\\\"pass6\",\"name\":\"me\"}", "gone": ["PLANTED", "pass6"], "kept": ["\"name\":\"me\""] },
+    { "input": "{\"token\":\"PLANTEDtok7\",\"deviceSecret\":\"PLANTEDsec8\",\"code\":\"123987\",\"code2\":-3}", "gone": ["PLANTEDtok7", "PLANTEDsec8", "123987"], "kept": ["\"code2\":-3"] },
+    { "input": "cut short: {\"password\":\"PLANTEDcut9", "gone": ["PLANTEDcut9"], "kept": ["cut short"] },
+    { "input": "Cookie: wms_token=PLANTEDcookie10; other=1", "gone": ["PLANTEDcookie10"], "kept": ["Cookie"] },
+    { "input": "Set-Cookie: wms_token=PLANTEDcookie11; Path=/", "gone": ["PLANTEDcookie11"], "kept": ["Set-Cookie"] },
+    { "input": "the wms_token=PLANTEDcookie12 was sent", "gone": ["PLANTEDcookie12"], "kept": ["was sent"] },
+    { "input": "rtsp://user:PLANTEDlogin13@camera/live", "gone": ["PLANTEDlogin13"], "kept": ["camera/live"] },
+    { "input": "a=1&%74oken=PLANTEDcoded14", "gone": ["PLANTEDcoded14"], "kept": ["a=1"] },
+    { "input": "a=1&t%6Fken=PLANTEDcoded15", "gone": ["PLANTEDcoded15"], "kept": ["a=1"] },
+    { "input": "session 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ended", "gone": ["0123456789abcdef0123456789abcdef"], "kept": ["ended"] },
+    { "input": "X-WMS-Token: PLANTEDheader16", "gone": ["PLANTEDheader16"], "kept": ["X-WMS-Token"] },
+    { "input": "stream st1.PLANTEDstream17 and st_PLANTEDstream18 ended", "gone": ["PLANTEDstream17", "PLANTEDstream18"], "kept": ["ended"] },
+    { "input": "share link /s/PLANTEDshare19", "gone": ["PLANTEDshare19"], "kept": ["share link"] },
+    { "input": "Basic QUxBRERJTjpvcGVuIHNlc2FtZQ==", "gone": ["QUxBRERJTjpvcGVuIHNlc2FtZQ"], "kept": ["Basic"] },
+    { "input": "POST /api/v1/items/12/playback answered 500", "gone": [], "kept": ["POST /api/v1/items/12/playback answered 500"] },
+    { "input": "net::ERR_CONNECTION_REFUSED, exit code 3, the key things to do", "gone": [], "kept": ["net::ERR_CONNECTION_REFUSED, exit code 3, the key things to do"] }
+  ]
+}

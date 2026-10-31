@@ -53,6 +53,7 @@ toolchain:
 | `shared/data/themes.json` | All server themes as plain colour values, generated from `themes/*/theme.css` by `shared/scripts/build-themes.mjs` | Native clients, connect screen |
 | `shared/data/input-map.json` | What each remote and controller button means | All clients |
 | `shared/data/connection-cases.json` | Test vectors: what a typed address normalises to, and which addresses are refused | Tests on every client |
+| `shared/data/redaction-cases.json` | Test vectors: which secrets a client's log must hide, and what it must keep | Tests on every client |
 | `shared/data/strings.en.json` | Wording of the connection flow, so every client says the same plain thing | All clients |
 | `shared/connect/` | The connect screen (HTML, CSS, JS, no framework) | Desktop, webOS, Tizen |
 

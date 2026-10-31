@@ -96,7 +96,9 @@ final class AppModel: ObservableObject {
     @Published var stage: Stage = .starting
     @Published var path: [Route] = []
     @Published var themeId: String?
-    private(set) var client = WittyClient(base: "")
+    private(set) var client = WittyClient(base: "") {
+        didSet { ClientLog.shared.use(client) }
+    }
 
     /// The server the sign-in screens talk to. Its key waits here for a token to be
     /// kept with, unless it was already pinned.

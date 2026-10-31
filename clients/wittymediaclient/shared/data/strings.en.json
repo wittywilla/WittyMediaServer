@@ -21,6 +21,7 @@
   "errNotServer": "Something answered at that address, but it isn't WittyMediaServer.",
   "errLost": "Lost contact with your server. Check that it is running, then try again.",
   "changeServer": "Change server",
+  "openLogs": "Open logs folder",
   "errNotSetUp": "That server hasn't been set up yet. Open its address in a web browser to finish setting it up.",
   "errServerOld": "That server is too old for this app. Update WittyMediaServer, then try again.",
   "errAppOld": "This server needs a newer version of this app.",

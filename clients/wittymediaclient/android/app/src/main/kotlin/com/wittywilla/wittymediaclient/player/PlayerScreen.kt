@@ -47,6 +47,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.wittywilla.wittymediaclient.diag.ClientLog
 import com.wittywilla.wittymediaclient.net.Item
 import com.wittywilla.wittymediaclient.net.Playback
 import com.wittywilla.wittymediaclient.net.PlaybackRequest
@@ -125,7 +126,15 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
             override fun onPlayerError(e: PlaybackException) {
                 // 401 means a new token and 404 means the stream went away: ask again.
                 val code = (e.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode
-                if ((code == 401 || code == 404) && retries < MAX_STREAM_RETRIES) {
+                val retrying = (code == 401 || code == 404) && retries < MAX_STREAM_RETRIES
+                ClientLog.report(
+                    if (retrying) "warn" else "error",
+                    "player",
+                    "Playback failed: ${e.errorCodeName}${if (code != null) ", the server answered $code" else ""}",
+                    stack = e.stackTraceToString(),
+                    session = stream?.streamId.orEmpty(),
+                )
+                if (retrying) {
                     retries++
                     ask = ask.copy(startSec = currentFilmSec(), attempt = ask.attempt + 1)
                 } else {
@@ -153,6 +162,7 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
             val answer = api.playback(id, PlaybackRequest(PROFILE, ask.audio, ask.subtitle, ask.startSec))
             val changed = answer.url != stream?.url
             stream = answer
+            ClientLog.session = answer.streamId
             if (changed) {
                 val media = MediaItem.Builder().setUri(api.mediaUrl(answer.url))
                 if (answer.protocol == "hls") media.setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -202,6 +212,7 @@ fun PlayerScreen(nav: Nav, id: Long, startOver: Boolean) {
     DisposableEffect(Unit) {
         onDispose {
             saveProgress()
+            ClientLog.session = ""
             val streamId = stream?.streamId.orEmpty()
             if (streamId.isNotEmpty()) nav.app.scope.launch { runCatching { api.stopStream(streamId) } }
         }

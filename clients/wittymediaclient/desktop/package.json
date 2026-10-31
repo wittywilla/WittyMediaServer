@@ -10,7 +10,7 @@
   "scripts": {
     "sync": "node scripts/sync-shared.mjs",
     "start": "npm run sync && electron .",
-    "test": "npm run sync && node --test ../shared/connect/address.test.js test/state.test.js test/connect.test.js",
+    "test": "npm run sync && node --test ../shared/connect/address.test.js test/state.test.js test/connect.test.js test/clientlog.test.js",
     "package:win": "npm run sync && electron-builder --win",
     "package:linux": "npm run sync && electron-builder --linux"
   },
@@ -30,6 +30,7 @@
       "state.js",
       "identity.js",
       "discover.js",
+      "clientlog.js",
       "titlebar/**",
       "connect/**"
     ],

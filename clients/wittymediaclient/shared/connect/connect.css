@@ -48,6 +48,7 @@ button, input {
 button { cursor: pointer; text-align: left; }
 button .sub { display: block; font-size: 0.8rem; color: var(--text-2); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); text-align: center; }
+button.link { background: none; border-color: transparent; color: var(--text-2); font-size: 0.8rem; padding: 0.3rem 0.5rem; width: auto; align-self: flex-start; margin-top: 0.75rem; }
 button:disabled { opacity: 0.55; cursor: default; }
 /* The focus ring is the main way to see where you are with a remote. */
 button:focus, input:focus { outline: 3px solid var(--text); outline-offset: 2px; }

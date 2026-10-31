@@ -44,6 +44,7 @@ trip through the app switcher loses nothing.
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}` |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}` | admin | Server setup. An app can leave this to the web interface |
+| `/gaming/custom/...`, `/gaming/consoles/{console}/core`, `/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [CLIENT-API.md](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
 
 A session belongs to the account that started it; to anyone else its routes answer 404.
 

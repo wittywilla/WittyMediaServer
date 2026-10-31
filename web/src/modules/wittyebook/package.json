@@ -9,11 +9,17 @@
   "exports": {
     ".": "./index.ts"
   },
+  "scripts": {
+    "build:bundle": "node build-bundle.mjs"
+  },
   "repository": "github:wittywilla/WittyEbook",
   "peerDependencies": {
     "react": ">=18"
   },
   "dependencies": {
     "@wittywilla/wittyink": "github:wittywilla/WittyInk"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0"
   }
 }

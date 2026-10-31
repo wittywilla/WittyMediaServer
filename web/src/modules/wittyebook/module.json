@@ -3,12 +3,16 @@
   "name": "WittyEbook",
   "version": "0.1.0",
   "repo": "wittywilla/WittyEbook",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "web",
+  "entry": "index.js",
+  "style": "style.css",
+  "api": 2,
   "minServer": "0.4.0-alpha",
   "maxServer": "0.5.x",
   "group": "read",
   "summary": "Reflowable books (EPUB) with book view, typography and study tools.",
+  "updates": "The EPUB reader itself: book view, typography, study tools, handwriting and its look.",
+  "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching chapters), how the server takes a book apart and cleans it, and React stay with the server. If this bundle fails, the copy in the app takes over.",
   "libraries": [
     "books"
   ],

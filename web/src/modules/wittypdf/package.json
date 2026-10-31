@@ -9,6 +9,9 @@
   "exports": {
     ".": "./index.ts"
   },
+  "scripts": {
+    "build:bundle": "node build-bundle.mjs"
+  },
   "repository": "github:wittywilla/WittyPDF",
   "peerDependencies": {
     "react": ">=18"
@@ -16,5 +19,8 @@
   "dependencies": {
     "@wittywilla/wittyink": "github:wittywilla/WittyInk",
     "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0"
   }
 }

@@ -374,7 +374,7 @@ check_alone() { # <dir>
 wait_release_real() { # <repository> <tag> <delivery> <module path or empty>
   local repo=$1 tag=$2 delivery=$3 mod=$4 id="" i assets
   if ! "$GH" release view "$tag" --repo "$OWNER/$repo" --json tagName >/dev/null 2>&1; then
-    for i in $(seq 1 30); do
+    for _ in $(seq 1 30); do
       id=$("$GH" run list --repo "$OWNER/$repo" --workflow release.yml --branch "$tag" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
       [ -n "$id" ] && break
       sleep 10
@@ -394,7 +394,7 @@ wait_release_real() { # <repository> <tag> <delivery> <module path or empty>
   fi
   if [ -n "$mod" ]; then
     # Ask the Go module proxy now, so the next module can require it.
-    for i in $(seq 1 10); do
+    for _ in $(seq 1 10); do
       GOWORK=off go list -m "$mod@$tag" >/dev/null 2>&1 && return 0
       sleep 15
     done
@@ -405,7 +405,9 @@ wait_release_real() { # <repository> <tag> <delivery> <module path or empty>
 # Dry run: the same workflow's own commands, here, from a clean clone of the local
 # repository, which shows the module stands alone.
 wait_release_dry() { # <repository> <tag> <delivery> <url>
-  local repo=$1 tag=$2 delivery=$3 url=$4 clone="$work/standalone/$repo" state="$work/state/$repo" flow sums
+  local repo=$1 tag=$2 delivery=$3 url=$4 flow sums clone state
+  clone="$work/standalone/$repo"
+  state="$work/state/$repo"
   rm -rf "$clone" "$state"
   mkdir -p "$state"
   run git clone -q --branch "$tag" "$url" "$clone" 2>/dev/null
@@ -479,7 +481,7 @@ release_module() { # <dir> <repository>
 
   pin_go "$dir"
   pin_npm "$dir"
-  run scripts/module-kit.sh --tool "$tool" "$dir"
+  run bash scripts/module-kit.sh --tool "$tool" "$dir"
   git add -- "$dir"
 
   # Already released, with exactly these files? Then a run that stopped part way is
@@ -502,7 +504,7 @@ release_module() { # <dir> <repository>
       echo "   raising it to $version: v$current is taken"
       set_version "$dir" "$version"
       [ -f "$dir/package-lock.json" ] && (cd "$dir" && run npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent)
-      [ "$repo" = WittyModule ] && run scripts/module-kit.sh --tool "v$version" "$dir"
+      [ "$repo" = WittyModule ] && run bash scripts/module-kit.sh --tool "v$version" "$dir"
       git add -- "$dir"
     fi
     if ! git diff --cached --quiet; then
@@ -633,12 +635,12 @@ if [ -z "$apply" ]; then
   say "scripts/dev-modules.sh: working on a server and modules together"
   (
     unset GOWORK
-    run scripts/dev-modules.sh WittyPhotos WittyEbook
+    run bash scripts/dev-modules.sh WittyPhotos WittyEbook
     [ -f go.work ] || die "dev-modules.sh made no go.work"
     [ -z "$(git status --porcelain -- go.work go.work.sum)" ] || die "git sees go.work: .gitignore doesn't cover it"
     run go build -o /dev/null ./cmd/wms
     (cd web && run npm run build)
-    run scripts/dev-modules.sh --off
+    run bash scripts/dev-modules.sh --off
     [ ! -f go.work ] || die "dev-modules.sh --off left go.work"
     [ -z "$(git status --porcelain | grep -v '^?? \.build' || true)" ] || { git status --short; die "dev-modules.sh left changes behind"; }
   )

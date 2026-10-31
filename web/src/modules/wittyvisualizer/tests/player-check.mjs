@@ -120,17 +120,23 @@ try {
     // with each effect: one brightness per frame, in tiles the size the guideline uses.
     await p.eval(`(() => {
       window.__wvRec = { tiles: [], t: [] }
-      const c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5
+      // Enough pixels that a tile is a real average of its area, not a few samples of it.
+      const c2 = document.createElement('canvas'); c2.width = 160; c2.height = 100
       const x = c2.getContext('2d', { willReadFrequently: true })
+      x.imageSmoothingQuality = 'high'
       const lum = (v) => Math.pow(v / 255, 2.2)
       const loop = () => {
         const c = document.querySelector('.wv-canvas')
         if (c && window.__wvRec) {
-          x.drawImage(c, 0, 0, 8, 5)
-          const d = x.getImageData(0, 0, 8, 5).data, row = []
+          x.drawImage(c, 0, 0, 160, 100)
+          const d = x.getImageData(0, 0, 160, 100).data, row = new Array(40).fill(0)
           let m = 0
-          for (let i = 0; i < d.length; i += 4) { const l = 0.2126 * lum(d[i]) + 0.7152 * lum(d[i + 1]) + 0.0722 * lum(d[i + 2]); row.push(l); m += l }
-          row.push(m / 40)
+          for (let py = 0; py < 100; py++) for (let px = 0; px < 160; px++) {
+            const i = (py * 160 + px) * 4, l = 0.2126 * lum(d[i]) + 0.7152 * lum(d[i + 1]) + 0.0722 * lum(d[i + 2])
+            row[Math.floor(py / 20) * 8 + Math.floor(px / 20)] += l / 400
+            m += l
+          }
+          row.push(m / 16000)
           window.__wvRec.tiles.push(row); window.__wvRec.t.push(performance.now() / 1000)
           requestAnimationFrame(loop)
         }

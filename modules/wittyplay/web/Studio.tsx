@@ -259,6 +259,13 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
   }), [change])
   const setOption = useCallback((patch: Partial<ProfileOptions>) => change((p) => ({ ...p, options: { ...(p.options || {}), ...patch } })), [change])
 
+  // The two pairs of face buttons people most often want the other way round.
+  const swaps = useMemo(() => [[0, 8], [1, 9]].filter(([a, b]) => targetIds.has(a) && targetIds.has(b)), [targetIds])
+  const swapTargets = (a: number, b: number) => {
+    void change((p) => ({ ...p, map: { ...(p.map || {}), [a]: map[b] ?? null, [b]: map[a] ?? null } }))
+    say(`Swapped ${labelOf(a)} and ${labelOf(b)}`)
+  }
+
   // ---- listening for a press ----
 
   useEffect(() => {
@@ -574,6 +581,16 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
           </div>
         )}
         <p className="wp-muted wps-para">The most exact profile in use wins: one for this game, then this console, then this controller, then the default.</p>
+
+        {!isKeys && swaps.length > 0 && (
+          <>
+            <h3>Go by the letters</h3>
+            <p className="wp-muted wps-para">Buttons are matched by where they are on the pad, which is how games were designed to be held. If you’d rather go by what’s printed on yours, swap them.</p>
+            <div className="wps-row wps-wrap">
+              {swaps.map(([a, b]) => <button key={a} type="button" className="wp-btn" onClick={() => swapTargets(a, b)}>Swap {labelOf(a)} and {labelOf(b)}</button>)}
+            </div>
+          </>
+        )}
 
         <h3>How it feels</h3>
         <div className="wps-group">

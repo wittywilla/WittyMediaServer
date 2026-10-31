@@ -272,6 +272,8 @@ anything appended. A photo stored sideways is turned upright first, as that's in
 
 It's stored at `gaming/backgrounds/u<user id>.jpg`, from numbers only, and served to its owner with `nosniff` and the sandboxing policy every API answer has. No route takes an account number, so there's
 nothing to change to reach someone else's. It goes with the account.
+- **Touch sticks:** consoles with a stick get an on-screen analog one, read as how far a thumb pushes it. On the Nintendo 64, where the stick is how
+  games steer, the on-screen D-pad is that stick. On PlayStation, whose games nearly all use the D-pad, it starts hidden and the editor can show it.
 - **Touch:** an on-screen controller per console. The editor moves, resizes and sets the opacity of
   each control and chooses which ones show, saved **per console and per device, for portrait and
   landscape separately**. Sliding between buttons works, and Android gets haptics (iOS has no web

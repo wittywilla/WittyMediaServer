@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Control, ControlsData, Layout, Orientation } from './consoles'
-import { clamp, layoutFor, touchMask } from './touch'
+import { clamp, isStick, layoutFor, onStick as fingerOnStick, touchMask, touchStick } from './touch'
 
 // The on-screen controller, and the editor that rearranges it. Fingers are tracked
 // on the whole area rather than on each button, so sliding from one button to the
@@ -33,7 +33,15 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return size
 }
 
-function ControlFace({ c, active }: { c: Control; active: boolean }) {
+function ControlFace({ c, active, knob }: { c: Control; active: boolean; knob?: { x: number; y: number } }) {
+  if (isStick(c)) {
+    return (
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="wp-dpad-shape" cx="50" cy="50" r="46" />
+        <circle className="wp-dpad-arrows" cx={50 + (knob?.x || 0) * 26} cy={50 + (knob?.y || 0) * 26} r="20" />
+      </svg>
+    )
+  }
   if (c.kind === 'dpad') {
     return (
       <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -45,7 +53,7 @@ function ControlFace({ c, active }: { c: Control; active: boolean }) {
   return <span className={'wp-btn-face wp-btn-' + c.kind + (active ? ' on' : '')}>{c.label}</span>
 }
 
-export function TouchControls({ data, orientation, onMask }: { data: ControlsData; orientation: Orientation; onMask: (mask: number) => void }) {
+export function TouchControls({ data, orientation, onMask, onStick }: { data: ControlsData; orientation: Orientation; onMask: (mask: number) => void; onStick: (x: number, y: number) => void }) {
   const area = useRef<HTMLDivElement>(null)
   const size = useSize(area)
   const controls = data.controls
@@ -53,29 +61,43 @@ export function TouchControls({ data, orientation, onMask }: { data: ControlsDat
   const points = useRef(new Map<number, { x: number; y: number }>())
   const lastMask = useRef(0)
   const [mask, setMask] = useState(0)
+  const hasStick = useMemo(() => controls.some((c) => isStick(c) && !layout[c.key]?.hidden), [controls, layout])
+  const [knob, setKnob] = useState({ x: 0, y: 0 })
+  const stickFinger = useRef<number | null>(null)
 
   const update = useCallback(() => {
     const el = area.current
     if (!el) return
-    const m = touchMask([...points.current.values()], controls, layout, { w: el.clientWidth, h: el.clientHeight })
+    const rect = { w: el.clientWidth, h: el.clientHeight }
+    const others = [...points.current].filter(([id]) => id !== stickFinger.current).map(([, p]) => p)
+    const m = touchMask(others, controls, layout, rect)
+    if (hasStick) {
+      const held = stickFinger.current !== null ? points.current.get(stickFinger.current) ?? null : null
+      const s = touchStick(held, controls, layout, rect)
+      setKnob(s)
+      onStick(s.x, s.y)
+    }
     if (m !== lastMask.current) {
       if (m & ~lastMask.current) navigator.vibrate?.(8) // a press, not a release
       lastMask.current = m
       setMask(m)
       onMask(m)
     }
-  }, [controls, layout, onMask])
+  }, [controls, layout, onMask, onStick, hasStick])
 
-  useEffect(() => () => onMask(0), [onMask])
+  useEffect(() => () => { onMask(0); onStick(0, 0) }, [onMask, onStick])
 
   const track = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.buttons === 0) return
     const r = area.current!.getBoundingClientRect()
-    points.current.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top })
+    const pt = { x: e.clientX - r.left, y: e.clientY - r.top }
+    if (!points.current.has(e.pointerId) && stickFinger.current === null && hasStick && fingerOnStick(pt, controls, layout, { w: r.width, h: r.height })) stickFinger.current = e.pointerId
+    points.current.set(e.pointerId, pt)
     update()
   }
   const release = (e: React.PointerEvent) => {
     points.current.delete(e.pointerId)
+    if (stickFinger.current === e.pointerId) stickFinger.current = null
     update()
   }
   const unit = Math.min(size.w, size.h)
@@ -88,7 +110,7 @@ export function TouchControls({ data, orientation, onMask }: { data: ControlsDat
         const px = p.size * unit
         return (
           <div key={c.key} className={'wp-ctl wp-ctl-' + c.kind} style={{ left: p.x * size.w - px / 2, top: p.y * size.h - px / 2, width: px, height: c.kind === 'meta' ? px * 0.55 : c.kind === 'shoulder' ? px * 0.7 : px, opacity: p.opacity, fontSize: px * (c.kind === 'meta' ? 0.24 : 0.36) }}>
-            <ControlFace c={c} active={c.kind !== 'dpad' && !!(mask & (1 << c.id))} />
+            <ControlFace c={c} active={c.kind !== 'dpad' && c.kind !== 'stick' && !!(mask & (1 << c.id))} knob={isStick(c) ? knob : undefined} />
           </div>
         )
       })}

@@ -131,20 +131,26 @@ func Pad(consoleID string) PadLayout {
 // Control is something on a controller. Key is what layouts are stored under.
 type Control struct {
 	Key   string `json:"key"`
-	ID    int    `json:"id"` // the RetroPad button; -1 for the D-pad as a whole
+	ID    int    `json:"id"` // the RetroPad button; -1 for the D-pad as a whole, -2 for the stick
 	Label string `json:"label"`
-	Kind  string `json:"kind"` // dpad | face | shoulder | meta
-	// Stick: on screen, this D-pad drives the left stick.
+	Kind  string `json:"kind"` // dpad | stick | face | shoulder | meta
+	// Stick: on screen, this D-pad is an analog stick, and drives the left stick.
 	Stick bool `json:"stick,omitempty"`
 }
 
-// DPadKey is the D-pad's key in a touch layout.
-const DPadKey = "dpad"
+// Keys in a touch layout: the D-pad, and an analog stick of its own.
+const (
+	DPadKey  = "dpad"
+	StickKey = "lstick"
+)
 
 // Controls lists a console's on-screen controls.
 func Controls(consoleID string) []Control {
 	p := Pad(consoleID)
 	out := []Control{{Key: DPadKey, ID: -1, Label: "D-pad", Kind: "dpad", Stick: p.StickFirst}}
+	if p.Sticks && !p.StickFirst {
+		out = append(out, Control{Key: StickKey, ID: -2, Label: "Stick", Kind: "stick"})
+	}
 	add := func(list []PadButton, kind string) {
 		for _, b := range list {
 			out = append(out, Control{Key: fmt.Sprintf("b%d", b.ID), ID: b.ID, Label: b.Label, Kind: kind})
@@ -326,6 +332,11 @@ func DefaultTouch(consoleID, orientation string) TouchLayout {
 	out := TouchLayout{}
 	fy := pick(0.62, 0.72) // the height of the D-pad and main buttons
 	out[DPadKey] = Placement{X: pick(0.13, 0.24), Y: fy, Size: pick(0.36, 0.3), Opacity: defaultOpacity}
+	if pad.Sticks && !pad.StickFirst {
+		// Between the D-pad and the buttons. PlayStation games nearly all steer with the
+		// D-pad, so it starts hidden there, and the editor can show it.
+		out[StickKey] = Placement{X: pick(0.3, 0.5), Y: pick(0.84, 0.585), Size: pick(0.28, 0.2), Opacity: defaultOpacity, Hidden: consoleID == "ps1"}
+	}
 	cx := pick(0.87, 0.76)
 	s := pick(0.15, 0.125)
 	dx, dy := pick(0.085, 0.15), pick(0.17, 0.085)

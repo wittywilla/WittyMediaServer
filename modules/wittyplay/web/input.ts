@@ -83,6 +83,8 @@ export class InputManager {
   private pulseMask = 0
   private held = new Set<number>() // keyboard
   private touchMask = 0
+  private touchX = 0
+  private touchY = 0
   private touchPort = 0
   private keyboardPort = 0
   private keyboardTurbo = 0
@@ -156,7 +158,7 @@ export class InputManager {
   setEnabled(on: boolean) {
     if (this.enabled === on) return
     this.enabled = on
-    if (!on) { this.held.clear(); this.touchMask = 0; this.stopRumble() }
+    if (!on) { this.held.clear(); this.touchMask = 0; this.touchX = 0; this.touchY = 0; this.stopRumble() }
     this.flush(true)
   }
 
@@ -350,6 +352,11 @@ export class InputManager {
     if (mask !== this.touchMask) { this.touchMask = mask; this.flush() }
   }
 
+  // The on-screen stick, -1 to 1 each way.
+  setTouchStick(x: number, y: number) {
+    if (x !== this.touchX || y !== this.touchY) { this.touchX = x; this.touchY = y; this.flush() }
+  }
+
   // ---- the state of every player ----
 
   private poll() {
@@ -408,6 +415,7 @@ export class InputManager {
       if (this.keyboardTurbo && Math.floor((performance.now() * this.keyboardHz * 2) / 1000) % 2) b[this.keyboardPort] &= ~this.keyboardTurbo
       for (let id = 0; id < TARGETS; id++) if (this.touchMask & (1 << id)) this.press(this.touchPort, id)
       for (let id = 0; id < TARGETS; id++) if (this.pulseMask & (1 << id)) this.press(0, id)
+      if (this.touchX || this.touchY) { a[this.touchPort * 4] = this.touchX; a[this.touchPort * 4 + 1] = this.touchY }
       for (const s of this.slots.values()) {
         const r = s.reading, n = s.port * 4
         b[s.port] |= r.mask

@@ -205,7 +205,8 @@ draw `Y` on a Super Nintendo and `□` on a PlayStation from the same data.
   need more.
 - **Touch** layouts place each control by its `key`: `x` and `y` are its centre, as fractions of the play area,
   and `size` is a fraction of the shorter side. A D-pad is a square of that size; `meta` buttons are about half as
-  tall as wide.
+  tall as wide. A control of kind `stick`, or a D-pad with `"stick": true`, is an analog stick: send how far a finger
+  pushes it as the left stick, measured from its centre to its edge.
 
 More in the same answer: `targets` lists everything this console can have mapped, in the order to show it, and `pad.art` says
 what shape of controller to draw (`one`, `two`, `four`, `six`, `handle` or `dual`). `defaults.options` is how sticks and turbo

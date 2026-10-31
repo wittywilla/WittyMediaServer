@@ -17,6 +17,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **A picture of the controller:** the controller screen, in the game menu and in your account menu, shows a drawing suited to the console, with each
   button labelled, clickable, and lighting up as you press it. Every mapping is also a plain list. All of it works from a remote or controller.
 - **Your own background** behind the picture, with position, fit and dimming. Only you can see it.
+- **An on-screen analog stick** for consoles with one, and a one-press swap of the face buttons for people who'd rather go by the letters on their pad than by position.
 - **Several players:** a pad goes back to its own player when reconnected, and moving onto a taken player swaps the two.
 - **Fixed:** unplugging a pad, or switching tabs, could leave buttons held. A new pad at the same place took over the old one's layout. The PlayStation's stick also pressed its D-pad. Pads that aren't
   in standard order couldn't open the menu. Rumble events went out every frame, and only ever ran one motor's strength on both.

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { afterEach, before, beforeEach, describe, test } from 'node:test'
-import type { ControlsData } from '../consoles'
+import type { Control, ControlsData } from '../consoles'
+import { dpadMask, onStick, touchMask, touchStick } from '../touch'
 import {
   compile, conflicts, describeSource, effectiveKeys, effectiveMap, effectiveOptions, findPress, hatBits, menuHeld, newReading, noteHat, parseModel, rawFromDefaults, readPad, resolveProfile, snapshot, standingOf, toStandard,
   type ControllerData, type PadLike, type PadMap, type Profile,
@@ -358,6 +359,48 @@ describe('which profile applies', () => {
   })
 })
 
+describe('the on-screen stick', () => {
+  const stick: Control = { key: 'lstick', id: -2, label: 'Stick', kind: 'stick' }
+  const dpad: Control = { key: 'dpad', id: -1, label: 'D-pad', kind: 'dpad' }
+  const layout = { lstick: { x: 0.5, y: 0.5, size: 0.5, opacity: 1 }, dpad: { x: 0.1, y: 0.1, size: 0.2, opacity: 1 } }
+  const r = { w: 100, h: 100 } // the stick is 50 across, in the middle
+
+  test('no finger and the middle are both nothing', () => {
+    assert.deepEqual(touchStick(null, [stick], layout, r), { x: 0, y: 0 })
+    assert.deepEqual(touchStick({ x: 51, y: 50 }, [stick], layout, r), { x: 0, y: 0 })
+  })
+
+  test('how far it is pushed is how far it reads, up to all the way', () => {
+    const half = touchStick({ x: 62.5, y: 50 }, [stick], layout, r)
+    assert.ok(half.x > 0.3 && half.x < 0.5)
+    assert.equal(half.y, 0)
+    assert.equal(touchStick({ x: 75, y: 50 }, [stick], layout, r).x, 1)
+    assert.equal(touchStick({ x: 50, y: 25 }, [stick], layout, r).y, -1)
+    assert.equal(touchStick({ x: 99, y: 50 }, [stick], layout, r).x, 1, 'a thumb that strays out still pushes')
+  })
+
+  test('only a finger coming down on it takes hold', () => {
+    assert.equal(onStick({ x: 60, y: 50 }, [stick], layout, r), true)
+    assert.equal(onStick({ x: 99, y: 99 }, [stick], layout, r), false)
+    assert.equal(onStick({ x: 60, y: 50 }, [dpad], layout, r), false, 'an ordinary D-pad is no stick')
+  })
+
+  test('a hidden stick does nothing, and it presses no buttons', () => {
+    const hidden = { lstick: { ...layout.lstick, hidden: true } }
+    assert.equal(onStick({ x: 60, y: 50 }, [stick], hidden, r), false)
+    assert.deepEqual(touchStick({ x: 75, y: 50 }, [stick], hidden, r), { x: 0, y: 0 })
+    assert.equal(touchMask([{ x: 75, y: 50 }], [stick], layout, r), 0)
+  })
+
+  test('a D-pad that steers a stick is analog, and an ordinary one stays digital', () => {
+    const steering = { ...dpad, stick: true }
+    assert.equal(touchMask([{ x: 19, y: 10 }], [steering], layout, r), 0)
+    assert.equal(onStick({ x: 19, y: 10 }, [steering], layout, r), true)
+    assert.ok(touchStick({ x: 19, y: 10 }, [steering], layout, r).x > 0.5)
+    assert.equal(touchMask([{ x: 19, y: 10 }], [dpad], layout, r), dpadMask(1, 0))
+  })
+})
+
 // ---- the manager, with a simulated browser around it ----
 
 describe('InputManager', () => {
@@ -532,6 +575,19 @@ describe('InputManager', () => {
     fire('keyup', { code: 'KeyI', key: 'i', preventDefault() {} })
     assert.equal(state(0)!.ly, 0)
     m.stop()
+  })
+
+  test('the on-screen stick reaches its player, and a menu lets go of it', () => {
+    const m = make()
+    m.start()
+    m.setTouchPort(1)
+    m.setTouchStick(0.5, -1)
+    assert.equal(state(1)!.lx, 16384)
+    assert.equal(state(1)!.ly, -32767)
+    m.setEnabled(false)
+    assert.equal(state(1)!.lx, 0)
+    m.setEnabled(true)
+    assert.equal(state(1)!.lx, 0, 'still let go when the menu closes')
   })
 
   test('leaving the page lets go of everything, and stops reading', () => {

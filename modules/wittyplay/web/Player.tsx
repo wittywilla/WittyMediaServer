@@ -258,6 +258,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
   const tap = () => { transport?.unmute(); setNeedsTap(false) }
   const aspect = info?.aspect && info.aspect > 0 ? info.aspect : info ? info.width / info.height : 4 / 3
   const onMask = useCallback((m: number) => input.setTouch(m), [input])
+  const onStick = useCallback((x: number, y: number) => input.setTouchStick(x, y), [input])
 
   return (
     <div ref={root} className={`wp-root wp-${orientation}${touchOn ? ' wp-with-touch' : ''}${paused ? '' : ' wp-playing'}`}>
@@ -272,7 +273,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
         )}
       </div>
 
-      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} />}
+      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} onStick={onStick} />}
 
       {needsTap && !paused && <button type="button" className="wp-tap" onClick={tap}>Tap for sound</button>}
 

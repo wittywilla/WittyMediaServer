@@ -6,7 +6,7 @@ import type { Binding, KeyMap, PadMap, Profile, ProfileOptions } from './mapping
 
 export const SELECT = 2, START = 3, UP = 4, DOWN = 5, LEFT = 6, RIGHT = 7
 
-export type Control = { key: string; id: number; label: string; kind: 'dpad' | 'face' | 'shoulder' | 'meta'; stick?: boolean }
+export type Control = { key: string; id: number; label: string; kind: 'dpad' | 'stick' | 'face' | 'shoulder' | 'meta'; stick?: boolean }
 export type Target = { id: number; label: string; group: 'dpad' | 'face' | 'shoulder' | 'meta' | 'stick' }
 export type PadBinding = Binding
 export type { KeyMap, PadMap }

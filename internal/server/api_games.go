@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -107,27 +108,49 @@ func findProgram(name string) string {
 	return ""
 }
 
+// wittyPlayID is the module whose downloaded versions can run games.
+const wittyPlayID = "wittyplay"
+
 // gameRunner picks the program that runs a game: the built-in host, or
 // WittyRetroArch when it is installed. Both speak the same protocol over pipes,
-// which is what lets a GPL program be used by this Apache-licensed one.
-func (s *Server) gameRunner(ctx context.Context) (path string, args []string) {
+// which is what lets a GPL program be used by this Apache-licensed one. A
+// downloaded version of the host comes before the installed one, and version says
+// which it is; asking checks its signature, so this is asked again for each game.
+func (s *Server) gameRunner(ctx context.Context) (path string, args []string, version string) {
 	if p := os.Getenv("WMS_WITTYPLAY_RUNNER"); p != "" {
-		return p, nil
+		return p, nil, ""
 	}
 	choice := s.DB.GetSetting(ctx, "gamingRunner", "auto")
 	if choice == "auto" || choice == "retroarch" {
 		if p := findProgram("wittyretroarch"); p != "" {
-			return p, []string{"--wittyplay"}
+			return p, []string{"--wittyplay"}, ""
 		}
 	}
-	return findProgram("wittyplay-host"), nil
+	if s.Modules != nil {
+		if p, ver, ok := s.Modules.Program(wittyPlayID); ok {
+			return p, nil, ver
+		}
+	}
+	return findProgram("wittyplay-host"), nil, ""
 }
 
-func (s *Server) configureGames(ctx context.Context) error {
+// runnerFailed says a game couldn't start because of the runner itself: it wouldn't
+// start, it went away before the game was ready, or it spoke nonsense. A runner that
+// says what is wrong is working, since that is usually a core or a game file.
+func runnerFailed(err error) bool {
+	var pe *fs.PathError
+	msg := err.Error()
+	return errors.Is(err, stream.ErrStopped) || (errors.As(err, &pe) && pe.Op == "write") ||
+		strings.HasPrefix(msg, "starting the game runner") || strings.HasPrefix(msg, "ipc:") || strings.HasPrefix(msg, "the runner described")
+}
+
+// configureGames sets how the next game runs, with no restart needed for a new
+// version of the runner. It returns which downloaded version that is, if any.
+func (s *Server) configureGames(ctx context.Context) (version string, err error) {
 	g := s.games()
-	runner, args := s.gameRunner(ctx)
+	runner, args, version := s.gameRunner(ctx)
 	if runner == "" {
-		return errors.New("the game runner (wittyplay-host) is missing from this install")
+		return "", errors.New("the game runner (wittyplay-host) is missing from this install")
 	}
 	var hw []string
 	list, _ := s.Tools.HardwareStatus()
@@ -150,7 +173,7 @@ func (s *Server) configureGames(ctx context.Context) error {
 		c.PublicIPs = splitNonEmpty(s.DB.GetSetting(ctx, "gamingPublicIp", ""))
 		c.STUN = splitNonEmpty(s.DB.GetSetting(ctx, "gamingStun", ""))
 	})
-	return nil
+	return version, nil
 }
 
 func splitNonEmpty(v string) []string {
@@ -222,7 +245,7 @@ func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 
 // handleGameModes says how a kind of client can connect to a game on this server.
 func (s *Server) handleGameModes(w http.ResponseWriter, r *http.Request) {
-	_ = s.configureGames(r.Context()) // so that hardware encoders count
+	_, _ = s.configureGames(r.Context()) // so that hardware encoders count
 	client := gameClient(r.URL.Query().Get("client"))
 	writeJSON(w, 200, map[string]any{"client": client, "modes": s.games().mgr.Modes(client)})
 }
@@ -392,7 +415,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	if err := s.configureGames(ctx); err != nil {
+	version, err := s.configureGames(ctx)
+	if err != nil {
 		writeErr(w, 503, err.Error())
 		return
 	}
@@ -431,8 +455,14 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.Warn("starting a game", "item", it.ID, "err", err)
+		if version != "" && runnerFailed(err) {
+			_ = s.Modules.ReportFailure(wittyPlayID, version, "the game runner stopped before the game was ready: "+err.Error())
+		}
 		writeErr(w, 500, "This game could not start: "+err.Error())
 		return
+	}
+	if version != "" {
+		s.Modules.ReportWorking(wittyPlayID, version)
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
 	info := sess.Info()
@@ -702,7 +732,7 @@ func (s *Server) handleGameSaveDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	g := s.games()
-	runner, _ := s.gameRunner(ctx)
+	runner, _, _ := s.gameRunner(ctx)
 	runnerName := ""
 	if runner != "" {
 		runnerName = strings.TrimSuffix(filepath.Base(runner), ".exe")

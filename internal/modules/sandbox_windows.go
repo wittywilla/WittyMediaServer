@@ -18,7 +18,7 @@ func hideWindow(cmd *exec.Cmd) {
 // prepareSandbox gives a helper a low-integrity token: it can read what the
 // account can read, and can't write to anything of the account's. If that fails
 // (older Windows, unusual accounts) the job in lockDown still applies.
-func prepareSandbox(cmd *exec.Cmd, log *slog.Logger) bool {
+func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool {
 	hideWindow(cmd)
 	tok, err := lowIntegrityToken()
 	if err != nil {
@@ -52,6 +52,16 @@ func lowIntegrityToken() (windows.Token, error) {
 	}
 	return tok, nil
 }
+
+func launchWith(launcher, program string, memoryMB int64, devices, strict bool, args []string) (string, []string) {
+	return program, args
+}
+
+// SandboxFlag is only used on Linux.
+const SandboxFlag = "__module-sandbox"
+
+// RunSandboxed is only used on Linux.
+func RunSandboxed(args []string) int { return 2 }
 
 // lockDown puts a started helper in a job: it dies with the server, has a memory
 // cap and can't start other programs. It does nothing until it is called, so

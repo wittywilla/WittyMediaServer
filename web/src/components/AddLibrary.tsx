@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
-import { api, type Library } from '../api'
-import { IconFolder, libIcon } from '../icons'
+import { Link } from 'react-router-dom'
+import { api, ApiError, type Library } from '../api'
+import { IconCheck, IconFolder, IconPlus, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
 import { ChooseFolderButton } from './FolderPicker'
 import { ConsolePicker } from '../pages/Games'
+import { libraryKinds, missingKind, orList, type LibraryKind, type ModuleRef } from '../moduleStore'
+import { Spinner } from './common'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
-// folder it's in. Used by the setup wizard and the empty home page.
+// folder it's in. Used by the setup wizard and the empty home page. Kinds whose
+// module isn't on this server wait in a section of their own, with a way to add it.
 
 export const LIB_TYPES = [
   { type: 'movies', name: 'Movies', hint: 'Movie files. DVD and Blu-ray images of movies can go here too, and play with their menus' },
@@ -54,8 +58,10 @@ export type Grouping = 'combine' | 'separate'
 // existing and grouping: a folder of a kind that already has a library joins
 // it ("combine") or starts a library of its own ("separate"); either way the
 // panel offers the other choice.
-export default function AddLibrary({ onAdded, compact, onPanel, existing = [], grouping = 'combine' }: {
-  onAdded: (l: Library) => void; compact?: boolean; onPanel?: (open: boolean) => void; existing?: Library[]; grouping?: Grouping
+// setup: first-run setup, which has no settings page to link to; adding a module
+// here is enough. onKinds: told what can be made whenever that's known or changes.
+export default function AddLibrary({ onAdded, compact, onPanel, existing = [], grouping = 'combine', setup, onKinds }: {
+  onAdded: (l: Library) => void; compact?: boolean; onPanel?: (open: boolean) => void; existing?: Library[]; grouping?: Grouping; setup?: boolean; onKinds?: (kinds: LibraryKind[]) => void
 }) {
   const [type, setType] = useState<string | null>(null)
   const [paths, setPaths] = useState<string[]>([])
@@ -67,6 +73,32 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   const [target, setTarget] = useState(0) // the library the folders join; 0 = a new one
   const [console_, setConsole] = useState('auto') // games: which console this library holds
   const [consoleName, setConsoleName] = useState('Games')
+  const [kinds, setKinds] = useState<LibraryKind[] | null>(null)
+  const [missing, setMissing] = useState<ModuleRef[]>([]) // the server refused a kind for want of these
+  const [adding, setAdding] = useState('') // the module being added
+  const [addedNote, setAddedNote] = useState('')
+  const [addErr, setAddErr] = useState('')
+  const [focusKind, setFocusKind] = useState('')
+  const learn = async () => { const k = await libraryKinds(); setKinds(k); onKinds?.(k); return k }
+  useEffect(() => { void learn() }, [])
+  // Adding a module takes effect at once, so its kind moves up into the usable list.
+  const addModule = async (m: ModuleRef, kind: string) => {
+    if (adding) return
+    setAdding(m.id); setAddErr('')
+    try {
+      await api.post(`/modules/${m.id}/add`)
+      const before = kinds || []
+      const now = await learn()
+      setMissing([]); setErr('')
+      const opened = now.filter((k) => k.available && missingKind(before, k.type)).map((k) => kindName(k.type))
+      setAddedNote(`${m.name} added. You can now make: ${(opened.length ? opened : [kindName(kind)]).join(', ')}.`)
+      setFocusKind(kind)
+    } catch (e: any) { setAddErr(e.message) } finally { setAdding('') }
+  }
+  useEffect(() => {
+    if (focusKind) document.getElementById('libkind-' + focusKind)?.focus()
+    setFocusKind('')
+  }, [focusKind])
   const t = LIB_TYPES.find((x) => x.type === type)
   const same = existing.filter((l) => l.type === type && (type !== 'games' || (l.console || 'auto') === console_))
   const joining = same.find((l) => l.id === target)
@@ -94,7 +126,14 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       setManual('')
       if (pods) setFollowing(lib) // straight on to following shows
       else { onAdded(lib); reset() }
-    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    } catch (e: any) {
+      if (e instanceof ApiError && e.data?.code === 'module-missing') {
+        const mods: ModuleRef[] = e.data.modules || []
+        setMissing(mods)
+        setErr(mods.length ? `This kind of library needs ${orList(mods.map((m) => m.name))}, which isn’t on this server at the moment.` : e.message)
+        void learn()
+      } else setErr(e.message)
+    } finally { setBusy(false) }
   }
 
   if (following) {
@@ -112,20 +151,49 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     )
   }
   if (!t) {
+    if (!kinds) return <Spinner />
+    const locked = LIB_TYPES.filter((x) => missingKind(kinds, x.type))
     return (
       <div className="oobe-type-groups">
-        {LIB_GROUPS.map(([title, kinds]) => (
-          <section key={title}>
-            <h3 className="oobe-type-head">{title}</h3>
-            <div className={'oobe-types' + (compact ? ' compact' : '')}>
-              {kinds.map((k) => LIB_TYPES.find((x) => x.type === k)!).map((x) => (
-                <button key={x.type} type="button" className="oobe-type" onClick={() => choose(x.type)}>
-                  <span className="ic">{libIcon(x.type)}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
-                </button>
-              ))}
-            </div>
+        {addedNote && <p className="oobe-added" role="status"><IconCheck size={16} /> {addedNote}</p>}
+        {LIB_GROUPS.map(([title, group]) => {
+          const usable = group.filter((k) => !missingKind(kinds, k))
+          if (!usable.length) return null
+          return (
+            <section key={title}>
+              <h3 className="oobe-type-head">{title}</h3>
+              <div className={'oobe-types' + (compact ? ' compact' : '')}>
+                {usable.map((k) => LIB_TYPES.find((x) => x.type === k)!).map((x) => (
+                  <button key={x.type} id={'libkind-' + x.type} type="button" className="oobe-type" onClick={() => choose(x.type)}>
+                    <span className="ic">{libIcon(x.type)}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )
+        })}
+        {locked.length > 0 && (
+          <section className="oobe-locked" aria-label="Kinds of library that need a module">
+            <h3 className="oobe-type-head">Add a module to use these</h3>
+            <p className="muted oobe-hint">Each of these needs a module this server doesn’t have at the moment. Adding one is instant and downloads nothing.</p>
+            {addErr && <div className="error" role="alert">{addErr}</div>}
+            <ul className="oobe-locked-list">
+              {locked.map((x) => {
+                const mods = missingKind(kinds, x.type)!.modules
+                return (
+                  <li key={x.type} className="oobe-locked-item">
+                    <span className="ic">{libIcon(x.type)}</span>
+                    <span className="oobe-locked-text"><b>{x.name}</b><span className="muted">Needs {orList(mods.map((m) => m.name))}</span></span>
+                    <span className="oobe-locked-acts">
+                      {mods.map((m) => <button key={m.id} type="button" className="btn sm" aria-busy={adding === m.id} onClick={() => addModule(m, x.type)} aria-label={`Add ${m.name} for ${x.name}`}><IconPlus /> {adding === m.id ? 'Adding…' : `Add ${m.name}`}</button>)}
+                      {!setup && mods[0] && <Link className="oobe-locked-link" to={`/settings/modules?add=${encodeURIComponent(mods[0].id)}`}>Open the module store</Link>}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
           </section>
-        ))}
+        )}
       </div>
     )
   }
@@ -175,8 +243,14 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       </div>}
       {FOLDER_HINT[t.type] && <p className="muted oobe-hint">{FOLDER_HINT[t.type]}</p>}
       {err && <div className="error" role="alert">{err}</div>}
+      {addErr && missing.length > 0 && <div className="error" role="alert">{addErr}</div>}
+      {missing.length > 0 && (
+        <div className="oobe-locked-acts">
+          {missing.map((m) => <button key={m.id} type="button" className="btn sm" aria-busy={adding === m.id} onClick={() => addModule(m, t.type)}><IconPlus /> {adding === m.id ? 'Adding…' : `Add ${m.name}`}</button>)}
+        </div>
+      )}
       <div className="oobe-actions">
-        <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setManual(''); setErr('') }}>Back</button>
+        <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setManual(''); setErr(''); setMissing([]); setAddErr('') }}>Back</button>
         <button type="button" className="btn primary" disabled={(!allPaths.length && !pods && !noFolder) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
     </div>
   )

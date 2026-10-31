@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -151,6 +152,33 @@ func latest(rels []ghRelease, current, goos, goarch string) *Release {
 // ErrNotFound: GitHub has no such repository or file.
 var ErrNotFound = errors.New("GitHub answered 404 Not Found")
 
+// RateLimited: GitHub asked this network to wait. Asking again before Until only
+// makes the wait longer, so callers hold off until then.
+type RateLimited struct{ Until time.Time }
+
+func (e *RateLimited) Error() string {
+	if e.Until.IsZero() {
+		return "GitHub is limiting requests from this network; try again in an hour"
+	}
+	return "GitHub is limiting requests from this network; try again after " + e.Until.Local().Format("15:04")
+}
+
+// rateLimited reads how long GitHub wants us to wait, from either way it says so.
+// The wait is capped, so a strange answer can't stop checks for good.
+func rateLimited(res *http.Response, now time.Time) *RateLimited {
+	const longest = 24 * time.Hour
+	until := now.Add(time.Hour)
+	if s, err := strconv.Atoi(strings.TrimSpace(res.Header.Get("Retry-After"))); err == nil && s >= 0 {
+		until = now.Add(time.Duration(s) * time.Second)
+	} else if n, err := strconv.ParseInt(strings.TrimSpace(res.Header.Get("X-RateLimit-Reset")), 10, 64); err == nil && n > 0 {
+		until = time.Unix(n, 0)
+	}
+	if until.After(now.Add(longest)) {
+		until = now.Add(longest)
+	}
+	return &RateLimited{Until: until}
+}
+
 // Fetcher downloads from GitHub, and from nowhere else. Plugins' releases use
 // it too (internal/modules), so everything this server installs comes the same
 // way.
@@ -201,7 +229,7 @@ func (f *Fetcher) Get(ctx context.Context, raw string, accept string) (*http.Res
 	if res.StatusCode != 200 {
 		res.Body.Close()
 		if res.StatusCode == 403 || res.StatusCode == 429 {
-			return nil, errors.New("GitHub is limiting requests from this network; try again in an hour")
+			return nil, rateLimited(res, time.Now())
 		}
 		if res.StatusCode == 404 {
 			return nil, ErrNotFound
@@ -209,6 +237,67 @@ func (f *Fetcher) Get(ctx context.Context, raw string, accept string) (*http.Res
 		return nil, fmt.Errorf("GitHub answered %s", res.Status)
 	}
 	return res, nil
+}
+
+// getIfChanged is Get with the tag of the last answer. An unchanged answer is 304,
+// which GitHub doesn't count against the limit on requests, so asking often for
+// many plugins stays cheap. notModified is true when nothing changed.
+func (f *Fetcher) getIfChanged(ctx context.Context, raw, accept, etag string) (res *http.Response, notModified bool, err error) {
+	u, err := url.Parse(raw)
+	if err != nil || !f.allowed(u) {
+		return nil, false, fmt.Errorf("refusing to download from %q (only GitHub release files are allowed)", raw)
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", raw, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	req.Header.Set("User-Agent", f.UserAgent)
+	req.Header.Set("Accept", accept)
+	if etag != "" {
+		req.Header.Set("If-None-Match", etag)
+	}
+	res, err = f.client().Do(req)
+	if err != nil {
+		return nil, false, err
+	}
+	switch res.StatusCode {
+	case 200:
+		return res, false, nil
+	case 304:
+		res.Body.Close()
+		return nil, true, nil
+	case 403, 429:
+		res.Body.Close()
+		return nil, false, rateLimited(res, time.Now())
+	case 404:
+		res.Body.Close()
+		return nil, false, ErrNotFound
+	}
+	res.Body.Close()
+	return nil, false, fmt.Errorf("GitHub answered %s", res.Status)
+}
+
+// ReleasesSince lists a repository's releases unless they are unchanged since the
+// answer that carried etag; then unchanged is true and the list is nil. newEtag
+// goes with the next call.
+func (f *Fetcher) ReleasesSince(ctx context.Context, repo, etag string) (rels []GHRelease, newEtag string, unchanged bool, err error) {
+	feed := "https://api.github.com/repos/" + repo + "/releases?per_page=30"
+	if devModuleFeed != "" {
+		feed = devModuleFeed + "/" + repo[strings.LastIndexByte(repo, '/')+1:] + ".json"
+	}
+	res, unchanged, err := f.getIfChanged(ctx, feed, "application/vnd.github+json", etag)
+	if err != nil || unchanged {
+		return nil, etag, unchanged, err
+	}
+	defer res.Body.Close()
+	// Thirty releases, each with notes of up to 125 KB on GitHub's side.
+	if err := json.NewDecoder(io.LimitReader(res.Body, 4*maxFeedBytes)).Decode(&rels); err != nil {
+		return nil, "", false, fmt.Errorf("unreadable release list: %w", err)
+	}
+	if len(rels) > 100 {
+		rels = rels[:100]
+	}
+	return rels, res.Header.Get("ETag"), false, nil
 }
 
 // Small downloads a small file completely, refusing anything larger than

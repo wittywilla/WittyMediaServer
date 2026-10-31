@@ -726,10 +726,26 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
-| `GET /modules` | admin | Every module: version in use, supported range, status and what is available (404 in builds that can't update them). |
-| `POST /modules/check` | admin | Look for module updates now. |
-| `POST /modules/{id}/install` | admin | Download, verify and install the version the last check found, with no restart. 202; follow it with `GET /modules`. |
-| `POST /modules/{id}/rollback` | admin | Go back to the previous version or the built-in copy. |
+| `GET /modules` | admin | Every module: version in use, supported range, status, what is available, what it needs, whether it is installed, and every kind of library and what it takes (404 in builds that can't update them). |
+| `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
+| `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |
+| `POST /modules/{id}/install` | admin | Download, verify and install a version, with no restart: the newest the last check found, or `{"version": "0.2.0", "confirm": true}`. A choice with a warning (older, withdrawn as broken, taken out of use before) is answered 409 with `"code": "confirm"` and the `warning` until the body says confirm. 202; follow it with `GET /modules`. |
+| `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one or the built-in copy. |
+| `POST /modules/{id}/builtin` | admin | Use the built-in copy, without blaming the version in use. |
+| `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
+| `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |
+| `POST /modules/{id}/latest` | admin | End a pin and move to the newest version that fits. 202. |
+| `POST /modules/{id}/add` | admin | Put a module on this server. Works straight away, offline. |
+| `POST /modules/{id}/remove` | admin | Take a module off this server. Answered 409 with `"code": "module-in-use"` and the `libraries` that need it. No data is touched. |
+| `PUT /modules/installed` | admin | Make the set of modules on this server what someone chose: `{"installed": ["wittyvideo"]}`, as first-run setup does. Refused whole if libraries need something left out. |
+| `PUT /modules/{id}/source` | admin | Take this module's releases from a fork: `{"repo": "someone/WittyDVD", "key": "<public key>", "confirm": true}`. Answered 409 with `"code": "confirm"` and the security warning until confirmed. Show that warning; don't replace it. See [MODULES.md](MODULES.md), "Using someone's fork". |
+| `DELETE /modules/{id}/source` | admin | Go back to the module's own repository. |
+| `GET /modules/libraries` | user | Every kind of library a module provides, whether it can be made here, and what it takes. A kind not listed is always available. |
+| `GET /modules/web` | user | The web bundles in use instead of the copies in the app. Usually none. |
+| `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
+| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, take that version out of use. 204. |
+
+`POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed.
 
 ### Sign-in and accounts
 

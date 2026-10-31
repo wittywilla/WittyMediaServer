@@ -3,8 +3,20 @@
   "name": "WittyComics",
   "version": "0.1.0",
   "repo": "wittywilla/WittyComics",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "web",
+  "entry": "index.js",
+  "style": "style.css",
+  "api": 2,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "read",
+  "summary": "Comics and manga: pages, spreads, vertical strips, either reading direction.",
+  "updates": "The comic reader itself: pages, spreads, the vertical strip, its controls and its look.",
+  "stays": "The Reader page, the ReaderHost it provides (saving your place, fetching pages), how the server opens comic archives, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+  "libraries": [
+    "books"
+  ],
+  "requires": [
+    "wittyink"
+  ]
 }

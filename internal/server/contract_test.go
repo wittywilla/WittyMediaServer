@@ -25,6 +25,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymodule"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and
@@ -382,6 +383,8 @@ func schemaTypes() map[string]reflect.Type {
 		"PlaybackAudio": ty(playbackAudio{}), "PlaybackSubtitle": ty(playbackSubtitle{}), "PlaybackIntro": ty(playbackIntro{}), "PlaybackDisc": ty(playbackDisc{}),
 		"ThemeMeta": ty(themes.Meta{}), "ThemeTokens": ty(themes.Tokens{}), "UpdateStatus": ty(update.Status{}), "UpdateInfo": ty(update.Info{}),
 		"ModuleReport": ty(modmgr.Report{}), "ModuleStatus": ty(modmgr.Status{}), "ModuleOffer": ty(modmgr.Offer{}),
+		"ModuleEvent": ty(modmgr.Event{}), "ModuleVersionList": ty(modmgr.VersionList{}), "ModuleVersion": ty(modmgr.VersionInfo{}), "ModuleWithdrawn": ty(wittymodule.Withdrawn{}),
+		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}),
 	}
 }

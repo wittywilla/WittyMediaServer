@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { UpdateDot, VersionTag } from '../components/common'
@@ -13,12 +13,13 @@ import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
 import GamingSettings from './settings/Gaming'
-import ModulesSettings from './settings/Modules'
 import { ConsolePicker } from './Games'
+import { libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 
+const ModulesSettings = lazy(() => import('./settings/Modules'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
@@ -46,7 +47,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
-    { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'Versions, supported servers and updates' },
+    { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
     { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
   ] },
 ]
@@ -91,7 +92,7 @@ export default function SettingsPage() {
           <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Nothing is ever sent anywhere." /><LogSettings /></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
-          <Route path="modules" element={<ModulesSettings />} />
+          <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>
@@ -217,6 +218,10 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
   const [paths, setPaths] = useState<string[]>(lib.paths || [])
   const [manual, setManual] = useState('')
   const [err, setErr] = useState('')
+  // Kinds whose module isn't on this server can't be chosen, though a library that is
+  // already of such a kind keeps its type.
+  const [kinds, setKinds] = useState<LibraryKind[]>([])
+  useEffect(() => { void libraryKinds().then(setKinds) }, [])
   const add = (p: string) => { if (p.trim()) setPaths([...new Set([...paths, p.trim()])]); setManual('') }
   const save = async () => {
     try {
@@ -232,13 +237,20 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
         <div className="set-form">
           <fieldset className="set-types">
             <legend>What's in it?</legend>
-            {TYPES.map((t) => (
-              <label key={t.v} className={'set-type' + (type === t.v ? ' on' : '')}>
-                <input type="radio" name="libtype" checked={type === t.v} onChange={() => { setType(t.v); if (!name || TYPES.some((x) => x.label === name)) setName(t.label) }} />
-                <span className="set-type-icon">{libIcon(t.v)}</span>
-                <b>{t.label}</b><small>{t.hint}</small>
-              </label>
-            ))}
+            {TYPES.map((t) => {
+              const gone = missingKind(kinds, t.v)
+              const locked = !!gone && lib.type !== t.v
+              return (
+                <label key={t.v} className={'set-type' + (type === t.v ? ' on' : '') + (locked ? ' off' : '')}>
+                  <input type="radio" name="libtype" checked={type === t.v} disabled={locked} onChange={() => { setType(t.v); if (!name || TYPES.some((x) => x.label === name)) setName(t.label) }} />
+                  <span className="set-type-icon">{libIcon(t.v)}</span>
+                  <b>{t.label}</b>
+                  {locked
+                    ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules?add=${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
+                    : <small>{t.hint}</small>}
+                </label>
+              )
+            })}
           </fieldset>
           {type === 'games' && <ConsolePicker value={console_} onChange={(id) => setConsole(id)} />}
           <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></label>

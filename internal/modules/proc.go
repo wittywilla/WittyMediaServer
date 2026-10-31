@@ -33,10 +33,15 @@ var errUntrusted = errors.New("files have changed since they were installed")
 // proc runs one version of a helper: started on first use, stopped when idle,
 // restarted after a failure. It makes one call at a time.
 type proc struct {
-	man    *wittymodule.Manifest
-	dir    string
-	verify func() error // checked before every start; nil only for tests
-	log    *slog.Logger
+	man     *wittymodule.Manifest
+	dir     string
+	verify  func() error // checked before every start; nil only for tests
+	log     *slog.Logger
+	network bool          // it may have a network; see mayUseNetwork
+	strict  bool          // refuse to run without its sandbox: a fork, whose only limits these are
+	launch  string        // the program that applies limits before it runs; "" for none
+	keep    bool          // not stopped when idle: it holds state for a job
+	timeout time.Duration // for one call; 0 is callTimeout
 
 	mu      sync.Mutex
 	cmd     *exec.Cmd
@@ -85,7 +90,10 @@ func (p *proc) env() []string {
 }
 
 func (p *proc) newCmd() *exec.Cmd {
-	cmd := exec.Command(p.path(), wittymodule.HelperFlag)
+	// More address space than the job's limit on Windows, which counts only memory in
+	// use: Go asks for more than it touches. GOMEMLIMIT keeps real use to softMemory.
+	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, p.network, p.strict, []string{wittymodule.HelperFlag})
+	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()
 	return cmd
@@ -103,12 +111,15 @@ func (p *proc) start() error {
 		}
 	}
 	cmd := p.newCmd()
-	sandboxed := prepareSandbox(cmd, p.log)
+	sandboxed := prepareSandbox(cmd, p.network, p.log)
 	stdin, stdout, stderr, err := pipes(cmd)
 	if err != nil {
 		return err
 	}
 	err = cmd.Start()
+	if err != nil && sandboxed && p.strict {
+		return fmt.Errorf("this system won't run it with the limits a module from another publisher needs: %w", err)
+	}
 	if err != nil && sandboxed {
 		// Containers and some systems refuse what the sandbox asks for. The
 		// helper is signed, and its other limits still apply.
@@ -204,7 +215,11 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 		}
 	}
 	cmd := p.cmd
-	kill := time.AfterFunc(callTimeout, func() { _ = cmd.Process.Kill() })
+	limit := callTimeout
+	if p.timeout > 0 {
+		limit = p.timeout
+	}
+	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill() })
 	blob, err := p.conn.Call(method, params, out)
 	kill.Stop()
 	var ce *wittymodule.CallError
@@ -221,8 +236,37 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 	return blob, err
 }
 
+// Stream asks for a stream: one answer, and then the helper's output is the stream.
+// The process is good for nothing else afterwards, so the job closes it to end it.
+func (p *proc) Stream(method string, params, out any) (io.Reader, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.cmd == nil {
+		if err := p.start(); err != nil {
+			return nil, err
+		}
+	}
+	cmd := p.cmd
+	limit := callTimeout
+	if p.timeout > 0 {
+		limit = p.timeout
+	}
+	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill() })
+	r, err := p.conn.Stream(method, params, out)
+	kill.Stop()
+	var ce *wittymodule.CallError
+	if err != nil && !errors.As(err, &ce) {
+		_ = cmd.Process.Kill()
+		p.halt()
+	}
+	return r, err
+}
+
 // touch restarts the idle clock. Call with p.mu held.
 func (p *proc) touch() {
+	if p.keep {
+		return
+	}
 	if p.idle != nil {
 		p.idle.Stop()
 	}

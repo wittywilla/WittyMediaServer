@@ -3,8 +3,15 @@
   "name": "WittyInk",
   "version": "0.1.0",
   "repo": "wittywilla/WittyInk",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "web",
+  "entry": "index.js",
+  "style": "style.css",
+  "api": 2,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "read",
+  "summary": "What every reader shares: annotations, notes, definitions, citations and handwriting.",
+  "updates": "What the readers share as they run from their own bundles: the notes panel, highlight colours, definitions, citations, handwriting tools and their look. It reaches a reader only when that reader is running a bundle too.",
+  "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching pages), and React stay with the server. Readers still using the copy in the app keep the WittyInk in the app. If this bundle fails, the copy in the app takes over.",
+  "core": true
 }

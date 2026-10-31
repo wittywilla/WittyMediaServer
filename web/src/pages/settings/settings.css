@@ -153,6 +153,10 @@
 .set-type:hover { border-color: var(--border-strong); }
 .set-type.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .set-type:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.set-type.off { background: transparent; border-style: dashed; border-color: var(--border-strong); cursor: default; }
+.set-type.off .set-type-icon svg { color: var(--fg-3); }
+.set-type.off b, .set-type.off small { color: var(--fg-2); }
+.set-type.off a { color: var(--accent-text); text-decoration: underline; }
 .set-type-icon svg { width: 22px; height: 22px; color: var(--accent-text); margin-bottom: var(--sp-1); }
 .set-type b { font-size: var(--text-md); color: var(--fg); }
 .set-type small { font-size: var(--text-xs); color: var(--fg-3); font-weight: 400; line-height: 1.4; }
@@ -223,9 +227,3 @@ a.mod-row:hover { background: var(--hover); }
 .upd-progress progress { width: 100%; height: 8px; accent-color: var(--accent); }
 
 .set-lib-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 13px; }
-
-/* Modules */
-.mod-card { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-3); }
-.mod-card + .mod-card { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
-.mod-card .upd-msg, .mod-card .upd-new, .mod-card .upd-progress, .mod-actions { margin: 0 var(--sp-3); }
-.mod-local.warn { background: var(--danger-soft, var(--bg-4)); color: var(--danger); }

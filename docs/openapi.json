@@ -1336,6 +1336,27 @@
         ],
         "type": "object"
       },
+      "ModuleEvent": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "kind"
+        ],
+        "type": "object"
+      },
       "ModuleInfo": {
         "properties": {
           "local": {
@@ -1359,6 +1380,31 @@
           "name",
           "role",
           "version"
+        ],
+        "type": "object"
+      },
+      "ModuleLibraryType": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleRef"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "modules",
+          "type"
         ],
         "type": "object"
       },
@@ -1403,6 +1449,25 @@
         ],
         "type": "object"
       },
+      "ModuleRef": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "installed",
+          "name"
+        ],
+        "type": "object"
+      },
       "ModuleReport": {
         "properties": {
           "api": {
@@ -1413,6 +1478,18 @@
           },
           "checkedAt": {
             "type": "integer"
+          },
+          "holdUntil": {
+            "type": "integer"
+          },
+          "libraries": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleLibraryType"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "minApi": {
             "type": "integer"
@@ -1432,9 +1509,32 @@
         },
         "required": [
           "api",
+          "libraries",
           "minApi",
           "modules",
           "server"
+        ],
+        "type": "object"
+      },
+      "ModuleSource": {
+        "properties": {
+          "addedAt": {
+            "type": "integer"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "addedAt",
+          "fingerprint",
+          "repo"
         ],
         "type": "object"
       },
@@ -1449,6 +1549,9 @@
           "canRollback": {
             "type": "boolean"
           },
+          "core": {
+            "type": "boolean"
+          },
           "delivery": {
             "type": "string"
           },
@@ -1458,7 +1561,25 @@
           "error": {
             "type": "string"
           },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleEvent"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "group": {
+            "type": "string"
+          },
           "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "lastFailure": {
             "type": "string"
           },
           "latest": {
@@ -1471,6 +1592,15 @@
               }
             ]
           },
+          "libraries": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "maxServer": {
             "type": "string"
           },
@@ -1480,10 +1610,25 @@
           "name": {
             "type": "string"
           },
+          "needs": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "noFork": {
+            "type": "string"
+          },
           "notice": {
             "type": "string"
           },
           "phase": {
+            "type": "string"
+          },
+          "pin": {
             "type": "string"
           },
           "previous": {
@@ -1492,7 +1637,44 @@
           "repo": {
             "type": "string"
           },
+          "requiredBy": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "requires": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuleSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "state": {
+            "type": "string"
+          },
+          "stays": {
+            "type": "string"
+          },
+          "stockRepo": {
+            "type": "string"
+          },
+          "summary": {
             "type": "string"
           },
           "tooNew": {
@@ -1511,8 +1693,21 @@
           "updatable": {
             "type": "boolean"
           },
+          "updates": {
+            "type": "string"
+          },
           "version": {
             "type": "string"
+          },
+          "withdrawn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuleWithdrawn"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1521,13 +1716,176 @@
           "canRollback",
           "delivery",
           "id",
+          "installed",
           "maxServer",
           "minServer",
           "name",
           "phase",
           "repo",
           "state",
+          "stockRepo",
           "updatable",
+          "version"
+        ],
+        "type": "object"
+      },
+      "ModuleVersion": {
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "blocked": {
+            "type": "string"
+          },
+          "builtin": {
+            "type": "boolean"
+          },
+          "inUse": {
+            "type": "boolean"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "maxServer": {
+            "type": "string"
+          },
+          "minServer": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "older": {
+            "type": "boolean"
+          },
+          "prerelease": {
+            "type": "boolean"
+          },
+          "published": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "refused": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "warning": {
+            "type": "string"
+          },
+          "withdrawn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuleWithdrawn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "allowed",
+          "maxServer",
+          "minServer",
+          "prerelease",
+          "version"
+        ],
+        "type": "object"
+      },
+      "ModuleVersionList": {
+        "properties": {
+          "checkedAt": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inUse": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pin": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleVersion"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "inUse",
+          "name",
+          "repo",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "ModuleWebBundle": {
+        "properties": {
+          "api": {
+            "type": "integer"
+          },
+          "base": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api",
+          "base",
+          "entry",
+          "id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "ModuleWithdrawn": {
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "severity",
           "version"
         ],
         "type": "object"
@@ -9570,9 +9928,328 @@
         "x-wms-auth": "admin"
       }
     },
+    "/modules/installed": {
+      "put": {
+        "operationId": "putModulesInstalled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "installed": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make the set of modules on this server what someone chose, as first-run setup does. Refused whole if libraries need something left out.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/libraries": {
+      "get": {
+        "operationId": "getModulesLibraries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "libraries": {
+                      "items": {
+                        "$ref": "#/components/schemas/ModuleLibraryType"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every kind of library a module provides, and whether it can be made here.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/web": {
+      "get": {
+        "operationId": "getModulesWeb",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "bundles": {
+                      "items": {
+                        "$ref": "#/components/schemas/ModuleWebBundle"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The web bundles in use instead of the copies in the app. Usually none.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/{id}/add": {
+      "post": {
+        "operationId": "postModulesIdAdd",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a module on this server. Works straight away, offline.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/builtin": {
+      "post": {
+        "operationId": "postModulesIdBuiltin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use the built-in copy, without blaming the version in use.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/failed": {
+      "post": {
+        "operationId": "postModulesIdFailed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A browser saying a bundle wouldn't load or crashed. Three within a day, at most one a minute, take that version out of use. 204.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/modules/{id}/install": {
       "post": {
         "operationId": "postModulesIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "confirm": {
+                    "type": "boolean"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download, verify and install a version with no restart: the newest the last check found, or the one named in the body. A choice with a warning is answered 409 with code confirm until the body says confirm. 202; follow it with GET /modules.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/latest": {
+      "post": {
+        "operationId": "postModulesIdLatest",
         "parameters": [
           {
             "in": "path",
@@ -9603,7 +10280,125 @@
             "bearer": []
           }
         ],
-        "summary": "Download, verify and install the version the last check found, with no restart.",
+        "summary": "End a pin and move to the newest version that fits. 202; follow it with GET /modules.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/pin": {
+      "delete": {
+        "operationId": "deleteModulesIdPin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Let automatic updates move it again.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postModulesIdPin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keep the version in use; automatic updates leave it alone.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/remove": {
+      "post": {
+        "operationId": "postModulesIdRemove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a module off this server. Answered 409 with code module-in-use and the libraries' names while libraries need it. No data is touched.",
         "tags": [
           "Server"
         ],
@@ -9648,6 +10443,194 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/source": {
+      "delete": {
+        "operationId": "deleteModulesIdSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Go back to the module's own repository and this project's key.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putModulesIdSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "confirm": {
+                    "type": "boolean"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "repo": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take this module's releases from a fork, held to the public key given. Answered 409 with code confirm and the security warning until the body says confirm.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/versions": {
+      "get": {
+        "operationId": "getModulesIdVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleVersionList"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every version known, explained, without going online: which can be chosen, and why not.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/web/{version}/{path}": {
+      "get": {
+        "operationId": "getModulesIdWebVersionPath",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A file of the bundle in use. Only names in its signed list exist.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/music/albums": {

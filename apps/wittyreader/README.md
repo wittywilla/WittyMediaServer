@@ -84,3 +84,18 @@ Browsers only allow the offline service worker, which also shows EPUBs, on secur
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyReader, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+<!-- module-kit -->
+## Releasing
+
+A version tag builds the web app and attaches it to a release. It isn't delivered through a server.
+
+To release:
+
+1. Raise `version` in `package.json` and commit it.
+2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
+   suffix, such as `v1.2.0-beta`, is published as a prerelease.
+3. Watch the *Actions* tab. There is nothing to sign.
+
+Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<!-- /module-kit -->

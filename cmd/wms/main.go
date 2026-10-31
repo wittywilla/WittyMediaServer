@@ -8,11 +8,15 @@ import (
 
 	bdcli "github.com/wittywilla/wittybluray/cli"
 	"github.com/wittywilla/wittydvd/cli"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
+		case modules.SandboxFlag:
+			os.Exit(modules.RunSandboxed(os.Args[2:]))
 		case "disc":
 			os.Exit(cli.Disc(os.Args[2:]))
 		case "dvd":

@@ -108,6 +108,7 @@ export function MoonlightHostPage() {
   const [appsError, setAppsError] = useState('')
   const [showAll, setShowAll] = useState(false)
   const [sure, setSure] = useState(false)
+  const [waking, setWaking] = useState<'' | 'waiting' | 'late'>('')
   const load = () => api.get<Host[]>('/moonlight/hosts').then((l) => setHost(l.find((h) => String(h.id) === id) || null)).catch((e) => toast(e.message))
   const loadApps = () => api.get<App[]>(`/moonlight/hosts/${id}/apps`).then((a) => { setApps(a); setAppsError('') }).catch((e) => setAppsError(e.message))
   useEffect(() => {
@@ -131,7 +132,15 @@ export function MoonlightHostPage() {
   const remove = async () => {
     try { const r = await api.del<{ note?: string }>(`/moonlight/hosts/${id}`); toast(r?.note || 'Removed'); nav('/moonlight') } catch (e: any) { toast(e.message) }
   }
-  const wake = async () => { try { const r = await api.post<{ note?: string }>(`/moonlight/hosts/${id}/wake`); toast(r.note || 'A wake-up signal was sent.') } catch (e: any) { toast(e.message) } }
+  const wake = async () => { try { await api.post(`/moonlight/hosts/${id}/wake`); setWaking('waiting') } catch (e: any) { toast(e.message) } }
+  // After a wake-up signal, look often: the games appear by themselves as soon as the PC answers.
+  useEffect(() => {
+    if (waking !== 'waiting') return
+    const t = window.setInterval(load, 3000)
+    const late = window.setTimeout(() => setWaking('late'), 120000)
+    return () => { clearInterval(t); clearTimeout(late) }
+  }, [waking, id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (host && host.state !== 'asleep') setWaking('') }, [host?.state]) // eslint-disable-line react-hooks/exhaustive-deps
   const quit = async () => { try { await api.post(`/moonlight/hosts/${id}/quit`); load() } catch (e: any) { toast(e.message) } }
   if (!host) return <Spinner />
   const list = (apps || []).filter((a) => showAll || !a.isDesktop)
@@ -149,9 +158,11 @@ export function MoonlightHostPage() {
       <div className={'rig-status' + (host.state === 'online' ? ' ok' : '')} role="status">
         <span className="rig-dot" aria-hidden="true" />
         <div className="grow">{host.state === 'busy' && host.currentGame ? `Running ${host.currentGame}.` : host.message}</div>
-        {host.canWake && <button className="btn sm" onClick={wake}>Wake it up</button>}
+        {host.canWake && waking !== 'waiting' && <button className="btn sm" onClick={wake}>{waking === 'late' ? 'Try again' : 'Wake it up'}</button>}
         {host.state === 'busy' && <button className="btn sm ghost" onClick={quit}>Close what’s running</button>}
       </div>
+      {waking === 'waiting' && <p className="muted" role="status">A wake-up signal was sent. Waiting for it to answer, which usually takes under a minute.</p>}
+      {waking === 'late' && <p className="rig-warn" role="status">It hasn’t answered after two minutes. Wake-on-LAN has to be on in that PC’s BIOS and network adapter, it usually needs a wired connection, and Sunshine has to start with the PC.</p>}
       {st && <NotReady st={st} />}
       {pairing?.state === 'waiting' ? (
         <div className="rig-warn" role="status">
@@ -177,7 +188,7 @@ export function MoonlightHostPage() {
                   <div className="play"><span><IconPlay /></span></div>
                 </div>
                 <div className="title">{a.title}</div>
-                <div className="sub">{host.name}</div>
+                <div className="sub">{host.state === 'busy' && host.currentGame === a.title ? 'Running now: pick up where it is' : host.name}</div>
               </Link>
             ))}
           </div>

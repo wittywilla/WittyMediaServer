@@ -33,10 +33,10 @@ import (
 //     again at the moment a stream starts.
 
 const (
-	rigStatusLife  = 5 * time.Second
-	rigSyncEvery   = 10 * time.Minute
-	rigWakeEvery   = 10 * time.Second
-	rigMaxApps     = 500
+	rigStatusLife = 5 * time.Second
+	rigSyncEvery  = 10 * time.Minute
+	rigWakeEvery  = 10 * time.Second
+	rigMaxApps    = 500
 )
 
 // rigRoutes registers the game rigs API.

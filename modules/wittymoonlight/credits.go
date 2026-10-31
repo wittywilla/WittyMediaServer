@@ -18,7 +18,7 @@ func Credits() []Credit {
 		{"ENet", "Reliable messages over UDP, inside moonlight-common-c", "MIT", "https://github.com/cgutman/enet"},
 		{"nanors", "Repairs lost video packets, inside moonlight-common-c", "MIT", "https://github.com/sleepybishop/nanors"},
 		{"Mbed TLS", "Encryption for the stream, inside WittyMoonlight Host", "Apache-2.0", "https://github.com/Mbed-TLS/mbedtls"},
-		{"Pion WebRTC","Carries the stream from this server to your browser", "MIT", "https://github.com/pion/webrtc"},
+		{"Pion WebRTC", "Carries the stream from this server to your browser", "MIT", "https://github.com/pion/webrtc"},
 		{"Sunshine", "Runs on the PC you connect to, installed by whoever owns it", "GPL-3.0", "https://github.com/LizardByte/Sunshine"},
 	}
 }

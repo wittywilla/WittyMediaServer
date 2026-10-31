@@ -23,6 +23,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [Themes and design data](#themes-and-design-data)
 - [Choices that follow the account](#choices-that-follow-the-account)
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
+- [Game details](#game-details)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
 
@@ -664,6 +665,34 @@ deliberately a real list: anything here has to be written once for tvOS and once
 insert effect, default track choice, language names, and the direct/remux/transcode decision. The web
 interface now reads the first two from the server too.
 
+## Game details
+
+Scans only list a game's file, and details arrive afterwards in the background, so a game's item fills
+in over time. `title`, `year`, `overview`, `genres`, `studio` (its developer), `rating` (out of 10: critics
+if any, otherwise players), `contentRating` and the art on `GET /items/{id}` are already the merged result,
+in the owner's chosen order of sources, and they're what lists can sort and filter by. A hidden game answers
+404 here like anywhere, so parental controls need nothing from a client.
+
+`GET /games/{id}/metadata` has the rest:
+
+- `status`: `pending` while it's being looked up, then `done`. Ask again in a while if it's `pending`.
+- `matchSource`, `matchMethod` (`checksum`, `serial`, `name` or `manual`) and `confidence` out of 100. No
+  `matchSource` means no match. `locked` means automatic work leaves it alone.
+- `scores`: `{source, kind, value, votes, url}`, each out of 100. `kind` is `critic` or `user`. Always show
+  who gave a score.
+- `ages`: `{system, value, age}`, such as ESRB and T, with what that means in years. `contentRating` on the
+  item is the strictest of these, written `ESRB T`.
+- `art`: `{kind, url}`, with `kind` being `screenshot`, `title` or `artwork`. Pictures are fetched by the server,
+  so a client never talks to a source. A picture that can't be found answers 404: leave it out.
+- `credits`: `{name, text, site, url, license}`. **Show these wherever the game's details are.** Some sources'
+  terms require it, RAWG's on every page using its data, and Wikipedia's text needs its link and licence.
+
+A game with no `poster` should use art made from its title and console, as the web client does. In lists, ask for
+`/items/{id}/poster?w=320`: full-size box art is several times larger than a grid needs.
+
+The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
+rules allow. `GET /gamemeta/status` says how it's going, for administrators.
+
 ## Adding to the API
 
 For anyone adding a feature (a new library, channels, games):
@@ -769,10 +798,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /libraries/{id}/scan` | admin | Scan now. |
 | `GET /libraries/{id}/scan` | user | Scan progress. For an administrator, a games library also has `skipped`: files the last scan couldn't use, by extension. |
 | `GET /genres` | user | Genres among movies and other items. |
-| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played. |
+| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played, `genre=`, `decade=1990`, `players=2` (at least this many), `minRating=8` (out of 10), `unmatched=1` (no match found), and `sort=title`, `rating`, `year` or `added`. |
 | `GET /items/{id}` | user | One item, with its progress, next episode, intro range and (discs) how it starts. |
 | `PUT /items/{id}` | admin | Edit an item's details or refresh them; any field may be left out. |
-| `GET /items/{id}/poster` | user, `st` | Poster image. |
+| `GET /items/{id}/poster` | user, `st` | Poster image. For games, `w=320` (up to 640) asks for a smaller copy, for lists. |
 | `GET /items/{id}/backdrop` | user, `st` | Backdrop image (the poster if it has none). |
 | `GET /items/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /artwork/preview` | admin | One artwork candidate as an image. |
@@ -926,6 +955,18 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
+| `GET /games/facets` | user | What a library's games can be filtered by, with how many there are. Query: `library`, `console`. |
+| `GET /games/{id}/metadata` | user | A game's match, dates, makers, players, scores, age ratings, pictures and credits. See [Game details](#game-details). |
+| `GET /games/{id}/art/{n}` | user | One of a game's pictures. Use the `url` in its metadata's `art` list as given. |
+| `GET /games/{id}/metadata/search` | admin | Games this might be, from every source in use. Query: `q`. Answers `results` and `failed`. |
+| `PUT /games/{id}/metadata/match` | admin | This is the right game: `{source, id, lock}`. With no source, only sets the lock. |
+| `DELETE /games/{id}/metadata/match` | admin | This match is wrong, and there's no right one. |
+| `POST /games/{id}/metadata/refresh` | admin | Ask the sources about this game again, in the background. |
+| `GET /gamemeta/status` | admin | How the background lookup is going, by console, and whether any source has a key. |
+| `POST /gamemeta/refetch` | admin | Forget what every source said about every game and ask again. Locked games stay. |
+| `GET /gamemeta/sources` | admin | Every source, in the order they're believed: what it needs, costs and sends. Key values are never included. |
+| `PUT /gamemeta/sources` | admin | Set the sources' order and whether each is on: `{sources: [{id, on}]}`. Costs no requests. |
+| `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are saved through `PUT /settings`, and masked when read back. |
 
 ### Photos
 

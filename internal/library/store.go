@@ -477,6 +477,13 @@ type ItemQuery struct {
 	// PlayedBy: only what this user has played for more than a minute (games'
 	// Continue playing shelf, which must not depend on how far a list has loaded).
 	PlayedBy int64
+	// Games: at least this score out of 10, released in this decade, for at least
+	// this many players at once.
+	MinRating float64
+	Decade    int
+	Players   int
+	// Unmatched: games the lookup has finished with and found nothing for.
+	Unmatched bool
 	// HasArt: only items with a backdrop or a frame from the video, for the home
 	// page's hero, which would otherwise be an empty dark box.
 	HasArt bool
@@ -569,12 +576,28 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "i.console = ?")
 		args = append(args, q.Console)
 	}
+	if q.MinRating > 0 {
+		where = append(where, "i.rating >= ?")
+		args = append(args, q.MinRating)
+	}
+	if q.Decade > 0 {
+		where = append(where, "i.year >= ? AND i.year < ?")
+		args = append(args, q.Decade, q.Decade+10)
+	}
+	if q.Players > 0 {
+		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE players >= ?)")
+		args = append(args, q.Players)
+	}
+	if q.Unmatched {
+		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE match_source = '' AND status = 'done')")
+	}
 	if q.PlayedBy != 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")
 		args = append(args, q.PlayedBy)
 	}
 	if q.HasArt {
-		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%')")
+		// Not games: their backdrops are small in-game pictures, and the hero's button plays video.
+		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%') AND i.kind <> 'game'")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

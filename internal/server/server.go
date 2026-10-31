@@ -42,6 +42,8 @@ type Server struct {
 	Tools   *ffmpeg.Tools
 	Store   *library.Store
 	Scanner *library.Scanner
+	// GameMeta finds out about games, in the background.
+	GameMeta *library.GameMeta
 	Auth    *auth.Service
 	HLS     *hls.Manager
 	DVD     *dvdsession.Manager
@@ -328,6 +330,10 @@ func (s *Server) Handler() http.Handler {
 
 	s.channelRoutes(m)
 	s.gameRoutes(m)
+	if s.GameMeta == nil {
+		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
+	}
+	s.gameMetaRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

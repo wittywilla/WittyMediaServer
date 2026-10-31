@@ -46,8 +46,25 @@ licence is shown before it is installed; they include GPL-2.0, GPL-3.0, AGPL-3.0
 Cores with non-commercial licences are never offered. RetroArch (GPL-3.0) is not bundled, and its
 cores folder is read if present. See `docs/GAMING.md` and `docs/WITTYRETROARCH.md`.
 
-Game metadata comes from Wikidata (CC0) and Wikipedia (CC BY-SA 4.0). Libretro's thumbnail collections
-state no licence, so they are not used. No game or BIOS files are bundled, downloaded or linked.
+No game or BIOS files are bundled, downloaded or linked.
+
+### Game metadata
+
+None of this is in the repository or in a release. Each server fetches it for itself while it runs, from the sources its owner leaves on,
+and each game's page credits what it shows.
+
+| Source | Terms | Notes |
+|---|---|---|
+| [libretro database](https://github.com/libretro/libretro-database) | CC BY-SA 4.0 | Lists downloaded to the server's cache. Built by its contributors from No-Intro, Redump, GameTDB and others |
+| [libretro thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails) | No licence stated | Pictures are their publishers'. Fetched to the owner's own server only, on by default, with its own switch |
+| [Wikidata](https://www.wikidata.org) | CC0 | |
+| [Wikipedia](https://www.wikipedia.org) | CC BY-SA 4.0 | Summaries, linked to their articles |
+| [IGDB](https://www.igdb.com) | IGDB and Twitch terms | With the owner's own key |
+| [ScreenScraper](https://www.screenscraper.fr) | CC BY-NC-SA 4.0 | With the owner's own account. For free software only |
+| [RAWG](https://rawg.io) | RAWG API terms | With the owner's own key. Linked on every page showing its data |
+| [TheGamesDB](https://thegamesdb.net) | No written terms | With the owner's own key |
+
+The reader for the libretro database's files is our own, written from its published format.
 
 ## Web client (bundled into the binary)
 

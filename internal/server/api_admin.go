@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
@@ -110,6 +111,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	gameKeyChanged := false
 	for _, k := range settingKeys {
 		v, ok := in[k]
 		if !ok {
@@ -123,10 +125,16 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 400, err.Error())
 			return
 		}
+		if slices.Contains(library.GameSourceKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
+			gameKeyChanged = true
+		}
 		if err := s.DB.SetSetting(r.Context(), k, v); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
+	}
+	if gameKeyChanged {
+		s.GameMeta.KeysChanged(r.Context()) // the new source can be asked about every game
 	}
 	if s.Discovery != nil {
 		s.Discovery.Refresh() // it may have been switched off, or the server renamed

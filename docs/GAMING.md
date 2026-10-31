@@ -203,17 +203,16 @@ the player shows that. `POST /games/{id}/play` works without it, and just takes 
 
 ### Metadata and box art
 
-| Source | Licence | Use |
-|---|---|---|
-| The filename, parsed: `Title (Region) (Rev 1)` | | Always |
-| Your own files: `Game.png`, `Game-cover.jpg`, `Game.nfo` beside the ROM | yours | Always first |
-| [Wikidata](https://www.wikidata.org) | CC0 | Title, year, developer, genre, summary (online, the same switch films use) |
-| [libretro-database](https://github.com/libretro/libretro-database) | CC BY-SA 4.0 | Allowed with attribution, never bundled. Not used yet |
-| [libretro-thumbnails](https://github.com/libretro-thumbnails) | **No licence stated** | **Not used.** With no licence, permission can't be assumed |
-| OpenVGDB | **No licence on the repository** | **Not used** |
+Scans only list files. Details, ratings and pictures come along behind them in the background, from sources you choose in
+*Settings → Metadata agents → Video games*. Three work with no key: the [libretro database](https://github.com/libretro/libretro-database)
+(CC BY-SA 4.0, downloaded when needed and never bundled), [libretro's thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails)
+(no licence stated, so fetched to your server only, never bundled or republished) and [Wikidata](https://www.wikidata.org) with Wikipedia.
+IGDB, ScreenScraper, RAWG and TheGamesDB take a free key each. [METADATA.md](METADATA.md#video-games) has all of it: what
+each one sends, how games are matched, and how ratings reach Kids profiles.
 
-With no box art, the library shows a tile made from the game's name and console. Saved states
-each show a picture of the game. Wikipedia summaries are CC BY-SA 4.0, as for films.
+Your own files always come first: `Game.png`, `Game-cover.jpg`, `Game-poster.jpg`, `Game-fanart.jpg` and `Game.nfo` beside a game. With no box
+art, the library shows a tile made from the game's name and console. Saved states each show a picture of the game. Native apps get all
+this through `GET /games/{id}/metadata`: see [CLIENT-API.md](CLIENT-API.md#game-details).
 
 ## Saves, states and resume
 

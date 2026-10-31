@@ -8,6 +8,7 @@ already use, so you can move an existing library in — or out — without re-ta
 - [Choosing artwork](#choosing-artwork)
 - [Editing by hand](#editing-by-hand)
 - [Coming from another media server](#coming-from-another-media-server)
+- [Video games](#video-games)
 
 ## Where metadata comes from
 
@@ -117,6 +118,98 @@ saving on, the NFO is rewritten at once (a hand-written NFO is kept as `.nfo.bak
   `fanart.jpg`) is still read, and WittyMediaServer matches by the usual folder/file naming
   (`Movie (Year)`, `Show/Season 01/Show S01E01`). After a scan with metadata saving on, your
   folders gain NFOs that other NFO-based tools can read too.
+
+## Video games
+
+Games get their details from their own set of sources, in the background, so a scan of thousands of games
+never waits on the internet. It works out of the box; a free key adds more.
+
+### Sources
+
+Choose which are on, and which is believed first, in **Settings → Metadata agents → Video games**. Keys can be
+added there or in the setup wizard, which can be skipped. The first source with a value for something wins,
+except for scores, age ratings and pictures, which are collected from all of them.
+
+| Source | Needs | Good for | Sends | Licence |
+|---|---|---|---|---|
+| **libretro database** | Nothing | Recognising your exact files by checksum; dates, makers, genres, players, some age ratings and scores | Nothing about your games: a list for each console you have is downloaded once, checked monthly, and matched here | CC BY-SA 4.0 |
+| **libretro thumbnails** | Nothing | Box art, title screens, in-game pictures | Game names, as the database lists them | None stated; the pictures belong to their publishers. Never bundled, only fetched to your server |
+| **Wikidata and Wikipedia** | Nothing | Summaries, makers, and some review scores and age ratings | Which console, and the names of games it matches | CC0; Wikipedia text is CC BY-SA 4.0 |
+| **IGDB** | A free Twitch application's id and secret | The fullest source: covers, art, critic and user scores, every age rating board | Game and console names | IGDB's terms: free for non-commercial use |
+| **ScreenScraper** | A free account. Official releases carry a developer id; a copy you built yourself needs its own | Recognising files by checksum, with art, scores and age ratings | Names, console, checksums and sizes | CC BY-NC-SA 4.0, for free software only |
+| **RAWG** | A free key | Metacritic and user scores, wide backdrops | Game and console names | RAWG's terms: free with a link back, which the game page gives |
+| **TheGamesDB** | A free key | Box art and fan art, some checksums | Names, console and checksums | No written terms; credited and kept on your server |
+
+**Files never leave your server.** Only names, checksums and sizes are looked up, as the table says. Turning a
+source off stops it being asked. Pictures are fetched by the server and kept in its image cache, so a browser
+or an app never talks to a source.
+
+### Left out, and why
+
+| Source | Why |
+|---|---|
+| MobyGames | No free access since 2025, and little it would add to the others |
+| Giant Bomb | Its limits and terms couldn't be confirmed from its own pages. Nothing here depends on it |
+| PCGamingWiki | Its data query needs a login since August 2026, and its licence is non-commercial with share-alike |
+| OpenVGDB | No licence at all, and no release since 2021 |
+| Other published data files, including TheGamesDB's own dump | Downloadable, but no terms could be found that allow this use |
+| GameTDB | Its files say not to use them on a website without asking. It's worth asking, and it could be added |
+| ArcadeDB | For arcade games, which game libraries don't have yet. Its author asks developers to get in touch first |
+| Hasheous | Useful as a way between sources' ids, but it would send a checksum of every file to one more place, and it adds no data itself |
+
+### How a game is matched
+
+1. **By checksum.** Archives record their files' checksums (`.zip`, `.7z` and `.gz`), so only the headers are read and
+   nothing is unpacked. A cartridge file up to 128 MB is read once, with and without a copier's header. Nothing is
+   read twice unless the file changes.
+2. **By disc code.** A disc's product code is read from a few sectors near its start, or from its file name (PlayStation,
+   PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name.
+3. **By name and console.** Region and dump tags are taken off and kept as details. Punctuation, articles and II or 2 don't
+   matter, but different numbers always do. A name must be at least 85% alike to be used without asking, and only an exact name or a checksum renames a game: a close match
+   gets its details, but keeps the name on its file, as it may be a variant.
+
+A checksum found by one source gives the exact name to ask the others about, so they match better too. Every game's page
+shows administrators how it was matched and how sure that is, with **Fix match** (search every source and pick), **Lock**
+(leave it alone from now on) and **Look up again**. **It has no match** clears what sources filled in.
+
+A game from a gaming PC has no file to read, so it goes by name alone, on sources that can search PC games.
+
+### Keeping requests down
+
+The queue is in the database, so a restart carries on where it stopped. Games are worked on in batches of 50, one console
+at a time. Each source's answer is kept, so changing the order of sources asks nobody anything, and adding one only
+asks that one, for what it can add.
+
+| Source | How it's asked |
+|---|---|
+| libretro database | One download a console, then no requests at all |
+| Wikidata | One query for a console's whole list; then facts 50 games a request and summaries 20 games a request, one request a second at most. Backs off when it says it's busy |
+| libretro thumbnails | Four pictures a second at most. Only covers and one in-game picture are fetched up front; others when someone looks |
+| IGDB | Three requests a second |
+| ScreenScraper | One every 1.2 seconds, up to 18,000 a day |
+| RAWG | Two a game, up to 18,000 a month. Only for games still missing something |
+| TheGamesDB | One a second, for games still missing something, stopping when its monthly allowance runs low |
+
+### Age ratings and Kids profiles
+
+ESRB, PEGI, CERO, USK, ACB, GRAC, ClassInd and ELSPA ratings all become a minimum age. The strictest one a game has is its
+content rating, written like `ESRB T`, and that's what Kids and Guest profiles go by, as for a film. A game above a
+profile's limit doesn't appear at all, and can't be opened or played. A game with no rating counts as unrated, so it's
+hidden from profiles that don't allow unrated titles: set one with **Edit** on its page. Ratings a source marks as still
+pending count as no rating.
+
+### What's kept, and what's saved beside your games
+
+Answers go in the server's database and pictures in its image cache. With *Save information and artwork next to your media*
+on, a game gets `<name>.nfo`, `<name>-poster.jpg` and `<name>-fanart.jpg` beside it, and a scan reads them back. With it
+off, nothing is ever written next to your games. Your own files always win: a picture or NFO beside a game, and anything
+typed under **Edit**, stays as it is.
+
+### For anyone building their own copy
+
+ScreenScraper's terms identify each program by a developer id, which isn't in this repository. Release builds set it with
+`-ldflags "-X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevID=... -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevPassword=..."`.
+Without one the source says so, and asks for one in Settings; other sources aren't affected.
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>

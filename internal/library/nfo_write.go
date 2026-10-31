@@ -33,6 +33,11 @@ func ArtPaths(it *Item) (poster, backdrop, nfo string) {
 		return filepath.Join(it.Path, "poster.jpg"), filepath.Join(it.Path, "fanart.jpg"), filepath.Join(it.Path, "movie.nfo")
 	}
 	dir := filepath.Dir(it.Path)
+	if it.Kind == "game" {
+		// A folder of games has no one game to call its poster.jpg after.
+		base := gameBaseName(filepath.Base(it.Path))
+		return filepath.Join(dir, base+"-poster.jpg"), filepath.Join(dir, base+"-fanart.jpg"), filepath.Join(dir, base+".nfo")
+	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
 	nfo = filepath.Join(dir, base+".nfo")
 	if it.ShowID != nil {

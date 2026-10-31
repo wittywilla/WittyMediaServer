@@ -3,6 +3,8 @@ package library
 import (
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 )
 
 // Parental controls. Every content rating is turned into a minimum age when
@@ -23,12 +25,19 @@ var ratingAges = map[string]int{
 	// Canada, Australia, Ireland, France and others commonly seen in metadata
 	"14A": 14, "18A": 18, "E": 0, "M": 15, "MA15": 15, "MA15+": 15, "R18+": 18, "X18": 18,
 	"TOUSPUBLICS": 0, "TP": 0, "10": 10, "7": 7, "13": 13, "AL": 0, "ALL": 0,
+	// Games: ESRB letters typed by hand that no film rating uses
+	"EC": 3, "E10+": 10, "T": 13, "AO": 18,
 }
 
 // AgeFor returns the minimum age for a content rating, or nil if unknown
 // (unrated). Country prefixes ("US:PG-13", "de/12") are accepted.
 func AgeFor(rating string) *int {
 	r := strings.ToUpper(strings.TrimSpace(rating))
+	// A game's rating names its board, as boards reuse each other's letters: an ESRB M
+	// isn't an Australian M.
+	if sys, val, ok := strings.Cut(strings.ReplaceAll(r, ":", " "), " "); ok && gamemeta.IsSystem(sys) {
+		return gamemeta.AgeFor(sys, val)
+	}
 	if i := strings.LastIndexAny(r, ":/"); i >= 0 {
 		r = r[i+1:]
 	}

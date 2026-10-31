@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api, setToken, type Library, type User } from '../api'
+import { api, setToken, type GameSource, type Library, type User } from '../api'
+import { GameKeyFields } from './GameMeta'
 import { Brand, VersionTag } from '../components/common'
 import AddLibrary, { GroupingChoice, LibrarySummary, type Grouping } from '../components/AddLibrary'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
@@ -252,6 +253,36 @@ const PROVIDERS = [
   },
 ] as const
 
+// Sources for video games come from the server, as they do on the Settings page. Their
+// keys are saved with the rest when this step is finished, and every one can be skipped.
+function GameKeysStep({ keys, setKeys }: { keys: Record<string, string>; setKeys: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  const [sources, setSources] = useState<GameSource[]>([])
+  const [open, setOpen] = useState<string | null>(null)
+  useEffect(() => { api.get<{ sources: GameSource[] }>('/gamemeta/sources').then((r) => setSources(r.sources.filter((s) => s.fields.length > 0))).catch(() => {}) }, [])
+  if (sources.length === 0) return null
+  return (
+    <>
+      <h2 className="oobe-sub">Optional: video games</h2>
+      <p className="muted oobe-hint">Games already get details from the free sources above. These add critic scores, age ratings and more box art. Only names and checksums are looked up, never your files.</p>
+      <div className="oobe-providers">
+        {sources.map((s) => {
+          const shown = open === s.id
+          return (
+            <div key={s.id} className="oobe-provider">
+              <button type="button" className="op-head" onClick={() => setOpen(shown ? null : s.id)} aria-expanded={shown}>
+                <b>{s.name}</b><span className="pill">{s.cost}</span>
+                <span className="op-add">{shown ? 'Hide' : 'Add a key'}</span>
+              </button>
+              <div className="muted op-note">{s.why}</div>
+              {shown && <GameKeyFields source={s} values={keys} onChange={(k, v) => setKeys((c) => ({ ...c, [k]: v }))} />}
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
 function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: number) => void }) {
   const [keys, setKeys] = useState<Record<string, string>>({})
   const [state, setState] = useState<Record<string, { ok?: boolean; msg?: string; busy?: boolean }>>({})
@@ -281,6 +312,8 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: n
         <div className="oobe-agent ok"><IconCheck size={16} /><b>TVmaze</b><span>TV shows</span><em>No API key needed</em></div>
         <div className="oobe-agent ok"><IconCheck size={16} /><b>Wikidata &amp; Wikipedia</b><span>Movies</span><em>No API key needed</em></div>
         <div className="oobe-agent ok"><IconCheck size={16} /><b>AniList</b><span>Anime</span><em>No API key needed</em></div>
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>libretro</b><span>Video games</span><em>No API key needed</em></div>
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>Wikidata &amp; Wikipedia</b><span>Video games</span><em>No API key needed</em></div>
       </div>
       <h2 className="oobe-sub">Optional: posters and the best matches</h2>
       <p className="muted oobe-hint">Add a free API key from these services. Each takes about two minutes, and you can do it later in Settings.</p>
@@ -311,6 +344,7 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: n
           )
         })}
       </div>
+      <GameKeysStep keys={keys} setKeys={setKeys} />
       <p className="muted oobe-hint">Have your own catalogue? Add <b>custom agents</b> later in Settings → Metadata agents.</p>
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={onBack}>Back</button>

@@ -261,6 +261,9 @@ func clutter(name string) bool {
 type Entry struct {
 	Name string `json:"n"`
 	Size int64  `json:"s"`
+	// CRC is the file's CRC-32 as the archive records it, or 0 if it doesn't. Game
+	// databases are keyed on these, so a game can be recognised without unpacking it.
+	CRC uint32 `json:"c,omitempty"`
 }
 
 // A Listing is what an archive holds, read from its headers. Partial: a .tar.gz has
@@ -291,7 +294,9 @@ type lister struct {
 	total int64
 }
 
-func (l *lister) add(raw string, size int64) error {
+func (l *lister) add(raw string, size int64) error { return l.addCRC(raw, size, 0) }
+
+func (l *lister) addCRC(raw string, size int64, crc uint32) error {
 	n, err := cleanName(raw)
 	if err != nil {
 		return err
@@ -319,7 +324,7 @@ func (l *lister) add(raw string, size int64) error {
 	if l.total > MaxUnpacked {
 		return ErrTooBig
 	}
-	l.out.Entries = append(l.out.Entries, Entry{Name: n, Size: size})
+	l.out.Entries = append(l.out.Entries, Entry{Name: n, Size: size, CRC: crc})
 	return nil
 }
 
@@ -401,7 +406,7 @@ func list7z(p string, l *lister) error {
 		if !regular(f.FileInfo().Mode()) {
 			continue
 		}
-		if err := l.add(f.Name, int64(f.UncompressedSize)); err != nil {
+		if err := l.addCRC(f.Name, int64(f.UncompressedSize), f.CRC32); err != nil {
 			return err
 		}
 	}
@@ -479,7 +484,7 @@ func listZip(p string, l *lister) error {
 		if f.Flags&zipEncrypted != 0 {
 			return ErrEncrypted
 		}
-		if err := l.add(f.Name, int64(f.UncompressedSize64)); err != nil {
+		if err := l.addCRC(f.Name, int64(f.UncompressedSize64), f.CRC32); err != nil {
 			return err
 		}
 	}
@@ -578,7 +583,7 @@ func listSingle(p, how string, l *lister) error {
 	}
 	defer f.Close()
 	inHeader := ""
-	size := int64(-1)
+	size, crc := int64(-1), uint32(0)
 	if how == formatGz {
 		zr, err := gzip.NewReader(f)
 		if err != nil {
@@ -590,9 +595,10 @@ func listSingle(p, how string, l *lister) error {
 		if err != nil {
 			return err
 		}
-		var tail [4]byte
-		if _, err := f.ReadAt(tail[:], st.Size()-4); err == nil {
-			size = int64(binary.LittleEndian.Uint32(tail[:]))
+		var tail [8]byte
+		if _, err := f.ReadAt(tail[:], st.Size()-8); err == nil {
+			crc = binary.LittleEndian.Uint32(tail[:4])
+			size = int64(binary.LittleEndian.Uint32(tail[4:]))
 		}
 	} else {
 		// Reading the start is enough to find out if it's what it claims to be.
@@ -606,7 +612,7 @@ func listSingle(p, how string, l *lister) error {
 			return err
 		}
 	}
-	return l.add(gzName(p, inHeader), size)
+	return l.addCRC(gzName(p, inHeader), size, crc)
 }
 
 func gzName(p, inHeader string) string {

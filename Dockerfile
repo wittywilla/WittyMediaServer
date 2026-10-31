@@ -35,9 +35,13 @@ COPY --from=web /src/web/dist ./web/dist
 RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms \
  && cd modules/wittyplay && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host ./cmd/wittyplay-host
 
-FROM alpine:3.24
-RUN apk add --no-cache ffmpeg ca-certificates tzdata tini \
- && addgroup -g 1000 wms && adduser -D -u 1000 -G wms wms \
+# Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
+# start, and a compatibility layer leaves several cores unable to load. libgl1 is
+# linked by a few software-rendered cores that never use it.
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates tzdata tini wget libgl1 \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms \
  && mkdir -p /config /media && chown wms:wms /config
 COPY --from=build /out/wms /out/wittyplay-host /usr/local/bin/
 ENV WMS_DATA_DIR=/config \
@@ -47,5 +51,5 @@ EXPOSE 9797
 VOLUME ["/config"]
 USER wms
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD wget -qO- http://127.0.0.1:9797/api/health || exit 1
-ENTRYPOINT ["/sbin/tini", "--", "wms"]
+ENTRYPOINT ["/usr/bin/tini", "--", "wms"]
 CMD ["serve"]

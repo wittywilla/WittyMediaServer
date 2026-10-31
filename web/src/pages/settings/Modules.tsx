@@ -25,10 +25,12 @@ export default function ModulesSettings() {
   const [r, setR] = useState<Report | null>(null)
   const [checking, setChecking] = useState(false)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
+  const [hostReady, setHostReady] = useState(false)
 
   useEffect(() => {
     api.get<Report>('/modules').then(setR).catch((e) => toast(e.message))
     api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
+    api.get<{ ready: boolean }>('/moonlight').then((m) => setHostReady(m.ready)).catch(() => {})
   }, [])
 
   // While something installs, follow it.
@@ -127,10 +129,19 @@ export default function ModulesSettings() {
         <div className="mod-list">
           {withServer.map((m) => (
             <div key={m.id} className="mod-row">
-              <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}</span></span>
+              <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}{m.license ? `. License: ${m.license}` : ''}</span></span>
               <span className="mod-ver">{m.version}<span className="mod-local">{stateLabel(m)}</span></span>
             </div>
           ))}
+        </div>
+      </Section>
+
+      <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
+        <div className="mod-list">
+          <div className="mod-row">
+            <span className="mod-name"><b>WittyMoonlight Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: GPL-3.0. <a href="https://github.com/wittywilla/WittyMoonlightHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
+            <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
+          </div>
         </div>
       </Section>
     </div>

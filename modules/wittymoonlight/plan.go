@@ -1,6 +1,6 @@
-// Package wittymoonlight gets a person from "Play" to a game running on their own gaming
-// PC: it works out what each device can really do, hands off to the separately installed
-// Moonlight app where that's possible, and runs the browser bridge as a separate program.
+// Package wittymoonlight gets a person from "Play" to a game running on a PC with Sunshine: it
+// works out what each device can really do, and falls back to the separately installed Moonlight
+// app where a page can't play. The stream goes through relay and the separate WittyMoonlight Host.
 // It contains no Moonlight code, which is GPL-3.0: see docs/GAME-RIGS.md.
 package wittymoonlight
 

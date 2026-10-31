@@ -69,7 +69,7 @@ server's accounts and remote access on the same port, and asks for encrypted vid
 **Each person's own PCs.** A person's list, certificate and pairings are theirs (`wittymoonlight_hosts`, one key file per account). One account's pairing can't be used by another.
 
 **A shared PC is still possible.** An admin can pair a PC once for everyone, from Settings, Game PCs. It gets a library of its own (`type: games`, `console: rig`), and its games are ordinary items, so every access rule applies with no new code. Kids and Guest
-profiles (which don't allow unrated titles) see nothing until given a game. That's the way to give a child one game without giving them the PC.
+profiles (which don't allow unrated titles) see none of its games until given one. That's the way to give a child one game without giving them the PC.
 
 **WittySunshine is just this, for this machine.** Turning it on makes that same kind of library for a Sunshine at `127.0.0.1`. It isn't a way to reach anything else.
 
@@ -111,7 +111,7 @@ Reviewed as an attacker would, with an account on the server and a PC of their o
 | Someone on the network posing as the PC | The certificate is pinned at pairing and compared byte for byte on every connection | Yes |
 | Someone in the middle of pairing | The PC's secret must be signed by the certificate it offered | Yes |
 | A listener saving the pairing messages, and trying all 10,000 PINs | **Not stopped.** It's the protocol's limit, shared by every Moonlight client. The page says to pair on a network you trust | Not applicable |
-| **A hostile PC attacking the host program** | **The biggest remaining risk.** It parses a stranger's data in C, so it's a separate process that gets no address or key on its command line and an empty environment. Linux: no new privileges, no core files, no files at all (Landlock). Windows: low integrity, so it can't write to this account's files. A crash ends one stream. **It can still use the network, and read what its account can on Windows.** It's a real reason to keep "over the internet" to people you trust | Linux yes. Windows flagged below |
+| **A hostile PC attacking the host program** | **The biggest remaining risk.** It parses a stranger's data in C, so it's a separate process that gets no address or key on its command line and an empty environment. Linux: no new privileges, no core files, no files at all (Landlock). Windows: low integrity, so it can't write to this account's files. A crash ends one stream. **It can still use the network, and read what its account can on Windows.** It's a real reason to keep "over the internet" to people you trust | Linux and Windows, as far as starting and streaming: no attack was tried |
 | A hostile host program attacking the server | Everything it says has a size limit, and only known messages are read | Yes |
 | A hostile browser | Input messages have exact sizes, and only input types pass. A browser can't start or end anything that way. Picture size, rate and bitrate are clamped | Yes, fuzzed |
 | Hostile titles, names and pictures | Clipped, shown as text. Art must be PNG or JPEG, and is served as a picture only, with its own strict policy | Yes |
@@ -182,10 +182,13 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 **Ran for real, end to end:** Sunshine v2026.914.233613 in Docker under WSL, with a virtual screen and software x264; this server beside it, on Linux; the real host program built on moonlight-common-c; and **real Microsoft Edge on Windows**, driven by a test script:
 
 - From a clean install: adding the PC by address on the page, its PIN shown and typed into the real Sunshine, its games and art appearing, with desktop apps set apart.
-- Pressing Play: **the first picture in about 1.2 to 1.7 seconds, 30 frames a second with none or almost none dropped**, on the encrypted channel, with test colour bars recognisable pixel by pixel and moving.
+- Pressing Play: **the first picture in about a second, 30 frames a second with none or almost none dropped**, on the encrypted channel, with test colour bars recognisable pixel by pixel and moving.
+- **Sound:** silence while the test PC played nothing, then, with a 440 Hz tone played on that PC, the browser's own count of audio energy rose from 0, with no samples concealed.
 - **A controller, keyboard and mouse: Sunshine's own log shows each kind of packet arriving** (`--begin controller packet--`, keyboard, mouse button). Whether a game responds isn't shown, as this Sunshine has no virtual input device.
 - Leaving a game running and resuming it, and closing it.
+- **A shared PC:** paired by an admin, its games in a library, and one played from its item page. A Kids profile was refused the API and shown none of those games.
 - The protocol client against the same Sunshine (`gamestream/real_test.go`, `relay/real_test.go`): certificates, a stranger refused, a wrong PIN refused, a second launch refused.
+- **The Windows host program,** started at low integrity exactly as the server starts it, took 181 frames and 611 audio packets in six seconds from that Sunshine. That was without a browser, and the whole server hasn't been run on Windows with it.
 
 **Only against stand-ins, in the automated tests:** who may use it, addresses, rate limits, separate pairings, failures, and the relay's WebRTC with a stand-in host program.
 
@@ -196,11 +199,12 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 - Firefox, Chrome, Safari, phones and tablets in a browser, and the player inside any of the apps.
 - **Discovery on a real network** (only the parsing), and **Wake-on-LAN on a real PC** (only the packet).
 - Reaching this over Remote Access, or through a real router.
+- The host program's release workflow, its macOS builds, and static arm64. Its arm64 build has only printed its version, under an emulator.
 
 ### A checklist for the first real test
 
-1. On the gaming PC, install Sunshine and set its password ([the steps are in Game PCs](#what-each-device-gets)).
-2. Put `wittymoonlight-host` beside the server (its build is below).
+1. On the gaming PC, install Sunshine and set its password (the steps are in **Game PCs**, under How to install Sunshine).
+2. Put `wittymoonlight-host` beside the server (`sh scripts/build.sh` in `modules/wittymoonlighthost` builds it).
 3. In **Game PCs**, press **Find PCs on the network**. Does it appear? If not, does typing its address work?
 4. Press **Pair this PC**, and type the PIN into Sunshine's PIN page. Do its games appear, with their pictures?
 5. Press Play on a real game, with a real controller. Is it smooth? Does the controller work? Does sound come through? Does rumble?
@@ -213,6 +217,6 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 - No WebSocket fallback when UDP is blocked, and no adapting of the bitrate as the network changes.
 - H.264 only, and stereo sound only.
-- Pairing a stream to a device's own Moonlight, and the host program being downloaded in-app, aren't there yet: an admin puts it in place by hand until its repository publishes releases.
+- The host program can't be downloaded from inside the app yet: an admin puts it in place by hand, and its repository has to exist and publish releases first.
 - Removing a PC here leaves this account on the PC's paired list. Sunshine has to remove it, on the PC.
 - A person's streams go through this server, so a low-end server's network speed is the limit. It doesn't decode anything.

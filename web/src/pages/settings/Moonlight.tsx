@@ -4,7 +4,7 @@ import { Spinner } from '../../components/common'
 import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { AddRig, RigCard } from './GameRigs'
-import { PageHead, Section } from './ui'
+import { PageHead, Row, Section, Switch } from './ui'
 import '../rigs.css'
 
 // Settings, Game PCs: who may connect to PCs running Sunshine from this server, and where. The
@@ -62,11 +62,11 @@ export default function MoonlightSettings() {
             </select>
             <small className="muted">A PC’s desktop is outside anything age limits can reach, so Kids and Guest profiles and limited accounts start without this. Give a Kids profile single games through Shared PCs below.</small>
           </label>
-          <label><input type="checkbox" checked={on('moonlightPrivate')} onChange={(e) => put({ moonlightPrivate: e.target.checked ? '1' : '0' })} /> PCs on this server’s own network</label>
-          <label><input type="checkbox" checked={on('moonlightInternet')} onChange={(e) => put({ moonlightInternet: e.target.checked ? '1' : '0' })} /> PCs over the internet, such as a friend’s</label>
-          <label><input type="checkbox" checked={on('moonlightCustomPorts')} onChange={(e) => put({ moonlightCustomPorts: e.target.checked ? '1' : '0' })} /> Ports other than Sunshine’s usual one (admins can always)
-            <small className="muted">Off makes it harder to use this to look for what’s open on a network.</small>
-          </label>
+        </div>
+        <Row label="PCs on this server’s own network"><Switch label="PCs on this server’s own network" checked={on('moonlightPrivate')} onChange={(v) => put({ moonlightPrivate: v ? '1' : '0' })} /></Row>
+        <Row label="PCs over the internet, such as a friend’s"><Switch label="PCs over the internet, such as a friend’s" checked={on('moonlightInternet')} onChange={(v) => put({ moonlightInternet: v ? '1' : '0' })} /></Row>
+        <Row label="Ports other than Sunshine’s usual one" desc="Admins can always. Off makes it harder to use this to look for what’s open on a network."><Switch label="Ports other than Sunshine’s usual one" checked={on('moonlightCustomPorts')} onChange={(v) => put({ moonlightCustomPorts: v ? '1' : '0' })} /></Row>
+        <div className="set-form">
           <label>Streams at once
             <input className="input" type="number" min={1} max={16} defaultValue={settings.moonlightMaxStreams || '2'} onBlur={(e) => put({ moonlightMaxStreams: e.target.value })} />
             <small className="muted">Each stream passes through this server, at up to its full bitrate. The server doesn’t re-encode it.</small>

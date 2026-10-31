@@ -31,7 +31,7 @@ export default function SunshineSettings() {
       <Section title="Hosting games on this server">
         {!st.enabled && !sure && (
           <>
-            <p>This uses <b>Sunshine</b>, a separate program you install on this machine. It streams this machine’s screen, and everything on it, to whoever plays, and adds a service and virtual controller drivers. It needs a good graphics card, and a screen or a virtual one.</p>
+            <p>This uses <b>Sunshine</b>, a separate program you install on this machine. It streams this machine’s screen, and everything on it, to whoever plays, and adds a service and virtual controller drivers. It needs a good graphics card, and a screen or a virtual one. Sunshine is GPL-3.0 software, with its own license and source.</p>
             <button className="btn" disabled={busy} onClick={() => setSure(true)}>Turn on</button>
           </>
         )}

@@ -20,7 +20,7 @@ func kinds(ms []Method) string {
 func TestPlanPerDevice(t *testing.T) {
 	for _, c := range []struct {
 		d      Device
-		bridge string
+		inPage string
 		want   string
 	}{
 		{Device{"desktop", "windows"}, "", "command,steps"},
@@ -35,7 +35,7 @@ func TestPlanPerDevice(t *testing.T) {
 		{Device{"apple", "ios"}, "", "steps"},
 		{Device{"apple", "tvos"}, "", "steps"},
 	} {
-		if got := kinds(Plan(c.d, target(), c.bridge != "", "")); got != c.want {
+		if got := kinds(Plan(c.d, target(), c.inPage != "", "")); got != c.want {
 			t.Errorf("%+v: %s, want %s", c.d, got, c.want)
 		}
 	}

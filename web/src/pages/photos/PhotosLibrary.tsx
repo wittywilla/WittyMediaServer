@@ -14,7 +14,7 @@ import '../../gallery.css'
 // into view, so a library of any size costs what is on screen. All the lists
 // and rules are on the server (docs/PHOTOS.md); this draws them.
 
-const TABS: [string, string][] = [['timeline', 'Timeline'], ['albums', 'Albums'], ['favorites', 'Favourites'], ['folders', 'Folders'], ['map', 'Map'], ['people', 'People & places']]
+const TABS: [string, string][] = [['timeline', 'Timeline'], ['albums', 'Albums'], ['favorites', 'Favorites'], ['folders', 'Folders'], ['map', 'Map'], ['people', 'People & places']]
 
 export default function PhotosLibrary({ lib }: { lib: Library }) {
   const [params, setParams] = useSearchParams()
@@ -88,7 +88,7 @@ export default function PhotosLibrary({ lib }: { lib: Library }) {
       {tab === 'map' && <PhotoMap lib={lib} onOpen={open} onList={setList} />}
       {tab === 'people' && <PeoplePlaces />}
       {showGrid && <Timeline key={q + '|' + refresh} query={q} open={open} selecting={selecting} selected={selected} toggle={toggle} onList={setList}
-        empty={tab === 'favorites' ? 'No favourites yet' : albumId ? 'This album is empty' : search ? 'Nothing matched' : 'No pictures yet'} />}
+        empty={tab === 'favorites' ? 'No favorites yet' : albumId ? 'This album is empty' : search ? 'Nothing matched' : 'No pictures yet'} />}
       {viewId !== null && <PhotoViewer key={viewId} id={viewId} list={list} lib={lib} onOpen={(id) => set({ view: String(id) }, true)} onClose={closeViewer} onChanged={() => setRefresh((r) => r + 1)} />}
       {adding && <AddToAlbum lib={lib} ids={[...selected]} onClose={() => setAdding(false)} onDone={() => { setAdding(false); stopSelecting(); setRefresh((r) => r + 1) }} />}
     </div>

@@ -5,6 +5,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Interface audit
+
+- **Fixed:** the TV guide went blank with no channels. The home banner could be an empty box when the newest
+  titles had no art. The phone's bottom bar wrapped onto two rows. A folder typed without pressing Enter left
+  Add greyed out in setup. A remote's Back button did nothing in a dialog. Home videos under 5 MB were skipped.
+- **Games:** large libraries load a page at a time (they stopped at 2,000 before), with search and console filters.
+  Files a scan can't use, such as .7z archives, are now reported instead of quietly missing.
+- **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
+  listing everything.
+
 ### New libraries
 
 - **WittyPhotos**: a gallery with a timeline, albums, favourites, folders and a map. JPEG, PNG, GIF, WebP,

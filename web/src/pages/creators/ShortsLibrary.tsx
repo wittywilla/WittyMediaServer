@@ -32,6 +32,7 @@ export default function ShortsLibrary({ lib }: { lib: Library }) {
   }
   return (
     <div className="sh-page">
+      <h1 className="sr-only">{lib.name}</h1>
       <div className="sh-tabs" role="tablist" aria-label={lib.name}>
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !creator} className={tab === k && !creator ? 'on' : ''} onClick={() => set({ tab: k === 'foryou' ? null : k, v: null, creator: null })}>{l}</button>)}
       </div>

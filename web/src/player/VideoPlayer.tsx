@@ -193,7 +193,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         <>
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
-            <div className="grow"><h2>{item.title}</h2><div className="sub">{[subtitle || item.year, info?.type === 'direct' ? 'Direct play' : 'Transcoding'].filter(Boolean).join(' · ')}</div></div>
+            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info?.type === 'direct' ? 'Direct play' : 'Transcoding'].filter(Boolean).join(' · ')}</div></div>
             {item.nextId && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>

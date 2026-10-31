@@ -59,6 +59,7 @@ export const IconStar = (p: P) => <S {...p} d="M12 3l2.7 5.8 6.3.8-4.6 4.4 1.2 6
 export const IconMic = (p: P) => <S {...p} d="M12 2a3.5 3.5 0 00-3.5 3.5v6a3.5 3.5 0 007 0v-6A3.5 3.5 0 0012 2zm6.5 9.5h-2a4.5 4.5 0 01-9 0h-2a6.5 6.5 0 005.5 6.4V21h2v-3.1a6.5 6.5 0 005.5-6.4z" />
 export const IconHeadphones = (p: P) => <S {...p} d="M12 3a9 9 0 00-9 9v7a2 2 0 002 2h2a2 2 0 002-2v-4a2 2 0 00-2-2H5v-1a7 7 0 0114 0v1h-2a2 2 0 00-2 2v4a2 2 0 002 2h2a2 2 0 002-2v-7a9 9 0 00-9-9z" />
 export const IconCamera = (p: P) => <S {...p} d="M9 3L7.2 5H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V7a2 2 0 00-2-2h-3.2L15 3zm3 15a5 5 0 110-10 5 5 0 010 10zm0-2a3 3 0 100-6 3 3 0 000 6z" />
+export const IconContrast = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z" />
 export const IconSortUp = (p: P) => <S {...p} d="M13 20h-2V7.8l-5.6 5.6L4 12l8-8 8 8-1.4 1.4L13 7.8z" />
 export const IconSortDown = (p: P) => <S {...p} d="M11 4h2v12.2l5.6-5.6L20 12l-8 8-8-8 1.4-1.4 5.6 5.6z" />
 // Jump back or forward by a number of seconds: a circular arrow around it.

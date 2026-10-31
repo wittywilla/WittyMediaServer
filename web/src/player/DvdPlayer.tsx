@@ -716,7 +716,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={back} title="Back (playback continues in the mini player)"><IconBack /></button>
             <div className="grow">
-              <h2>{item.title}</h2>
+              <h1>{item.title}</h1>
               <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} scenes${hasPopup ? (popupOpen ? ' · pop-up menu (Esc closes)' : ' · Menu key: pop-up menu') : ''}` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
             </div>
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>

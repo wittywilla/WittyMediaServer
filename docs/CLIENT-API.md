@@ -761,9 +761,9 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /libraries/{id}` | admin | Change a library; scanning starts. |
 | `DELETE /libraries/{id}` | admin | Remove a library (the files stay). |
 | `POST /libraries/{id}/scan` | admin | Scan now. |
-| `GET /libraries/{id}/scan` | user | Scan progress. |
+| `GET /libraries/{id}/scan` | user | Scan progress. For an administrator, a games library also has `skipped`: files the last scan couldn't use, by extension. |
 | `GET /genres` | user | Genres among movies and other items. |
-| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. |
+| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played. |
 | `GET /items/{id}` | user | One item, with its progress, next episode, intro range and (discs) how it starts. |
 | `PUT /items/{id}` | admin | Edit an item's details or refresh them; any field may be left out. |
 | `GET /items/{id}/poster` | user, `st` | Poster image. |

@@ -16,7 +16,6 @@
 
 .album-head { display: grid; grid-template-columns: clamp(140px, 18vw, 240px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-8)); align-items: end; margin: var(--sp-2) 0 var(--sp-6); }
 .album-cover.big { width: 100%; box-shadow: var(--e-3); border-radius: var(--r-lg); }
-.album-cover.big .art-ph b { font-size: var(--text-2xl); }
 .album-cover.big .art-ph { padding: var(--sp-5) !important; }
 .album-meta { display: grid; gap: var(--sp-1); min-width: 0; justify-items: start; }
 .album-meta > .muted:first-child { font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }

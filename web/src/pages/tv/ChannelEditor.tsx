@@ -19,7 +19,7 @@ const ORDERS: { v: Order['mode']; label: string; hint: string }[] = [
 ]
 const ALIGN = [{ v: 0, label: 'Back to back' }, { v: 5, label: 'Every 5 minutes' }, { v: 15, label: 'Quarter hours' }, { v: 30, label: 'Half hours' }, { v: 60, label: 'On the hour' }]
 const FITS: { v: NonNullable<Block['fit']>; label: string }[] = [
-  { v: 'fill', label: 'Finish on time: fill the gap' }, { v: 'overrun', label: 'Let the programme finish' }, { v: 'cut', label: 'Cut it at the end of the slot' },
+  { v: 'fill', label: 'Finish on time: fill the gap' }, { v: 'overrun', label: 'Let the show finish' }, { v: 'cut', label: 'Cut it at the end of the slot' },
 ]
 
 type Draft = { name: string; number: string; description: string; definition: Definition; visibility: Visibility; countProgress: boolean; enabled: boolean }
@@ -263,7 +263,7 @@ function SimpleLevel({ def, setRules, setDef, opts }: { def: Definition; setRule
             <option value="genre">A genre</option>
             <option value="decade">A decade</option>
             <option value="show">One show</option>
-            <option value="movies">Films</option>
+            <option value="movies">Movies</option>
           </select>
         </label>
         {kind === 'network' && (
@@ -299,7 +299,7 @@ function SimpleLevel({ def, setRules, setDef, opts }: { def: Definition; setRule
           </label>
         )}
         <OrderPick order={def.order} onChange={(o) => setDef({ order: o })} />
-        <label>Programmes start
+        <label>Shows start
           <select className="select" value={def.alignMin} onChange={(e) => setDef({ alignMin: Number(e.target.value) })}>
             {ALIGN.map((a) => <option key={a.v} value={a.v}>{a.label}</option>)}
           </select>
@@ -317,8 +317,8 @@ function RuleFields({ r, set, opts, compact }: { r: Rules; set: (p: Partial<Rule
   return (
     <div className="form" style={{ maxWidth: 'none' }}>
       {!compact && libraries.length > 1 && <Multi label="Libraries" options={libraries.map((l) => ({ v: String(l.id), label: l.name }))} value={strs(r.libraries)} onChange={(v) => set({ libraries: v.map(Number) })} />}
-      <Multi label="Kind of title" options={[{ v: 'episodes', label: 'TV episodes' }, { v: 'movies', label: 'Films' }, { v: 'discs', label: 'DVDs and Blu-rays' }]} value={r.kinds || []} onChange={(v) => set({ kinds: v })} />
-      <Multi label="TV networks (or a film's studio)" options={opts.networks.map((n) => ({ v: n.name, label: `${n.name} (${n.shows})` }))} value={r.networks || []} onChange={(v) => set({ networks: v })} />
+      <Multi label="Kind of title" options={[{ v: 'episodes', label: 'TV episodes' }, { v: 'movies', label: 'Movies' }, { v: 'discs', label: 'DVDs and Blu-rays' }]} value={r.kinds || []} onChange={(v) => set({ kinds: v })} />
+      <Multi label="TV networks (or a movie's studio)" options={opts.networks.map((n) => ({ v: n.name, label: `${n.name} (${n.shows})` }))} value={r.networks || []} onChange={(v) => set({ networks: v })} />
       <Multi label="Genres" options={opts.genres.map((g) => ({ v: g, label: g }))} value={r.genres || []} onChange={(v) => set({ genres: v })} />
       <Multi label="Shows" options={showOpts(opts)} value={strs(r.shows)} onChange={(v) => set({ shows: v.map(Number) })} />
       <Multi label="Decades" options={opts.decades.map((d) => ({ v: String(d), label: d + 's' }))} value={strs(r.decades)} onChange={(v) => set({ decades: v.map(Number) })} />
@@ -362,7 +362,7 @@ function RulesLevel({ def, setRules, setDef, opts }: { def: Definition; setRules
       <Section title="How it plays">
         <div className="form" style={{ maxWidth: 'none' }}>
           <OrderPick order={def.order} onChange={(o) => setDef({ order: o })} />
-          <label>Programmes start
+          <label>Shows start
             <select className="select" value={def.alignMin} onChange={(e) => setDef({ alignMin: Number(e.target.value) })}>
               {ALIGN.map((a) => <option key={a.v} value={a.v}>{a.label}</option>)}
             </select>
@@ -553,13 +553,13 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
   const change = (id: number, patch: Partial<CommercialPick>) => setPicks(picks.map((p) => (p.library === id ? { ...p, ...patch } : p)))
   if (libs.length === 0) {
     return (
-      <Section title="Commercials" desc="Your own adverts between programmes.">
+      <Section title="Commercials" desc="Your own ads between shows.">
         <p className="muted">You have no commercials library yet. <Link to="/settings/libraries">Add one under Libraries</Link>, choosing the kind called Commercials. You can have as many as you like: one for the 1990s, one for toys, one for each channel.</p>
       </Section>
     )
   }
   return (
-    <Section title="Commercials" desc="Play your own adverts between programmes and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.">
+    <Section title="Commercials" desc="Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.">
       <ul className="tvs-blocks">
         {libs.map((l) => {
           const p = pickOf(l.id)
@@ -581,7 +581,7 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
       </ul>
       {picks.length > 0 && (
         <div className="tvs-three">
-          <label>After each programme, play
+          <label>After each show, play
             <select className="select" value={f.between || 0} onChange={(e) => setDef({ filler: { ...f, between: Number(e.target.value) } })}>
               {[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n === 0 ? 'Only in gaps' : `${n} ${n === 1 ? 'commercial' : 'commercials'}`}</option>)}
             </select>
@@ -614,7 +614,7 @@ function FillerSection({ def, setDef, opts }: { def: Definition; setDef: (p: Par
   const rules = f.rules
   const setF = (p: Partial<Definition['filler']>) => setDef({ filler: { ...f, ...p } })
   return (
-    <Section title="Other filler" desc="Anything else from your files to play between programmes: station idents or trailers from any library, chosen by the rules below. They never count as watched.">
+    <Section title="Other filler" desc="Anything else from your files to play between shows: station idents or trailers from any library, chosen by the rules below. They never count as watched.">
       <div className="form" style={{ maxWidth: 'none' }}>
         <label className="check-row"><input type="checkbox" checked={!!rules} onChange={(e) => setF({ rules: e.target.checked ? {} : undefined })} /> Use filler from my files</label>
         {rules && (
@@ -622,7 +622,7 @@ function FillerSection({ def, setDef, opts }: { def: Definition; setDef: (p: Par
             {libraries.length > 0 && <Multi label="From these libraries" options={libraries.map((l) => ({ v: String(l.id), label: l.name }))} value={strs(rules.libraries)} onChange={(v) => setF({ rules: { ...rules, libraries: v.map(Number) } })} />}
             <Multi label="From these shows" options={showOpts(opts)} value={strs(rules.shows)} onChange={(v) => setF({ rules: { ...rules, shows: v.map(Number) } })} />
             <div className="tvs-three">
-              <label>After each programme, play
+              <label>After each show, play
                 <select className="select" value={f.between || 0} onChange={(e) => setF({ between: Number(e.target.value) })}>
                   {[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n === 0 ? 'Only in gaps' : `${n} ${n === 1 ? 'bumper' : 'bumpers'}`}</option>)}
                 </select>

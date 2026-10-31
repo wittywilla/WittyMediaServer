@@ -129,6 +129,8 @@ of a poster and of a wide episode card; they change with the screen.
 | Line of facts | `.meta` | Dots between items are automatic and never start a line |
 | Poster | `ItemCard`, `ShowCard`; `.card` + `.wide`, `.square` | |
 | Label on artwork | `.badge`; `SeenBadge` | |
+| Art for something with no picture | `Placeholder` with `title`, `label` | A colour from the title. The title is printed under the card, so never on the art; `label` is one short word, such as a console |
+| Look through a library again | `ScanButton` | For administrators; shows nothing to anyone else |
 | Grid and row of cards | `.grid`; `CardRow` | The row has arrows for mouse users |
 | Panel | `.panel` with `h2` and `.panel-note`, `.panel-actions`; in Settings `Section`, `Row` | |
 | Dialog | `.modal-backdrop` > `.modal` with `h2`, `.actions` | A bottom sheet on phones; `a11y.tsx` handles the keyboard |

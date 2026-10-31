@@ -6508,6 +6508,22 @@
         "operationId": "getItems",
         "parameters": [
           {
+            "description": "Games for one console",
+            "in": "query",
+            "name": "console",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 for games this user has played",
+            "in": "query",
+            "name": "played",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "library",
             "schema": {

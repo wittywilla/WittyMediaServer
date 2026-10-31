@@ -472,6 +472,14 @@ type ItemQuery struct {
 	// NoGallery leaves out photo, vertical video and creator libraries, which
 	// are not what the home page's hero or Shuffle are for.
 	NoGallery bool
+	// Console: games for one console.
+	Console string
+	// PlayedBy: only what this user has played for more than a minute (games'
+	// Continue playing shelf, which must not depend on how far a list has loaded).
+	PlayedBy int64
+	// HasArt: only items with a backdrop or a frame from the video, for the home
+	// page's hero, which would otherwise be an empty dark box.
+	HasArt bool
 	// Audio: one album (by album artist and album title).
 	Album       *string
 	AlbumArtist *string
@@ -556,6 +564,17 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.Watchable || q.NoGallery {
 		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type IN ('photos', 'shorts', 'channels', 'musicvideos', 'radio'))")
+	}
+	if q.Console != "" {
+		where = append(where, "i.console = ?")
+		args = append(args, q.Console)
+	}
+	if q.PlayedBy != 0 {
+		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")
+		args = append(args, q.PlayedBy)
+	}
+	if q.HasArt {
+		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%')")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

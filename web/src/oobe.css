@@ -9,8 +9,9 @@
 .oobe-head { display: flex; flex-direction: column; gap: var(--sp-3); }
 .oobe-head .brand { margin: 0; }
 .oobe-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
-.oobe-steps li { flex: 1; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); font-weight: 500; color: var(--fg-3); min-width: 0; }
+.oobe-steps li { flex: 1 1 auto; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); font-weight: 500; color: var(--fg-3); min-width: 0; }
 .oobe-steps li::after { content: ""; flex: 1; height: 2px; background: var(--bg-4); border-radius: 2px; }
+.oobe-steps li:last-child { flex: none; }
 .oobe-steps li:last-child::after { display: none; }
 .oobe-steps .dot { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-3); font-weight: 700; font-size: var(--text-xs); }
 .oobe-steps .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -23,11 +24,13 @@
 .oobe-card h1 { margin: 0 0 var(--sp-2); font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .oobe-card .lead { color: var(--fg-2); font-size: var(--text-base); margin: 0 0 var(--sp-6); max-width: 62ch; }
 .oobe-field { display: grid; gap: 6px; font-weight: 500; font-size: var(--text-sm); color: var(--fg-2); margin-bottom: var(--sp-4); }
-.oobe-field .input { color: var(--fg); font-weight: 400; }
+.oobe-field .input, .oobe-field .select { color: var(--fg); font-weight: 400; }
 .oobe-form { display: grid; gap: 2px; max-width: 420px; }
 .oobe-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-6); flex-wrap: wrap; }
 .oobe-actions > .muted { font-size: var(--text-sm); }
-.oobe-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3); }
+.oobe-type-groups { display: grid; gap: var(--sp-5); }
+.oobe-type-head { margin: 0 0 var(--sp-2); font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.oobe-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-3); }
 .oobe-type { display: grid; gap: 6px; justify-items: start; align-content: start; text-align: left; padding: var(--sp-4); border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--bg-3); color: var(--fg); transition: border-color var(--dur-2), background var(--dur-2); }
 .oobe-type:hover { border-color: var(--border-strong); background: var(--bg-4); }
 .oobe-type .ic svg, .oobe-lib-head .ic svg { width: 24px; height: 24px; color: var(--accent-text); }
@@ -43,7 +46,7 @@
 .oobe-providers { display: grid; gap: 14px; }
 .oobe-provider { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; background: var(--bg-3); transition: border-color var(--dur-3); }
 .oobe-provider.ok { border-color: var(--ok); }
-.op-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; padding: 0; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.op-head { min-height: 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; padding: 0; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
 .oobe-provider .op-steps { margin-top: 12px; }
 .op-add { margin-left: auto; color: var(--accent-text); font-weight: 600; font-size: var(--text-sm); }
 .op-ok { margin-left: auto; color: var(--ok); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); }
@@ -134,7 +137,7 @@
 .oobe-agent span { color: var(--fg-2); font-size: var(--text-sm); }
 .oobe-agent em { font-style: normal; font-size: var(--text-2xs); font-weight: 700; color: var(--ok); }
 .oobe-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.oobe-choice { display: grid; gap: 6px; justify-items: start; text-align: left; padding: 16px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--bg-3); color: var(--fg); cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.oobe-choice { display: grid; gap: 6px; justify-items: start; align-content: start; text-align: left; padding: 16px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--bg-3); color: var(--fg); cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
 .oobe-choice:hover { border-color: var(--border-strong); }
 .oobe-choice.on { border-color: var(--accent); background: rgb(var(--accent-rgb) / .12); box-shadow: inset 0 0 0 1px var(--accent); }
 .oobe-choice b { font-size: var(--text-base); }
@@ -225,4 +228,4 @@
 .lib-summary-list b, .lib-summary-list .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lib-summary-list .muted { font-size: var(--text-xs); }
 .lib-grouping { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--text-sm); margin: 0 0 14px; }
-.lib-grouping .seg { max-width: 100%; }
+.lib-grouping .seg { max-width: 100%; flex-wrap: wrap; }

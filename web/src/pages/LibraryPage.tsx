@@ -141,7 +141,7 @@ function VideoLibrary() {
       {!isShows && discCount.all > 0 && (lib.type === 'discs' ? discCount.tv > 0 && discCount.tv < discCount.all : true) && (
         <div className="seg shelf-seg" role="tablist" aria-label="Show">
           {(lib.type === 'discs'
-            ? [['', 'All discs'], ['movie', 'Films'], ['tv', 'TV series']]
+            ? [['', 'All discs'], ['movie', 'Movies'], ['tv', 'TV series']]
             : [['', 'Everything'], ['discs', 'DVDs & Blu-rays'], ...(discCount.tv ? [['tv', 'TV series on disc']] : [])]
           ).map(([k, l]) => <button key={k} role="tab" aria-selected={shelf === k} className={shelf === k ? 'active' : ''} onClick={() => set('shelf', k)}>{l}</button>)}
         </div>
@@ -160,9 +160,10 @@ function VideoLibrary() {
             </>
           : showDiscs.length > 0
           ? <><h2 className="shelf-head">DVDs & Blu-rays</h2><div className="grid">{showDiscs.map((it) => <ItemCard key={it.id} item={it} />)}</div></>
-          : <EmptyState icon={<IconTv />} title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organise episodes as Show/Season 1/Show - S01E01 - Title.mkv and rescan.'} />)
+          : <EmptyState icon={<IconTv />} title={scan ? 'Scanning…' : 'No shows'} text={scan ? 'Shows appear as they are found.' : 'Organize episodes as Show/Season 1/Show - S01E01 - Title.mkv and scan again.'} />)
         : items.length === 0
-        ? <EmptyState title={scan ? 'Scanning…' : 'No items'} text={scan ? 'Items appear as they are found.' : 'Nothing matched. Check the library folders in Settings.'} />
+        ? <EmptyState title={scan ? 'Scanning…' : genre || shelf ? 'Nothing matches' : 'Nothing here yet'} text={scan ? 'Titles appear as they are found.' : genre || shelf ? 'Try another filter.' : 'No videos were found in this library’s folders.'}
+            action={!scan && !genre && !shelf && user?.isAdmin ? <Link to="/settings/libraries" className="btn">Check its folders</Link> : undefined} />
         : <><div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div>{hasMore && <div ref={more} style={{ minHeight: 1 }}><Spinner /></div>}</>}
     </>
   )

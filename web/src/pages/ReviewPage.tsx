@@ -72,7 +72,7 @@ export default function ReviewPage() {
           </select>
         )}
         <div style={{ flex: 1 }} />
-        <button className="btn sm ghost" onClick={clear}>Clear my history</button>
+        {r.seconds > 0 && <button className="btn sm ghost" onClick={clear}>Clear my history</button>}
       </div>
       {r.seconds === 0 ? <EmptyState title={`Nothing yet for ${r.year}`} text="As you watch and listen, this fills up. It's worked out on this server from your profile's own record, and only you can see it." /> : (
         <>
@@ -92,7 +92,7 @@ export default function ReviewPage() {
           <div className="rv-grid">
             <TopList title="What you spent it on" list={r.byType.map((e) => ({ ...e, name: TYPE_NAMES[e.name] || e.name }))} />
             <TopList title="Shows" list={r.topShows} link={(e) => (e.showId ? `/show/${e.showId}` : null)} />
-            <TopList title="Films and videos" list={r.topTitles} link={(e) => (e.id ? `/item/${e.id}` : null)} />
+            <TopList title="Movies and videos" list={r.topTitles} link={(e) => (e.id ? `/item/${e.id}` : null)} />
             <TopList title="Artists" list={r.topArtists} />
             <TopList title="Creators" list={r.topCreators} />
             <TopList title="Genres" list={r.topGenres} />

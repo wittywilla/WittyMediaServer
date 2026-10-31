@@ -4,7 +4,7 @@ import { api, posterUrl, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
 import { BackLink, EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
 import { canPost, type Collection, type CollectionRule } from '../gallery'
-import { IconClose, IconEdit, IconPlay, IconPlus, IconTrash } from '../icons'
+import { IconClose, IconEdit, IconLibrary, IconPlay, IconPlus, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
 
@@ -27,7 +27,7 @@ export default function CollectionsPage() {
         {canPost(user) && <button className="btn sm primary" onClick={() => setMaking(true)}><IconPlus /> New</button>}
       </div>
       {list.length === 0 ? (
-        <EmptyState title="No collections yet" text="Gather films, shows, albums and more from any library, or save a rule, such as unwatched films from the 90s, as a smart playlist that keeps itself up to date." />
+        <EmptyState icon={<IconLibrary />} title="No collections yet" text="Gather movies, shows, albums and more from any library, or save a rule, such as unwatched movies from the 90s, as a smart playlist that keeps itself up to date." />
       ) : (
         <div className="gal-album-grid">
           {list.map((c) => (
@@ -94,7 +94,7 @@ export function CollectionPage() {
         {own && !c.system && <button className="btn sm ghost" onClick={remove}><IconTrash /> Delete</button>}
       </div>
       {c.description && <p className="muted" style={{ marginTop: -6 }}>{c.description}</p>}
-      {items.length + shows.length === 0 ? <EmptyState title="Nothing here yet" text={c.kind === 'smart' ? 'Nothing matches this rule at the moment.' : 'Use Save on a film, show or video to add it.'} /> : (
+      {items.length + shows.length === 0 ? <EmptyState icon={<IconLibrary />} title="Nothing here yet" text={c.kind === 'smart' ? 'Nothing matches this rule at the moment.' : 'Use Save on a movie, show or video to add it.'} /> : (
         <div className="grid">
           {shows.map((s) => <div key={'s' + s.id} className="col-cell"><ShowCard show={s} />{own && c.kind !== 'smart' && <button className="btn sm ghost col-x" aria-label={`Remove ${s.title}`} onClick={() => take({ shows: [s.id] })}><IconClose /></button>}</div>)}
           {items.map((it) => <div key={it.id} className="col-cell"><ItemCard item={it} />{own && c.kind !== 'smart' && <button className="btn sm ghost col-x" aria-label={`Remove ${it.title}`} onClick={() => take({ items: [it.id] })}><IconClose /></button>}</div>)}

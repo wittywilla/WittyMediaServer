@@ -148,7 +148,7 @@ export default function TranscodeSettings() {
           <input className="input" inputMode="numeric" value={s.dvdRegion || ''} onChange={(e) => set('dvdRegion', e.target.value)} />
         </label>
         <label>Blu-ray region
-          <Tip>Blu-rays check the region in their own program, and a disc for another region shows its own message instead of the film. Pick the region your discs are from.</Tip>
+          <Tip>Blu-rays check the region in their own program, and a disc for another region shows its own message instead of the movie. Pick the region your discs are from.</Tip>
           <select className="input" value={s.blurayRegion || '1'} onChange={(e) => set('blurayRegion', e.target.value)}>
             <option value="1">A: Americas, East and South-East Asia</option>
             <option value="2">B: Europe, Africa, Oceania, Middle East</option>
@@ -186,7 +186,7 @@ function BDJSettings({ s, set, saved }: { s: Record<string, string>; set: (k: st
       {status && <div className="muted" style={{ fontSize: 13 }}>{status.version ? `Java ${status.version} found: ${status.path}` : `Java not usable: ${status.error}`}</div>}
       <label>Java location <span className="muted">(optional)</span>
         <Tip>Leave empty to find Java by itself (JAVA_HOME, the PATH, the usual folders). Otherwise the Java folder, or the java program inside it.</Tip>
-        <input className="input mono" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\\Program Files\\Eclipse Adoptium\\jdk-21" />
+        <input className="input mono" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\Program Files\Eclipse Adoptium\jdk-21" />
       </label>
     </>
   )

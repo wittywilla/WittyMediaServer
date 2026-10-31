@@ -60,10 +60,10 @@ export default function ShowPage() {
             {(show.genres || []).length > 0 && <span>{show.genres.join(', ')}</span>}
           </div>
           <div className="actions">
-            <SaveButton showId={show.id} />
             {next && <button className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
               <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
             </button>}
+            <SaveButton showId={show.id} />
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TheTVDB"><IconRefresh /> Refresh</button>}

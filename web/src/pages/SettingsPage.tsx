@@ -45,7 +45,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, licence and credits' },
+    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
   ] },
 ]
 
@@ -54,10 +54,12 @@ export default function SettingsPage() {
   const loc = useLocation()
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
+  const slug = loc.pathname.split('/')[2]
+  if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   return (
     <div className="set-shell">
       <nav className="set-nav" aria-label="Settings">
-        <h1 className="set-nav-title">Settings</h1>
+        <div className="set-nav-title">Settings</div>
         {groups.map((g) => (
           <div key={g.title} className="set-nav-group">
             <div className="set-nav-head">{g.title}</div>
@@ -69,7 +71,7 @@ export default function SettingsPage() {
           </div>
         ))}
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
-          <VersionTag version={version} /><span>Version and modules ›</span>
+          <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>
       </nav>
       <main className="set-main">
@@ -98,9 +100,9 @@ export default function SettingsPage() {
 // ---------------------------------------------------------------- libraries
 
 const TYPES: { v: string; label: string; hint: string }[] = [
-  { v: 'movies', label: 'Movies', hint: 'Film files; disc images of films can go here too' },
+  { v: 'movies', label: 'Movies', hint: 'Movie files; disc images of movies can go here too' },
   { v: 'shows', label: 'TV shows', hint: 'Series in season folders; disc images of a series too' },
-  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of films and series, with their menus' },
+  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of movies and series, with their menus' },
   { v: 'anime', label: 'Anime', hint: 'Series with AniList information' },
   { v: 'music', label: 'Music', hint: 'Albums and songs' },
   { v: 'audiobooks', label: 'Audiobooks', hint: 'Books to listen to, by chapter' },
@@ -112,7 +114,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
   { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
   { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
-  { v: 'commercials', label: 'Commercials', hint: 'Your own adverts and bumpers for TV channels; they stay out of Home and search' },
+  { v: 'commercials', label: 'Commercials', hint: 'Your own ads and bumpers for TV channels; they stay out of Home and search' },
   { v: 'games', label: 'Games', hint: 'Your own game files, by console, played in the browser' },
 ]
 const typeLabel = (t: string) => TYPES.find((x) => x.v === t)?.label || t
@@ -141,7 +143,6 @@ function Libraries() {
     setGrouping(g)
     try { await api.put('/settings', { libraryGrouping: g }); toast(g === 'combine' ? 'Folders of one kind now join one library' : 'New folders now become libraries of their own') } catch (e: any) { toast(e.message) }
   }
-  const kinds = [...new Set(libraries.map((l) => l.type))].map((k) => `${libraries.filter((l) => l.type === k).length} ${typeLabel(k)}`)
   const remove = async (l: Library) => {
     if (!confirm(`Remove the library “${l.name}”? Your files stay where they are; only the server forgets them.`)) return
     await api.del(`/libraries/${l.id}`)
@@ -157,7 +158,6 @@ function Libraries() {
       {libraries.length > 0 && (
         <div className="set-lib-summary">
           <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
-          <span className="muted">{kinds.join(' · ')}</span>
         </div>
       )}
       <Section title="Folders of the same kind" desc="When you add a folder of a kind you already have a library for, it can join that library, or become a new library with its own name (for example “Kids’ movies” beside “Movies”). You can always choose differently when adding.">
@@ -178,7 +178,7 @@ function Libraries() {
                 <span className={'set-lib-icon t-' + l.type}>{libIcon(l.type)}</span>
                 <div className="set-lib-title">
                   <b>{l.name}</b>
-                  <span>{typeLabel(l.type)} · {l.itemCount} {l.itemCount === 1 ? 'item' : 'items'}</span>
+                  <span>{l.name === typeLabel(l.type) ? '' : `${typeLabel(l.type)} · `}{l.itemCount.toLocaleString()} {l.itemCount === 1 ? 'item' : 'items'}</span>
                 </div>
                 {l.scanning && <span className="set-pill live">Scanning…</span>}
               </div>
@@ -325,14 +325,20 @@ function About() {
   const [about, setAbout] = useState<{ version: string; modules: Engine[] } | null>(null)
   const { user, version } = useApp()
   const loc = useLocation()
-  useEffect(() => { if (user?.isAdmin) api.get('/system').then(setSys).catch(() => {}) }, [user])
+  useEffect(() => {
+    if (!user?.isAdmin) return
+    let t = 0
+    const ask = () => api.get<any>('/system').then((s) => { setSys(s); if (!s.hwTested) t = window.setTimeout(ask, 2000) }).catch(() => {})
+    ask()
+    return () => clearTimeout(t)
+  }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
   useEffect(() => { if (loc.hash === '#modules' && about) document.getElementById('modules')?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
   const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the licence, and the services it relies on." />
+      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the license, and the services it relies on." />
       <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
@@ -362,7 +368,7 @@ function About() {
             <div className="wide"><dt>Open it on other devices at home</dt><dd className="mono">{(sys.lanUrls || []).length ? sys.lanUrls.join('  ·  ') : 'This server only accepts connections from this computer'}</dd></div>
             <div><dt>System</dt><dd>{sys.os} / {sys.arch}</dd></div>
             <div><dt>Computer</dt><dd>{sys.hostname}</dd></div>
-            <div><dt>Hardware video</dt><dd>{hw.length ? hw.join(', ') : 'None found; software encoding'}</dd></div>
+            <div><dt>Hardware video</dt><dd>{hw.length ? hw.join(', ') : sys?.hwTested ? 'None found; software encoding' : 'Checking…'}</dd></div>
             <div><dt>Open discs</dt><dd>{sys.dvdSessions} DVD · {sys.blurays ?? 0} Blu-ray</dd></div>
             <div><dt>Built with</dt><dd>{sys.go}</dd></div>
             <div className="wide"><dt>Data folder</dt><dd className="mono">{sys.dataDir}</dd></div>
@@ -370,14 +376,14 @@ function About() {
           </dl>
         </Section>
       )}
-      <Section title="Licence">
+      <Section title="License">
         <div className="set-prose">
-          <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the licence and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
+          <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the license and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
         </div>
       </Section>
       <Section title="Your media, your responsibility">
         <div className="set-prose">
-          <p>WittyMediaServer organises and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
+          <p>WittyMediaServer organizes and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
           <p><b>No circumvention.</b> Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused, and only unprotected content plays.</p>
         </div>
       </Section>

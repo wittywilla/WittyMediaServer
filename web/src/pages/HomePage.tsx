@@ -108,7 +108,7 @@ export default function HomePage() {
           <span className="home-card-ic"><IconRefresh /></span>
           <h2>{scanning ? 'Your libraries are being scanned' : 'Your libraries are empty'}</h2>
           <p className="muted">{scanning
-            ? 'Films, shows, music and books appear here as they’re found. The first scan can take a few minutes.'
+            ? 'Movies, shows, music and books appear here as they’re found. The first scan can take a few minutes.'
             : 'Nothing was found in their folders yet. Check the folders in Settings, Libraries, then scan again.'}</p>
           {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">Open library settings</Link>}
         </div>
@@ -204,7 +204,7 @@ function HubRow({ hub }: { hub: Hub }) {
 // LibraryTiles: a way into every library, with an Add tile for admins.
 const NOUNS: Record<string, [string, string]> = {
   movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], commercials: ['commercial', 'commercials'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
-  music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
+  games: ['game', 'games'], music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
   photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'], musicvideos: ['video', 'videos'], radio: ['station', 'stations'],
 }
 function LibraryTiles() {

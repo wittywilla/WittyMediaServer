@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
-import { useApp } from '../state'
-import { IconCheck, IconFilm, IconLeft, IconPlay, IconRight } from '../icons'
+import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
+import { toast, useApp } from '../state'
+import { IconCheck, IconFilm, IconLeft, IconPlay, IconRefresh, IconRight } from '../icons'
 
 // The way back up: the library (or show) a page belongs to.
 export function BackLink({ to, label }: { to: string; label: string }) {
@@ -19,14 +19,26 @@ export const artHue = (title: string) => {
   return h
 }
 
-// Artwork for something without a picture: its colour, with the title set like a cover.
-export function Placeholder({ title, sub }: { title: string; sub?: string }) {
+// Artwork for something without a picture: a colour of its own, worked out from
+// the title. The title itself is printed under the card, so it isn't repeated on
+// the art; label is a short word for the art alone, such as a console's name.
+export function Placeholder({ title, label }: { title: string; label?: string }) {
   const h = artHue(title)
   return (
     <div className="ph art-ph" style={{ background: `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))` }} aria-hidden="true">
-      <b>{title}</b>{sub && <small>{sub}</small>}
+      {label && <b>{label}</b>}
     </div>
   )
+}
+
+// ScanButton: look through a library's folders again, for administrators.
+export function ScanButton({ lib, onStarted }: { lib: { id: number; name: string }; onStarted?: () => void }) {
+  const { user } = useApp()
+  if (!user?.isAdmin) return null
+  const scan = async () => {
+    try { await api.post(`/libraries/${lib.id}/scan`); toast(`Scanning ${lib.name}`); onStarted?.() } catch (e: any) { toast(e.message) }
+  }
+  return <button className="btn ghost" onClick={scan}><IconRefresh /> Scan</button>
 }
 
 // Episodes render as wide stills (16:9) with the show name; `wide` is set
@@ -41,7 +53,7 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
   return (
     <Link to={`/item/${item.id}`} className={'card' + (wide ? ' wide' : '') + (audio ? ' square' : '')} title={item.title}>
       <div className={'poster' + (gen && !wide ? ' generated' : '')} style={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}>
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} sub={item.artist || undefined} />}
+        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
         {isDisc(item) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <SeenBadge />}
         <div className="play"><span><IconPlay /></span></div>

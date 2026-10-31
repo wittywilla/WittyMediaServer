@@ -28,7 +28,7 @@ export default function PlaybackSettings() {
       <Section title="DVDs and Blu-rays" desc="Discs play with their real menus, like a disc player. Each disc can change these in its own Disc settings.">
         <Row label="When a disc is inserted">
           <select className="select" value={s.dvdStart || 'menu'} onChange={(e) => set('dvdStart', e.target.value)}>
-            <option value="menu">Start with the disc menu</option><option value="title">Skip menus, play the film</option>
+            <option value="menu">Start with the disc menu</option><option value="title">Skip menus, play the movie</option>
           </select>
         </Row>
         <Row label="Disc insert animation" desc="A tray slides in when a DVD or Blu-ray starts.">

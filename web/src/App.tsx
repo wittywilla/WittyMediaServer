@@ -89,6 +89,7 @@ function Shell() {
 function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   const style = useNavStyle()
   const side = style !== 'top'
+  const { version } = useApp()
   return (
     <div className={'app nav-' + style + (navOpen ? ' nav-open' : '')}>
       <a className="skip-link" href="#main">Skip to content</a>
@@ -117,6 +118,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
       </div>
       <TabBar onLibraries={() => setNavOpen(true)} />
@@ -166,7 +168,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
       )}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
-        <input aria-label="Search" type="search" placeholder="Search movies, shows, episodes…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label="Search" type="search" placeholder="Search your libraries…" value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
       {!topNav && <div className="spacer" />}
       <ProfileMenu />
@@ -178,6 +180,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
 // (back to "Who's watching?") and signing out.
 function ProfileMenu() {
   const { user, setUser } = useApp()
+  const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -189,7 +192,7 @@ function ProfileMenu() {
     window.addEventListener('keydown', close)
     return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', close) }
   }, [open])
-  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } setUser(null) }
+  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
   return (
     <div className="profile-menu" ref={ref}>
       <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} aria-label={`${user?.name}: account menu`} onClick={() => setOpen((o) => !o)}>

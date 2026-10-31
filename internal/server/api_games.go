@@ -175,6 +175,8 @@ type consoleView struct {
 	Installed []cores.Core        `json:"installed"`
 	Ready     bool                `json:"ready"`
 	Pad       wittyplay.PadLayout `json:"pad"`
+	// Count: with ?library=<id>, how many games that library holds for this console.
+	Count int `json:"count,omitempty"`
 }
 
 func (s *Server) consoleViews(ctx context.Context) []consoleView {
@@ -207,7 +209,15 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 }
 
 func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, s.consoleViews(r.Context()))
+	views := s.consoleViews(r.Context())
+	if id := int64(qInt(r, "library", 0)); id != 0 {
+		if counts, err := s.Store.GameCounts(r.Context(), id, s.access(r)); err == nil {
+			for i := range views {
+				views[i].Count = counts[views[i].ID]
+			}
+		}
+	}
+	writeJSON(w, 200, views)
 }
 
 // handleGameModes says how a kind of client can connect to a game on this server.

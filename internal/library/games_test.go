@@ -216,3 +216,20 @@ func TestScanGamesLibrary(t *testing.T) {
 		t.Fatalf("the removed game should be gone from the list: %+v", items)
 	}
 }
+
+func TestSkippedGameFilesAreCounted(t *testing.T) {
+	root := t.TempDir()
+	snes := filepath.Join(root, "Super Nintendo (SNES)")
+	if err := os.MkdirAll(snes, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Playable.sfc", "Packed one.7z", "Packed two.7z", "notes.txt"} {
+		if err := os.WriteFile(filepath.Join(snes, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := skippedGameFiles(root, "auto")
+	if got[".7z"] != 2 || len(got) != 1 {
+		t.Fatalf("want only two .7z files reported, got %v", got)
+	}
+}

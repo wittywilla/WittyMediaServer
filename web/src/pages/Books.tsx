@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl, posterUrl, type Album, type Item, type Library } from '../api'
-import { EmptyState, SkeletonGrid } from '../components/common'
+import { BackLink, EmptyState, ScanButton, SkeletonGrid } from '../components/common'
 import { IconBook } from '../icons'
+import { useApp } from '../state'
 
 // Books, comics and manga: the library page and a book's details.
 
@@ -54,6 +55,8 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
         <div className="seg" role="tablist">
           {[['books', 'Books'], ['series', 'Series']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k, series: null })}>{l}</button>)}
         </div>
+        <div className="grow" />
+        <ScanButton lib={lib} />
       </div>
       {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>
@@ -77,8 +80,10 @@ export function BookDetails({ it }: { it: Item }) {
   const nav = useNavigate()
   const pct = progressOf(it)
   const started = pct > 0 && pct < 100
+  const libName = useApp().libraries.find((l) => l.id === it.libraryId)?.name || 'Library'
   return (
     <div className="album-page">
+      <BackLink to={`/library/${it.libraryId}`} label={libName} />
       <div className="album-head">
         <div className="album-cover big book">{it.poster ? <img src={posterUrl(it)} alt="" /> : <span><IconBook /></span>}</div>
         <div className="album-meta">

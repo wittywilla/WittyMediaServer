@@ -1,3 +1,4 @@
+import { EmptyState } from '../../components/common'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, mediaUrl } from '../../api'
@@ -111,7 +112,7 @@ export default function GuidePage() {
       setTotal(g.total)
       setGroups(g.groups)
       setServerLook({ layout: g.layout, colours: g.skin })
-      setRows((r) => { const n = { ...r }; g.channels.forEach((c, i) => { n[g.offset + i] = c }); return n })
+      setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
     } catch (e: any) { loaded.current.delete(key); setErr(e.message) }
   }, [fetchFrom, filterKey, filter.kind, filter.group])
@@ -245,14 +246,14 @@ export default function GuidePage() {
     <div className={'ctv ctv-page pv-' + (look.preview === 'off' ? 'none' : look.previewPos) + ' pvs-' + look.previewSize} data-skin={look.colours} data-layout={look.layout}>{children}</div>
   )
   if (total === 0 && !filter.kind && !filter.group) {
-    return shell(
-      <div className="ctv-empty">
-        <IconTv size={48} />
-        <h1>No channels yet</h1>
-        {user?.isAdmin
-          ? <><p>Make channels out of your library in one click, or add a tuner or an IPTV playlist.</p><Link className="ctv-btn on" to="/settings/channels">Set up channels</Link></>
-          : <p>Ask whoever runs this server to set some up.</p>}
-      </div>
+    // Nothing to show yet, so the guide's own colours have nothing to dress up.
+    return (
+      <>
+        <h1 className="sr-only">TV guide</h1>
+        <EmptyState icon={<IconTv />} title="No channels yet"
+          text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : 'Ask whoever runs this server to set some up.'}
+          action={user?.isAdmin ? <Link className="btn primary" to="/settings/channels">Set up channels</Link> : undefined} />
+      </>
     )
   }
 
@@ -263,8 +264,8 @@ export default function GuidePage() {
   const goDay = (n: number) => shiftTime(n === 0 ? floorSlot(now) - from : (n - dayOffset) * 86400)
   return shell(
     <>
-      <h1 className="sr-only">Programme guide</h1>
-      <section className="ctv-info" aria-label="Highlighted programme">
+      <h1 className="sr-only">TV guide</h1>
+      <section className="ctv-info" aria-label="Highlighted show">
         {look.preview === 'off' && (
           <div className="ctv-art" aria-hidden="true">
             {panel?.itemId ? <img src={mediaUrl(`/api/items/${panel.itemId}/backdrop`)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : null}
@@ -346,7 +347,7 @@ export default function GuidePage() {
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
 
-      <div className="ctv-grid" ref={grid} role="grid" aria-label={`Programme guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
           <div className="ctv-corner" role="columnheader" aria-colindex={1}>Channel</div>

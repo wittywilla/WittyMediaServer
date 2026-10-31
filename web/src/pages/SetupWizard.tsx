@@ -84,7 +84,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
             <section className="oobe-welcome">
               <img className="oobe-welcome-logo" src={logoPreview || '/icon.svg'} alt="" />
               <h1>Welcome to your media server</h1>
-              <p className="lead">Everything you own — films, shows, discs, music, books — in one place, on every screen in your home. Setup takes about three minutes, and every step can be changed later.</p>
+              <p className="lead">Everything you own — movies, shows, discs, music, books, games — in one place, on every screen in your home. Setup takes about three minutes, and every step can be changed later.</p>
               <ul className="oobe-perks" aria-label="What your server does">
                 {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{f.title}</b> <span className="muted">{f.text}</span></span></li>)}
               </ul>
@@ -136,8 +136,9 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
                 <div className="oobe-next-card">
                   <IconTv size={22} />
                   <b>Watch on every screen at home</b>
-                  <span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>
-                  {addrs.length > 0 ? addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>) : <span className="muted">This server only accepts connections from this computer. Start it with a network address to use it from other devices.</span>}
+                  {addrs.length > 0
+                    ? <><span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
+                    : <span>Right now this server only accepts connections from this computer. To reach it from your TV or phone, start it with a network address, such as <code>-listen :9797</code>.</span>}
                   <small className="oobe-disclaimer">Your server runs in your home, so for now it works only on your home network. To watch away from home, follow the steps in Settings → Remote Access when you’re ready.</small>
                 </div>
                 <div className="oobe-next-card">
@@ -341,7 +342,7 @@ function PlaybackStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
         </button>
         <button type="button" role="radio" aria-checked={start === 'title'} className={'oobe-choice' + (start === 'title' ? ' on' : '')} onClick={() => setStart('title')}>
           <span className="oobe-choice-pic film" aria-hidden="true"><i /></span>
-          <b>Play the film straight away</b><span>Skip intros and menus. The menu is still one button away.</span>
+          <b>Play the movie straight away</b><span>Skip intros and menus. The menu is still one button away.</span>
         </button>
       </div>
       <label className="oobe-toggle">
@@ -370,7 +371,7 @@ function LookStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   // A handful of looks to start from; every theme is in Settings → Appearance.
   const featured = ['default', 'dark', 'oled', 'light', 'dark-blue', 'dark-green', 'light-pink', 'dark-gold']
   const shown = themes.filter((t) => featured.includes(t.id)).sort((a, b) => featured.indexOf(a.id) - featured.indexOf(b.id))
-  const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left']]
+  const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left'], ['both', 'Both', 'The top bar and the side menu']]
   return (
     <section>
       <h1>Make it yours</h1>

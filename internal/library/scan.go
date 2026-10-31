@@ -228,7 +228,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverPhotos
 		case IsCreatorLibrary(lib.Type):
 			find = discoverCreatorVideos
-		case lib.Type == CommercialsType:
+		case lib.Type == CommercialsType, lib.Type == "videos":
 			find = discoverClips
 		case lib.Type == "games":
 			find = func(root string) ([]candidate, error) { return discoverGames(root, lib.Console) }
@@ -241,6 +241,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			c = onlyDiscs(c)
 		}
 		all = append(all, c...)
+	}
+	if lib.Type == "games" {
+		s.Store.noteSkippedGames(ctx, lib)
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}

@@ -97,7 +97,11 @@ func writeSummary(c *config, all []Result) error {
 		t.peak = math.Max(t.peak, r.PeakMB)
 		if r.Outcome != OutcomeOK && r.Outcome != OutcomeRefused {
 			t.failed = append(t.failed, r)
-			t.reasons[r.Outcome+": "+firstLine(r.Reason)]++
+			reason := r.Outcome + ": " + firstLine(r.Reason)
+			if r.Outcome == OutcomeTooSlow {
+				reason = r.Outcome // each gives its own frame count, which only makes the list long
+			}
+			t.reasons[reason]++
 		}
 	}
 	sort.Strings(order)

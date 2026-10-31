@@ -148,8 +148,11 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     stopped: true,
     stalls: [] as number[],
     loadedAt: 0,
-    wantPlay: false,
     savedAt: 0,
+    // A slider being dragged: where it is, and the seek that will follow it.
+    pendingSec: null as number | null,
+    pendingTimer: 0,
+    reloads: 0,
   })
   const hooksRef = useRef(hooks)
   hooksRef.current = hooks
@@ -212,6 +215,7 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
         hooksRef.current.onTrack(audioTracks.indexOf(t))
       }
       s.index = index
+      if (s.pendingSec != null) trackSec = s.pendingSec
       hooksRef.current.onTime(Math.max(0, trackSec))
     }
     const a = audio.current
@@ -393,8 +397,16 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
       const s = e.current
       const t = s.current
       if (!t) return
-      const base = startOf(t.number)
-      if (base != null) seekStream(Math.round(base + sec * CD_RATE))
+      // A slider sends many of these while it moves, and all but the last would
+      // each be a new request.
+      s.pendingSec = sec
+      window.clearTimeout(s.pendingTimer)
+      s.pendingTimer = window.setTimeout(() => {
+        s.pendingSec = null
+        const base = s.current ? startOf(s.current.number) : null
+        if (base != null) seekStream(Math.round(base + sec * CD_RATE))
+      }, 160)
+      publish()
     },
     nudge(sec) {
       const s = e.current
@@ -500,6 +512,15 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
   const onPause = () => { saveProgress(true); publish() }
   const onEnded = () => {
     const s = e.current
+    // A stream the server let go of (paused for a long time, or a network that went
+    // away) reads as ended too. If there is more disc, carry on from here.
+    const total = lengthOf(s.segs) * s.loops
+    if (s.disc && sample() < total - CD_RATE && s.reloads < 5) {
+      s.reloads++
+      loadAt(sample(), true)
+      return
+    }
+    s.reloads = 0
     if (s.repeat !== 'off') {
       if (s.format === 'wav' && audio.current) audio.current.removeAttribute('src')
       s.segs = layout(s.disc!, streamTracks())
@@ -530,6 +551,11 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     const a = audio.current
     if (!s.disc || !a?.src) return false
     const order: CdFormat[] = ['flac', 'wav', 'aac']
+    if (a.error?.code === MediaError.MEDIA_ERR_NETWORK && s.reloads < 5) {
+      s.reloads++
+      loadAt(sample(), !a.paused)
+      return true
+    }
     const nextFormat = order.slice(order.indexOf(s.format) + 1).find((f) => s.disc!.formats.includes(f))
     if (nextFormat && a.error && a.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
       s.format = nextFormat

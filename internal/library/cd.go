@@ -219,9 +219,9 @@ func readCDSidecar(image string) *cdSidecar {
 }
 
 // indexCD adds or refreshes a disc and, in a music library, its tracks.
-func (s *Scanner) indexCD(ctx context.Context, lib *Library, c candidate, covers map[string]string) error {
+func (s *Scanner) indexCD(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Kind == CDKind {
+	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Kind == CDKind && cdInfoOf(existing) != nil && cdInfoOf(existing).DiscID != "" {
 		if existing.Missing {
 			if err := s.Store.restore(ctx, existing.ID); err != nil {
 				return err
@@ -242,6 +242,20 @@ func (s *Scanner) indexCD(ctx context.Context, lib *Library, c candidate, covers
 	}
 	d, err := wittycd.Open(c.path)
 	if err != nil {
+		// Not a CD at all, or a data disc: a sheet for a game, a stray .bin. Passed over.
+		if errors.Is(err, wittycd.ErrNotCD) || errors.Is(err, wittycd.ErrNoAudio) {
+			s.Log.Info("not an audio CD", "cat", "library", "path", c.path, "why", err)
+			return nil
+		}
+		// A disc that can't be read yet stays on the shelf, where opening it says why.
+		if !IsAudioLibrary(lib.Type) && existing == nil {
+			album, artist := cdNames(c.path, lib)
+			broken := &Item{LibraryID: lib.ID, Kind: CDKind, Path: c.path, Title: album, Album: album, Artist: artist, AlbumArtist: artist, SortTitle: SortTitle(album),
+				SizeBytes: c.size, MTime: c.mtime, Disc: &DiscInfo{Label: album, Format: "cd", Content: "music", Titles: []DiscTitle{}, CD: &CDInfo{Tracks: []CDTrackName{}}}}
+			if err2 := s.Store.upsertItem(ctx, broken); err2 != nil {
+				return err2
+			}
+		}
 		return fmt.Errorf("reading CD image: %w", err)
 	}
 	defer d.Close()

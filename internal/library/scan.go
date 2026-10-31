@@ -269,7 +269,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			case lib.Type == "shows" || lib.Type == "anime":
 				return s.indexEpisode(ctx, lib, c, tv)
 			case c.kind == CDKind:
-				return s.indexCD(ctx, lib, c, covers)
+				return s.indexCD(ctx, lib, c)
 			case IsAudioLibrary(lib.Type):
 				return s.indexAudio(ctx, lib, c, covers)
 			case lib.Type == "books":
@@ -306,7 +306,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		if d, err := wittycd.Open(c.path); err == nil {
 			d.Close()
 			c.kind = CDKind
-			return s.indexCD(ctx, lib, c, nil)
+			return s.indexCD(ctx, lib, c)
 		}
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)

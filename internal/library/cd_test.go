@@ -110,7 +110,7 @@ func TestIndexCDInMusicAndDiscs(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}
-	if err := s.indexCD(ctx, lib, c, nil); err != nil {
+	if err := s.indexCD(ctx, lib, c); err != nil {
 		t.Fatal(err)
 	}
 	disc, err := st.itemByPath(ctx, lib.ID, cue)
@@ -143,7 +143,7 @@ func TestIndexCDInMusicAndDiscs(t *testing.T) {
 		t.Fatalf("track path %q", track.Path)
 	}
 	// Scanning again changes nothing, and keeping the image keeps its tracks.
-	if err := s.indexCD(ctx, lib, c, nil); err != nil {
+	if err := s.indexCD(ctx, lib, c); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.markMissing(ctx, lib.ID, map[string]bool{cue: true}, nil); err != nil {
@@ -164,7 +164,7 @@ func TestIndexCDInMusicAndDiscs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.indexCD(ctx, shelf, c, nil); err != nil {
+	if err := s.indexCD(ctx, shelf, c); err != nil {
 		t.Fatal(err)
 	}
 	items, total, err := st.Items(ctx, ItemQuery{LibraryID: shelf.ID})
@@ -255,7 +255,7 @@ func TestLookupUsesOnlyTheTableOfContentsAndAppliesOneAnswer(t *testing.T) {
 	*SafeClient = *http.DefaultClient
 	defer func() { *SafeClient = oldClient }()
 	c := candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}
-	if err := s.indexCD(ctx, lib, c, nil); err != nil {
+	if err := s.indexCD(ctx, lib, c); err != nil {
 		t.Fatal(err)
 	}
 	for _, u := range *asked {
@@ -307,7 +307,7 @@ func TestSeveralDifferentMatchesWait(t *testing.T) {
 	oldClient := *SafeClient
 	*SafeClient = *http.DefaultClient
 	defer func() { *SafeClient = oldClient }()
-	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}, nil); err != nil {
+	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}); err != nil {
 		t.Fatal(err)
 	}
 	disc, _ := st.itemByPath(ctx, lib.ID, cue)
@@ -346,7 +346,7 @@ func TestSidecarOnlyWhenSavingIsOn(t *testing.T) {
 	cue := writeCD(t, filepath.Join(root, "Album"), "x", "")
 	lib, _ := st.CreateLibrary(ctx, "Music", "music", []string{root})
 	info, _ := os.Stat(cue)
-	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}, nil); err != nil {
+	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}); err != nil {
 		t.Fatal(err)
 	}
 	disc, _ := st.itemByPath(ctx, lib.ID, cue)
@@ -360,7 +360,7 @@ func TestSidecarOnlyWhenSavingIsOn(t *testing.T) {
 	// A fresh scan of the disc reads it back without asking anyone.
 	os.Chtimes(cue, info.ModTime().Add(1e9), info.ModTime().Add(1e9))
 	info, _ = os.Stat(cue)
-	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}, nil); err != nil {
+	if err := s.indexCD(ctx, lib, candidate{path: cue, kind: CDKind, size: info.Size(), mtime: info.ModTime().Unix()}); err != nil {
 		t.Fatal(err)
 	}
 	disc, _ = st.itemByPath(ctx, lib.ID, cue)

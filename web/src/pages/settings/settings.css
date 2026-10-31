@@ -259,6 +259,6 @@ a.mod-row:hover { background: var(--hover); }
 /* Reset */
 .set-fieldset { border: 0; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
 .set-fieldset legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
-.set-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 400; }
+.form label.set-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 400; color: var(--fg); }
 .set-radio input { width: auto; flex: none; margin-top: 4px; }
 .set-radio b { font-weight: 600; }

@@ -1,0 +1,25 @@
+WittyMediaPlayer
+Copyright 2026 WittyWilla and contributors
+https://github.com/wittywilla/WittyMediaPlayer
+
+This product includes software developed by WittyWilla as part of the
+WittyMediaServer project ("WittyMediaPlayer, developed by WittyWilla").
+https://github.com/wittywilla/WittyMediaServer
+
+Under the Apache License, Version 2.0 (Section 4(d)), any redistribution of
+this software or derivative works must reproduce the attribution notices in
+this NOTICE file - in a NOTICE file, in documentation, or in an "About"
+display of the derivative work.
+
+WittyMediaPlayer is built from the WittyDVD, WittyBluray, WittyDisc and
+WittyModule plugins (Copyright 2026 WittyWilla and contributors, Apache
+License 2.0).
+
+Third-party components that ship with the built app are listed in
+licenses/THIRD-PARTY.txt:
+- Qt, The Qt Company Ltd. and other contributors - LGPL 3.0 (shared libraries)
+- FFmpeg, the FFmpeg developers - LGPL 3.0 or later (shared libraries)
+- zlib, Jean-loup Gailly and Mark Adler - zlib licence
+- GCC runtime libraries, Free Software Foundation - GPL 3.0 with the GCC
+  Runtime Library Exception
+- mingw-w64 winpthreads - MIT and BSD licences

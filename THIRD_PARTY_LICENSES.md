@@ -62,3 +62,20 @@ The DVD navigator, IFO parser, command VM and sub-picture decoder are original
 implementations written from the publicly documented DVD-Video structure. No
 code from libdvdnav/libdvdread or any proprietary player is included, and no
 CSS decryption is performed.
+
+## WittyMediaPlayer (`apps/wittymediaplayer`, a separate desktop app)
+
+Its release is its own folder, with the full texts in its `licenses/` folder. It's not part of the server's
+archives or Docker image.
+
+| Component | Licence | Notes |
+|---|---|---|
+| **Qt 6.10** (Core, Gui, Widgets, Multimedia) | LGPL-3.0 | Shared libraries beside the program, so they can be replaced. Source: <https://download.qt.io/official_releases/qt/6.10/>. |
+| **FFmpeg 8.1** (avcodec, avformat, avfilter, avutil, swresample, swscale) | LGPL-3.0-or-later | Shared libraries, built by `apps/wittymediaplayer/scripts/setup-toolchain.sh` with no GPL or non-free parts, no network code, and no `libbluray`, `libdvdread` or `libdvdnav`. Source: <https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz>, with a copy to go beside each release. |
+| zlib 1.3.1 (inside FFmpeg) | Zlib | <https://zlib.net> |
+| GCC runtime libraries | GPL-3.0 with the GCC Runtime Library Exception | Allowed to ship with programs under any licence. |
+| mingw-w64 winpthreads | MIT and BSD | |
+| Go standard library (in the helper) | BSD-3-Clause | |
+
+Not shipped, used only for building or testing it: MinGW GCC, CMake, Ninja and NASM, and a general LGPL FFmpeg
+that makes the tests' short clips.

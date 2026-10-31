@@ -5,6 +5,20 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### WittyMediaPlayer
+
+- **A new desktop app**, under `apps/wittymediaplayer`, that needs no server. It's a first release for Windows amd64,
+  as a portable folder, built with Qt 6 and FFmpeg's libraries.
+- **Plays ordinary video and audio files**, with audio and subtitle track choice, seeking, volume, full screen, keyboard
+  shortcuts, drag and drop, and subtitle files found beside a video.
+- **Plays DVDs and Blu-rays with their real menus,** by arrow keys, Enter and mouse, from images, folders and directly
+  from a disc drive. It uses WittyDVD and WittyBluray with the same rules as the server's player, without transcoding.
+- **Makes `.iso` and `.img` images of discs** for a server's library. The copy is checked by opening it with the same
+  engines the server uses, and it never overwrites anything.
+- **Refuses copy-protected discs,** for playing and for copying, in plain words. It carries no decryption library, no key
+  database and nothing that could load one, and it never uses the network. See
+  [its design note](apps/wittymediaplayer/DESIGN.md).
+
 ### Interface audit
 
 - **Fixed:** the TV guide went blank with no channels. The home banner could be an empty box when the newest

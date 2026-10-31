@@ -12,4 +12,5 @@ use (
 	./modules/wittyphotos
 	./modules/wittytuner
 	./modules/wittyplay
+	./apps/wittymediaplayer/engine
 )

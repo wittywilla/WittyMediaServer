@@ -36,8 +36,6 @@ jobs:
       # anyone under its own number. Documentation doesn't count.
       - name: Changed since the last tag means a new version
         run: go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 needs-bump .
-            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -gcflags="$flags" ./... || exit 1
-          done
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test --if-present
       - run: npm run build:bundle

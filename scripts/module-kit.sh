@@ -45,13 +45,13 @@ fi
 # The first "name": "value" in a JSON file, without needing a JSON tool.
 field() { sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" "$2" | head -1 | tr -d '\r'; }
 
-# Keeps the lines between "#@if <word>..." and "#@end" when any word is switched on, and
-# fills in the @@NAMES@@. Everything else is copied.
+# Keeps the lines between "#@if <word>..." and "#@end", which can nest, when any word is
+# switched on, and fills in the @@NAMES@@. Everything else is copied.
 render() { # <template> <output>
   awk -v on=" $words " '
-    /^#@if / { keep = 0; for (i = 2; i <= NF; i++) if (index(on, " " $i " ")) keep = 1; inside = 1; next }
-    /^#@end/ { inside = 0; next }
-    !inside || keep { print }
+    /^#@if / { k = 0; for (i = 2; i <= NF; i++) if (index(on, " " $i " ")) k = 1; depth++; keep[depth] = k && (depth == 1 || keep[depth - 1]); next }
+    /^#@end/ { depth--; next }
+    depth == 0 || keep[depth] { print }
   ' <(tr -d '\r' < "$1") | sed \
     -e "s|@@ID@@|$id|g" -e "s|@@NAME@@|$name|g" -e "s|@@VERSION_FILE@@|$version_file|g" \
     -e "s|@@TOOL@@|$tool|g" -e "s|@@TOOL_RELEASED@@|$tool_released|g" -e "s|@@PACK_FLAGS@@|$pack_flags|g" \

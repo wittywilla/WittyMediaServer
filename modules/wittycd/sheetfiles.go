@@ -36,12 +36,13 @@ func SheetFiles(path string) (files []string, image bool) {
 	}
 	dir := filepath.Dir(path)
 	seen := map[string]bool{}
-	compressed := 0
+	compressed, named := 0, 0
 	for _, l := range strings.Split(sheetText(raw), "\n") {
 		m := line.FindStringSubmatch(strings.TrimRight(l, "\r"))
 		if m == nil {
 			continue
 		}
+		named++
 		p, err := resolveBeside(dir, m[1])
 		if err != nil {
 			if q := sameNameAudio(path); q != "" {
@@ -62,8 +63,9 @@ func SheetFiles(path string) (files []string, image bool) {
 		}
 		files = append(files, p)
 	}
-	if len(files) == 0 || compressed > 1 {
+	if named == 0 || compressed > 1 {
 		return nil, false
 	}
+	// A sheet whose files are all missing is still an image, and opening it says so.
 	return files, true
 }

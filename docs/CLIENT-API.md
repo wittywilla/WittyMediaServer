@@ -924,13 +924,39 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
 
-### Game rigs
+### Game PCs
 
-Someone's own gaming PC running Sunshine, whose games are a library of its own (`type: games`, `console: rig`).
-[GAME-RIGS.md](GAME-RIGS.md) is the design. To play, call `POST /rigs/games/{id}/play` with
+**WittyMoonlight** plays the games on any PC running Sunshine, through this server. Each account has its own list of PCs, and its own pairing with each.
+A client can show the player in a web view (`/moonlight/{id}/play/{app}`), or start a stream and connect with `POST /moonlight/sessions/{sid}/webrtc`:
+H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `modules/wittymoonlight-host/PROTOCOL.md`.
+[GAME-RIGS.md](GAME-RIGS.md) is the design.
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /moonlight` | user | Whether this account may connect to game PCs, whether this server can stream them, and what they are built on. |
+| `GET /moonlight/find` | user | Look for PCs running Sunshine on the server's network. |
+| `GET /moonlight/hosts` | user | This account's own game PCs, and how they are doing. |
+| `POST /moonlight/hosts` | user | Add a game PC by address. It has to answer as Sunshine. |
+| `PATCH /moonlight/hosts/{id}` | user | Rename a game PC. |
+| `DELETE /moonlight/hosts/{id}` | user | Forget a game PC. |
+| `POST /moonlight/hosts/{id}/pair` | user | Start pairing, and get the PIN to type into Sunshine. |
+| `GET /moonlight/hosts/{id}/pair` | user | How pairing is going. |
+| `DELETE /moonlight/hosts/{id}/pair` | user | Stop waiting for a PIN. |
+| `GET /moonlight/hosts/{id}/apps` | user | What a paired PC offers. |
+| `GET /moonlight/hosts/{id}/apps/{app}/art` | user | An app's picture. |
+| `POST /moonlight/hosts/{id}/apps/{app}/play` | user | Start an app, and a stream of it. Body: width, height, fps, bitrate. |
+| `POST /moonlight/hosts/{id}/wake` | user | Send a game PC the Wake-on-LAN signal. |
+| `POST /moonlight/hosts/{id}/quit` | user | End what is running on a game PC. |
+| `GET /moonlight/sessions/{sid}` | user | A stream of this account's. |
+| `POST /moonlight/sessions/{sid}/webrtc` | user | Connect to a stream: a WebRTC offer in, the answer out. |
+| `DELETE /moonlight/sessions/{sid}` | user | End a stream. With ?quit=1, close the game too. |
+
+### Shared PCs and WittySunshine
+
+A PC an admin shares has a library of its own (`type: games`, `console: rig`). To play, call `POST /rigs/games/{id}/play` with
 `{"client": "browser|desktop|android|apple", "os": "windows|mac|linux|chromeos|android|androidtv|firetv|ios|tvos"}`.
-It answers `methods`, best first, each of them something this device can really do. `POST /games/{id}/play` on a
-rig's game answers 409 with `"rig": true`.
+It answers `methods`, best first, each of them something this device can really do: `client` means `POST /rigs/games/{id}/stream` and the player here. `POST /games/{id}/play` on
+one of these games answers 409 with `"rig": true`.
 
 | Route | Sign-in | What it does |
 |---|---|---|
@@ -950,11 +976,9 @@ rig's game answers 409 with `"rig": true`.
 | `POST /rigs/{id}/quit` | user | End what is running on a rig: for admins and whoever started it. |
 | `POST /rigs/games/{id}/play` | user | What this device can do to play a rig's game. Starts nothing on the PC. |
 | `POST /rigs/games/{id}/start` | user | Start a rig's game on the PC, for a Moonlight app to resume. |
-| `GET /rigs/browser` | admin | Whether browser play is available and installed. |
-| `POST /rigs/browser/install` | admin | Download browser play from its own project's release. |
-| `DELETE /rigs/browser` | admin | Remove browser play and all it holds. |
-| `POST /rigs/{id}/browser` | admin | Pair browser play with a rig. |
-| `DELETE /rigs/{id}/browser` | admin | Stop offering browser play for a rig. |
+| `POST /rigs/games/{id}/stream` | user | Start a stream of a shared PC's game. |
+| `GET /sunshine` | admin | WittySunshine: whether it is on, and whether Sunshine is on this machine. |
+| `PUT /sunshine` | admin | Turn WittySunshine on or off. |
 
 ### Photos
 

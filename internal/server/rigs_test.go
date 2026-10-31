@@ -267,7 +267,6 @@ func TestRigPermissions(t *testing.T) {
 		for _, c := range [][2]string{
 			{"POST", "/api/rigs"}, {"GET", "/api/rigs/find"}, {"PATCH", base}, {"DELETE", base}, {"POST", base + "/pair"}, {"GET", base + "/pair"}, {"DELETE", base + "/pair"},
 			{"POST", base + "/devices"}, {"POST", base + "/sync"}, {"GET", base + "/apps"}, {"PUT", base + fmt.Sprintf("/apps/%d", f.Apps[0].ID)},
-			{"GET", "/api/rigs/browser"}, {"POST", "/api/rigs/browser/install"}, {"DELETE", "/api/rigs/browser"}, {"POST", base + "/browser"}, {"DELETE", base + "/browser"},
 		} {
 			w := ts.do(t, c[0], c[1], tok, map[string]any{"address": "169.254.169.254", "shown": true})
 			if w.Code != 401 && w.Code != 403 {

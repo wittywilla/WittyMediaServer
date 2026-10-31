@@ -49,23 +49,24 @@ type Sunshine struct {
 	NotImage           bool
 	WebUser, WebPass   string
 
-	mu      sync.Mutex
-	base    int
-	http    *http.Server
-	https   *http.Server
-	web     *http.Server
-	lns     []net.Listener
-	cert    tls.Certificate
-	certPEM []byte
-	x509    *x509.Certificate
-	other   *rsa.PrivateKey
-	paired  map[string]bool // certificate bytes
-	pending map[string]*pairing
-	current int
-	launchs int
-	cancels int
-	waiting chan struct{}
-	closed  bool
+	mu         sync.Mutex
+	base       int
+	http       *http.Server
+	https      *http.Server
+	web        *http.Server
+	lns        []net.Listener
+	cert       tls.Certificate
+	certPEM    []byte
+	x509       *x509.Certificate
+	other      *rsa.PrivateKey
+	paired     map[string]bool // certificate bytes
+	pending    map[string]*pairing
+	current    int
+	launchs    int
+	cancels    int
+	waiting    chan struct{}
+	lastLaunch string
+	closed     bool
 }
 
 type pairing struct {
@@ -223,6 +224,7 @@ func (s *Sunshine) serve() {
 	secure.HandleFunc("GET /applist", s.requirePaired(s.handleApps))
 	secure.HandleFunc("GET /appasset", s.requirePaired(s.handleAsset))
 	secure.HandleFunc("GET /launch", s.requirePaired(s.handleLaunch))
+	secure.HandleFunc("GET /resume", s.requirePaired(s.handleResume))
 	secure.HandleFunc("GET /cancel", s.requirePaired(s.handleCancel))
 	secure.HandleFunc("GET /pair", s.requirePaired(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<root status_code="200"><paired>1</paired></root>`)
@@ -310,8 +312,29 @@ func (s *Sunshine) handleAsset(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(tinyPNG(0))
 }
 
+// LastLaunch is the query of the last launch or resume it saw.
+func (s *Sunshine) LastLaunch() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lastLaunch
+}
+
+func (s *Sunshine) handleResume(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastLaunch = r.URL.RawQuery
+	if s.current == 0 {
+		fmt.Fprint(w, `<root status_code="503" status_message="No running app to resume"><resume>0</resume></root>`)
+		return
+	}
+	fmt.Fprintf(w, `<root status_code="200"><sessionUrl0>rtsp://127.0.0.1:%d</sessionUrl0><resume>1</resume></root>`, s.base+21)
+}
+
 func (s *Sunshine) handleLaunch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	s.mu.Lock()
+	s.lastLaunch = r.URL.RawQuery
+	s.mu.Unlock()
 	for _, need := range []string{"rikey", "rikeyid", "localAudioPlayMode", "appid"} {
 		if q.Get(need) == "" {
 			fmt.Fprint(w, `<root status_code="400" status_message="Missing a required launch parameter"><resume>0</resume></root>`)

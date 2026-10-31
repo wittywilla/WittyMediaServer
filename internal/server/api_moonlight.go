@@ -23,6 +23,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymoonlight"
 	"github.com/wittywilla/wittymoonlight/gamestream"
 	"github.com/wittywilla/wittymoonlight/relay"
@@ -198,7 +199,7 @@ func (s *Server) moonlightPolicy(ctx context.Context, u *auth.User) gamestream.P
 	if u.IsAdmin {
 		return gamestream.Policy{AllowPublic: true}
 	}
-	return gamestream.Policy{AllowPublic: on("moonlightInternet"), DenyPrivate: !on("moonlightPrivate"), DenyLoopback: true}
+	return gamestream.Policy{AllowPublic: on("moonlightInternet"), DenyPrivate: !on("moonlightPrivate"), DenyLoopback: !moonlightAllowLoopback}
 }
 
 // moonlightAttempt counts a new connection attempt against this person's limit.
@@ -983,10 +984,6 @@ func (s *Server) startMoonlightStream(ctx context.Context, u *auth.User, client 
 	if others >= limit {
 		return nil, errMoonlightFull
 	}
-	// One stream per person: starting another ends the last one, as with any game here.
-	for _, st := range mine {
-		st.Session.Close()
-	}
 	info, err := client.Status(ctx)
 	if err != nil {
 		return nil, err
@@ -1002,14 +999,20 @@ func (s *Server) startMoonlightStream(ctx context.Context, u *auth.User, client 
 	if _, err := rand.Read(o.IV[:]); err != nil {
 		return nil, err
 	}
+	if info.CurrentGame != 0 && info.CurrentGame != appID {
+		return nil, gamestream.ErrBusy
+	}
+	// One stream per person: starting another ends the last one, as with any game here. Only now
+	// that this one can go ahead, as a refusal shouldn't cost anyone what they were playing.
+	for _, st := range mine {
+		st.Session.Close()
+	}
 	var launched *gamestream.Launched
 	switch {
 	case info.CurrentGame == 0:
 		launched, err = client.Launch(ctx, o)
-	case info.CurrentGame == appID:
-		launched, err = client.Resume(ctx, o)
 	default:
-		return nil, gamestream.ErrBusy
+		launched, err = client.Resume(ctx, o)
 	}
 	if err != nil {
 		return nil, err
@@ -1315,7 +1318,14 @@ func (s *Server) handleMoonlightSessionEnd(w http.ResponseWriter, r *http.Reques
 }
 
 // prepareMoonlightHost keeps the host program apart from this server. It parses what a stranger's
-// PC sends in C, so it's given as little as it can work with: see the sandbox files.
-func prepareMoonlightHost(cmd *exec.Cmd) {
+// PC sends in C, so it's given as little as it can work with. It gives up more for itself on Linux,
+// and on Windows it runs at low integrity, which can't write to this server's files.
+var prepareMoonlightHost = realPrepareMoonlightHost
+
+func realPrepareMoonlightHost(cmd *exec.Cmd) {
 	cmd.Dir = os.TempDir()
+	modmgr.SandboxNetworkProgram(cmd, nil)
 }
+
+// moonlightAllowLoopback is only ever set by tests, whose stand-in PC is on this machine.
+var moonlightAllowLoopback bool

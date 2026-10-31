@@ -1,0 +1,126 @@
+/* The module store. A row to scan for each module, with the rest when it is opened:
+   thirteen or more of these on a phone mustn't be a wall. */
+.ms-filter { margin: 0 0 var(--sp-4); }
+.ms-note { margin: var(--sp-2) 0; color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); max-width: 62ch; }
+.set-card-body > .ms-note:last-child { margin-bottom: var(--sp-3); }
+
+/* Rows. */
+.ms-mod { border-top: 1px solid var(--border); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.set-card-body > .ms-mod:first-child { border-top: 0; }
+.ms-mod.marked { margin: var(--sp-1) calc(-1 * var(--sp-2)); padding: 0 var(--sp-2); border-top-color: transparent; border-radius: var(--r-md); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.ms-row { display: flex; align-items: center; gap: var(--sp-2); }
+.ms-head { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-3); min-height: 3rem; padding: var(--sp-3) var(--sp-1); margin: 0; border: 0; border-radius: var(--r-md); background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; transition: background var(--dur-2); }
+.ms-head:hover { background: var(--hover); }
+.ms-ic { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--bg-3); color: var(--accent-text); }
+.ms-ic svg { width: 20px; height: 20px; }
+.ms-mod.absent .ms-ic { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); color: var(--fg-3); }
+.ms-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ms-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); font-size: var(--text-md); }
+.ms-ver { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-3); }
+.ms-sum { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
+.ms-chev { flex: none; display: flex; color: var(--fg-3); transition: transform var(--dur-2) var(--ease-standard); }
+.ms-head[aria-expanded=true] .ms-chev { transform: rotate(180deg); }
+.ms-progress { margin: 0 var(--sp-1) var(--sp-3); }
+
+/* Words saying what state it is in; each also has its own shape or icon, not only a colour. */
+.ms-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); }
+.ms-tag { display: inline-flex; align-items: center; gap: 3px; min-height: 18px; padding: 0 6px; border-radius: var(--r-xs); font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; }
+.ms-tag svg { flex: none; }
+.ms-tag.ok { color: var(--ok); background: var(--ok-soft); }
+.ms-tag.warn { color: var(--fg); background: var(--warn-soft); box-shadow: inset 0 0 0 1px var(--warn); }
+.ms-tag.bad { color: var(--danger); background: var(--danger-soft); }
+.ms-tag.new { color: var(--accent-text); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.ms-tag.off { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+/* What's inside a row. */
+.ms-detail { display: grid; gap: var(--sp-3); padding: var(--sp-1) var(--sp-1) var(--sp-4); }
+.ms-detail > p { margin: 0; }
+.ms-detail .error a { color: inherit; text-decoration: underline; }
+.ms-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-3) var(--sp-5); margin: 0; }
+.ms-facts div { min-width: 0; }
+.ms-facts .wide { grid-column: 1 / -1; }
+.ms-facts dt { margin-bottom: 2px; font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.ms-facts dd { margin: 0; font-size: var(--text-sm); color: var(--fg); overflow-wrap: anywhere; }
+.ms-facts a { color: var(--accent-text); text-decoration: underline; }
+.ms-how { display: grid; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-sm); }
+.ms-how p { margin: 0; color: var(--fg-2); line-height: var(--leading-body); }
+.ms-how-sub { color: var(--fg); font-weight: 600; }
+.ms-latest { display: grid; gap: 2px; padding: var(--sp-3); border-radius: var(--r-md); background: var(--accent-soft); border: 1px solid var(--accent-line); font-size: var(--text-sm); }
+.ms-bad { margin: 0; color: var(--danger); font-size: var(--text-sm); font-weight: 600; }
+.ms-why { margin: 0; color: var(--fg-2); font-size: var(--text-sm); }
+.ms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.ms-more summary { display: flex; align-items: center; gap: var(--sp-2); min-height: 2rem; border-radius: var(--r-sm); color: var(--fg-2); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.ms-more summary::before { content: ''; flex: none; width: 0; height: 0; border-left: 5px solid currentColor; border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform var(--dur-2); }
+.ms-more[open] summary::before { transform: rotate(90deg); }
+.ms-more summary::-webkit-details-marker { display: none; }
+.ms-more summary:hover { color: var(--fg); }
+.ms-events { list-style: none; margin: var(--sp-1) 0 0; padding: 0; display: grid; gap: var(--sp-2); font-size: var(--text-sm); }
+.ms-events li { display: grid; gap: 1px; }
+.ms-events time { color: var(--fg-3); font-size: var(--text-xs); }
+.ms-events span { overflow-wrap: anywhere; }
+
+/* Another publisher. */
+.ms-publisher { display: grid; gap: var(--sp-2); }
+.ms-publisher strong { margin: 0; overflow-wrap: anywhere; }
+.ms-publisher a { text-decoration: underline; }
+.ms-publisher .btn { background: var(--bg-2); }
+.ms-fork { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); font-size: var(--text-sm); }
+.ms-fork-form { display: grid; gap: var(--sp-3); }
+.ms-fork-form .input { width: 100%; color: var(--fg); }
+.ms-fork-form .ms-note { margin: 0; }
+.ms-fork-warn { display: grid; gap: var(--sp-3); scroll-margin-top: calc(var(--topbar-h) + var(--sp-2)); }
+.ms-print { display: grid; gap: 2px; }
+.ms-print code { font-family: var(--font-mono); font-size: var(--text-md); overflow-wrap: anywhere; }
+.ms-trust { display: flex; align-items: center; gap: var(--sp-2); min-height: 2.75rem; font-weight: 600; cursor: pointer; }
+.ms-trust input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+
+/* A section that stays in the background. */
+.ms-quiet .set-card { background: transparent; }
+.ms-quiet .set-card-head h2 { color: var(--fg-2); font-size: var(--text-md); }
+.ms-quiet .ms-ic { background: transparent; color: var(--fg-3); }
+
+/* Dialogs. */
+.ms-ask p { margin: 0 0 var(--sp-3); color: var(--fg-2); line-height: var(--leading-body); }
+.ms-ask p:last-child { margin: 0; }
+.ms-vers-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); }
+.ms-vers-top > span:first-child { flex: 1 1 280px; min-width: 0; }
+.ms-vers-top b { color: var(--fg); }
+.ms-versions .warn-box, .ms-versions .error { margin: 0 0 var(--sp-3); }
+.ms-versions .ms-note { margin: 0 0 var(--sp-3); }
+.ms-vers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.ms-ver-row { display: grid; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); }
+.ms-ver-row.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.ms-ver-row.withdrawn { box-shadow: inset 0 0 0 1px var(--danger); }
+.ms-ver-row .btn { background: var(--bg-2); border-color: var(--border-strong); }
+.ms-ver-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.ms-ver-title { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
+.ms-ver-title b { font-family: var(--font-mono); font-size: var(--text-md); }
+.ms-ver-title .muted { font-size: var(--text-xs); }
+.ms-ver-fit { font-size: var(--text-xs); }
+.ms-ver-fit a { color: var(--accent-text); text-decoration: underline; }
+.ms-notes { margin-top: var(--sp-1); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--bg-2); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Fingers and remotes: every control a comfortable target. */
+.ms-page .set-switch::after { content: ''; position: absolute; inset: -9px 0; }
+@media (max-width: 600px), (pointer: coarse) {
+  .ms-page .btn.sm, .ms-versions .btn.sm, .ms-filter .chip, .ms-more summary { min-height: 2.75rem; }
+  .ms-versions .btn.square { width: 2.75rem; }
+}
+@media (max-width: 600px) {
+  /* The words get the room: no picture, and Add is only its plus sign. */
+  .ms-ic { display: none; }
+  .ms-head { gap: var(--sp-2); }
+  .ms-add-word { display: none; }
+  .ms-row > .btn:has(.ms-add-word) { width: 2.75rem; padding: 0; flex: none; }
+  .ms-ver-head { flex-wrap: wrap; }
+  .ms-facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+/* At ten feet the root size is 20px, so 2.4rem is the 48 the rules ask for. */
+.using-controller .ms-filter .chip, .using-controller .ms-page .btn, .using-controller .ms-versions .btn, .using-controller .ms-more summary { min-height: 2.4rem; }
+@media (pointer: none) { .ms-filter .chip, .ms-page .btn, .ms-versions .btn, .ms-more summary { min-height: 2.4rem; } }
+
+.ms-kind + .ms-kind { margin-top: var(--sp-2); }
+.ms-kind .ms-note { margin: var(--sp-1) 0 0; }
+.ms-kind-form { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); max-width: 420px; }
+.ms-kind-form label { display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
+.ms-kind-form p { margin: 0; font-size: var(--text-sm); }

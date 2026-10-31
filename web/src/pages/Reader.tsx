@@ -5,6 +5,7 @@ import WittyComics from '@wittywilla/wittycomics'
 import WittyEbook from '@wittywilla/wittyebook'
 import { HostContext, type Ann, type EpubInfo, type ReaderHost } from '@wittywilla/wittyink'
 import { toast } from '../state'
+import { BundledReaderView, useBundledReader } from '../moduleBundles'
 
 // Books libraries in WittyMediaServer: the WittyEbook, WittyPDF and
 // WittyComics readers, with a host that saves the place and notes per account
@@ -58,14 +59,18 @@ export default function ReaderPage() {
       close,
     }
   }, [it, info]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A newer reader from its own release, when one is in use; otherwise null and the copies above.
+  const bundled = useBundledReader(host?.format)
 
   if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>Back</button></div></div>
-  if (!host) return <div className="reader center"><div className="spinner" /></div>
-  return (
+  if (!host || bundled === undefined) return <div className="reader center"><div className="spinner" /></div>
+  const ownCopy = (
     <HostContext.Provider value={host}>
       <h1 className="sr-only">{it?.title}</h1>
       {host.format === 'pdf' ? <Suspense fallback={<div className="reader center"><div className="spinner" /></div>}><WittyPDF /></Suspense>
         : host.format === 'cbz' ? <WittyComics /> : <WittyEbook />}
     </HostContext.Provider>
   )
+  if (!bundled) return ownCopy
+  return <BundledReaderView r={bundled} host={host} fallback={ownCopy}><h1 className="sr-only">{it?.title}</h1></BundledReaderView>
 }

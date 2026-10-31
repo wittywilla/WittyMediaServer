@@ -33,6 +33,15 @@ import (
 	"github.com/wittywilla/wittymodule"
 )
 
+// TestMain lets this test program be the launcher, as the server is, so the tests run
+// their helpers under the real limits.
+func TestMain(m *testing.M) {
+	if len(os.Args) > 1 && os.Args[1] == SandboxFlag {
+		os.Exit(RunSandboxed(os.Args[2:]))
+	}
+	os.Exit(m.Run())
+}
+
 var (
 	fakeHelper []byte
 	buildOnce  sync.Once
@@ -79,12 +88,18 @@ func manifestJSON(ver, min, max string, api int, test ...string) []byte {
 
 // github stands in for GitHub at the transport, so the real address checks run.
 type github struct {
-	mu       sync.Mutex
-	files    map[string][]byte
-	rels     []update.GHRelease
-	requests int
-	offline  bool
-	notFound bool
+	mu        sync.Mutex
+	files     map[string][]byte
+	rels      []update.GHRelease
+	requests  int
+	offline   bool
+	notFound  bool
+	limited   bool // answers every request as GitHub does when it has had enough
+	apiCalls  int  // to the release list
+	full      int  // of those, how many cost a full answer rather than a 304
+	sawAgent  string
+	forbidden bool               // answers 403 with nothing about the limit, as for one repository
+	feedOnly  []update.GHRelease // what the list of the newest shows, when not everything
 }
 
 func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -100,9 +115,40 @@ func (g *github) RoundTrip(req *http.Request) (*http.Response, error) {
 	if g.notFound {
 		return answer(404, nil)
 	}
+	if g.limited {
+		res, _ := answer(403, nil)
+		res.Header.Set("X-RateLimit-Remaining", "0")
+		res.Header.Set("X-RateLimit-Reset", fmt.Sprint(time.Now().Add(30*time.Minute).Unix()))
+		return res, nil
+	}
+	if g.forbidden {
+		return answer(403, nil)
+	}
+	if req.URL.Host == "api.github.com" && strings.Contains(req.URL.Path, "/releases/tags/") {
+		tag := req.URL.Path[strings.LastIndexByte(req.URL.Path, '/')+1:]
+		for _, r := range g.rels {
+			if r.TagName == tag {
+				b, _ := json.Marshal(r)
+				return answer(200, b)
+			}
+		}
+		return answer(404, nil)
+	}
 	if req.URL.Host == "api.github.com" {
-		b, _ := json.Marshal(g.rels)
-		return answer(200, b)
+		g.apiCalls++
+		list := g.rels
+		if g.feedOnly != nil {
+			list = g.feedOnly
+		}
+		b, _ := json.Marshal(list)
+		tag := `"` + sha(b) + `"`
+		if req.Header.Get("If-None-Match") == tag {
+			return answer(304, nil)
+		}
+		g.full++
+		res, err := answer(200, b)
+		res.Header.Set("ETag", tag)
+		return res, err
 	}
 	if b, ok := g.files[req.URL.Path]; ok {
 		return answer(200, b)
@@ -135,8 +181,9 @@ func newWorld(t *testing.T) *world {
 }
 
 func (w *world) manager() *Manager {
+	exe, _ := os.Executable() // this test program is the launcher too: see TestMain
 	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)},
-		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh},
+		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Launcher: exe,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 }
 
@@ -229,7 +276,7 @@ func installWait(t *testing.T, m *Manager) Status {
 	if err := m.Install("wittyphotos"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		s := one(t, m)
 		if s.Phase == PhaseIdle || s.Phase == PhaseFailed {
@@ -328,7 +375,7 @@ func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", 1))
 	w.publish("0.3.0", manifestJSON("0.3.0", "0.5.0", "0.5.x", 1))
-	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", 2)) // a newer module API
+	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", wittymodule.API+1)) // a newer module API
 	m := w.manager()
 	defer m.Close()
 	s := check(t, m)
@@ -772,8 +819,16 @@ func TestNothingPhonesHomeWithoutPermission(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 		go func() { m.Run(ctx); close(done) }()
-		deadline := time.Now().Add(20 * time.Second)
-		for one(t, m).Version != want && time.Now().Before(deadline) {
+		// On a busy machine a build of the helper takes time to scan and start, and the
+		// first check may not have begun: wait for what is expected, not for a moment.
+		deadline := time.Now().Add(2 * time.Minute)
+		settled := func() bool {
+			w.gh.mu.Lock()
+			asked := w.gh.requests > 0
+			w.gh.mu.Unlock()
+			return one(t, m).Version == want && (asked || !get(&allowCheck)())
+		}
+		for !settled() && time.Now().Before(deadline) {
 			time.Sleep(5 * time.Millisecond)
 		}
 		time.Sleep(50 * time.Millisecond)

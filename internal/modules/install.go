@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
@@ -24,13 +23,12 @@ import (
 // Limits on a release. The checksum list has a few lines per file per platform,
 // and the largest helper planned is well under the archive limit.
 const (
-	maxSums      = 256 << 10
-	maxSig       = 4 << 10
-	maxManifest  = 64 << 10
-	maxArchive   = 256 << 20
-	maxUnpacked  = 2 * maxArchive
-	maxNotes     = 64 << 10
-	maxCandidate = 5 // how many newer releases are looked at
+	maxSums     = 256 << 10
+	maxSig      = 4 << 10
+	maxManifest = 64 << 10
+	maxArchive  = 256 << 20
+	maxUnpacked = 2 * maxArchive
+	maxNotes    = 16 << 10
 )
 
 // In a version's folder, next to its files, so they can be checked again.
@@ -48,136 +46,6 @@ type release struct {
 	man     update.Asset
 }
 
-// ---------------------------------------------------------------------------
-// Checking
-// ---------------------------------------------------------------------------
-
-// Check looks for newer releases of every module that can have them, unless the
-// last answer is younger than maxAge. Concurrent calls share one look. When the
-// network is down the last answer stays, along with why this one failed; nothing
-// that is running depends on it.
-func (m *Manager) Check(ctx context.Context, maxAge time.Duration) Report {
-	m.mu.Lock()
-	if !m.checked.IsZero() && time.Since(m.checked) < maxAge {
-		m.mu.Unlock()
-		return m.Report()
-	}
-	if m.checking != nil {
-		ch := m.checking
-		m.mu.Unlock()
-		select {
-		case <-ch:
-		case <-ctx.Done():
-		}
-		return m.Report()
-	}
-	ch := make(chan struct{})
-	m.checking = ch
-	var ids []string
-	for _, id := range m.order {
-		if updatable(m.mods[id].builtin) {
-			ids = append(ids, id)
-		}
-	}
-	m.mu.Unlock()
-
-	cctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	var problems []string
-	for _, id := range ids {
-		if err := m.checkOne(cctx, id); err != nil {
-			m.log.Warn("modules: update check failed", "module", id, "err", err)
-			problems = append(problems, err.Error())
-		}
-	}
-
-	m.mu.Lock()
-	m.checked = time.Now()
-	m.checkErr = strings.Join(problems, " ")
-	m.checking = nil
-	close(ch)
-	m.mu.Unlock()
-	return m.Report()
-}
-
-func (m *Manager) checkOne(ctx context.Context, id string) error {
-	m.mu.Lock()
-	e := m.mods[id]
-	repo, current, name := e.builtin.Repo, e.man.Version, e.builtin.Name
-	if wittymodule.Compare(e.builtin.Version, current) > 0 {
-		current = e.builtin.Version
-	}
-	blocked := e.state.Blocked
-	m.mu.Unlock()
-
-	rels, err := m.fetch.Releases(ctx, repo)
-	if errors.Is(err, update.ErrNotFound) {
-		rels, err = nil, nil // its repository isn't published yet, so there is nothing newer
-	}
-	if err != nil {
-		return fmt.Errorf("%s: %w", name, err)
-	}
-	sort.SliceStable(rels, func(i, j int) bool {
-		return wittymodule.Compare(strings.TrimPrefix(rels[i].TagName, "v"), strings.TrimPrefix(rels[j].TagName, "v")) > 0
-	})
-
-	// A pre-release is only for a server that is one itself, or that already
-	// runs that module's pre-release.
-	pre := wittymodule.Prerelease(m.cfg.Server) || wittymodule.Prerelease(current)
-	var latest, tooNew *Offer
-	var rel *release
-	var bad error
-	looked := 0
-	for _, g := range rels {
-		ver := strings.TrimPrefix(g.TagName, "v")
-		if g.Draft || !wittymodule.Valid(ver) || wittymodule.Compare(ver, current) <= 0 {
-			continue
-		}
-		if (g.Prerelease || wittymodule.Prerelease(ver)) && !pre {
-			continue
-		}
-		if looked++; looked > maxCandidate {
-			break
-		}
-		r := pickAssets(id, ver, g, runtime.GOOS, runtime.GOARCH)
-		if r == nil {
-			continue // not signed, or nothing for this system: not something to offer
-		}
-		man, _, err := m.verifiedRelease(ctx, r)
-		if err != nil {
-			m.log.Warn("modules: ignoring a release", "module", id, "version", ver, "err", err)
-			if bad == nil {
-				bad = fmt.Errorf("%s %s was ignored: %w", name, ver, err)
-			}
-			continue
-		}
-		o := &Offer{Version: ver, MinServer: man.MinServer, MaxServer: man.MaxServer, URL: pageURL(g.HTMLURL), Prerelease: wittymodule.Prerelease(ver), Size: r.archive.Size, Notes: g.Body}
-		if len(o.Notes) > maxNotes {
-			o.Notes = o.Notes[:maxNotes] + "…"
-		}
-		if !g.PublishedAt.IsZero() {
-			o.Published = g.PublishedAt.UnixMilli()
-		}
-		if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
-			if tooNew == nil {
-				o.Reason = sentence(err.Error())
-				tooNew = o
-			}
-			continue
-		}
-		o.Blocked = blocked[ver]
-		latest, rel = o, r
-		break
-	}
-	m.mu.Lock()
-	e.latest, e.tooNew, e.rel = latest, tooNew, rel
-	m.mu.Unlock()
-	if latest == nil && tooNew == nil {
-		return bad
-	}
-	return nil
-}
-
 func pageURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || !strings.EqualFold(u.Hostname(), "github.com") {
@@ -186,13 +54,13 @@ func pageURL(raw string) string {
 	return raw
 }
 
-// pickAssets finds a release's files for a system, or nil if one is missing.
-func pickAssets(id, ver string, g update.GHRelease, goos, goarch string) *release {
+// pickAssets finds a release's files, or nil if one is missing.
+func pickAssets(archive, id, ver string, g update.GHRelease) *release {
 	r := &release{version: ver}
 	for _, a := range g.Assets {
 		as := update.Asset{Name: a.Name, URL: a.URL, Size: a.Size}
 		switch a.Name {
-		case wittymodule.ArchiveName(id, ver, goos, goarch):
+		case archive:
 			r.archive = as
 		case wittymodule.SumsName(id, ver):
 			r.sums = as
@@ -216,7 +84,7 @@ type verified struct {
 
 // verifiedRelease fetches a release's signed list and manifest, and checks them.
 // Nothing about a release is believed before this.
-func (m *Manager) verifiedRelease(ctx context.Context, r *release) (*wittymodule.Manifest, *verified, error) {
+func (m *Manager) verifiedRelease(ctx context.Context, id string, e *entry, r *release) (*wittymodule.Manifest, *verified, error) {
 	sums, err := m.fetch.Small(ctx, r.sums.URL, maxSums)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checksums: %w", err)
@@ -225,30 +93,57 @@ func (m *Manager) verifiedRelease(ctx context.Context, r *release) (*wittymodule
 	if err != nil {
 		return nil, nil, fmt.Errorf("signature: %w", err)
 	}
-	if err := update.VerifySums(sums, sig, m.keys); err != nil {
-		return nil, nil, err
-	}
-	list, err := update.ParseSums(sums)
-	if err != nil {
+	m.mu.Lock()
+	keys, repo := m.keysFor(e), e.repo()
+	m.mu.Unlock()
+	if err := update.VerifySums(sums, sig, keys); err != nil {
 		return nil, nil, err
 	}
 	raw, err := m.fetch.Small(ctx, r.man.URL, maxManifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("manifest: %w", err)
 	}
-	if want, ok := list[r.man.Name]; !ok || sum(raw) != want {
-		return nil, nil, errors.New("its manifest doesn't match its signed checksum")
-	}
-	man, err := wittymodule.ParseManifest(raw)
+	man, err := m.checkSigned(id, r, keys, repo, sums, sig, raw)
 	if err != nil {
 		return nil, nil, err
 	}
-	// The signature proves who made the manifest, and this proves it is for this
-	// version, so an old release can't be passed off under a new tag.
-	if man.Version != r.version || wittymodule.SumsName(man.ID, man.Version) != r.sums.Name {
-		return nil, nil, fmt.Errorf("its manifest says %s %s", man.ID, man.Version)
+	list, err := update.ParseSums(sums)
+	if err != nil {
+		return nil, nil, err
 	}
 	return man, &verified{sums: sums, sig: sig, list: list, manifest: raw}, nil
+}
+
+// checkSigned checks a release's three small files against each other and against
+// this module. It needs no network, so it also checks what was remembered.
+func (m *Manager) checkSigned(id string, r *release, keys []ed25519.PublicKey, repo string, sums, sig, raw []byte) (*wittymodule.Manifest, error) {
+	if err := update.VerifySums(sums, sig, keys); err != nil {
+		return nil, err
+	}
+	list, err := update.ParseSums(sums)
+	if err != nil {
+		return nil, err
+	}
+	if want, ok := list[r.man.Name]; !ok || sum(raw) != want {
+		return nil, errors.New("its manifest doesn't match its signed checksum")
+	}
+	man, err := wittymodule.ParseManifest(raw)
+	if err != nil {
+		return nil, err
+	}
+	// The signature proves who made the manifest, and this proves it is for this
+	// version of this plugin, so a release of one can't be passed off as another, or
+	// an old one under a new tag.
+	if man.ID != id || man.Version != r.version || wittymodule.SumsName(man.ID, man.Version) != r.sums.Name {
+		return nil, fmt.Errorf("its manifest says %s %s", man.ID, man.Version)
+	}
+	if !strings.EqualFold(man.Repo, repo) {
+		return nil, fmt.Errorf("its manifest says it belongs to %s", man.Repo)
+	}
+	if err := man.ValidateRelease(); err != nil {
+		return nil, err
+	}
+	return man, nil
 }
 
 func sum(b []byte) string {
@@ -260,10 +155,40 @@ func sum(b []byte) string {
 // Installing
 // ---------------------------------------------------------------------------
 
-// Install starts installing the release the last check found, in the background.
-// Progress is in the Report. An admin may choose a version that was taken out of
-// use before; nothing automatic does.
+// ErrNeedsConfirm is what choosing a version needs before it goes ahead: someone
+// has read the warning.
+type ErrNeedsConfirm struct{ Warning string }
+
+func (e *ErrNeedsConfirm) Error() string { return e.Warning }
+
+// Install starts installing the newest release the last check found, in the
+// background. Progress is in the Report. An admin may choose a version that was
+// taken out of use before; nothing automatic does.
 func (m *Manager) Install(id string) error {
+	m.mu.Lock()
+	e := m.mods[id]
+	if e == nil {
+		m.mu.Unlock()
+		return ErrUnknown
+	}
+	if !updatable(e.builtin) {
+		m.mu.Unlock()
+		return errors.New(e.builtin.Name + " is built into the server and updates with it")
+	}
+	m.loadFeed(id, e)
+	m.computeOffers(e)
+	rel := e.rel
+	m.mu.Unlock()
+	if rel == nil {
+		return errors.New("no compatible newer version is known; check for updates first")
+	}
+	return m.InstallVersion(id, rel.version, true)
+}
+
+// InstallVersion starts moving a module to a given version, newer or older. Without
+// confirm, a choice with a warning is refused with *ErrNeedsConfirm. A version already
+// on disk is switched to with no download, so going back works offline.
+func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
@@ -276,20 +201,58 @@ func (m *Manager) Install(id string) error {
 		return errors.New("an update of this module is already being installed")
 	case m.closed:
 		return errors.New("the server is stopping")
-	case e.rel == nil:
-		return errors.New("no compatible newer version is known; check for updates first")
+	case e.state.Removed:
+		return errors.New(e.builtin.Name + " isn't on this server; add it first")
+	case !wittymodule.Valid(ver):
+		return fmt.Errorf("%q is not a version", ver)
 	}
-	e.busy, e.phase, e.lastError, e.done, e.total = true, PhaseDownloading, "", 0, e.rel.archive.Size
-	rel := *e.rel
+	m.loadFeed(id, e)
+	if e.dir != "" && e.man.Version == ver {
+		return errors.New("that version is already in use")
+	}
+	k := e.known[ver]
+	local, _, localErr := m.usable(id, e, ver)
+	var man *wittymodule.Manifest
+	switch {
+	case localErr == nil:
+		man = local
+	case k != nil:
+		man = k.man
+	default:
+		if ver == e.builtin.Version {
+			return errors.New("that is the built-in copy; choose it with use-built-in")
+		}
+		if errors.Is(localErr, errUntrusted) {
+			return localErr
+		}
+		return errors.New("that version isn't known; check for updates first")
+	}
+	refused, warning := m.judge(e, man)
+	if refused != "" {
+		return errors.New(refused)
+	}
+	if warning != "" && !confirm {
+		return &ErrNeedsConfirm{Warning: warning}
+	}
+	older := wittymodule.Compare(ver, e.man.Version) < 0
+	if localErr == nil {
+		return m.activate(id, e, man, older)
+	}
+	e.busy, e.phase, e.lastError, e.done, e.total = true, PhaseDownloading, "", 0, k.rel.archive.Size
+	rel := k.rel
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
-		err := m.install(ctx, id, e, &rel)
+		err := m.install(ctx, id, e, &rel, older)
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		e.busy = false
 		if err != nil {
 			e.phase, e.lastError = PhaseFailed, sentence(err.Error())
+			e.note("failed", rel.version, "the install failed: "+err.Error())
+			if serr := m.saveState(); serr != nil {
+				m.log.Warn("modules: saving the state", "err", serr)
+			}
 			m.log.Error("modules: install failed; nothing changed", "module", id, "version", rel.version, "err", err)
 			m.prune(id, e)
 			return
@@ -308,18 +271,18 @@ func (m *Manager) setPhase(e *entry, p string) {
 
 // install does the work. Until the state is saved, the version in use is
 // untouched, so a failure at any step, or the power going, changes nothing.
-func (m *Manager) install(ctx context.Context, id string, e *entry, r *release) error {
+func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, older bool) error {
 	// 1. The signed list and the manifest, fetched again rather than remembered.
 	m.setPhase(e, PhaseVerifying)
-	man, v, err := m.verifiedRelease(ctx, r)
+	man, v, err := m.verifiedRelease(ctx, id, e, r)
 	if err != nil {
 		return err
 	}
-	if man.ID != id {
-		return fmt.Errorf("the release says it is %s", man.ID)
-	}
-	if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
-		return err
+	m.mu.Lock()
+	refused, _ := m.judge(e, man)
+	m.mu.Unlock()
+	if refused != "" {
+		return errors.New(refused)
 	}
 	want, ok := v.list[r.archive.Name]
 	if !ok {
@@ -356,7 +319,10 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release) 
 		return err
 	}
 	// 4. Every file is the one that was signed, and there are no others.
-	if err := verifyInstalled(stage, id, r.version, m.keys); err != nil {
+	m.mu.Lock()
+	keys := m.keysFor(e)
+	m.mu.Unlock()
+	if err := verifyInstalled(stage, man, keys); err != nil {
 		return err
 	}
 	b, err := os.ReadFile(filepath.Join(stage, wittymodule.ManifestFile))
@@ -366,13 +332,30 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release) 
 	if string(b) != string(v.manifest) {
 		return errors.New("the manifest in the package differs from the release's")
 	}
-	if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
-		return fmt.Errorf("the package has no %s", man.EntryFile(runtime.GOOS))
-	}
 
-	// 5. It runs here, and it is what it says.
-	if err := newProc(man, stage, nil, m.log).Try(); err != nil {
-		return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
+	// 5. It runs here, and it is what it says. A bundle runs in browsers, where the
+	// server can only check it is all there.
+	if man.PerPlatform() {
+		if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
+			return fmt.Errorf("the package has no %s", man.EntryFile(runtime.GOOS))
+		}
+		// With the limits it would have in use: this is the first time its code runs.
+		m.mu.Lock()
+		p := m.newProcFor(id, e, man, stage)
+		m.mu.Unlock()
+		p.verify = nil
+		if err := p.Try(); err != nil {
+			return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
+		}
+	} else {
+		if _, err := os.Stat(filepath.Join(stage, man.Entry)); err != nil {
+			return fmt.Errorf("the package has no %s", man.Entry)
+		}
+		if man.Style != "" {
+			if _, err := os.Stat(filepath.Join(stage, man.Style)); err != nil {
+				return fmt.Errorf("the package has no %s", man.Style)
+			}
+		}
 	}
 
 	// 6. Into place, and only then remembered.
@@ -388,10 +371,21 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release) 
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if err := m.activate(id, e, man, older); err != nil {
+		_ = os.RemoveAll(dst)
+		return err
+	}
+	return nil
+}
+
+// activate makes an installed version the one in use: remembered first, and only
+// then used by the next call, with no restart. An older version is pinned, or the
+// next automatic update would undo the choice. Call with m.mu held.
+func (m *Manager) activate(id string, e *entry, man *wittymodule.Manifest, older bool) error {
 	old := e.state
 	blocked := map[string]string{}
 	for k, val := range old.Blocked {
-		if k != r.version {
+		if k != man.Version {
 			blocked[k] = val
 		}
 	}
@@ -399,15 +393,28 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release) 
 	if old.Active != "" && blocked[old.Active] != "" {
 		e.state.Previous = old.Previous
 	}
-	e.state.Active, e.state.Blocked = r.version, blocked
+	if e.state.Previous == man.Version {
+		e.state.Previous = ""
+	}
+	e.state.Active, e.state.Blocked = man.Version, blocked
+	e.state.Chosen = wittymodule.Compare(man.Version, e.builtin.Version) <= 0 || older
+	if older {
+		e.state.Pin = man.Version
+	} else if old.Pin != "" {
+		e.state.Pin = man.Version // chosen by hand while pinned: stay on the choice
+	}
+	kind := "installed"
+	if older {
+		kind = "downgraded"
+	}
+	e.note(kind, man.Version, "from "+e.man.Version)
 	if err := m.saveState(); err != nil {
 		e.state = old
-		_ = os.RemoveAll(dst)
 		return fmt.Errorf("the state could not be saved: %w", err)
 	}
 	// 7. The next call uses the new version.
 	m.resolve(id, e)
-	e.latest, e.rel = nil, nil
+	m.computeOffers(e)
 	m.prune(id, e)
 	return nil
 }
@@ -458,27 +465,25 @@ func (p progress) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// verifyInstalled checks a version's folder against the signed list kept in it:
-// the signature is good, every file the list names for this system is there and
-// unchanged, and nothing else is there. It runs again before every start of a
-// helper, so a file changed on a shared data folder is refused rather than run.
-func verifyInstalled(dir, id, ver string, keys []ed25519.PublicKey) error {
+// signedFiles reads a version's signed list: name inside the version → hash, for this
+// system's files only. It proves the signature first.
+func signedFiles(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKey) (map[string]string, error) {
 	sums, err := os.ReadFile(filepath.Join(dir, signedList))
 	if err != nil {
-		return fmt.Errorf("%w: its signed list is missing", errUntrusted)
+		return nil, fmt.Errorf("%w: its signed list is missing", errUntrusted)
 	}
 	sig, err := os.ReadFile(filepath.Join(dir, signedSig))
 	if err != nil {
-		return fmt.Errorf("%w: its signature is missing", errUntrusted)
+		return nil, fmt.Errorf("%w: its signature is missing", errUntrusted)
 	}
 	if err := update.VerifySums(sums, sig, keys); err != nil {
-		return fmt.Errorf("%w: %w", errUntrusted, err)
+		return nil, fmt.Errorf("%w: %w", errUntrusted, err)
 	}
 	list, err := update.ParseSums(sums)
 	if err != nil {
-		return fmt.Errorf("%w: %w", errUntrusted, err)
+		return nil, fmt.Errorf("%w: %w", errUntrusted, err)
 	}
-	prefix := wittymodule.TopFolder(id, ver, runtime.GOOS, runtime.GOARCH) + "/"
+	prefix := man.Top(runtime.GOOS, runtime.GOARCH) + "/"
 	want := map[string]string{}
 	for name, h := range list {
 		if rel, ok := strings.CutPrefix(name, prefix); ok {
@@ -486,7 +491,19 @@ func verifyInstalled(dir, id, ver string, keys []ed25519.PublicKey) error {
 		}
 	}
 	if len(want) == 0 {
-		return fmt.Errorf("%w: its signed list has nothing for this system", errUntrusted)
+		return nil, fmt.Errorf("%w: its signed list has nothing for this system", errUntrusted)
+	}
+	return want, nil
+}
+
+// verifyInstalled checks a version's folder against the signed list kept in it:
+// the signature is good, every file the list names for this system is there and
+// unchanged, and nothing else is there. It runs again before every start of a
+// helper, so a file changed on a shared data folder is refused rather than run.
+func verifyInstalled(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKey) error {
+	want, err := signedFiles(dir, man, keys)
+	if err != nil {
+		return err
 	}
 	seen := 0
 	err = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {

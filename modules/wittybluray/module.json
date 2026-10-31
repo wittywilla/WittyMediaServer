@@ -3,8 +3,23 @@
   "name": "WittyBluray",
   "version": "0.1.0",
   "repo": "wittywilla/WittyBluray",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "helper",
+  "entry": "wittybluray-module",
+  "api": 2,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "discs",
+  "summary": "Blu-ray images with their menus, including 4K, HDR and 3D discs.",
+  "libraries": [
+    "discs"
+  ],
+  "requires": [
+    "wittydisc"
+  ],
+  "updates": "Playing an open disc: reading its playlists and clips, running its program, reading its menus and subtitles.",
+  "stays": "Finding and describing discs in a library scan, the check that refuses encrypted discs, drawing menus, turning a disc's steps into what the player shows, and discs with Java menus when Java menus are turned on: the built-in copy plays those. The server also opens every disc itself first, so a disc it can't read at all needs a new server.",
+  "needs": [
+    "FFmpeg, which comes with the server",
+    "Java, only for discs with Java menus, and only if you turn that on"
+  ]
 }

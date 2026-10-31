@@ -86,3 +86,25 @@ is loaded from, and search. See [Embedding](wiki/Embedding.md).
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyEbook, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+<!-- module-kit -->
+## Releasing
+
+A version tag builds the bundle for the browser, signs the checksum list, and publishes a release that servers can install.
+
+Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 bump .` raises it
+everywhere it is written (add `-part minor` for a bigger step). A bump isn't a release: nothing is
+tagged or published until you tag it. CI fails when code changed since the last tag and the version
+didn't, because tags never move.
+
+To release:
+
+1. Check that `version` in `module.json` is the one to publish, with the bump committed.
+2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
+   suffix, such as `v1.2.0-beta`, is published as a prerelease.
+3. Watch the *Actions* tab. The signing step uses the `WMS_SIGNING_KEY` secret of the `release` environment, and nothing is published without it.
+
+To take a version back, run the *withdraw* workflow from the *Actions* tab. It adds the version to a signed list on the release tagged `withdrawals`, which servers read.
+
+Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<!-- /module-kit -->

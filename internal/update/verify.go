@@ -25,6 +25,16 @@ var trustedKeys = []string{
 // TrustedKeys are the keys a release must be signed with.
 func TrustedKeys() []ed25519.PublicKey { return publicKeys(devKeys) }
 
+// ModuleKeys are the keys a plugin's release may be signed with. A key that signs
+// only plugins lives in many repositories' secrets; it never appears in TrustedKeys,
+// so if it leaks it still can't sign a server.
+func ModuleKeys() []ed25519.PublicKey {
+	if moduleKey == "" {
+		return TrustedKeys()
+	}
+	return publicKeys(append([]string{moduleKey}, devKeys...)) // and the release key, for what it signed before
+}
+
 // publicKeys decodes trustedKeys plus extra ones.
 func publicKeys(extra []string) []ed25519.PublicKey {
 	var out []ed25519.PublicKey

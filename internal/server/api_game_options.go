@@ -376,7 +376,7 @@ func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console st
 	if list, ok := s.Store.CoreOptionList(ctx, coreID); ok {
 		return list, coreID
 	}
-	if corePath == "" || s.configureGames(ctx) != nil {
+	if _, err := s.configureGames(ctx); corePath == "" || err != nil {
 		return nil, coreID
 	}
 	g := s.games()

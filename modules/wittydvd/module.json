@@ -3,8 +3,22 @@
   "name": "WittyDVD",
   "version": "0.2.0",
   "repo": "wittywilla/WittyDVD",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "helper",
+  "entry": "wittydvd-module",
+  "api": 2,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "discs",
+  "summary": "DVD images with their real menus, chapters, angles and subtitles.",
+  "libraries": [
+    "discs"
+  ],
+  "requires": [
+    "wittydisc"
+  ],
+  "needs": [
+    "FFmpeg, which comes with the server"
+  ],
+  "updates": "The DVD engine a viewer plays a disc through: reading the disc's structure, its menus, buttons and commands, where its video lies, and its subtitles. While a downloaded version is in use, each open disc has a small helper program of its own.",
+  "stays": "Scanning a library, the title list on a disc's page and playing a title without its menus still use the built-in copy, and turning what the engine says into streams and pictures is the server's own code, as is refusing encrypted discs. Those change with a new server."
 }

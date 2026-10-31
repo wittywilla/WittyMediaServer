@@ -119,7 +119,7 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 	if s.bd != nil {
 		return s.bd.host
 	}
-	if s.m.BDJ == nil {
+	if s.m.BDJ == nil || s.disc.builtin == nil { // a helper has the disc: it plays from its playlists
 		return nil
 	}
 	enabled, path := s.m.BDJ()
@@ -132,11 +132,11 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 		return nil
 	}
 	st := &bdjState{events: make(chan bdj.Event, 4096), pending: newPending()}
-	host, err := bdj.Start(ctx, s.disc, bdj.Options{
+	host, err := bdj.Start(ctx, s.disc.builtin, bdj.Options{
 		Java:       java,
 		CacheDir:   filepath.Join(s.m.CacheDir, "bdj"),
 		WorkDir:    filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID),
-		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", storageKey(s.disc)),
+		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", storageKey(s.disc.builtin)),
 		Log: func(l string) {
 			if s.m.Log != nil {
 				s.m.Log.Debug("bd-j", "cat", "dvd", "session", s.ID, "msg", l)

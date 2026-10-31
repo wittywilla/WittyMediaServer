@@ -28,8 +28,11 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
+	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -160,8 +163,8 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
-		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(modules.GoManifests(), web.ModuleManifests()...),
-		Transport: library.SafeClient.Transport, Log: log,
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
+		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(),
 		CheckEnabled: func() bool {
 			ctx := context.Background()
 			v := database.GetSetting(ctx, "moduleUpdateCheck", "")
@@ -174,6 +177,9 @@ func cmdServe(args []string) int {
 	})
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
+	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
+	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
+	bdremote.Use(modMgr)
 
 	webFS := web.Dist()
 	if cfg.Dev {

@@ -2,22 +2,23 @@ import { useEffect, useState } from 'react'
 import { api, setToken, type GameSource, type Library, type User } from '../api'
 import { GameKeyFields } from './GameMeta'
 import { Brand, VersionTag } from '../components/common'
-import AddLibrary, { GroupingChoice, LibrarySummary, type Grouping } from '../components/AddLibrary'
+import AddLibrary, { GroupingChoice, LIB_TYPES, LibrarySummary, type Grouping } from '../components/AddLibrary'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
-import { IconAudio, IconBook, IconCheck, IconDisc, IconPalette, IconPlug, IconTv, IconUsers } from '../icons'
+import { IconAudio, IconBook, IconCheck, IconDisc, IconPalette, IconPlug, IconTv, IconUsers, libIcon } from '../icons'
+import { shelves, type LibraryKind, type ModuleReport } from '../moduleStore'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 import { useApp } from '../state'
 import { applyTheme, type ThemeMeta } from '../theme'
 import { AddProfile } from './Profiles'
 
-// The first-run setup: welcome → account → your media → metadata agents →
-// discs → look → ready. Every step after the account can be skipped and
-// changed later in Settings. It resumes where it left off after a reload (the
-// account step is then already done).
+// The first-run setup: welcome → account → modules → your media → metadata
+// agents → discs → look → ready. Every step after the account can be skipped and
+// changed later in Settings. It resumes after the account step following a reload.
+// The discs step is left out when neither disc module is on this server.
 
-type Step = 'welcome' | 'account' | 'libraries' | 'metadata' | 'playback' | 'look' | 'done'
+type Step = 'welcome' | 'account' | 'modules' | 'libraries' | 'metadata' | 'playback' | 'look' | 'done'
 const STEPS: { id: Step; label: string }[] = [
-  { id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Account' }, { id: 'libraries', label: 'Your media' },
+  { id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Account' }, { id: 'modules', label: 'Modules' }, { id: 'libraries', label: 'Your media' },
   { id: 'metadata', label: 'Information' }, { id: 'playback', label: 'Discs' }, { id: 'look', label: 'Look' }, { id: 'done', label: 'Ready' },
 ]
 
@@ -32,8 +33,11 @@ const FEATURES = [
 
 export default function SetupWizard({ resume }: { resume: boolean }) {
   const { setUser, setOnboarding, brandName, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
-  const [step, setStep] = useState<Step>(resume ? 'libraries' : 'welcome')
-  const idx = STEPS.findIndex((s) => s.id === step)
+  const [step, setStep] = useState<Step>(resume ? 'modules' : 'welcome')
+  const [hasDiscs, setHasDiscs] = useState(true)
+  const noteKinds = (kinds: LibraryKind[]) => setHasDiscs(kinds.find((k) => k.type === 'discs')?.available ?? true)
+  const steps = STEPS.filter((s) => s.id !== 'playback' || hasDiscs)
+  const idx = Math.max(0, steps.findIndex((s) => s.id === step))
   const [serverName, setServerName] = useState(brandName)
   // A logo chosen on the welcome page waits until the account exists (only
   // an administrator may store one), then is uploaded.
@@ -71,13 +75,13 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
         <header className="oobe-head">
           <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} /></div>
           <ol className="oobe-steps" aria-label="Setup progress">
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <li key={s.id} className={i < idx ? 'done' : i === idx ? 'current' : ''} aria-current={i === idx ? 'step' : undefined}>
                 <span className="dot">{i < idx ? <IconCheck size={14} /> : i + 1}</span><span className="lbl">{s.label}</span>
               </li>
             ))}
           </ol>
-          <div className="oobe-step-count" aria-hidden="true">Step {idx + 1} of {STEPS.length} · {STEPS[idx].label}</div>
+          <div className="oobe-step-count" aria-hidden="true">Step {idx + 1} of {steps.length} · {steps[idx].label}</div>
         </header>
 
         <main className="oobe-card" key={step}>
@@ -107,16 +111,18 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
             setOnboarding(true) // keep the wizard open after signing in
             setUser(u)
             if (pendingLogo) uploadLogo(pendingLogo).then(setBrandLogo).catch(() => {})
-            go('libraries')
+            go('modules')
           }} />}
 
-          {step === 'libraries' && <LibrariesStep added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} onNext={() => go('metadata')} />}
+          {step === 'modules' && <ModulesStep onNext={() => go('libraries')} />}
 
-          {step === 'metadata' && <MetadataStep onBack={() => go('libraries')} onNext={(n) => { setKeys(n); go('playback') }} />}
+          {step === 'libraries' && <LibrariesStep added={added} onKinds={noteKinds} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} onBack={() => go('modules')} onNext={() => go('metadata')} />}
+
+          {step === 'metadata' && <MetadataStep onBack={() => go('libraries')} onNext={(n) => { setKeys(n); go(hasDiscs ? 'playback' : 'look') }} />}
 
           {step === 'playback' && <PlaybackStep onBack={() => go('metadata')} onNext={() => go('look')} />}
 
-          {step === 'look' && <LookStep onBack={() => go('playback')} onNext={() => go('done')} />}
+          {step === 'look' && <LookStep onBack={() => go(hasDiscs ? 'playback' : 'metadata')} onNext={() => go('done')} />}
 
           {step === 'done' && (
             <section className="oobe-done">
@@ -131,7 +137,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
               <ul className="oobe-summary">
                 <li className={added.length ? 'ok' : ''}><IconCheck size={16} /> {added.length ? `${added.length} ${added.length === 1 ? 'library' : 'libraries'} added` : 'No libraries yet'}</li>
                 <li className="ok"><IconCheck size={16} /> TV and movie information with no API key needed{keys ? `, plus ${keys} key${keys === 1 ? '' : 's'}` : ''}</li>
-                <li className="ok"><IconCheck size={16} /> Discs, playback and look chosen</li>
+                <li className="ok"><IconCheck size={16} /> {hasDiscs ? 'Discs, playback and look chosen' : 'Look chosen'}</li>
               </ul>
               <div className="oobe-next">
                 <div className="oobe-next-card">
@@ -207,7 +213,77 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
   )
 }
 
-function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: (l: Library) => void; onNext: () => void }) {
+const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
+
+// What this server is for. Everything is compiled in, so choosing here downloads
+// nothing and costs no disk space either way: leaving a module out stops libraries of
+// that kind being made, hides it, and stops it checking for updates. It says so.
+function ModulesStep({ onNext }: { onNext: () => void }) {
+  const [report, setReport] = useState<ModuleReport | null>(null)
+  const [off, setOff] = useState<Set<string>>(new Set())
+  const [unavailable, setUnavailable] = useState(false)
+  const [err, setErr] = useState('')
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    api.get<ModuleReport>('/modules').then((r) => {
+      setReport(r)
+      setOff(new Set(r.modules.filter((m) => !m.installed).map((m) => m.id)))
+    }).catch(() => setUnavailable(true))
+  }, [])
+  const toggle = (id: string) => { setErr(''); setOff((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n }) }
+  const save = async () => {
+    if (!report) { onNext(); return }
+    setSaving(true); setErr('')
+    try {
+      await api.put('/modules/installed', { installed: report.modules.filter((m) => !off.has(m.id)).map((m) => m.id) })
+      onNext()
+    } catch (e: any) { setErr(e.message); setSaving(false) }
+  }
+  const choosable = report?.modules.filter((m) => !m.core) || []
+  // Is anything left to make a library of? A kind no module claims can always be made.
+  const claimed = new Set(choosable.flatMap((m) => m.libraries || []))
+  const noLibraries = !!report && !LIB_TYPES.some((k) => !claimed.has(k.type) || choosable.some((m) => !off.has(m.id) && m.libraries?.includes(k.type)))
+  return (
+    <section>
+      <h1>What do you want on this server?</h1>
+      <p className="lead">Everything is on to begin with. Turn off what you’ll never use, so it stays out of your way. You can add and remove these any time in Settings, under Modules.</p>
+      <p className="muted oobe-hint">Nothing is downloaded now: all of this is already part of the server. Leaving something out only hides it, stops libraries of that kind being made, and stops it checking for updates. It doesn’t save disk space.</p>
+      {!report && !unavailable && <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}
+      {unavailable && <p className="muted oobe-hint">This build has no modules to choose from, so everything stays on.</p>}
+      <div className="oobe-mod-groups">
+        {shelves(choosable).map((g) => (
+          <section key={g.id} aria-label={g.title}>
+            <h2 className="oobe-type-head">{g.title}</h2>
+            <div className="oobe-mods">
+              {g.modules.map((m) => {
+                const on = !off.has(m.id)
+                return (
+                  <button key={m.id} type="button" role="switch" aria-checked={on} className={'oobe-mod' + (on ? ' on' : '')} onClick={() => toggle(m.id)}>
+                    <span className="ic">{m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />}</span>
+                    <span className="oobe-mod-text">
+                      <b>{m.name}</b>
+                      {m.summary && <span className="muted">{m.summary}</span>}
+                      {!!m.libraries?.length && <small>Brings: {m.libraries.map(kindName).join(', ')}</small>}
+                    </span>
+                    <span className={'set-switch' + (on ? ' on' : '')} aria-hidden="true"><i /></span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+      {noLibraries && <p className="warn-box oobe-mod-note" role="status">With everything off, you won’t be able to make any libraries until you add a module, on the next page or later in Settings. That’s fine if you’d rather decide later.</p>}
+      {err && <div className="error oobe-mod-note" role="alert">That choice wasn’t saved: {err} You can carry on and change it later in Settings.</div>}
+      <div className="oobe-actions">
+        <span />
+        <button type="button" className="btn primary big" disabled={saving} onClick={err ? onNext : save}>{saving ? 'Saving…' : err ? 'Continue anyway' : 'Continue'}</button>
+      </div>
+    </section>
+  )
+}
+
+function LibrariesStep({ added, onAdded, onBack, onNext, onKinds }: { added: Library[]; onAdded: (l: Library) => void; onBack: () => void; onNext: () => void; onKinds: (kinds: LibraryKind[]) => void }) {
   // While a kind is chosen (folder, then following podcasts) the panel has its
   // own Back and Add buttons; the wizard's Continue would be easy to hit by
   // mistake, so it waits until the panel is closed.
@@ -221,10 +297,11 @@ function LibrariesStep({ added, onAdded, onNext }: { added: Library[]; onAdded: 
       <p className="lead">Pick a kind of media, then the folder it's in. Add as many as you like; each becomes a library you can browse.</p>
       <LibrarySummary libs={added} title="Libraries you've made" />
       {!inPanel && <GroupingChoice value={grouping} onChange={changeGrouping} />}
-      <AddLibrary onAdded={onAdded} onPanel={setInPanel} existing={added} grouping={grouping} />
+      <AddLibrary onAdded={onAdded} onPanel={setInPanel} existing={added} grouping={grouping} setup onKinds={onKinds} />
       {!inPanel && (
         <div className="oobe-actions">
-          <span className="muted">{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>
+          <button type="button" className="btn ghost" onClick={onBack}>Back</button>
+          <span className="muted oobe-grow">{added.length ? 'Scanning starts right away in the background. Add another, or continue.' : 'You can also do this later in Settings.'}</span>
           <button type="button" className={'btn big ' + (added.length ? 'primary' : 'ghost')} onClick={onNext}>{added.length ? 'Continue' : 'Skip for now'}</button>
         </div>
       )}

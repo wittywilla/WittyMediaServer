@@ -248,8 +248,8 @@ type Session struct {
 	ItemID   int64
 	Path     string
 	m        *Manager
-	opened   *wittydvd.Opened
-	nav      *wittydvd.Nav
+	opened   *Engine
+	nav      Navigator
 	prefs    Prefs
 	key      string // stable per disc, for HLS/still cache ids
 
@@ -291,7 +291,7 @@ func randomID() string {
 // Open starts a session for a disc path.
 func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error) {
 	m.makeRoom()
-	o, err := wittydvd.Open(path)
+	o, err := openEngine(path)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
 		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
-	s.nav = wittydvd.NewNav(o.Disc, wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
+	s.nav = o.NewNav(wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
 	m.mu.Unlock()

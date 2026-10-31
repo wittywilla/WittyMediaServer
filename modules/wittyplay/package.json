@@ -1,0 +1,18 @@
+{
+  "name": "@wittywilla/wittyplay",
+  "version": "0.1.0",
+  "description": "The browser half of WittyPlay: a game player for streamed libretro games, with gamepad, keyboard and touch controls, a remap screen and a touch layout editor.",
+  "license": "Apache-2.0",
+  "author": "WittyWilla (https://github.com/wittywilla)",
+  "type": "module",
+  "main": "./web/index.ts",
+  "exports": {
+    ".": "./web/index.ts"
+  },
+  "files": ["web", "LICENSE", "NOTICE"],
+  "repository": "github:wittywilla/WittyPlay",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

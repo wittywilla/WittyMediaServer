@@ -11,6 +11,9 @@ import (
 
 const createNoWindow = 0x08000000
 
+// sandboxAvailable: this system can limit a helper, so a fork never runs without them.
+const sandboxAvailable = true
+
 func hideWindow(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | windows.BELOW_NORMAL_PRIORITY_CLASS}
 }
@@ -18,7 +21,7 @@ func hideWindow(cmd *exec.Cmd) {
 // prepareSandbox gives a helper a low-integrity token: it can read what the
 // account can read, and can't write to anything of the account's. If that fails
 // (older Windows, unusual accounts) the job in lockDown still applies.
-func prepareSandbox(cmd *exec.Cmd, log *slog.Logger) bool {
+func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool {
 	hideWindow(cmd)
 	tok, err := lowIntegrityToken()
 	if err != nil {
@@ -53,9 +56,17 @@ func lowIntegrityToken() (windows.Token, error) {
 	return tok, nil
 }
 
+func launchWith(launcher, program string, memoryMB int64, mode int, args []string) (string, []string) {
+	return program, args
+}
+
+// RunSandboxed is only used on Linux.
+func RunSandboxed(args []string) int { return 2 }
+
 // lockDown puts a started helper in a job: it dies with the server, has a memory
-// cap and can't start other programs. It does nothing until it is called, so
-// nothing has run outside the job.
+// cap and can't start other programs. This happens just after it starts, so for a moment
+// it is outside the job. Creating it suspended closes that gap, but on a real machine it
+// made helpers hang at random for half a minute, which is the worse of the two.
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() {
 	if t := cmd.SysProcAttr.Token; t != 0 {
 		_ = windows.Token(t).Close()

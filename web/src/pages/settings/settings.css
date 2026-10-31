@@ -153,6 +153,10 @@
 .set-type:hover { border-color: var(--border-strong); }
 .set-type.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .set-type:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.set-type.off { background: transparent; border-style: dashed; border-color: var(--border-strong); cursor: default; }
+.set-type.off .set-type-icon svg { color: var(--fg-3); }
+.set-type.off b, .set-type.off small { color: var(--fg-2); }
+.set-type.off a { color: var(--accent-text); text-decoration: underline; }
 .set-type-icon svg { width: 22px; height: 22px; color: var(--accent-text); margin-bottom: var(--sp-1); }
 .set-type b { font-size: var(--text-md); color: var(--fg); }
 .set-type small { font-size: var(--text-xs); color: var(--fg-3); font-weight: 400; line-height: 1.4; }

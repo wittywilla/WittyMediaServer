@@ -3,8 +3,12 @@
   "name": "WittyDisc",
   "version": "0.1.0",
   "repo": "wittywilla/WittyDisc",
-  "delivery": "builtin",
+  "delivery": "library",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "system",
+  "summary": "Reads DVD and Blu-ray images without mounting them. The disc modules are built on it.",
+  "core": true,
+  "updates": "Nothing on its own: new versions reach a server inside WittyDVD and WittyBluray."
 }

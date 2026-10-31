@@ -345,5 +345,8 @@ test('a server\'s page gets nothing new: the logs link is for the connect screen
   const [local, serverPage] = preload.split('} else {')
   assert.ok(local.includes('openLogs'))
   assert.ok(!serverPage.includes('openLogs'))
-  assert.ok(!serverPage.includes('exposeInMainWorld'), 'a server\'s page is given no bridge')
+  // Moonlight is all a server's page can ask for, and main.js checks that strictly.
+  for (const name of ['probe', 'recent', 'open-server', 'redeem', 'discover']) {
+    assert.ok(!serverPage.includes(name), `a server's page can't reach ${name}`)
+  }
 })

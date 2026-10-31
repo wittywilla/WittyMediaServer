@@ -6,6 +6,8 @@
 //	wittymodule pack [-out dir] -web <built> <folder>    pack a built web bundle and write the checksum list
 //	wittymodule sign [-key file] <file>                  write <file>.sig
 //	wittymodule keygen -key file                         make a signing key, for a fork; prints the public half
+//	wittymodule bump [-part p] [-note text] <folder>     raise its version everywhere; a bump isn't a release
+//	wittymodule needs-bump <folder>                      fail if it changed since its last tag with no new version
 //	wittymodule withdraw -list file [-severity s] -reason text <version>
 //	                                                     add a version to the signed list of withdrawn ones
 //	wittymodule restore -list file <version>             take one off it
@@ -53,6 +55,11 @@ func main() {
 	module := fs.String("module", "", "the plugin the list is for, when starting a new list")
 	severity := fs.String("severity", wittymodule.SeverityBroken, "broken warns; security refuses it, and stops it where it is in use")
 	reason := fs.String("reason", "", "why, in words people will read")
+	part := fs.String("part", "patch", "for bump: patch, minor or major")
+	to := fs.String("to", "", "for bump: this version exactly")
+	note := fs.String("note", "", "for bump: what changed, for the changelog")
+	changelog := fs.String("changelog", "", "for bump: the changelog to add the note to")
+	consumer := fs.String("consumer", "", "for bump: the server's folder, to raise what it requires")
 	_ = fs.Parse(os.Args[2:])
 	var err error
 	switch os.Args[1] {
@@ -68,6 +75,10 @@ func main() {
 		err = sign(*key, fs.Args())
 	case "keygen":
 		err = keygen(*key)
+	case "bump":
+		err = bump(*part, *to, *note, *changelog, *consumer, fs.Args())
+	case "needs-bump":
+		err = needsBump(fs.Args())
 	case "withdraw":
 		err = withdraw(*list, *module, *severity, *reason, fs.Args())
 	case "restore":
@@ -89,6 +100,8 @@ func usage() {
   wittymodule pack [-out dir] -web <built folder> <folder>
   wittymodule sign [-key file] <file>
   wittymodule keygen -key file
+  wittymodule bump [-part patch|minor|major] [-to version] [-note text] [-changelog file] [-consumer folder] <folder>
+  wittymodule needs-bump <folder>
   wittymodule withdraw -list file [-module id] [-severity broken|security] -reason text <version>
   wittymodule restore -list file <version>`)
 }

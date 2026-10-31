@@ -247,7 +247,7 @@ func cleanOptions(o ProfileOptions) (ProfileOptions, error) {
 	return out, nil
 }
 
-// Resolve picks the profile for a controller on a console and game. The most specific
+// ResolveProfile picks the profile for a controller on a console and game. The most specific
 // wins, and a game outranks a console, which outranks a controller:
 //
 //  1. this game and this controller
@@ -259,7 +259,7 @@ func cleanOptions(o ProfileOptions) (ProfileOptions, error) {
 //
 // With none of these the console's defaults apply. raw says the pad is one whose
 // numbers can't be put in standard order: only a profile of its own numbers can apply.
-func Resolve(list []Profile, kind, controller, console string, game int64, raw bool) *Profile {
+func ResolveProfile(list []Profile, kind, controller, console string, game int64, raw bool) *Profile {
 	var best *Profile
 	bestRank := 0
 	for i := range list {

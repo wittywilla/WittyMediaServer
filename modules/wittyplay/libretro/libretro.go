@@ -100,6 +100,8 @@ type Core struct {
 	fnMemData, fnMemSize, fnAVInfo, fnSysInfo, fnSetCtrl       uintptr
 	fnAPIVersion                                               uintptr
 
+	optionState
+
 	format   int
 	vars     map[string]*byte
 	varDirty bool
@@ -113,7 +115,7 @@ type Core struct {
 
 	hw         *hwState
 	hwRefused  bool
-	optionList []string
+	traceOptions []string
 
 	lastProblem string // the last thing the core complained about, for a failed load
 	problemLvl  int
@@ -618,9 +620,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetMaxUsers:
 		*(*uint32)(data) = engine.MaxPorts
 	case envGetCoreOptVersion:
-		// Version 0: the plain "label; a|b|c" option lists below, which every
-		// core falls back to.
-		*(*uint32)(data) = 0
+		// Version 2: labels for values, descriptions and categories. A core that only
+		// has an older list still uses it. See options.go.
+		*(*uint32)(data) = 2
 	case envSetVariables:
 		c.setVariables(data)
 	case envGetVariable:
@@ -662,9 +664,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetJITCapable:
 		*(*bool)(data) = true
 	case envGetAudioVideoEn:
-		*(*int32)(data) = 3 // both on
+		*(*int32)(data) = c.avEnable()
 	case envGetFastForwarding:
-		*(*bool)(data) = false
+		*(*bool)(data) = c.fastForward
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
@@ -673,7 +675,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetPreferredHW:
 		*(*uint32)(data) = hwOpenGLCore
 	default:
-		return false
+		return c.optionEnvironment(cmd, data)
 	}
 	return true
 }
@@ -735,8 +737,8 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			return
 		}
 		key := cString(v.key)
-		c.optionList = append(c.optionList, key+" = "+cString(v.value))
-		_, list, _ := strings.Cut(cString(v.value), "; ")
+		c.traceOptions = append(c.traceOptions, key+" = "+cString(v.value))
+		label, list, _ := strings.Cut(cString(v.value), "; ")
 		choices := strings.Split(list, "|")
 		val := choices[0]
 		if want, ok := c.options[key]; ok {
@@ -748,6 +750,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 		}
 		c.vars[key] = c.pin(val)
 		c.tracef("option %s = %s (%s)", key, val, list)
+		c.noteOption(key, label, choices, val)
 	}
 }
 

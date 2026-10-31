@@ -153,7 +153,7 @@ func onGetProc(name uintptr) uintptr {
 
 // OptionList is the core's options as it described them, for working out which
 // settings to pass it.
-func (c *Core) OptionList() []string { return c.optionList }
+func (c *Core) OptionList() []string { return c.traceOptions }
 
 // ProbeGPU makes an OpenGL context the way a game would and names the graphics
 // card behind it, or says why there isn't one.

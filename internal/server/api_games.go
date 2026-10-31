@@ -32,7 +32,7 @@ import (
 // docs/GAMING.md.
 
 func init() {
-	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB", "gamingMaxGpuSessions", "gamingResolution")
+	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB", "gamingMaxGpuSessions", "gamingResolution", "gamingMaxSpeed", "gamingRewindMB", "gamingRunAhead")
 	settingDefaults["gamingMaxSessions"] = "2"
 	settingDefaults["gamingMaxGpuSessions"] = "2"
 	settingDefaults["gamingRunner"] = "auto"
@@ -61,6 +61,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
 	m.Handle("DELETE /api/gaming/unpacked", s.requireAdmin(s.handleUnpackedClear))
+	s.gameOptionRoutes(m)
 }
 
 // gameService is built the first time anything needs it, so a server nobody
@@ -484,8 +485,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Resume bool   `json:"resume"`
-		Client string `json:"client"` // browser, or anything else for a native app
+		Resume   bool   `json:"resume"`
+		Client   string `json:"client"`   // browser, or anything else for a native app
+		SafeMode bool   `json:"safeMode"` // with default settings, no cheats and no patches
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -508,7 +510,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	corePath := ipc.TestCore
+	corePath, coreID := ipc.TestCore, "test"
 	var coreOptions map[string]string
 	var fallbacks []stream.CoreChoice
 	var runnerArgs []string
@@ -532,7 +534,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 			return
 		}
-		corePath = core.Path
+		corePath, coreID = core.Path, core.ID
 		gpu = wittyplay.Traits(core.ID).GPU
 		runnerArgs = wittyplay.RunnerArgs(core.ID)
 		resolution := s.DB.GetSetting(ctx, "gamingResolution", "")
@@ -600,15 +602,17 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
 	userID := userFrom(r).ID
-	sess, err := g.mgr.Start(stream.Options{
+	opts := stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
-		GPU: gpu, RunnerArgs: runnerArgs, CoreOptions: coreOptions, Fallbacks: fallbacks,
+		GPU: gpu, RunnerArgs: runnerArgs, CoreID: coreID, CoreOptions: coreOptions, Fallbacks: fallbacks,
 		PreferDevices: wittyplay.Pad(console.ID).PreferDevices,
-	})
+	}
+	s.applyGameSettings(ctx, &opts, it, console, coreID, b.SafeMode)
+	sess, err := g.mgr.Start(opts)
 	if err != nil {
-		if cleanup != nil {
-			cleanup() // it may never have got as far as a session that would
+		if opts.Cleanup != nil {
+			opts.Cleanup() // it may never have got as far as a session that would
 		}
 		if errors.Is(err, stream.ErrBusy) || errors.Is(err, stream.ErrGPUBusy) {
 			writeErr(w, 503, err.Error())
@@ -623,6 +627,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
+	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
+		s.Log.Warn("recording a play", "err", err)
+	}
 	info := sess.Info()
 	info.Modes = g.mgr.Modes(gameClient(b.Client))
 	writeJSON(w, 201, info)
@@ -809,11 +816,14 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Type   string `json:"type"`
-		Slot   int    `json:"slot"`
-		On     bool   `json:"on"`
-		Port   int    `json:"port"`
-		Device uint32 `json:"device"`
+		Type   string  `json:"type"`
+		Slot   int     `json:"slot"`
+		On     bool    `json:"on"`
+		Value  float64 `json:"value"`
+		Key    string  `json:"key"`
+		Text   string  `json:"text"`
+		Port   int     `json:"port"`
+		Device uint32  `json:"device"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -837,6 +847,20 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.ChangeDisc(b.Slot)
 	case "device":
 		err = sess.SetDevice(b.Port, b.Device)
+	case "speed":
+		var held float64
+		if held, err = sess.SetSpeed(b.Value); err == nil {
+			writeJSON(w, 200, map[string]any{"ok": true, "speed": held})
+			return
+		}
+	case "rewind":
+		err = sess.SetRewinding(b.On)
+	case "advance":
+		err = sess.Advance(max(int(b.Value), 1))
+	case "undo":
+		err = sess.Undo(r.Context())
+	case "option":
+		err = sess.SetOption(b.Key, b.Text)
 	default:
 		writeErr(w, 400, "unknown action")
 		return
@@ -849,10 +873,11 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 }
 
 type saveSlot struct {
-	Slot      int   `json:"slot"`
-	UpdatedAt int64 `json:"updatedAt"`
-	Size      int64 `json:"size"`
-	HasThumb  bool  `json:"hasThumb"`
+	Slot      int    `json:"slot"`
+	UpdatedAt int64  `json:"updatedAt"`
+	Size      int64  `json:"size"`
+	HasThumb  bool   `json:"hasThumb"`
+	Core      string `json:"core,omitempty"` // the core that made it, when known
 }
 
 func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
@@ -862,15 +887,27 @@ func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dir := s.games().saveDir(userFrom(r).ID, it.ID)
+	// One look at the folder, rather than asking after every slot there could be.
+	found := map[string]os.FileInfo{}
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, e := range entries {
+			if info, err := e.Info(); err == nil && !e.IsDir() {
+				found[e.Name()] = info
+			}
+		}
+	}
 	out := []saveSlot{}
-	for slot := 0; slot <= 9; slot++ {
-		name, _ := stream.SlotName(slot)
-		st, err := os.Stat(filepath.Join(dir, name+".state"))
+	for slot := 0; slot <= stream.SlotPrevAuto; slot++ {
+		name, err := stream.SlotName(slot)
 		if err != nil {
 			continue
 		}
-		_, terr := os.Stat(filepath.Join(dir, name+".png"))
-		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: terr == nil})
+		st, ok := found[name+".state"]
+		if !ok {
+			continue
+		}
+		_, thumb := found[name+".png"]
+		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: thumb, Core: slotCore(dir, name)})
 	}
 	writeJSON(w, 200, out)
 }
@@ -914,6 +951,7 @@ func (s *Server) handleGameSaveDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	dir := s.games().saveDir(userFrom(r).ID, it.ID)
 	_ = os.Remove(filepath.Join(dir, name+".png"))
+	_ = os.Remove(filepath.Join(dir, name+".json"))
 	if err := os.Remove(filepath.Join(dir, name+".state")); err != nil {
 		writeErr(w, 404, "not found")
 		return

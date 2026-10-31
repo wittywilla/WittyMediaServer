@@ -23,6 +23,61 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - For apps: `/items/{id}/playback` plays stations, and new routes under `/radio` (see
   [CLIENT-API.md](docs/CLIENT-API.md#internet-radio)).
 - **Fixed:** listeners who weren't administrators were sent each station's address, which can hold a private key.
+### WittyPlay: make a game yours
+
+Everything here is per person, can be set for all games, a console or one game, and is kept on the server, so it
+follows you. See [GAMING.md](docs/GAMING.md).
+
+- **The picture, drawn on your device:** scanlines, CRT curve, phosphor pattern, glow, dark corners, an LCD grid,
+  frame blend, sharp, pixel or smooth scaling, whole-number scale, shape (as the game says, 4:3, 16:9, square
+  pixels, fill, custom), overscan crop, rotation, and colour, brightness, contrast and gamma. A colour or your own
+  image around the picture, with presets to start from and a live preview. Effects cost the server nothing and add
+  almost no delay. With no effect on, nothing at all sits between the video and the screen. Without WebGL, CSS
+  does what it can. The one effect that flickers is off by default, says so, and stays off for anyone whose device
+  asks for reduced motion.
+- **On-screen numbers:** frames shown and frames run, network delay, encode time, bitrate, drops, resolution, core
+  and encoder, in the corner you choose. Off by default.
+- **Speed:** frame skip (automatic or fixed), fast-forward (hold or toggle), slow motion, pause and frame advance,
+  rewind, run-ahead, and pausing when the tab is hidden. Fast-forward sends no more pictures than normal, so the
+  encoder doesn't pay for it. An administrator sets the fastest speed and rewind's memory, and rewind and
+  run-ahead back off or turn themselves off, saying so, on a machine that can't spare the time.
+- **Sound:** volume, mute and a buffer size against crackling.
+- **States:** 99 slots with pictures and dates, quick save and load, undo a load, automatic save on exit, and a
+  choice of resuming always, never or on offer. Starting over now keeps the old automatic save. States and battery
+  saves can be downloaded and imported, with what comes in checked.
+- **Screenshots and short clips**, saved to your device.
+- **Cheats**, through the core's cheat interface, typed in or from your own file. **IPS and BPS patches** of your
+  own, applied to a copy when the game starts. Nothing is bundled.
+- **Core options:** every option a core really has, with its own names and descriptions, in its categories, in the menu and on the
+  settings page, changing the running game. Options a core hides because they don't apply stay out of the way.
+- **Custom settings in JSON:** edit, import, export and share a settings file, to set anything a core offers, and
+  to define your own presets and controls: a toggle, slider or choice with your own label. Mistakes are shown at
+  their line, with the list of what the core accepts beside them. Anything unknown is listed as ignored. A file
+  can't run anything, name files or reach the network, and imports are limited in size, depth and count.
+- **Safe mode:** start with defaults, from the game's page or the error when a game won't start, so that no setting
+  can lock you out of a game.
+- **Shortcuts:** from the keyboard, from a controller by holding Select and pressing another button, and from
+  on-screen buttons on a phone. All can be changed. The game menu holds everything above, and works with a
+  controller, a TV remote and touch.
+- **The game's page:** favourites, your own notes, play count, last played, and a resume banner with a picture.
+  Administrators can set what everyone starts with.
+
+### More reliable
+
+- **Games stay playable on a busy Windows server.** The game runner used to run at below-normal priority, and Windows gives that next to
+  nothing while other programs are busy: a game could fail with "took too long to load", or crawl at one frame a second. It now runs at
+  normal priority there, and shares the machine fairly with a transcode.
+- **Save pictures and your own images load in apps that can't send a sign-in cookie.**
+
+### Lower delay
+
+- **Games on the software encoder lost about a quarter of a second of delay** on machines with many cores: it was
+  holding back a frame for each of its threads. The new encode-time number showed it.
+
+### For client developers
+
+- API 1.4: game settings, cheats, patches, images, saved-file transfer and session numbers, listed in
+  [GAMING-API.md](docs/GAMING-API.md). Nothing about them lives only in the browser.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

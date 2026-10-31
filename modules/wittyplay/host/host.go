@@ -30,6 +30,7 @@ func Run(in io.Reader, out io.Writer, open Open) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	r := &runner{out: out}
+	r.ctl = newControl(r)
 	err := r.run(in, open)
 	if err != nil && !errors.Is(err, io.EOF) {
 		_ = ipc.Write(out, ipc.MsgError, []byte(err.Error()))
@@ -53,11 +54,21 @@ type runner struct {
 	stop  bool
 	fps   float64 // a new frame rate the game has asked for
 	muted bool    // these frames are only to get a core ready, and nobody should see them
+	ctl   *control
 
 	rumble map[[2]int]int // what each motor was last told
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
+	if (r.ctl.dropVideo && (t == ipc.MsgVideo || t == ipc.MsgDupe)) || (r.ctl.dropAudio && t == ipc.MsgAudio) {
+		return
+	}
+	r.send(t, parts...)
+}
+
+// send writes whatever it's given. A frame a graphics card drew comes from another
+// goroutine, already past the check write makes, so it starts here.
+func (r *runner) send(t byte, parts ...[]byte) {
 	r.outMu.Lock()
 	defer r.outMu.Unlock()
 	if r.writeE == nil {
@@ -116,7 +127,7 @@ func (f *frameSender) loop(r *runner) {
 		f.next, f.spare = f.spare, nil
 		f.waiting = false
 		f.mu.Unlock()
-		r.write(ipc.MsgVideo, frame)
+		r.send(ipc.MsgVideo, frame)
 		f.mu.Lock()
 		f.spare = frame
 	}
@@ -137,10 +148,10 @@ func (r *runner) event(e ipc.Event) {
 }
 
 func (r *runner) handlers() engine.Handlers {
-	return engine.Handlers{
+	return r.ctl.wrap(engine.Handlers{
 		Video: func(data []byte, w, h, stride, format int) {
 			row := w * engine.BytesPerPixel(format)
-			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+			if r.muted || r.ctl.dropVideo || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
 				return
 			}
 			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
@@ -151,7 +162,7 @@ func (r *runner) handlers() engine.Handlers {
 		},
 		VideoFlipped: func(data []byte, w, h, stride, format int) {
 			row := w * engine.BytesPerPixel(format)
-			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+			if r.muted || r.ctl.dropVideo || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
 				return
 			}
 			r.frames.offer(r, func(buf []byte) []byte {
@@ -205,7 +216,7 @@ func (r *runner) handlers() engine.Handlers {
 			r.event(ipc.Event{Type: "avinfo", Width: a.BaseWidth, Height: a.BaseHeight, Aspect: a.Aspect, FPS: a.FPS, Rate: a.SampleRate})
 		},
 		Shutdown: func() { r.event(ipc.Event{Type: "shutdown"}); r.stop = true },
-	}
+	})
 }
 
 type command struct {
@@ -295,6 +306,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 		return err
 	}
 	defer eng.Close()
+	r.ctl.eng = eng
+	if load.Probe {
+		r.ctl.sendOptions()
+		return r.writeE
+	}
 	av, err := eng.LoadGame(load.ROM)
 	if err != nil {
 		return err
@@ -314,9 +330,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 	}
 	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount, Renderer: renderer,
 		Devices: plugInDevices(eng, load.PreferDevices)})
+	r.ctl.sendOptions()
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
+	r.ctl.frameTime = frame
 	next := time.Now()
 	// A state can't always be restored before a core has run. Some cores say so, some
 	// refuse, and some accept it and then start the game from the beginning on the
@@ -355,10 +373,12 @@ func (r *runner) run(in io.Reader, open Open) error {
 			case !eng.LoadState(c.p):
 				r.event(ipc.Event{Type: "statefail"})
 			}
+			r.ctl.stateChanged()
 		case ipc.CmdSaveState:
 			r.write(ipc.MsgState, c.p, snapshot())
 		case ipc.CmdReset:
 			eng.Reset()
+			r.ctl.stateChanged()
 		case ipc.CmdDisc:
 			if discs != nil && len(c.p) > 0 {
 				if !discs.ChangeDisc(int(c.p[0])) {
@@ -367,6 +387,8 @@ func (r *runner) run(in io.Reader, open Open) error {
 				i, n := discs.Disc()
 				r.event(ipc.Event{Type: "disc", Index: i, Count: n})
 			}
+		case ipc.CmdControl, ipc.CmdOption, ipc.CmdCheats:
+			r.ctl.command(c.t, c.p)
 		case ipc.CmdPause:
 			paused = len(c.p) > 0 && c.p[0] != 0
 			next = time.Now()
@@ -392,7 +414,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 		if err := r.writeErr(); err != nil {
 			return err
 		}
-		if paused {
+		if paused && !r.ctl.wantsFrame() {
 			c, ok := <-cmds
 			if !ok {
 				return <-readErr
@@ -416,10 +438,10 @@ func (r *runner) run(in io.Reader, open Open) error {
 				break drain
 			}
 		}
-		if paused {
+		if paused && !r.ctl.wantsFrame() {
 			continue
 		}
-		eng.Run()
+		r.ctl.runFrame()
 		framesRun++
 		r.pads.frameDone()
 		if settle > 0 {
@@ -434,6 +456,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 		}
 		if r.fps > 0 && r.fps <= 240 {
 			frame = time.Duration(float64(time.Second) / r.fps)
+			r.ctl.frameTime = frame
 			r.fps = 0
 		}
 		if len(r.audio) > 0 {
@@ -447,11 +470,16 @@ func (r *runner) run(in io.Reader, open Open) error {
 				r.write(ipc.MsgSaveRAM, ram)
 			}
 		}
-		next = next.Add(frame)
 		now := time.Now()
+		if paused { // a frame advanced by hand keeps to no schedule
+			next = now
+			continue
+		}
+		next = next.Add(time.Duration(float64(frame) / r.ctl.pace()))
+		r.ctl.lag = 0
 		if d := next.Sub(now); d > 0 {
 			time.Sleep(d)
-		} else if d < -5*frame {
+		} else if r.ctl.lag = -d; d < -5*frame {
 			next = now // too far behind to catch up: the machine is overloaded
 		}
 	}

@@ -983,6 +983,29 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /game-background` | user | Removes the picture. |
 | `GET /game-background/image` | user | This account's own picture. |
 | `PUT /game-background/image` | user | Uploads a picture as the body: PNG, JPEG or WebP, up to 10 MB. |
+| `GET /games/settings/schema` | user | Describe every game setting: its kind, range, default and caution. |
+| `GET /games/settings` | user | A person's settings for a game (?item=) or console (?console=): effective values, where each came from, every level, and the server's limits. |
+| `PUT /games/settings` | user | Change one level: a patch (null removes a value), a whole settings file, or a reset. Server levels need an administrator. |
+| `POST /games/settings/validate` | user | Check a settings file without saving it: errors and ignored things, by line. |
+| `GET /games/recent` | user | A person's most recently played games, or favourites with ?favourites=1, with play counts. |
+| `GET /game-bezels` | user | A person's own images for around the picture. |
+| `POST /game-bezels` | user | Add an image, as the request body. PNG, JPEG or WebP, decoded and made again. |
+| `GET /game-bezels/{bezel}` | user | One of a person's images, as a PNG. |
+| `DELETE /game-bezels/{bezel}` | user | Remove one of a person's images. |
+| `GET /games/{id}/core-options` | user | What this game's core offers, what's chosen, and what it will ignore. |
+| `GET /games/{id}/meta` | user | What a person keeps about a game: favourite, note, play count, last played. |
+| `PUT /games/{id}/meta` | user | Change a game's favourite mark or note. |
+| `GET /games/{id}/cheats` | user | A person's cheat codes for a game. |
+| `PUT /games/{id}/cheats` | user | Replace a person's cheat codes for a game. A running game takes them at once. |
+| `POST /games/{id}/cheats/import` | user | Read a cheat file, as the request body, and say what's in it. Nothing is kept. |
+| `GET /games/{id}/patches` | user | A person's IPS and BPS patches for a game. |
+| `POST /games/{id}/patches` | user | Add a patch, as the request body, with ?name=. Applied to a copy when the game starts. |
+| `PUT /games/{id}/patches/{patch}` | user | Turn a patch on or off. |
+| `DELETE /games/{id}/patches/{patch}` | user | Remove a patch. |
+| `GET /games/{id}/saves/{slot}/file` | user | Download a saved state, with a header that an import checks. |
+| `PUT /games/{id}/saves/{slot}/file` | user | Put a state file into a slot, as the request body. Slots 1 to 99. |
+| `GET /games/{id}/battery` | user | Download a game's battery save. |
+| `PUT /games/{id}/battery` | user | Replace a game's battery save, as the request body. Refused while it's being played. |
 
 ### Photos
 
@@ -1109,6 +1132,8 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /play/{sid}/webrtc` | user | Play web RTC. |
 | `GET /play/{sid}/ws` | user | Play WS. |
 | `POST /play/{sid}/action` | user | Play action. |
+| `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
+| `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |
 | `GET /gaming` | admin | Gaming. |
 | `POST /gaming/cores/{id}/install` | admin | Core install. |
 | `DELETE /gaming/cores/{id}` | admin | Core remove. |

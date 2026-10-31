@@ -64,7 +64,9 @@ func main() {
 		}
 		runErr = host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
 			if l.Core == ipc.TestCore {
-				return testcore.New(h), nil
+				c := testcore.New(h)
+				c.ApplyOptions(l.Options)
+				return c, nil
 			}
 			c, err := libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
 			if err != nil {

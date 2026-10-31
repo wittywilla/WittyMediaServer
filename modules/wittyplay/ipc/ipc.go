@@ -43,6 +43,9 @@ const (
 	CmdDisc      byte = 72 // one byte: the disc to change to, from 0
 	CmdPointer   byte = 73 // PointerSize bytes: a touch screen or mouse
 	CmdDevice    byte = 80 // DeviceSize bytes: plug a kind of controller into a port
+	CmdControl   byte = 96 // JSON: Control; how the game runs
+	CmdOption    byte = 97 // JSON: OptionSet; a core option, only ever one the core offered
+	CmdCheats    byte = 98 // JSON: []Cheat; the whole list, replacing what was there
 )
 
 // Size limits. MaxVideoFrame is far above what a console produces (4K at four
@@ -61,7 +64,7 @@ func limit(t byte) int {
 		return MaxVideoFrame + VideoHeaderSize
 	case MsgAudio:
 		return MaxAudio
-	case MsgReady, MsgEvent, MsgError, CmdLoad:
+	case MsgReady, MsgEvent, MsgError, CmdLoad, CmdControl, CmdOption, CmdCheats:
 		return MaxJSON
 	case MsgState, MsgSaveRAM, CmdSaveRAM, CmdState:
 		return MaxBlob
@@ -156,6 +159,9 @@ type Load struct {
 	Trace   bool              `json:"trace,omitempty"` // send everything the core says as log events; for wittyplay-check
 	// PreferDevices names the controller to plug in, by words in its name, best first.
 	PreferDevices []string `json:"preferDevices,omitempty"`
+	// Probe asks only which options the core offers: the runner sends them and exits
+	// without a game. ROM is empty then.
+	Probe bool `json:"probe,omitempty"`
 }
 
 // TestCore is the Load.Core value for the built-in test core.
@@ -192,7 +198,7 @@ type DeviceType struct {
 
 // Event is something a player should be told about.
 type Event struct {
-	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | statefail | trace | disc
+	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | options | stats | statefail | frame | trace | disc
 	Port     int     `json:"port,omitempty"`
 	Effect   int     `json:"effect,omitempty"`
 	Strength int     `json:"strength,omitempty"`
@@ -206,6 +212,82 @@ type Event struct {
 	Rate     float64 `json:"rate,omitempty"`
 	Index    int     `json:"index,omitempty"`
 	Count    int     `json:"count,omitempty"`
+	// Options is every option the core offers, for "options".
+	Options []Option `json:"options,omitempty"`
+	// Stats comes once a second while a game runs, for "stats".
+	Stats *RunStats `json:"stats,omitempty"`
+}
+
+// Option is one setting a core offers. The first choice is the core's default.
+type Option struct {
+	Key      string   `json:"key"`
+	Label    string   `json:"label"`
+	Info     string   `json:"info,omitempty"`
+	Category string   `json:"category,omitempty"`
+	Choices  []string `json:"choices"`
+	Labels   []string `json:"labels,omitempty"` // the name of each choice, when it has one
+	Default  string   `json:"default,omitempty"`
+	Value    string   `json:"value"`
+	Hidden   bool     `json:"hidden,omitempty"` // the core says it doesn't apply just now
+}
+
+// OptionSet changes one option. A runner ignores a key the core didn't offer or a
+// value it didn't list, so this can't reach anything else.
+type OptionSet struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// Cheat is one code as a core's cheat interface takes it.
+type Cheat struct {
+	Code    string `json:"code"`
+	Enabled bool   `json:"enabled"`
+}
+
+// Control changes how a game runs. Only what is present changes.
+type Control struct {
+	Speed         *float64 `json:"speed,omitempty"`         // 1 is normal; SpeedMin to SpeedMax
+	FrameSkip     *int     `json:"frameSkip,omitempty"`     // FrameSkipAuto, 0 for none, or how many to skip after each shown
+	RewindBytes   *int64   `json:"rewindBytes,omitempty"`   // memory rewind may use; 0 turns it off
+	RewindSeconds *int     `json:"rewindSeconds,omitempty"` // how far back to keep
+	Rewinding     *bool    `json:"rewinding,omitempty"`     // going backwards now
+	RunAhead      *int     `json:"runAhead,omitempty"`      // frames; 0 to RunAheadMax
+	Advance       *int     `json:"advance,omitempty"`       // frames to run while paused
+}
+
+// Save slots: 0 is automatic and 1 to MaxStateSlot belong to a person. The other two
+// are kept for mistakes: what was running before the last load, and the automatic save
+// that starting over would have replaced.
+const (
+	MaxStateSlot = 99
+	SlotUndo     = 100
+	SlotPrevAuto = 101
+)
+
+// Limits on what's said about a core's options.
+const (
+	MaxOptionKey   = 128
+	MaxOptionValue = 128
+)
+
+// Limits a runner holds to whatever it's told.
+const (
+	SpeedMin       = 0.1
+	SpeedMax       = 16.0
+	FrameSkipAuto  = -1
+	FrameSkipMax   = 8
+	RunAheadMax    = 3
+	RewindBytesMax = 512 << 20
+	AdvanceMax     = 60
+)
+
+// RunStats says what a runner did over the last second.
+type RunStats struct {
+	Ran          int   `json:"ran"`                    // frames the game ran
+	Shown        int   `json:"shown"`                  // of those, how many were sent
+	Skipped      int   `json:"skipped"`                // left out to keep up or on request
+	RewindBytes  int64 `json:"rewindBytes,omitempty"`  // memory rewind holds
+	RewindFrames int   `json:"rewindFrames,omitempty"` // steps back it holds
 }
 
 // VideoHeader starts a MsgVideo payload.

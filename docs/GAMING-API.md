@@ -311,6 +311,77 @@ solid backing under any text on top.
 and 24 megapixels. The server decodes it and stores a new JPEG of up to 2560 pixels, so nothing but the picture survives, and
 answers the setting. A file that isn't one of those answers 400. `DELETE /game-background` removes it. All of these are for
 the signed-in account only, as they take no account number.
+## Settings
+
+Everything in the game menu is on the server, so an app doesn't have to invent any of it.
+
+| Route | What it does |
+|---|---|
+| `GET /games/settings/schema` | Every setting: `key`, `group`, `section`, `label`, `help`, `caution`, `kind` (`toggle`, `choice`, `slider`, `color`, `bezel`), `default`, `min`, `max`, `step`, `unit`, `choices`, `shader`, `motion`. Also `presets` to offer, and the save slot numbers |
+| `GET /games/settings?item=<id>` or `?console=<id>` | `resolved` (`values`, `sources`, `coreOptions`, `coreSources`, `controls`, `presets`), `layers` by level, and `limits` (`maxSpeed`, `rewindBytes`, `runAhead`) |
+| `PUT /games/settings` | Change one level, and get the same view back |
+| `POST /games/settings/validate` | Check a settings file: `{"document": "...", "item": 12}` gives `{"ok", "report": {"errors", "ignored"}, "layer"}`. Each issue has `line`, `column`, `path` and `message` |
+
+A `PUT` has a `level` (`person`, `console`, `game`, or for an administrator `server`, `serverConsole`), the `item` or
+`console` it's about, and one of:
+
+```json
+{"level": "console", "item": 12, "settings": {"display.scanlines": 0.4, "display.curve": null}, "coreOptions": {"fceumm_sndquality": "High"}}
+{"level": "game", "item": 12, "document": "{ \"wittyplay\": 1, ... }"}
+{"level": "game", "item": 12, "reset": true}
+```
+
+`null` removes a value, so the level below shows through. What can't be used comes back in `ignored`, and the rest is
+applied. A `document` replaces the whole level, or changes nothing and answers 422 with its `report`. A running game of
+this person's hears about changes straight away.
+
+What an app has to apply itself is the `display.*`, `osd.*` and `audio.*` groups, because they happen on the device. The
+`emulation.*` group and core options take effect on the server. `states.autoSave` does too; `states.resume` is for the
+app to act on when opening a game.
+
+## While a game is running
+
+`POST /play/{id}/action` takes these as well, as `{"type", "slot", "on", "value", "key", "text"}`:
+
+| `type` | With | What it does |
+|---|---|---|
+| `speed` | `value` | 1 is normal, down to 0.1 and up to the server's limit. Answers with the `speed` it was held to. Sound stops while it isn't 1 |
+| `rewind` | `on` | Go backwards while on. Refused with a message when rewind isn't turned on |
+| `advance` | `value` | Run this many frames while paused |
+| `undo` | | Go back to before the last load. Pressing it again goes forward |
+| `option` | `key`, `text` | Set one core option now, without saving it |
+
+Save and load take slots 1 to 99, and load also takes 0 (automatic), 100 (from before the last load) and 101 (the
+automatic save from before starting over). `GET /games/{id}/saves` lists what exists, with the `core` that made each.
+
+Events also bring `frame`, with the `width` and `height` of what the core really draws, whenever that changes. `GET
+/play/{id}` says the same once a picture exists. What a client draws on top needs this, because the video may be
+scaled on the way and the size in the first answer is only what the core expected.
+
+`GET /play/{id}/stats` gives `gameFps`, `sentFps`, `skipped`, `encodedFps`, `encodeMs`, `kbps`, `droppedFrames`, `width`,
+`height`, `core`, `encoder`, `speed`, `paused`, `rewindBytes` and `rewindFrames`. Ask at most once a second, and only
+while showing them. `GET /play/{id}/screenshot` gives a PNG with no effects on it.
+
+`GET /games/{id}/core-options` lists each option with `key`, `label`, `info`, `category`, `choices`, `labels` (the name of each choice),
+`default` and `hidden` (the core says it doesn't apply just now, so leave it out of a menu).
+
+`POST /games/{id}/play` also takes `"safeMode": true`: defaults only, no cheats, no patches. Its answer has `safeMode`,
+`maxSpeed`, and `notices` to show, such as a patch that wasn't applied.
+
+## A person's own files
+
+All of these are private to the person. Files go as the request body. A loader that can't add a header, such as an image
+tag or a download link, can put the sign-in in the address as `?token=` on these reading routes only: a save's `thumb` and
+`file`, `battery`, one image from `game-bezels`, and `play/{id}/screenshot`.
+
+| Route | Limits |
+|---|---|
+| `GET`, `PUT /games/{id}/saves/{slot}/file` | 256 MB. Slots 1 to 99 to put. A file with our header is checked, a plain one gets a `warning` |
+| `GET`, `PUT /games/{id}/battery` | 64 MB. Refused with 409 while that person is playing it |
+| `GET`, `POST /games/{id}/patches?name=`, `PUT`, `DELETE /games/{id}/patches/{patch}` | IPS or BPS, 64 MB, 16 to a game. They take effect when the game next starts |
+| `GET`, `PUT /games/{id}/cheats`, `POST /games/{id}/cheats/import` | 500 codes. Import reads a file and says what's in it, and only `PUT` keeps anything |
+| `GET`, `POST /game-bezels?name=`, `GET`, `DELETE /game-bezels/{bezel}` | PNG, JPEG, WebP, 16 MB, 16 MP, 16 images. Decoded and made again |
+| `GET`, `PUT /games/{id}/meta`, `GET /games/recent` | `favourite`, `note` (8 KB). `recent` takes `limit` and `favourites=1`, and gives `item`, `plays`, `lastPlayed`, `favourite` |
 
 ## What a TV app must build itself
 

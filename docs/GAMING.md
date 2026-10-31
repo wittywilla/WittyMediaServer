@@ -226,7 +226,8 @@ step in the player's settings.
   Quick Sync, VideoToolbox, AMF, VAAPI), then `libx264`, then `libopenh264`, then `libvpx`. A
   failed start falls through to the next one.
 - **Settings:** no B-frames, no lookahead, a keyframe every second so a lost packet heals quickly,
-  and the fastest preset of each encoder.
+  and the fastest preset of each encoder. `libx264` uses sliced threads, because frame threads hold back
+  a frame per thread: about 250 ms on a machine with many cores.
 - **Sharp pixels:** retro games are small and 4:2:0 chroma smears pixel art, so frames up to 400
   pixels wide are doubled with nearest-neighbour before encoding. On a server with fewer than
   four CPU threads and no hardware encoder they are not doubled. The source resolution is so low
@@ -244,6 +245,11 @@ The host runs at below-normal priority so a game never starves a film being tran
 for games on a graphics card and the Nintendo DS, which run at normal priority. At below-normal,
 a real PSP game got a sixteenth of a core and 2 frames a second on a machine only 77% busy, which
 isn't a game. Audio costs about 1% of a core.
+On Linux and macOS the host runs at a slightly lower priority, so a film being transcoded comes
+first without the game being starved. Windows has no such gentle setting: below-normal gets next
+to nothing while other programs are busy (one game measured 1 frame a second, against 61 at normal,
+with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a
+software-rendered core uses about one CPU core. Audio costs about 1% of a core.
 
 The in-browser mode below is the answer for servers that can't keep up.
 
@@ -344,15 +350,150 @@ earlier and then start the game from the beginning anyway.
 Everything is stored per account under the data folder:
 
 ```
-gaming/saves/u<user id>/i<item id>/save.srm      battery save
-                                   auto.state    written when you stop; resumes next time
-                                   state-1…9.state  manual slots, each with a .png thumbnail
+gaming/saves/u<user id>/i<item id>/save.srm       battery save
+                                   auto.state     written when you stop; resumes next time
+                                   state-1…99.state  manual slots, each with a .png picture and a .json
+                                   undo.state     the game as it was before the last load
+                                   autoprev.state the automatic save that starting over would have replaced
+                                   patches/p<n>.patch  a person's patches
 ```
 
-Paths are built only from numeric IDs and a slot number between 0 and 9. Clients can't upload save
-files. The host sends the bytes over its pipe, and the server writes them atomically, so a host
-that has been exploited can't choose a path. Battery saves are written every 30 seconds when they
-have changed, and on stop.
+Paths are built only from numeric IDs and a slot number. The host sends the bytes over its pipe, and the server
+writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written every 30
+seconds when they have changed, and on stop. One game's folder can hold 4 GB for one account, and a save that would
+go over is refused with a message, rather than failing later.
+
+A person can download a state or a battery save and put one back. An exported state has a small header with the
+console, the core, its size and a checksum, and an import checks all of them. A plain state file from elsewhere is
+taken with a warning: nothing can vouch for it, and it's only ever read by a core inside its sandbox. A state that
+won't load leaves the game as it was and says so, and Undo load is always there.
+
+## Settings
+
+Settings are described once, as data, in `modules/wittyplay/settings.go`: a key, a kind, a range, a default, a label
+and any caution. The server checks values against that, and every client draws its controls from it
+(`GET /api/games/settings/schema`). A new setting is a line in that table, plus whatever uses it.
+
+### Levels
+
+Values live in layers. The most specific one that has a value wins, one key at a time:
+
+| Level | Who can set it | Stored in |
+|---|---|---|
+| Built-in default | Nobody | `settings.go` |
+| Everyone on this server | An administrator | The `settings` table, `gamingDefaults` |
+| Everyone, one console | An administrator | The `settings` table, `gamingDefaults.<console>` |
+| All of a person's games | That person | `wittyplay_settings` |
+| A person's games on one console | That person | `wittyplay_settings` |
+| One game, for one person | That person | `wittyplay_settings` |
+
+Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward
+(`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`).
+Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
+
+Stored values are checked again when they're used, so a value that's stopped being valid is ignored and a game
+still starts. Reading settings never fails a start: anything unreadable counts as nothing set.
+
+### Where each thing runs
+
+| What | Where | Cost to a server |
+|---|---|---|
+| Picture effects, shape, crop, colour, bezels | The browser | None |
+| On-screen numbers | The browser, asking `GET /play/{id}/stats` once a second while on | A few counters |
+| Volume, mute, sound buffer | The browser | None |
+| Fast-forward, slow motion, frame skip, frame advance | The runner | Fast-forward runs the core faster, and sends no more pictures than normal |
+| Rewind, run-ahead | The runner | Real, so off by default and limited |
+| Core options, cheats | The core, through its own interfaces | None |
+| Patches | The server, once, when a game starts | A file read and write |
+
+### The picture
+
+`web/display.ts` and `web/layout.ts`. With no effect on, the transport's video element is on the page by itself, which
+is as fast as a browser can show anything. Colour is a CSS filter. Turning on an effect that needs a shader puts a
+canvas over the video and draws each frame on it the moment it's decoded, using `requestVideoFrameCallback`, so
+nothing waits for a timer. The shader is our own, about 60 lines. Its only uniforms are numbers from the settings.
+
+- **Without WebGL**, or when a context is lost, CSS lays scanlines and the grid over the picture and does colour.
+  The context coming back restores the shader. The player never stops for this.
+- **Flicker** is the one effect that changes on its own. It's capped at a small part of the brightness, is off by
+  default, carries a caution, and is forced off under `prefers-reduced-motion`. Fast-forward carries a caution too.
+- **A person's image** is decoded in Go, must be PNG, JPEG or WebP and within 16 MP and 16 MB, and only the decoded
+  pixels are kept, as a PNG this server wrote. It's served as `image/png` with `nosniff` and a sandboxing CSP, to its
+  owner only. An SVG, or anything hiding after the image's end, can't get through.
+
+### How a game's speed changes
+
+`host/control.go` stands between the runner's loop and the core.
+
+- **Fast-forward** runs the core faster and sends at most the game's own frame rate. The core is told it needn't draw
+  or mix (libretro's `GET_AUDIO_VIDEO_ENABLE`), and many cores then run a lot faster. It has no sound.
+- **Slow motion** has no sound either: stretched sound would need resampling for a feature that's used for moments.
+- **Frame skip** leaves frames out of what's sent, on request or, when set to automatic, only once the loop is more
+  than a frame behind, and never more than three in a row.
+- **Rewind** (`host/rewind.go`) keeps the newest state whole, and each older one as its difference from the one after.
+  The oldest can then be dropped at any moment, which keeps it inside a byte limit however busy the game is. If taking
+  a state costs over a quarter of a frame it takes them less often, and if it still doesn't fit it turns off and says
+  so. Loading a state or resetting starts its history again.
+- **Run-ahead** runs the real frame with its sound, saves, runs on with only the last picture kept, and goes back. That
+  takes frames off the delay at the cost of a save, a load and extra frames each time. On FCEUmm that's about a millisecond a
+  frame. If the game falls behind its schedule for a couple of seconds, it turns off, with a message.
+
+### Core options
+
+A runner tells the server what a core offers as it starts: labels, allowed values and their names, descriptions, categories, and
+which options the core currently wants hidden (a core can hide options that don't apply, and show them again when another changes). The
+newest libretro option format is read, and the older two for cores that only have those. The server keeps that
+per core, so settings screens can show it with no game running. For a core never run here, it starts one with no game
+for a moment to ask, boxed in as any game is. The runner refuses a key the core didn't offer and a value it didn't
+list, so nothing written in a setting can reach anything else, whatever the server let through.
+
+### Custom settings files
+
+`custom.go`. A settings file is one level of settings as text:
+
+```json
+{
+  "wittyplay": 1,
+  "settings": { "display.scanlines": 0.4 },
+  "coreOptions": { "fceumm_sndquality": "High" },
+  "controls": [
+    { "label": "Sound quality", "type": "choice", "option": "fceumm_sndquality", "choices": ["Low", "High", "Very High"] },
+    { "label": "No sprite limit", "type": "toggle", "option": "fceumm_nospritelimit" },
+    { "label": "Overclock", "type": "slider", "option": "fceumm_overclocking", "values": ["disabled", "2x-Postrender", "2x-VBlank"] }
+  ],
+  "presets": [
+    { "name": "Crisp", "settings": { "display.scaling": "pixel" }, "coreOptions": { "fceumm_sndquality": "Very High" } }
+  ]
+}
+```
+
+- **It's data.** Nothing in it is run. It can hold settings and core options, and a control can only set a core option.
+  Values go through the same checks as everything else, and a core only takes what it listed.
+- **It's hostile until proven otherwise.** 256 KB at most, 8 levels deep, 20,000 values, 64 controls, 32 presets. Sizes
+  are checked before anything is set aside, and the parser walks tokens so that it can stop part-way. It's fuzz-tested.
+- **Mistakes are shown where they are.** Errors stop it saving, with the line. Things it doesn't know, and core options a
+  core won't take, are **ignored and listed**, never dropped silently.
+- A controller can use a file's presets and controls. Writing one takes a keyboard.
+
+### If a setting breaks a game
+
+- A change to the picture only ever affects the browser, and one a browser can't do falls back.
+- A running game is told about changes with a command it can refuse. The game isn't restarted.
+- **Safe mode** (`POST /games/{id}/play` with `"safeMode": true`) starts with default settings, no cheats and no patches,
+  and takes no setting changes until it's stopped. It's offered on the game's page, in the game menu, and whenever a
+  game fails to start.
+- A patch that won't apply, such as one for a different version of the game, leaves the game unpatched and playable,
+  with a notice. It never stops the game starting.
+- Resetting a level is one button in the settings file screen.
+
+### Shortcuts
+
+`web/hotkeys.ts` works on a player's RetroPad buttons after the input layer has mapped them, so shortcuts follow a
+remapped pad. Holding the shortcut button (Select unless changed) and pressing another does the shortcut and keeps that
+button from the game until it's let go. Start and Select together, or Guide, always opens the menu. Hold actions let go
+by themselves if the window loses focus or a menu opens, because a stuck fast-forward would be worse than a lost press.
+Speed changes go by reliable HTTP, not the input channel, for the same reason. A keyboard shortcut gives way to a key a
+game button is using.
 
 ## Clients other than a browser
 
@@ -473,6 +614,8 @@ Treat a ROM as hostile and a core as buggy:
   priority.
 - **Games on a graphics card** open a little more: see
   [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
+  processes, plus a low-integrity token so it can only write to its save folder. It keeps normal
+  priority: see below.
 - **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits.
 - **FreeBSD and others:** rlimits and priority only. Docs say so plainly.
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
@@ -702,6 +845,11 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 
 - **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are. Nearly all zips are Deflate.
 - **A `.7z` with locked contents** is only found out when played. See Security.
+- **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code, so a code that
+  does nothing can't be told apart from a wrong one. Some cores have no cheat support at all.
+- **Slow motion and fast-forward have no sound.**
+- **A core's option labels are its own**, and in English: this frontend tells a core its language is English.
+- **Patches** work on games that are a single file, not on discs (`.cue`, `.chd`, `.iso` and so on).
 - **Software-rendered cores only** with the built-in runner.
 - **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has
   not been tested end to end yet.

@@ -58,12 +58,21 @@ type Options struct {
 	Quality        string   // "" (auto) | low | high
 	GPU            bool     // the core draws with a graphics card
 	RunnerArgs     []string // extra arguments for this game's runner: wittyplay.RunnerArgs
+	CoreID         string   // the core's name, for working out its starting options again
 	CoreOptions    map[string]string
 	PreferDevices  []string // the kind of controller to plug in, by words in its name
 	Cleanup        func()   // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
 	// that one core refuses often play on another, and nobody should have to know.
 	Fallbacks []CoreChoice
+
+	Control       *ipc.Control            // how the game runs from the first frame
+	Cheats        []ipc.Cheat             // given to the core before the first frame
+	MaxSpeed      float64                 // the fastest it may be made to run; 0 means normal speed only
+	NoAutoSave    bool                    // leaving doesn't write the resume state
+	SafeMode      bool                    // started with defaults; settings aren't applied while it runs
+	Notices       []string                // things to tell whoever started it
+	OnCoreOptions func(list []ipc.Option) // the core has said what it offers
 
 	keep *keptCleanup
 }
@@ -96,6 +105,12 @@ type Info struct {
 	Modes      []Mode  `json:"modes"`              // what this client can connect with, best first
 	// Devices: the kinds of controller this game's core lets each port choose from.
 	Devices []ipc.PortDevices `json:"devices,omitempty"`
+	// SafeMode: started with default settings, on request.
+	SafeMode bool `json:"safeMode,omitempty"`
+	// MaxSpeed is the fastest this game may be made to run here.
+	MaxSpeed float64 `json:"maxSpeed"`
+	// Notices are things worth telling the person, such as a patch that didn't apply.
+	Notices []string `json:"notices,omitempty"`
 }
 
 // Errors a caller shows to people.
@@ -161,6 +176,18 @@ func (m *Manager) Get(id string) *Session {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.sessions[id]
+}
+
+// ForUser finds the game an account is playing. An account plays one at a time.
+func (m *Manager) ForUser(userID int64) *Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, s := range m.sessions {
+		if s.opt.UserID == userID {
+			return s
+		}
+	}
+	return nil
 }
 
 // Count says how many games are running.
@@ -258,7 +285,7 @@ func (m *Manager) startOn(opt Options, moreToTry bool) (*Session, error) {
 		opt.keep = kept
 	}
 	id := newID()
-	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
+	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true, controlState: controlState{speed: 1, optionsSet: make(chan struct{})},
 		viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
 		audioCh: make(chan []byte, 32), stderr: &tailWriter{max: 1 << 16}}
 	m.sessions[id] = s
@@ -396,6 +423,8 @@ type Session struct {
 	stateWait map[uint32]chan []byte
 	stateNext uint32
 	wrote     sync.WaitGroup
+
+	controlState
 }
 
 // ID is the session's unguessable name.
@@ -407,12 +436,23 @@ func (s *Session) UserID() int64 { return s.opt.UserID }
 // ItemID is the game being played.
 func (s *Session) ItemID() int64 { return s.opt.ItemID }
 
+// CoreID is the core this session started with.
+func (s *Session) CoreID() string { return s.opt.CoreID }
+
 // Info describes the session for a browser.
 func (s *Session) Info() Info {
+	s.frameMu.Lock()
+	frame := s.frameHdr
+	s.frameMu.Unlock()
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
-	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer, Devices: s.info.Devices}
+	width, height := s.info.Width, s.info.Height
+	if frame.Width > 0 { // what the core really draws, once it has
+		width, height = frame.Width, frame.Height
+	}
+	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: width, Height: height,
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer, Devices: s.info.Devices,
+		SafeMode: s.opt.SafeMode, MaxSpeed: s.maxSpeed(), Notices: s.opt.Notices}
 }
 
 func (s *Session) start() error {
@@ -490,6 +530,7 @@ func (s *Session) start() error {
 			s.resumed = true
 		}
 	}
+	s.sendStart()
 	return nil
 }
 
@@ -579,10 +620,12 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			}
 			s.frameMu.Lock()
 			s.frame = append(s.frame[:0], data...)
+			changed := hdr.Width != s.frameHdr.Width || hdr.Height != s.frameHdr.Height
 			s.frameHdr, s.frameFresh = hdr, true
 			s.frameMu.Unlock()
 			s.lastFrame.Store(time.Now().UnixNano())
 			s.stats.made.Add(1)
+			s.noteFrame(changed, hdr)
 			s.signalFrame()
 		case ipc.MsgDupe:
 			s.lastFrame.Store(time.Now().UnixNano())
@@ -634,6 +677,9 @@ func (s *Session) signalFrame() {
 func (s *Session) handleEvent(p []byte) {
 	var e ipc.Event
 	if err := json.Unmarshal(p, &e); err != nil {
+		return
+	}
+	if s.noteEvent(e) {
 		return
 	}
 	switch e.Type {
@@ -792,14 +838,19 @@ func (s *Session) Pause(on bool) error {
 	return nil
 }
 
-// SlotName is the state file for a slot: 0 is the automatic save, 1-9 the
-// manual ones. Paths are built only from this number.
+// SlotName is the state file for a slot: 0 is the automatic save, 1 to MaxSlot the
+// manual ones, and then the two kept for mistakes. Paths are built only from this
+// number.
 func SlotName(slot int) (string, error) {
 	switch {
 	case slot == 0:
 		return "auto", nil
-	case slot >= 1 && slot <= 9:
+	case slot >= 1 && slot <= MaxSlot:
 		return "state-" + strconv.Itoa(slot), nil
+	case slot == SlotUndo:
+		return "undo", nil
+	case slot == SlotPrevAuto:
+		return "autoprev", nil
 	}
 	return "", ErrNoSlot
 }
@@ -817,10 +868,14 @@ func (s *Session) SaveState(ctx context.Context, slot int) error {
 	if len(b) == 0 {
 		return errors.New("this core has no save states")
 	}
+	if saveDirSize(s.opt.SaveDir)+int64(len(b)) > MaxSaveBytes {
+		return ErrSaveFull
+	}
 	if err := writeAtomic(filepath.Join(s.opt.SaveDir, name+".state"), b); err != nil {
 		return err
 	}
 	s.writeThumb(name)
+	s.writeSlotMeta(name)
 	return nil
 }
 
@@ -833,6 +888,11 @@ func (s *Session) LoadState(slot int) error {
 	b, err := readLimited(filepath.Join(s.opt.SaveDir, name+".state"))
 	if err != nil {
 		return ErrNoSlot
+	}
+	if slot != SlotUndo {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		s.keepUndo(ctx)
 	}
 	return s.command(ipc.CmdState, b)
 }
@@ -869,10 +929,12 @@ func (s *Session) requestState(ctx context.Context) ([]byte, error) {
 func (s *Session) deliverState(id uint32, b []byte) {
 	if id == 0 { // the state sent on the way out
 		if len(b) > 0 {
+			s.keepPrevAuto()
 			if err := writeAtomic(filepath.Join(s.opt.SaveDir, "auto.state"), b); err != nil {
 				s.log.Warn("writing the resume state", "err", err)
 			}
 			s.writeThumb("auto")
+			s.writeSlotMeta("auto")
 		}
 		return
 	}
@@ -888,7 +950,11 @@ func (s *Session) deliverState(id uint32, b []byte) {
 func (s *Session) Stop() {
 	s.stopOnce.Do(func() {
 		s.stopping.Store(true)
-		if err := s.command(ipc.CmdQuit, []byte{1}); err != nil {
+		keep := byte(1)
+		if s.noAutoSave.Load() {
+			keep = 0
+		}
+		if err := s.command(ipc.CmdQuit, []byte{keep}); err != nil {
 			s.kill()
 		}
 		// The larger consoles have more to save, and a save is worth waiting for.

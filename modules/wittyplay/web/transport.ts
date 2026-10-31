@@ -14,7 +14,11 @@ export const TRANSPORT_LABELS: Record<TransportKind, string> = {
   'ws-jpeg': 'WebSocket with JPEG (most compatible)',
 }
 
-export type Stats = { rttMs?: number; fps?: number; kbps?: number; jitterMs?: number; lost?: number; codec?: string; decodeMs?: number }
+export type Stats = { rttMs?: number; fps?: number; kbps?: number; jitterMs?: number; lost?: number; dropped?: number; codec?: string; decodeMs?: number }
+
+// How much sound to hold back before playing it, against crackling on a poor connection.
+export type AudioBuffer_ = 'lowest' | 'balanced' | 'smooth'
+const AUDIO_HOLD: Record<AudioBuffer_, number> = { lowest: 0, balanced: 0.06, smooth: 0.15 }
 
 export type PlayEvent = { type: string; port?: number; strength?: number; text?: string; effect?: number; aspect?: number; width?: number; height?: number; turns?: number; index?: number; count?: number }
 
@@ -28,6 +32,10 @@ export interface Transport {
   // True when the browser refused to start sound without a tap.
   needsUnmute(): boolean
   unmute(): void
+  setVolume(volume: number, muted: boolean): void
+  setAudioBuffer(b: AudioBuffer_): void
+  // The stream a clip records, when this way of connecting has one.
+  captureStream(): MediaStream | null
   onEvent?: (e: PlayEvent) => void
   onLost?: () => void
 }
@@ -66,6 +74,9 @@ class WebRTCTransport implements Transport {
   private pc: RTCPeerConnection | null = null
   private input: RTCDataChannel | null = null
   private muted = false
+  private userMuted = false
+  private audioRx: RTCRtpReceiver | null = null
+  private hold = 0
   private prev: { t: number; bytes: number; frames: number } | null = null
   private closed = false
 
@@ -89,6 +100,10 @@ class WebRTCTransport implements Transport {
       const r = e.receiver as any
       if ('playoutDelayHint' in r) r.playoutDelayHint = 0
       if ('jitterBufferTarget' in r) r.jitterBufferTarget = 0
+      if (e.track.kind === 'audio') {
+        this.audioRx = e.receiver
+        this.applyHold()
+      }
     }
     pc.addTransceiver('video', { direction: 'recvonly' })
     pc.addTransceiver('audio', { direction: 'recvonly' })
@@ -117,8 +132,19 @@ class WebRTCTransport implements Transport {
     }
   }
 
-  needsUnmute() { return this.muted }
-  unmute() { this.muted = false; this.element.muted = false; void this.element.play().catch(() => {}) }
+  needsUnmute() { return this.muted && !this.userMuted }
+  unmute() { this.muted = false; this.element.muted = this.userMuted; void this.element.play().catch(() => {}) }
+  setVolume(volume: number, muted: boolean) {
+    this.userMuted = muted
+    this.element.volume = Math.max(0, Math.min(1, volume))
+    this.element.muted = muted || this.muted
+  }
+  setAudioBuffer(b: AudioBuffer_) { this.hold = AUDIO_HOLD[b] ?? 0; this.applyHold() }
+  private applyHold() {
+    const r = this.audioRx as any
+    if (r && 'jitterBufferTarget' in r) r.jitterBufferTarget = this.hold * 1000
+  }
+  captureStream() { return this.element.srcObject as MediaStream | null }
 
   send(msg: Uint8Array) {
     if (this.input?.readyState === 'open') {
@@ -141,6 +167,7 @@ class WebRTCTransport implements Transport {
     report.forEach((s: any) => {
       if (s.type === 'inbound-rtp' && s.kind === 'video') {
         out.lost = s.packetsLost
+        out.dropped = s.framesDropped
         out.jitterMs = s.jitter != null ? Math.round(s.jitter * 1000) : undefined
         out.codec = codecs.get(s.codecId)?.replace('video/', '')
         if (s.framesDecoded && s.totalDecodeTime) out.decodeMs = Math.round((s.totalDecodeTime / s.framesDecoded) * 1000 * 10) / 10
@@ -197,6 +224,10 @@ class WSTransport implements Transport {
   private first: (() => void) | null = null
   private closed = false
   private drawing = false // JPEG: the newest image wins
+  private gain: GainNode | null = null
+  private volume = 1
+  private userMuted = false
+  private hold = 0
 
   constructor(private signal: Signal, readonly kind: 'ws-h264' | 'ws-jpeg') {
     this.element = document.createElement('canvas')
@@ -308,16 +339,30 @@ class WSTransport implements Transport {
       r[i] = v.getInt16(i * 4 + 2, true) / 32768
     }
     const now = this.audio.currentTime
-    if (this.audioAt < now) this.audioAt = now + 0.03
-    if (this.audioAt > now + 0.25) this.audioAt = now + 0.03
+    const lead = 0.03 + this.hold
+    if (this.audioAt < now) this.audioAt = now + lead
+    if (this.audioAt > now + 0.25 + this.hold) this.audioAt = now + lead
+    if (!this.gain) {
+      this.gain = this.audio.createGain()
+      this.gain.connect(this.audio.destination)
+      this.applyVolume()
+    }
     const src = this.audio.createBufferSource()
     src.buffer = buf
-    src.connect(this.audio.destination)
+    src.connect(this.gain)
     src.start(this.audioAt)
     this.audioAt += n / rate
   }
 
-  needsUnmute() { return !this.audio || this.audio.state === 'suspended' }
+  needsUnmute() { return !this.userMuted && (!this.audio || this.audio.state === 'suspended') }
+  setVolume(volume: number, muted: boolean) {
+    this.volume = Math.max(0, Math.min(1, volume))
+    this.userMuted = muted
+    this.applyVolume()
+  }
+  private applyVolume() { if (this.gain) this.gain.gain.value = this.userMuted ? 0 : this.volume }
+  setAudioBuffer(b: AudioBuffer_) { this.hold = AUDIO_HOLD[b] ?? 0 }
+  captureStream() { return (this.element as any).captureStream?.(30) || null }
   unmute() {
     if (!this.audio) { try { this.audio = new AudioContext({ latencyHint: 'interactive' }) } catch { return } }
     void this.audio.resume().catch(() => {})

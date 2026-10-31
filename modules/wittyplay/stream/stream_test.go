@@ -391,8 +391,8 @@ func TestBadInputIgnored(t *testing.T) {
 	if _, err := s.Answer(context.Background(), strings.Repeat("x", MaxOfferSize+1), ""); err == nil {
 		t.Fatal("an oversized offer should be refused")
 	}
-	if _, err := SlotName(10); err == nil {
-		t.Fatal("slot 10 should not exist")
+	if _, err := SlotName(SlotPrevAuto + 1); err == nil {
+		t.Fatal("a slot past the last should not exist")
 	}
 	if _, err := SlotName(-1); err == nil {
 		t.Fatal("slot -1 should not exist")

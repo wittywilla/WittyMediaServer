@@ -25,8 +25,13 @@ func runnerEnv() []string {
 // account can read, but can only write where a low-integrity label allows, which
 // is its save folder. If that fails (older Windows, unusual accounts) the job
 // object below still applies.
+//
+// It keeps normal priority. Windows has nothing like a gentle nice: below-normal gets next
+// to nothing while other programs are busy. A game measured 61 frames a second at normal and
+// 1 at below-normal with the machine under half busy, and it could miss its time to load.
+// A software core uses about one CPU core, so a transcode still gets the rest.
 func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
-	attr := &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | windows.BELOW_NORMAL_PRIORITY_CLASS}
+	attr := &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow}
 	cmd.SysProcAttr = attr
 	if err := labelLowIntegrity(saveDir); err != nil {
 		log.Warn("sandbox: the save folder could not be labelled, so the runner keeps normal integrity", "err", err)

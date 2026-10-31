@@ -9,6 +9,8 @@ import (
 	"errors"
 	"hash/crc32"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/wittywilla/wittyplay/engine"
 )
@@ -35,6 +37,13 @@ type Core struct {
 	lastPads uint16
 
 	device uint32 // which kind of controller is plugged in
+	// The settings and cheats it takes, so that a test can see them arrive.
+	inverted   bool
+	optionList []engine.Option
+	cheats     map[int]string
+	noDraw     bool
+	// Ran counts every frame run, and Drawn those it was asked to draw.
+	Ran, Drawn int
 }
 
 var (
@@ -55,7 +64,57 @@ func (c *Core) ControllerPorts() []engine.PortDevices {
 func (c *Core) SetDevice(_ int, id uint32) { c.device = id }
 
 // New makes a core reporting to h.
-func New(h engine.Handlers) *Core { return &Core{h: h} }
+func New(h engine.Handlers) *Core {
+	return &Core{h: h, optionList: []engine.Option{
+		{Key: "test_colours", Label: "Colours", Category: "Picture", Info: "Swaps the field's colours.", Choices: []string{"normal", "inverted"}, Labels: []string{"Normal", "Inverted"}, Default: "normal", Value: "normal"},
+		{Key: "test_speed", Label: "Square speed", Choices: []string{"2", "4"}, Default: "2", Value: "2"},
+	}, cheats: map[int]string{}}
+}
+
+// ApplyOptions sets what the runner was told at load: only what the core offers.
+func (c *Core) ApplyOptions(values map[string]string) {
+	for k, v := range values {
+		c.SetOption(k, v)
+	}
+}
+
+// Options lists its settings.
+func (c *Core) Options() []engine.Option { return c.optionList }
+
+// SetOption takes a value it listed and nothing else.
+func (c *Core) SetOption(key, value string) bool {
+	for i := range c.optionList {
+		o := &c.optionList[i]
+		if o.Key != key {
+			continue
+		}
+		for _, ch := range o.Choices {
+			if ch == value {
+				o.Value = value
+				if key == "test_colours" {
+					c.inverted = value == "inverted"
+				}
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// CheatReset forgets the cheats.
+func (c *Core) CheatReset() { c.cheats = map[int]string{} }
+
+// CheatSet takes codes of the form x=N, which hold the square at that place.
+func (c *Core) CheatSet(index int, enabled bool, code string) {
+	if enabled {
+		c.cheats[index] = code
+	} else {
+		delete(c.cheats, index)
+	}
+}
+
+// SetOutput is told what the next frame needs.
+func (c *Core) SetOutput(video, audio, fastForward bool) { c.noDraw = !video }
 
 func (c *Core) SystemInfo() engine.SystemInfo {
 	return engine.SystemInfo{Name: "WittyPlay test core", Version: "1", Extensions: []string{"wittytest"}}
@@ -106,7 +165,18 @@ func (c *Core) Run() {
 	}
 	c.lastPads = pad.Buttons
 	c.tick++
-	c.draw(pad)
+	for _, code := range c.cheats {
+		if n, ok := strings.CutPrefix(code, "x="); ok {
+			if v, err := strconv.Atoi(n); err == nil && v >= 0 && v < Width-16 {
+				c.x = int16(v)
+			}
+		}
+	}
+	c.Ran++
+	if !c.noDraw {
+		c.Drawn++
+		c.draw(pad)
+	}
 	if c.h.Video != nil {
 		c.h.Video(c.frame, Width, Height, Width*4, engine.FormatXRGB8888)
 	}
@@ -125,6 +195,9 @@ func (c *Core) draw(pad engine.PadState) {
 		for x := 0; x < Width; x++ {
 			p := row[x*4 : x*4+4]
 			p[0], p[1], p[2], p[3] = b0/2+band, g0/2+byte(x/8), r0/2, 0xff
+			if c.inverted {
+				p[0], p[1], p[2] = ^p[0], ^p[1], ^p[2]
+			}
 		}
 	}
 	// One box per RetroPad button along the top, lit while held, so a test can

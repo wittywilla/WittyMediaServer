@@ -268,7 +268,7 @@ func (s *Server) handleGameProfileResolve(w http.ResponseWriter, r *http.Request
 	if kind == wittyplay.ProfileKeyboard {
 		controller = wittyplay.ControllerKeyboard
 	}
-	p := wittyplay.Resolve(list, kind, controller, console, game, q.Get("raw") == "1")
+	p := wittyplay.ResolveProfile(list, kind, controller, console, game, q.Get("raw") == "1")
 	out := map[string]any{"profile": p, "options": wittyplay.EffectiveOptions(console, p)}
 	if kind == wittyplay.ProfileKeyboard {
 		out["keys"] = wittyplay.EffectiveKeys(console, p)

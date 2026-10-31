@@ -6957,6 +6957,142 @@
         "x-wms-auth": "user"
       }
     },
+    "/game-bezels": {
+      "get": {
+        "operationId": "getGameBezels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's own images for around the picture.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postGameBezels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an image, as the request body. PNG, JPEG or WebP, decoded and made again.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/game-bezels/{bezel}": {
+      "delete": {
+        "operationId": "deleteGameBezelsBezel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bezel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove one of a person's images.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getGameBezelsBezel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bezel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One of a person's images, as a PNG.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/game-controllers": {
       "get": {
         "operationId": "getGameControllers",
@@ -7644,6 +7780,154 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/recent": {
+      "get": {
+        "operationId": "getGamesRecent",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's most recently played games, or favourites with ?favourites=1, with play counts.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/settings": {
+      "get": {
+        "operationId": "getGamesSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's settings for a game (?item=) or console (?console=): effective values, where each came from, every level, and the server's limits.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change one level: a patch (null removes a value), a whole settings file, or a reset. Server levels need an administrator.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/settings/schema": {
+      "get": {
+        "operationId": "getGamesSettingsSchema",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Describe every game setting: its kind, range, default and caution.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/settings/validate": {
+      "post": {
+        "operationId": "postGamesSettingsValidate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check a settings file without saving it: errors and ignored things, by line.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/{id}/art/{n}": {
       "get": {
         "operationId": "getGamesIdArtN",
@@ -7686,6 +7970,320 @@
         "summary": "One of a game's pictures, from the art list in its metadata. The server fetches it from the source the first time anyone looks.",
         "tags": [
           "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/battery": {
+      "get": {
+        "operationId": "getGamesIdBattery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download a game's battery save.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesIdBattery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a game's battery save, as the request body. Refused while it's being played.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/cheats": {
+      "get": {
+        "operationId": "getGamesIdCheats",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's cheat codes for a game.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesIdCheats",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a person's cheat codes for a game. A running game takes them at once.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/cheats/import": {
+      "post": {
+        "operationId": "postGamesIdCheatsImport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a cheat file, as the request body, and say what's in it. Nothing is kept.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/core-options": {
+      "get": {
+        "operationId": "getGamesIdCoreOptions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this game's core offers, what's chosen, and what it will ignore.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/meta": {
+      "get": {
+        "operationId": "getGamesIdMeta",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a person keeps about a game: favourite, note, play count, last played.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesIdMeta",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a game's favourite mark or note.",
+        "tags": [
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -7873,6 +8471,178 @@
         "x-wms-auth": "admin"
       }
     },
+    "/games/{id}/patches": {
+      "get": {
+        "operationId": "getGamesIdPatches",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's IPS and BPS patches for a game.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postGamesIdPatches",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a patch, as the request body, with ?name=. Applied to a copy when the game starts.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/patches/{patch}": {
+      "delete": {
+        "operationId": "deleteGamesIdPatchesPatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "patch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a patch.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesIdPatchesPatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "patch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn a patch on or off.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/{id}/play": {
       "post": {
         "operationId": "postGamesIdPlay",
@@ -8035,6 +8805,100 @@
           }
         ],
         "summary": "Game save delete.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/saves/{slot}/file": {
+      "get": {
+        "operationId": "getGamesIdSavesSlotFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download a saved state, with a header that an import checks.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesIdSavesSlotFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a state file into a slot, as the request body. Slots 1 to 99.",
         "tags": [
           "Games"
         ],
@@ -12890,6 +13754,86 @@
         "summary": "Play action.",
         "tags": [
           "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/screenshot": {
+      "get": {
+        "operationId": "getPlaySidScreenshot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The current picture as a PNG.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/stats": {
+      "get": {
+        "operationId": "getPlaySidStats",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAMING-API.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A running game's numbers: frame rates, encode time, bitrate, drops.",
+        "tags": [
+          "Games"
         ],
         "x-wms-auth": "user"
       }

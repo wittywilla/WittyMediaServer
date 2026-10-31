@@ -1,12 +1,12 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, backdropUrl, getToken, mediaUrl, posterUrl, serverBase, type GameConsole, type GameDetailsInfo, type GameFacets, type Item, type Library } from '../api'
+import { api, backdropUrl, getToken, mediaUrl, posterUrl, serverBase, uploadFile, type GameConsole, type GameDetailsInfo, type GameFacets, type Item, type Library } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
 import { IconEdit, IconGamepad, IconImage, IconPlay, IconSettings, IconSortDown, IconSortUp, IconStar } from '../icons'
 import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } from './GameMeta'
 import { toast, useApp } from '../state'
-import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
+import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
 import './games.css'
 
 // Games: the library page, a game's own page, and the page that holds the player.
@@ -48,6 +48,25 @@ const getControllers = () => {
   if (!knownControllers) knownControllers = api.get<ControllerData>('/game-controllers')
   knownControllers.catch(() => { knownControllers = null })
   return knownControllers
+}
+
+const SettingsScreen = lazy(() => import('@wittywilla/wittyplay').then((m) => ({ default: m.GameSettingsScreen })))
+
+// How the module's settings screens reach the API.
+const useSettingsHost = (isAdmin: boolean) => useMemo<SettingsHost>(() => ({
+  isAdmin,
+  mediaUrl,
+  upload: (path, body) => uploadFile(path, body),
+  request: (method, path, body) => (method === 'GET' ? api.get(path) : method === 'DELETE' ? api.del(path) : method === 'PUT' ? api.put(path, body) : api.post(path, body)),
+}), [isAdmin])
+
+// Settings for all of someone's games, or a console's, on the settings page.
+export function GameSettingsPage() {
+  const { user } = useApp()
+  const host = useSettingsHost(!!user?.isAdmin)
+  const consoles = useConsoles()
+  const say = useCallback((m: string) => toast(m), [])
+  return <Suspense fallback={<Spinner />}><SettingsScreen host={host} consoles={consoles} onError={say} /></Suspense>
 }
 
 let consolesCache: Promise<GameConsole[]> | null = null
@@ -98,6 +117,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const [items, setItems] = useState<Item[] | null>(null)
   const [total, setTotal] = useState(0)
   const [playing, setPlaying] = useState<Item[]>([])
+  const [favourites, setFavourites] = useState<Item[]>([])
   const [skipped, setSkipped] = useState<Record<string, number>>({})
   const filter = params.get('console') || ''
   const search = params.get('q') || ''
@@ -123,6 +143,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const loadFacets = () => api.get<GameFacets>(`/games/facets?library=${lib.id}&console=${encodeURIComponent(filter)}`).then(setFacets).catch(() => {})
   useEffect(() => { loadFacets() }, [lib.id, filter]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&played=1&limit=50`).then((r) => setPlaying(r.items)).catch(() => {}) }, [lib.id])
+  useEffect(() => { api.get<{ item: Item }[]>(`/games/recent?favourites=1&limit=60`).then((r) => setFavourites(r.map((x) => x.item).filter((it) => it.libraryId === lib.id))).catch(() => {}) }, [lib.id])
   // A scan may already be running (a library just added), or just started. Follow
   // it, so games appear as they're found and the page ends up complete.
   useEffect(() => {
@@ -232,9 +253,15 @@ export function GamesLibrary({ lib }: { lib: Library }) {
           : <EmptyState icon={<IconGamepad />} title="No games here yet" text="Put your own game files in this library’s folder and scan it. Zipped games and multi-disc sets work too." />)
         : (
           <>
-            {inProgress.length > 0 && !filter && !search && <>
-              <h2 className="shelf-head">Continue playing</h2>
-              <div className="grid">{inProgress.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+            {(inProgress.length > 0 || favourites.length > 0) && !filter && !search && <>
+              {inProgress.length > 0 && <>
+                <h2 className="shelf-head">Continue playing</h2>
+                <div className="grid">{inProgress.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+              </>}
+              {favourites.length > 0 && <>
+                <h2 className="shelf-head">Favourites</h2>
+                <div className="grid">{favourites.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
+              </>}
               <h2 className="shelf-head">All games</h2>
             </>}
             <div className="grid">{items.map((it) => <GameCard key={it.id} item={it} console={byId.get(it.console || '')} />)}</div>
@@ -275,6 +302,28 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
   const back = backdropUrl(it)
   const h = artHue(it.title)
   const sizeText = it.sizeBytes ? (it.sizeBytes >= 1e9 ? `${(it.sizeBytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(it.sizeBytes / 1e6))} MB`) : ''
+  const [mine, setMine] = useState<GamePersonal | null>(null)
+  const [resumeMode, setResumeMode] = useState('ask')
+  const [showSettings, setShowSettings] = useState(false)
+  const [note, setNote] = useState('')
+  useEffect(() => {
+    api.get<GamePersonal>(`/games/${it.id}/mine`).then((m) => { setMine(m); setNote(m.note) }).catch(() => {})
+    api.get<{ resolved: { values: Record<string, unknown> } }>(`/games/settings?item=${it.id}`).then((v) => setResumeMode(String(v.resolved.values['states.resume'] || 'ask'))).catch(() => {})
+  }, [it.id])
+  const putMeta = async (patch: Partial<GamePersonal>) => {
+    try { setMine(await api.put<GamePersonal>(`/games/${it.id}/mine`, patch)) } catch (e: any) { toast(e.message) }
+  }
+  const settingsHost = useSettingsHost(!!user?.isAdmin)
+  const say = useCallback((m: string) => toast(m), [])
+  const consoleList = useMemo(() => consoles.map((x) => ({ id: x.id, name: x.name, short: x.short })), [consoles])
+  // What Play does, when someone said they always or never want to pick up where they left off.
+  const startsResumed = !!auto && resumeMode === 'always'
+  const offerResume = !!auto && resumeMode === 'ask'
+  const battery = async () => {
+    const f = await pickSaveFile('.srm,.sav,.ram')
+    if (!f) return
+    try { await uploadFile(`/games/${it.id}/battery`, f, 'PUT'); toast('Battery save replaced. The old one is kept beside it on the server.') } catch (e: any) { toast(e.message) }
+  }
   return (
     <>
       <div className="detail-hero">
@@ -296,17 +345,32 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
             {it.year && <span>{it.year}</span>}
             {meta && meta.players > 0 && <span>{meta.players === 1 ? '1 player' : `Up to ${meta.players} players`}</span>}
             {played > 60 && <span>Played for {fmtPlay(played)}</span>}
+            {mine && mine.plays > 0 && <span>{mine.plays} {mine.plays === 1 ? 'play' : 'plays'}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
             {it.rating != null && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
             {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 3).join(', ')}{it.genres.length > 3 ? '…' : ''}</span>}
           </div>
+          {offerResume && ready && auto && (
+            <button className="game-resume" onClick={() => nav(`/game/${it.id}?resume=1`)}>
+              {auto.hasThumb ? <img src={thumbUrl(it.id, 0, auto.updatedAt)} alt="" /> : <span className="game-save-empty" />}
+              <span><b>Pick up where you left off</b><small className="muted">{new Date(auto.updatedAt * 1000).toLocaleString()}</small></span>
+            </button>
+          )}
           <div className="actions game-actions">
-            {auto && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
-            {ready && <button className={'btn' + (auto ? '' : ' primary')} onClick={() => nav(`/game/${it.id}`)}><IconPlay /> {auto ? 'Start over' : 'Play'}</button>}
+            {offerResume && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
+            {ready && <button className={'btn' + (offerResume ? '' : ' primary')} onClick={() => nav(`/game/${it.id}${startsResumed ? '?resume=1' : ''}`)}><IconPlay /> {offerResume ? 'Start over' : startsResumed ? 'Resume' : 'Play'}</button>}
+            {mine && <button className="btn" aria-pressed={mine.favourite} onClick={() => putMeta({ favourite: !mine.favourite })}>{mine.favourite ? '★ Favourite' : '☆ Add to favourites'}</button>}
+            <button className="btn" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconSettings size={15} /> Settings</button>
+            {ready && <button className="btn ghost" onClick={() => nav(`/game/${it.id}?safe=1${auto ? '&resume=1' : ''}`)}>Start with default settings</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
             <Link className="btn" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Controllers</Link>
           </div>
+          {mine && (
+            <label className="game-notes">Your notes
+              <textarea className="input" rows={2} maxLength={8000} value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== mine.note) void putMeta({ note }) }} placeholder="Passwords, where you got to, anything. Only you can see these." />
+            </label>
+          )}
           {c && !ready && (
             <div className="game-note" role="status">
               {c.unavailable || <>This server has no core for the {c.name} yet.{' '}
@@ -325,16 +389,29 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
             {meta?.tags && meta.tags !== it.tagline && <div className="fact"><div className="k">File name says</div><div className="v">{meta.tags}</div></div>}
             {user?.isAdmin && <div className="fact wide"><div className="k">Path</div><div className="v">{it.path}</div></div>}
           </div>
+          {showSettings && (
+            <section aria-label="Settings for this game">
+              <h2 className="shelf-head">Settings for this game</h2>
+              <Suspense fallback={<Spinner />}><SettingsScreen host={settingsHost} consoles={consoleList} itemId={it.id} itemTitle={it.title} consoleId={it.console} onError={say} /></Suspense>
+            </section>
+          )}
+          <section aria-label="Saves">
+            <div className="game-save-tools">
+              {mine?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>}
+              <button className="btn sm ghost" onClick={() => void battery()}>{mine?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
+            </div>
+          </section>
           {saves.length > 0 && (
             <section aria-label="Saved states">
               <h2 className="shelf-head">Saved states</h2>
               <ul className="game-saves">
                 {saves.map((s) => {
-                  const name = s.slot === 0 ? 'Automatic' : `Slot ${s.slot}`
+                  const name = s.slot === 0 ? 'Automatic' : s.slot === 100 ? 'Before the last load' : s.slot === 101 ? 'Before starting over' : `Slot ${s.slot}`
                   return (
                     <li key={s.slot}>
-                      {s.hasThumb ? <img src={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/thumb`) + `&v=${s.updatedAt}`} alt="" /> : <span className="game-save-empty" />}
+                      {s.hasThumb ? <img src={thumbUrl(it.id, s.slot, s.updatedAt)} alt="" /> : <span className="game-save-empty" />}
                       <div><b>{name}</b><small className="muted">{new Date(s.updatedAt * 1000).toLocaleString()}</small></div>
+                      <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${name}`}>Download</a>
                       <button className="btn sm ghost" onClick={() => remove(s.slot)} aria-label={`Delete ${name}`}>Delete</button>
                     </li>
                   )
@@ -396,6 +473,22 @@ const fmtReleased = (d: string) => {
   return new Date(Date.UTC(y, m - 1, day || 1)).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: day ? 'numeric' : undefined, timeZone: 'UTC' })
 }
 
+type GamePersonal = { favourite: boolean; note: string; plays: number; lastPlayed: number; cheats: unknown[]; hasBattery?: boolean }
+
+const thumbUrl = (id: number, slot: number, v: number) => {
+  const u = mediaUrl(`/api/games/${id}/saves/${slot}/thumb`)
+  return u + (u.includes('?') ? '&' : '?') + `v=${v}`
+}
+
+const pickSaveFile = (accept: string) => new Promise<File | null>((resolve) => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = accept
+  input.onchange = () => resolve(input.files?.[0] || null)
+  input.oncancel = () => resolve(null)
+  input.click()
+})
+
 const fmtPlay = (sec: number) => {
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
   return h > 0 ? `${h} h ${m} min` : `${m} min`
@@ -408,6 +501,8 @@ export function GamePage() {
   const [params] = useSearchParams()
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
+  const { user } = useApp()
+  const settingsHost = useSettingsHost(!!user?.isAdmin)
   useEffect(() => { Promise.all([api.get<Item>(`/items/${id}`), getConsoles().then((l) => { for (const c of l) knownConsoles.set(c.id, c.short) }).catch(() => {})]).then(([i]) => setIt(i)).catch((e) => setErr(e.message)) }, [id])
   const host = useMemo<PlayHost | null>(() => {
     if (!it) return null
@@ -416,11 +511,16 @@ export function GamePage() {
       return base.replace(/^http/, 'ws')
     }
     return {
-      itemId: it.id, title: it.title, consoleId: it.console || '', resume: params.get('resume') === '1',
+      ...settingsHost,
+      itemId: it.id, title: it.title, consoleId: it.console || '', consoleName: consoleName(it.console || ''), resume: params.get('resume') === '1', safeMode: params.get('safe') === '1',
       prepare: () => api.post<PrepareStatus>(`/games/${it.id}/prepare`),
-      start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }),
+      start: (resume, safeMode) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, safeMode, client: 'browser' }),
+      relaunch: ({ resume, safeMode }) => {
+        const q = [resume ? 'resume=1' : '', safeMode ? 'safe=1' : ''].filter(Boolean).join('&')
+        window.location.assign(window.location.pathname + (q ? '?' + q : ''))
+      },
       controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}&game=${it.id}`),
-      controllers: getControllers, profiles: profileHost, consoleName: consoleName(it.console || ''),
+      controllers: getControllers, profiles: profileHost,
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
       stop: async (sid) => { await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
@@ -428,12 +528,10 @@ export function GamePage() {
         const tok = getToken()
         return `${wsBase()}/api/play/${sid}/ws?video=${video}` + (tok ? `&token=${encodeURIComponent(tok)}` : '')
       },
-      action: async (sid, type, slot, on, extra) => { await api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }) },
-      saves: () => api.get<SaveSlot[]>(`/games/${it.id}/saves`),
-      thumbUrl: (slot, v) => mediaUrl(`/api/games/${it.id}/saves/${slot}/thumb`) + `&v=${v}`,
+      action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
       close: () => nav(`/item/${it.id}`, { replace: true }),
     }
-  }, [it])
+  }, [it, settingsHost])
   if (err) return <div className="error" role="alert">{err}</div>
   if (!host) return <Spinner />
   return <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>

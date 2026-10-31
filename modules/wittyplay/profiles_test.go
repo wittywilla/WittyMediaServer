@@ -30,7 +30,7 @@ func TestResolveOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range f.Cases {
-		got := Resolve(f.Profiles, c.Kind, c.Controller, c.Console, c.Game, c.Raw)
+		got := ResolveProfile(f.Profiles, c.Kind, c.Controller, c.Console, c.Game, c.Raw)
 		var id int64
 		if got != nil {
 			id = got.ID

@@ -6,6 +6,14 @@
 .game-saves img, .game-save-empty { width: 80px; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; image-rendering: pixelated; flex: 0 0 auto; }
 .game-saves li > div { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .game-saves small { font-size: 12px; overflow-wrap: anywhere; }
+.game-saves li { flex-wrap: wrap; }
+.game-resume { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; max-width: 460px; }
+.game-resume:hover { background: var(--bg-2, rgba(127, 127, 127, .16)); }
+.game-resume img, .game-resume .game-save-empty { width: 96px; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; image-rendering: pixelated; flex: 0 0 auto; }
+.game-resume span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.game-notes { display: flex; flex-direction: column; gap: 4px; max-width: 560px; }
+.game-notes textarea { width: 100%; resize: vertical; }
+.game-save-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .gaming-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
 .gaming-facts dt { color: var(--fg-2, inherit); }

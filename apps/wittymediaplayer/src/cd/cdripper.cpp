@@ -246,6 +246,9 @@ void CdRipper::run(const RipJob &job)
 
     QByteArray line;
     while (readLine(p, &line, stop_, &closedInput)) {
+        // Whatever's still queued goes unread: a track cut short must never count as done.
+        if (stop_.load())
+            break;
         const QJsonObject ev = QJsonDocument::fromJson(line).object();
         const QString event = ev.value(QStringLiteral("event")).toString();
         const int number = ev.value(QStringLiteral("track")).toInt();
@@ -283,8 +286,6 @@ void CdRipper::run(const RipJob &job)
                 trouble = QStringLiteral("The helper program stopped sending this track.");
                 break;
             }
-            if (stop_.load())
-                continue;
             if (!encoder.write(pcm.constData(), bytes)) {
                 trouble = QStringLiteral("Track %1: %2").arg(number).arg(encoder.error());
                 break;
@@ -333,7 +334,7 @@ void CdRipper::run(const RipJob &job)
     }
     dropPartial();
     p.closeWriteChannel();
-    if (!p.waitForFinished(5000)) {
+    if (!p.waitForFinished(stop_.load() ? 500 : 5000)) {
         p.kill();
         p.waitForFinished(2000);
     }

@@ -145,12 +145,61 @@ The player has been kept independent of the transport so that this can be added 
 - **Library type `games`**, with a `console` on the library (`nes`, `snes`, and so on) or `auto`
   for one folder holding many consoles. Several libraries of one console work the same way as
   several Movies libraries: the add flow's "combine or separate" choice applies per console.
-- **`auto` libraries** use the folder name first (`SNES/`, `Super Nintendo/`), then the file
-  extension when only one console claims it. Files nothing claims are skipped.
+- **`auto` libraries** use the folder name first (`SNES/`, `Super Nintendo/`, `Super Nintendo (SNES)/`),
+  then the file extension when only one console claims it. Files nothing claims are skipped.
 - **Items** have kind `game` and a `console`. Multi-file games: a `.cue` hides its `.bin` tracks,
   and an `.m3u` hides the discs it lists.
-- **`.zip`** holding one game is unpacked to a temporary folder when played.
-- **What gets skipped:** BIOS folders (`bios`, `system`), and files that aren't games.
+- **Archives** count as the game inside them, so nothing needs unpacking first. See below.
+- **What gets skipped:** BIOS folders (`bios`, `system`), and files that aren't games. A scan reports what it left
+  out, on the library's page, for admins.
+
+### Games in archives
+
+`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2,
+xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short
+forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose
+extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `internal/gamearchive`.
+
+**Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in
+the database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index,
+so a scan reads through the first 64 MB of one at most, which is usually far enough to see what it is. The title comes
+from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
+
+**Which file:** a playlist first, then a `.cue` or `.gdi`, then `.ccd` or `.toc`, then any other game file for that console.
+Among several candidates, it prefers one named after the archive, then a verified dump in a widely-played region, and
+puts bad dumps and hacks last. A tie goes to the first in the archive.
+
+| What's in it | What's unpacked | What the core opens |
+|---|---|---|
+| One game file, or several versions | The chosen file, as `game.<ext>` | `game.<ext>` |
+| A disc, with its tracks | Everything but documents and pictures, since cores also want things no `.cue` names (`.sbi`, `.sub`) | The `.cue`, `.gdi` or `.ccd` under its own name, with the tracks beside it |
+| Several discs of one game, and a playlist | The same | The playlist |
+| Several discs of one game, and no playlist | The same | `game.m3u`, written then. A console that can't open one gets the first disc |
+
+A `.cue`, `.gdi` or `.m3u` from an archive is checked before it's used: each file it names must have arrived. A name that
+differs only in case, or carries a path from the computer it was made on, is corrected in the unpacked copy, as those
+fail on Linux. A name that matches nothing gives a clear error, which also means a list can't point a core at anything
+outside the game's folder.
+
+**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Gaming (16 GB by default). Nothing is
+ever written beside the original.
+
+- A game is reused on the next play, and the longest unplayed is evicted when room is needed, except a game being played.
+- The id comes from the file's path, size and time, and the console, so a changed archive is a new game.
+- A game unpacks into `.tmp-…` and appears under its final name in one rename, after every file is synced to disk and
+  a manifest of their sizes is written. Anything a crash leaves behind is under the temporary name, and is cleared at
+  the next start. A finished game is checked against its manifest each time it starts, and is unpacked again if it fails.
+- Everyone asking for the same game shares one unpack. At most two run at a time, and the rest wait. One that nobody has
+  asked about for two minutes is stopped.
+- Disk space comes first: a game that won't fit, leaving 512 MB free, gets a clear error.
+- Settings, Gaming shows how much it's using and can empty it. A game being played stays.
+
+**Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the
+archive's path in the library. A one-file game is always opened as `game.<ext>`, the name `.zip` games have always had, in
+case a core names files after what it opened.
+
+**Starting** a game that isn't unpacked yet: `POST /games/{id}/prepare` starts the unpack and says how far it has got, and
+the player shows that. `POST /games/{id}/play` works without it, and just takes as long as the unpack does.
 
 ### Metadata and box art
 
@@ -240,6 +289,23 @@ Treat a ROM as hostile and a core as buggy:
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
   sessions is capped.
 
+**Archives**
+
+- An archive is hostile input, and its decoders are other people's code. Everything that reads one runs in a throwaway
+  worker: the server started again with an internal flag. It boxes itself in with the same layers as the host, and has a
+  memory limit of 4 GB and a lower priority. On Windows it uses a job object for the limit. A crafted header that makes a
+  decoder panic or ask for all the memory in the world ends the worker, and the server reports that one archive as damaged.
+  A scan's worker that stops answering for 60 seconds is killed.
+- A name that climbs out of the folder, is absolute, or names a drive or a device refuses the whole archive. Writing also
+  goes through `os.Root`, so a name the checks miss still can't leave the folder.
+- Links, devices and folders in an archive are ignored. No link is ever created.
+- At most 10,000 entries and 32 GB, with at most 2,000 times the archive's own size above 1 GB. Those are checked against
+  the headers first. Then the bytes are counted as they're written, since headers can lie: writing more than a file's
+  headers promised stops it. Checksums are checked where the format has them.
+- Encrypted archives get a clear message, and no password is ever tried. A `.7z` that keeps its names readable and locks
+  only its contents can't be told from its headers, so it shows in the library and says so when played. The other kinds are
+  reported by the scan: password-protected, damaged, oversized, unsafe.
+
 **The server's side of the pipe**
 
 - Everything the host says is untrusted: every message has a size limit, dimensions are checked,
@@ -267,6 +333,7 @@ sandboxed.
 | WittyPlay (host, stream, web) | Apache-2.0 | Ours |
 | pion/webrtc and its family | MIT | Linked into `wms` |
 | coder/websocket | ISC | Linked into `wms` |
+| bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see THIRD_PARTY_LICENSES.md | Linked into `wms`. No GPL code |
 | ebitengine/purego | Apache-2.0 | Linked into `wittyplay-host` only |
 | libretro API definitions | MIT | The constants and struct layouts only; no libretro code is copied |
 | RetroArch | GPLv3 | Not shipped. Its core folder is read if present. The fork would be a separate program ([WITTYRETROARCH.md](WITTYRETROARCH.md)) |
@@ -303,6 +370,8 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 
 ## Limits today
 
+- **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are. Nearly all zips are Deflate.
+- **A `.7z` with locked contents** is only found out when played. See Security.
 - **Software-rendered cores only** with the built-in runner.
 - **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has
   not been tested end to end yet.

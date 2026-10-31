@@ -9,6 +9,7 @@ import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import LogSettings from './LogSettings'
 import Profiles from './Profiles'
+import LicenseList from './settings/Licenses'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
@@ -47,7 +48,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
     { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'Versions, supported servers and updates' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
+    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
   ] },
 ]
 
@@ -341,7 +342,7 @@ function About() {
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the license, and the services it relies on." />
+      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, its license, and every third-party license." />
       <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
@@ -390,10 +391,12 @@ function About() {
           <p><b>No circumvention.</b> Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused, and only unprotected content plays.</p>
         </div>
       </Section>
-      <Section title="Third-party components and services">
+      <Section title="Third-party licenses" desc="Everything in this server that someone else made, and what it’s under.">
+        <LicenseList />
+      </Section>
+      <Section title="No warranty">
         <div className="set-prose">
-          <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>
-          <p><b>No warranty.</b> The software is provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated with any other media software project, studio or rights holder; all trademarks belong to their owners.</p>
+          <p>The software is provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated with any other media software project, studio or rights holder; all trademarks belong to their owners.</p>
         </div>
       </Section>
     </>

@@ -2,6 +2,9 @@
 
 WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the following open-source components.
 
+**Settings, About & legal** lists every library in the program you're running, with its version, license and full license
+text. That list is made from what's really compiled in (`internal/licenses`), and this file is the summary of it.
+
 ## Bundled in release archives / the Docker image
 
 | Component | Licence | Notes |
@@ -18,6 +21,12 @@ WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the 
 | golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net | BSD-3-Clause |
 | github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, interceptor and others) | MIT |
 | github.com/coder/websocket | ISC |
+| github.com/bodgit/sevenzip, github.com/bodgit/plumbing, github.com/bodgit/windows (reading .7z game archives) | BSD-3-Clause |
+| github.com/nwaples/rardecode (reading .rar game archives) | BSD-2-Clause |
+| github.com/klauspost/compress, github.com/ulikunitz/xz, github.com/pierrec/lz4 (decompression, for the above) | BSD-3-Clause |
+| github.com/andybalholm/brotli, github.com/stangelandcl/ppmd (decompression, for the above) | MIT |
+| github.com/spf13/afero, go4.org/readerutil (used by github.com/bodgit/sevenzip) | Apache-2.0 |
+| github.com/hashicorp/golang-lru (used by github.com/bodgit/sevenzip) | MPL-2.0. Unmodified; its source is at <https://github.com/hashicorp/golang-lru> |
 | github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/text (transitive) | BSD / MIT |
 
 Run `go version -m wms` on a binary for the exact module list and versions.

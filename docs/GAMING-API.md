@@ -34,6 +34,7 @@ trip through the app switcher loses nothing.
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
+| `POST /games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
 | `POST /games/{id}/play` | user | Starts a game. Body: `{"resume": bool, "client": "native"}` |
 | `GET /games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb}]` |
 | `GET /games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
@@ -43,7 +44,7 @@ trip through the app switcher loses nothing.
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}` |
 | `DELETE /play/{sid}` | owner | Saves and stops |
-| `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}` | admin | Server setup. An app can leave this to the web interface |
+| `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
 
 A session belongs to the account that started it; to anyone else its routes answer 404.
 
@@ -56,6 +57,19 @@ Starting a game can answer:
 | 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core; otherwise `error` says why |
 | 422 | The file can't be used |
 | 503 | The server is running as many games as it allows, or its game runner is missing |
+
+**A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
+`POST /games/{id}/play` simply takes that long, which is fine as long as your HTTP client's timeout allows it. To show
+progress, call `POST /games/{id}/prepare` about once a second until `state` is `ready`, and then call play:
+
+| `state` | Meaning |
+|---|---|
+| `ready` | Nothing to wait for. Every game not in an archive answers this straight away |
+| `waiting` | Other games are unpacking first |
+| `reading`, `unpacking` | `done` of `total` bytes so far. `total` is what the archive says, so it can be 0 |
+
+It can answer 404, 409 and 422 the way play does. An unpack nobody has asked about for two minutes is stopped, so leaving
+the screen needs nothing else.
 
 **The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes}`.
 Show the picture at `aspect` (width over height), not at the video's own shape: the video is often

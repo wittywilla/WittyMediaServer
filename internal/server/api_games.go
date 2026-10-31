@@ -1,12 +1,10 @@
 package server
 
 import (
-	"archive/zip"
 	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -19,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittyplay/cores"
@@ -31,9 +30,10 @@ import (
 // docs/GAMING.md.
 
 func init() {
-	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality")
+	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB")
 	settingDefaults["gamingMaxSessions"] = "2"
 	settingDefaults["gamingRunner"] = "auto"
+	settingDefaults["gamingUnpackGB"] = strconv.Itoa(defaultUnpackGB)
 }
 
 // gameRoutes registers the games API.
@@ -43,6 +43,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/games/modes", a(s.handleGameModes))
 	m.Handle("GET /api/consoles/{console}/controls", a(s.handleGameControls))
 	m.Handle("PUT /api/consoles/{console}/controls", a(s.handlePutGameControl))
+	m.Handle("POST /api/games/{id}/prepare", a(s.handleGamePrepare))
 	m.Handle("POST /api/games/{id}/play", a(s.handleGamePlay))
 	m.Handle("GET /api/games/{id}/saves", a(s.handleGameSaves))
 	m.Handle("GET /api/games/{id}/saves/{slot}/thumb", a(s.handleGameSaveThumb))
@@ -55,15 +56,21 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
+	m.Handle("DELETE /api/gaming/unpacked", s.requireAdmin(s.handleUnpackedClear))
 }
 
 // gameService is built the first time anything needs it, so a server nobody
 // plays games on spends nothing on them.
 type gameService struct {
-	mgr   *stream.Manager
-	cores *cores.Manager
-	dir   string
+	mgr      *stream.Manager
+	cores    *cores.Manager
+	archives *gamearchive.Cache
+	dir      string
 }
+
+// defaultUnpackGB is the space for unpacked games: room for a good many discs, or the
+// largest single disc. An admin can change it, and free disk space always comes first.
+const defaultUnpackGB = 16
 
 // testingGames: the built-in test console is only offered to developers.
 func (s *Server) testingGames() bool {
@@ -75,6 +82,8 @@ func (s *Server) games() *gameService {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
 		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), Client: library.SafeClient},
 			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
+		s.gameSvc.archives = &gamearchive.Cache{Dir: filepath.Join(dir, "unpacked"), Limit: s.unpackLimit}
+		_ = os.RemoveAll(filepath.Join(dir, "tmp")) // where older versions unpacked; a crash could leave some
 	})
 	return s.gameSvc
 }
@@ -83,7 +92,17 @@ func (s *Server) games() *gameService {
 func (s *Server) StopGames() {
 	if s.gameSvc != nil {
 		s.gameSvc.mgr.StopAll()
+		s.gameSvc.archives.Close()
 	}
+}
+
+// unpackLimit is the size of the unpacked games cache, in bytes.
+func (s *Server) unpackLimit() int64 {
+	gb, err := strconv.Atoi(s.DB.GetSetting(context.Background(), "gamingUnpackGB", ""))
+	if err != nil || gb < 1 {
+		gb = defaultUnpackGB
+	}
+	return int64(gb) << 30
 }
 
 // findProgram looks beside the server, in bin/ and in the development build folder.
@@ -415,8 +434,11 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	rom, cleanup, err := g.prepareROM(it.Path, console)
+	rom, cleanup, err := g.prepareROM(ctx, it.Path, console)
 	if err != nil {
+		if ctx.Err() != nil {
+			return // whoever asked has gone; the unpack carries on for next time
+		}
 		writeErr(w, 422, err.Error())
 		return
 	}
@@ -426,6 +448,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
 	})
 	if err != nil {
+		if cleanup != nil {
+			cleanup() // it may never have got as far as a session that would
+		}
 		if errors.Is(err, stream.ErrBusy) {
 			writeErr(w, 503, err.Error())
 			return
@@ -454,68 +479,51 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	}
 }
 
-// prepareROM returns the file a core should open. A .zip is unpacked first, into
-// a folder only this session uses, under a name we choose.
-func (g *gameService) prepareROM(path string, console *wittyplay.Console) (rom string, cleanup func(), err error) {
-	if !strings.EqualFold(filepath.Ext(path), ".zip") {
+// prepareROM returns the file a core should open. An archive is unpacked first, or
+// already has been: see gamearchive.Cache. This waits for that, and cleanup lets the
+// cache have the space back once the game has ended.
+func (g *gameService) prepareROM(ctx context.Context, path string, console *wittyplay.Console) (rom string, cleanup func(), err error) {
+	if !gamearchive.IsArchive(path) {
 		return path, nil, nil
 	}
-	entry := library.ZipGame(path, console)
-	if entry == "" {
-		return "", nil, errors.New("this archive holds no game for " + console.Name)
-	}
-	tmpRoot := filepath.Join(g.dir, "tmp")
-	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
-		return "", nil, err
-	}
-	dir, err := os.MkdirTemp(tmpRoot, "rom-")
-	if err != nil {
-		return "", nil, err
-	}
-	cleanup = func() { _ = os.RemoveAll(dir) }
-	out := filepath.Join(dir, "game"+strings.ToLower(filepath.Ext(entry)))
-	if err := extractZipEntry(path, entry, out); err != nil {
-		cleanup()
-		return "", nil, err
-	}
-	return out, cleanup, nil
+	return g.archives.Acquire(ctx, path, console)
 }
 
-// maxUnpackedROM is above the largest cartridge; disc images aren't zipped this way.
-const maxUnpackedROM = 1 << 30
-
-func extractZipEntry(path, entry, out string) error {
-	zr, err := zip.OpenReader(path)
-	if err != nil {
-		return err
+// handleGamePrepare gets a game ready without waiting for it, and says how that's
+// going, so a client can show progress for a slow unpack. Call it again to follow it.
+// Starting a game works without it: POST play simply takes as long as unpacking does.
+func (s *Server) handleGamePrepare(w http.ResponseWriter, r *http.Request) {
+	it, ok := s.gameItem(r)
+	if !ok {
+		writeErr(w, 404, "not found")
+		return
 	}
-	defer zr.Close()
-	for _, f := range zr.File {
-		if f.Name != entry {
-			continue
-		}
-		if f.UncompressedSize64 > maxUnpackedROM {
-			return errors.New("the game in this archive is too large")
-		}
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		defer rc.Close()
-		dst, err := os.Create(out)
-		if err != nil {
-			return err
-		}
-		n, err := io.Copy(dst, io.LimitReader(rc, maxUnpackedROM+1))
-		if cerr := dst.Close(); err == nil {
-			err = cerr
-		}
-		if err == nil && n > maxUnpackedROM {
-			err = errors.New("the game in this archive is too large")
-		}
-		return err
+	console := wittyplay.ByID(it.Console)
+	if console == nil || (console.Hidden && !s.testingGames()) {
+		writeErr(w, 404, "not found")
+		return
 	}
-	return errors.New("the game is not in the archive")
+	if console.Unavailable != "" {
+		writeErr(w, 409, console.Unavailable)
+		return
+	}
+	g := s.games()
+	ready := gamearchive.Status{State: "ready"}
+	if !gamearchive.IsArchive(it.Path) {
+		writeJSON(w, 200, ready)
+		return
+	}
+	// Unpacking a disc only to be told no core is installed would be a poor way to learn it.
+	if console.ID != wittyplay.TestConsole && g.cores.ForConsole(console, s.preferredCores(r.Context())[console.ID]) == nil {
+		writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
+		return
+	}
+	st := g.archives.Prepare(it.Path, console)
+	if st.Error != "" {
+		writeErr(w, 422, st.Error)
+		return
+	}
+	writeJSON(w, 200, st)
 }
 
 // session finds a session for the account that started it. To anyone else it
@@ -721,8 +729,15 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{
 		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
-		"coresDir": g.cores.Dir, "systemDir": filepath.Join(g.dir, "system"), "running": g.mgr.Count(),
+		"coresDir": g.cores.Dir, "systemDir": filepath.Join(g.dir, "system"), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(),
 	})
+}
+
+// handleUnpackedClear empties the unpacked games cache, apart from what's being played.
+func (s *Server) handleUnpackedClear(w http.ResponseWriter, r *http.Request) {
+	g := s.games()
+	g.archives.Clear()
+	writeJSON(w, 200, map[string]any{"unpackedBytes": g.archives.Used()})
 }
 
 var coreIDRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)

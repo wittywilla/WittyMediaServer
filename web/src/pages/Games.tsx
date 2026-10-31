@@ -4,7 +4,7 @@ import { api, getToken, mediaUrl, posterUrl, serverBase, type GameConsole, type 
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
-import type { PlayHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
+import type { PlayHost, PrepareStatus, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
 import './games.css'
 
 // Games: the library page, a game's own page, and the page that holds the player.
@@ -41,7 +41,12 @@ function GameCard({ item, console: c }: { item: Item; console?: GameConsole }) {
 // A page at a time: a collection can run to thousands of games, and neither an old
 // TV nor a phone should pay for all of them to look at the first few.
 const PAGE = 120
-const list = (ext: string, n: number) => `${n.toLocaleString()} ${ext}`
+// A scan counts archives it can't read by why, and other files by their extension.
+const PROBLEMS: Record<string, string> = {
+  encrypted: 'password-protected archive', unsafe: 'unsafe archive', toobig: 'oversized archive', toomany: 'archive with too many files',
+  damaged: 'damaged archive', method: 'archive with unsupported compression', unavailable: 'unreadable archive',
+}
+const list = (ext: string, n: number) => `${n.toLocaleString()} ${PROBLEMS[ext] ? (n === 1 ? PROBLEMS[ext] : PROBLEMS[ext].replace('archive', 'archives')) : ext}`
 const and = (parts: string[]) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`)
 
 export function GamesLibrary({ lib }: { lib: Library }) {
@@ -109,7 +114,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const inProgress = [...playing].sort((a, b) => (b.progress?.updatedAt || 0) - (a.progress?.updatedAt || 0)).slice(0, 8)
   const left = Object.entries(skipped).sort((a, b) => b[1] - a[1])
   const leftCount = left.reduce((n, [, c]) => n + c, 0)
-  const archives = left.some(([e]) => e === '.7z' || e === '.rar')
+  const locked = left.some(([e]) => e === 'encrypted')
   return (
     <>
       <div className="toolbar">
@@ -123,7 +128,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
         <div className="warn-box gm-skipped" role="status">
           <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>
           {and(left.map(([e, c]) => list(e, c)))}.{' '}
-          {archives ? '.7z and .rar archives can’t be read yet: unpack them, or zip them instead. ' : ''}
+          {locked ? 'This server doesn’t open archives with a password: unpack those yourself. ' : ''}
           Anything else is a kind of file, or a console, that isn’t supported yet.
         </div>
       )}
@@ -233,6 +238,7 @@ export function GamePage() {
     }
     return {
       itemId: it.id, title: it.title, consoleId: it.console || '', resume: params.get('resume') === '1',
+      prepare: () => api.post<PrepareStatus>(`/games/${it.id}/prepare`),
       start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }),
       controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}`),
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },

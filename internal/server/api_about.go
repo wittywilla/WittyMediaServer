@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 
 	wms "github.com/wittywilla/wittymediaserver"
+	"github.com/wittywilla/wittymediaserver/internal/licenses"
 )
 
 // The engines built into this server, with the versions it was built
@@ -60,6 +62,39 @@ func builtModules() []moduleInfo {
 		}
 	})
 	return modules
+}
+
+// GET /api/licenses: everything in this server that someone else made, with its license.
+func (s *Server) handleLicenses(w http.ResponseWriter, r *http.Request) {
+	all := licenses.All()
+	out := make([]licenses.Component, len(all))
+	copy(out, all)
+	// The versions really in this program, which a list made earlier can't know.
+	versions := map[string]string{}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, d := range bi.Deps {
+			versions[d.Path] = strings.TrimPrefix(d.Version, "v")
+		}
+	}
+	for i := range out {
+		out[i].Version = versions[out[i].Name]
+	}
+	writeJSON(w, 200, map[string]any{"groups": licenses.Groups, "components": out})
+}
+
+// GET /api/licenses/{id}: one component's full license text.
+func (s *Server) handleLicenseText(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	text, ok := licenses.Text(id)
+	if !ok {
+		writeErr(w, 404, "not found")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"text": text})
 }
 
 // GET /api/about: the server's version and its engines (any signed-in user).

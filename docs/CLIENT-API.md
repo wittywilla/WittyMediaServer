@@ -705,6 +705,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /status` | none | Server name, version, branding, default theme, and the signed-in user if any. |
 | `GET /health` | none | Liveness check. |
 | `GET /about` | user | Server version and the engines built into it. |
+| `GET /licenses` | user | Everything in this server someone else made, with its license: `{groups, components}`. |
+| `GET /licenses/{id}` | user | One component's full license text: `{text}`. |
 | `GET /prefs` | user | Server-wide playback defaults every viewer needs. |
 | `GET /branding/logo` | none | The custom logo, if the server has one (404 otherwise). The `brandLogo` value in `/status` changes when it does. |
 | `PUT /branding/logo` | admin | Replace the logo: the PNG or JPEG itself as the body, 2 MB at most. |
@@ -920,6 +922,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
+| `POST /games/{id}/prepare` | user | Game prepare. |
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
@@ -1041,6 +1044,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /gaming` | admin | Gaming. |
 | `POST /gaming/cores/{id}/install` | admin | Core install. |
 | `DELETE /gaming/cores/{id}` | admin | Core remove. |
+| `DELETE /gaming/unpacked` | admin | Empty the unpacked games cache. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | Recording rules. |

@@ -228,8 +228,9 @@ func TestSkippedGameFilesAreCounted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Not really archives, whatever they're called: counted by that, not by extension.
 	got := skippedGameFiles(root, "auto")
-	if got[".7z"] != 2 || len(got) != 1 {
-		t.Fatalf("want only two .7z files reported, got %v", got)
+	if got["damaged"] != 2 || len(got) != 1 {
+		t.Fatalf("want only two damaged archives reported, got %v", got)
 	}
 }

@@ -41,6 +41,23 @@ disc: neither Blu-ray image on hand has Java menus.
 - **Added:** about 300 more platform classes from the published specifications, among them HAVi widgets and focus,
   Java TV services and timers, DSM-CC files, and `DVBClassLoader`. Several were in the wrong package, or could not
   be linked by a real disc at all.
+### Licenses you can read
+
+- **Settings, About & legal** now lists everything in the server that someone else made: every library with its version, license and
+  full license text, the separate programs, the game cores, and the online services and their terms. Before, it pointed to a file.
+
+### Games in archives
+
+- **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.tar`, gzip, bzip2, xz and Zstandard, and split
+  `.7z.001` and `.part1.rar` sets, for every console. That includes disc games: an archive holding a `.cue` and its tracks, a `.gdi`, or several discs, unpacks everything the
+  game needs and opens the right file.
+- **Scans stay quick.** Only an archive's headers are read, once, until the file changes. About 2,000 archives take about a second.
+- **Starting a game** shows how far unpacking has got. It's kept for next time in a space you set in Settings, Gaming (16 GB
+  by default), and the longest unplayed goes first. Nothing is written beside your files, and saves carry on as they were.
+- **Folders** named like `Super Nintendo (SNES)` are now recognised, and a `.cue` hides its tracks even when the case of the names
+  differs.
+- **Safe with untrusted files.** Archives are read in a separate, boxed-in process. Ones that try to climb out of their folder, hold
+  links, unpack to absurd sizes or are password-protected are refused or skipped with a clear message.
 
 ### Interface audit
 
@@ -48,7 +65,7 @@ disc: neither Blu-ray image on hand has Java menus.
   titles had no art. The phone's bottom bar wrapped onto two rows. A folder typed without pressing Enter left
   Add greyed out in setup. A remote's Back button did nothing in a dialog. Home videos under 5 MB were skipped.
 - **Games:** large libraries load a page at a time (they stopped at 2,000 before), with search and console filters.
-  Files a scan can't use, such as .7z archives, are now reported instead of quietly missing.
+  Files a scan can't use are now reported instead of quietly missing.
 - **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
   listing everything.
 

@@ -90,12 +90,18 @@
     renderFound = () => {
       const focusedUrl = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.url : ''
       const hadFocus = foundList.contains(document.activeElement)
+      const focusedIndex = Array.from(foundList.children).indexOf(document.activeElement)
       foundList.textContent = ''
       for (const s of found) foundList.appendChild(serverButton(s))
       status.textContent = found.length ? '' : (Date.now() - startedAt > NONE_AFTER_MS ? S.findNone : S.findSearching)
       const same = Array.from(foundList.children).find((b) => b.dataset.url === focusedUrl)
       if (same && hadFocus) same.focus()
-      else if (!userMoved && foundList.firstChild) foundList.firstChild.focus()
+      else if (hadFocus) {
+        // The focused server went away. Without this, a remote has nothing to move from.
+        const neighbour = foundList.children[Math.min(focusedIndex, foundList.children.length - 1)]
+        const fallback = neighbour || app.querySelector('button')
+        if (fallback) fallback.focus()
+      } else if (!userMoved && foundList.firstChild) foundList.firstChild.focus()
     }
     const startedAt = Date.now()
     renderFound()

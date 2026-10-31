@@ -3,7 +3,7 @@ const assert = require('node:assert')
 const crypto = require('crypto')
 const dnsPacket = require('dns-packet')
 const { serversFromRecords, serverFromUdpReply, makeServer, ServerList, FORGET_AFTER_MS, MAX_SERVERS } = require('../discover.js')
-const { signatureValid, judge, signedBytes } = require('../identity.js')
+const { signatureValid, judge, judgeMissing, fingerprintOf, signedBytes } = require('../identity.js')
 
 const ID = '0123456789abcdef0123456789abcdef'
 const INSTANCE = `Home (0123)._wittymedia._tcp.local`
@@ -100,6 +100,18 @@ test('accepts a true signature and refuses tampering', () => {
 test('checks a real answer from a server', () => {
   const fixture = require('../../shared/fixtures/identity.json')
   assert.strictEqual(signatureValid(fixture.answer, fixture.nonce), true)
+})
+
+test('works out the same fingerprint the server shows', () => {
+  const { answer } = require('../../shared/fixtures/identity.json')
+  assert.strictEqual(fingerprintOf(answer.publicKey), answer.fingerprint)
+})
+
+test('a known server that stops proving itself is refused, an unknown one may be old', () => {
+  const url = 'http://10.0.0.2:9797'
+  assert.strictEqual(judgeMissing(url, []), 'none')
+  assert.strictEqual(judgeMissing(url, [{ url, publicKey: 'k' }]), 'bad')
+  assert.strictEqual(judgeMissing(url, [{ url: 'http://10.0.0.3:9797', publicKey: 'k' }]), 'none')
 })
 
 test('judges new, same and different keys', () => {

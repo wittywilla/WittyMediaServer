@@ -90,6 +90,8 @@ attribution, *“WittyReader, developed by WittyWilla”*, in your NOTICE file, 
 
 A version tag builds the web app and attaches it to a release. It isn't delivered through a server.
 
+To release:
+
 1. Raise `version` in `package.json` and commit it.
 2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
    suffix, such as `v1.2.0-beta`, is published as a prerelease.

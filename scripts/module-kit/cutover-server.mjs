@@ -210,6 +210,17 @@ edit('internal/modules/modules_test.go', (t) => {
   return t
 })
 
+// Raising the server's version checked the modules' folders. CI checks their ranges now.
+edit('scripts/bump-server.sh', (t) => must(t, /# A server past a module's maxServer[^
+]*
+manifests=[\s\S]*?
+\s*exit 1
+\s*\}
+fi
+/,
+  "# A server past a module's maxServer would quietly run its built-in copy: CI fails on it.
+", "the check of the modules' folders"))
+
 // A comment that would otherwise point at a folder that's gone.
 edit('web/src/pages/Games.tsx', (t) => t.replace('(modules/wittyplay/web)', "(the web folder of WittyPlay's repository)"))
 

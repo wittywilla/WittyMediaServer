@@ -17,6 +17,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          # All of it, with tags: needs-bump below compares with the last tag.
+          fetch-depth: 0
+          fetch-tags: true
       # The newest patch release: every Go patch fixes security problems in the
       # standard library that programs ship with.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
@@ -26,6 +29,10 @@ jobs:
           cache: false
       - name: The manifest
         run: go run ./cmd/wittymodule check .
+      # Tags never move, so a change that keeps the last tag's version could never reach
+      # anyone under its own number. Documentation doesn't count.
+      - name: Changed since the last tag means a new version
+        run: go run ./cmd/wittymodule needs-bump .
       - name: go.mod names released versions only
         run: |
           if grep -q '^replace' go.mod; then echo "go.mod has replace directives, which go install refuses"; exit 1; fi

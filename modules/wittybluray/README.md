@@ -172,7 +172,14 @@ attribution, *“WittyBluray, developed by WittyWilla”*, in your NOTICE file, 
 
 A version tag builds a program for every platform, signs the checksum list, and publishes a release that servers can install.
 
-1. Raise `version` in `module.json` and commit it.
+Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 bump .` raises it
+everywhere it is written (add `-part minor` for a bigger step). A bump isn't a release: nothing is
+tagged or published until you tag it. CI fails when code changed since the last tag and the version
+didn't, because tags never move.
+
+To release:
+
+1. Check that `version` in `module.json` is the one to publish, with the bump committed.
 2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
    suffix, such as `v1.2.0-beta`, is published as a prerelease.
 3. Watch the *Actions* tab. The signing step uses the `WMS_SIGNING_KEY` secret of the `release` environment, and nothing is published without it.

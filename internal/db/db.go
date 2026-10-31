@@ -274,6 +274,16 @@ var migrations = []string{
 	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
 	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(user_id, console, kind, key));`,
+	// 17: internet radio: what is known about a station beyond its item, where it
+	// came from, and whether it is still on the air.
+	`CREATE TABLE IF NOT EXISTS radio_meta (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   source TEXT NOT NULL DEFAULT '', source_id TEXT NOT NULL DEFAULT '',
+	   homepage TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', country_code TEXT NOT NULL DEFAULT '',
+	   language TEXT NOT NULL DEFAULT '', codec TEXT NOT NULL DEFAULT '', bitrate INTEGER NOT NULL DEFAULT 0, hls INTEGER NOT NULL DEFAULT 0,
+	   dir_ok INTEGER NOT NULL DEFAULT -1, dir_gone INTEGER NOT NULL DEFAULT 0, dir_checked INTEGER NOT NULL DEFAULT 0,
+	   fail_count INTEGER NOT NULL DEFAULT 0, last_ok INTEGER NOT NULL DEFAULT 0, last_check INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '');
+	 CREATE INDEX IF NOT EXISTS radio_meta_source ON radio_meta(source, dir_checked);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

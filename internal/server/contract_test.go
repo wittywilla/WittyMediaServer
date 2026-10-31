@@ -383,6 +383,7 @@ func schemaTypes() map[string]reflect.Type {
 		"ThemeMeta": ty(themes.Meta{}), "ThemeTokens": ty(themes.Tokens{}), "UpdateStatus": ty(update.Status{}), "UpdateInfo": ty(update.Info{}),
 		"ModuleReport": ty(modmgr.Report{}), "ModuleStatus": ty(modmgr.Status{}), "ModuleOffer": ty(modmgr.Offer{}),
 		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}),
+		"RadioMeta": ty(library.RadioMeta{}), "NowPlaying": ty(library.NowPlaying{}), "DirectoryStation": ty(library.DirectoryStation{}), "DirectoryFacets": ty(library.DirectoryFacets{}), "DirectoryCount": ty(library.DirectoryCount{}),
 	}
 }
 

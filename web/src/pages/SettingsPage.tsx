@@ -116,7 +116,7 @@ const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'shorts', label: 'Vertical videos', hint: 'A feed of short videos with a For You page' },
   { v: 'channels', label: 'Creator videos', hint: 'An archive of creators’ videos, by channel' },
   { v: 'musicvideos', label: 'Music videos & concerts', hint: 'Music videos and live recordings by artist' },
-  { v: 'radio', label: 'Internet radio', hint: 'Stations by stream address; no folder needed' },
+  { v: 'radio', label: 'Internet radio', hint: 'Stations from a free directory or by stream address; no folder needed' },
   { v: 'commercials', label: 'Commercials', hint: 'Your own ads and bumpers for TV channels; they stay out of Home and search' },
   { v: 'games', label: 'Games', hint: 'Your own game files, by console, played in the browser' },
 ]
@@ -392,7 +392,7 @@ function About() {
       </Section>
       <Section title="Third-party components and services">
         <div className="set-prose">
-          <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>
+          <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Internet radio stations can be found through the community directory <b>Radio Browser</b>. Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>
           <p><b>No warranty.</b> The software is provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated with any other media software project, studio or rights holder; all trademarks belong to their owners.</p>
         </div>
       </Section>

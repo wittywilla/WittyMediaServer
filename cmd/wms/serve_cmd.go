@@ -216,6 +216,16 @@ func cmdServe(args []string) int {
 		}
 	}()
 
+	// Radio: details from the directory, and station checks if turned on. Each step
+	// has its own limits, and does nothing for a server with no stations.
+	go func() {
+		time.Sleep(10 * time.Minute)
+		for {
+			scanner.RefreshRadio(context.Background())
+			time.Sleep(6 * time.Hour)
+		}
+	}()
+
 	// Rescan libraries periodically.
 	go func() {
 		for range time.Tick(6 * time.Hour) {

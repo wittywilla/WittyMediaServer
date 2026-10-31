@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"unicode/utf8"
 )
 
 // Internet radio: stations are items of kind "radio" whose path is their stream
-// address. The server only contacts a station while someone is listening to it,
-// and the owner adds every address; there is no directory to phone home to.
+// address, with what else is known about them in radio_meta. A station itself is
+// contacted while someone is listening, when an administrator asks for a check, and
+// on a schedule only if the "radioChecks" setting is on. radio_directory.go is the
+// directory an administrator can search.
 
 // ValidStreamURL keeps web addresses with a host.
 func ValidStreamURL(raw string) bool {
@@ -28,9 +29,10 @@ type RadioStation struct {
 	Genre string `json:"genre"`
 }
 
-// AddRadioStation saves a station. Adding the same address again renames it.
+// AddRadioStation saves a station. Adding the same address again renames it, and
+// what is already known about it stays.
 func (s *Store) AddRadioStation(ctx context.Context, libraryID int64, st RadioStation) (*Item, error) {
-	st.Name, st.URL, st.Genre = strings.TrimSpace(st.Name), strings.TrimSpace(st.URL), strings.TrimSpace(st.Genre)
+	st.Name, st.URL, st.Genre = CleanRadioText(st.Name, 201), strings.TrimSpace(st.URL), CleanRadioText(st.Genre, 81)
 	if !ValidStreamURL(st.URL) {
 		return nil, ErrBadInput("a station needs a web address (http or https)")
 	}
@@ -38,7 +40,7 @@ func (s *Store) AddRadioStation(ctx context.Context, libraryID int64, st RadioSt
 		u, _ := url.Parse(st.URL)
 		st.Name = u.Host
 	}
-	if len(st.Name) > 200 || len(st.Genre) > 80 {
+	if utf8.RuneCountInString(st.Name) > 200 || utf8.RuneCountInString(st.Genre) > 80 {
 		return nil, ErrBadInput("that name is too long")
 	}
 	it := &Item{LibraryID: libraryID, Kind: "radio", Path: st.URL, Title: st.Name, SortTitle: SortTitle(st.Name), Container: "radio"}
@@ -46,7 +48,10 @@ func (s *Store) AddRadioStation(ctx context.Context, libraryID int64, st RadioSt
 		it.Genres = []string{st.Genre}
 	}
 	if existing, err := s.itemByPath(ctx, libraryID, st.URL); err == nil {
-		it.ID, it.AddedAt = existing.ID, existing.AddedAt
+		it.ID, it.AddedAt, it.Poster, it.Overview = existing.ID, existing.AddedAt, existing.Poster, existing.Overview
+		if st.Genre == "" {
+			it.Genres = existing.Genres
+		}
 	} else if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
@@ -71,9 +76,14 @@ var (
 // maxPlaylistStations bounds one import.
 const maxPlaylistStations = 2000
 
-// ParsePlaylist reads stations from an M3U or PLS playlist.
+// ParsePlaylist reads stations from an M3U or PLS playlist. The text may be
+// hostile: entries are bounded and cleaned, and an HLS playlist isn't a list of
+// stations (its addresses are pieces of one stream).
 func ParsePlaylist(text string) []RadioStation {
 	var out []RadioStation
+	if strings.Contains(text, "#EXT-X-") {
+		return nil
+	}
 	pls := map[string]*RadioStation{}
 	var order []string
 	name, genre := "", ""
@@ -87,6 +97,9 @@ func ParsePlaylist(text string) []RadioStation {
 		if m := plsKeyRe.FindStringSubmatch(line); m != nil {
 			st := pls[m[2]]
 			if st == nil {
+				if len(order) >= maxPlaylistStations {
+					continue
+				}
 				st = &RadioStation{}
 				pls[m[2]] = st
 				order = append(order, m[2])
@@ -94,14 +107,14 @@ func ParsePlaylist(text string) []RadioStation {
 			if strings.EqualFold(m[1], "file") {
 				st.URL = strings.TrimSpace(m[3])
 			} else {
-				st.Name = strings.TrimSpace(m[3])
+				st.Name = CleanRadioText(m[3], 200)
 			}
 			continue
 		}
 		if m := extinfRe.FindStringSubmatch(line); m != nil {
-			name = strings.TrimSpace(m[1])
+			name = CleanRadioText(m[1], 200)
 			if g := genreRe.FindStringSubmatch(line); g != nil {
-				genre = strings.TrimSpace(g[1])
+				genre = CleanRadioText(g[1], 80)
 			}
 			continue
 		}
@@ -433,11 +446,3 @@ func (s *Store) RecommendForYou(ctx context.Context, userID int64, access *Acces
 	}(), 2)
 	return outItems, outShows, strings.Join(top, " and "), nil
 }
-
-// recordRadio notes when a station was last used.
-func (s *Store) recordRadio(ctx context.Context, id int64) {
-	_, _ = s.DB.ExecContext(ctx, `UPDATE items SET updated_at = ? WHERE id = ?`, db.Now(), id)
-}
-
-// TouchRadio marks a station as just listened to.
-func (s *Store) TouchRadio(ctx context.Context, id int64) { s.recordRadio(ctx, id) }

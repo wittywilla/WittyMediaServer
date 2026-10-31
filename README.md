@@ -161,7 +161,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
 | 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
 | 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |
-| 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations by address, what each profile's year looked like |
+| 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations from a free directory or by address, what each profile's year looked like |
 | ⚙️ | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |

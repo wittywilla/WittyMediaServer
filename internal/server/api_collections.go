@@ -1,9 +1,6 @@
 package server
 
 import (
-	"context"
-	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -11,8 +8,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-// Collections and smart playlists, radio stations, Year in review and the home
-// page's recommendations. See docs/COLLECTIONS.md, docs/RADIO.md, docs/REVIEW.md.
+// Collections and smart playlists, Year in review and the home page's
+// recommendations. See docs/COLLECTIONS.md.
 
 // GET /api/collections
 func (s *Server) handleCollections(w http.ResponseWriter, r *http.Request) {
@@ -275,163 +272,6 @@ func (s *Server) nextForCollection(r *http.Request, it *library.Item) *int64 {
 		return nil
 	}
 	return s.Store.NextInCollection(r.Context(), c, u.ID, it.ID, s.access(r))
-}
-
-// ---------------------------------------------------------------------------
-// Radio
-// ---------------------------------------------------------------------------
-
-// GET /api/radio?library=
-func (s *Server) handleRadioList(w http.ResponseWriter, r *http.Request) {
-	libID := int64(qInt(r, "library", 0))
-	if _, err := s.libraryOfType(r, libID, "radio"); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	items, _, err := s.Store.Items(r.Context(), library.ItemQuery{LibraryID: libID, Kind: "radio", Sort: "title", Access: s.access(r), Limit: 5000})
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, items)
-}
-
-// POST /api/radio {libraryId, name, url, genre} (admin)
-func (s *Server) handleRadioAdd(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		LibraryID int64 `json:"libraryId"`
-		library.RadioStation
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if _, err := s.libraryOfType(r, b.LibraryID, "radio"); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	it, err := s.Store.AddRadioStation(r.Context(), b.LibraryID, b.RadioStation)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 201, it)
-}
-
-// POST /api/radio/import {libraryId, playlist} (admin): an M3U or PLS playlist's text.
-func (s *Server) handleRadioImport(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		LibraryID int64  `json:"libraryId"`
-		Playlist  string `json:"playlist"`
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if _, err := s.libraryOfType(r, b.LibraryID, "radio"); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	added := 0
-	for _, st := range library.ParsePlaylist(b.Playlist) {
-		if _, err := s.Store.AddRadioStation(r.Context(), b.LibraryID, st); err == nil {
-			added++
-		}
-	}
-	writeJSON(w, 200, map[string]any{"added": added})
-}
-
-// DELETE /api/radio/{id} (admin)
-func (s *Server) handleRadioRemove(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return
-	}
-	if err := s.Store.RemoveRadioStation(r.Context(), id); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"ok": true})
-}
-
-// radioTypes: what a station may send. A playlist file is unwrapped by the
-// client's import, not played; anything else isn't audio.
-func radioAudioType(ct string) bool {
-	ct = strings.ToLower(ct)
-	return strings.HasPrefix(ct, "audio/") || strings.HasPrefix(ct, "application/ogg") || strings.HasPrefix(ct, "video/mp2t") || ct == "application/octet-stream" || ct == ""
-}
-
-// GET /api/radio/{id}/stream: relays a station, so listeners on any device get it
-// from this server with one sign-in, whatever the station's address looks like. It
-// reaches the internet only (never this network), only while someone listens,
-// and the file type is checked, so a station's address can't serve up a web page.
-func (s *Server) handleRadioStream(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return
-	}
-	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != "radio" {
-		writeErr(w, 404, "not found")
-		return
-	}
-	if !library.ValidStreamURL(it.Path) {
-		writeErr(w, 404, "not found")
-		return
-	}
-	req, err := http.NewRequestWithContext(r.Context(), "GET", it.Path, nil)
-	if err != nil {
-		writeErr(w, 400, "that station's address can't be used")
-		return
-	}
-	req.Header.Set("User-Agent", "WittyMediaServer")
-	res, err := library.SafeClient.Do(req)
-	if err != nil {
-		s.Log.Info("radio", "cat", "playback", "item", it.ID, "err", err)
-		writeErr(w, 502, "the station can't be reached")
-		return
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		writeErr(w, 502, "the station answered "+res.Status)
-		return
-	}
-	ct := res.Header.Get("Content-Type")
-	if !radioAudioType(ct) {
-		writeErr(w, 502, "that address isn't an audio stream; if it's a playlist, import it instead")
-		return
-	}
-	if ct == "" || ct == "application/octet-stream" {
-		ct = "audio/mpeg"
-	}
-	s.Store.TouchRadio(context.WithoutCancel(r.Context()), it.ID)
-	h := w.Header()
-	h.Set("Content-Type", ct)
-	h.Set("Cache-Control", "no-store")
-	h.Set("Content-Security-Policy", "default-src 'none'; sandbox")
-	started := time.Now()
-	flusher, _ := w.(http.Flusher)
-	buf := make([]byte, 32<<10)
-	for {
-		n, rerr := res.Body.Read(buf)
-		if n > 0 {
-			if _, werr := w.Write(buf[:n]); werr != nil {
-				break
-			}
-			if flusher != nil {
-				flusher.Flush()
-			}
-		}
-		if rerr != nil {
-			if !errors.Is(rerr, io.EOF) && r.Context().Err() == nil {
-				s.Log.Info("radio stream ended", "cat", "playback", "item", it.ID, "err", rerr)
-			}
-			break
-		}
-	}
-	_ = s.Store.RecordView(context.WithoutCancel(r.Context()), userFrom(r).ID, it.ID, library.ViewEvent{Seconds: time.Since(started).Seconds()})
 }
 
 // ---------------------------------------------------------------------------

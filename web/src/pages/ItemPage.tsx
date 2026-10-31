@@ -32,7 +32,7 @@ export default function ItemPage() {
   if (libType === 'photos') return <Navigate replace to={`/library/${it.libraryId}?view=${it.id}`} />
   if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
-  if (libType === 'radio') return <Navigate replace to={`/library/${it.libraryId}`} />
+  if (libType === 'radio') return <Navigate replace to={`/radio/${it.id}`} />
   if (it.kind === 'game') return <GameDetails it={it} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />

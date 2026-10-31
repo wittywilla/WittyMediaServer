@@ -5,6 +5,24 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Internet radio
+
+- **Search a directory of stations**: by name, genre, country or language, with logos and details, and add with one
+  click. Stations come from [Radio Browser](https://www.radio-browser.info/), a free community database. Typing an
+  address or importing a playlist still works.
+- **Pages to match**: station cards with logos, browsing by genre and country, favourites and recently played, and a page
+  for each station with its details and website. Stations without a logo get art made from their name.
+- **What's on now**: the song, from the stream's own metadata, in the player and on lock screen and headphone controls.
+- **HLS stations** now play, and `.pls` and `.m3u` addresses are unwrapped when a station plays. Old servers that answer
+  `ICY 200 OK` work.
+- **Stations that go quiet are noticed** and marked off the air, from playing them, from the directory, and from a check
+  you can run. Checking in the background is a setting, off unless you turn it on, because it contacts stations when nobody
+  is listening.
+- **Pausing a station hangs up**, so the server isn't relaying it for nobody.
+- For apps: `/items/{id}/playback` plays stations, and new routes under `/radio` (see
+  [CLIENT-API.md](docs/CLIENT-API.md#internet-radio)).
+- **Fixed:** listeners who weren't administrators were sent each station's address, which can hold a private key.
+
 ## 0.5.0-alpha
 
 ### Interface audit

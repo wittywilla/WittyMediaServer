@@ -71,6 +71,7 @@ type Server struct {
 		m map[string]*ffmpeg.Probe
 	}
 	stream    streamTokens
+	radio     radioLive
 	pair      pairings
 	subtitles subtitleFiles
 	idOnce    sync.Once
@@ -304,8 +305,17 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/radio", a(s.handleRadioList))
 	m.Handle("POST /api/radio", s.requireAdmin(s.handleRadioAdd))
 	m.Handle("POST /api/radio/import", s.requireAdmin(s.handleRadioImport))
+	m.Handle("POST /api/radio/check", s.requireAdmin(s.handleRadioCheckAll))
+	m.Handle("GET /api/radio/directory/search", s.requireAdmin(s.handleRadioDirectorySearch))
+	m.Handle("GET /api/radio/directory/browse", s.requireAdmin(s.handleRadioDirectoryBrowse))
+	m.Handle("POST /api/radio/directory/add", s.requireAdmin(s.handleRadioDirectoryAdd))
+	m.Handle("GET /api/radio/{id}", a(s.handleRadioGet))
 	m.Handle("DELETE /api/radio/{id}", s.requireAdmin(s.handleRadioRemove))
+	m.Handle("GET /api/radio/{id}/now", a(s.handleRadioNow))
+	m.Handle("POST /api/radio/{id}/check", s.requireAdmin(s.handleRadioCheck))
+	m.Handle("POST /api/radio/{id}/lookup", s.requireAdmin(s.handleRadioLookup))
 	m.Handle("GET /api/radio/{id}/stream", a(s.handleRadioStream))
+	m.Handle("GET /api/radio/{id}/hls", a(s.handleRadioHLS))
 
 	// Year in review and recommendations, from this account's own record
 	m.Handle("GET /api/me/review", a(s.handleReview))

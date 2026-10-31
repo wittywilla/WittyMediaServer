@@ -40,6 +40,13 @@ cores folder is read if present. See `docs/GAMING.md` and `docs/WITTYRETROARCH.m
 Game metadata comes from Wikidata (CC0) and Wikipedia (CC BY-SA 4.0). Libretro's thumbnail collections
 state no licence, so they are not used. No game or BIOS files are bundled, downloaded or linked.
 
+## Internet radio
+
+Station details come from [Radio Browser](https://www.radio-browser.info/), a free community database reached through
+its public API, which its operators offer for free use without guarantee. Nothing from it is bundled: an administrator's
+search reads it at the time. Its server software is AGPL-3.0 and is not used or included here. Station names and logos
+belong to their stations.
+
 ## Web client (bundled into the binary)
 
 | Package | Licence |

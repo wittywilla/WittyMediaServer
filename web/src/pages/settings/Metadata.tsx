@@ -29,6 +29,12 @@ export default function MetadataSettings() {
         <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies: facts, ratings and plot summaries (no posters). Used until you add a TMDB key.">
           <Switch label="Use Wikidata" checked={on('wikidata')} onChange={(v) => set('wikidata', v ? '1' : '0')} />
         </Row>
+        <Row label="Radio Browser" badge={NO_KEY} desc="Internet radio: a free community directory of stations to search, with logos, genres and countries. Your server contacts it when you search, and once a day for stations you added from it, sending only their IDs. It is never told what anyone listens to.">
+          <Switch label="Use Radio Browser" checked={s.radioDirectory !== '0'} onChange={(v) => set('radioDirectory', v ? '1' : '0')} />
+        </Row>
+        <Row label="Check radio stations in the background" desc="Tries each station about once a week, so ones that have gone quiet are marked even if nobody has listened lately. This contacts stations while nobody is listening. Without it, a station is checked when someone plays it, when you ask, and through the directory for stations from there.">
+          <Switch label="Check radio stations in the background" checked={s.radioChecks === '1'} onChange={(v) => set('radioChecks', v ? '1' : '0')} />
+        </Row>
         <Row label="AniList" badge={NO_KEY} desc="Anime libraries: titles in your chosen language, plots, posters and episode numbering.">
           <span className="set-pill">Always on</span>
         </Row>

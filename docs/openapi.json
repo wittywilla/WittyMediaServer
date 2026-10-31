@@ -331,6 +331,126 @@
         ],
         "type": "object"
       },
+      "DirectoryCount": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "stations": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "stations"
+        ],
+        "type": "object"
+      },
+      "DirectoryFacets": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/DirectoryCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/DirectoryCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/DirectoryCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "countries",
+          "languages",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "DirectoryStation": {
+        "properties": {
+          "added": {
+            "type": "boolean"
+          },
+          "bitrate": {
+            "type": "integer"
+          },
+          "codec": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "hls": {
+            "type": "boolean"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "integer"
+          },
+          "working": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "added",
+          "hls",
+          "id",
+          "name",
+          "tags",
+          "url",
+          "working"
+        ],
+        "type": "object"
+      },
       "DiscAction": {
         "properties": {
           "button": {
@@ -1064,6 +1184,16 @@
           "providerId": {
             "type": "string"
           },
+          "radio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadioMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rating": {
             "anyOf": [
               {
@@ -1564,6 +1694,30 @@
           "name",
           "showIds",
           "shows"
+        ],
+        "type": "object"
+      },
+      "NowPlaying": {
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "since": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "track": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "live",
+          "title"
         ],
         "type": "object"
       },
@@ -2136,6 +2290,9 @@
               }
             ]
           },
+          "nowPlayingUrl": {
+            "type": "string"
+          },
           "progressUrl": {
             "type": "string"
           },
@@ -2455,6 +2612,61 @@
           "resumeSec",
           "updatedAt",
           "watched"
+        ],
+        "type": "object"
+      },
+      "RadioMeta": {
+        "properties": {
+          "bitrate": {
+            "type": "integer"
+          },
+          "codec": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "favorite": {
+            "type": "boolean"
+          },
+          "hls": {
+            "type": "boolean"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "lastCheck": {
+            "type": "integer"
+          },
+          "lastOk": {
+            "type": "integer"
+          },
+          "lastPlayed": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "favorite",
+          "hls",
+          "status"
         ],
         "type": "object"
       },
@@ -3040,7 +3252,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -11280,17 +11492,30 @@
     "/radio": {
       "get": {
         "operationId": "getRadio",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "The library.",
+            "in": "query",
+            "name": "library",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "items": {
+                    "$ref": "#/components/schemas/Item"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "The stations of a radio library, with their details and this account's favourites and recent plays."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -11301,7 +11526,7 @@
             "bearer": []
           }
         ],
-        "summary": "Radio list.",
+        "summary": "The stations of a radio library, with their details and this account's favourites and recent plays.",
         "tags": [
           "Internet radio"
         ],
@@ -11330,7 +11555,243 @@
             "bearer": []
           }
         ],
-        "summary": "Radio add.",
+        "summary": "Adds a station by its stream address. The address is relayed, reaches the internet only, and must give audio.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/check": {
+      "post": {
+        "operationId": "postRadioCheck",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "libraryId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "libraryId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "stations": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tries every station of a library, one at a time, in the background; each station's status shows how it went."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tries every station of a library, one at a time, in the background; each station's status shows how it went.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/directory/add": {
+      "post": {
+        "operationId": "postRadioDirectoryAdd",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "libraryId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "libraryId",
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            },
+            "description": "Adds a station from the directory. Its details are read from the directory, not from the request."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adds a station from the directory. Its details are read from the directory, not from the request.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/directory/browse": {
+      "get": {
+        "operationId": "getRadioDirectoryBrowse",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryFacets"
+                }
+              }
+            },
+            "description": "The countries, genres and languages the directory can be browsed by."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The countries, genres and languages the directory can be browsed by.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/directory/search": {
+      "get": {
+        "operationId": "getRadioDirectorySearch",
+        "parameters": [
+          {
+            "description": "A station name, or a genre.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A genre.",
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A two-letter country code.",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A language.",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "At most 50.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "For the next page.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Marks stations already in this library as added.",
+            "in": "query",
+            "name": "library",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DirectoryStation"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Searches the station directory by name or genre, country and language. With no filters: popular stations."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Searches the station directory by name or genre, country and language. With no filters: popular stations.",
         "tags": [
           "Internet radio"
         ],
@@ -11361,7 +11822,7 @@
             "bearer": []
           }
         ],
-        "summary": "Radio import.",
+        "summary": "Adds the stations in an M3U or PLS playlist's text.",
         "tags": [
           "Internet radio"
         ],
@@ -11401,11 +11862,229 @@
             "bearer": []
           }
         ],
-        "summary": "Radio remove.",
+        "summary": "Removes a station.",
         "tags": [
           "Internet radio"
         ],
         "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getRadioId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            },
+            "description": "One station, with its details."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One station, with its details.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/radio/{id}/check": {
+      "post": {
+        "operationId": "postRadioIdCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            },
+            "description": "Tries a station now, and answers with its status."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tries a station now, and answers with its status.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/{id}/hls": {
+      "get": {
+        "operationId": "getRadioIdHls",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "From the playlist.",
+            "in": "query",
+            "name": "u",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "From the playlist.",
+            "in": "query",
+            "name": "s",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A part of an HLS station. Only addresses in this server's own playlists work; don't build them."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A part of an HLS station. Only addresses in this server's own playlists work; don't build them.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/radio/{id}/lookup": {
+      "post": {
+        "operationId": "postRadioIdLookup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            },
+            "description": "Finds a station added by address in the directory, and fills in its details. Addresses that may hold a private key are refused, not sent."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finds a station added by address in the directory, and fills in its details. Addresses that may hold a private key are refused, not sent.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/radio/{id}/now": {
+      "get": {
+        "operationId": "getRadioIdNow",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NowPlaying"
+                }
+              }
+            },
+            "description": "What the station says it is playing, from its own stream, while someone listens through this server. Poll it no more than every 15 seconds."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the station says it is playing, from its own stream, while someone listens through this server. Poll it no more than every 15 seconds.",
+        "tags": [
+          "Internet radio"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/radio/{id}/stream": {
@@ -11424,13 +12103,14 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
+              "audio/mpeg": {
                 "schema": {
-                  "type": "object"
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "The station's sound, relayed: endless audio, or an HLS playlist when radio.hls is true. Use the address /items/{id}/playback gives."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -11441,11 +12121,12 @@
             "bearer": []
           }
         ],
-        "summary": "Radio stream.",
+        "summary": "The station's sound, relayed: endless audio, or an HLS playlist when radio.hls is true. Use the address /items/{id}/playback gives.",
         "tags": [
           "Internet radio"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/reach/{nonce}": {

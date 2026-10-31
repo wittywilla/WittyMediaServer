@@ -691,7 +691,7 @@ func imageType(f io.ReadSeeker, name string) string {
 		return ""
 	}
 	switch ct := http.DetectContentType(head[:n]); ct {
-	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp":
+	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/x-icon":
 		return ct
 	}
 	if strings.EqualFold(filepath.Ext(name), ".avif") && n > 12 && string(head[4:8]) == "ftyp" {

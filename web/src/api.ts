@@ -43,6 +43,12 @@ export type Item = {
   reading?: '' | 'ltr' | 'rtl' | 'webtoon'
   // Games: the console it runs on.
   console?: string
+  // Internet radio: what's known about a station, from the radio routes.
+  radio?: RadioMeta
+}
+export type RadioMeta = {
+  source?: string; sourceId?: string; homepage?: string; country?: string; countryCode?: string; language?: string; codec?: string; bitrate?: number; hls: boolean
+  status: 'ok' | 'trouble' | 'dead' | 'unknown'; reason?: string; lastOk?: number; lastCheck?: number; favorite: boolean; lastPlayed?: number
 }
 export type GameCore = { id: string; name: string; license: string; source?: string; sha256?: string; nonCommercial?: boolean }
 export type GameConsole = {

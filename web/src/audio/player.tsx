@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
+import { api, fmtTime, getPrefs, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../api'
 import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
+import { Placeholder } from '../components/common'
 import { setSpeed, SPEEDS } from '../player/Controls'
 import { toast } from '../state'
 
@@ -24,6 +25,7 @@ type AudioCtx = {
   current: Item | null
   mode: AudioMode
   playing: boolean
+  nowPlaying: string // what a radio station says it is playing, if it says
   play: (items: Item[], start?: number, mode?: AudioMode) => void
   enqueue: (items: Item[]) => void
   toggle: () => void
@@ -48,8 +50,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [sleepAt, setSleepAt] = useState<number | 'chapter' | null>(null)
   const [full, setFull] = useState(false)
+  const [nowPlaying, setNowPlaying] = useState<{ id: number; title: string; artist: string; track: string } | null>(null)
+  const hls = useRef<{ destroy: () => void } | null>(null) // an HLS station's player, loaded when one is played
   const offset = useRef(0) // where a converted stream started
   const current = queue[index] || null
+  const currentId = useRef<number | undefined>(undefined)
+  currentId.current = current?.id
   const loc = useLocation()
   const nav = useNavigate()
   const books = mode === 'audiobooks' || mode === 'podcasts'
@@ -101,9 +107,38 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const direct = (it: Item) => DIRECT.has(it.videoCodec)
   const load = (it: Item, at: number) => {
     const a = audio.current!
+    hls.current?.destroy()
+    hls.current = null
     if (it.kind === 'radio') {
       offset.current = 0
-      a.src = mediaUrl(`/api/radio/${it.id}/stream`)
+      const src = mediaUrl(`/api/radio/${it.id}/stream`)
+      if (!it.radio?.hls || a.canPlayType('application/vnd.apple.mpegurl')) {
+        a.src = src
+        return
+      }
+      // Most browsers need help with HLS. It's a large part of the app, so it comes
+      // only when such a station is played.
+      a.removeAttribute('src')
+      const id = it.id
+      import('hls.js').then(({ default: Hls }) => {
+        if (audio.current !== a || currentId.current !== id) return
+        if (!Hls.isSupported()) { toast(`${it.title} can't be played in this browser`); return }
+        const h = new Hls({
+          xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
+          maxBufferLength: 30, backBufferLength: 10, lowLatencyMode: false,
+        })
+        h.on(Hls.Events.ERROR, (_e, data) => {
+          if (!data.fatal) return
+          h.destroy()
+          if (hls.current === h) hls.current = null
+          setPlaying(false)
+          toast(`${it.title} can't be reached`)
+        })
+        h.loadSource(src)
+        h.attachMedia(a)
+        hls.current = h
+        a.play().catch(() => setPlaying(false))
+      }).catch(() => toast(`${it.title} can't be played right now`))
       return
     }
     if (direct(it)) {
@@ -148,6 +183,47 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id, books, live])
 
+  // What a station is playing: the server reads it from the stream it is relaying,
+  // so asking costs nothing elsewhere, and isn't asked while the page is hidden.
+  useEffect(() => {
+    setNowPlaying(null)
+    const id = current?.id
+    if (!id || !live || !playing) return
+    let stopped = false
+    const ask = () => {
+      if (document.hidden) return
+      api.get<{ title: string; artist?: string; track?: string }>(`/radio/${id}/now`)
+        .then((n) => { if (!stopped) setNowPlaying(n.title ? { id, title: n.title, artist: n.artist || '', track: n.track || '' } : null) })
+        .catch(() => {})
+    }
+    const first = setTimeout(ask, 2500) // the stream's first title takes a moment
+    const t = setInterval(ask, 20000)
+    document.addEventListener('visibilitychange', ask)
+    return () => { stopped = true; clearTimeout(first); clearInterval(t); document.removeEventListener('visibilitychange', ask) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, live, playing])
+
+  // A live stream that's paused would keep the server fetching a station for nobody,
+  // so hang up; playing again connects again.
+  const hangUp = () => {
+    const a = audio.current
+    if (!a) return
+    hls.current?.destroy()
+    hls.current = null
+    a.removeAttribute('src')
+    a.load()
+  }
+  const resume = () => {
+    const a = audio.current
+    if (!a) return
+    if (live && current && !a.getAttribute('src') && !hls.current) {
+      load(current, 0)
+      if (!current.radio?.hls) a.play().catch(() => {})
+      return
+    }
+    a.play().catch(() => {})
+  }
+
   // A video takes over the speakers: pause the music.
   useEffect(() => { if (loc.pathname.startsWith('/play/')) audio.current?.pause() }, [loc.pathname])
 
@@ -182,17 +258,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const ms = navigator.mediaSession
     if (!ms || !current) return
-    ms.metadata = new MediaMetadata({ title: current.title, artist: current.artist || current.albumArtist || '', album: current.album || '',
+    const song = live && nowPlaying?.id === current.id ? nowPlaying : null
+    ms.metadata = new MediaMetadata({ title: song ? song.track || song.title : current.title, artist: song ? song.artist || current.title : current.artist || current.albumArtist || '', album: live ? (song ? current.title : '') : current.album || '',
       artwork: current.poster ? [{ src: new URL(posterUrl(current), location.href).href, sizes: '600x600' }] : [] })
-    const h: [MediaSessionAction, MediaSessionActionHandler][] = [
-      ['play', () => audio.current?.play()], ['pause', () => audio.current?.pause()],
+    const h: [MediaSessionAction, MediaSessionActionHandler | null][] = [
+      ['play', resume], ['pause', () => audio.current?.pause()],
       ['nexttrack', next], ['previoustrack', prev],
-      ['seekto', (d) => { if (d.seekTime != null) seek(d.seekTime) }],
-      ['seekforward', () => seek(position() + 30)], ['seekbackward', () => seek(Math.max(0, position() - 15))],
+      ['seekto', live ? null : (d) => { if (d.seekTime != null) seek(d.seekTime) }],
+      ['seekforward', live ? null : () => seek(position() + 30)], ['seekbackward', live ? null : () => seek(Math.max(0, position() - 15))],
     ]
     for (const [a, f] of h) { try { ms.setActionHandler(a, f) } catch { /* unsupported action */ } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, next, prev])
+  }, [current, next, prev, nowPlaying, live])
 
   // "<" and ">" step through the speeds, as in the video player.
   useEffect(() => {
@@ -210,17 +287,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   })
 
   const ctx = useMemo<AudioCtx>(() => ({
-    queue, index, current, mode, playing,
-    play: (items, start = 0, m = 'music') => { setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) audio.current?.play() },
+    queue, index, current, mode, playing, nowPlaying: nowPlaying?.id === current?.id ? nowPlaying?.title || '' : '',
+    play: (items, start = 0, m = 'music') => { setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) resume() },
     enqueue: (items) => setQueue((q) => [...q, ...items]),
-    toggle: () => { const a = audio.current; if (a) a.paused ? a.play().catch(() => {}) : a.pause() },
+    toggle: () => { const a = audio.current; if (a) a.paused ? resume() : a.pause() },
     next, prev,
-    stop: () => { audio.current?.pause(); setQueue([]); if (history.state?.wmsAudioFull) history.back(); setFull(false) },
-  }), [queue, index, current, mode, playing, next, prev])
+    stop: () => { audio.current?.pause(); hangUp(); setQueue([]); if (history.state?.wmsAudioFull) history.back(); setFull(false) },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [queue, index, current, mode, playing, next, prev, nowPlaying])
 
   const dur = current?.runtimeSec || 0
   // The album (or audiobook, or podcast) the track belongs to.
-  const albumUrl = current?.album ? `/album/${current.libraryId}?artist=${encodeURIComponent(current.albumArtist || current.artist || '')}&album=${encodeURIComponent(current.album)}` : ''
+  const albumUrl = live && current ? `/radio/${current.id}` : current?.album ? `/album/${current.libraryId}?artist=${encodeURIComponent(current.albumArtist || current.artist || '')}&album=${encodeURIComponent(current.album)}` : ''
   const goAlbum = () => {
     if (docked()) { nav(albumUrl); return } // the panel stays open beside it
     const wasFull = !!history.state?.wmsAudioFull
@@ -230,8 +308,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={ctx}>
       {children}
-      <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={onEnded}
-        onError={() => { if (live && current) toast(`${current.title} can't be reached`) }}
+      <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); if (live) hangUp() }} onEnded={onEnded}
+        onError={() => {
+          if (!live || !current || !audio.current?.getAttribute('src')) return
+          const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`) }
+          if (current.radio?.hls) { fail(); return }
+          // A station added by its address may have turned out to be HLS just now.
+          api.get<Item>(`/radio/${current.id}`).then((r) => {
+            if (!r.radio?.hls) { fail(); return }
+            const it = { ...current, radio: r.radio }
+            setQueue((q) => q.map((x) => (x.id === it.id ? it : x)))
+            load(it, 0)
+          }).catch(fail)
+        }}
         onTimeUpdate={() => {
           const p = position(), d = p - lastAt.current
           if (d > 0 && d < 5) listened.current += d
@@ -244,22 +333,22 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             <div className="ab-top">
               <button className="btn ghost sm ab-back" onClick={closeFull} title="Close (Esc)">{docked() ? <><IconClose /> Close</> : <><IconDown /> Back</>}</button>
               <span className="ab-top-title">Now playing</span>
-              {albumUrl ? <button className="btn ghost sm" onClick={goAlbum}>{books ? 'Go to book' : 'Go to album'}</button> : <span />}
+              {albumUrl ? <button className="btn ghost sm" onClick={goAlbum}>{live ? 'Go to station' : books ? 'Go to book' : 'Go to album'}</button> : <span />}
             </div>
           )}
-          {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined }} />}
+          {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined, backgroundSize: live ? 'contain' : undefined, backgroundRepeat: 'no-repeat' }}>{live && !current.poster && <Placeholder title={current.title} />}</div>}
           <button className="ab-art" onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
-            {current.poster ? <img src={posterUrl(current)} alt="" /> : <IconAudio />}
+            {current.poster ? <img src={posterUrl(current)} alt="" style={live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : live ? <Placeholder title={current.title} /> : <IconAudio />}
           </button>
           {full ? (
             <div className="ab-info">
               <div className="ab-title">{current.title}</div>
-              <div className="ab-sub">{[current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+              <div className="ab-sub">{live ? (ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
             </div>
           ) : (
             <button className="ab-info" onClick={openFull} title="Show the full player">
               <div className="ab-title">{current.title}</div>
-              <div className="ab-sub">{[current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+              <div className="ab-sub">{live ? (ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
             </button>
           )}
           <div className="ab-ctl">
@@ -297,14 +386,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           </div>
           {full && (
             <section className="ab-queue-wrap" aria-label="Queue">
-              <div className="ab-queue-head"><span>{books ? 'Chapters' : 'Up next'}</span><span className="muted">{queue.length} {queue.length === 1 ? 'track' : 'tracks'}</span></div>
+              <div className="ab-queue-head"><span>{books ? 'Chapters' : live ? 'Stations' : 'Up next'}</span><span className="muted">{queue.length} {live ? (queue.length === 1 ? 'station' : 'stations') : queue.length === 1 ? 'track' : 'tracks'}</span></div>
               <ol className="ab-queue">
                 {queue.map((q, i) => (
                   <li key={q.id + '-' + i} className={i === index ? 'on' : ''}>
                     <button onClick={() => setIndex(i)} aria-current={i === index ? 'true' : undefined}>
                       <span className="ab-q-n">{i === index && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : (q.track ?? i + 1)}</span>
                       <span className="ab-q-t"><b>{q.title}</b>{q.artist && q.artist !== current.artist && <small>{q.artist}</small>}</span>
-                      <span className="ab-q-d">{fmtTime(q.runtimeSec)}</span>
+                      {!live && <span className="ab-q-d">{fmtTime(q.runtimeSec)}</span>}
                     </button>
                   </li>
                 ))}

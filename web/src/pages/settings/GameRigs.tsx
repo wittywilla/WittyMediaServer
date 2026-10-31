@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Spinner } from '../../components/common'
-import { toast } from '../../state'
+import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { PageHead, Section } from './ui'
 import '../rigs.css'
@@ -18,20 +18,23 @@ type Browser = { available: boolean; installed: boolean; running: boolean; name:
 export default function GameRigsSettings() {
   const [rigs, setRigs] = useState<RigView[] | null>(null)
   const [browser, setBrowser] = useState<Browser | null>(null)
+  const { refreshLibraries } = useApp()
   const load = () => api.get<RigView[]>('/rigs').then(setRigs).catch((e) => toast(e.message))
+  // A PC comes and goes with a library of its own, which the menu shows.
+  const changed = () => { load(); void refreshLibraries() }
   const loadBrowser = () => api.get<Browser>('/rigs/browser').then(setBrowser).catch(() => {})
   useEffect(() => { load(); loadBrowser() }, [])
   if (!rigs) return <Spinner />
   return (
     <>
       <PageHead title="Game rigs" desc="Play the games on your own gaming PC, from the couch or anywhere in the house. The PC runs Sunshine, and you play through Moonlight: both are free, separate projects you install yourself." />
-      <AddRig onAdded={load} known={rigs} />
-      {rigs.map((r) => <RigCard key={r.id} rig={r} browser={browser} onChange={load} />)}
+      <AddRig onAdded={changed} known={rigs} />
+      {rigs.map((r) => <RigCard key={r.id} rig={r} browser={browser} onChange={changed} />)}
       <BrowserPlay st={browser} reload={loadBrowser} />
       <Section title="Away from home" desc="The safest way is one that doesn't open your PC to the internet.">
         <ul className="rig-steps">
           <li><b>Browser play</b> reaches the PC through this server, so the PC itself isn’t exposed. You’d open this server’s browser play port and its UDP ports on your router, and it needs HTTPS.</li>
-          <li><b>The Moonlight app</b> connects straight to the PC. Put the PC and your device on the same private network (Tailscale or ZeroTier both work, and the PC’s address there goes in “Address away from home” below).</li>
+          <li><b>The Moonlight app</b> connects straight to the PC. Put the PC and your device on the same private network (Tailscale or ZeroTier both work, and the PC’s address there goes in “Address away from home” in that PC’s section above).</li>
           <li><b>Don’t</b> forward Sunshine’s ports on your router, or turn on its UPnP setting, unless you really mean to: that puts your PC on the internet. And <b>never</b> forward port 47990, its web interface, which can run commands on that PC.</li>
           <li>The wake-up signal goes out from this server, so you can wake the PC while you’re away.</li>
         </ul>

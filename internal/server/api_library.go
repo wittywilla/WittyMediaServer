@@ -164,6 +164,7 @@ func (s *Server) handleDeleteLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Scanner.Cancel(id)
+	s.rigLibraryGoing(r.Context(), id)
 	if err := s.Store.DeleteLibrary(r.Context(), id); err != nil {
 		writeErr(w, 500, err.Error())
 		return

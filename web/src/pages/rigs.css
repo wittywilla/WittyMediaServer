@@ -5,6 +5,8 @@
 .rig-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--fg-2); }
 .rig-status.ok .rig-dot { background: var(--ok, var(--accent)); }
 .rig-plan { margin-top: 24px; display: grid; gap: 12px; max-width: 720px; outline: none; }
+.rig-plan > * { min-width: 0; }
+.rig-method a:not(.btn) { color: inherit; text-decoration: underline; }
 .rig-method { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
 .rig-method h2 { font-size: 1rem; margin: 0 0 8px; }
 .rig-method ol { margin: 0 0 8px; padding-left: 1.4em; }

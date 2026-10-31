@@ -69,7 +69,7 @@ function RigStatus({ rig, reload, watchWake }: { rig: RigView; reload: () => voi
     <div className={'rig-status' + (ok ? ' ok' : '')} role="status">
       <span className="rig-dot" aria-hidden="true" />
       <div className="grow">
-        <strong>{rig.name}</strong>{' '}
+        <strong>{rig.name}:</strong>{' '}
         {rig.state === 'busy' && rig.currentGame ? `is running ${rig.currentGame}.` : rig.message}
         {rig.state === 'asleep' && !rig.canWake && user?.isAdmin && !rig.hasMac && <span className="muted"> Waking it from here needs it to have been paired and on once.</span>}
       </div>
@@ -162,7 +162,7 @@ export function RigGameDetails({ it }: { it: Item }) {
     setBusy(true)
     try {
       const r = await api.post<{ steps: string[] }>(`/rigs/games/${it.id}/start`)
-      setPlan((p) => p && { ...p, methods: [{ kind: 'steps', label: 'It’s started on the PC', oneClick: false, steps: r.steps }, ...p.methods.filter((m) => m.kind !== 'steps')] })
+      setPlan((p) => p && { ...p, methods: [{ kind: 'started', label: 'It’s started on the PC', oneClick: false, steps: r.steps }, ...p.methods.filter((m) => m.kind !== 'started')] })
       reload()
     } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
@@ -200,10 +200,14 @@ export function RigGameDetails({ it }: { it: Item }) {
                 <code className="rig-command">{m.text}</code>
                 <button className="btn sm" onClick={() => copy(m.text!)}>Copy</button>
               </>}
+              {m.kind === 'started' && rig?.state === 'busy' && <>
+                <h2>{m.label}</h2>
+                <ol>{m.steps?.map((s) => <li key={s}>{s}</li>)}</ol>
+              </>}
               {m.kind === 'steps' && <>
                 <h2>{m.label}</h2>
                 <ol>{m.steps?.map((s) => <li key={s}>{s}</li>)}</ol>
-                {device().client === 'browser' && plan.ready && <button className="btn sm ghost" disabled={busy} onClick={start}>Start it on the PC first</button>}
+                {device().client === 'browser' && plan.ready && rig?.state !== 'busy' && <button className="btn sm ghost" disabled={busy} onClick={start}>Start it on the PC first</button>}
               </>}
               {m.note && <p className="muted">{m.note}</p>}
             </section>

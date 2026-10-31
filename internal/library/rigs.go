@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,8 +14,12 @@ import (
 // rule apply to them: library limits, age limits and per-title choices, in every list.
 // Their paths are made up and name nothing on this machine.
 
-// RigConsole marks a games library, and its items, as belonging to a gaming PC.
-const RigConsole = "rig"
+const (
+	// RigConsole marks a games library, and its items, as belonging to a gaming PC.
+	RigConsole = "rig"
+	// RigArtPrefix starts the name of every picture that came from a PC.
+	RigArtPrefix = "cache:rig-"
+)
 
 // IsRig reports whether a library belongs to a gaming PC, so that nothing scans it.
 func (l *Library) IsRig() bool { return l.Type == "games" && l.Console == RigConsole }
@@ -40,8 +45,9 @@ func (s *Store) CreateRigLibrary(ctx context.Context, name string) (*Library, er
 
 // SaveRigGame adds a game to a rig's library, or updates it, and returns its item ID.
 // Details from elsewhere stay as they are. The title is always the PC's, as that's the
-// name Moonlight needs.
-func (s *Store) SaveRigGame(ctx context.Context, libraryID int64, path, title, tagline, poster string) (int64, error) {
+// name Moonlight needs. A nil poster means the PC couldn't say just now, so what's there
+// stays, and a picture someone chose by hand is never replaced by the PC's.
+func (s *Store) SaveRigGame(ctx context.Context, libraryID int64, path, title, tagline string, poster *string) (int64, error) {
 	var id int64
 	err := s.DB.QueryRowContext(ctx, `SELECT id FROM items WHERE library_id = ? AND path = ?`, libraryID, path).Scan(&id)
 	if err == nil {
@@ -49,13 +55,19 @@ func (s *Store) SaveRigGame(ctx context.Context, libraryID int64, path, title, t
 		if err != nil {
 			return 0, err
 		}
-		it.Title, it.SortTitle, it.Tagline, it.Poster = title, SortTitle(title), tagline, poster
+		it.Title, it.SortTitle, it.Tagline = title, SortTitle(title), tagline
+		if poster != nil && (it.Poster == "" || strings.HasPrefix(it.Poster, RigArtPrefix)) {
+			it.Poster = *poster
+		}
 		return id, s.upsertItem(ctx, it)
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return 0, err
 	}
-	it := &Item{LibraryID: libraryID, Kind: "game", Path: path, Title: title, SortTitle: SortTitle(title), Tagline: tagline, Poster: poster, Console: RigConsole}
+	it := &Item{LibraryID: libraryID, Kind: "game", Path: path, Title: title, SortTitle: SortTitle(title), Tagline: tagline, Console: RigConsole}
+	if poster != nil {
+		it.Poster = *poster
+	}
 	if err := s.upsertItem(ctx, it); err != nil {
 		return 0, err
 	}

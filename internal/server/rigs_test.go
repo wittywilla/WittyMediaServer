@@ -541,6 +541,99 @@ func TestRigPairingRefusals(t *testing.T) {
 	}
 }
 
+func TestRigAddressDependsOnWhereYouAre(t *testing.T) {
+	ts := newTestServer(t)
+	ts.Cfg.RemoteAccess = true
+	ts.h = ts.Handler()
+	f := rigFake(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	v := pairedRig(t, ts, f, admin)
+	game := gameNamed(t, rigGames(t, ts, admin, v.LibraryID), "Space Game")
+	url := fmt.Sprintf("/api/rigs/games/%d/play", game.ID)
+	body := map[string]any{"client": "desktop", "os": "windows"}
+	plan := func(hdr ...string) rigPlayView {
+		t.Helper()
+		w := ts.do(t, "POST", url, admin, body, hdr...)
+		if w.Code != 200 {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		return rigJSON[rigPlayView](t, w.Code, w.Body.Bytes())
+	}
+	// A rig that's this very machine means nothing to another device on the network, which
+	// gets the name it reached this server by.
+	lan := plan("RemoteAddr", "192.168.1.50:5000", "Host", "192.168.1.10:9797")
+	if lan.Away || lan.Methods[0].Kind != "command" || !strings.HasPrefix(lan.Methods[0].Args[1], "192.168.1.10") {
+		t.Errorf("at home: %+v", lan)
+	}
+	// Away with no private address: there's nothing Moonlight could connect to, and it says so.
+	away := plan("RemoteAddr", "100.100.1.5:5000", "Host", "pc.example.ts.net")
+	if !away.Away || len(away.Methods) != 0 || !strings.Contains(away.Message, "away from home") {
+		t.Errorf("away: %+v", away)
+	}
+	if w := ts.do(t, "PATCH", fmt.Sprintf("/api/rigs/%d", v.ID), admin, map[string]any{"remoteAddress": "100.100.1.2"}); w.Code != 200 {
+		t.Fatal(w.Body)
+	}
+	away = plan("RemoteAddr", "100.100.1.5:5000", "Host", "pc.example.ts.net")
+	if !away.Away || len(away.Methods) == 0 || !strings.HasPrefix(away.Methods[0].Args[1], "100.100.1.2") {
+		t.Errorf("away with a private address: %+v", away)
+	}
+}
+
+func TestRigArtStaysWhenThePCCantSay(t *testing.T) {
+	ts := newTestServer(t)
+	f := rigFake(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	v := pairedRig(t, ts, f, admin)
+	sync := func() {
+		t.Helper()
+		if w := ts.do(t, "POST", fmt.Sprintf("/api/rigs/%d/sync", v.ID), admin, nil); w.Code != 200 {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+	}
+	poster := func() string { return gameNamed(t, rigGames(t, ts, admin, v.LibraryID), "Space Game").Poster }
+	before := poster()
+	if !strings.HasPrefix(before, library.RigArtPrefix) {
+		t.Fatalf("poster %q", before)
+	}
+	f.NotImage = true
+	sync()
+	if poster() != before {
+		t.Errorf("a bad answer cost the game its picture: %q", poster())
+	}
+	f.NotImage = false
+	// A picture chosen by hand stays.
+	it := gameNamed(t, rigGames(t, ts, admin, v.LibraryID), "Space Game")
+	full, err := ts.Store.Item(context.Background(), it.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	full.Poster = "cache:mine.png"
+	if err := ts.Store.UpdateItem(context.Background(), full); err != nil {
+		t.Fatal(err)
+	}
+	sync()
+	if poster() != "cache:mine.png" {
+		t.Errorf("a chosen picture was replaced: %q", poster())
+	}
+}
+
+func TestRigLibraryDeletedInLibrarySettings(t *testing.T) {
+	ts := newTestServer(t)
+	f := rigFake(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	v := pairedRig(t, ts, f, admin)
+	if w := ts.do(t, "DELETE", fmt.Sprintf("/api/libraries/%d", v.LibraryID), admin, nil); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if rows, _ := ts.rigRows(context.Background()); len(rows) != 0 {
+		t.Errorf("%d rigs left", len(rows))
+	}
+	var n int
+	if err := ts.DB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM wittysunshine_apps`).Scan(&n); err != nil || n != 0 {
+		t.Errorf("%d apps left, %v", n, err)
+	}
+}
+
 func TestRigBrowserChecksAtTheLastMoment(t *testing.T) {
 	ts := newTestServer(t)
 	f := rigFake(t)

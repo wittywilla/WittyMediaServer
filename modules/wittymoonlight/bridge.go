@@ -353,6 +353,7 @@ func (b *Bridge) Start(ctx context.Context) error {
 	cmd := exec.Command(b.program(), "-c", cfgPath, "run")
 	cmd.Dir = b.pkgDir()
 	cmd.Env = bridgeEnv()
+	cmd.SysProcAttr = dieWithParent()
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("couldn't start browser play: %w", err)
 	}

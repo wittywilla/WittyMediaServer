@@ -633,14 +633,8 @@ func (s *Server) handleRigUpdate(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.rigViewFor(ctx, r, rig))
 }
 
-// DELETE /api/rigs/{id}: forget a PC, its library and its pictures. The PC keeps this server
-// on its own list until someone removes it there, which the protocol leaves no way to do.
-func (s *Server) handleRigRemove(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	rig := s.rigForRequest(w, r)
-	if rig == nil {
-		return
-	}
+// forgetRig drops everything held for a rig but its rows, which go with its library.
+func (s *Server) forgetRig(rig *rigRow) {
 	g := s.rigs()
 	g.mu.Lock()
 	if p := g.pairs[rig.ID]; p != nil && p.cancel != nil {
@@ -660,6 +654,25 @@ func (s *Server) handleRigRemove(w http.ResponseWriter, r *http.Request) {
 		s.rigBrowserForget(rig)
 	}
 	s.removeRigArt(rig.ID)
+}
+
+// rigLibraryGoing is told a library is being deleted from the library settings, in case it's
+// a rig's: the rig goes with it.
+func (s *Server) rigLibraryGoing(ctx context.Context, libraryID int64) {
+	if rig, err := scanRig(s.DB.QueryRowContext(ctx, `SELECT `+rigCols+` FROM wittysunshine_rigs WHERE library_id = ?`, libraryID)); err == nil {
+		s.forgetRig(rig)
+	}
+}
+
+// DELETE /api/rigs/{id}: forget a PC, its library and its pictures. The PC keeps this server
+// on its own list until someone removes it there, which the protocol leaves no way to do.
+func (s *Server) handleRigRemove(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	rig := s.rigForRequest(w, r)
+	if rig == nil {
+		return
+	}
+	s.forgetRig(rig)
 	if err := s.Store.DeleteLibrary(ctx, rig.LibraryID); err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -886,7 +899,7 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 	}
 	// A picture shared by several apps is Sunshine's default: that's no art, and a tile with
 	// the game's name looks better.
-	art := map[int]string{}
+	art := map[int]*string{} // a missing entry means the PC couldn't say, which changes nothing
 	sums := map[[32]byte][]int{}
 	images := map[int][]byte{}
 	exts := map[int]string{}
@@ -902,6 +915,9 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 	}
 	for _, ids := range sums {
 		if len(ids) > 1 {
+			for _, id := range ids {
+				art[id] = new(string)
+			}
 			continue
 		}
 		name := fmt.Sprintf("rig-%d-%d%s", rig.ID, ids[0], exts[ids[0]])
@@ -911,7 +927,8 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 			continue
 		}
 		if err := os.Rename(tmp, p); err == nil {
-			art[ids[0]] = "cache:" + name
+			poster := "cache:" + name
+			art[ids[0]] = &poster
 		}
 	}
 	tagline := "Plays on " + rig.Name
@@ -1055,7 +1072,7 @@ func (s *Server) handleRigAppShown(w http.ResponseWriter, r *http.Request) {
 	}
 	var itemID any
 	if b.Shown {
-		id, err := s.Store.SaveRigGame(ctx, rig.LibraryID, library.RigPath(rig.ID, appID), title, "Plays on "+rig.Name, "")
+		id, err := s.Store.SaveRigGame(ctx, rig.LibraryID, library.RigPath(rig.ID, appID), title, "Plays on "+rig.Name, nil)
 		if err != nil {
 			writeErr(w, 500, err.Error())
 			return

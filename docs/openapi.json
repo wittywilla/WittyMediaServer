@@ -5950,6 +5950,46 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/{id}/prepare": {
+      "post": {
+        "operationId": "postGamesIdPrepare",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Game prepare.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/{id}/saves": {
       "get": {
         "operationId": "getGamesIdSaves",

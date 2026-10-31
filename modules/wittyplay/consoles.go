@@ -177,16 +177,41 @@ func Detect(relPath string) string {
 	ext := strings.ToLower(filepath.Ext(relPath))
 	dir := filepath.Dir(filepath.ToSlash(relPath))
 	for dir != "." && dir != "/" && dir != "" {
-		name := normalise(filepath.Base(dir))
-		for i := range Consoles {
-			c := &Consoles[i]
-			if !c.Hidden && contains(c.Aliases, name) && (c.Accepts(ext) || ext == ".zip") {
-				return c.ID
+		for _, name := range folderNames(filepath.Base(dir)) {
+			for i := range Consoles {
+				c := &Consoles[i]
+				if !c.Hidden && contains(c.Aliases, name) && (c.Accepts(ext) || archiveExts[ext]) {
+					return c.ID
+				}
 			}
 		}
 		dir = filepath.Dir(dir)
 	}
 	return ByExtension(ext)
+}
+
+// archiveExts can hold any console's games, so an extension says nothing about them.
+var archiveExts = map[string]bool{".zip": true, ".7z": true, ".rar": true, ".gz": true, ".tgz": true, ".tar": true}
+
+// folderNames is what a folder's name might mean, most exact first: "Super Nintendo
+// (SNES)" is the whole of that, and also "Super Nintendo", and also "SNES".
+func folderNames(folder string) []string {
+	names := []string{normalise(folder)}
+	if before, rest, ok := strings.Cut(folder, "("); ok {
+		inner, _, _ := strings.Cut(rest, ")")
+		names = append(names, normalise(before), normalise(inner))
+	}
+	return names
+}
+
+// KnownExtension says whether any console uses an extension.
+func KnownExtension(ext string) bool {
+	for i := range Consoles {
+		if Consoles[i].Accepts(ext) {
+			return true
+		}
+	}
+	return false
 }
 
 // ByExtension is the one console that uses an extension, or "" for none or several.

@@ -11,6 +11,13 @@ func TestDetect(t *testing.T) {
 		{"PlayStation/Some Game/game.cue", "ps1"},
 		{"Atari 2600/roms/combat.bin", "a2600"},
 		{"NES/game.zip", "nes"},
+		{"Super Nintendo (SNES)/game.7z", "snes"},
+		{"Nintendo 64 (N64)/game.zip", "n64"},
+		{"Playstation (PSX)/game.7z", "ps1"},
+		{"Nintendo Entertainment System (NES)/game.nes", "nes"},
+		{"Atari 2600/game.tar.gz", "a2600"},
+		{"SNES/game.rar", "snes"},
+		{"game.7z", ""}, // says nothing until it's looked inside
 		{"game.bin", ""}, // used by several consoles
 		{"game.cue", ""}, // likewise
 		{"Movies/game.iso", ""},

@@ -6,7 +6,10 @@ toolchain go1.27.3
 
 require (
 	fyne.io/systray v1.12.2
+	github.com/bodgit/sevenzip v1.6.5
 	github.com/coder/websocket v1.8.15
+	github.com/klauspost/compress v1.19.0
+	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/wittywilla/wittybluray v0.1.0
 	github.com/wittywilla/wittydisc v0.1.0
@@ -14,8 +17,8 @@ require (
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
 	github.com/wittywilla/wittymodule v0.1.0
 	github.com/wittywilla/wittyphotos v0.2.0
-	github.com/wittywilla/wittytuner v0.1.0
 	github.com/wittywilla/wittyplay v0.1.0
+	github.com/wittywilla/wittytuner v0.1.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.60.0
 	golang.org/x/sys v0.49.0
@@ -23,11 +26,16 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.2.2 // indirect
+	github.com/bodgit/plumbing v1.3.0 // indirect
+	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/pion/datachannel v1.6.3 // indirect
 	github.com/pion/dtls/v3 v3.1.15 // indirect
 	github.com/pion/ice/v4 v4.4.8 // indirect
@@ -44,7 +52,11 @@ require (
 	github.com/pion/transport/v5 v5.1.4 // indirect
 	github.com/pion/turn/v5 v5.1.3 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/spf13/afero v1.15.0 // indirect
+	github.com/stangelandcl/ppmd v0.1.1 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
+	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	modernc.org/libc v1.79.0 // indirect
@@ -63,6 +75,9 @@ replace github.com/wittywilla/wittyintegratedfilebrowser => ./modules/wittyinteg
 
 // Not released yet: built from this repository's copy.
 replace github.com/wittywilla/wittymodule => ./modules/wittymodule
+
 replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos
+
 replace github.com/wittywilla/wittytuner => ./modules/wittytuner
+
 replace github.com/wittywilla/wittyplay => ./modules/wittyplay

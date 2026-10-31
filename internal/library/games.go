@@ -1,7 +1,6 @@
 package library
 
 import (
-	"archive/zip"
 	"bufio"
 	"context"
 	"encoding/json"
@@ -16,20 +15,28 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittyplay"
 )
 
 // Games libraries: one console, or wittyplay.Auto for a folder holding many. See
 // docs/GAMING.md. ROM files are only listed here, never opened beyond a look at
-// which files a .zip, .cue or .m3u names.
+// which files an archive, .cue or .m3u names.
 
 // gameSkipDirs hold things that belong to an emulator rather than games.
 var gameSkipDirs = map[string]bool{"bios": true, "system": true, "saves": true, "savestates": true, "states": true, "screenshots": true,
 	"boxart": true, "covers": true, "cover": true, "images": true, "media": true, "manuals": true, "__macosx": true, "@eadir": true}
 
 // discoverGames lists the games under a root. Multi-file games become one: a
-// .cue hides the tracks it names and an .m3u hides the discs it names.
+// .cue hides the tracks it names and an .m3u hides the discs it names, whatever
+// the case of the names in it.
 func discoverGames(root, console string) ([]candidate, error) {
+	ix := newArchiveIndex(nil, 0)
+	defer ix.close()
+	return ix.discover(root, console)
+}
+
+func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 	var found []candidate
 	hidden := map[string]bool{}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -50,7 +57,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 		if err != nil {
 			return nil
 		}
-		c := gameConsole(p, rel, console)
+		c := ix.gameConsole(p, rel, console)
 		if c == "" {
 			return nil
 		}
@@ -61,7 +68,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 		switch strings.ToLower(filepath.Ext(name)) {
 		case ".cue", ".m3u":
 			for _, f := range referencedFiles(p) {
-				hidden[filepath.Clean(f)] = true
+				hidden[strings.ToLower(filepath.Clean(f))] = true
 			}
 		}
 		found = append(found, candidate{path: p, kind: "game", size: st.Size(), mtime: st.ModTime().Unix(), console: c})
@@ -69,7 +76,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 	})
 	out := found[:0]
 	for _, c := range found {
-		if !hidden[filepath.Clean(c.path)] {
+		if !hidden[strings.ToLower(filepath.Clean(c.path))] {
 			out = append(out, c)
 		}
 	}
@@ -79,11 +86,18 @@ func discoverGames(root, console string) ([]candidate, error) {
 // gameLikeExts are files that are probably games. One that gameConsole turns down
 // is worth telling the owner about; anything else in the folder (a text file, a
 // picture) isn't.
-var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
+var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".gz": true, ".tgz": true, ".tar": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
 	".gcm": true, ".gcz": true, ".wbfs": true, ".rvz": true, ".nsp": true, ".xci": true, ".3ds": true, ".cia": true, ".xiso": true}
 
-// skippedGameFiles counts, by extension, game-like files a library can't use.
+// skippedGameFiles counts, by extension, game-like files a library can't use. An
+// archive that can't be read at all counts by why instead (see gamearchive.Error).
 func skippedGameFiles(root, console string) map[string]int {
+	ix := newArchiveIndex(nil, 0)
+	defer ix.close()
+	return ix.skipped(root, console)
+}
+
+func (ix *archiveIndex) skipped(root, console string) map[string]int {
 	out := map[string]int{}
 	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -100,8 +114,15 @@ func skippedGameFiles(root, console string) map[string]int {
 		if !gameLikeExts[ext] || strings.HasPrefix(name, ".") {
 			return nil
 		}
-		if rel, err := filepath.Rel(root, p); err == nil && gameConsole(p, rel, console) == "" {
-			out[ext]++
+		if gamearchive.IsLaterVolume(name) {
+			return nil
+		}
+		if rel, err := filepath.Rel(root, p); err == nil && ix.gameConsole(p, rel, console) == "" {
+			if problem := ix.problem(p); problem != "" {
+				out[problem]++
+			} else {
+				out[ext]++
+			}
 		}
 		return nil
 	})
@@ -111,10 +132,10 @@ func skippedGameFiles(root, console string) map[string]int {
 const skippedGamesKey = "gamesSkipped."
 
 // noteSkippedGames remembers what the last scan of a games library left out.
-func (s *Store) noteSkippedGames(ctx context.Context, lib *Library) {
+func (s *Store) noteSkippedGames(ctx context.Context, lib *Library, ix *archiveIndex) {
 	total := map[string]int{}
 	for _, root := range lib.Paths {
-		for ext, n := range skippedGameFiles(root, lib.Console) {
+		for ext, n := range ix.skipped(root, lib.Console) {
 			total[ext] += n
 		}
 	}
@@ -161,17 +182,22 @@ func (s *Store) GameCounts(ctx context.Context, libraryID int64, access *Access)
 
 // gameConsole says which console a file is for, or "" when it isn't a game this
 // library holds.
-func gameConsole(path, rel, console string) string {
+func (ix *archiveIndex) gameConsole(path, rel, console string) string {
+	name := filepath.Base(path)
 	ext := strings.ToLower(filepath.Ext(path))
+	archive := gamearchive.IsArchive(name)
+	if archive && gamearchive.IsLaterVolume(name) {
+		return ""
+	}
 	if console == wittyplay.Auto {
 		if c := wittyplay.Detect(rel); c != "" {
-			if ext != ".zip" || zipGame(path, wittyplay.ByID(c)) != "" {
+			if !archive || gamearchive.HoldsGame(ix.exts(path), wittyplay.ByID(c)) {
 				return c
 			}
 			return ""
 		}
-		if ext == ".zip" {
-			return zipConsole(path)
+		if archive {
+			return gamearchive.ConsoleOf(ix.exts(path))
 		}
 		return ""
 	}
@@ -179,40 +205,8 @@ func gameConsole(path, rel, console string) string {
 	if c == nil {
 		return ""
 	}
-	if c.Accepts(ext) || (ext == ".zip" && zipGame(path, c) != "") {
+	if c.Accepts(ext) || (archive && gamearchive.HoldsGame(ix.exts(path), c)) {
 		return console
-	}
-	return ""
-}
-
-// ZipGame names the first entry in a .zip that is a game for this console.
-func ZipGame(path string, c *wittyplay.Console) string { return zipGame(path, c) }
-
-func zipGame(path string, c *wittyplay.Console) string {
-	zr, err := zip.OpenReader(path)
-	if err != nil {
-		return ""
-	}
-	defer zr.Close()
-	for _, f := range zr.File {
-		if !f.FileInfo().IsDir() && c.Accepts(strings.ToLower(filepath.Ext(f.Name))) {
-			return f.Name
-		}
-	}
-	return ""
-}
-
-// zipConsole sorts a .zip that isn't in a console's folder by what's inside.
-func zipConsole(path string) string {
-	zr, err := zip.OpenReader(path)
-	if err != nil {
-		return ""
-	}
-	defer zr.Close()
-	for _, f := range zr.File {
-		if c := wittyplay.ByExtension(strings.ToLower(filepath.Ext(f.Name))); c != "" {
-			return c
-		}
 	}
 	return ""
 }
@@ -283,6 +277,20 @@ func ParseGameName(base string) (title, note string) {
 	return title, strings.Join(tags, ", ")
 }
 
+// gameBaseName is a game's file name without its extension. For an archive that's
+// everything that makes it one, and the game's own extension if the name carries it
+// too: "Game (USA).sfc.7z" and "Game (USA).tar.gz" are both "Game (USA)".
+func gameBaseName(name string) string {
+	if !gamearchive.IsArchive(name) {
+		return strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	base := gamearchive.BaseName(name)
+	if x := strings.ToLower(filepath.Ext(base)); x != "" && wittyplay.KnownExtension(x) {
+		return strings.TrimSuffix(base, filepath.Ext(base))
+	}
+	return base
+}
+
 // gameArt finds a picture for a game: its own name beside it, or in the folders
 // other software keeps box art in. A shared cover.jpg is ignored, since one
 // folder holds many games.
@@ -309,7 +317,7 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	if existing != nil {
 		it.ID, it.AddedAt = existing.ID, existing.AddedAt
 	}
-	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
+	base := gameBaseName(filepath.Base(c.path))
 	dir := filepath.Dir(c.path)
 	it.Title, it.Tagline = ParseGameName(base)
 	it.SortTitle = SortTitle(it.Title)

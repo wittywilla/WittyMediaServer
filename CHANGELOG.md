@@ -5,6 +5,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Games in archives
+
+- **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.gz`, `.tar`, `.tar.gz` and `.tgz`, for every
+  console. That includes disc games: an archive holding a `.cue` and its tracks, a `.gdi`, or several discs, unpacks everything the
+  game needs and opens the right file.
+- **Scans stay quick.** Only an archive's headers are read, once, until the file changes. About 2,000 archives take about a second.
+- **Starting a game** shows how far unpacking has got. It's kept for next time in a space you set in Settings, Gaming (16 GB
+  by default), and the longest unplayed goes first. Nothing is written beside your files, and saves carry on as they were.
+- **Folders** named like `Super Nintendo (SNES)` are now recognised, and a `.cue` hides its tracks even when the case of the names
+  differs.
+- **Safe with untrusted files.** Archives are read in a separate, boxed-in process. Ones that try to climb out of their folder, hold
+  links, unpack to absurd sizes or are password-protected are refused or skipped with a clear message.
+
 ## 0.5.0-alpha
 
 ### Interface audit
@@ -13,7 +26,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   titles had no art. The phone's bottom bar wrapped onto two rows. A folder typed without pressing Enter left
   Add greyed out in setup. A remote's Back button did nothing in a dialog. Home videos under 5 MB were skipped.
 - **Games:** large libraries load a page at a time (they stopped at 2,000 before), with search and console filters.
-  Files a scan can't use, such as .7z archives, are now reported instead of quietly missing.
+  Files a scan can't use are now reported instead of quietly missing.
 - **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
   listing everything.
 

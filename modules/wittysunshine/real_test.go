@@ -41,10 +41,18 @@ func TestRealSunshine(t *testing.T) {
 	// once the client has finished pairing.
 	pin, _ := NewPIN()
 	typed := make(chan error, 1)
-	go func() { typed <- typePIN(ctx, addr, user, pass, pin, DeviceName) }()
-	cert, err := r.Pair(ctx, pin)
+	pairCtx, pairCancel := context.WithCancel(ctx)
+	defer pairCancel()
+	go func() {
+		err := typePIN(ctx, addr, user, pass, pin, DeviceName)
+		if err != nil {
+			pairCancel() // nobody is going to type it, so don't wait
+		}
+		typed <- err
+	}()
+	cert, err := r.Pair(pairCtx, pin)
 	if err != nil {
-		t.Fatalf("pair: %v", err)
+		t.Fatalf("pair: %v (typing: %v)", err, <-typed)
 	}
 	if err := <-typed; err != nil {
 		t.Errorf("typing the PIN: %v", err)
@@ -169,6 +177,9 @@ func typePIN(ctx context.Context, addr, user, pass, pin, name string) error {
 		}
 		err = json.NewDecoder(res.Body).Decode(&list)
 		res.Body.Close()
+		if res.StatusCode != 200 {
+			return fmt.Errorf("listing devices: %s", res.Status)
+		}
 		if err != nil {
 			return err
 		}

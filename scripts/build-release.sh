@@ -193,7 +193,17 @@ for t in "${TARGETS[@]}"; do
     echo "       Stop it and move the data folder out, or build elsewhere: DIST=dist/next $0 $VERSION" >&2
     exit 1
   fi
-  rm -rf "$out" "$out.zip" "$out.tar.gz" "$out-setup.exe"; mkdir -p "$out"
+  # Moved first, which fails while a copy is running from it. Windows lets rm take a
+  # running program's files, leaving that copy with nothing to fall back on.
+  if [ -d "$out" ]; then
+    if ! mv "$out" "$out.being-replaced"; then
+      echo "error: $out is in use: a copy is running from it. Nothing was changed." >&2
+      echo "       Stop it, or build elsewhere: DIST=dist/next $0 $VERSION" >&2
+      exit 1
+    fi
+    rm -rf "$out.being-replaced"
+  fi
+  rm -rf "$out.zip" "$out.tar.gz" "$out-setup.exe"; mkdir -p "$out"
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/wms$ext" ./cmd/wms

@@ -114,7 +114,7 @@ var Consoles = []Console{
 		Aliases: []string{"nds", "ds", "nintendods"},
 		Cores:   []Core{{"melonds", "melonDS", "GPL-3.0"}, {"desmume", "DeSmuME", "GPL-2.0"}},
 		BIOS:    []BIOS{{"bios7.bin", "melonDS: better accuracy; games run without it", false}, {"bios9.bin", "melonDS: better accuracy; games run without it", false}, {"firmware.bin", "melonDS: the DS's own start-up menu", false}}},
-	{ID: "3ds", Name: "Nintendo 3DS", Short: "3DS", Extensions: []string{".3ds", ".3dsx", ".cci", ".cxi", ".zcci", ".zcxi", ".z3dsx"}, Shared: []string{".app", ".elf", ".axf"},
+	{ID: "3ds", Name: "Nintendo 3DS", Short: "3DS", Extensions: []string{".3ds", ".3dsx", ".cci", ".cxi", ".cia", ".zcci", ".zcxi", ".z3dsx"}, Shared: []string{".app", ".elf", ".axf"},
 		Aliases: []string{"3ds", "n3ds", "nintendo3ds"},
 		Cores:   []Core{{"azahar", "Azahar", "GPL-2.0-or-later"}, {"panda3ds", "Panda3DS", "GPL-3.0"}}},
 	{ID: "ps2", Name: "Sony PlayStation 2", Short: "PS2", Shared: []string{".iso", ".bin", ".cue", ".chd", ".cso", ".zso", ".ciso", ".gz", ".img", ".mdf", ".nrg", ".m3u"},

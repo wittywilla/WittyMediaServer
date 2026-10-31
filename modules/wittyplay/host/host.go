@@ -38,7 +38,9 @@ func Run(in io.Reader, out io.Writer, open Open) error {
 
 type runner struct {
 	out    io.Writer
+	outMu  sync.Mutex // the frame sender writes too, and messages must not interleave
 	writeE error
+	frames frameSender
 
 	pads pads
 
@@ -53,8 +55,76 @@ type runner struct {
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
+	r.outMu.Lock()
+	defer r.outMu.Unlock()
 	if r.writeE == nil {
 		r.writeE = ipc.Write(r.out, t, parts...)
+	}
+}
+
+func (r *runner) writeErr() error {
+	r.outMu.Lock()
+	defer r.outMu.Unlock()
+	return r.writeE
+}
+
+// frameSender sends the frames a graphics card draws. They run to several megabytes,
+// and a game mustn't wait while one crosses the pipe, or wait at all if the server
+// has fallen behind: the newest frame replaces one still waiting to go, the same
+// as on the server's side, so no queue can build up and add delay.
+type frameSender struct {
+	mu      sync.Mutex
+	wake    *sync.Cond
+	next    []byte // ready to go
+	spare   []byte
+	waiting bool
+	running bool
+	closed  bool
+}
+
+// offer takes a frame built by fill, which is given a buffer to reuse.
+func (f *frameSender) offer(r *runner, fill func(buf []byte) []byte) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.closed {
+		return
+	}
+	f.next = fill(f.next[:0])
+	f.waiting = true
+	if !f.running {
+		f.running = true
+		f.wake = sync.NewCond(&f.mu)
+		go f.loop(r)
+	}
+	f.wake.Signal()
+}
+
+func (f *frameSender) loop(r *runner) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for {
+		for !f.waiting && !f.closed {
+			f.wake.Wait()
+		}
+		if f.closed {
+			return
+		}
+		frame := f.next
+		f.next, f.spare = f.spare, nil
+		f.waiting = false
+		f.mu.Unlock()
+		r.write(ipc.MsgVideo, frame)
+		f.mu.Lock()
+		f.spare = frame
+	}
+}
+
+func (f *frameSender) stop() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.closed = true
+	if f.wake != nil {
+		f.wake.Signal()
 	}
 }
 
@@ -81,11 +151,13 @@ func (r *runner) handlers() engine.Handlers {
 			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
 				return
 			}
-			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
-			for y := h - 1; y >= 0; y-- {
-				r.video = append(r.video, data[y*stride:y*stride+row]...)
-			}
-			r.write(ipc.MsgVideo, r.video)
+			r.frames.offer(r, func(buf []byte) []byte {
+				buf = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(buf)
+				for y := h - 1; y >= 0; y-- {
+					buf = append(buf, data[y*stride:y*stride+row]...)
+				}
+				return buf
+			})
 		},
 		Dupe: func() {
 			if !r.muted {
@@ -259,9 +331,10 @@ func (r *runner) run(in io.Reader, open Open) error {
 		return false
 	}
 
+	defer r.frames.stop()
 	for !r.stop {
-		if r.writeE != nil {
-			return r.writeE
+		if err := r.writeErr(); err != nil {
+			return err
 		}
 		if paused {
 			c, ok := <-cmds
@@ -330,7 +403,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 	if ram := eng.SaveRAM(); ram != nil {
 		r.write(ipc.MsgSaveRAM, ram)
 	}
-	return r.writeE
+	return r.writeErr()
 }
 
 // pads holds the players' input. A press and its release can arrive together, in a

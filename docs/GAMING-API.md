@@ -54,7 +54,7 @@ Starting a game can answer:
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
 | 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. Otherwise `error` says why, such as this server having no graphics card for this game |
-| 422 | The file can't be used |
+| 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so |
 | 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
 
 **The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, renderer, modes}`. `renderer` names the graphics card, for a game drawn on one.

@@ -81,6 +81,9 @@ func (s *Server) testingGames() bool {
 func (s *Server) games() *gameService {
 	s.gameOnce.Do(func() {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
+		// Games unpacked for a session that a crash or a power cut ended. No session
+		// can be running yet, and these can be gigabytes.
+		_ = os.RemoveAll(filepath.Join(dir, "tmp"))
 		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), System: filepath.Join(dir, "system"), Client: library.SafeClient},
 			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
 	})
@@ -481,6 +484,15 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	rom, cleanup, err = g.prepare3DS(rom, cleanup, console)
+	if err != nil {
+		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
+			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
+			return
+		}
+		writeErr(w, 422, err.Error())
+		return
+	}
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
@@ -545,6 +557,52 @@ func (g *gameService) prepareROM(path string, console *wittyplay.Console) (rom s
 		return "", nil, err
 	}
 	return out, cleanup, nil
+}
+
+// prepare3DS checks a 3DS file before a core sees it. An encrypted one is refused:
+// nothing here decrypts or looks for keys. An unencrypted install package holds the
+// game as a plain program, which is copied out because the cores can't open a package.
+// On failure the earlier cleanup has already run.
+func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.Console) (string, func(), error) {
+	if console.ID != "3ds" {
+		return rom, cleanup, nil
+	}
+	fail := func(err error) (string, func(), error) {
+		if cleanup != nil {
+			cleanup()
+		}
+		return "", nil, err
+	}
+	info, err := wittyplay.Inspect3DS(rom)
+	if err != nil {
+		return fail(err)
+	}
+	if info.Encrypted {
+		return fail(wittyplay.ErrEncrypted3DS)
+	}
+	if !info.Package {
+		return rom, cleanup, nil
+	}
+	tmpRoot := filepath.Join(g.dir, "tmp")
+	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
+		return fail(err)
+	}
+	dir, err := os.MkdirTemp(tmpRoot, "rom-")
+	if err != nil {
+		return fail(err)
+	}
+	both := func() {
+		_ = os.RemoveAll(dir)
+		if cleanup != nil {
+			cleanup()
+		}
+	}
+	out := filepath.Join(dir, "game.cxi")
+	if err := info.CopyProgram(rom, out); err != nil {
+		both()
+		return "", nil, err
+	}
+	return out, both, nil
 }
 
 // maxUnpackedROM is above the largest cartridge; disc images aren't zipped this way.

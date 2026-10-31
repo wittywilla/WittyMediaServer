@@ -186,8 +186,11 @@ presses the button and a finger anywhere else is the stylus.
 
 DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one.
 
-**3DS games must be decrypted.** These cores can't read encrypted game files, and nothing here will decrypt them.
-A dump made with your own console's tools in decrypted form is what they want.
+**3DS games must be decrypted.** These cores can't read encrypted game files, and nothing here will decrypt them or
+look for keys. The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files when you press
+Play, and an encrypted one gets a clear refusal rather than a core's failure. A `.cia` is an install package, which
+the cores can't open: an unencrypted one has its main program copied out to a temporary file for the session. Updates
+and extra content inside a package aren't applied.
 
 ## Why WebRTC, and what happens when it can't connect
 

@@ -86,7 +86,7 @@ type Info struct {
 // Errors a caller shows to people.
 var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
-	ErrGPUBusy = errors.New("the graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
+	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
 	ErrNoSlot  = errors.New("there is no such save slot")
 )
@@ -283,8 +283,11 @@ type Session struct {
 	exitErr   atomic.Value
 
 	frameMu    sync.Mutex
-	frame      []byte // the newest frame
+	frame      []byte // the newest frame from the runner, when frameFresh
 	frameHdr   ipc.VideoHeader
+	frameFresh bool
+	shown      []byte // the frame last given to the encoders; videoLoop swaps these
+	shownHdr   ipc.VideoHeader
 	frameReady chan struct{}
 
 	viewMu        sync.Mutex
@@ -490,7 +493,7 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			}
 			s.frameMu.Lock()
 			s.frame = append(s.frame[:0], data...)
-			s.frameHdr = hdr
+			s.frameHdr, s.frameFresh = hdr, true
 			s.frameMu.Unlock()
 			s.lastFrame.Store(time.Now().UnixNano())
 			s.signalFrame()
@@ -754,9 +757,14 @@ func (s *Session) Stop() {
 		if err := s.command(ipc.CmdQuit, []byte{1}); err != nil {
 			s.kill()
 		}
+		// The larger consoles have more to save, and a save is worth waiting for.
+		limit := 15 * time.Second
+		if s.opt.GPU {
+			limit = 45 * time.Second
+		}
 		select {
 		case <-s.done:
-		case <-time.After(15 * time.Second):
+		case <-time.After(limit):
 			s.log.Warn("the runner did not stop in time; ending it")
 			s.kill()
 		}

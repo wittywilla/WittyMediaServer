@@ -381,7 +381,7 @@ inside it:
 ```
 Games/
   Playstation 2 (PS2)/
-    Final Fantasy X.iso
+    Some Game.iso
     BIOS/
       SCPH-39001/
         SCPH-39001_BIOS_V7_USA_160.BIN

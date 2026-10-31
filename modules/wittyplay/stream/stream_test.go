@@ -507,6 +507,8 @@ func TestGPUGamesPreferHardwareEncoders(t *testing.T) {
 	soft := &Session{m: m, cfg: m.config()}
 	if got := soft.chain("h264"); got[0] != "h264_qsv" {
 		t.Errorf("software game's encoders: %v", got)
+	}
+}
 
 // A game can change resolution twice in a moment, so an encoder can be stopped
 // before it has made a frame. That says nothing against the encoder.

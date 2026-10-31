@@ -68,6 +68,8 @@ follows you. See [GAMING.md](docs/GAMING.md).
   nothing while other programs are busy: a game could fail with "took too long to load", or crawl at one frame a second. It now runs at
   normal priority there, and shares the machine fairly with a transcode.
 - **Save pictures and your own images load in apps that can't send a sign-in cookie.**
+- **On Linux, the game runner's limits hold on all of its threads.** Writing outside the save folder could get past them from a thread
+  other than the one that set them. A system that can't cover every thread now says so in the log.
 
 ### Lower delay
 

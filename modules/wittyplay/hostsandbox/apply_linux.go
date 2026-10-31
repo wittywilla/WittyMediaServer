@@ -2,6 +2,8 @@ package hostsandbox
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -9,14 +11,46 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// restartedEnv tells the program, once Confine has started it again, not to start it
+// a second time. Whoever starts a runner sets its environment, so nobody else can set
+// this, and setting it only skips the restart: Apply still limits its own thread.
+const restartedEnv = "WITTYPLAY_WRITES_LIMITED"
+
+// Confine limits writing for every thread this process will ever have. Landlock
+// belongs to the thread that asks for it and what that thread starts, and Go is
+// already running others. So one thread asks, then becomes this same program again:
+// that leaves only it, and every later thread descends from it.
+//
+// Call it first, before reading stdin or moving a descriptor, as the program runs
+// from the top again, and before Apply, whose filter refuses starting a program. A
+// system without Landlock has nothing to carry over, and Apply reports that.
+func Confine(l Limits) error {
+	if os.Getenv(restartedEnv) != "" {
+		return os.Unsetenv(restartedEnv)
+	}
+	runtime.LockOSThread() // never undone: the limit belongs to this thread until it restarts
+	if unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != nil || landlock(l.SaveDir, l.GPU) != nil {
+		return nil
+	}
+	exe, err := os.Executable()
+	if err == nil {
+		if err = os.Setenv(restartedEnv, "1"); err == nil {
+			err = syscall.Exec(exe, os.Args, os.Environ())
+			_ = os.Unsetenv(restartedEnv)
+		}
+	}
+	return fmt.Errorf("the write limit doesn't cover every thread: %w", err)
+}
+
 // Apply boxes the process in: resource limits, no new privileges, a syscall
 // filter that refuses networking and starting programs, and Landlock limiting
 // writes. Failures in the layers a kernel or container doesn't offer are returned
 // together, and the layers that worked stay on.
 //
 // Call it from the thread that will run the core and keep to that thread: on Linux
-// the priority and, on kernels before Landlock could synchronise, Landlock belong to
-// the calling thread and what it starts. The syscall filter covers every thread.
+// the priority belongs to the calling thread and what it starts, and so does Landlock
+// on kernels before it could synchronise, unless Confine came first. The syscall
+// filter covers every thread.
 func Apply(l Limits) error {
 	runtime.LockOSThread() // never undone: what is set here belongs to this thread
 	var errs []error

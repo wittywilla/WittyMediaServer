@@ -3,6 +3,7 @@
 package hostsandbox
 
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 
@@ -62,7 +63,11 @@ func seccomp() error {
 	if r, _, e := unix.Syscall(unix.SYS_SECCOMP, seccompSetModeFilter, seccompFilterFlagTsync, uintptr(unsafe.Pointer(&prog))); e == 0 && r == 0 {
 		return nil
 	}
-	return unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, uintptr(unsafe.Pointer(&prog)), 0, 0)
+	// One thread is better than none, but the log must say it isn't all of them.
+	if err := unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, uintptr(unsafe.Pointer(&prog)), 0, 0); err != nil {
+		return err
+	}
+	return errors.New("the syscall filter covers only one thread")
 }
 
 const (

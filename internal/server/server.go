@@ -100,7 +100,7 @@ type Server struct {
 	rigOnce       sync.Once
 	rigSvc        *rigService
 	moonOnce      sync.Once
-	moonSvc       *moonlightService
+	couchSvc      *couchService
 	diagOnce      sync.Once
 	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
 }
@@ -391,8 +391,8 @@ func (s *Server) Handler() http.Handler {
 	}
 	s.gameMetaRoutes(m)
 	s.rigRoutes(m)
-	s.moonlightRoutes(m)
-	s.sunshineRoutes(m)
+	s.couchRoutes(m)
+	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
 
 	// Web UI (SPA)

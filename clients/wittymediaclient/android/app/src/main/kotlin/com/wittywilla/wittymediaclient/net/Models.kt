@@ -254,7 +254,7 @@ data class RigPlay(
 )
 
 @Serializable
-data class MoonlightStatus(val allowed: Boolean = false)
+data class CouchStatus(val allowed: Boolean = false)
 
 @Serializable
 data class RigWake(val ok: Boolean = false, val note: String = "")

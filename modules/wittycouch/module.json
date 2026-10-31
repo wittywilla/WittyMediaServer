@@ -1,0 +1,11 @@
+{
+  "id": "wittycouch",
+  "name": "WittyCouch",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyCouch",
+  "license": "Apache-2.0",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x"
+}

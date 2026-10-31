@@ -83,12 +83,12 @@ public struct RigWake: Decodable, Equatable {
 
 /// The server's own pages for playing, kept to that server in a web view.
 public enum WebPlayer {
-    public static let gamePCsPath = "/moonlight"
-    public static func rigPath(_ gameId: Int64) -> String { "/moonlight-rig/\(gameId)" }
+    public static let gamePCsPath = "/couch"
+    public static func rigPath(_ gameId: Int64) -> String { "/couch-rig/\(gameId)" }
 
     /// Going anywhere else in the web interface means going back to this app's own screens.
     public static func staysInside(path: String) -> Bool {
-        path == gamePCsPath || path.hasPrefix(gamePCsPath + "/") || path.hasPrefix("/moonlight-rig/")
+        path == gamePCsPath || path.hasPrefix(gamePCsPath + "/") || path.hasPrefix("/couch-rig/")
     }
 
     private static func effectivePort(_ url: URL) -> Int? {

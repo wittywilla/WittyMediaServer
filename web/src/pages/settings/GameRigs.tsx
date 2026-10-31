@@ -6,7 +6,7 @@ import type { RigView } from '../Rigs'
 import { Section } from './ui'
 import '../rigs.css'
 
-// What Settings, Game PCs and Settings, WittySunshine share: adding a PC, pairing it, and choosing
+// What Settings, Game PCs and Settings, WittyRigs share: adding a PC, pairing it, and choosing
 // which of its apps show in its library. Sunshine and Moonlight are separate projects, and these
 // pages only ever talk to them: see docs/GAME-RIGS.md.
 

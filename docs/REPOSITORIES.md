@@ -14,16 +14,26 @@ Nothing has to be created until the work it's for is ready to publish. Create ea
 
 | Repository | What it's for | Status of the work |
 |---|---|---|
-| WittyMoonlight | A Moonlight client in the page, for any Sunshine server: its relay, protocol code and player. **Apache-2.0** | Ready to move once the names are settled |
-| WittyMoonlightHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release (`modules/wittymoonlighthost`) | Ready to move once the names are settled |
-| WittySunshine | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | Ready to move once the names are settled |
-| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |
+| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release (`modules/wittycouchhost`) | Ready to move. The empty WittyMoonlightHost can simply be renamed to this |
+| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | Ready to move. The empty WittySunshine can simply be renamed to this |
+
+## To remove or rename
+
+These were made under names that were dropped, and each holds only a README, so nothing is lost.
+
+| Repository | What to do |
+|---|---|
+| WittyMoonlight | Delete it: WittyCouch replaces it |
+| WittyMoonlightHost | Rename it to WittyCouchHost |
+| WittySunshine | Rename it to WittyRigs |
 
 ## Exists
 
 | Repository | What it's for |
 |---|---|
 | WittyMediaServer | The server |
+| WittyCouch | A Moonlight client in the page, for any Sunshine server: its relay, protocol code and player. **Apache-2.0**. Empty until this work is merged |
+| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Empty: work not started |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyModule | The shared tools and manifest format modules are built with |

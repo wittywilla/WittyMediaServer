@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittycouch/gamestream"
+	"github.com/wittywilla/wittycouch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymoonlight/gamestream"
-	"github.com/wittywilla/wittymoonlight/gamestream/fake"
 )
 
 func rigFake(t *testing.T) *fake.Sunshine {
@@ -153,7 +153,7 @@ func TestRigFromAddingToPlaying(t *testing.T) {
 		t.Errorf("the emulator route: %d", w.Code)
 	}
 
-	// A plan for each kind of device, with the moonlight details.
+	// A plan for each kind of device, with what the Moonlight app needs.
 	w = ts.do(t, "POST", fmt.Sprintf("/api/rigs/games/%d/play", game.ID), admin, map[string]any{"client": "desktop", "os": "windows"})
 	if w.Code != 200 {
 		t.Fatalf("play: %d %s", w.Code, w.Body)
@@ -411,12 +411,12 @@ func TestRigSecretsStayHome(t *testing.T) {
 	}
 	// The key isn't in the database.
 	var n int
-	if err := ts.DB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM wittysunshine_rigs WHERE cert LIKE '%PRIVATE%'`).Scan(&n); err != nil || n != 0 {
+	if err := ts.DB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM wittyrigs_rigs WHERE cert LIKE '%PRIVATE%'`).Scan(&n); err != nil || n != 0 {
 		t.Errorf("%d %v", n, err)
 	}
 	// A rig answering with another certificate isn't trusted, and viewers get no detail.
 	other := rigFake(t)
-	if _, err := ts.DB.ExecContext(context.Background(), `UPDATE wittysunshine_rigs SET port = ? WHERE id = ?`, other.Port(), v.ID); err != nil {
+	if _, err := ts.DB.ExecContext(context.Background(), `UPDATE wittyrigs_rigs SET port = ? WHERE id = ?`, other.Port(), v.ID); err != nil {
 		t.Fatal(err)
 	}
 	ts.forgetRigStatus(v.ID)
@@ -448,7 +448,7 @@ func TestRigDevicePINIsNeverStored(t *testing.T) {
 		t.Errorf("good: %d %s", w.Code, w.Body)
 	}
 	// Nowhere in the database.
-	for _, table := range []string{"wittysunshine_rigs", "settings"} {
+	for _, table := range []string{"wittyrigs_rigs", "settings"} {
 		rows, err := ts.DB.QueryContext(context.Background(), "SELECT * FROM "+table)
 		if err != nil {
 			t.Fatal(err)
@@ -628,7 +628,7 @@ func TestRigLibraryDeletedInLibrarySettings(t *testing.T) {
 		t.Errorf("%d rigs left", len(rows))
 	}
 	var n int
-	if err := ts.DB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM wittysunshine_apps`).Scan(&n); err != nil || n != 0 {
+	if err := ts.DB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM wittyrigs_apps`).Scan(&n); err != nil || n != 0 {
 		t.Errorf("%d apps left, %v", n, err)
 	}
 }

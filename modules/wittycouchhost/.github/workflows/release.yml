@@ -1,0 +1,147 @@
+# Runs in WittyCouch Host's own repository, where this folder is the root. Every push builds
+# each platform and runs what it built. A version tag also publishes a release, with each binary
+# and the complete source that GPL-3.0 section 6 says has to be offered alongside them.
+name: Build and release
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+permissions:
+  contents: read
+env:
+  # Linux releases are built on Alpine, for a static file that runs on any Linux. This is a tag's
+  # image for every architecture, pinned.
+  ALPINE: alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: windows-x64, runner: ubuntu-24.04 }
+          - { target: linux-x64, runner: ubuntu-24.04 }
+          - { target: linux-arm64, runner: ubuntu-24.04-arm }
+          - { target: macos-x64, runner: macos-15-intel }
+          - { target: macos-arm64, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build for Linux, on Alpine
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src -e TARGET -e OWNER="$(id -u):$(id -g)" "$ALPINE" sh -ec '
+            apk add --no-cache build-base cmake linux-headers git
+            git config --global --add safe.directory "*"
+            sh scripts/build.sh "$TARGET"
+            chown -R "$OWNER" build dist third_party
+          '
+      - name: Cross-compile for Windows
+        if: matrix.target == 'windows-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++-mingw-w64-x86-64
+          sh scripts/build.sh "$TARGET"
+      - name: Build for macOS
+        if: startsWith(matrix.target, 'macos-')
+        run: sh scripts/build.sh "$TARGET"
+      - name: It has to run, and say what it is
+        if: matrix.target != 'windows-x64'
+        run: |
+          want="$(sed -n 's/.*"version": *"\(.*\)".*/\1/p' module.json | head -1)"
+          got="$("dist/wittycouch-host-$TARGET" --version)"
+          echo "$got"
+          case "$got" in "wittycouch-host $want protocol "*) ;; *) echo "module.json says $want"; exit 1 ;; esac
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.target }}
+          path: dist/wittycouch-host-${{ matrix.target }}*
+          if-no-files-found: error
+
+  # The Windows build is cross-compiled, so it's run here, on Windows, by itself with no DLLs next to it.
+  run-on-windows:
+    needs: build
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-x64
+          path: ${{ runner.temp }}\windows-x64
+      - name: It has to run, and say what it is
+        shell: pwsh
+        run: |
+          $want = (Get-Content module.json -Raw | ConvertFrom-Json).version
+          $got = & "$env:RUNNER_TEMP\windows-x64\wittycouch-host-windows-x64.exe" --version
+          Write-Output $got
+          if ($LASTEXITCODE -ne 0 -or -not $got.StartsWith("wittycouch-host $want protocol ")) { Write-Output "module.json says $want"; exit 1 }
+
+  # Everything a binary was built from, and proof that it's enough: this builds from the archive
+  # alone, where there's no git folder for anything to be fetched with.
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Make the source archive
+        run: |
+          ver="$(sed -n 's/.*"version": *"\(.*\)".*/\1/p' module.json | head -1)"
+          mkdir -p "$RUNNER_TEMP/source"
+          sh scripts/source-archive.sh "$ver" "$RUNNER_TEMP/source/wittycouch-host-$ver-source.tar.gz"
+      - name: Build from it
+        run: |
+          mkdir "$RUNNER_TEMP/unpacked"
+          tar -xzf "$RUNNER_TEMP"/source/*.tar.gz -C "$RUNNER_TEMP/unpacked"
+          cd "$RUNNER_TEMP"/unpacked/*
+          sh scripts/build.sh linux-x64
+          dist/wittycouch-host-linux-x64 --version
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: source
+          path: ${{ runner.temp }}/source/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, run-on-windows, source]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The tag must match module.json
+        run: |
+          want="$(sed -n 's/.*"version": *"\(.*\)".*/\1/p' module.json | head -1)"
+          [ "v$want" = "$GITHUB_REF_NAME" ] || { echo "module.json says $want, the tag is $GITHUB_REF_NAME"; exit 1; }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/artifacts
+          merge-multiple: true
+      - name: Gather what goes in the release
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          out="$RUNNER_TEMP/release"
+          mkdir "$out"
+          for target in windows-x64 linux-x64 linux-arm64 macos-x64 macos-arm64; do
+            ext=
+            [ "$target" = windows-x64 ] && ext=.exe
+            cp "$RUNNER_TEMP/artifacts/wittycouch-host-$target$ext" "$out/wittycouch-host-$ver-$target$ext"
+          done
+          cp "$RUNNER_TEMP/artifacts/wittycouch-host-$ver-source.tar.gz" LICENSE NOTICE "$out/"
+          (cd "$out" && sha256sum -- * > "wittycouch-host-$ver-SHA256SUMS.txt")
+          ls -l "$out"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=""
+          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/release/* --verify-tag --title "WittyCouch Host ${GITHUB_REF_NAME#v}" --generate-notes $flags

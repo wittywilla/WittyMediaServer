@@ -7,7 +7,7 @@ const { permissionAllowed, validArgs, validHost, validApp, findMoonlight, status
 
 test('only the server page can lock the mouse, and nothing else new is allowed', () => {
   const server = 'http://192.168.1.5:9797'
-  assert.ok(permissionAllowed('pointerLock', 'http://192.168.1.5:9797/moonlight-rig/7', server))
+  assert.ok(permissionAllowed('pointerLock', 'http://192.168.1.5:9797/couch-rig/7', server))
   assert.ok(permissionAllowed('pointerLock', 'http://192.168.1.5:9797/', server))
   assert.ok(!permissionAllowed('pointerLock', 'http://192.168.1.5:9798/', server))
   assert.ok(!permissionAllowed('pointerLock', 'https://example.com/', server))

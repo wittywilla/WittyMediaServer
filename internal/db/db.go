@@ -379,22 +379,22 @@ var migrations = []string{
 	 CREATE INDEX IF NOT EXISTS items_cd_disc ON items(cd_disc) WHERE cd_disc IS NOT NULL;`,
 	// 17: game rigs: gaming PCs running Sunshine, each with a library of its games. The
 	// certificate here is the rig's own, which isn't secret: this server's key is in a file.
-	`CREATE TABLE IF NOT EXISTS wittysunshine_rigs (
+	`CREATE TABLE IF NOT EXISTS wittyrigs_rigs (
 	   id INTEGER PRIMARY KEY,
 	   library_id INTEGER NOT NULL UNIQUE REFERENCES libraries(id) ON DELETE CASCADE,
 	   name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NOT NULL DEFAULT 0,
 	   remote_address TEXT NOT NULL DEFAULT '', allow_public INTEGER NOT NULL DEFAULT 0,
 	   uuid TEXT NOT NULL DEFAULT '', mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   paired_at INTEGER, created_at INTEGER NOT NULL);
-	 CREATE TABLE IF NOT EXISTS wittysunshine_apps (
-	   rig_id INTEGER NOT NULL REFERENCES wittysunshine_rigs(id) ON DELETE CASCADE,
+	 CREATE TABLE IF NOT EXISTS wittyrigs_apps (
+	   rig_id INTEGER NOT NULL REFERENCES wittyrigs_rigs(id) ON DELETE CASCADE,
 	   app_id INTEGER NOT NULL, title TEXT NOT NULL, shown INTEGER NOT NULL,
 	   item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
 	   PRIMARY KEY(rig_id, app_id));
-	 CREATE INDEX IF NOT EXISTS wittysunshine_apps_item ON wittysunshine_apps(item_id);`,
-	// 18: WittyMoonlight: each person's own list of PCs running Sunshine. The certificate here is the
+	 CREATE INDEX IF NOT EXISTS wittyrigs_apps_item ON wittyrigs_apps(item_id);`,
+	// 18: WittyCouch: each person's own list of PCs running Sunshine. The certificate here is the
 	// PC's own, which isn't secret: each person's key is in a file.
-	`CREATE TABLE IF NOT EXISTS wittymoonlight_hosts (
+	`CREATE TABLE IF NOT EXISTS wittycouch_hosts (
 	   id INTEGER PRIMARY KEY,
 	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	   name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NOT NULL DEFAULT 0,

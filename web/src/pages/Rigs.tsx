@@ -138,7 +138,7 @@ export function RigGameDetails({ it }: { it: Item }) {
       setPlan(p)
       const first = p.ready ? p.methods[0] : undefined
       if (first?.kind === 'client') {
-        nav(`/moonlight-rig/${it.id}`)
+        nav(`/couch-rig/${it.id}`)
         return
       }
       if (first?.kind === 'command' && first.oneClick && moonlight && !appMissing) await launch(first)
@@ -188,7 +188,7 @@ export function RigGameDetails({ it }: { it: Item }) {
           {plan.message && <p className="game-note" role="status">{plan.message}</p>}
           {plan.methods.map((m, i) => (
             <section key={i} className="rig-method">
-              {m.kind === 'client' && <button className="btn" onClick={() => nav(`/moonlight-rig/${it.id}`)}><IconPlay /> {m.label}</button>}
+              {m.kind === 'client' && <button className="btn" onClick={() => nav(`/couch-rig/${it.id}`)}><IconPlay /> {m.label}</button>}
               {m.kind === 'command' && moonlight && !appMissing && m.args && <button className="btn" onClick={() => launch(m)}><IconPlay /> {m.label}</button>}
               {m.kind === 'command' && !moonlight && m.text && <>
                 <h2>{m.label}</h2>

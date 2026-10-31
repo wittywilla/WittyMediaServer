@@ -1,0 +1,11 @@
+{
+  "id": "wittycouchhost",
+  "name": "WittyCouch Host",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyCouchHost",
+  "license": "GPL-3.0",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.4.0-alpha",
+  "maxServer": "0.5.x"
+}

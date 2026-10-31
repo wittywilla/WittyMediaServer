@@ -11,7 +11,7 @@ COPY web/ ./
 # WittyIntegratedFileBrowser's web half lives beside its Go half.
 COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
 COPY modules/wittyplay/web/ /src/modules/wittyplay/web/
-COPY modules/wittymoonlight/web/ /src/modules/wittymoonlight/web/
+COPY modules/wittycouch/web/ /src/modules/wittycouch/web/
 # The legal notices' wording, shared with the server.
 COPY internal/legal/ /src/internal/legal/
 RUN npm run build
@@ -33,8 +33,8 @@ COPY modules/wittymodule/go.mod modules/wittymodule/
 COPY modules/wittyphotos/go.mod modules/wittyphotos/
 COPY modules/wittytuner/go.mod modules/wittytuner/
 COPY modules/wittyplay/go.mod modules/wittyplay/go.sum modules/wittyplay/
-COPY modules/wittysunshine/go.mod modules/wittysunshine/
-COPY modules/wittymoonlight/go.mod modules/wittymoonlight/go.sum modules/wittymoonlight/
+COPY modules/wittyrigs/go.mod modules/wittyrigs/
+COPY modules/wittycouch/go.mod modules/wittycouch/go.sum modules/wittycouch/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

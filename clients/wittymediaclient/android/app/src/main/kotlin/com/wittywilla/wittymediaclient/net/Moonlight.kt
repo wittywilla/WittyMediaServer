@@ -36,11 +36,11 @@ fun moonlightStart(method: RigMethod): MoonlightStart? {
 fun isWebLink(url: String) = url.startsWith("https://", ignoreCase = true) || url.startsWith("http://", ignoreCase = true)
 
 // The server's own pages for playing.
-const val GAME_PCS_PATH = "/moonlight"
-fun rigPlayerPath(gameId: Long) = "/moonlight-rig/$gameId"
+const val GAME_PCS_PATH = "/couch"
+fun rigPlayerPath(gameId: Long) = "/couch-rig/$gameId"
 
 // Going anywhere else in the web interface means going back to this app's own screens.
-fun staysInWebPlayer(path: String) = path == GAME_PCS_PATH || path.startsWith("$GAME_PCS_PATH/") || path.startsWith("/moonlight-rig/")
+fun staysInWebPlayer(path: String) = path == GAME_PCS_PATH || path.startsWith("$GAME_PCS_PATH/") || path.startsWith("/couch-rig/")
 
 fun sameServer(url: String, base: String): Boolean {
     val a = url.toHttpUrlOrNull() ?: return false

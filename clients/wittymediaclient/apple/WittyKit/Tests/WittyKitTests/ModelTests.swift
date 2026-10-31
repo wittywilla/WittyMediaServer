@@ -41,15 +41,15 @@ final class ModelTests: XCTestCase {
     }
 
     func testWebPlayerKeepsToItsOwnPages() throws {
-        XCTAssertEqual(WebPlayer.rigPath(7), "/moonlight-rig/7")
-        for path in ["/moonlight", "/moonlight/3", "/moonlight/3/play/9", "/moonlight-rig/7"] { XCTAssertTrue(WebPlayer.staysInside(path: path), path) }
-        for path in ["/", "/item/7", "/moonlights", "/settings", "/login"] { XCTAssertFalse(WebPlayer.staysInside(path: path), path) }
+        XCTAssertEqual(WebPlayer.rigPath(7), "/couch-rig/7")
+        for path in ["/couch", "/couch/3", "/couch/3/play/9", "/couch-rig/7"] { XCTAssertTrue(WebPlayer.staysInside(path: path), path) }
+        for path in ["/", "/item/7", "/couches", "/settings", "/login"] { XCTAssertFalse(WebPlayer.staysInside(path: path), path) }
     }
 
     func testOnlyTheSameServerStaysInTheWebView() throws {
         let base = "http://192.168.1.5:9797"
         func same(_ text: String) throws -> Bool { WebPlayer.sameServer(try XCTUnwrap(URL(string: text)), base: base) }
-        XCTAssertTrue(try same("http://192.168.1.5:9797/moonlight-rig/7"))
+        XCTAssertTrue(try same("http://192.168.1.5:9797/couch-rig/7"))
         XCTAssertFalse(try same("http://192.168.1.5:9798/"))
         XCTAssertFalse(try same("https://192.168.1.5:9797/"))
         XCTAssertFalse(try same("http://192.168.1.5.example.com:9797/"))

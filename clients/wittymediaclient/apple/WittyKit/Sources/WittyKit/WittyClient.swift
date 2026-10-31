@@ -169,7 +169,7 @@ public final class WittyClient: @unchecked Sendable {
         _ = try await call("POST", "/items/\(id)/progress", body: body)
     }
 
-    public func moonlightStatus() async throws -> MoonlightStatus { try await get("/moonlight") }
+    public func couchStatus() async throws -> CouchStatus { try await get("/couch") }
 
     /// What this device can do to play a game on someone's own PC. It starts nothing there.
     public func rigPlay(_ gameId: Int64, client: String, os: String) async throws -> RigPlay {

@@ -315,10 +315,10 @@ disc: neither Blu-ray image on hand has Java menus.
 - **A Moonlight client in the page.** **Game PCs** lists your own PCs, yours or a friend's: find one on the network or type its address, pair it with a PIN, and its games
   are there. Press Play, and it streams right in the page with a controller, keyboard, mouse or touch. Nothing to install on the device. Your pairings are yours alone.
 - **It's played for real:** a real Sunshine, Moonlight's real streaming core, a real browser. Real games on real gaming PCs are next.
-- **WittyMoonlight** (Apache-2.0) is the client and relay. It uses **WittyMoonlight Host**, a separate **GPL-3.0** program built on Moonlight's own code, which is installed separately.
+- **WittyCouch** (Apache-2.0) is the client and relay. It uses **WittyCouch Host**, a separate **GPL-3.0** program built on Moonlight's own code, which is installed separately.
 - **Who may use it:** adult profiles with no limits by default, and admins. Admins choose who, and whether it can reach the server's network or the internet. A PC can also be shared with everyone
   as a library, where Kids and Guest profiles see only the games they're given.
-- **WittySunshine** is an advanced option, off by default, for hosting demanding games on the server's own hardware.
+- **WittyRigs** is an advanced option, off by default, for hosting demanding games on the server's own hardware.
 - **Handing off to the Moonlight app** stays as the fallback, and is what Android TV and Apple TV use.
 - The design, licenses and what's really been tested: `docs/GAME-RIGS.md`.
 

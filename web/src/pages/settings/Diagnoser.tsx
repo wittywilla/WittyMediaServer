@@ -53,7 +53,7 @@ export default function Diagnoser() {
 
   return (
     <>
-      <PageHead title="WittyDiagnoser" desc="The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD or Blu-ray, or the folders the server uses, and it says what it finds in plain words. It never repairs anything, and never gets around copy protection." />
+      <PageHead title="WittyDiagnoser" desc="The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never repairs anything, and never gets around copy protection." />
       <div className="tabs" role="tablist" aria-label="What to check">
         <button role="tab" id="dgn-tab-disc" aria-selected={tab === 'disc'} aria-controls="dgn-panel" className={tab === 'disc' ? 'active' : ''} onClick={() => setTab('disc')}>A disc</button>
         <button role="tab" id="dgn-tab-storage" aria-selected={tab === 'storage'} aria-controls="dgn-panel" className={tab === 'storage' ? 'active' : ''} onClick={() => setTab('storage')}>Storage</button>

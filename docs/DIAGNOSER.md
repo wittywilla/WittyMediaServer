@@ -1,8 +1,8 @@
 # WittyDiagnoser
 
 WittyDiagnoser is the disk diagnoser, for people who'd rather not open a terminal. It's in *Settings →
-WittyDiagnoser*, for administrators. "Disk" can mean two things, so it has two tabs: **A disc** (a DVD or
-Blu-ray, as an image or a folder) and **Storage** (the drives and folders the server uses).
+WittyDiagnoser*, for administrators. "Disk" can mean two things, so it has two tabs: **A disc** (a DVD, Blu-ray or
+audio CD, as an image or a folder) and **Storage** (the drives and folders the server uses).
 
 It looks, and it tells you. It changes nothing.
 

@@ -201,7 +201,8 @@ for t in "${TARGETS[@]}"; do
   # The separate process that runs games (docs/GAMING.md). FreeBSD's cgo-free
   # build needs one package compiled with the standard library's privileges.
   host_flags=(); [ "$os" = freebsd ] && host_flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std")
-  (cd modules/wittyplay && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$OLDPWD/$out/wittyplay-host$ext" ./cmd/wittyplay-host)
+  abs_out=$(cd "$out" && pwd)
+  (cd modules/wittyplay && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$abs_out/wittyplay-host$ext" ./cmd/wittyplay-host)
   if [ "${SKIP_FFMPEG:-}" != "1" ]; then
     if ! bundle_ffmpeg "$out" "$os" "$arch"; then
       echo "   !! no FFmpeg bundled for $t (wms will use ffmpeg from PATH on that machine)" >&2

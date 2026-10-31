@@ -28,8 +28,9 @@ type ProbeOptions struct {
 }
 
 // ProbeTimeout is how long a core gets to load. A big core on a slow disk takes
-// seconds, and a virus scanner looking at a new library can add many more.
-const ProbeTimeout = time.Minute
+// seconds, and a virus scanner looking at a new library on a busy machine was seen
+// taking most of a minute. A hang costs only the wait.
+const ProbeTimeout = 2 * time.Minute
 
 // ProbeResult is a successful test-load.
 type ProbeResult struct {
@@ -89,6 +90,7 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	stderr := &cappedBuffer{left: 1 << 16}
 	cmd.Stderr = stderr
 	prepareSandbox(cmd, opt.WorkDir, opt.Log)
+	probePriority(cmd)
 	if err := cmd.Start(); err != nil {
 		return nil, &ProbeError{ProbeRunner, "the game runner couldn't start: " + err.Error()}
 	}
@@ -108,6 +110,9 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	case <-timer.C:
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
+		if out := stderr.String(); out != "" {
+			opt.Log.Info("a core hung in its test-load", "runner", truncate(out, 2000))
+		}
 		return nil, &ProbeError{ProbeHung, fmt.Sprintf("It didn't finish loading within %d seconds, so it was stopped.", int(opt.Timeout.Seconds()))}
 	case <-ctx.Done():
 		_ = cmd.Process.Kill()
@@ -129,6 +134,9 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	}
 	_ = cmd.Process.Kill()
 	waitErr := cmd.Wait()
+	if out := stderr.String(); out != "" {
+		opt.Log.Info("a core failed its test-load", "runner", truncate(out, 2000))
+	}
 	if got.err != nil {
 		return nil, got.err
 	}

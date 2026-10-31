@@ -55,8 +55,9 @@ type Options struct {
 	Resume         bool   // continue from auto.state
 	Quality        string // "" (auto) | low | high
 	CoreOptions    map[string]string
-	CoreAssets     string // support files of its own, if it has any
-	Cleanup        func() // runs when the session has ended
+	CoreAssets     string        // support files of its own, if it has any
+	LoadLimit      time.Duration // how long it may take to load; 0 means 30 seconds
+	Cleanup        func()        // runs when the session has ended
 }
 
 // Info is what a browser needs to know about a session.
@@ -338,6 +339,10 @@ func (s *Session) start() error {
 		s.kill()
 		return err
 	}
+	loadLimit := 30 * time.Second
+	if s.opt.LoadLimit > 0 {
+		loadLimit = s.opt.LoadLimit
+	}
 	select {
 	case err := <-readyCh:
 		if err != nil {
@@ -345,7 +350,7 @@ func (s *Session) start() error {
 			<-s.done
 			return err
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(loadLimit):
 		s.kill()
 		<-s.done
 		return errors.New("the game took too long to load")

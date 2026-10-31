@@ -131,18 +131,18 @@ var reservedName = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])(
 // doesn't get quietly cleaned up and accepted either.
 func CheckFileName(name string) error {
 	if name == "" || len(name) > 200 {
-		return errors.New("that file name can't be used")
+		return errors.New("That file name can't be used.")
 	}
 	if strings.ContainsAny(name, "/\\:\x00") || name == "." || name == ".." || strings.Contains(name, "..") {
-		return errors.New("a file name can't name folders or climb out of one")
+		return errors.New("A file name can't name folders or climb out of one.")
 	}
 	for _, r := range name {
 		if r < 0x20 || r == 0x7f {
-			return errors.New("that file name can't be used")
+			return errors.New("That file name can't be used.")
 		}
 	}
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") || strings.HasSuffix(name, " ") || reservedName.MatchString(name) {
-		return errors.New("that file name can't be used")
+		return errors.New("That file name can't be used.")
 	}
 	return nil
 }
@@ -155,7 +155,7 @@ func (st *CustomStore) StageReader(r io.Reader, name string) (*Staged, error) {
 	}
 	ext := strings.ToLower(filepath.Ext(name))
 	if !libraryExts[ext] && ext != ".zip" {
-		return nil, fmt.Errorf("a core is a file ending in %s, or a .zip holding one; this is neither", libraryExt())
+		return nil, fmt.Errorf("A core is a file ending in %s, or a .zip holding one. This is neither.", libraryExt())
 	}
 	s, err := st.begin(r, name)
 	if err != nil {
@@ -204,7 +204,7 @@ func (st *CustomStore) begin(r io.Reader, name string) (*Staged, error) {
 }
 
 func tooLarge(max int64) error {
-	return fmt.Errorf("this file is larger than the %d MB a core may be", max>>20)
+	return fmt.Errorf("This file is larger than the %d MB a core may be.", max>>20)
 }
 
 // identify sorts out a stage's incoming file: unpacks it if it's a zip, then reads
@@ -490,22 +490,22 @@ func checkEntryName(name string) error {
 func CheckFetchURL(raw string) (*url.URL, error) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Host == "" {
-		return nil, errors.New("that isn't a web address")
+		return nil, errors.New("That isn't a web address.")
 	}
 	if u.Scheme != "https" {
-		return nil, errors.New("only https addresses can be used, so the file can't be changed on its way here")
+		return nil, errors.New("Only https addresses can be used, so the file can't be changed on its way here.")
 	}
 	if u.User != nil {
-		return nil, errors.New("a web address with a password in it can't be used")
+		return nil, errors.New("A web address with a password in it can't be used.")
 	}
 	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
 	if host == "" || host == "localhost" || !strings.Contains(host, ".") && !strings.Contains(host, ":") ||
 		strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") ||
 		strings.HasSuffix(host, ".lan") || strings.HasSuffix(host, ".home") || strings.HasSuffix(host, ".arpa") {
-		return nil, errors.New("only addresses on the public internet can be used, not this server or your local network")
+		return nil, errors.New("Only addresses on the public internet can be used, not this server or your local network.")
 	}
 	if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified()) {
-		return nil, errors.New("only addresses on the public internet can be used, not this server or your local network")
+		return nil, errors.New("Only addresses on the public internet can be used, not this server or your local network.")
 	}
 	return u, nil
 }
@@ -527,10 +527,10 @@ func (st *CustomStore) StageURL(ctx context.Context, raw string) (*Staged, error
 	client := *st.Client
 	client.CheckRedirect = func(r *http.Request, via []*http.Request) error {
 		if len(via) >= 5 {
-			return errors.New("the address redirected too many times")
+			return errors.New("The address redirected too many times.")
 		}
 		if _, err := CheckFetchURL(r.URL.String()); err != nil {
-			return fmt.Errorf("the address redirected somewhere that isn't allowed: %w", err)
+			return fmt.Errorf("The address redirected somewhere that isn't allowed. %w", err)
 		}
 		return nil
 	}
@@ -546,7 +546,7 @@ func (st *CustomStore) StageURL(ctx context.Context, raw string) (*Staged, error
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("the server at that address answered %s", resp.Status)
+		return nil, fmt.Errorf("The server at that address answered %s.", resp.Status)
 	}
 	if max := st.limits().Package; resp.ContentLength > max {
 		return nil, tooLarge(max)
@@ -558,7 +558,7 @@ func (st *CustomStore) StageURL(ctx context.Context, raw string) (*Staged, error
 	s, err := st.begin(&idleReader{r: resp.Body, timer: idle}, name)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, errors.New("the download stopped arriving")
+			return nil, errors.New("The download stopped arriving.")
 		}
 		return nil, err
 	}
@@ -581,14 +581,14 @@ func friendlyFetchError(err error) error {
 	msg := err.Error()
 	switch {
 	case strings.Contains(msg, "not on the internet"):
-		return errors.New("only addresses on the public internet can be used, not this server or your local network")
+		return errors.New("Only addresses on the public internet can be used, not this server or your local network.")
 	case strings.Contains(msg, "redirected"):
 		var ue *url.Error
 		if errors.As(err, &ue) {
 			return ue.Err
 		}
 	}
-	return errors.New("that address couldn't be reached: " + msg)
+	return errors.New("That address couldn't be reached: " + msg)
 }
 
 // fetchedName is only ever a label and a hint at what the file is.
@@ -661,7 +661,7 @@ func (st *CustomStore) StagePlaced(key string) (*Staged, error) {
 		}
 	}
 	if found == nil {
-		return nil, errors.New("that file isn't in the cores folder")
+		return nil, errors.New("That file isn't in the cores folder.")
 	}
 	if found.Refuse != "" {
 		return nil, errors.New(found.Refuse)
@@ -672,7 +672,7 @@ func (st *CustomStore) StagePlaced(key string) (*Staged, error) {
 		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, errors.New("it's a link or a folder. Put the file itself here")
+		return nil, errors.New("It's a link or a folder. Put the file itself here.")
 	}
 	f, err := os.Open(src)
 	if err != nil {
@@ -803,18 +803,33 @@ func (st *CustomStore) Commit(s *Staged, id string) (added, kept []string, err e
 		return nil, nil, err
 	}
 	version := filepath.Dir(s.Library)
-	if err := os.Rename(s.Library, filepath.Join(version, fileName(id))); err != nil {
-		return nil, nil, err
-	}
 	if added, kept, err = st.moveSystem(filepath.Join(version, "system")); err != nil {
 		return nil, nil, err
 	}
 	dest := st.VersionFolder(id, sum)
-	if err := os.RemoveAll(dest); err != nil {
-		return nil, nil, fmt.Errorf("the same version is already here and in use: %w", err)
-	}
-	if err := os.Rename(version, dest); err != nil {
-		return nil, nil, err
+	if st.Verify(id, sum).State == "ok" {
+		// The same file again, perhaps with a game running on it. Whatever came with
+		// this copy joins what's already there, and the file itself stays put.
+		if from := filepath.Join(version, "assets"); pathExists(from) {
+			if err := mergeInto(from, filepath.Join(dest, "assets")); err != nil {
+				return nil, nil, err
+			}
+		}
+		if from := filepath.Join(version, infoFile); pathExists(from) {
+			if err := os.Rename(from, filepath.Join(dest, infoFile)); err != nil {
+				return nil, nil, err
+			}
+		}
+	} else {
+		if err := os.Rename(s.Library, filepath.Join(version, fileName(id))); err != nil {
+			return nil, nil, err
+		}
+		if err := os.RemoveAll(dest); err != nil {
+			return nil, nil, fmt.Errorf("an old copy of this version can't be replaced: %w", err)
+		}
+		if err := os.Rename(version, dest); err != nil {
+			return nil, nil, err
+		}
 	}
 	_ = os.RemoveAll(s.Dir)
 	if err := os.Chmod(st.CorePath(id, sum), 0o755); err != nil {

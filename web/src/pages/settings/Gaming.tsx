@@ -59,7 +59,7 @@ export default function GamingSettings() {
           <dt>BIOS folder</dt><dd><code>{st.systemDir}</code></dd>
         </dl>
       </Section>
-      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own.">
+      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own." actions={<a className="btn sm ghost" href="#custom-cores">Add your own</a>}>
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
         <div className="gaming-consoles">
           {st.consoles.map((c) => (

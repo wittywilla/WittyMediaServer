@@ -37,7 +37,11 @@ export type CustomStatus = {
 type Staged = { token: string; report: Report; replaces?: string }
 
 const fmtSize = (n: number) => (n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
-const fmtHours = (sec: number) => (sec >= 3600 ? `${(sec / 3600).toFixed(1)} hours` : `${Math.round(sec / 60)} minutes`)
+const fmtHours = (sec: number) => {
+  if (sec >= 3600) return `${(sec / 3600).toFixed(1)} hours`
+  const m = Math.round(sec / 60)
+  return m === 1 ? '1 minute' : `${m} minutes`
+}
 
 // What to say about a licence. It's only ever a claim, so it says whose.
 export function licenseText(c: { license?: string; licenseSource?: string; nonCommercial?: boolean }): string {
@@ -300,7 +304,7 @@ function AddCoreDialog({ status, replaces, onClose, onDone, onReload }: { status
             <Spinner />
             <p>{progress !== null ? `Uploading: ${Math.round(progress * 100)}%` : source === 'url' ? 'Downloading it, then testing it in the sandbox…' : 'Testing it in the sandbox…'}</p>
             {progress !== null && <progress value={progress} max={1} aria-label="Upload progress" />}
-            <p className="muted">A core gets up to a minute to load. If it crashes or hangs, only the test stops.</p>
+            <p className="muted">A core gets up to two minutes to load, and a virus scanner may want a look first. If it crashes or hangs, only the test stops.</p>
           </div>
         ) : (
           <>
@@ -668,7 +672,7 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
   }
   return (
     <>
-      <Section title="Custom cores" desc="Your own libretro cores, for consoles or versions this server doesn’t offer. They’re third-party software, and this project hasn’t checked them.">
+      <Section id="custom-cores" title="Custom cores" desc="Your own libretro cores, for consoles or versions this server doesn’t offer. They’re third-party software, and this project hasn’t checked them.">
         <Row label="Allow custom cores" desc={<>Off by default on every server. {st.locked ? 'Whoever runs this machine has kept this off, and it can’t be changed from here.' : !st.canEnable ? `This system can’t box a core in properly (${st.sandbox}), so they can’t be used here.` : `A core runs as a program on this server, boxed in by ${st.sandbox}. Off stops them from running; nothing is deleted.`}</>}>
           <Switch checked={st.enabled} disabled={!st.canEnable && !st.enabled} label="Allow custom cores" onChange={(v) => { if (v) setEnabling(true); else turnOff() }} />
         </Row>

@@ -36,3 +36,6 @@ func SandboxStrength() (string, bool) {
 	}
 	return "a sandbox-exec profile: no network, no new programs, and writing only to its save folder", true
 }
+
+// probePriority does nothing here: the host's own priority is only a little lowered.
+func probePriority(cmd *exec.Cmd) {}

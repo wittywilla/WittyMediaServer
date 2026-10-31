@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittyplay/cores"
@@ -254,6 +255,34 @@ func TestCustomCoreRoutesAreForAdminsOnly(t *testing.T) {
 	}
 	if w := g.do("GET", "/api/gaming/custom", "", nil); w.Code != 401 {
 		t.Errorf("signed out: %d", w.Code)
+	}
+}
+
+func TestKidsProfilesCantReachAnyOfIt(t *testing.T) {
+	buildCustomRunner(t)
+	g := newGameServer(t)
+	g.enableCustom(t)
+	ctx := context.Background()
+	if _, err := g.s.Auth.CreateProfile(ctx, "Kid", "1234", auth.KindKids, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	tok, _, err := g.s.Auth.Login(ctx, "Kid", "1234", "test", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := g.do("GET", "/api/gaming/custom", tok, nil); w.Code != 403 {
+		t.Errorf("reading: %d", w.Code)
+	}
+	if w := g.upload(t, "/api/gaming/custom/staged/upload", tok, "1234", coreName("a"), []byte("x"), nil); w.Code != 403 {
+		t.Errorf("uploading: %d", w.Code)
+	}
+	if w := g.do("PUT", "/api/gaming/custom/enabled", tok, map[string]any{"enabled": false}); w.Code != 403 {
+		t.Errorf("turning it off: %d", w.Code)
+	}
+	for _, v := range decode[[]consoleView](t, g.do("GET", "/api/games/consoles", tok, nil)) {
+		if len(v.Custom) != 0 || v.DefaultCore != "" {
+			t.Errorf("a kid can see %+v", v)
+		}
 	}
 }
 

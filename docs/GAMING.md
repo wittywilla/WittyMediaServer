@@ -227,8 +227,8 @@ Choose **Add a core**, then one of three ways:
 
 If the place you got it from publishes a SHA-256, paste it in, and the file is refused if it doesn't match.
 
-Enter your password and choose **Test this core**. The server test-loads it in the sandbox. It takes a few seconds, or up to a
-minute if a virus scanner wants a look first.
+Enter your password and choose **Test this core**. The server test-loads it in the sandbox. It takes a few seconds, or longer if
+a virus scanner wants a look first. A core gets two minutes before it counts as hung.
 
 If it fails, it says why, in plain words, and nothing is kept:
 
@@ -331,7 +331,7 @@ kernel, and the report says if one wasn't available. It reads files like any pro
 can read, and it can't send anything anywhere because it has no network. The SHA-256 check notices a changed file. It doesn't stop someone who can already write to your
 data folder, and it says nothing about whether the file you approved was good to begin with.
 
-**Copy protection stays in force.** A custom core changes nothing about what the server will open. Encrypted media is still refused, and nothing here decrypts anything.
+**Copy protection stays in force.** Nothing here decrypts or gets around anything. The server's own refusals, such as password-protected archives and encrypted discs, are unchanged, and a core is handed the game file it was asked to open and no keys. What a third-party core does with a file is down to its authors, and to you for choosing it.
 
 ## Clients other than a browser
 

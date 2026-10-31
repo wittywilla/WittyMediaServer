@@ -734,7 +734,20 @@ func (s *Server) stageError(w http.ResponseWriter, r *http.Request, err error, n
 		return
 	}
 	s.auditCore(r.Context(), userFrom(r), "add-refused", name, err.Error())
-	writeErr(w, 422, err.Error())
+	writeErr(w, 422, sentence(err.Error()))
+}
+
+// sentence makes a message from the file checks read as one: they're written to be
+// joined onto others, and this one stands alone on the page.
+func sentence(s string) string {
+	if s == "" {
+		return s
+	}
+	s = strings.ToUpper(s[:1]) + s[1:]
+	if !strings.ContainsAny(s[len(s)-1:], ".!?") {
+		s += "."
+	}
+	return s
 }
 
 // finishStage is what every route ends with: test-load the file, build the report, and

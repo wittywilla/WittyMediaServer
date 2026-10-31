@@ -400,6 +400,32 @@ func TestVersionsAndTampering(t *testing.T) {
 	}
 }
 
+func TestTheSameFileAgainKeepsWhatCameWithIt(t *testing.T) {
+	good := goodCoreBytes(t)
+	st := testStore(t)
+	lib := "abc_libretro" + libraryExt()
+	first, err := st.StageReader(bytes.NewReader(makeZip(t, zipEntry{name: lib, body: good}, zipEntry{name: "assets/one.txt", body: []byte("1")})), "p.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := st.Commit(first, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	again, err := st.StageReader(bytes.NewReader(good), lib)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := st.Commit(again, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(st.AssetsPath("abc", first.SHA256), "one.txt")); err != nil {
+		t.Errorf("the assets went: %v", err)
+	}
+	if st.Verify("abc", first.SHA256).State != "ok" {
+		t.Error("the file itself should still be right")
+	}
+}
+
 func TestPlacedFiles(t *testing.T) {
 	good := goodCoreBytes(t)
 	st := testStore(t)

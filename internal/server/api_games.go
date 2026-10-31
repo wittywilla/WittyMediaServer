@@ -467,13 +467,15 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := userFrom(r).ID
 	var coreAssets string
-	if playing != nil {
-		coreAssets = playing.Assets
+	var loadLimit time.Duration
+	if playing != nil && playing.Source == cores.SourceCustom {
+		// A virus scanner may look again at a file that has only just moved here.
+		coreAssets, loadLimit = playing.Assets, stream.ProbeTimeout
 	}
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
-		CoreAssets: coreAssets,
-		SaveDir:    g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
+		CoreAssets: coreAssets, LoadLimit: loadLimit,
+		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
 	})
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {

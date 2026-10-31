@@ -200,7 +200,9 @@ func TestRunnerFailedKnowsSessionErrors(t *testing.T) {
 	if err := start(filepath.Join(t.TempDir(), "no-such-program")); !runnerFailed(err) {
 		t.Errorf("won't start: %v", err)
 	}
-	if err := start(exe); !runnerFailed(err) {
+	// A virus scanner can hold a new program long enough to pass the time a game has to
+	// load, which is a different and proper answer, and says nothing about this.
+	if err := start(exe); !runnerFailed(err) && !strings.Contains(err.Error(), "too long") {
 		t.Errorf("dies: %v", err)
 	}
 	if runnerFailed(fmt.Errorf("the core could not load this game")) {

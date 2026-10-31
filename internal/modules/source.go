@@ -75,6 +75,24 @@ func Fingerprint(key ed25519.PublicKey) string {
 	return strings.Join(parts, " ")
 }
 
+// checkSavedSource refuses a fork in the state file that couldn't have been chosen, so
+// editing that file can't reach what the API refuses. It can't do more than that: someone
+// who can write to the data folder can also change the accounts in the database, so that
+// folder has to be protected whatever is done here.
+func (m *Manager) checkSavedSource(id string, e *entry) {
+	s := e.state.Source
+	if s == nil {
+		return
+	}
+	_, keyErr := parseSourceKey(s.Key)
+	if noFork[id] == "" && updatable(e.builtin) && sourceRepoRe.MatchString(s.Repo) && keyErr == nil {
+		return
+	}
+	m.log.Error("modules: ignoring a source in the saved state that can't be chosen", "module", id, "repo", s.Repo)
+	e.state.Source, e.state.Active, e.state.Previous, e.state.Pin, e.state.Chosen = nil, "", "", "", false
+	e.note("source-changed", "", "a fork in the saved state was ignored, because it can't be chosen")
+}
+
 // repo is where this module's releases come from now.
 func (e *entry) repo() string {
 	if e.state.Source != nil {
@@ -159,12 +177,22 @@ func (m *Manager) ClearSource(id string) error {
 	return m.changeSource(id, e, nil, "back to "+e.builtin.Repo)
 }
 
-// changeSource forgets everything that came from the old source. Call with m.mu held.
+// changeSource forgets everything that came from the old source, including what a fork
+// said about data formats, which could otherwise refuse every later stock release. The
+// module's own list of withdrawn versions waits while a fork is in use. Call with m.mu held.
 func (m *Manager) changeSource(id string, e *entry, s *Source, detail string) error {
 	m.loadFeed(id, e)
 	old := e.state
 	e.state.Source = s
-	e.state.Active, e.state.Previous, e.state.Pin, e.state.Chosen, e.state.Blocked, e.state.Withdrawn = "", "", "", false, nil, nil
+	e.state.Active, e.state.Previous, e.state.Pin, e.state.Chosen, e.state.Blocked, e.state.DataHigh = "", "", "", false, nil, 0
+	switch {
+	case old.Source == nil && s != nil:
+		e.state.StockWithdrawn, e.state.Withdrawn = old.Withdrawn, nil
+	case old.Source != nil && s == nil:
+		e.state.Withdrawn, e.state.StockWithdrawn = old.StockWithdrawn, nil
+	default:
+		e.state.Withdrawn = nil
+	}
 	e.note("source-changed", "", detail)
 	if err := m.saveState(); err != nil {
 		e.state = old

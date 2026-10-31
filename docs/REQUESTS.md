@@ -49,8 +49,9 @@ Built for the web app and WittyMediaPlayer. Still open:
   images for a server's library, the VLC libraries as an option in Settings, and WittyDVD and WittyBluray updating on their own. Playing in a real window, sound, disc menus by eye and anything with a physical
   drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
   It has no published repository yet, which is the owner's step.
-- **A real plugin system:** the modules are separate code, but they're still compiled into the server.
-- **Updating modules on their own**, each with a minimum and maximum server version: in progress.
+- **Updating modules on their own:** built and tested, and waiting for [the cutover](MODULES-CUTOVER.md), which needs your go-ahead, your signing key in each repository, and any missing repositories made. [MODULES.md](MODULES.md) says plainly what each module can and can't do. Still with the server: library scanning of discs, Blu-ray Java menus, some tuner kinds, and game streaming.
+- **Wholly new kinds of module:** an "in development" section on the Modules page. Forks of existing modules work; see [MODULES.md](MODULES.md), "Using someone's fork".
+- **Not tried yet:** real tuners through a helper, retail games on a downloaded runner, the module page on a real TV, and a real release from GitHub, since none exists until the cutover.
 - **WittyMediaRemoteMedia:** the basics of connecting NAS libraries through a native or Docker app, in
   their own repository. Not started.
 - **WittyReader desktop builds.**

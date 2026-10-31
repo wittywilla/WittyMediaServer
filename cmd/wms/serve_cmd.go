@@ -27,8 +27,11 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
+	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -168,6 +171,9 @@ func cmdServe(args []string) int {
 	})
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
+	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
+	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
+	bdremote.Use(modMgr)
 
 	webFS := web.Dist()
 	if cfg.Dev {

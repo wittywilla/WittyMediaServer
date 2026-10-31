@@ -120,6 +120,9 @@ type Status struct {
 	StockRepo string      `json:"stockRepo"`
 	Source    *SourceInfo `json:"source,omitempty"`
 	NoFork    string      `json:"noFork,omitempty"` // why a fork can't replace it
+
+	// AutoUpdate says this module may update by itself when the server's setting is on.
+	AutoUpdate bool `json:"autoUpdate"`
 }
 
 // Event is one thing that happened to a module, newest kept, for the page's log.
@@ -150,14 +153,20 @@ type moduleState struct {
 	Previous string            `json:"previous,omitempty"` // the one before it
 	Blocked  map[string]string `json:"blocked,omitempty"`  // versions taken out of use, and why
 	Pin      string            `json:"pin,omitempty"`      // automatic updates leave this alone
+	// NoAuto: someone wants to choose this module's updates by hand. It keeps offering
+	// them, and unlike a pin it says nothing about which version stays.
+	NoAuto bool `json:"noAuto,omitempty"`
 	// Chosen: the active version was picked by hand, so it is used even when the
 	// built-in copy is newer.
-	Chosen    bool                     `json:"chosen,omitempty"`
-	Removed   bool                     `json:"removed,omitempty"`   // someone took it off this server
-	Source    *Source                  `json:"source,omitempty"`    // a fork in place of its own repository
-	DataHigh  int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
-	Withdrawn *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
-	Events    []Event                  `json:"events,omitempty"`
+	Chosen  bool    `json:"chosen,omitempty"`
+	Removed bool    `json:"removed,omitempty"` // someone took it off this server
+	Source  *Source `json:"source,omitempty"`  // a fork in place of its own repository
+	// StockWithdrawn keeps the module's own list while a fork is in use, so going back
+	// can't bring an older list in.
+	StockWithdrawn *wittymodule.Withdrawals `json:"stockWithdrawn,omitempty"`
+	DataHigh       int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
+	Withdrawn      *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
+	Events         []Event                  `json:"events,omitempty"`
 }
 
 type entry struct {
@@ -173,6 +182,7 @@ type entry struct {
 	failedAt time.Time
 
 	known      map[string]*knownRelease // verified, by version
+	badFiles   map[string]bool          // signed lists that failed, so they aren't fetched each check
 	feedLoaded bool
 	etag       string
 	rel        *release // the newest compatible release
@@ -221,6 +231,8 @@ type Manager struct {
 	checking  chan struct{}
 	closed    bool
 	attached  map[*Attached]bool
+	labels    map[string]string // kinds of library someone gave a name of their own
+	retiring  sync.WaitGroup    // helpers of versions no longer in use, on their way out
 }
 
 // New reads what is installed and picks the version of each module to use. A
@@ -238,6 +250,7 @@ func New(cfg Config) *Manager {
 		m.fetch = &update.Fetcher{UserAgent: "WittyMediaServer/" + cfg.Server, Transport: cfg.Transport}
 	}
 	saved := m.loadState()
+	m.loadLabels()
 	for _, raw := range cfg.Builtins {
 		man, err := wittymodule.ParseManifest(raw)
 		if err != nil {
@@ -250,6 +263,7 @@ func New(cfg Config) *Manager {
 	}
 	sort.Strings(m.order)
 	for _, id := range m.order {
+		m.checkSavedSource(id, m.mods[id])
 		m.resolve(id, m.mods[id])
 		m.prune(id, m.mods[id])
 	}
@@ -288,7 +302,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.Removed || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
 			saved[id] = s
 		}
 	}
@@ -433,7 +447,9 @@ func (m *Manager) resolve(id string, e *entry) {
 		break
 	}
 	if e.proc != nil {
-		go e.proc.Close()
+		p := e.proc
+		m.retiring.Add(1) // a call in progress can hold it up, so it isn't waited for here
+		go func() { defer m.retiring.Done(); p.Close() }()
 		e.proc = nil
 	}
 	e.fails, e.web, e.dir = 0, nil, ""
@@ -505,9 +521,24 @@ func (e *entry) status(id string) Status {
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
 		Installed: !e.state.Removed, Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
 		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: noFork[id]}
+	// A release from before a description was written, or a fork's that has none, still
+	// gets one: it is the same module.
 	if st.Group == "" {
 		st.Group = e.builtin.Group
 	}
+	if st.Summary == "" {
+		st.Summary = e.builtin.Summary
+	}
+	if len(st.Needs) == 0 {
+		st.Needs = e.builtin.Needs
+	}
+	if st.Updates == "" {
+		st.Updates = e.builtin.Updates
+	}
+	if st.Stays == "" {
+		st.Stays = e.builtin.Stays
+	}
+	st.AutoUpdate = updatable(e.builtin) && !e.state.NoAuto && e.state.Source == nil
 	inUse := e.dir != ""
 	switch {
 	case inUse && e.notice == "":
@@ -640,20 +671,34 @@ func firstLine(s string) string {
 	return s
 }
 
-// browserReportEvery is how often a browser's report can count. Anyone signed in can
-// send one, so this keeps a profile from taking a version out of use in one go.
+// browserReportEvery is how often a browser's report can count.
 var browserReportEvery = time.Minute
 
 // ReportBrowserFailure records a browser saying a bundle failed. It only applies to
-// bundles: nothing a browser says counts against a helper or a program.
-func (m *Manager) ReportBrowserFailure(id, ver, reason string) error {
+// bundles: nothing a browser says counts against a helper or a program. Only an admin's
+// report can take a version out of use. Anyone else's goes in the module's log for an
+// admin to see: their own page has already fallen back, and a profile shouldn't be able to
+// take a version, perhaps one with a security fix, away from everyone.
+func (m *Manager) ReportBrowserFailure(id, ver, reason string, admin bool) error {
 	m.mu.Lock()
 	e := m.mods[id]
 	if e == nil {
 		m.mu.Unlock()
 		return ErrUnknown
 	}
-	if e.builtin.Delivery != wittymodule.DeliveryWeb || (!e.failedAt.IsZero() && time.Since(e.failedAt) < browserReportEvery) {
+	if e.builtin.Delivery != wittymodule.DeliveryWeb || e.man.Version != ver || e.dir == "" {
+		m.mu.Unlock()
+		return nil
+	}
+	if !admin {
+		e.note("reported", ver, reason)
+		if err := m.saveState(); err != nil {
+			m.log.Warn("modules: saving the state", "err", err)
+		}
+		m.mu.Unlock()
+		return nil
+	}
+	if !e.failedAt.IsZero() && time.Since(e.failedAt) < browserReportEvery {
 		m.mu.Unlock()
 		return nil
 	}
@@ -773,6 +818,31 @@ func (m *Manager) Unpin(id string) error {
 	return nil
 }
 
+// SetAutoUpdate says whether this module may update by itself while the server's setting
+// is on. Off, it still looks for updates and offers them, and an admin installs them by
+// hand. A built-in part of the server has no updates of its own to turn off.
+func (m *Manager) SetAutoUpdate(id string, on bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil {
+		return ErrUnknown
+	}
+	if !updatable(e.builtin) {
+		return errors.New(e.builtin.Name + " is built into the server and updates with it")
+	}
+	if on && e.state.Source != nil {
+		return errors.New("a module from another publisher never updates by itself")
+	}
+	old := e.state
+	e.state.NoAuto = !on
+	if err := m.saveState(); err != nil {
+		e.state = old
+		return err
+	}
+	return nil
+}
+
 // UseBuiltin goes back to the built-in copy without blaming the version in use: it
 // stays available to choose again.
 func (m *Manager) UseBuiltin(id string) error {
@@ -851,18 +921,31 @@ func (m *Manager) prune(id string, e *entry) {
 	}
 }
 
-// Close stops every helper.
+// Close stops every helper. A helper in the middle of a call may keep it waiting until
+// its time limit, so nothing waits for long, and none of them outlives the server anyway.
 func (m *Manager) Close() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	m.closed = true
+	var procs []*proc
 	for _, e := range m.mods {
 		if e.proc != nil {
-			e.proc.Close()
+			procs = append(procs, e.proc)
 		}
 	}
 	for a := range m.attached {
-		a.p.Close()
+		procs = append(procs, a.p)
+	}
+	m.mu.Unlock()
+	var wg sync.WaitGroup
+	for _, p := range procs {
+		wg.Add(1)
+		go func() { defer wg.Done(); p.Close() }()
+	}
+	done := make(chan struct{})
+	go func() { wg.Wait(); m.retiring.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
 	}
 }
 
@@ -892,7 +975,7 @@ func (m *Manager) autoInstall() {
 	var ids []string
 	for _, id := range m.order {
 		e := m.mods[id]
-		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.Removed && e.state.Source == nil {
+		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.NoAuto && !e.state.Removed && e.state.Source == nil {
 			ids = append(ids, id)
 		}
 	}

@@ -94,6 +94,28 @@ func (s *Server) handleModuleUnpin(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module unpinned", 200, func(id string) error { return s.Modules.Unpin(id) })
 }
 
+// PUT /api/modules/{id}/autoupdate: whether this module may update by itself while the
+// server's setting is on. {"on": false} leaves it to be updated by hand.
+func (s *Server) handleModuleAutoUpdate(w http.ResponseWriter, r *http.Request) {
+	if s.Modules == nil {
+		writeErr(w, 404, "modules can't be updated in this build")
+		return
+	}
+	var b struct {
+		On *bool `json:"on"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256)).Decode(&b); err != nil || b.On == nil {
+		writeErr(w, 400, "say whether it may update by itself: {\"on\": true}")
+		return
+	}
+	if err := s.Modules.SetAutoUpdate(r.PathValue("id"), *b.On); err != nil {
+		writeModuleErr(w, err)
+		return
+	}
+	s.Log.Info("module automatic updates changed", "module", r.PathValue("id"), "on", *b.On, "by", userFrom(r).Name)
+	writeJSON(w, 200, s.Modules.Report())
+}
+
 // POST /api/modules/{id}/latest: end a pin and move to the newest version that fits.
 func (s *Server) handleModuleLatest(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module returning to the latest", 202, func(id string) error { return s.Modules.ToLatest(id) })
@@ -201,6 +223,30 @@ func (s *Server) handleModulesLibraries(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, 200, map[string]any{"libraries": s.Modules.LibraryTypes()})
 }
 
+// PUT /api/modules/libraries/{type}/label: what this server calls a kind of library.
+// {"label": "Blu-rays and DVDs", "taken": {"movies": "Movies"}} gives it a name; an empty
+// label goes back to the usual one. taken is the names the app shows for the other kinds.
+func (s *Server) handleModuleLibraryLabel(w http.ResponseWriter, r *http.Request) {
+	if s.Modules == nil {
+		writeErr(w, 404, "modules can't be updated in this build")
+		return
+	}
+	var b struct {
+		Label string            `json:"label"`
+		Taken map[string]string `json:"taken"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&b); err != nil {
+		writeErr(w, 400, "unreadable request")
+		return
+	}
+	if err := s.Modules.SetLibraryLabel(r.PathValue("type"), b.Label, b.Taken); err != nil {
+		writeModuleErr(w, err)
+		return
+	}
+	s.Log.Info("a kind of library was named", "type", r.PathValue("type"), "label", b.Label, "by", userFrom(r).Name)
+	writeJSON(w, 200, s.Modules.Report())
+}
+
 // librariesByType names the libraries there are, by type.
 func (s *Server) librariesByType(ctx context.Context) (map[string][]string, error) {
 	ls, err := s.Store.Libraries(ctx)
@@ -282,10 +328,9 @@ func (s *Server) handleModuleWebFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/modules/{id}/failed: a browser saying a bundle wouldn't load or crashed.
-// Three reports within a day, at most one a minute, take that version out of use for
-// the built-in copy. Anyone signed in can send them, and the worst that can cost is the
-// newer version of a reader until an admin chooses it again, so each is logged with who
-// said so.
+// Three reports from an admin within a day, at most one a minute, take that version out
+// of use for the built-in copy. Anyone else's report goes in the module's log for an admin
+// to see, and each is logged with who said so.
 func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
@@ -300,7 +345,7 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.Warn("a browser reported a module failing", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
-	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason); err != nil {
+	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason, userFrom(r).IsAdmin); err != nil {
 		writeModuleErr(w, err)
 		return
 	}

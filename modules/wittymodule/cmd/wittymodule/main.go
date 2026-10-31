@@ -55,6 +55,8 @@ func main() {
 	module := fs.String("module", "", "the plugin the list is for, when starting a new list")
 	severity := fs.String("severity", wittymodule.SeverityBroken, "broken warns; security refuses it, and stops it where it is in use")
 	reason := fs.String("reason", "", "why, in words people will read")
+	expect := fs.String("expect", "", "for sign: refuse a checksum list naming anything that doesn't start with this, such as wittydvd-0.2.1")
+	listKey := fs.String("list-key", "", "for withdraw: the signing key; the list already there must carry its signature, or nothing is signed on top of it")
 	part := fs.String("part", "patch", "for bump: patch, minor or major")
 	to := fs.String("to", "", "for bump: this version exactly")
 	note := fs.String("note", "", "for bump: what changed, for the changelog")
@@ -72,7 +74,7 @@ func main() {
 			err = pack(fs.Args(), *out, *targets, *gcflagsFreeBSD)
 		}
 	case "sign":
-		err = sign(*key, fs.Args())
+		err = sign(*key, *expect, fs.Args())
 	case "keygen":
 		err = keygen(*key)
 	case "bump":
@@ -80,7 +82,7 @@ func main() {
 	case "needs-bump":
 		err = needsBump(fs.Args())
 	case "withdraw":
-		err = withdraw(*list, *module, *severity, *reason, fs.Args())
+		err = withdraw(*list, *module, *severity, *reason, *listKey, fs.Args())
 	case "restore":
 		err = restore(*list, fs.Args())
 	default:
@@ -378,12 +380,19 @@ func packWeb(dirs []string, out, built string) error {
 
 // withdraw adds a version to a plugin's list of withdrawn versions. Sign the list
 // next, and attach both files to the release tagged "withdrawals".
-func withdraw(list, module, severity, reason string, args []string) error {
+func withdraw(list, module, severity, reason, listKey string, args []string) error {
 	if list == "" || len(args) != 1 {
 		return errors.New("wittymodule withdraw -list file [-module id] [-severity broken|security] -reason text <version>")
 	}
 	w := wittymodule.Withdrawals{Module: module}
 	if b, err := os.ReadFile(list); err == nil {
+		// Whoever can write to a release's files could have left a list here, and the next
+		// signature would vouch for it.
+		if listKey != "" {
+			if err := checkListSignature(listKey, list, b); err != nil {
+				return err
+			}
+		}
 		parsed, err := wittymodule.ParseWithdrawals(b)
 		if err != nil {
 			return err
@@ -419,6 +428,23 @@ func restore(list string, args []string) error {
 		return err
 	}
 	return writeWithdrawals(list, w)
+}
+
+// checkListSignature checks a list against the public half of the key about to sign over it.
+func checkListSignature(keyPath, list string, b []byte) error {
+	key, err := readKey(keyPath)
+	if err != nil {
+		return err
+	}
+	sig, err := os.ReadFile(list + ".sig")
+	if err != nil {
+		return fmt.Errorf("%s has no signature beside it, so it can't be trusted: %w", list, err)
+	}
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(sig)))
+	if err != nil || len(raw) != ed25519.SignatureSize || !ed25519.Verify(key.Public().(ed25519.PublicKey), b, raw) {
+		return fmt.Errorf("%s isn't signed with this key, so it can't be trusted", list)
+	}
+	return nil
 }
 
 func writeWithdrawals(list string, w *wittymodule.Withdrawals) error {
@@ -506,6 +532,23 @@ func archiveBytes(goos, top, entry string, files map[string][]byte) ([]byte, err
 	return buf.Bytes(), nil
 }
 
+// readKey reads a key file in wms-sign's format.
+func readKey(keyPath string) (ed25519.PrivateKey, error) {
+	b, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("no signing key: %w", err)
+	}
+	lines := strings.Fields(string(b))
+	if len(lines) == 0 {
+		return nil, fmt.Errorf("%s: empty key file", keyPath)
+	}
+	seed, err := base64.StdEncoding.DecodeString(lines[len(lines)-1])
+	if err != nil || len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf("%s: not a signing key", keyPath)
+	}
+	return ed25519.NewKeyFromSeed(seed), nil
+}
+
 // keygen makes a signing key for someone publishing their own fork. This project's own
 // key is never made here. It refuses to replace a key, since nothing signed with the old
 // one could be trusted again.
@@ -531,27 +574,34 @@ func keygen(path string) error {
 
 // sign writes the signature the server checks: base64 of Ed25519 over the file's
 // exact bytes, from a key file in wms-sign's format.
-func sign(keyPath string, files []string) error {
+func sign(keyPath, expect string, files []string) error {
 	if len(files) != 1 {
 		return errors.New("which file? wittymodule sign <file>")
 	}
-	b, err := os.ReadFile(keyPath)
+	key, err := readKey(keyPath)
 	if err != nil {
-		return fmt.Errorf("no signing key: %w", err)
-	}
-	lines := strings.Fields(string(b))
-	if len(lines) == 0 {
-		return fmt.Errorf("%s: empty key file", keyPath)
-	}
-	seed, err := base64.StdEncoding.DecodeString(lines[len(lines)-1])
-	if err != nil || len(seed) != ed25519.SeedSize {
-		return fmt.Errorf("%s: not a signing key", keyPath)
+		return err
 	}
 	data, err := os.ReadFile(files[0])
 	if err != nil {
 		return err
 	}
-	sig := base64.StdEncoding.EncodeToString(ed25519.Sign(ed25519.NewKeyFromSeed(seed), data)) + "\n"
+	// A build gone wrong, or a compromised one, could offer anything here. A signature
+	// only ever covers files of this module and this version.
+	if expect != "" {
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			_, name, _ := strings.Cut(line, " ")
+			name = strings.TrimPrefix(strings.TrimSpace(name), "*")
+			if !strings.HasPrefix(name, expect) || strings.Contains(name, "..") || strings.ContainsAny(name, "\\:") {
+				return fmt.Errorf("%s names %q, which isn't a file of %s; nothing was signed", files[0], name, expect)
+			}
+		}
+	}
+	sig := base64.StdEncoding.EncodeToString(ed25519.Sign(key, data)) + "\n"
 	if err := os.WriteFile(files[0]+".sig", []byte(sig), 0o644); err != nil {
 		return err
 	}

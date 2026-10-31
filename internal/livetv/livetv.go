@@ -74,6 +74,19 @@ type Channel struct {
 	driver     string
 }
 
+// How a running source is made and tuners are looked for: by the built-in copy
+// unless SetEngine says otherwise. Settings are always checked by the built-in copy.
+var (
+	newSource      = wittytuner.New
+	discoverTuners = wittytuner.Discover
+)
+
+// SetEngine makes running sources through the WittyTuner version in use. It is set
+// once, before the server starts serving.
+func SetEngine(source func(string, wittytuner.Config, wittytuner.Env) (wittytuner.Source, error), discover func(context.Context, wittytuner.Env) []wittytuner.Found) {
+	newSource, discoverTuners = source, discover
+}
+
 // Manager owns the running sources.
 type Manager struct {
 	DB    *db.DB
@@ -336,7 +349,7 @@ func (m *Manager) source(ctx context.Context, id int64) (wittytuner.Source, *Tun
 	if s := m.sources[id]; s != nil {
 		return s, t, nil
 	}
-	s, err := wittytuner.New(t.Driver, wittytuner.Config{Name: t.Name, Options: t.Options}, m.Env())
+	s, err := newSource(t.Driver, wittytuner.Config{Name: t.Name, Options: t.Options}, m.Env())
 	if err != nil {
 		return nil, t, err
 	}
@@ -938,7 +951,7 @@ func (m *Manager) freeTuner(ctx context.Context, tunerID int64) bool {
 
 // Discover looks for tuners, and leaves out those already added.
 func (m *Manager) Discover(ctx context.Context) []wittytuner.Found {
-	found := wittytuner.Discover(ctx, m.Env())
+	found := discoverTuners(ctx, m.Env())
 	tuners, _ := m.Tuners(ctx)
 	out := []wittytuner.Found{}
 	for _, f := range found {

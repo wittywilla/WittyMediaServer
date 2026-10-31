@@ -1,9 +1,13 @@
 package modules
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // What someone can add to their server and take away again. Every module's code is
@@ -30,6 +34,10 @@ type LibraryType struct {
 	Type      string      `json:"type"`
 	Available bool        `json:"available"`
 	Modules   []ModuleRef `json:"modules"` // any one of these makes it possible
+	// Label is what this server calls it, when someone chose a name. Empty: the usual one.
+	Label string `json:"label,omitempty"`
+	// Shared: more than one module brings it. They share one kind of library.
+	Shared bool `json:"shared,omitempty"`
 }
 
 // ModuleRef names a module for the store's links.
@@ -78,7 +86,7 @@ func (m *Manager) libraryTypes() []LibraryType {
 		for _, t := range e.builtin.Libraries {
 			lt := byType[t]
 			if lt == nil {
-				lt = &LibraryType{Type: t, Modules: []ModuleRef{}}
+				lt = &LibraryType{Type: t, Modules: []ModuleRef{}, Label: m.labels[t]}
 				byType[t] = lt
 			}
 			on := !e.state.Removed
@@ -88,10 +96,79 @@ func (m *Manager) libraryTypes() []LibraryType {
 	}
 	out := make([]LibraryType, 0, len(byType))
 	for _, lt := range byType {
+		lt.Shared = len(lt.Modules) > 1
 		out = append(out, *lt)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Type < out[j].Type })
 	return out
+}
+
+// maxLabel is how long a name for a kind of library can be.
+const maxLabel = 40
+
+func (m *Manager) labelsPath() string { return filepath.Join(m.dir, "library-names.json") }
+
+func (m *Manager) loadLabels() {
+	m.labels = map[string]string{}
+	if b, err := os.ReadFile(m.labelsPath()); err == nil {
+		if err := json.Unmarshal(b, &m.labels); err != nil {
+			m.log.Warn("modules: the names of kinds of library are unreadable; using the usual ones", "err", err)
+			m.labels = map[string]string{}
+		}
+	}
+}
+
+// SetLibraryLabel gives a kind of library a name of this server's own, which is how two
+// modules bringing one kind, or two kinds that read alike, can be told apart. An empty name
+// goes back to the usual one. taken are the names the app already shows for other kinds,
+// since only it knows those: two kinds with one name are the thing this is here to prevent.
+func (m *Manager) SetLibraryLabel(libType, label string, taken map[string]string) error {
+	label = strings.TrimSpace(label)
+	if len(label) > maxLabel {
+		return fmt.Errorf("that name is too long: at most %d characters", maxLabel)
+	}
+	for _, r := range label {
+		if r < ' ' || r == 0x7f {
+			return errors.New("that name has characters that can't be shown")
+		}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	known := false
+	for _, lt := range m.libraryTypes() {
+		known = known || lt.Type == libType
+	}
+	if !known {
+		return fmt.Errorf("%w: no module brings %q", ErrUnknown, libType)
+	}
+	for t, name := range m.labels {
+		if t != libType && strings.EqualFold(name, label) && label != "" {
+			return fmt.Errorf("Another kind of library is already called %q.", label)
+		}
+	}
+	for t, name := range taken {
+		if t != libType && m.labels[t] == "" && strings.EqualFold(name, label) && label != "" {
+			return fmt.Errorf("Another kind of library is already called %q.", label)
+		}
+	}
+	next := map[string]string{}
+	for t, name := range m.labels {
+		if t != libType {
+			next[t] = name
+		}
+	}
+	if label != "" {
+		next[libType] = label
+	}
+	b, err := json.MarshalIndent(next, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := writeAtomic(m.labelsPath(), b); err != nil {
+		return err
+	}
+	m.labels = next
+	return nil
 }
 
 // ErrModuleMissing: a library of this type needs a module that isn't installed.

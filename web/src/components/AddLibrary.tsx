@@ -5,7 +5,7 @@ import { IconCheck, IconFolder, IconPlus, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
 import { ChooseFolderButton } from './FolderPicker'
 import { ConsolePicker } from '../pages/Games'
-import { libraryKinds, missingKind, orList, type LibraryKind, type ModuleRef } from '../moduleStore'
+import { libraryKinds, missingKind, orList, type LibraryKind, type ModuleRef, kindTitle } from '../moduleStore'
 import { Spinner } from './common'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
@@ -165,7 +165,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
               <div className={'oobe-types' + (compact ? ' compact' : '')}>
                 {usable.map((k) => LIB_TYPES.find((x) => x.type === k)!).map((x) => (
                   <button key={x.type} id={'libkind-' + x.type} type="button" className="oobe-type" onClick={() => choose(x.type)}>
-                    <span className="ic">{libIcon(x.type)}</span><b>{x.name}</b><span className="muted">{x.hint}</span>
+                    <span className="ic">{libIcon(x.type)}</span><b>{kindTitle(kinds, x.type, x.name)}</b><span className="muted">{x.hint}</span>
                   </button>
                 ))}
               </div>
@@ -183,7 +183,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
                 return (
                   <li key={x.type} className="oobe-locked-item">
                     <span className="ic">{libIcon(x.type)}</span>
-                    <span className="oobe-locked-text"><b>{x.name}</b><span className="muted">Needs {orList(mods.map((m) => m.name))}</span></span>
+                    <span className="oobe-locked-text"><b>{kindTitle(kinds, x.type, x.name)}</b><span className="muted">Needs {orList(mods.map((m) => m.name))}</span></span>
                     <span className="oobe-locked-acts">
                       {mods.map((m) => <button key={m.id} type="button" className="btn sm" aria-busy={adding === m.id} onClick={() => addModule(m, x.type)} aria-label={`Add ${m.name} for ${x.name}`}><IconPlus /> {adding === m.id ? 'Adding…' : `Add ${m.name}`}</button>)}
                       {!setup && mods[0] && <Link className="oobe-locked-link" to={`/settings/modules?add=${encodeURIComponent(mods[0].id)}`}>Open the module store</Link>}
@@ -199,7 +199,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   }
   return (
     <div className="oobe-lib">
-      <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{t.name}</b></div>
+      <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{kindTitle(kinds, t.type, t.name)}</b></div>
       {pods && <PodcastWays />}
       {type === 'games' && <ConsolePicker value={console_} onChange={(id, label) => {
         setConsole(id); setConsoleName(label); setName('')

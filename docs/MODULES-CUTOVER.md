@@ -93,6 +93,8 @@ scripts/set-module-secret.sh ~/.wms-signing/module.key
 scripts/set-module-secret.sh --check
 ```
 
+(Step 5 adds two options to the first of these, and running it again with them is fine.)
+
 It creates each repository's `release` environment and sets the secret inside it. The key's text is
 never printed: it goes from the file to the GitHub CLI, which encrypts it before sending. `--check`
 lists names only. The GitHub CLI can do every part of this, and it is signed in with what it needs,
@@ -108,18 +110,37 @@ WittyPhotos, WittyTuner, WittyPlay, WittyInk, WittyEbook, WittyPDF, WittyComics)
 5. *Name*: `WMS_SIGNING_KEY`. *Value*: open `module.key` in Notepad, copy **all** of it, both lines,
    and paste it. Click **Add secret**.
 
-### 5. Optional: approve each signature yourself
+### 5. Strongly recommended: approve each signature, and protect version tags
 
-With this on, a release stops before it is signed and waits for you to click **Approve** on its
-page in the *Actions* tab. What it gives you: someone who gets a tag pushed, by a stolen token
-or a mistake, still can't get a signed release without your own sign-in. What it costs: a click for
-each release and withdrawal. A cutover makes 10 of them, one at a time, and it sits and waits for
-each, so you may prefer to turn this on after the cutover.
+Do both. All modules share one key, so a compromised build in any one repository could otherwise
+get a release of another module signed, and every server would accept it. The signing step refuses
+a checksum list that names another module, but someone who can change a repository's workflow could
+remove that check. Your approval and the tag rule are what such a person can't get past without your
+sign-in.
 
-- **By the script:** add `--require-approval` to the command in step 4.
-- **By clicks:** in the same *Environments* page, click `release`, tick **Required reviewers**, add
-  yourself, and click **Save protection rules**. Leave *Prevent self-review* off, since you are the
-  one who tags.
+- **Approving signatures:** a release or withdrawal stops before it is signed, and waits for you to
+  click **Approve** on its page in the *Actions* tab. It costs a click for each one. A cutover makes
+  10 of them, one at a time, and sits and waits for each.
+- **Protecting version tags:** only you, as the repository's admin, can create, move or delete a tag
+  starting with `v`. A release starts from such a tag, so nothing else can start one.
+
+**By the script** (for all 10): add both options to the command in step 4.
+
+```bash
+scripts/set-module-secret.sh --require-approval --protect-tags ~/.wms-signing/module.key
+```
+
+**By clicks**, in each of the 10 repositories:
+
+1. *Settings* > *Environments* > `release`. Tick **Required reviewers**, add yourself, and click **Save
+   protection rules**. Leave *Prevent self-review* off, since you are the one who tags.
+2. *Settings* > *Rules* > *Rulesets* > **New ruleset** > **New tag ruleset**.
+3. *Ruleset name*: `Version tags`. *Enforcement status*: **Active**.
+4. Under *Bypass list*, click **Add bypass**, tick **Repository admin**, and click **Add selected**.
+5. Under *Target tags*, click **Add target** > **Include by pattern**, type `v*`, and click **Add
+   inclusion pattern**.
+6. Under *Rules*, tick **Restrict creations**, **Restrict updates** and **Restrict deletions**, and click
+   **Create**.
 
 ## The coordinating session's checklist
 
@@ -130,7 +151,8 @@ Before:
 - [ ] The dry run passes on the final branch, naming what had to be merged, so it refuses if one
       wasn't. It needs python3 with PyYAML and `zip`, so run it in Ubuntu, in a clone on Ubuntu's disk:
       `scripts/cutover-modules.sh --require-merged branch-one,branch-two`
-- [ ] The owner has done steps 2 to 4, and `--check` shows the secret in all 10.
+- [ ] The owner has done steps 2 to 5, and `--check` shows the secret, the approval rule and the tag
+      rule in all 10. With approvals on, the owner has to be at hand during `--apply`.
 - [ ] `moduleKey` is set in `internal/update/keys.go` and committed.
 
 The real thing:
@@ -138,6 +160,9 @@ The real thing:
 - [ ] `scripts/cutover-modules.sh --apply --require-merged branch-one,branch-two`. Use the machine
       where `gh` and `git push` are signed in. It stops at the first failure and can be run again:
       what is already released is left alone, and tags never move.
+      If a release workflow fails, open the run it names. For a passing problem, click *Re-run
+      failed jobs* and run the script again once it is green. If something has to change, change it
+      in the module's folder and run the script again: it publishes one patch version higher.
 - [ ] It leaves branch `modules-cutover` with the server's change, unpushed. Open a pull request.
 
 After:

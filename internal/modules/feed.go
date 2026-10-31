@@ -249,8 +249,18 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 		versions = versions[:maxKnown]
 	}
 
-	// The list of withdrawn versions first, so nothing it names gets offered.
-	withdrawErr := m.readWithdrawals(ctx, id, e, withdrawals)
+	// The list of withdrawn versions first, so nothing it names gets offered. Its release
+	// is an old one, so a list of the newest may not reach it: asked for by name then.
+	var withdrawErr error
+	if withdrawals == nil {
+		withdrawals, withdrawErr = m.fetch.ReleaseByTag(ctx, repo, wittymodule.WithdrawalsTag)
+		if errors.Is(withdrawErr, update.ErrNotFound) {
+			withdrawals, withdrawErr = nil, nil
+		}
+	}
+	if withdrawErr == nil {
+		withdrawErr = m.readWithdrawals(ctx, id, e, withdrawals)
+	}
 
 	m.mu.Lock()
 	had := e.known
@@ -272,9 +282,14 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 		if old != nil && old.rel == *r && raw[ver] != nil {
 			man = old.man
 		} else {
+			// A release that failed isn't fetched again, and running out of checks only
+			// stops new ones: what is already known stays, so fake tags can't hide it.
+			if e.badFiles[r.sums.URL] {
+				continue
+			}
 			if read++; read > maxNewChecks {
 				newEtag = "" // come back for the rest
-				break
+				continue
 			}
 			var v *verified
 			var verr error
@@ -283,6 +298,15 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 				m.log.Warn("modules: ignoring a release", "module", id, "version", ver, "err", verr)
 				if bad == nil {
 					bad = fmt.Errorf("%s %s was ignored: %w", name, ver, verr)
+				}
+				var limited *update.RateLimited
+				if !errors.As(verr, &limited) && ctx.Err() == nil {
+					m.mu.Lock()
+					if e.badFiles == nil {
+						e.badFiles = map[string]bool{}
+					}
+					e.badFiles[r.sums.URL] = true
+					m.mu.Unlock()
 				}
 				continue
 			}

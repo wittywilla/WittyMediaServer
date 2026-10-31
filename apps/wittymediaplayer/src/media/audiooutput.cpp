@@ -56,8 +56,9 @@ void AudioOutput::start(bool noDevice)
     }
     ring_.assign(size_t(rate_.load() * kRingSeconds) * kBytesPerFrame, 0);
     tap_.setRate(rate_.load());
-    // The device holds up to a fifth of a second: the picture waits for what's being heard.
-    tap_.setDelayFrames(noDevice ? 0 : rate_.load() / 6);
+    // The device holds up to a fifth of a second, about half of it on average: the picture
+    // waits for what's being heard.
+    tap_.setDelayFrames(noDevice ? 0 : rate_.load() / 10);
     moveToThread(&thread_);
     thread_.setObjectName(QStringLiteral("audio"));
     thread_.start(QThread::TimeCriticalPriority);
@@ -244,6 +245,31 @@ qint64 AudioOutput::pull(char *out, qint64 max)
     return want;
 }
 
+void AudioOutput::setTapEnabled(bool on)
+{
+    tap_.setUser(2, on);
+}
+
+int AudioOutput::tapRead(qint16 *stereo, int frames) const
+{
+    if (!tap_.enabled() || frames <= 0)
+        return 0;
+    frames = qMin(frames, wv::SampleTap::kCapacity / 2);
+    // A paused or stopped device stops pulling: then there's nothing being heard.
+    const uint64_t head = tap_.written();
+    if (head == tapLastRead_) {
+        std::lock_guard<std::mutex> l(mu_);
+        if (paused_ || idle_ || count_ == 0) {
+            std::memset(stereo, 0, size_t(frames) * kBytesPerFrame);
+            return frames;
+        }
+    }
+    tapLastRead_ = head;
+    // What the device has been given but not played yet is about half its buffer.
+    tap_.readInterleaved(stereo, frames, hasDevice() ? rate_.load() / 10 : 0);
+    return frames;
+}
+
 double AudioOutput::ptsOf(uint64_t byte) const
 {
     const double bps = double(rate_.load()) * kBytesPerFrame;
@@ -273,7 +299,7 @@ void AudioOutput::onTick()
             take -= take % kBytesPerFrame;
             nullLast_ = now;
             take = std::min(take, count_);
-            if (take > 0 && tap_.enabled()) {
+            if (tap_.enabled() && !ring_.empty()) {
                 const size_t first = std::min(take, ring_.size() - head_);
                 tap_.write(reinterpret_cast<const int16_t *>(ring_.data() + head_), int(first / kBytesPerFrame));
                 tap_.write(reinterpret_cast<const int16_t *>(ring_.data()), int((take - first) / kBytesPerFrame));

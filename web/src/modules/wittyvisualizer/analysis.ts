@@ -9,6 +9,8 @@ export const FFT_SIZE = 2048
 export const SPECTRUM_BINS = 512
 export const WAVE_POINTS = 512
 export const HISTORY_ROWS = 64
+// Rows a second, whatever the frame rate, so that the rows hold one second on any screen.
+export const HISTORY_RATE = 64
 // Spectrum, left, right, peaks, then the history.
 export const AUDIO_ROWS = 4 + HISTORY_ROWS
 
@@ -19,6 +21,7 @@ export const MIN_BEAT_GAP = 0.24
 export type AudioFrame = {
   texture: Uint8Array // SPECTRUM_BINS wide, AUDIO_ROWS high, one byte each
   historyRow: number // where the newest history row is, 0 to HISTORY_ROWS - 1
+  historyMoved: number // how many rows that is on from the last frame
   bass: number; mid: number; treble: number; level: number // 0 to 1
   beat: number // 1 at a beat, falling away
   beatCount: number
@@ -106,6 +109,7 @@ export class Analyzer {
   private binLo = new Float64Array(SPECTRUM_BINS)
   private binHi = new Float64Array(SPECTRUM_BINS)
   private rate = 0
+  private historyDue = 0
   private beats = [60, 60, 60, 60]
   readonly frame: AudioFrame
 
@@ -121,6 +125,7 @@ export class Analyzer {
     this.frame = {
       texture: new Uint8Array(SPECTRUM_BINS * AUDIO_ROWS),
       historyRow: 0,
+      historyMoved: 0,
       bass: 0, mid: 0, treble: 0, level: 0, beat: 0, beatCount: 0,
       beatAges: [60, 60, 60, 60],
       isSilent: true,
@@ -211,9 +216,10 @@ export class Analyzer {
     }
     this.specPeak = Math.max(top, this.specPeak * Math.exp(-dt / 8), 0.002)
     const rangeDb = 52
-    const h = (f.historyRow + 1) % HISTORY_ROWS
-    f.historyRow = h
-    const histAt = (4 + h) * w
+    this.historyDue += dt * HISTORY_RATE
+    const moved = Math.min(HISTORY_ROWS, Math.floor(this.historyDue))
+    this.historyDue -= Math.floor(this.historyDue)
+    f.historyMoved = moved
     for (let i = 0; i < w; i++) {
       const db = silent ? -120 : 20 * Math.log10(Math.max(this.re[i], 1e-9) / this.specPeak)
       const target = clamp01(1 + db / rangeDb) * Math.min(1.15, this.sensitivity)
@@ -224,7 +230,10 @@ export class Analyzer {
       const byte = Math.round(clamp01(s) * 255)
       row[i] = byte
       row[3 * w + i] = Math.round(clamp01(this.peaks[i]) * 255)
-      row[histAt + i] = byte
+    }
+    for (let k = 0; k < moved; k++) {
+      f.historyRow = (f.historyRow + 1) % HISTORY_ROWS
+      row.copyWithin((4 + f.historyRow) * w, 0, w)
     }
   }
 

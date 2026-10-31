@@ -26,7 +26,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   visualizer. Copies go to FLAC, ALAC, WAV, MP3, AAC, Opus or Ogg Vorbis, with naming templates, tags and cover art, and
   careful reads that retry, compare two passes, correct for the drive's offset and report on every track. It can also make
   a `.cue` and `.bin` image of a disc. Names and covers come from MusicBrainz only when you press the button, which sends
-  nothing but the disc's track layout. Discs that won't read normally get a plain message.
+  nothing but the disc's track layout. Discs that won't read normally get a plain message. The visuals are off until you
+  turn them on, tell you about flashing light first, and go through a flash limiter.
 - **A new desktop app**, under `apps/wittymediaplayer`, that needs no server. It's a first release for Windows amd64,
   as a portable folder, built with Qt 6 and FFmpeg's libraries.
 - **Plays ordinary video and audio files**, with audio and subtitle track choice, seeking, volume, full screen, keyboard
@@ -55,6 +56,20 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   Files a scan can't use, such as .7z archives, are now reported instead of quietly missing.
 - **Wording:** movies, shows and ads throughout. Sign in a TV is clearer, and search asks for a word instead of
   listing everything.
+
+### Modules become their own projects
+
+- **A module store.** Settings, Modules is now grouped by what each module does, and shows its status, versions, whether it updates by itself or with the server, what it needs, its repository, and its recent activity and failures.
+- **Choose what's on your server.** First-run setup asks before you make libraries, and what's installed decides which libraries can be made. Add library shows the rest greyed out, with a button to add what each needs, there and then.
+- **Choose a version.** Every release is listed with its notes, and older ones can be installed, with a warning, and stay pinned until you go back to the latest. One that doesn't fit this server is shown and explained.
+- **Automatic updates, module by module.** Each module that updates on its own has a switch to leave its updates to you, while still showing what's available.
+- **Kinds of library shared by modules.** The store says when two modules bring the same kind, and a kind can be given a name of your own, which Add library then uses.
+- **Withdrawn versions.** A module can withdraw a version with a signed list. One withdrawn for security reasons is refused, and stops being used even if pinned.
+- **More can update apart from the server:** WittyDVD and WittyBluray run in a helper per open disc, WittyTuner's network sources and WittyPlay's game runner update too, along with the file browser and all four reader modules. [MODULES.md](docs/MODULES.md) says exactly what each can and can't do, and each module's built-in copy stays the default and the fallback.
+- **Using someone's fork.** An admin can point a module at a fork, with a key they trust for that module alone. It runs under stricter limits and never updates by itself, and the server still refuses encrypted media whatever it says. WittyTuner can't be forked. Brand-new custom modules are marked as in development.
+- **Stronger limits on helpers.** On Linux a helper can no longer change any file and has a memory limit, applied so that nothing in it can skip them.
+- **Each module can release from its own repository**, with its own workflows, and the steps and script for moving over are in [MODULES-CUTOVER.md](docs/MODULES-CUTOVER.md). Nothing has been published yet.
+- **Versions in one command:** `wittymodule bump` and `scripts/bump-server.sh`, with a check that a changed module has a new number.
 
 ### Modules update on their own
 

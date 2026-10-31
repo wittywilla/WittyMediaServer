@@ -145,6 +145,9 @@ struct Runner {
             // A check mustn't stop at the notice, which is a dialog.
             QSettings(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("WittyMediaPlayer"), QStringLiteral("WittyMediaPlayer")).setValue(QStringLiteral("visualizer/notice"), true);
             window->cd()->setEffects(arg == QLatin1String("on"));
+        } else if (cmd == QLatin1String("cdvisuals")) {
+            QSettings(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("WittyMediaPlayer"), QStringLiteral("WittyMediaPlayer")).setValue(QStringLiteral("visualizer/notice"), true);
+            window->cd()->setVisualsOn(arg == QLatin1String("on"));
         } else if (cmd == QLatin1String("cdlook")) {
             window->cd()->setClassicLook(arg == QLatin1String("classic"));
         } else if (cmd == QLatin1String("cdfolder")) {

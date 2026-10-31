@@ -21,6 +21,10 @@
 .wv-icon[aria-pressed='true'] { color: var(--accent-text, #9cf); }
 .wv-select { min-height: 36px; max-width: 100%; min-width: 0; padding: 0 var(--sp-2, 8px); color: var(--fg, #eee); background: var(--bg-3, #26262e); border: 1px solid var(--control-line, #777); border-radius: var(--r-md, 8px); font: inherit; font-size: var(--text-md, .875rem); }
 .wv-bar .wv-select { flex: 0 1 190px; }
+/* A panel is narrow: the list on a line of its own, and the buttons spread below it. */
+.wv-stage.panel .wv-bar { justify-content: space-between; gap: 0; }
+.wv-stage.panel .wv-bar .wv-select { flex: 1 1 100%; order: -1; margin-bottom: var(--sp-1, 4px); }
+.wv-stage.panel .wv-grow { display: none; }
 .wv-icon:focus-visible, .wv-select:focus-visible, .wv-btn:focus-visible, .wv-start:focus-visible, .wv-check input:focus-visible, .wv-details summary:focus-visible, .wv-btn.file:focus-within { outline: 2px solid var(--focus, #6cf); outline-offset: 2px; }
 
 .wv-start { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); min-height: 48px; padding: 0 var(--sp-5, 24px); color: var(--accent-fg, #000); background: var(--accent, #6cf); border: 0; border-radius: var(--r-pill, 999px); font: inherit; font-weight: 600; cursor: pointer; }

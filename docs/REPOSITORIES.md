@@ -9,8 +9,8 @@ Nothing has to be created until the work it's for is ready to publish. Create ea
 
 | Repository | What it's for | Status of the work |
 |---|---|---|
-| WittySunshine | Finding, pairing with and managing a gaming PC that runs Sunshine | Being built; wait, the name may change |
-| WittyMoonlight | Launching and streaming from that PC with Moonlight | Being built; wait, the name may change |
+| WittyMoonlight | A Moonlight client in the UI, for connecting to any Sunshine server | Being built; wait, the name may change |
+| WittySunshine | An advanced option for streaming demanding games hosted on the server itself | Being built; wait, the name may change |
 | WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |
 
 ## Exists

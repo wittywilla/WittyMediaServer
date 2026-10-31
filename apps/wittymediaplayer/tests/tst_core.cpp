@@ -18,6 +18,7 @@
 #include "video/videoview.h"
 #include "visual/visualizer.h"
 #include "wvanalysis.h"
+#include "wvengine.h"
 #include "wvtap.h"
 #include "wvwidget.h"
 
@@ -28,6 +29,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QPainter>
 #include <QRadioButton>
 #include <QProcess>
 #include <QSettings>
@@ -163,6 +165,8 @@ private slots:
     void everyFormatEncodes();
     void losslessIsExact();
     void spectrumFindsTheTone();
+    void flashLimiterHoldsStrobes();
+    void flashLimiterLeavesSteadyLight();
     void cdPlaysAndSeeks();
     void ripperCopiesTracks();
     void ripperStopLeavesNothing();
@@ -984,6 +988,91 @@ void Tests::spectrumFindsTheTone()
         QCOMPARE(b, 0.f);
 }
 
+// How many flashes in the worst second, as WCAG 2.3.1 counts them: pairs of opposing swings of
+// at least 0.1, where the darker side is under 0.8.
+static double worstFlashes(const QVector<double> &values, double frameSec)
+{
+    QVector<double> swings;
+    double low = values[0], high = values[0];
+    int dir = 0;
+    for (int i = 1; i < values.size(); i++) {
+        const double v = values[i];
+        low = qMin(low, v);
+        high = qMax(high, v);
+        const bool big = high - low >= 0.1 && low < 0.8;
+        const int now = v == high ? 1 : (v == low ? -1 : 0);
+        if (big && now != 0 && now != dir) {
+            swings.push_back(i * frameSec);
+            dir = now;
+            low = high = v;
+        }
+    }
+    double worst = 0;
+    for (int i = 0; i < swings.size(); i++) {
+        int n = 0;
+        for (int j = i; j < swings.size() && swings[j] - swings[i] < 1.0; j++)
+            n++;
+        worst = qMax(worst, n / 2.0);
+    }
+    return worst;
+}
+
+static double centreLight(const QImage &img)
+{
+    const QRgb c = img.pixel(img.width() / 2, img.height() / 2);
+    return FlashLimiter::lightOf(qRed(c), qGreen(c), qBlue(c));
+}
+
+void Tests::flashLimiterHoldsStrobes()
+{
+    const double frame = 1.0 / 30;
+    for (const QColor &colour : {QColor(Qt::white), QColor(255, 0, 0), QColor(47, 214, 192)}) {
+        FlashLimiter limiter(wv::kGuard.deadBand, wv::kGuard.rise);
+        QVector<double> shown;
+        for (int i = 0; i < 300; i++) {
+            QImage img(320, 180, QImage::Format_RGB32);
+            img.fill(i % 2 ? colour : QColor(Qt::black)); // fifteen flashes a second, the whole picture
+            limiter.apply(img, frame);
+            shown << centreLight(img);
+        }
+        const double worst = worstFlashes(shown, frame);
+        QVERIFY2(worst <= 3, qPrintable(QStringLiteral("%1 flashes a second of %2").arg(worst).arg(colour.name())));
+    }
+    // The way this is counted does see a strobe, when nothing holds it.
+    QVector<double> raw;
+    for (int i = 0; i < 300; i++)
+        raw << (i % 2 ? 1.0 : 0.0);
+    QVERIFY(worstFlashes(raw, frame) > 3);
+}
+
+void Tests::flashLimiterLeavesSteadyLight()
+{
+    FlashLimiter limiter(wv::kGuard.deadBand, wv::kGuard.rise);
+    QImage last;
+    for (int i = 0; i < 30 * 10; i++) {
+        last = QImage(320, 180, QImage::Format_RGB32);
+        last.fill(QColor(200, 200, 200));
+        limiter.apply(last, 1.0 / 30);
+    }
+    // Light that stays comes up in full, in a few seconds.
+    QCOMPARE(QColor(last.pixel(160, 90)), QColor(200, 200, 200));
+    // A burst is held back, only where it happens.
+    QImage burst(320, 180, QImage::Format_RGB32);
+    burst.fill(QColor(200, 200, 200));
+    FlashLimiter fresh(wv::kGuard.deadBand, wv::kGuard.rise);
+    for (int i = 0; i < 30 * 10; i++) {
+        QImage img(320, 180, QImage::Format_RGB32);
+        img.fill(Qt::black);
+        QPainter p(&img);
+        p.fillRect(QRect(0, 0, 160, 180), QColor(200, 200, 200));
+        p.end();
+        fresh.apply(img, 1.0 / 30);
+    }
+    fresh.apply(burst, 1.0 / 30);
+    QCOMPARE(QColor(burst.pixel(40, 90)), QColor(200, 200, 200));
+    QVERIFY(qGray(burst.pixel(280, 90)) < 100);
+}
+
 void Tests::cdPlaysAndSeeks()
 {
     QTemporaryDir dir;
@@ -1168,8 +1257,22 @@ void Tests::cdScreenKeysAndNames()
     QVERIFY(!c->grab().isNull());
     c->setClassicLook(true);
     QVERIFY(!c->grab().isNull());
-    QVERIFY(!c->effectsShowing()); // the shared effects wait until they're asked for
-    QVERIFY(!c->findChild<wv::VisualizerWidget *>());
+    // Nothing moves until it's asked for, and the notice comes first.
+    QVERIFY(!c->visualsOn());
+    QVERIFY(!c->visualizer()->isVisible());
+    QVERIFY(!w.player()->audio()->tap()->enabled());
+    QVERIFY(!c->effectsShowing());
+    {
+        QSettings s(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("WittyMediaPlayer"), QStringLiteral("WittyMediaPlayer"));
+        s.setValue(QStringLiteral("visualizer/notice"), true); // a test mustn't stop at it, as it's a dialog
+    }
+    c->setVisualsOn(true);
+    QVERIFY(c->visualsOn());
+    QVERIFY(c->visualizer()->isVisible());
+    QVERIFY(w.player()->audio()->tap()->enabled());
+    c->setVisualsOn(false);
+    QVERIFY(!c->visualizer()->isVisible());
+    QVERIFY(!w.player()->audio()->tap()->enabled());
     for (int i = 0; i < VisualizerView::StyleCount; i++) {
         c->visualizer()->setStyle(i);
         c->visualizer()->step();

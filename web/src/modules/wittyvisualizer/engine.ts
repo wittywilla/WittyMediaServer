@@ -125,6 +125,8 @@ export class Budget {
   private avg = 1 / 60
   private held = 0
   private calmFor = 0
+  private patience = 6
+  private rose = false
   private counted = 0
   private countedFor = 0
   readonly floor: number
@@ -142,8 +144,13 @@ export class Budget {
     this.avg += (dt - this.avg) * 0.08
     this.held += dt
     if (this.held < 1.2) return false
-    const slow = this.avg > 1 / 45, fast = this.avg < 1 / 54
+    // Judged against the rate it's aiming for: 30 a second on purpose isn't slow.
+    const aim = this.frameGap || 1 / 60
+    const slow = this.avg > aim * 1.33, fast = this.avg < aim * 1.11
     if (slow) {
+      // If it has just tried more pixels and that failed, it waits longer before the next try.
+      if (this.calmFor === 0 && this.rose) this.patience = Math.min(120, this.patience * 2)
+      this.rose = false
       this.calmFor = 0
       this.held = 0
       if (this.scale > this.floor + 1e-3) {
@@ -154,11 +161,12 @@ export class Budget {
       if (this.frameGap < 1 / 31) { this.frameGap = 1 / 30; return true }
       return false
     }
-    if (fast && this.frameGap === 0) {
+    if (fast) {
       this.calmFor += dt
-      if (this.calmFor > 6 && this.scale < this.ceiling - 1e-3) {
+      if (this.calmFor > this.patience && this.scale < this.ceiling - 1e-3) {
         this.calmFor = 0
         this.held = 0
+        this.rose = true
         this.scale = Math.min(this.ceiling, this.scale * 1.12)
         return true
       }

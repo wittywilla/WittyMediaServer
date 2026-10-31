@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -17,17 +17,15 @@ import (
 // and serves nothing else; the page's own content security policy, which allows only
 // this site's scripts, still applies to all of them.
 
-type webFile struct {
-	hash    string
-	size    int64
-	modTime time.Time
-}
-
-// webFiles are a bundle's files as they were when last checked. A later change to one
-// is seen from its size and date without hashing it again.
+// webFiles are a bundle's signed names and hashes. Each file is hashed again when it is
+// served: browsers keep these for a year, so that is rare, and it means a file changed
+// after the last start is never sent to someone's browser. tag names what was signed, and
+// is in the address, so one version number from two publishers can't be mixed up in a
+// browser's cache.
 type webFiles struct {
 	dir   string
-	files map[string]webFile
+	tag   string
+	files map[string]string
 }
 
 func loadWebFiles(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKey) (*webFiles, error) {
@@ -35,15 +33,11 @@ func loadWebFiles(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKe
 	if err != nil {
 		return nil, err
 	}
-	w := &webFiles{dir: dir, files: map[string]webFile{}}
-	for rel, h := range want {
-		st, err := os.Stat(filepath.Join(dir, filepath.FromSlash(rel)))
-		if err != nil {
-			return nil, err
-		}
-		w.files[rel] = webFile{hash: h, size: st.Size(), modTime: st.ModTime()}
+	sums, err := os.ReadFile(filepath.Join(dir, signedList))
+	if err != nil {
+		return nil, err
 	}
-	return w, nil
+	return &webFiles{dir: dir, tag: sum(sums)[:12], files: want}, nil
 }
 
 // WebBundle says where the browser finds a bundle in use.
@@ -68,10 +62,12 @@ func (m *Manager) WebBundles() []WebBundle {
 			continue
 		}
 		out = append(out, WebBundle{ID: id, Version: e.man.Version, Entry: e.man.Entry, Style: e.man.Style, API: e.man.API,
-			Base: "/api/modules/" + id + "/web/" + e.man.Version + "/"})
+			Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"})
 	}
 	return out
 }
+
+func (w *webFiles) address(ver string) string { return ver + "~" + w.tag }
 
 // ErrNoFile: the bundle has no such file, or it isn't the version in use.
 var ErrNoFile = errors.New("no such file")
@@ -83,24 +79,47 @@ var ErrNoFile = errors.New("no such file")
 func (m *Manager) WebFile(id, ver, rel string) (path, hash string, err error) {
 	m.mu.Lock()
 	e := m.mods[id]
-	if e == nil || e.web == nil || e.man.Version != ver {
+	if e == nil || e.web == nil || e.web.address(e.man.Version) != ver {
 		m.mu.Unlock()
 		return "", "", ErrNoFile
 	}
-	w := e.web
+	w, version := e.web, e.man.Version
 	m.mu.Unlock()
-	f, ok := w.files[rel]
+	want, ok := w.files[rel]
 	if !ok || rel == wittymodule.ManifestFile || strings.HasPrefix(rel, ".") {
 		return "", "", ErrNoFile
 	}
 	p := filepath.Join(w.dir, filepath.FromSlash(rel))
-	st, serr := os.Stat(p)
-	if serr != nil || st.Size() != f.size || !st.ModTime().Equal(f.modTime) || !st.Mode().IsRegular() {
-		bad := fmt.Errorf("%w: %s is different", errUntrusted, rel)
-		m.failed(id, e, ver, bad)
+	got, herr := update.FileSHA256(p)
+	st, serr := os.Lstat(p)
+	if herr != nil || serr != nil || got != want || !st.Mode().IsRegular() {
+		m.failed(id, e, version, fmt.Errorf("%w: %s is different", errUntrusted, rel))
 		return "", "", ErrNoFile
 	}
-	return p, f.hash, nil
+	return p, want, nil
+}
+
+// ProgramCommand finds a program module's version in use, like Program, ready to start: a
+// fork's goes through the launcher, since a program from another publisher can't be
+// trusted to limit itself. It can write only to the folder after its -save argument, and
+// open devices, since a game core may need a graphics card.
+func (m *Manager) ProgramCommand(id string) (path string, args []string, version string, ok bool) {
+	exe, version, ok := m.Program(id)
+	if !ok {
+		return "", nil, "", false
+	}
+	m.mu.Lock()
+	fork := m.mods[id].state.Source != nil
+	m.mu.Unlock()
+	if !fork {
+		return exe, nil, version, true
+	}
+	const strict = SandboxStrict | SandboxDevices | SandboxSaveArg
+	path, args = launchWith(m.cfg.Launcher, exe, 0, strict, nil)
+	if sandboxAvailable && goos() == "linux" && m.cfg.Launcher == "" {
+		return "", nil, "", false
+	}
+	return path, args, version, true
 }
 
 // Program finds a program module's version in use: the path to run, checked against

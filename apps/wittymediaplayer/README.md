@@ -65,6 +65,9 @@ wittymediaplayer.exe D:
 | N, P | Next and previous chapter |
 | 1 to 9 | Go to that chapter on a disc; that far through a file |
 | M (files) | Mute |
+| V | The visualizer, for music |
+
+While the visualizer is on the whole screen or has the focus, Left and Right change the effect, R is random order, S a favourite, and + and - its strength.
 
 On a disc, in its menus:
 
@@ -101,7 +104,7 @@ a tick beside each, and waits for you to press play.
 | S | Stop |
 | Left and Right | Back and forward 10 seconds |
 | Up and Down | Volume |
-| V | Next style of the simple visualizer |
+| V | Turn the visuals on, then the next simple style |
 | E | Switch between the simple visualizer and WittyVisualizer's effects |
 | Enter on a track | Play it |
 | F2 on a track | Change its name |
@@ -124,9 +127,10 @@ any more than on a DVD.
 
 **The look:** the box at the top right switches between the Classic look and your app theme.
 
-**The visuals:** Bars, Scope, Rings and Plasma are drawn on the processor, so they run anywhere. **More effects** brings in
-WittyVisualizer's seventeen effects, drawn by your graphics card, full screen if you like. It tells you about flashing
-light the first time, and has a flash limiter and a calm mode.
+**The visuals:** they're off until you turn them on, and the first time, you're told about flashing light and can choose
+calm mode. Bars, Scope, Rings and Plasma are drawn on the processor, so they run anywhere. **More effects** brings in
+WittyVisualizer's seventeen effects, drawn by your graphics card, full screen if you like. Everything goes through a flash
+limiter that no style can get around.
 
 ### Trying a real CD
 

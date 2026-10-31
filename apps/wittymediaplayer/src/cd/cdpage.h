@@ -65,6 +65,10 @@ public:
     // WittyVisualizer's effects in place of the built-in pictures. Made the first time they're
     // wanted, and they ask first, as they flash.
     void setEffects(bool on);
+    // The pictures, simple or shared, stay off until they're asked for, and the notice about
+    // flashing light comes first. False means the person said no.
+    bool setVisualsOn(bool on);
+    bool visualsOn() const { return visualsOn_; }
     bool effectsShowing() const;
     // The effects over the whole screen, and back.
     void setVisualFull(bool on);
@@ -121,6 +125,8 @@ private:
     void markTrack(int number, int percent, const QString &text);
     RipJob buildJob() const;
     void fetchCover(const QString &releaseId);
+    bool askAboutFlashing();
+    void showVisualButtons();
     QString updaterPath() const;
 
     Player *player_;
@@ -148,6 +154,8 @@ private:
     QWidget *visualWidget_ = nullptr;
     VisualizerView *visual_ = nullptr;
     wv::VisualizerWidget *effects_ = nullptr;
+    QWidget *visualOff_ = nullptr;
+    bool visualsOn_ = false;
     bool visualFull_ = false;
     CoverView *coverView_ = nullptr;
     LcdReadout *lcd_ = nullptr;
@@ -160,7 +168,7 @@ private:
     QComboBox *format_ = nullptr, *quality_ = nullptr, *look_ = nullptr;
     QCheckBox *secure_ = nullptr;
     QSpinBox *offset_ = nullptr;
-    QPushButton *effectsBtn_ = nullptr, *chooseBtn_ = nullptr, *ripBtn_ = nullptr, *imageBtn_ = nullptr, *lookupBtn_ = nullptr, *stopRipBtn_ = nullptr, *visualBtn_ = nullptr, *backBtn_ = nullptr;
+    QPushButton *visualsBtn_ = nullptr, *effectsBtn_ = nullptr, *chooseBtn_ = nullptr, *ripBtn_ = nullptr, *imageBtn_ = nullptr, *lookupBtn_ = nullptr, *stopRipBtn_ = nullptr, *visualBtn_ = nullptr, *backBtn_ = nullptr;
     QProgressBar *overall_ = nullptr;
     int ripTotal_ = 0, ripDone_ = 0;
     int ripPercent_ = 0;

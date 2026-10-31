@@ -206,7 +206,10 @@ artwork. It can follow the app theme instead.
 **The visualizer.** Everything reads WittyVisualizer's `SampleTap` in `AudioOutput`, which costs one atomic read when off.
 The screen's own `VisualizerView` draws on the processor, small and scaled up, and stops when hidden, so a machine with no
 useful graphics card still has something to watch. **More effects** puts the shared `wv::VisualizerWidget` in its place; only
-one is ever on, and the one leaving turns the tap off before the next turns it on.
+one is ever on. Both are off until asked for, behind WittyVisualizer's one notice about flashing light. The simple pictures go
+through `FlashLimiter`, the same rule and limits as the shared guard: each tile of the picture may be only a little brighter
+than it has lately been, so nothing can swing far enough, fast enough, to count as a flash under WCAG 2.3.1. A test runs strobes
+through it and counts.
 
 ## Other platforms
 

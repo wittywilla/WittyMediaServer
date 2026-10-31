@@ -189,6 +189,11 @@ detected and refused with a clear message, the same way the disc engines treat C
 sits between every driver and the server (`wittytuner.New`), so a driver, or a custom command, can't
 leave it out.
 
+A downloaded version of WittyTuner changes none of this. Its helper only reaches network tuners, IPTV
+over HTTP and external backends, and the server wraps what it sends in the server's own guard. A
+helper saying a channel is clear means nothing: it can only ever refuse one. HLS and DASH are opened
+and checked by the server itself, never from options a helper offers.
+
 | Where | How it is detected |
 |---|---|
 | Network tuners | A `drm` tag in the lineup (the maker's documented marking) or `DRM: 1`, and error 811 when tuning |

@@ -2,7 +2,7 @@
 {
   "format": 1, "id": "aurora", "name": "Northern Veil",
   "description": "Curtains of light moving over a starry sky, brightening with the mids. The gentlest of the set.",
-  "tags": ["calm", "sky"], "cost": 2, "motion": "gentle"
+  "tags": ["calm", "sky"], "cost": 3, "motion": "gentle"
 }
 */
 vec4 effect(vec2 uv) {

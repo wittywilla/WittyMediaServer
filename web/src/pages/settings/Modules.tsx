@@ -4,7 +4,7 @@ import { api, ApiError } from '../../api'
 import { LIB_TYPES } from '../../components/AddLibrary'
 import { Spinner } from '../../components/common'
 import { IconCheck, IconClose, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
-import { shelves, type ModuleEvent, type ModuleReport, type ModuleStatus, type VersionInfo, type VersionList } from '../../moduleStore'
+import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type ModuleStatus, type VersionInfo, type VersionList } from '../../moduleStore'
 import { toast } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
@@ -178,6 +178,8 @@ export default function ModulesSettings() {
     run: async () => { await act(() => api.post<ModuleReport>(`/modules/${m.id}/rollback`), `${m.name} went back to ${backTo(m)}`); focusRow(m.id) },
   })
   const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? `${m.name} can update again` : `${m.name} stays on this version`)
+  const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? `${m.name} can update by itself` : `${m.name} will wait for you to update it`)
+  const toLatest = (m: ModuleStatus) => act(() => api.post<ModuleReport>(`/modules/${m.id}/latest`), `${m.name} is going back to the latest`)
   const official = (m: ModuleStatus) => setAsk({
     title: 'Go back to the official version?', action: 'Go back',
     body: <p>{m.name} goes back to the releases of <b>{m.stockRepo}</b>. Versions downloaded from {m.source?.repo} are deleted, and it uses its built-in copy until you choose another.</p>,
@@ -204,7 +206,7 @@ export default function ModulesSettings() {
     <ModuleRow key={m.id} m={m} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
-      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} />
+      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
   )
 
   return (
@@ -284,6 +286,7 @@ type RowProps = {
   m: ModuleStatus; isOpen: boolean; marked: boolean; checkedAt?: number; nameOf: (id: string) => string; refused: string
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
+  onAuto: (on: boolean) => void; onLatest: () => void; serverAuto: boolean; kinds: LibraryKind[]
 }
 
 // One module: a line to scan, and everything else when it is opened.
@@ -302,7 +305,7 @@ function ModuleRow(p: RowProps) {
           <span className="ms-chev"><IconDown size={20} /></span>
         </button>
         {!m.installed && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Add ${m.name}`}><IconPlus /> <span className="ms-add-word">Add</span></button>}
-        {m.installed && m.latest && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
+        {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
       </div>
       {busy(m) && (
         <div className="upd-progress ms-progress" role="status">
@@ -315,7 +318,50 @@ function ModuleRow(p: RowProps) {
   )
 }
 
-function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial }: RowProps & { id: string }) {
+// A kind of library a module brings. When others bring it too it says so, since they share
+// one kind, and that kind can have a name of this server's own, so what is on screen can
+// always be told apart from whatever else appears here one day.
+function BroughtKind({ type, m, kinds, onReport }: { type: string; m: ModuleStatus; kinds: LibraryKind[]; onReport: (r: ModuleReport) => void }) {
+  const kind = kinds.find((k) => k.type === type)
+  const usual = kindName(type)
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState(kind?.label || '')
+  const [err, setErr] = useState('')
+  const [busyNaming, setBusyNaming] = useState(false)
+  const others = (kind?.modules || []).filter((x) => x.id !== m.id).map((x) => x.name)
+  const save = async (label: string) => {
+    setBusyNaming(true); setErr('')
+    const taken = Object.fromEntries(LIB_TYPES.map((x) => [x.type, x.name]))
+    try { onReport(await api.put<ModuleReport>(`/modules/libraries/${type}/label`, { label, taken })); setEditing(false); setText(label) }
+    catch (e: any) { setErr(e.message) } finally { setBusyNaming(false) }
+  }
+  return (
+    <div className="ms-kind">
+      <b>{kind?.label || usual}</b>{kind?.label && <span className="muted"> (usually {usual})</span>}
+      {others.length > 0 && (
+        <p className="ms-note">Also brought by {others.join(', ')}. They share this kind of library, so any one of them is enough to make one, and each plays what it knows.{' '}
+          {!editing && <button type="button" className="btn sm ghost" onClick={() => setEditing(true)} aria-label={`Rename the kind ${kind?.label || usual}`}>Rename</button>}
+        </p>
+      )}
+      {editing && (
+        <form className="ms-kind-form" onSubmit={(e) => { e.preventDefault(); save(text) }}>
+          <label>Call it, on this server
+            <input className="input" autoFocus maxLength={40} value={text} placeholder={usual} onChange={(e) => setText(e.target.value)} />
+          </label>
+          <div className="ms-actions">
+            <button type="submit" className="btn sm" disabled={busyNaming}>Save</button>
+            {kind?.label && <button type="button" className="btn sm ghost" disabled={busyNaming} onClick={() => save('')}>Use the usual name</button>}
+            <button type="button" className="btn sm ghost" onClick={() => { setEditing(false); setErr(''); setText(kind?.label || '') }}>Cancel</button>
+          </div>
+          <p className="muted">This only changes what the kind is called when you add a library. Libraries keep their own names.</p>
+          {err && <p className="error" role="alert">{err}</p>}
+        </form>
+      )}
+    </div>
+  )
+}
+
+function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, serverAuto }: RowProps & { id: string }) {
   const working = busy(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
   const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
@@ -334,7 +380,7 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, o
         {!m.installed && <div><dt>Version</dt><dd>{m.builtinVersion}</dd></div>}
         <div><dt>Works with</dt><dd>Servers {m.minServer} to {m.maxServer}</dd></div>
         <div className="wide"><dt>{m.source ? 'Official repository' : 'Repository'}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a></dd></div>
-        {!!m.libraries?.length && <div className="wide"><dt>Brings these libraries</dt><dd>{m.libraries.map(kindName).join(', ')}</dd></div>}
+        {!!m.libraries?.length && <div className="wide"><dt>Brings these libraries</dt><dd>{m.libraries.map((t) => <BroughtKind key={t} type={t} m={m} kinds={kinds} onReport={onReport} />)}</dd></div>}
         {!!m.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{m.needs.join(', ')}</dd></div>}
         {!!m.requires?.length && <div className="wide"><dt>Built on</dt><dd>{m.requires.map(nameOf).join(', ')}</dd></div>}
         {!!m.requiredBy?.length && <div className="wide"><dt>What’s built on it</dt><dd>{m.requiredBy.join(', ')}</dd></div>}
@@ -360,8 +406,20 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, onRemove, o
       {m.tooNew && <p className="ms-note">Version {m.tooNew.version} exists but doesn’t fit this server. {m.tooNew.reason}</p>}
       {m.installed && m.pin && <p className="ms-note">Kept on {pinWords(m.pin)} on purpose. Automatic updates leave it alone, though a version withdrawn for security reasons still goes out of use.</p>}
 
+      {m.installed && m.updatable && (
+        <Row label="Update this module by itself" dim={!!m.source || !!m.pin || !serverAuto}
+          desc={m.source ? 'A module from another publisher never updates by itself: you choose each version.'
+            : m.pin ? 'It is pinned, so automatic updates leave it alone whatever this says.'
+            : !serverAuto ? 'Automatic updates are off for the whole server, above, so this changes nothing until they are on.'
+            : m.autoUpdate ? 'Installs new versions when they appear, if they work with this server.'
+            : 'It still looks for new versions and shows them here, and waits for you to install them.'}>
+          <Switch label={`Update ${m.name} by itself`} checked={m.autoUpdate} disabled={working || !!m.source} onChange={onAuto} />
+        </Row>
+      )}
+
       <div className="ms-actions">
-        {m.installed && m.latest && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
+        {m.installed && m.pin && m.pin !== m.latest?.version && (m.latest || m.pin === 'builtin' || m.version !== m.builtinVersion) && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>Go back to the latest</button>}
+        {m.installed && m.latest && !m.pin && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm" disabled={working} onClick={onVersions}>Versions</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm ghost" disabled={working} onClick={onPin}>{m.pin ? 'Unpin' : 'Pin this version'}</button>}
         {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>Go back to {backTo(m)}</button>}

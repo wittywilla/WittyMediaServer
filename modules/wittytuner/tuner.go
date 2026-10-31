@@ -348,6 +348,20 @@ type Found struct {
 // Discover looks for tuners: on the local network and among this machine's
 // devices. It takes a couple of seconds.
 func Discover(ctx context.Context, env Env) []Found {
+	return discover(ctx, env, discoverNetworkTuners, discoverSATIP, discoverDVB, discoverV4L2, discoverCapture)
+}
+
+// DiscoverNetwork is the part of Discover that only needs a network.
+func DiscoverNetwork(ctx context.Context, env Env) []Found {
+	return discover(ctx, env, discoverNetworkTuners, discoverSATIP)
+}
+
+// DiscoverHere is the part of Discover that looks at this machine's own devices.
+func DiscoverHere(ctx context.Context, env Env) []Found {
+	return discover(ctx, env, discoverDVB, discoverV4L2, discoverCapture)
+}
+
+func discover(ctx context.Context, env Env, finders ...func(context.Context, Env) []Found) []Found {
 	var mu sync.Mutex
 	var out []Found
 	var wg sync.WaitGroup
@@ -361,11 +375,9 @@ func Discover(ctx context.Context, env Env) []Found {
 			mu.Unlock()
 		}()
 	}
-	add(discoverNetworkTuners)
-	add(discoverSATIP)
-	add(discoverDVB)
-	add(discoverV4L2)
-	add(discoverCapture)
+	for _, f := range finders {
+		add(f)
+	}
 	wg.Wait()
 	return out
 }

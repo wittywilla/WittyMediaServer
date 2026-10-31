@@ -7,7 +7,7 @@ import { effectFrag, fullscreenVert, guardFrag, presentFrag, quadFrag, quadVert 
 // the flash guard.
 
 export type DrawInput = {
-  audio: { texture: Uint8Array; historyRow: number; bass: number; mid: number; treble: number; level: number; beat: number; beatCount: number; beatAges: number[] }
+  audio: { texture: Uint8Array; historyRow: number; historyMoved: number; bass: number; mid: number; treble: number; level: number; beat: number; beatCount: number; beatAges: number[] }
   time: number; flow: number; dt: number
   intensity: number; calm: boolean
   palette: { a: number[]; b: number[]; c: number[]; d: number[] }
@@ -62,7 +62,6 @@ export class GlRenderer implements Renderer {
   private targets = new Map<string, Target>()
   private w = 2
   private h = 2
-  private historySent = -1
   private black: WebGLTexture
 
   constructor(gl: WebGL2RenderingContext) {
@@ -168,7 +167,8 @@ export class GlRenderer implements Renderer {
     this.pending.delete(e.id)
     for (const q of [p.main, p.quad]) {
       if (q && !gl.getProgramParameter(q.program, gl.LINK_STATUS)) {
-        const log = gl.getProgramInfoLog(q.program) || q.shaders.map((s) => gl.getShaderInfoLog(s)).join(' ')
+        // Line numbers would count the lines added in front, so they're taken out.
+        const log = q.shaders.map((s) => gl.getShaderInfoLog(s) || '').join(' ').replace(/ERROR: \d+:\d+: /g, '').replace(/\0/g, '').trim() || gl.getProgramInfoLog(q.program) || ''
         return { ok: false, error: log.slice(0, 600) || 'it would not compile' }
       }
     }
@@ -269,10 +269,11 @@ export class GlRenderer implements Renderer {
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, this.audio)
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SPECTRUM_BINS, 4, gl.RED, gl.UNSIGNED_BYTE, a.texture)
-    if (a.historyRow !== this.historySent) {
-      // Only the row that's new: it's all a frame ever changes.
+    // Only what's new: usually one row of history or none. A slow frame can owe several.
+    if (a.historyMoved === 1) {
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 4 + a.historyRow, SPECTRUM_BINS, 1, gl.RED, gl.UNSIGNED_BYTE, a.texture, (4 + a.historyRow) * SPECTRUM_BINS)
-      this.historySent = a.historyRow
+    } else if (a.historyMoved > 1) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 4, SPECTRUM_BINS, AUDIO_ROWS - 4, gl.RED, gl.UNSIGNED_BYTE, a.texture, 4 * SPECTRUM_BINS)
     }
 
     this.drawEffect(f.a, f)
@@ -335,7 +336,7 @@ export function trialCompile(e: EffectFile): Promise<string | null> {
       }
       if (!p.ok) { finish('It would not compile: ' + p.error); return }
       r.setSize(64, 36)
-      const audio = { texture: new Uint8Array(SPECTRUM_BINS * AUDIO_ROWS).fill(128), historyRow: 0, bass: 0.5, mid: 0.5, treble: 0.5, level: 0.5, beat: 1, beatCount: 3, beatAges: [0, 1, 2, 3] }
+      const audio = { texture: new Uint8Array(SPECTRUM_BINS * AUDIO_ROWS).fill(128), historyRow: 0, historyMoved: 64, bass: 0.5, mid: 0.5, treble: 0.5, level: 0.5, beat: 1, beatCount: 3, beatAges: [0, 1, 2, 3] }
       const flat = { a: [0.5, 0.5, 0.5], b: [0.5, 0.5, 0.5], c: [1, 1, 1], d: [0, 0.33, 0.67] }
       const before = performance.now()
       r.draw({ audio, time: 1, flow: 1, dt: 1 / 60, intensity: 1, calm: false, palette: flat, guard: { deadBand: 0.04, rise: 0.15 }, a: e.id, b: null, mix: 0, mixStyle: 0 })

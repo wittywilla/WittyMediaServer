@@ -173,8 +173,10 @@ void Analyzer::spectrumRow(double dt, bool silent)
     }
     specPeak_ = std::max({top, specPeak_ * std::exp(-dt / 8), 0.002});
     const double rangeDb = 52;
-    frame_.historyRow = (frame_.historyRow + 1) % kHistoryRows;
-    const size_t histAt = size_t(4 + frame_.historyRow) * w;
+    historyDue_ += dt * kHistoryRate;
+    const int moved = std::min(kHistoryRows, int(std::floor(historyDue_)));
+    historyDue_ -= std::floor(historyDue_);
+    frame_.historyMoved = moved;
     for (int i = 0; i < w; i++) {
         const double db = silent ? -120 : 20 * std::log10(std::max(re_[i], 1e-9) / specPeak_);
         const double target = clamp01(1 + db / rangeDb) * std::min(1.15, sensitivity);
@@ -185,7 +187,10 @@ void Analyzer::spectrumRow(double dt, bool silent)
         const uint8_t b = byteOf(s);
         row[i] = b;
         row[size_t(3) * w + i] = byteOf(peaks_[i]);
-        row[histAt + i] = b;
+    }
+    for (int k = 0; k < moved; k++) {
+        frame_.historyRow = (frame_.historyRow + 1) % kHistoryRows;
+        std::copy_n(row.begin(), w, row.begin() + size_t(4 + frame_.historyRow) * w);
     }
 }
 

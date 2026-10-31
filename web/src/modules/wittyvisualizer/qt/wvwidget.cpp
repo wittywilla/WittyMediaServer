@@ -84,7 +84,7 @@ bool VisualizerView::calm() const { return settings_->calm >= 0 ? settings_->cal
 
 QStringList VisualizerView::inRunning() const
 {
-    return eligible(builtinEffects(), *settings_, calm(), budget_.frameGap > 0 && budget_.scale <= budget_.floor() + 1e-3);
+    return eligible(builtinEffects(), *settings_, calm(), software_ || (budget_.frameGap > 0 && budget_.scale <= budget_.floor() + 1e-3));
 }
 
 void VisualizerView::resetBudget()

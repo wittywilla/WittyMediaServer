@@ -120,7 +120,6 @@ else
   say "Dry run: nothing here or on GitHub changes"
   for t in python3 zip sha256sum; do command -v "$t" >/dev/null 2>&1 || die "a dry run needs $t"; done
   python3 -c 'import yaml' 2>/dev/null || die "a dry run needs PyYAML (pip install pyyaml)"
-  go_cache=$(go env GOCACHE)
   real_mod=$(go env GOMODCACHE)
   npm_cache=$(npm config get cache)
   source_top=$top
@@ -162,10 +161,13 @@ else
 	insteadOf = ssh://git@github.com/$OWNER/
 	insteadOf = git@github.com:$OWNER/
 EOF
-  export GOCACHE="$go_cache" GOMODCACHE="$work/gomod" GOFLAGS=-modcacherw
+  # Its own build cache too: Go indexes a module in the cache by its path, and these versions are not the real ones.
+  export GOCACHE="$work/gocache" GOMODCACHE="$work/gomod" GOFLAGS=-modcacherw
   export GOPRIVATE="github.com/$OWNER/*"
   export GOPROXY="file://$real_mod/cache/download,https://proxy.golang.org"
   export npm_config_cache="$npm_cache"
+  mkdir -p "$work/tmp"
+  export TMPDIR="$work/tmp"
   repo_url() { echo "file://$work/bare/$1.git"; }
 
   if [ ! -d "$work/wms" ]; then
@@ -333,6 +335,15 @@ pin_go() { # <dir>
   (cd "$dir" && GOWORK=off run go mod tidy)
 }
 
+# A lock file keeps the commit it knew for a module even when package.json asks for
+# a tag, so those entries go first and npm looks the tags up again.
+fresh_lock() { # <dir>
+  if [ -f "$1/package-lock.json" ]; then
+    node -e 'const fs=require("fs"),f=process.argv[1],l=JSON.parse(fs.readFileSync(f));for(const k of Object.keys(l.packages||{}))if(/node_modules\/@wittywilla\//.test(k))delete l.packages[k];fs.writeFileSync(f,JSON.stringify(l,null,2))' "$1/package-lock.json"
+  fi
+  (cd "$1" && run npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent)
+}
+
 pin_npm() { # <dir>
   local dir=$1
   [ -f "$dir/package.json" ] || return 0
@@ -350,6 +361,8 @@ for (const [name, spec] of Object.entries(p.dependencies || {})) {
   if (!released[m[1]]) throw new Error(`${file} needs ${m[1]}, which comes later in the order`)
   p.dependencies[name] = `github:wittywilla/${m[1]}#${released[m[1]]}`
 }
+// The app imports a module's stylesheets by name, and exports has to allow that.
+if (p.exports && !p.exports['./*.css']) p.exports['./*.css'] = './*.css'
 // Building a bundle needs the bundler, in the module's own repository.
 if (p.scripts && p.scripts['build:bundle'] && !(p.devDependencies && p.devDependencies.vite)) {
   const app = JSON.parse(fs.readFileSync(appFile, 'utf8'))
@@ -359,7 +372,7 @@ if (p.scripts && p.scripts['build:bundle'] && !(p.devDependencies && p.devDepend
 const out = JSON.stringify(p, null, 2) + '\n'
 fs.writeFileSync(file, crlf ? out.replace(/\n/g, '\r\n') : out)
 NODE
-  (cd "$dir" && run npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent)
+  fresh_lock "$dir"
 }
 
 # Builds and tests the way a stranger's `go install` would.
@@ -373,7 +386,7 @@ check_alone() { # <dir>
 
 # Real run: the release workflow, on GitHub.
 wait_release_real() { # <repository> <tag> <delivery> <module path or empty>
-  local repo=$1 tag=$2 delivery=$3 mod=$4 id="" i assets
+  local repo=$1 tag=$2 delivery=$3 mod=$4 id="" assets
   if ! "$GH" release view "$tag" --repo "$OWNER/$repo" --json tagName >/dev/null 2>&1; then
     for _ in $(seq 1 30); do
       id=$("$GH" run list --repo "$OWNER/$repo" --workflow release.yml --branch "$tag" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
@@ -422,18 +435,34 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
   say "$repo: its CI, from a clean clone"
   run python3 "$kit_dir/workflow.py" run "$flow/ci.yml" test --state "$state" --checkout "$clone" --ref main --repo "$OWNER/$repo"
   (cd "$clone" && rm -rf node_modules dist release)
-  say "$repo: its release build, with no key and no write token"
-  # Copied wrong? The tag check has to say so.
-  if python3 "$kit_dir/workflow.py" run "$flow/release.yml" build --state "$state" --checkout "$clone" --ref v9.9.9 --only "The tag must match the version" >/dev/null 2>&1; then
+  say "$repo: its release tests, on a machine of their own"
+  run python3 "$kit_dir/workflow.py" run "$flow/release.yml" test --state "$state" --checkout "$clone" --ref "$tag" --repo "$OWNER/$repo"
+  (cd "$clone" && git clean -qfdx)
+  # Copied wrong? The tag check has to say so. A library has no build job, and checks in its tests.
+  tag_job="test"
+  if signs "$delivery" || [ "$delivery" = app ]; then tag_job="build"; fi
+  if python3 "$kit_dir/workflow.py" run "$flow/release.yml" "$tag_job" --state "$state" --checkout "$clone" --ref v9.9.9 --only "The tag must match the version" >/dev/null 2>&1; then
     die "$repo's release didn't notice a tag that differs from its version"
   fi
-  run python3 "$kit_dir/workflow.py" run "$flow/release.yml" build --state "$state" --checkout "$clone" --ref "$tag" --repo "$OWNER/$repo"
+  if [ "$tag_job" = build ]; then
+    say "$repo: its release build, from a fresh checkout, with no key and no write token, running no tests"
+    run python3 "$kit_dir/workflow.py" run "$flow/release.yml" build --state "$state" --checkout "$clone" --ref "$tag" --repo "$OWNER/$repo"
+  fi
   if signs "$delivery"; then
     say "$repo: signing on a clean machine"
     if python3 "$kit_dir/workflow.py" run "$flow/release.yml" sign --state "$state" --ref "$tag" >/dev/null 2>&1; then
       die "$repo's release signed with no key"
     fi
     echo "   with the secret missing it stops, as it should"
+    # What a compromised build in another repository would try, since they share a key.
+    good_sums=$(find "$state/artifacts/sums" -name '*-SHA256SUMS.txt' | head -1)
+    cp "$good_sums" "$state/good-sums"
+    echo "0000000000000000000000000000000000000000000000000000000000000000  someothermodule-9.9.9-linux-amd64.tar.gz" >> "$good_sums"
+    if python3 "$kit_dir/workflow.py" run "$flow/release.yml" sign --state "$state" --ref "$tag" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key" >/dev/null 2>&1; then
+      die "$repo's release signed a list that names another module"
+    fi
+    cp "$state/good-sums" "$good_sums"
+    echo "   a checksum list naming another module is refused"
     run python3 "$kit_dir/workflow.py" run "$flow/release.yml" sign --state "$state" --ref "$tag" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key"
   fi
   run python3 "$kit_dir/workflow.py" run "$flow/release.yml" publish --state "$state" --ref "$tag" --repo "$OWNER/$repo"
@@ -446,25 +475,38 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
     say "$repo: withdrawing a version twice, with a hostile reason"
     wd="$state/withdrawals"
     mkdir -p "$wd"
-    for v in "${tag#v}" 0.0.1; do
+    withdraw_as() { # <version> <reason>: the three jobs, in order
       (
         export FAKE_GH_DIR="$wd" PATH="$work/bin:$PATH"
-        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" list --state "$state/w" --repo "$OWNER/$repo" --set "inputs.version=$v" --set inputs.severity=broken \
-          --set "inputs.reason=Broke \"things\"; \$(touch $work/pwned) \`touch $work/pwned\`"
-        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" sign --state "$state/w" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key"
-        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" publish --state "$state/w" --repo "$OWNER/$repo"
+        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" fetch --state "$state/w" --repo "$OWNER/$repo" &&
+          python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" sign --state "$state/w" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key" \
+            --set "inputs.version=$1" --set inputs.severity=broken --set "inputs.reason=$2" &&
+          python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" publish --state "$state/w" --repo "$OWNER/$repo"
       )
+    }
+    for v in "${tag#v}" 0.0.1; do
+      withdraw_as "$v" "Broke \"things\"; \$(touch $work/pwned) \`touch $work/pwned\`"
     done
     list=$(find "$wd/withdrawals" -name '*-withdrawn.json')
     "$work/bin/verify" "$public_key" "$list" || die "$repo's list of withdrawn versions has a bad signature"
     grep -q '"serial": 2' "$list" || die "$repo's list of withdrawn versions didn't go on from the one before"
     [ ! -e "$work/pwned" ] || die "a withdrawal's reason ran as a command"
     grep -q -- '--prerelease --latest=false' "$wd/withdrawals.created" || die "the withdrawals release isn't a prerelease that's never latest"
-    if FAKE_GH_DIR="$wd" PATH="$work/bin:$PATH" python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" list --state "$state/w" --repo "$OWNER/$repo" \
-      --set 'inputs.version=-bad' --set inputs.severity=broken --set inputs.reason=x >/dev/null 2>&1; then
+    if withdraw_as -bad x >/dev/null 2>&1; then
       die "the withdraw workflow took something that isn't a version"
     fi
-    echo "   list signed, serial went up, the reason stayed text, a bad version was refused"
+    # Someone who can write to the release's files, and not to the key.
+    cp "$list" "$state/good-list"
+    sed -i 's/"serial": 2/"serial": 99/' "$list"
+    if withdraw_as 0.0.2 x >/dev/null 2>&1; then
+      die "the withdraw workflow signed a list that wasn't signed before"
+    fi
+    cp "$state/good-list" "$list"
+    rm -f "$list.sig"
+    if withdraw_as 0.0.2 x >/dev/null 2>&1; then
+      die "the withdraw workflow signed a list with no signature"
+    fi
+    echo "   list signed, serial went up, the reason stayed text; a bad version, a changed list and a list with no signature were refused"
   fi
   (cd "$clone" && rm -rf node_modules dist release)
 }
@@ -509,7 +551,7 @@ release_module() { # <dir> <repository>
     if [ "$version" != "$current" ]; then
       echo "   raising it to $version: v$current is taken"
       set_version "$dir" "$version"
-      [ -f "$dir/package-lock.json" ] && (cd "$dir" && run npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent)
+      [ -f "$dir/package-lock.json" ] && fresh_lock "$dir"
       [ "$repo" = WittyModule ] && run bash scripts/module-kit.sh --tool "v$version" "$dir"
       git add -- "$dir"
     fi
@@ -553,7 +595,7 @@ done
 say "This repository: from module folders to released versions"
 run git rm -rq -- modules web/src/modules apps/wittyreader
 rm -rf modules web/src/modules apps/wittyreader
-rmdir apps 2>/dev/null || echo "   apps/ stays: it holds $(ls apps | tr '\n' ' ')"
+if [ -d apps ]; then rmdir apps 2>/dev/null || echo "   apps/ stays: it holds $(ls apps | tr '\n' ' ')"; fi
 run git rm -q -- go.work go.work.sum scripts/mirror.sh scripts/release-module.sh
 run node scripts/module-kit/cutover-server.mjs "$top" "$released_json"
 
@@ -571,12 +613,12 @@ export GOWORK=off
 run go mod tidy
 
 say "package-lock.json names released tags"
-(cd web && run npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent)
+fresh_lock web
 (cd web && run npm ci --ignore-scripts --no-audit --no-fund --silent)
 run node web/scripts/sync-module-manifests.mjs
 echo "   web/module-manifests: $(ls web/module-manifests | tr '\n' ' ')"
 
-git add -A -- . ':!web/dist'
+git add -A -- .
 if [ -n "$apply" ]; then
   run git -c user.name="$NAME" -c user.email="$EMAIL" commit -q -m "The modules live in their own repositories, and the server consumes released versions"
 else
@@ -588,7 +630,7 @@ fi
 say "The server builds from released versions, with no modules/ folder"
 for gone in modules web/src/modules apps/wittyreader go.work scripts/mirror.sh; do [ ! -e "$gone" ] || die "$gone is still here"; done
 if grep -q '^replace' go.mod; then die "go.mod still has replace lines"; fi
-leftover=$(git grep -nE '(^|[^a-z/])modules/witty|\./modules/witty|src/modules|apps/wittyreader' -- . ':!docs' ':!CHANGELOG.md' ':!scripts/module-kit' ':!scripts/module-kit.sh' ':!scripts/cutover-modules.sh' ':!scripts/dev-modules.sh' ':!clients/wittymediaclient/docs' || true)
+leftover=$(git grep -nE '(^|[^a-z/])modules/witty|\./modules/witty|"modules", *"witty|"src", "modules"|src/modules|apps/wittyreader' -- . ':!docs' ':!CHANGELOG.md' ':!scripts/module-kit' ':!scripts/module-kit.sh' ':!scripts/cutover-modules.sh' ':!scripts/dev-modules.sh' ':!clients/wittymediaclient/docs' || true)
 if [ -n "$leftover" ]; then printf '%s\n' "$leftover"; die "these still name a module's folder"; fi
 go list -m -f '{{if .Replace}}REPLACED {{.Path}}{{else}}{{.Path}} {{.Version}}{{end}}' all | grep "^github.com/$OWNER/\|^REPLACED" || true
 if go list -m -f '{{if .Replace}}REPLACED{{end}}' all | grep -q REPLACED; then die "something in the build is still replaced"; fi
@@ -602,7 +644,7 @@ fi
 run go vet ./...
 run go build -o "$top/.build/wms-cutover" ./cmd/wms
 run go build -o "$top/.build/wittyplay-host-cutover" "github.com/$OWNER/wittyplay/cmd/wittyplay-host"
-for t in windows/amd64 linux/arm freebsd/arm64 darwin/arm64; do
+for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do
   flags=()
   case $t in freebsd/*) flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std") ;; esac
   say "Cross-compiling for $t"
@@ -670,12 +712,16 @@ $(cat "$released_json")
 Proved here:
   - Every module's folder publishes with its history, and each new tag holds it.
   - Each one, from a clean clone with no sibling folders: its CI's vet, test and every
-    platform's build, its release build, signing on a machine with nothing else, and
-    the checksum list and signature checked by a separate program.
-  - A missing key stops a release. A wrong tag stops a release. A hostile reason in a
-    withdrawal stays text, and the list's serial goes up.
+    platform's build, its release tests, a build from a fresh checkout, signing on a
+    machine with nothing else, and the checksum list and signature checked by a
+    separate program.
+  - A missing key stops a release. A wrong tag stops a release. A checksum list naming
+    another module isn't signed.
+  - A withdrawal: a hostile reason stays text, the list's serial goes up, and a list
+    someone changed, or one with no signature, is refused. (gh is a stand-in here.)
   - Each workflow keeps the rules: pinned actions, no permissions by default, no
-    expressions in commands, the key only where nothing else runs.
+    expressions in commands, the key only where nothing else runs, no tests where
+    a release is packed.
   - The server, with no modules/ folder, no go.work and no replace lines: go.mod and
     package-lock.json name those tags, the web app and every platform build, it starts
     and serves its page, and its tests pass.

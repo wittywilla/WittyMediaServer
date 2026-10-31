@@ -61,10 +61,7 @@ names. So do features inside a plugin, such as the selection toolbar or the eras
 
 ## How the code is organised
 
-Everything is developed **in this repository**, so a change that touches the server and a plugin
-is one commit and one test run. Each plugin lives in its own folder, and that folder is
-**mirrored to the plugin's public repository** when a version is released. Apps that are not
-the server live under `apps/` and are mirrored the same way.
+Until [the cutover](MODULES-CUTOVER.md), everything is still developed in this repository, with each plugin in its own folder. Each folder is built to be its repository's root: it holds its own workflows, licence and README, and needs nothing from here to build, sign or publish.
 
 ```
 web/src/modules/            web plugins (React)
@@ -95,32 +92,18 @@ Each plugin and app folder carries what its own repository needs:
 - **NOTICE:** credits *"<name>, developed by WittyWilla"*. The licence requires anyone who
   redistributes the code or builds on it to keep that attribution.
 
-`scripts/mirror.sh` publishes the folders and their wikis.
+### Versions
 
-### Releasing the Go modules
-
-WittyDisc, WittyDVD and WittyBluray are versioned Go modules, so anyone can
-`go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest` without this repository.
-In here, `go.work` builds them against each other's local source, and the server's `go.mod`
-points at the same folders with `replace` directives. The engines' own `go.mod` files require
-released versions only, which is what their mirrors are built from.
-
-`scripts/mirror.sh <Repository> <vX.Y.Z>` publishes a module and tags what it published. It
-refuses when the folder has uncommitted changes, when its `go.mod` has a `replace` directive, or
-when the module does not build and pass its tests on its own (`GOWORK=off`). Tags never move.
-WittyDisc goes first, because the engines require it:
+Versions move in small steps as work lands. A bump isn't a release: nothing is tagged or published by one.
 
 ```bash
-scripts/mirror.sh WittyDisc v0.2.0
-(cd modules/wittydvd && GOWORK=off go get github.com/wittywilla/wittydisc@v0.2.0 && GOWORK=off go mod tidy)
-(cd modules/wittybluray && GOWORK=off go get github.com/wittywilla/wittydisc@v0.2.0 && GOWORK=off go mod tidy)
-git commit -am "WittyDVD and WittyBluray require WittyDisc v0.2.0"
-scripts/mirror.sh WittyDVD v0.2.0
-scripts/mirror.sh WittyBluray v0.2.0
+go run ./modules/wittymodule/cmd/wittymodule bump -note "Reads a new format." -changelog CHANGELOG.md -consumer . modules/wittyphotos
+scripts/bump-server.sh 0.4.1-alpha "What changed."
 ```
 
-An engine whose code has not changed since its last release needs no new tag. Versions stay
-below v1 while the APIs settle, so a minor version may change them.
+The first raises a plugin's version in its `module.json` and `package.json`, in the server's `go.mod` and web dependencies, and in the changelog, and refuses anything not newer. The second does the same for the server and says which plugins' ranges no longer cover it. In a plugin's own repository, CI runs `wittymodule needs-bump`, which fails when it has changed since its last tag and still has that tag's version, since tags never move.
+
+Versions stay below v1 while the APIs settle, so a minor version may change them.
 
 ### Rules every plugin follows
 
@@ -186,20 +169,21 @@ A plugin can be updated without a new server, and each plugin says which servers
 
 ### Plugins are their own projects
 
-A plugin is heading towards being a project of its own, used by the server, rather than a
-read-only copy of a folder in this repository. Each one has its own repository, version number,
-releases and tests, and needs nothing from this repository to build, sign or publish. The server
-uses a plugin in two ways, and both come from the plugin's own releases:
+A plugin is a project of its own, used by the server, rather than a read-only copy of a folder in this
+repository. Each one has its own repository, version number, releases and tests, and needs nothing
+from this repository to build, sign or publish. The server uses a plugin in two ways, and both come
+from the plugin's own releases:
 
 - **The built-in copy**: `go.mod` requires a released version, which is compiled in as the fallback.
-- **Newer signed releases**: downloaded at runtime from the plugin's own GitHub releases.
+- **Newer or older signed releases**: downloaded at runtime from the plugin's own GitHub releases.
 
 The cost is that a change touching both the server and a plugin becomes two commits and two
 releases. The [module API version](#the-manifest) is what keeps those two apart safely.
 
-**Where this stands today:** the code is still developed in this repository and mirrored, because
-moving it means pushing and changing repositories. Each plugin folder is already built to stand
-alone, so [the cutover](#moving-a-plugin-to-its-own-repository) is short.
+**Where this stands today:** the code still lives in this repository until the cutover, which needs
+pushing and tagging and so waits for the owner's go-ahead. Every piece is built and tested. The
+checklist and script are in [MODULES-CUTOVER.md](MODULES-CUTOVER.md). Until then no release of any
+plugin exists in its new form, so nothing new reaches anyone yet.
 
 ### How each kind can really be replaced
 
@@ -224,26 +208,34 @@ slower):
 
 WebAssembly's one-file-for-all is appealing and its sandbox is the strongest, but compiling costs
 more than the job it does on a small box, and the two 32-bit targets would run it interpreted. It is
-worth another look if a plugin ever runs code from strangers. Today every plugin is signed by the
-project.
+worth another look if plugins from strangers become common.
 
-| Plugin | Decision | Why |
-|---|---|---|
-| **WittyPhotos** | Helper: **converted** | Stateless parsers of untrusted files, and scanning already does file I/O per call |
-| WittyDVD, WittyBluray | Helper, one per open disc, **later** | Performance turns out not to be the obstacle: FFmpeg already reads the disc image directly from the extents the engine gives it, so video never passes through the engine, only menus and button presses. The work is the size of the API the session code uses (`internal/dvdsession`, `internal/bdsession`) |
-| WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
-| WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
-| WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
-| WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |
-| WittyVisualizer | Web bundle: **converted** | It's all client code, and the app asks for a bundle only when someone opens it. The desktop app builds in its copy, with shaders baked at build time |
-| WittyInk, WittyEbook, WittyPDF, WittyComics | Web bundle, **later** | Designed below; not built yet |
+### What each plugin can really do
 
-**Web bundles (design, not built).** A release holds ES modules built with `react` and
-`@wittywilla/wittyink` left external, served from `/api/modules/{id}/web/`, so the app's existing
-`script-src 'self'` still applies. The app asks for the active version and uses `import()` on it, and
-if that fails it uses the copy in its own bundle. A bundle runs with the signed-in person's access, so
-it is held to the same signature rule as a helper. Service workers and the desktop and TV clients'
-caching need checking when this is built.
+"Apart from the server" means a release of its own reaches a server with no new server. No plugin is all the way there, since part of each lives in the server or the app, so this says which part. The same words are in each plugin's manifest and on the Modules page.
+
+| Plugin | Updates apart from the server? | What a release changes | What still needs a new server, and what it would take |
+|---|---|---|---|
+| **WittyPhotos** | **Yes**, a helper | Reading EXIF, picture sizes, the preview in RAW files | The photo pages in the app |
+| **WittyIntegratedFileBrowser** | **Yes**, a helper | Finding drives and folders, and listing them | The window in the app, and naming what kind each file is |
+| **WittyDVD** | **Mostly**, a helper per open disc | The engine a viewer plays through: the disc's structure, menus, buttons and commands, where its video lies, subtitles | Library scanning, the title list on a disc's page and playing a title without its menus still use the built-in copy. Moving those means a helper during scans too. The session code turning steps into streams stays, as does refusing encrypted discs, on purpose |
+| **WittyBluray** | **Mostly**, a helper per open disc | Playing a disc: playlists and clips, running its program, reading menus and subtitles | Library scanning, drawing menus, and discs with Java menus, which the built-in copy plays because Java is tied into the server's session. The server opens every disc itself first, to check encryption and Java, so a disc it can't read at all needs a new server |
+| **WittyTuner** | **Partly**, a helper per question and per stream | Network tuners, IPTV over HTTP and external backends | Custom commands, capture cards, Linux DVB, SAT>IP and other IPTV kinds, which need other programs or this machine's devices, and a helper may use neither. Recording and the guide. Refusing encrypted channels stays on purpose: the server watches every stream itself |
+| **WittyPlay** | **Partly**, a program | Running games: how the runner uses cores, its picture, sound and controller input | The streaming half (WebRTC and encoding), the console tables and the player. Moving those means splitting the server's streaming into a process of its own, which low-end boxes pay for on every frame, so it stays for now |
+| **WittyEbook** | **Yes**, a web bundle | The reader itself | The Reader page and the host it provides, and how the server takes a book apart |
+| **WittyPDF** | **Mostly**, a web bundle | The reader itself | pdf.js and its worker, which do the actual reading, so it isn't carried twice |
+| **WittyComics** | **Yes**, a web bundle | The reader itself | The Reader page and the host, and how the server opens comic archives |
+| **WittyVisualizer** | **Yes**, a web bundle | The visualizer itself: its effects, how it listens, its controls and look | Where it shows in the audio player and how settings are saved. The desktop app builds in its own copy, with shaders baked at build time |
+| **WittyInk** | **Partly**, a web bundle | What readers share | It only reaches a reader that is itself running a bundle: one using the app's copy has the app's WittyInk |
+| **WittyDisc** | **No**: a library | Nothing on its own | It reaches a server inside WittyDVD and WittyBluray's helpers. The built-in copies move with a new server |
+| **WittyModule** | **No**: a library | Nothing on its own | The contract between the two sides, so it changes with care and reaches a server inside the plugins built with it |
+
+Films, music, podcasts, vertical videos and creator videos (WittyVideo, WittyAudio, WittyPodcasts, WittyShorts, WittyChannels) are part of the server. They can be added and removed like any plugin, and update with the server.
+
+**What it costs.** Nothing at all until a downloaded version is in use: the built-in copy runs as it always has. With one, opening a disc adds a process of 23 to 109 MB and 1 to 3 seconds, and a button press costs about a millisecond more. Video never passes through a helper. A reader bundle adds one small request when a reader opens, and 3.9 KB to the Reader page.
+
+**Keeping the two sides in step.** The helpers and the server compile the same types separately. The disc engines send them in Go's self-describing format, which tolerates added fields. Anything that changes their meaning raises the module API. WittyPlay's runner has its own number (`ipc.Version`, and `capabilities.ipc` in its manifest), and a server refuses a runner with another. When a session calls a new engine method, it has to be added to that session's `engine.go`, the helper and the checks on what comes back.
+
 
 ### The manifest
 
@@ -260,15 +252,37 @@ two can't disagree:
   "entry": "wittyphotos-module",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "photos",
+  "summary": "Photo libraries: what a photo says about itself.",
+  "libraries": ["photos"],
+  "updates": "Reading EXIF, picture sizes, and the preview inside RAW files.",
+  "stays": "The photo pages in the app."
 }
 ```
 
-`delivery` is `helper`, `web`, or `builtin` for a plugin that isn't converted yet and only updates with
-the server. `api` is the **module API version** it was built for. The server has a range it speaks
+`delivery` is one of:
+
+| Delivery | What a release holds | How it runs |
+|---|---|---|
+| `helper` | A program per platform | A separate process that speaks the [helper protocol](#the-helper-protocol-module-api-1) |
+| `program` | A program per platform | The server starts it for one job, in that job's own protocol. It must also answer the hello, so an install can check it runs |
+| `web` | One bundle for every platform | The browser loads it under the page's content security policy |
+| `library` | Nothing to install | Linked into others, and reaches a server inside them |
+| `builtin` | Nothing to install | Part of the server, and updates with it |
+
+`api` is the **module API version** it was built for. The server has a range it speaks
 (`wittymodule.API` down to `wittymodule.MinAPI`). Adding to the API raises only the top. Breaking it
 raises the bottom too, which disables older plugins, so that is done rarely. It is one number for the
-whole server, as the helper protocol and host interfaces are one contract.
+whole server, as the helper protocol and host interfaces are one contract. API 2 adds attached helpers,
+streams, programs and bundles to API 1.
+
+The rest is there for the people choosing: `group`, `summary` and `needs` describe it, `libraries` says
+which kinds of library need it, `requires` and `core` say what it is built on, and `updates` and `stays`
+say honestly which parts of it a release really changes and which only a new server can.
+
+`dataFormat` and `dataFrom` number the shape of the data a version keeps and the oldest it can read.
+See [Data survives a version change](#data-survives-a-version-change).
 
 ### Version ranges, including the edges
 
@@ -287,7 +301,8 @@ Ordering is [semantic versioning](https://semver.org), so a pre-release comes be
 `maxServer` is required, and `x` alone is not allowed: every plugin states a real maximum.
 
 Pre-release *plugins* are offered only to a server that is itself a pre-release, or that already runs
-that plugin's pre-release. A stable server never gets one by surprise, but keeps one it already has.
+that plugin's pre-release. A stable server never gets one by surprise, but keeps one it already has, and
+an admin may still choose one from the list of versions, after a warning.
 
 A server whose version can't be read (a build from a commit with no tag) can't be compared, so it uses
 built-in copies only and says so.
@@ -301,21 +316,23 @@ first of these that passes, and the settings page says in plain words what happe
 
 The refused version stays on disk, in case the server is rolled back, and the next check looks for a
 release whose range fits. If the built-in copy is newer than the installed one, the built-in one is
-used. A plugin never holds a server back.
+used, unless someone chose the older version on purpose. A plugin never holds a server back.
 
 ### Updating
 
 Nothing leaves the server unless settings allow it, and the server works the same offline.
 
 - `moduleUpdateCheck` looks for plugin updates twice a day. If never set, it follows `updateCheck`, so
-  an owner who turned off update checks gets no new traffic. Pressing **Check now** always works.
+  an owner who turned off update checks gets no new traffic. Pressing **Check now** always works, and it
+  is the only other thing that goes online. Opening a list of versions doesn't.
 - `moduleAutoInstall` installs compatible updates without asking. Off by default.
+- Each module that updates on its own also has its own switch, **Update this module by itself**. Off, it still looks for updates and shows them, and waits for an admin to install them. Unlike a pin, this says nothing about which version stays, so choosing a newer one by hand leaves it free. Parts of the server have no such switch, since they update with the server.
+- A module taken off this server asks nobody anything.
 
-**The same trust as server updates:** the keys in `internal/update/keys.go`, Ed25519 over a checksum
-list, GitHub over HTTPS as the only source. There is one signing key rather than one per plugin, since
-a helper runs with the same power as the server and a second key would protect nothing more. Only
-plugins the server already knows are accepted, and this project's key must have signed them; plugins
-from other people aren't supported.
+**The same trust as server updates:** Ed25519 over a checksum list, GitHub over HTTPS as the only source.
+Only plugins the server already knows are accepted. GitHub is trusted for nothing except delivering files:
+it can hold a release back, but it can't forge one, and release notes are shown as plain text, marked as
+coming from GitHub.
 
 A release of version `V` has one signed list covering everything:
 
@@ -323,34 +340,158 @@ A release of version `V` has one signed list covering everything:
 <id>-V-SHA256SUMS.txt       hashes of each archive, the manifest, and every file in each archive
 <id>-V-SHA256SUMS.txt.sig   its signature
 <id>-V-module.json          the manifest, so a release can be judged before downloading it
-<id>-V-<os>-<arch>.tar.gz   the files (.zip on Windows)
+<id>-V-<os>-<arch>.tar.gz   a program's files (.zip on Windows), or
+<id>-V-web.tar.gz           a bundle's files, the same for every platform
 ```
 
-**Check.** Reads the plugin's releases, newest first. For each newer one, up to five, it fetches the
-list, signature and manifest, and verifies them. The first compatible one is offered. A newer one that
-doesn't fit is reported ("0.3.0 needs server 0.5.0 or newer") so the reason is visible.
+**Check.** Reads the plugin's releases. An unchanged answer costs GitHub nothing (a conditional request
+isn't counted against the limit on requests). A release not seen before has its list, signature and
+manifest fetched and verified, up to twelve per check. What was learned is kept in
+`<data>/modules/<id>/feed.json` and verified again when it is read, so the list of versions works offline
+and a changed file there is ignored. If GitHub asks this network to wait, every plugin waits until then, and
+the page says until when.
 
 **Install**, each step of which leaves the running plugin untouched if it fails:
 
-1. Verify the list's signature, and the manifest's hash and compatibility.
+1. Verify the list's signature, and that the manifest is for this plugin, this version and this repository.
 2. Download the archive, hashing as it arrives, and stop at the size in the release.
 3. Unpack to a work folder, refusing links and paths that climb out.
 4. Check every file against the signed list, refusing any extra or missing file.
-5. Start the helper once. Its hello must name the same plugin, version and API.
+5. Start the helper once, where there is one. Its hello must name the same plugin, version and API.
 6. Rename the folder into `versions/V`, then save the state atomically.
 7. Switch over. The next call uses the new version, with no server restart.
 
-**Rollback.** Automatic if three calls in a row fail at the process level (crash, hang, garbage): that
-version is blocked with the reason and the previous version or built-in copy takes over. A bad file
-that a parser refuses is not a failure. An admin can also roll back by hand. A blocked version isn't
-installed automatically again, but an admin can still choose to.
+**Rollback.** Automatic if three calls in a row fail at the process level (crash, hang, garbage), or a
+browser reports a bundle failing three times in a day: that version is blocked with the reason and the
+previous version or built-in copy takes over. A bad file that a parser refuses is not a failure. An admin
+can also roll back by hand. A blocked version isn't installed automatically again, but an admin can still
+choose to. Only an admin's browser counts towards this: anyone else's report goes in the module's log for an admin to
+see, and their page has already fallen back to the app's copy.
 
 **On disk.** Everything is in `<data>/modules/`, never in the program folder, so this also works in
-containers and in protected installs. Only the active and previous versions are kept. The signed list
+containers and in protected installs. The active, previous and pinned versions are kept. The signed list
 stays beside the files and is checked again every time a helper starts, so a file changed on a shared
 data folder is refused rather than run. If the data folder doesn't allow programs to run (`noexec`,
 common on network shares), the install fails at step 5 with a plain message and the built-in copy
 carries on.
+
+### Choosing a version
+
+**Settings, Modules** lists every version a module has released, newest first, with its notes. A
+version that doesn't fit this server is shown with the reason, and can't be chosen.
+
+Choosing an older one warns first: it may lack fixes, including security fixes. Then it is installed and
+**pinned**, or the next automatic update would undo the choice. A pin holds through checks and restarts,
+and can also be set on whatever is in use. **Go back to the latest** ends the pin and moves to the newest
+version that fits, whether that is a release or the built-in copy. A version already on disk is switched
+to with no download, so going back works offline.
+
+Safety comes before a pin: a version withdrawn for security reasons, or one that keeps failing, goes out
+of use anyway, and the page says so.
+
+### Withdrawing a version
+
+A release can't be taken back from everyone who has seen it, and GitHub isn't trusted to say which ones are
+bad. So each plugin can publish a signed list, `<id>-withdrawn.json` and its `.sig`, on a release with the
+tag `withdrawals`. The **Withdraw a version** workflow in a plugin's repository does this, from the Actions tab.
+
+| Severity | Choosing it | If it is in use | Automatic updates |
+|---|---|---|---|
+| `broken` | A warning | Stays, with a warning | Never picked |
+| `security` | **Refused** | Goes out of use straight away, even if pinned | Never picked |
+
+The list has the plugin's name inside what is signed, so one plugin's list can't be used for another. It has a
+serial number that only goes up, and a server keeps the highest it has seen, so an old list can't bring a
+withdrawn version back, and hiding the list doesn't either. A newer signed list can restore a version.
+
+### Data survives a version change
+
+Nothing here changes a module's data. A version says, in its signed manifest, the newest format of data it
+writes (`dataFormat`) and the oldest it can read (`dataFrom`), and the server remembers the newest format used
+so far. A version that can't read what's there is **refused**, with the reason, both when choosing it and at
+every start: going back past a change of format can't lose data, because it doesn't happen. Today no module keeps
+private data, as notes, progress and saves belong to the server and survive anyway, so none declares a format
+yet. The first that does must set these.
+
+### Adding and removing modules
+
+Every module's code is compiled in, so adding one works straight away and offline. What a server has decides
+which **libraries can be made**, and that is enforced by the server, not only by the app: creating a library
+of a kind whose module isn't there is answered with what it needs.
+
+- **First-run setup** asks what you want, before you make libraries.
+- **Add library** shows the kinds that need a module in a greyed section, each with a button to add it there and
+  then, and a link to the store.
+- **Settings, Modules** is the store.
+
+**When two modules bring the same kind of library,** they share it: a discs library is one kind, and WittyDVD and
+WittyBluray each play their half of what's in it. The store says so under **Brings these libraries**, naming the others.
+A kind can also be given a name of this server's own there, such as "Blu-rays and DVDs", which is what Add library then
+shows. A name another kind already has is refused, so two can't read alike. What a kind is called doesn't change what it
+is, and clearing the name goes back to the usual one. Only the kinds a module's built-in copy declares count: a release
+or a fork can't claim a kind it didn't come with. A test lists which modules share a kind on purpose, so a new module
+that happens to pick one already in use is caught when it is added.
+
+A kind of library is available if any one module providing it is there, so a discs library needs WittyDVD or
+WittyBluray. A module can't be removed while libraries need it, and the reason names them. Removing touches no
+data. Its downloaded versions go, because the built-in copy is there if it comes back. Leaving a module out
+doesn't save disk space, since the code is still in the server: what it saves is a kind of library you don't
+want, and its update checks. Core modules, which others are built on, stay. A server that has never chosen has
+everything, so updating to this changes nothing.
+
+### Using someone's fork
+
+Someone can publish their own version of a stock module, and an admin can point that module at it. Every other
+part of the system then treats it as that module: the versions list, pinning, rollback, and the same place in
+the app. In the module's details, under Advanced, enter its repository and the public key its publisher gives
+you.
+
+**This is someone else's code running on your server, so only do it for a publisher you trust.**
+
+- Nobody has reviewed it. The signature proves it came from whoever holds that key, not that it's safe.
+- A helper or program can read what the server's account can read, which may include your media and the
+  server's database.
+- A reader bundle runs in the browser of whoever is reading, with their access, including an admin's. That is
+  the highest risk here, and the app can't limit it.
+- A key that leaks, or a publisher who turns, is as bad as the code being malicious from the start.
+
+What the server does about it:
+
+| | A stock module | A fork |
+|---|---|---|
+| Signed | With this project's key | With the key an admin gave, for this one module only |
+| Automatic updates | If the owner turned them on | **Never**: an admin chooses each version |
+| Network, Linux | Only WittyTuner | **None: no sockets at all, and it won't run if the system can't apply that** |
+| Changing what's in files, Linux | Refused | **Refused, and it won't run on a kernel too old to do so** (5.19 or newer) |
+| Windows | Can't change the server's files or start programs | The same, and **it keeps its network**, which the warning says |
+| macOS, FreeBSD | No limits | **No limits**, which the warning says |
+| Encrypted media | Refused | **Refused**: the server checks for itself, and only accepts file locations inside the disc |
+
+A forked game runner goes through the same limits, and may also write to its own save folder and open devices such as a
+graphics card. On Linux a fork's helper has no 32-bit build it can run on, since the filter those limits rely on needs a
+64-bit system.
+
+The server shows the key's fingerprint and the warning before anything changes, and shows "from another
+publisher" on that module for as long as it is in use. Check the fingerprint with the publisher, somewhere other
+than where you got the key. **Go back to the official version** undoes it, and removes what the fork installed.
+
+**WittyTuner can't be replaced by a fork.** It is what refuses encrypted channels, and it handles live streams
+with network access, so nothing outside it could tell whether a fork had kept that line. Disc engines can be
+replaced, because video never passes through them: FFmpeg reads the disc from locations the server has checked.
+This isn't a way to add decryption. The refusal doesn't depend on the module. There is no list of recommended forks
+and no store of other people's modules, and that is deliberate.
+
+To publish a fork: change `repo` in `module.json` to yours, keep the `id`, run `wittymodule keygen -key <file>`,
+and add that key as your repository's `WMS_SIGNING_KEY` secret. The release workflow that comes with the module
+does the rest. Give people the public key it printed.
+
+### Custom modules: in development
+
+Wholly new kinds of module, rather than replacements for ones the server already knows, aren't possible yet. The
+server only accepts modules it knows about, because it has nothing to connect an unknown one to. The store has a
+section saying so. What it would take: a host interface a helper can call back through, a way for one to add a
+library type and its pages, and a permission model strong enough for code nobody here has seen. WebAssembly, above,
+is the likely way to contain them.
 
 ### The helper protocol (module API 1)
 
@@ -367,14 +508,40 @@ helper → {"id":2,"error":"...","code":"no-preview"}
 ```
 
 A helper exits when stdin closes, so it can't outlive the server. The server starts it on first use and
-stops it after a minute idle, so it costs nothing when unused. `github.com/wittywilla/wittymodule` has
-both ends of the protocol, plus the manifest, version rules and release tool, and has no dependencies.
+stops it after a minute idle, so it costs nothing when unused. A job that keeps state, such as an open
+disc, has a helper of its own for as long as it lasts. A stream is a helper that gives one answer and then
+writes the stream. `github.com/wittywilla/wittymodule` has both ends of the protocol, plus the manifest,
+version rules and release tool, and has no dependencies.
 
-**Limits on a helper:** a small environment, a soft memory limit, one call at a time with a time limit,
-and a lower priority. Windows adds a low-integrity token (it can't write to the server's files) and a
-job (it dies with the server, memory cap, no child processes). Linux adds empty network and IPC
-namespaces where the system allows them. Encrypted media stays refused: no plugin, helper or not, gets
-a way around that.
+**Limits on a helper:**
+
+| | Everywhere | Linux | Windows | macOS, FreeBSD |
+|---|---|---|---|---|
+| Small environment, soft memory limit, one call at a time with a time limit | Yes | | | |
+| Hard memory limit | | Yes | Yes | No |
+| Can't write to or create files | | Yes (Landlock). Emptying a file too, from kernel 5.19 | Yes (low integrity) | No |
+| Can't change who owns a file or may use it, or reach into another process | | Yes on 64-bit (a call filter) | Yes | No |
+| No network | | Yes on 64-bit (no sockets, which also keeps it from socket files), and an empty network where namespaces are allowed | No | No |
+| Can't signal the server | | Yes where namespaces are allowed, or from kernel 6.12 | Yes | No |
+| Can't start programs | | No | Yes (job) | No |
+| Dies with the server | Yes, when stdin closes | Also on the server's death | Also by the job | |
+
+The Linux limits are applied by the server starting itself as a launcher, which applies them and then becomes
+the helper, so nothing in a helper can skip them. Containers often refuse unprivileged namespaces; a stock
+helper then runs without them, and a fork doesn't run. Reading is left alone on every system, since a helper reads
+media wherever it is: that is the one limit no system here gives, and why the warning above says so.
+
+On Windows a helper goes into its job just after it starts, so for a moment it is outside: a fork could in principle
+start a program in that moment, which would still have the low integrity. Starting it suspended closes that gap, and made
+helpers hang at random for half a minute in testing, so it isn't done.
+
+**What these don't protect against.** Someone who can write to the data folder can change the accounts in the
+database, so that folder has to be protected whatever is done here. `verifyInstalled` catches a changed file, and a fork
+named in the state file that couldn't have been chosen is ignored, but such a person can still name a fork of a module
+that can be forked. A fork's menus and subtitles are pictures the server can't read, and it checks only samples of a disc
+for encryption, so a disc scrambled only in places a sample misses could in principle show a fork's pictures of it.
+FFmpeg still can't play such a disc's video.
+Encrypted media stays refused: no plugin, helper or not, gets a way around that.
 
 ### Releasing a plugin
 
@@ -382,32 +549,58 @@ a way around that.
 
 ```bash
 go run github.com/wittywilla/wittymodule/cmd/wittymodule check .
-go run github.com/wittywilla/wittymodule/cmd/wittymodule pack -out release .
+go run github.com/wittywilla/wittymodule/cmd/wittymodule pack -out release .            # programs
+go run github.com/wittywilla/wittymodule/cmd/wittymodule pack -out release -web dist . # a bundle
 go run github.com/wittywilla/wittymodule/cmd/wittymodule sign release/wittyphotos-0.2.0-SHA256SUMS.txt
 ```
 
-`sign` uses the same key as `wms-sign` (`WMS_SIGNING_KEY`, then `~/.wms-signing/release.key`). A plugin's
-`.github/workflows/release.yml` runs these when a `v*` tag lands in its own repository, then publishes
-the GitHub release. That workflow does nothing in this repository, since GitHub only reads workflows
-from a repository's root. While a plugin still lives here, `scripts/release-module.sh modules/wittyphotos
-v0.2.0` does the same from your own machine.
+A plugin's `.github/workflows/release.yml` runs these when a `v*` tag lands in its own repository, then
+publishes the GitHub release. The building job has no signing key and no write token. The signing job runs on a
+clean machine, in a `release` environment, and sees only the checksum list and the key. `scripts/module-kit.sh`
+generates these workflows, and they do nothing in this repository, since GitHub only reads workflows from a
+repository's root.
 
 CI runs `wittymodule check -server <this server's version>` over every manifest, so a server version
 that falls outside a plugin's range fails until its `maxServer` is raised.
 
+### Signing
+
+**The recommendation is one module key, separate from the server's release key, not one per module.**
+
+- A release key can sign a server, which runs with no limits at all. A key that signs modules has to sit in
+  thirteen repositories' secrets, where it is far more exposed, so it shouldn't be able to. `moduleKey` in
+  `internal/update/keys.go` is trusted for modules and never for a server.
+- One key per module would mean thirteen keys to look after, and a new server for every rotation. What it would buy
+  is real but limited: a leak from one repository couldn't sign another module's helper. A bundle signed with a leaked
+  key can already act as an admin in that admin's browser, though, which reaches everything the same way.
+- Because one key is shared, a compromised build in any repository could ask for any module to be signed. So the
+  signing job refuses a checksum list naming anything but its own module and version, and **required approval on the
+  `release` environment, with a protection rule on `v*` tags, is strongly recommended**. It's the owner's click, in
+  [MODULES-CUTOVER.md](MODULES-CUTOVER.md).
+- Forks already have keys of their own, good for one module only.
+
+Until the owner makes one with `scripts/new-module-key.sh`, modules are signed with the release key, which works
+the same but gives up that separation. If a module key leaks: remove it from `moduleKey` and release a new server,
+and any version it signed stops being trusted.
+
 ### Moving a plugin to its own repository
 
-These steps need a person, and go in this order. WittyPhotos goes second, after WittyModule, since it
-requires it:
+[MODULES-CUTOVER.md](MODULES-CUTOVER.md) has the steps, in order, for each repository, and
+`scripts/cutover-modules.sh` does them: it proves the whole thing in a throwaway clone by default, and only touches
+GitHub with `--apply`.
 
-1. Publish `WittyModule`: `scripts/mirror.sh WittyModule v0.1.0`. It has no dependencies.
-2. In `modules/wittyphotos`, run `GOWORK=off go mod tidy` and commit, then publish it with
-   `scripts/mirror.sh WittyPhotos v0.2.0`.
-3. Add the secret `WMS_SIGNING_KEY` to that repository, so tags there produce signed releases.
-4. From now on, change WittyPhotos in its own repository. In this one, remove its folder, its line in
-   `go.work`, its `replace` in `go.mod`, its `COPY` in the `Dockerfile` and its line in `scripts/mirror.sh`.
-5. Run `go get github.com/wittywilla/wittyphotos@v0.2.0` here. Raising this version later is how the
-   built-in copy moves forward.
+### Developing a server and a module together
+
+Once modules have their own repositories, the server's `go.mod` requires released versions, and that is all a normal
+build needs. To change a module and the server together:
+
+```bash
+scripts/dev-modules.sh WittyDVD
+```
+
+clones it beside this checkout and makes a local `go.work`, which is never committed, that uses your copy. Change
+both, test both, then release the module first and raise its version here with
+`go get github.com/wittywilla/wittydvd@vX.Y.Z`.
 
 ## How the apps run
 

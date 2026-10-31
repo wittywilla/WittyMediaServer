@@ -1,6 +1,7 @@
 #include "visualizer.h"
 
 #include "media/audiooutput.h"
+#include "wvengine.h"
 
 #include <QMouseEvent>
 #include <QPainter>
@@ -17,6 +18,7 @@ constexpr int kFrames = 1024;
 constexpr int kBands = 28;
 constexpr int kFrameMs = 33;
 constexpr double kPi = 3.14159265358979323846;
+constexpr int kTilesX = 16, kTilesY = 9;
 
 void fft(std::vector<std::complex<float>> &a)
 {
@@ -79,7 +81,100 @@ void spectrumBands(const qint16 *stereo, int frames, int rate, float *bands, int
     }
 }
 
-VisualizerView::VisualizerView(AudioOutput *audio, QWidget *parent) : QWidget(parent), audio_(audio)
+FlashLimiter::FlashLimiter(float deadBand, float rise) : deadBand_(deadBand), rise_(rise), memory_(size_t(kTilesX * kTilesY), 0.f) {}
+
+void FlashLimiter::setLimits(float deadBand, float rise)
+{
+    deadBand_ = deadBand;
+    rise_ = rise;
+}
+
+void FlashLimiter::reset()
+{
+    std::fill(memory_.begin(), memory_.end(), 0.f);
+}
+
+float FlashLimiter::lightOf(int r, int g, int b)
+{
+    static const std::vector<float> linear = [] {
+        std::vector<float> t(256);
+        for (size_t i = 0; i < t.size(); i++)
+            t[i] = float(std::pow(double(i) / 255, 2.2));
+        return t;
+    }();
+    const float lr = linear[size_t(r)], lg = linear[size_t(g)], lb = linear[size_t(b)];
+    const float light = 0.2126f * lr + 0.7152f * lg + 0.0722f * lb;
+    const float sum = lr + lg + lb;
+    const float red = sum > 0 && lr / sum >= 0.8f ? (lr - lg - lb) * 1.6f : 0.f;
+    return std::max(light, red);
+}
+
+void FlashLimiter::apply(QImage &picture, double dt)
+{
+    const int w = picture.width(), h = picture.height();
+    if (w < kTilesX || h < kTilesY)
+        return;
+    int scales[kTilesY][kTilesX];
+    bool any = false;
+    for (int ty = 0; ty < kTilesY; ty++) {
+        const int y0 = ty * h / kTilesY, y1 = (ty + 1) * h / kTilesY;
+        for (int tx = 0; tx < kTilesX; tx++) {
+            const int x0 = tx * w / kTilesX, x1 = (tx + 1) * w / kTilesX;
+            // A sample every few pixels is plenty to know how bright a tile is.
+            float sum = 0;
+            int count = 0;
+            for (int y = y0; y < y1; y += 3) {
+                const auto *line = reinterpret_cast<const QRgb *>(picture.constScanLine(y));
+                for (int x = x0; x < x1; x += 3) {
+                    sum += lightOf(qRed(line[x]), qGreen(line[x]), qBlue(line[x]));
+                    count++;
+                }
+            }
+            const float light = count ? sum / float(count) : 0;
+            float &memory = memory_[size_t(ty * kTilesX + tx)];
+            memory = std::min(light, memory + rise_ * float(dt));
+            const float allowed = memory + deadBand_;
+            // The sum was of light, the picture is in screen values.
+            scales[ty][tx] = light <= allowed ? 256 : int(std::pow(double(allowed / light), 1 / 2.2) * 256);
+            any = any || scales[ty][tx] < 256;
+        }
+    }
+    if (!any)
+        return;
+    // Each corner takes the darkest of the tiles that meet there, and a tile blends between its
+    // corners. So there are no visible edges, and no tile ends up brighter than it's allowed.
+    int corners[kTilesY + 1][kTilesX + 1];
+    for (int cy = 0; cy <= kTilesY; cy++) {
+        for (int cx = 0; cx <= kTilesX; cx++) {
+            int least = 256;
+            for (int ty = std::max(cy - 1, 0); ty <= std::min(cy, kTilesY - 1); ty++)
+                for (int tx = std::max(cx - 1, 0); tx <= std::min(cx, kTilesX - 1); tx++)
+                    least = std::min(least, scales[ty][tx]);
+            corners[cy][cx] = least;
+        }
+    }
+    for (int ty = 0; ty < kTilesY; ty++) {
+        const int y0 = ty * h / kTilesY, y1 = (ty + 1) * h / kTilesY;
+        for (int tx = 0; tx < kTilesX; tx++) {
+            const int a = corners[ty][tx], b = corners[ty][tx + 1], c = corners[ty + 1][tx], d = corners[ty + 1][tx + 1];
+            if (a == 256 && b == 256 && c == 256 && d == 256)
+                continue;
+            const int x0 = tx * w / kTilesX, x1 = (tx + 1) * w / kTilesX;
+            for (int y = y0; y < y1; y++) {
+                auto *line = reinterpret_cast<QRgb *>(picture.scanLine(y));
+                const int left = a + (c - a) * (y - y0) / (y1 - y0), right = b + (d - b) * (y - y0) / (y1 - y0);
+                for (int x = x0; x < x1; x++) {
+                    const int scale = left + (right - left) * (x - x0) / (x1 - x0);
+                    const QRgb px = line[x];
+                    line[x] = qRgb(qRed(px) * scale >> 8, qGreen(px) * scale >> 8, qBlue(px) * scale >> 8);
+                }
+            }
+        }
+    }
+}
+
+VisualizerView::VisualizerView(AudioOutput *audio, QWidget *parent)
+    : QWidget(parent), audio_(audio), limiter_(wv::kGuard.deadBand, wv::kGuard.rise)
 {
     setAccessibleName(QStringLiteral("Visualizer. Click for the next style."));
     setMinimumSize(200, 120);
@@ -89,8 +184,6 @@ VisualizerView::VisualizerView(AudioOutput *audio, QWidget *parent) : QWidget(pa
     high_ = QColor(0xff, 0xb4, 0x3c);
     bg_ = QColor(0x05, 0x08, 0x12);
     samples_.assign(kFrames * 2, 0);
-    left_.assign(wv::kFftSize, 0);
-    right_.assign(wv::kFftSize, 0);
     bands_.assign(kBands, 0);
     peaks_.assign(kBands, 0);
     fall_.assign(kBands, 0);
@@ -103,9 +196,20 @@ QStringList VisualizerView::styleNames()
     return {QStringLiteral("Bars"), QStringLiteral("Scope"), QStringLiteral("Rings"), QStringLiteral("Plasma")};
 }
 
+void VisualizerView::setCalm(bool on)
+{
+    calm_ = on;
+    const wv::GuardLimits limits = on ? wv::kGuardCalm : wv::kGuard;
+    limiter_.setLimits(limits.deadBand, limits.rise);
+    if (on && style_ > Scope)
+        setStyle(Bars);
+}
+
 void VisualizerView::setStyle(int style)
 {
     style_ = (style % StyleCount + StyleCount) % StyleCount;
+    if (calm_ && style_ > Scope)
+        style_ = Bars;
     canvas_ = QImage();
     update();
     emit styleChanged(style_);
@@ -128,7 +232,9 @@ void VisualizerView::setColors(const QColor &low, const QColor &high, const QCol
 void VisualizerView::showEvent(QShowEvent *)
 {
     if (audio_)
-        audio_->tap()->setEnabled(true);
+        audio_->setTapEnabled(true);
+    limiter_.reset(); // it comes up gently each time
+    clock_.start();
     timer_.start();
 }
 
@@ -136,7 +242,7 @@ void VisualizerView::hideEvent(QHideEvent *)
 {
     timer_.stop();
     if (audio_)
-        audio_->tap()->setEnabled(false);
+        audio_->setTapEnabled(false);
 }
 
 void VisualizerView::mouseReleaseEvent(QMouseEvent *e)
@@ -147,16 +253,9 @@ void VisualizerView::mouseReleaseEvent(QMouseEvent *e)
 
 void VisualizerView::step()
 {
-    // Nothing new means nothing's being heard: paused, stopped or between tracks.
-    if (audio_ && audio_->tap()->read(left_.data(), right_.data())) {
-        const int from = wv::kFftSize - kFrames;
-        for (int i = 0; i < kFrames; i++) {
-            samples_[size_t(i) * 2] = qint16(left_[size_t(from + i)] * 32767.f);
-            samples_[size_t(i) * 2 + 1] = qint16(right_[size_t(from + i)] * 32767.f);
-        }
-    } else {
-        std::fill(samples_.begin(), samples_.end(), qint16(0));
-    }
+    const int got = audio_ ? audio_->tapRead(samples_.data(), kFrames) : 0;
+    if (got < kFrames)
+        std::fill(samples_.begin() + got * 2, samples_.end(), qint16(0));
     std::vector<float> now(kBands);
     spectrumBands(samples_.data(), kFrames, audio_ ? audio_->sampleRate() : 48000, now.data(), kBands);
     float sum = 0, bassNow = 0;
@@ -176,11 +275,30 @@ void VisualizerView::step()
     }
     level_ = sum / kBands;
     bass_ = std::max(bassNow, bass_ - 0.03f);
-    phase_ += 0.02f + level_ * 0.08f;
-    if (style_ == Rings)
-        stepRings();
-    else if (style_ == Plasma)
-        stepPlasma();
+    phase_ += (0.02f + level_ * 0.08f) * (calm_ ? 0.4f : 1.f);
+    const double dt = clock_.isValid() ? std::min(clock_.restart() / 1000.0, 0.25) : 1.0 / 30;
+    if (style_ == Rings || style_ == Plasma) {
+        if (style_ == Rings)
+            stepRings();
+        else
+            stepPlasma();
+        frame_ = canvas_; // the limiter's dimming mustn't feed back into the next picture
+        frame_.detach();
+    } else {
+        const qreal ratio = devicePixelRatioF();
+        const QSize want = size() * ratio;
+        if (frame_.size() != want || frame_.format() != QImage::Format_RGB32) {
+            frame_ = QImage(want, QImage::Format_RGB32);
+            frame_.setDevicePixelRatio(ratio);
+        }
+        QPainter p(&frame_);
+        p.fillRect(rect(), bg_);
+        if (style_ == Bars)
+            drawBars(p);
+        else
+            drawScope(p);
+    }
+    limiter_.apply(frame_, dt);
     update();
 }
 
@@ -188,19 +306,9 @@ void VisualizerView::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.fillRect(rect(), bg_);
-    switch (style_) {
-    case Bars:
-        drawBars(p);
-        break;
-    case Scope:
-        drawScope(p);
-        break;
-    default:
-        if (!canvas_.isNull()) {
-            p.setRenderHint(QPainter::SmoothPixmapTransform);
-            p.drawImage(rect(), canvas_);
-        }
-        break;
+    if (!frame_.isNull()) {
+        p.setRenderHint(QPainter::SmoothPixmapTransform);
+        p.drawImage(rect(), frame_);
     }
 }
 

@@ -79,7 +79,8 @@ public:
 
 private:
     double floor_, ceiling_;
-    double avg_ = 1.0 / 60, held_ = 0, calmFor_ = 0, countedFor_ = 0;
+    double avg_ = 1.0 / 60, held_ = 0, calmFor_ = 0, countedFor_ = 0, patience_ = 6;
+    bool rose_ = false;
     int counted_ = 0;
 };
 

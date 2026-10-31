@@ -100,8 +100,8 @@ type Session struct {
 	m      *Manager
 	key    string
 	prefs  Prefs
-	disc   *wittybluray.Disc
-	nav    *wittybluray.Nav
+	disc   *engineDisc
+	nav    Navigator
 
 	mu        sync.Mutex
 	last      time.Time
@@ -184,16 +184,12 @@ func randomID() string {
 // Open opens a disc for a viewer.
 func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error) {
 	m.makeRoom()
-	d, err := wittybluray.Open(path)
+	d, nav, err := m.openEngine(path, navOptions(prefs))
 	if err != nil {
 		return nil, err
 	}
-	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hls.Key(path), prefs: prefs, disc: d, last: time.Now(),
+	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hls.Key(path), prefs: prefs, disc: d, nav: nav, last: time.Now(),
 		menus: map[int]*menuArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*subPic{}}
-	s.nav = wittybluray.NewNav(d, wittybluray.NavOptions{Registers: wittybluray.RegisterOptions{
-		AudioLang: lang3(prefs.AudioLanguage), SubtitleLang: lang3(prefs.SubtitleLanguage), MenuLang: lang3(prefs.MenuLanguage),
-		Region: prefs.BDRegion, Parental: prefs.BDAge, Country: strings.ToUpper(prefs.Country),
-	}})
 	if prefs.Angle > 0 {
 		s.nav.SetAngle(prefs.Angle)
 	}

@@ -1184,6 +1184,8 @@ bool MainWindow::visualizerShowing() const
 
 void MainWindow::setVisualizer(bool on)
 {
+    if (on && cdOn())
+        return; // the CD screen has its own place for a picture
     if (on && (!player_->hasMedia() || !player_->isAudioOnly())) {
         if (bar_->visualizerButton()->isChecked())
             bar_->visualizerButton()->setChecked(false);

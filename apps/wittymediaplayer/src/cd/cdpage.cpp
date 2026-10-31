@@ -438,7 +438,13 @@ void CdPage::build()
     visualHolder_ = new QVBoxLayout(visualWidget_);
     visualHolder_->setContentsMargins(0, 0, 0, 0);
     visual_ = new VisualizerView(player_->audio(), visualWidget_);
-    visualHolder_->addWidget(visual_);
+    visual_->hide();
+    auto *off = new QLabel(QStringLiteral("Visuals are off"), visualWidget_);
+    off->setObjectName(QStringLiteral("cdVisualOff"));
+    off->setAlignment(Qt::AlignCenter);
+    off->setMinimumHeight(120);
+    visualOff_ = off;
+    visualHolder_->addWidget(visualOff_);
     now->addWidget(visualWidget_, 1);
 
     auto *visualRow = new QHBoxLayout;
@@ -449,6 +455,10 @@ void CdPage::build()
     visualBtn_->setAccessibleName(QStringLiteral("Next visualizer style"));
     connect(visualBtn_, &QPushButton::clicked, visual_, &VisualizerView::nextStyle);
     visualRow->addWidget(visualBtn_);
+    visualsBtn_ = new QPushButton(QStringLiteral("Turn on visuals"), nowPanel);
+    visualsBtn_->setToolTip(QStringLiteral("Moving light that follows the music, with a flash limiter (V)"));
+    connect(visualsBtn_, &QPushButton::clicked, this, [this] { setVisualsOn(!visualsOn_); });
+    visualRow->addWidget(visualsBtn_);
     effectsBtn_ = new QPushButton(QStringLiteral("More effects"), nowPanel);
     effectsBtn_->setAccessibleName(QStringLiteral("Switch to WittyVisualizer's effects"));
     effectsBtn_->setToolTip(QStringLiteral("WittyVisualizer's seventeen effects, drawn by your graphics card, with a flash limiter and a calm mode (E)"));
@@ -461,6 +471,7 @@ void CdPage::build()
     };
     connect(visual_, &VisualizerView::styleChanged, this, showStyle);
     visual_->setStyle(settings_->value(QStringLiteral("cd/visual"), 0).toInt());
+    showVisualButtons();
 
     auto *infoRow = new QHBoxLayout;
     infoRow->setSpacing(12);
@@ -758,6 +769,7 @@ QLabel#cdHead { color: #f2f6ff; font-size: 19px; font-weight: 700; }
 QLabel#cdNowTitle { color: #ffffff; font-size: 20px; font-weight: 650; }
 QLabel#cdNowArtist { color: #a8e9df; font-size: 14px; }
 QLabel#cdStatus { color: #ffd38a; font-size: 13px; }
+QLabel#cdVisualOff { color: #6f82ab; background: #05081a; border: 1px solid #1d2947; border-radius: 6px; }
 QPushButton { color: #eaf1ff; border: 1px solid #6c83b0; border-top-color: #c8d6ec; border-radius: 9px; padding: 6px 14px;
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #62799f, stop:0.48 #41557e, stop:0.52 #2f4167, stop:1 #3b4f77); }
 QPushButton:hover { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #7a93bc, stop:0.48 #526a96, stop:0.52 #3c5280, stop:1 #4a6190); }
@@ -804,6 +816,7 @@ QProgressBar::chunk { border-radius: 5px; background: qlineargradient(x1:0,y1:0,
             "QLabel#cdNowTitle { font-size: 19px; font-weight: 600; }"
             "QLabel#cdNowArtist { color: %4; }"
             "QLabel#cdStatus { color: %4; }"
+            "QLabel#cdVisualOff { color: %9; background: %12; border-radius: 6px; }"
             "QComboBox, QSpinBox { color: %5; background: %6; border: 1px solid %7; border-radius: 6px; padding: 4px 7px; }"
             "QComboBox:focus, QSpinBox:focus { border: 2px solid %8; padding: 3px 6px; }"
             "QComboBox:disabled, QSpinBox:disabled { color: %9; }"
@@ -848,8 +861,54 @@ void CdPage::setVisualizer(QWidget *visualizer)
     }
     visualHolder_->addWidget(visualizer);
     visualizer->show();
-    visualBtn_->setVisible(visualizer == visual_);
-    visualName_->setVisible(visualizer == visual_);
+    showVisualButtons();
+}
+
+void CdPage::showVisualButtons()
+{
+    const bool simple = visualsOn_ && !effectsShowing();
+    visualBtn_->setVisible(simple);
+    visualName_->setVisible(simple);
+    effectsBtn_->setVisible(visualsOn_);
+    visualsBtn_->setText(visualsOn_ ? QStringLiteral("Turn off visuals") : QStringLiteral("Turn on visuals"));
+}
+
+// The notice is the shared one, so it's only ever asked once, whichever picture came first.
+bool CdPage::askAboutFlashing()
+{
+    if (!effects_) {
+        effects_ = new wv::VisualizerWidget(player_->audio()->tap(), settings_, visualWidget_);
+        effects_->hide();
+        connect(effects_, &wv::VisualizerWidget::closeRequested, this, [this] {
+            if (visualFull_)
+                emit fullscreenRequested();
+            setEffects(false);
+        });
+        connect(effects_, &wv::VisualizerWidget::fullscreenRequested, this, &CdPage::fullscreenRequested);
+    }
+    if (!effects_->confirmFirstUse())
+        return false;
+    const int calm = effects_->settings().calm;
+    visual_->setCalm(calm >= 0 ? calm == 1 : wv::systemWantsLessMotion());
+    return true;
+}
+
+bool CdPage::setVisualsOn(bool on)
+{
+    if (on == visualsOn_)
+        return true;
+    if (on && !askAboutFlashing())
+        return false;
+    visualsOn_ = on;
+    settings_->setValue(QStringLiteral("cd/visualsOn"), on);
+    if (!on) {
+        setVisualFull(false);
+        setVisualizer(visualOff_);
+        effectsBtn_->setText(QStringLiteral("More effects"));
+    } else {
+        setVisualizer(visual_);
+    }
+    return true;
 }
 
 bool CdPage::effectsShowing() const
@@ -861,19 +920,13 @@ void CdPage::setEffects(bool on)
 {
     if (on == effectsShowing())
         return;
+    if (!on && !visualsOn_)
+        return;
     if (on) {
-        if (!effects_) {
-            effects_ = new wv::VisualizerWidget(player_->audio()->tap(), settings_, visualWidget_);
-            effects_->hide();
-            connect(effects_, &wv::VisualizerWidget::closeRequested, this, [this] {
-                if (visualFull_)
-                    emit fullscreenRequested();
-                setEffects(false);
-            });
-            connect(effects_, &wv::VisualizerWidget::fullscreenRequested, this, &CdPage::fullscreenRequested);
-        }
-        if (!effects_->confirmFirstUse())
+        if (!askAboutFlashing())
             return;
+        visualsOn_ = true;
+        settings_->setValue(QStringLiteral("cd/visualsOn"), true);
         setVisualizer(effects_);
         effects_->view()->setFocus();
     } else {
@@ -934,6 +987,9 @@ void CdPage::setDisc(const CdInfo &info)
     setBusyControls();
     setStatus(info.warnings.isEmpty() ? QStringLiteral("%1 tracks.").arg(info.tracks.size()) : info.warnings.join(QLatin1Char(' ')));
     tick_.start();
+    // Someone who turned them on and has read the notice gets them back. Otherwise they wait.
+    if (settings_->value(QStringLiteral("cd/visualsOn"), false).toBool() && settings_->value(QStringLiteral("visualizer/notice"), false).toBool())
+        setVisualsOn(true);
 }
 
 void CdPage::fillTracks()
@@ -998,7 +1054,9 @@ bool CdPage::handleKey(int key, QWidget *focus)
         stopPlaying();
         return true;
     case Qt::Key_V:
-        if (!effectsShowing())
+        if (!visualsOn_)
+            setVisualsOn(true);
+        else if (!effectsShowing())
             visual_->nextStyle();
         return true;
     case Qt::Key_E:

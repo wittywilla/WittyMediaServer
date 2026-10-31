@@ -232,6 +232,7 @@ type Manager struct {
 	closed    bool
 	attached  map[*Attached]bool
 	labels    map[string]string // kinds of library someone gave a name of their own
+	retiring  sync.WaitGroup    // helpers of versions no longer in use, on their way out
 }
 
 // New reads what is installed and picks the version of each module to use. A
@@ -446,7 +447,9 @@ func (m *Manager) resolve(id string, e *entry) {
 		break
 	}
 	if e.proc != nil {
-		go e.proc.Close()
+		p := e.proc
+		m.retiring.Add(1) // a call in progress can hold it up, so it isn't waited for here
+		go func() { defer m.retiring.Done(); p.Close() }()
 		e.proc = nil
 	}
 	e.fails, e.web, e.dir = 0, nil, ""
@@ -939,7 +942,7 @@ func (m *Manager) Close() {
 		go func() { defer wg.Done(); p.Close() }()
 	}
 	done := make(chan struct{})
-	go func() { wg.Wait(); close(done) }()
+	go func() { wg.Wait(); m.retiring.Wait(); close(done) }()
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):

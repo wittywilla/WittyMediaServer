@@ -447,7 +447,8 @@ func main() {
 	ok(m.Version == "0.3.1", "0.3.1 is in use, since it starts fine (%s)", m.Version)
 	writePhotos(photos, "second", 8)
 	s.call("POST", fmt.Sprintf("/libraries/%d/scan", lib.ID), nil)
-	for i := 0; i < 300 && s.module().Version == "0.3.1"; i++ {
+	// Each failure is a start of a new program, which a virus scanner can hold up.
+	for i := 0; i < 1800 && s.module().Version == "0.3.1"; i++ {
 		time.Sleep(100 * time.Millisecond)
 	}
 	m = s.module()

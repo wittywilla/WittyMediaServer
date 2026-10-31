@@ -11,9 +11,9 @@ Moonlight, and browser play. The server's part is `internal/server/api_rigs.go` 
 pages are `web/src/pages/Rigs.tsx` and `web/src/pages/settings/GameRigs.tsx`. The API is in
 [CLIENT-API.md](CLIENT-API.md#game-rigs).
 
-**How much of this has really run:** see [What has been tested](#what-has-been-tested). In short, the protocol code has
-run against a real Sunshine. Browser play's program has never been run. No real game has been streamed, and no real
-Moonlight app or real device has been tried.
+**How much of this has really run:** see [What has been tested](#what-has-been-tested). In short, the server and its pages have
+run against a real Sunshine, as far as adding, pairing, listing and starting. Browser play's program has never been run.
+No game has been streamed, and no real Moonlight app or real device has been tried.
 
 ## What each device can do
 
@@ -202,17 +202,21 @@ same thing with no one else's name in them. Renaming is cheap: the two folders, 
 **Ran for real, against Sunshine v2026.914.233613** in Docker under WSL, with no changes to Windows
 (`modules/wittysunshine/real_test.go`): recognising it, pairing with a PIN, its certificate pinned, status and MAC address, the app list, art, a stranger's
 certificate refused, a wrong PIN refused, starting a game, a second start refused while it runs, ending it, typing another device's PIN through its web
-interface, and a wrong Sunshine password. That real Sunshine was built without virtual input, and has no display but a virtual one.
+interface, and a wrong Sunshine password. That real Sunshine ran without virtual input, and has no display but a virtual one.
+
+**The whole server and its pages also ran against it, in a browser:** adding the PC by address on the settings page, its PIN shown and typed into the real
+Sunshine (which listed it as "WittyMediaServer"), the library filling with its real games and art, its two desktop apps left out, the game's page, Play and what it offers,
+**Start it on the PC first**, the status changing to "is running", and ending it. No errors in the browser's console.
 
 **Only against stand-ins:**
 
-- `modules/wittysunshine/fake`: the server's whole flow (adding, pairing, library, permissions, starting, failures). The fake was checked against what the
-  real one does, but they are not the same thing.
+- `modules/wittysunshine/fake`: permissions for each kind of account, Kids profiles, failures, and addresses. The fake behaves as the real one did where they were compared, but they are not the same thing.
 - A stand-in for the bridge (in `wittymoonlight_test.go`), written from its published API types. The proxy's allow-list comes from reading its stream page's source.
 
 **Never run:**
 
-- **The real bridge program has never been downloaded or run**, so browser play has not been seen to work, on any browser. Expect fixes.
+- **The real bridge program has never been downloaded or run**, so browser play has not been seen to work, on any browser. Running a program downloaded from the
+  internet on this machine needs the owner's go-ahead, which hasn't been asked for yet. Expect fixes when it's run.
 - **No real game has been streamed**, by anything.
 - **No real Moonlight app** has been handed a game. The command line and Android extras come from reading their source.
 - **mDNS discovery on a real network:** only the parsing has been tested. The Sunshine under test had no mDNS daemon.
@@ -239,3 +243,5 @@ interface, and a wrong Sunshine password. That real Sunshine was built without v
 - Browser play has no bandwidth adaptation beyond what the bridge does, and doesn't work through a reverse proxy on its own.
 - The bridge's client certificate is valid for 365 days, in the program's own code. Whether Sunshine cares isn't known: if browser play stops after a year, pair it again.
 - The Apple TV flow has three steps and always will, until Moonlight has a URL scheme.
+- If the server crashes on Windows, Mac or FreeBSD, browser play's program can be left running on the loopback address until the machine restarts. On Linux it ends with the server.
+- Browser play's program runs as the server's own account, unsandboxed, as it needs the network. It's checked against a recorded digest, and is only there if an admin asks.

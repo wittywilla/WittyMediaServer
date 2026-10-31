@@ -15,9 +15,14 @@ import (
 func Apply(l Limits) error {
 	var errs []error
 	_ = unix.Setrlimit(unix.RLIMIT_CORE, &unix.Rlimit{})
+	_ = unix.Setrlimit(unix.RLIMIT_FSIZE, &unix.Rlimit{Cur: maxFileSize, Max: maxFileSize})
 	if l.MemoryMB > 0 {
-		n := uint64(l.MemoryMB) << 20
-		if err := unix.Setrlimit(unix.RLIMIT_AS, &unix.Rlimit{Cur: n, Max: n}); err != nil {
+		data := uint64(l.MemoryMB) << 20
+		if err := unix.Setrlimit(unix.RLIMIT_DATA, &unix.Rlimit{Cur: data, Max: data}); err != nil {
+			errs = append(errs, err)
+		}
+		as := addressSpace(l.MemoryMB)
+		if err := unix.Setrlimit(unix.RLIMIT_AS, &unix.Rlimit{Cur: as, Max: as}); err != nil {
 			errs = append(errs, err)
 		}
 	}

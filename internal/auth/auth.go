@@ -463,7 +463,7 @@ const CookieName = "wms_token"
 // a WebSocket and the like, which can't carry a header. Only these take a token in the
 // address: one that leaked from a media link (a browser's history, a proxy's
 // log) can't be used to call the rest of the API or change anything.
-var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/saves/\d+/thumb$|play/[0-9a-f]+/ws$)`)
+var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/saves/\d+/thumb$|play/[0-9a-f]+/ws$|game-background/image$)`)
 
 // queryToken is the ?token= of a media address.
 func queryToken(r *http.Request) string {

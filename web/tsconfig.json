@@ -48,5 +48,8 @@
     "src",
     "../modules/wittyintegratedfilebrowser/web",
     "../modules/wittyplay/web"
+  ],
+  "exclude": [
+    "../modules/wittyplay/web/tests"
   ]
 }

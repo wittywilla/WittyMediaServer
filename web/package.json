@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "node scripts/check-modules.mjs && tsc -b && vite build",
     "check:modules": "node scripts/check-modules.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:play": "node scripts/test-wittyplay.mjs"
   },
   "dependencies": {
     "hls.js": "^1.6.0",

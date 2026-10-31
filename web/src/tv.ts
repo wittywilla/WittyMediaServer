@@ -141,7 +141,7 @@ export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
 }
 // While a game is being played its controls belong to the game; its menus use the
 // normal navigation again.
-const inGame = () => !!document.querySelector('.wp-playing')
+const inGame = () => !!document.querySelector('.wp-playing, .wp-capture')
 
 function onKey(e: KeyboardEvent) {
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return
@@ -205,6 +205,12 @@ const STD: Record<number, string> = {
 
 const isNintendo = (id: string) => /nintendo|pro controller|joy-?con|057e/i.test(id)
 
+// A D-pad some pads report as one axis: -1 at up, on round clockwise in eight steps, and
+// out of that range at rest, which is what gives one away. Read as a stick it would
+// look like a direction held down for good.
+const hatPads = new Set<string>()
+const HAT_KEYS: string[][] = [['ArrowUp'], ['ArrowUp', 'ArrowRight'], ['ArrowRight'], ['ArrowDown', 'ArrowRight'], ['ArrowDown'], ['ArrowDown', 'ArrowLeft'], ['ArrowLeft'], ['ArrowUp', 'ArrowLeft']]
+
 function press(key: string) {
   const target = (document.activeElement as HTMLElement | null) || document.body
   const ev = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
@@ -243,7 +249,11 @@ function poll() {
       if (p.buttons[1]?.pressed) down.add(swap ? 'Enter' : 'Escape')
     }
     // Left stick (and D-pad axes on non-standard pads) as arrows, with a dead zone.
-    const axes = p.mapping === 'standard' ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
+    const last = p.axes[p.axes.length - 1] ?? 0
+    if (p.mapping !== 'standard' && Math.abs(last) > 1.05) hatPads.add(p.id)
+    const hat = hatPads.has(p.id)
+    if (hat && Math.abs(last) <= 1.05) for (const k of HAT_KEYS[Math.round((last + 1) * 3.5) & 7]) down.add(k)
+    const axes = p.mapping === 'standard' || hat ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
     for (const [x, y] of axes) {
       const ax = p.axes[x] ?? 0, ay = p.axes[y] ?? 0
       if (Math.abs(ax) > 0.6 && Math.abs(ax) >= Math.abs(ay)) down.add(ax > 0 ? 'ArrowRight' : 'ArrowLeft')

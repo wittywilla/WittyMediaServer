@@ -27,6 +27,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittyplay"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and
@@ -378,6 +379,7 @@ func schemaTypes() map[string]reflect.Type {
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
 		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
 		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}),
+		"GameProfile": ty(wittyplay.Profile{}), "GameBackground": ty(library.GameBackground{}), "ControllerData": ty(wittyplay.ControllerData{}),
 		"Presentation": ty(dvdsession.Presentation{}), "PresentationMedia": ty(dvdsession.Media{}), "DiscMenu": ty(dvdsession.Menu{}), "DiscButton": ty(dvdsession.ButtonView{}),
 		"DiscTitlePlaying": ty(dvdsession.TitleView{}), "DiscTrack": ty(dvdsession.Track{}), "DiscAction": ty(dvdsession.Action{}), "SubEvent": ty(dvdsession.SubEvent{}),
 		"PlaybackProfile": ty(playback.Profile{}), "PlaybackCapabilities": ty(playback.Capabilities{}), "PlaybackRequest": ty(playbackRequest{}), "PlaybackResponse": ty(playbackResponse{}),

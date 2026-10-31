@@ -275,12 +275,6 @@ func (s *Store) saveDirectoryMeta(ctx context.Context, itemID int64, st Director
 	return err
 }
 
-func boolInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
 
 // LookUpRadio finds a station added by address in the directory, on an
 // administrator's request, and fills in what it knows. The address is sent only when

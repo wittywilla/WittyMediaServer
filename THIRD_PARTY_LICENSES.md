@@ -18,7 +18,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | Module | Licence |
 |---|---|
 | modernc.org/sqlite (and its modernc.org/libc family) | BSD-3-Clause |
-| golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net | BSD-3-Clause |
+| golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net, golang.org/x/image (reading WebP pictures, and resizing) | BSD-3-Clause |
 | github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, interceptor and others) | MIT |
 | github.com/coder/websocket | ISC |
 | github.com/bodgit/sevenzip, github.com/bodgit/plumbing, github.com/bodgit/windows (reading .7z game archives) | BSD-3-Clause |

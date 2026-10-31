@@ -56,6 +56,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/play/{sid}/webrtc", a(s.handlePlayWebRTC))
 	m.Handle("GET /api/play/{sid}/ws", a(s.handlePlayWS))
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
+	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
@@ -347,10 +348,27 @@ func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	saved, err := s.Store.GameControls(r.Context(), userFrom(r).ID, id)
+	ctx, userID := r.Context(), userFrom(r).ID
+	saved, err := s.Store.GameControls(ctx, userID, id)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	profiles, err := s.Store.GameProfiles(ctx, userID)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	background, err := s.Store.GetGameBackground(ctx, userID)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	var game int64
+	if g, err := strconv.ParseInt(r.URL.Query().Get("game"), 10, 64); err == nil && g > 0 {
+		if it, err := s.visibleItem(r, g); err == nil && it.Kind == "game" {
+			game = g
+		}
 	}
 	gamepads := saved[wittyplay.KindGamepad]
 	if gamepads == nil {
@@ -372,11 +390,15 @@ func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
 		"console":  id,
 		"pad":      wittyplay.Pad(id),
 		"controls": wittyplay.Controls(id),
+		"targets":  wittyplay.Targets(id),
 		"defaults": map[string]any{
-			"gamepad": wittyplay.DefaultGamepad(), "keyboard": wittyplay.DefaultKeyboard(), "remote": wittyplay.DefaultRemote(),
+			"gamepad": wittyplay.DefaultGamepadFor(id), "keyboard": wittyplay.DefaultKeyboardFor(id), "remote": wittyplay.DefaultRemote(), "options": wittyplay.DefaultOptions(id),
 			"touch": map[string]any{wittyplay.Landscape: wittyplay.DefaultTouch(id, wittyplay.Landscape), wittyplay.Portrait: wittyplay.DefaultTouch(id, wittyplay.Portrait)},
 		},
-		"saved": map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch},
+		"saved":      map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch},
+		"game":       game,
+		"profiles":   activeProfilesFor(profiles, id, game),
+		"background": background,
 	})
 }
 
@@ -582,6 +604,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
 		GPU: gpu, RunnerArgs: runnerArgs, CoreOptions: coreOptions, Fallbacks: fallbacks,
+		PreferDevices: wittyplay.Pad(console.ID).PreferDevices,
 	})
 	if err != nil {
 		if cleanup != nil {
@@ -786,9 +809,11 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Type string `json:"type"`
-		Slot int    `json:"slot"`
-		On   bool   `json:"on"`
+		Type   string `json:"type"`
+		Slot   int    `json:"slot"`
+		On     bool   `json:"on"`
+		Port   int    `json:"port"`
+		Device uint32 `json:"device"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -810,6 +835,8 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.Pause(b.On)
 	case "disc":
 		err = sess.ChangeDisc(b.Slot)
+	case "device":
+		err = sess.SetDevice(b.Port, b.Device)
 	default:
 		writeErr(w, 400, "unknown action")
 		return

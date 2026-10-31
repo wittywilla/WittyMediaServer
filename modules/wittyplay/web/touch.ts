@@ -32,6 +32,41 @@ export function dpadMask(dx: number, dy: number): number {
 
 export type Rect = { w: number; h: number }
 
+// A control that's an analog stick: one of its own, or a D-pad on a console that steers
+// with its stick.
+export const isStick = (c: Control) => c.kind === 'stick' || !!c.stick
+
+const STICK_DEAD = 0.12
+
+function stickOf(controls: Control[], layout: Layout, r: Rect) {
+  const unit = Math.min(r.w, r.h)
+  for (const c of controls) {
+    if (!isStick(c)) continue
+    const p = layout[c.key]
+    if (p && !p.hidden) return { cx: p.x * r.w, cy: p.y * r.h, half: (p.size * unit) / 2 }
+  }
+  return null
+}
+
+// Whether a finger coming down here takes hold of the stick. It keeps hold wherever it
+// goes until it lifts, as a thumb does, and presses nothing else on the way.
+export function onStick(pt: { x: number; y: number }, controls: Control[], layout: Layout, r: Rect): boolean {
+  const s = stickOf(controls, layout, r)
+  return !!s && Math.hypot(pt.x - s.cx, pt.y - s.cy) <= s.half * 1.1
+}
+
+// How far the finger holding the stick pushes it, -1 to 1 each way, with the same round
+// dead zone a real one has.
+export function touchStick(pt: { x: number; y: number } | null, controls: Control[], layout: Layout, r: Rect): { x: number; y: number } {
+  const s = pt && stickOf(controls, layout, r)
+  if (!pt || !s) return { x: 0, y: 0 }
+  const dx = (pt.x - s.cx) / s.half, dy = (pt.y - s.cy) / s.half
+  const mag = Math.hypot(dx, dy)
+  if (mag < STICK_DEAD) return { x: 0, y: 0 }
+  const scale = (Math.min(1, mag) - STICK_DEAD) / (1 - STICK_DEAD) / mag
+  return { x: dx * scale, y: dy * scale }
+}
+
 // The mask for a set of finger positions, in pixels within the play area. A finger
 // counts for a button slightly larger than it looks, and a finger between two close
 // buttons presses both, which is how people press them together on real pads.
@@ -41,7 +76,7 @@ export function touchMask(points: { x: number; y: number }[], controls: Control[
   for (const pt of points) {
     for (const c of controls) {
       const p = layout[c.key]
-      if (!p || p.hidden) continue
+      if (!p || p.hidden || isStick(c)) continue
       const cx = p.x * r.w, cy = p.y * r.h
       const half = (p.size * unit) / 2
       if (c.kind === 'dpad') {

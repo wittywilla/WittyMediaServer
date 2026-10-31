@@ -314,6 +314,17 @@ var migrations = []string{
 	   dir_ok INTEGER NOT NULL DEFAULT -1, dir_gone INTEGER NOT NULL DEFAULT 0, dir_checked INTEGER NOT NULL DEFAULT 0,
 	   fail_count INTEGER NOT NULL DEFAULT 0, last_ok INTEGER NOT NULL DEFAULT 0, last_check INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '');
 	 CREATE INDEX IF NOT EXISTS radio_meta_source ON radio_meta(source, dir_checked);`,
+	// 17: games: named controller profiles, and the picture behind the controller screen.
+	`CREATE TABLE wittyplay_profiles (
+	   id INTEGER PRIMARY KEY AUTOINCREMENT,
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, kind TEXT NOT NULL, controller TEXT NOT NULL, console TEXT NOT NULL,
+	   game_id INTEGER NOT NULL, raw INTEGER NOT NULL, active INTEGER NOT NULL,
+	   data TEXT NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE INDEX idx_wittyplay_profiles_user ON wittyplay_profiles(user_id);
+	 CREATE TABLE wittyplay_backgrounds (
+	   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	   version INTEGER NOT NULL, fit TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, dim INTEGER NOT NULL);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -77,6 +77,8 @@ const (
 	idBitmask     = 256 // the whole pad as one value
 	maxPadPorts   = 4
 	maxPitch      = 1 << 16
+
+	indexAnalogButton = 2 // an analog device's index for pressure on a button
 )
 
 // Paths are the folders a core is told about.
@@ -105,6 +107,7 @@ type Core struct {
 	pinned   [][]byte
 	input    *[engine.MaxPorts]engine.PadState
 	pointer  engine.PointerState
+	devices  []engine.PortDevices // from SET_CONTROLLER_INFO
 	gameData []byte
 	loaded   bool
 
@@ -494,6 +497,8 @@ func onInputState(port, device, index, id uintptr) uintptr {
 			v = st.RX
 		case index == 1 && id == 1:
 			v = st.RY
+		case index == indexAnalogButton && id < 16:
+			v = analogButton(st, id)
 		}
 	}
 	return uintptr(uint16(v))
@@ -606,6 +611,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		*c.disk = *(*diskControl)(data)
 	case envSetControllerInfo:
 		c.ports = countControllerPorts(data)
+		c.devices = readControllerInfo(data)
 	case envGetInputBitmasks:
 	case envGetInputCaps:
 		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog | 1<<devicePointer

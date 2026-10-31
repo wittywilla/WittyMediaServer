@@ -4,7 +4,6 @@
 package stream
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -60,7 +59,8 @@ type Options struct {
 	GPU            bool     // the core draws with a graphics card
 	RunnerArgs     []string // extra arguments for this game's runner: wittyplay.RunnerArgs
 	CoreOptions    map[string]string
-	Cleanup        func() // runs when the session has ended
+	PreferDevices  []string // the kind of controller to plug in, by words in its name
+	Cleanup        func()   // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
 	// that one core refuses often play on another, and nobody should have to know.
 	Fallbacks []CoreChoice
@@ -94,6 +94,8 @@ type Info struct {
 	Discs      int     `json:"discs,omitempty"`    // how many the game has
 	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
 	Modes      []Mode  `json:"modes"`              // what this client can connect with, best first
+	// Devices: the kinds of controller this game's core lets each port choose from.
+	Devices []ipc.PortDevices `json:"devices,omitempty"`
 }
 
 // Errors a caller shows to people.
@@ -102,6 +104,8 @@ var (
 	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
 	ErrNoSlot  = errors.New("there is no such save slot")
+	// ErrNoDevice: the core didn't offer that kind of controller for that port.
+	ErrNoDevice = errors.New("this game has no such kind of controller")
 )
 
 // Manager holds the running sessions.
@@ -374,7 +378,7 @@ type Session struct {
 	menuPaused    bool // someone has a menu open
 	noViewerSince time.Time
 	lastInput     time.Time
-	lastPad       [MaxPlayers][ipc.InputSize]byte
+	lastPad       [MaxPlayers][ipc.InputSizeFull]byte
 	h264, vp8     *videoEncoder
 	opus          *audioEncoder
 	jpeg          *jpegEncoder
@@ -408,7 +412,7 @@ func (s *Session) Info() Info {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
 	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer}
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer, Devices: s.info.Devices}
 }
 
 func (s *Session) start() error {
@@ -446,7 +450,7 @@ func (s *Session) start() error {
 		close(s.done)
 	}()
 
-	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions})
+	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions, PreferDevices: s.opt.PreferDevices})
 	if err := s.command(ipc.CmdLoad, load); err != nil {
 		s.kill()
 		return err
@@ -561,6 +565,7 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 				s.kill()
 				return
 			}
+			info.Devices = cleanDevices(info.Devices)
 			s.viewMu.Lock()
 			s.info, s.rate = info, info.SampleRate
 			s.viewMu.Unlock()
@@ -704,9 +709,11 @@ func (s *Session) Input(p []byte) {
 	// isn't someone playing, so it doesn't hold off the idle limit, and the runner
 	// already has it.
 	s.viewMu.Lock()
-	changed := !bytes.Equal(s.lastPad[port][:], p)
+	var full [ipc.InputSizeFull]byte
+	copy(full[:], p) // a state with no triggers has them let go
+	changed := full != s.lastPad[port]
 	if changed {
-		copy(s.lastPad[port][:], p)
+		s.lastPad[port] = full
 		s.lastInput = time.Now()
 	}
 	s.viewMu.Unlock()
@@ -717,6 +724,50 @@ func (s *Session) Input(p []byte) {
 
 // MaxPlayers is how many players a browser may drive.
 const MaxPlayers = 4
+
+// cleanDevices keeps what a runner says about controllers within reason: it's text that
+// reaches a page, from a process that may have been taken over.
+func cleanDevices(in []ipc.PortDevices) []ipc.PortDevices {
+	if len(in) > 8 {
+		in = in[:8]
+	}
+	var out []ipc.PortDevices
+	for _, p := range in {
+		if p.Port < 0 || p.Port >= MaxPlayers {
+			continue
+		}
+		c := ipc.PortDevices{Port: p.Port, Current: p.Current}
+		for i, t := range p.Types {
+			if i >= 32 {
+				break
+			}
+			c.Types = append(c.Types, ipc.DeviceType{ID: t.ID, Name: truncate(t.Name, 64)})
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+// SetDevice plugs a kind of controller into a port, if the core offered that kind.
+func (s *Session) SetDevice(port int, id uint32) error {
+	s.viewMu.Lock()
+	defer s.viewMu.Unlock()
+	for i := range s.info.Devices {
+		if s.info.Devices[i].Port != port {
+			continue
+		}
+		for _, t := range s.info.Devices[i].Types {
+			if t.ID == id {
+				s.info.Devices[i].Current = id
+				var p [ipc.DeviceSize]byte
+				p[0] = byte(port)
+				binary.LittleEndian.PutUint32(p[1:], id)
+				return s.command(ipc.CmdDevice, p[:])
+			}
+		}
+	}
+	return ErrNoDevice
+}
 
 // Reset is the console's reset button.
 func (s *Session) Reset() error { return s.command(ipc.CmdReset) }

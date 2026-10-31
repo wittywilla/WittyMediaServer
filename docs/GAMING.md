@@ -12,8 +12,8 @@ This page explains how it is built and why. It is the reference for anyone chang
 
 - A Gaming library type, organised by console, with several libraries of one console allowed.
 - Games run through libretro cores and stream to the browser.
-- Every controller: gamepads (standard mapping), keyboard, on-screen touch controls, remapping,
-  hot-plug, several players.
+- Every controller: gamepads in any button order, keyboard, on-screen touch controls, remapping by
+  pressing, named profiles, hot-plug, several players.
 - Every browser: Chromium, Firefox and Safari, on desktop and phones.
 - Saves and save states per account, and resume where you left off.
 - Runs on low-end servers. Emulators are memory-unsafe code fed untrusted files, so they stay
@@ -373,18 +373,80 @@ What's left for a TV app to write is listed at the end of [GAMING-API.md](GAMING
 
 ## Controllers
 
-Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons and two sticks.
-The libretro API speaks RetroPad, so each console needs only labels. These, and all the default layouts, are data
-from the server (`modules/wittyplay/controls.go`).
+Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons, two sticks and how far
+two triggers are held. The libretro API speaks RetroPad, so each console needs only labels. These, and all the
+default layouts, are data from the server (`modules/wittyplay/controls.go`).
 
 - **Gamepads:** standard mapping by position (bottom button is RetroPad B, right is A, and so on),
   which is how libretro's cores expect pads to be laid out.
-- **Pads without standard mapping:** detected, and the remap screen opens for them.
-- **Keyboard:** arrows, Z, X, A, S, Q, W, Enter and Shift by default. Remappable.
+- **Pads without standard mapping:** a browser that can't put a pad in order reports raw numbers. Our own table
+  of common models by vendor and product (`modules/wittyplay/layouts.go`) puts them in order. A D-pad reported as one axis, or as two,
+  is found by looking at it, and a trigger reported as an axis that rests at one end counts from there. An unknown pad gets a
+  first-to-last guess, and the screen says to check it.
+- **Sticks and triggers:** the dead zone is a circle and the travel is rescaled from its edge, so sticks reach full speed and small movements
+  still count. Triggers reach the core as how far they're held, for cores that ask. A value near the press point doesn't flicker.
+- **Keyboard:** arrows, Z, X, A, S, Q, W, Enter and Shift by default. Consoles with sticks add I, J, K and L. Remappable.
 - **TV remote:** the D-pad, OK as A, Play/Pause as B, Back for the menu.
-- **Hot-plug:** connecting a pad assigns it to the next free player. Disconnecting one leaves that
-  player's slot open. Browsers that don't fire the events are polled.
-- **Several players:** up to four in the UI, with eight supported by the protocol.
+- **Hot-plug:** connecting a pad gives it the player it had last time on this device, or the next free one. Disconnecting one lets go
+  of everything it held at once. Browsers that don't fire the events are found by the heartbeat.
+- **Several players:** up to four in the UI, with eight supported by the protocol. Moving a pad onto a player who's taken swaps them.
+- **Turbo and rumble:** turbo per button, per profile. Rumble reaches the right player's pad with each of its two motors.
+  The runner only passes on a motor's change. The player asks for a second at a time and renews it while it's wanted, so a page that goes away can't leave a pad shaking.
+- **Device types:** a core's `SET_CONTROLLER_INFO` list is read, and each console's preferred one is plugged in: a DualShock on PlayStation
+  where the core offers it, which is what gives games their sticks and rumble. Players can choose another. Toggling a DualShock between digital
+  and analog is the core's own business, by its own button combination.
+
+### How it stays cheap
+
+Pads are read in step with the screen, because browsers update them no more often than that, and sending happens only when a state changes.
+Reading allocates nothing, and a pad whose timestamp hasn't moved isn't read again. With no pad connected, or the page hidden, no frames are
+asked for at all, and all that's left is one heartbeat every quarter of a second.
+
+### When someone looks away
+
+A hidden page lets go of every button and stops rumble, because browsers stop updating pads for one and anything held would stay held. Losing
+the window's focus lets go of keys, which may be released elsewhere, but pads carry on, so a game on a second screen still works.
+
+### What browsers don't allow
+
+Most browsers only show gamepads to secure pages, and only once a button on them has been pressed. On plain `http://`, with no pad to be seen,
+the controller screen says so and what to do: open the server over https, or at `localhost` on the same computer. Rumble needs a browser
+that has the feature (Chromium-based ones, and recent Safari) and a pad that can. A TV app reads controllers itself and has none of these limits.
+
+### Profiles
+
+People make their own named mappings, stored per account on the server (`docs/GAMING-API.md`, "Controller profiles"). Each can be limited to a controller
+model, a console and a game, and the most exact one in use wins: game, then console, then controller, then the default. Files of them can be exported and
+imported; an import is untrusted input, checked and limited like anything from a client.
+
+Profile numbers are W3C standard numbers wherever the pad can be put in order, so one follows you between browsers. A pad that can't be stores its own
+numbers, marked `raw`, and such a profile applies only to that pad in that state. This is also why any-controller profiles can't apply to it.
+
+### The controller screen
+
+One screen, in the game menu and at `/controllers`, with three tabs: Buttons, Players and Background. Touch controls open from it.
+
+- **The picture** (`web/art.tsx`) is our own drawing as inline SVG: a flat two-button pad, a four-button pad with shoulders, a six-button pad, a three-handled
+  pad, a two-stick pad and a stick on a base. They're generic shapes, with no maker's logo and nothing traced from a product. Each console's `pad.art` picks one.
+- **Its buttons are real `<button>`s** laid over the drawing, so remotes, keyboards and screen readers reach them. They light up as they're pressed, updated
+  directly rather than by drawing again, to stay cheap at sixty times a second. The same mappings are always there as a plain list.
+- **Remapping is by pressing:** choose a button, press what you want for it. What was already held doesn't count. Whatever was pressed isn't also taken for OK when the
+  screen gets control back (`.wp-capture` makes `tv.ts` stand down). It stops waiting by itself, so a person with only a controller can't get stuck.
+- **A source used twice is allowed, and shown** on both rows, with a Swap.
+- **Everything works from a controller or remote:** steppers instead of sliders and drop-downs, and nothing that needs pointing. Choosing a file can't be done on a TV, so importing and uploading are
+  left out there, and what's set elsewhere follows the account.
+- **Colours are the theme's**, in the pairs `scripts/theme-contrast.py` checks. Labels have their own solid backing, so they stay readable on any picture.
+
+### The background picture
+
+Uploads are hostile until proven otherwise. Only PNG, JPEG and WebP are decoded, whatever the file claims, and an SVG is refused. The size in pixels is read from the header first (24 megapixels at most) and
+one picture is decoded at a time, so a small file claiming to be huge can't use up memory. It's drawn again as a new JPEG of up to 2560 pixels, which leaves behind everything but the picture: EXIF, location,
+anything appended. A photo stored sideways is turned upright first, as that's in the part dropped.
+
+It's stored at `gaming/backgrounds/u<user id>.jpg`, from numbers only, and served to its owner with `nosniff` and the sandboxing policy every API answer has. No route takes an account number, so there's
+nothing to change to reach someone else's. It goes with the account.
+- **Touch sticks:** consoles with a stick get an on-screen analog one, read as how far a thumb pushes it. On the Nintendo 64, where the stick is how
+  games steer, the on-screen D-pad is that stick. On PlayStation, whose games nearly all use the D-pad, it starts hidden and the editor can show it.
 - **Touch:** an on-screen controller per console. The editor moves, resizes and sets the opacity of
   each control and chooses which ones show, saved **per console and per device, for portrait and
   landscape separately**. Sliding between buttons works, and Android gets haptics (iOS has no web
@@ -632,6 +694,9 @@ and clean exits when the server or the runner is killed.
 These ran for 25 seconds on all three cores, so they aren't merely slow starters. About one in five games made no sound
 in the first few seconds, with Supafaust and Mesen-S agreeing on 40 of the sample's 45, and that is usually a quiet title screen.
 Most games ignore the buttons in those seconds too, which is why `no-input-effect` is so common.
+**Listed but not playable yet** because they need hardware rendering: Nintendo 64, PSP, Dreamcast. Their controllers are
+already set up, numbered as those cores number them.
+Nintendo DS needs a pointer input for its touch screen, which comes after the first release.
 
 ## Limits today
 

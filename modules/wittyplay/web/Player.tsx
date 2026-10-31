@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SELECT, START, type ControlsData, type SaveControl } from './consoles'
-import { ControllersPanel } from './Controllers'
-import { deviceId, InputManager, load, onTV, save } from './input'
+import { deviceId, InputManager, load, onTV, padSupport, save } from './input'
+import type { ControllerData } from './mapping'
+import { ControllerStudio, type PortChoice, type ProfileHost } from './Studio'
 import { TouchControls, TouchEditor, useOrientation } from './TouchControls'
 import { make, plan, TRANSPORT_LABELS, type Mode, type PlayEvent, type Stats, type Transport, type TransportKind } from './transport'
 import './play.css'
@@ -10,7 +11,7 @@ import './play.css'
 // and passes controllers along. Everything it needs from the app comes through
 // PlayHost, so the module works in any app that can provide one.
 
-export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; renderer?: string; turns?: number; disc?: number; discs?: number; modes: { id: string }[] }
+export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; renderer?: string; turns?: number; disc?: number; discs?: number; modes: { id: string }[]; devices?: PortChoice[] }
 export type SaveSlot = { slot: number; updatedAt: number; size: number; hasThumb: boolean }
 export type PrepareStatus = { state: 'ready' | 'waiting' | 'reading' | 'unpacking'; done: number; total: number }
 
@@ -25,11 +26,14 @@ export interface PlayHost {
   stop(sessionId: string): Promise<void>
   answer(sessionId: string, sdp: string, prefer?: string): Promise<string>
   wsUrl(sessionId: string, video: string): string
-  action(sessionId: string, type: string, slot?: number, on?: boolean): Promise<void>
+  action(sessionId: string, type: string, slot?: number, on?: boolean, extra?: { port: number; device: number }): Promise<void>
   saves(): Promise<SaveSlot[]>
   thumbUrl(slot: number, version: number): string
   controls(device: string): Promise<ControlsData>
   saveControl(s: SaveControl): Promise<void>
+  controllers(): Promise<ControllerData>
+  profiles: ProfileHost
+  consoleName: string
   close(): void // leave the player
 }
 
@@ -57,17 +61,22 @@ async function prepared(host: PlayHost, say: (s: string) => void, cancelled: () 
 
 export default function GamePlayer({ host }: { host: PlayHost }) {
   const [controls, setControls] = useState<ControlsData | null>(null)
+  const [known, setKnown] = useState<ControllerData | null>(null)
   const [error, setError] = useState('')
-  useEffect(() => { host.controls(deviceId()).then(setControls).catch((e) => setError(e?.message || 'The game could not start.')) }, [host])
+  useEffect(() => {
+    // A list of pads is a help, not a need: the game runs without it.
+    Promise.all([host.controls(deviceId()), host.controllers().catch(() => ({ layouts: {}, pads: [] }))])
+      .then(([c, k]) => { setKnown(k); setControls(c) }).catch((e) => setError(e?.message || 'The game could not start.'))
+  }, [host])
   if (error) {
     return (
       <div className="wp-root"><div className="wp-error" role="alert"><p>{error}</p><button type="button" className="wp-btn primary" onClick={() => host.close()}>Back</button></div></div>
     )
   }
-  return controls ? <Playing host={host} initial={controls} /> : <div className="wp-root"><div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />Starting the game…</div></div>
+  return controls ? <Playing host={host} initial={controls} known={known} /> : <div className="wp-root"><div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />Starting the game…</div></div>
 }
 
-function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
+function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsData; known: ControllerData | null }) {
   const [controls, setControls] = useState(initial)
   const [info, setInfo] = useState<SessionInfo | null>(null)
   const [error, setError] = useState('')
@@ -82,11 +91,16 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   const [touchOn, setTouchOn] = useState<boolean>(() => load<boolean>(TOUCH_KEY) ?? (window.matchMedia?.('(pointer: coarse)').matches ?? false))
   const [padName, setPadName] = useState('')
   const orientation = useOrientation()
-  const input = useMemo(() => new InputManager(initial), [initial])
+  const input = useMemo(() => new InputManager(initial, known, host.itemId), [initial, known, host.itemId])
   const tv = useMemo(onTV, [])
   // Layouts live on the server, so they follow the account to its other devices.
   const saveControl = useCallback(async (s: SaveControl) => {
     await host.saveControl(s)
+    const fresh = await host.controls(deviceId())
+    setControls(fresh)
+    input.setControls(fresh)
+  }, [host, input])
+  const refreshControls = useCallback(async () => {
     const fresh = await host.controls(deviceId())
     setControls(fresh)
     input.setControls(fresh)
@@ -106,7 +120,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   }, [toast])
 
   const onEvent = useCallback((e: PlayEvent) => {
-    if (e.type === 'rumble') input.rumble(e.port || 0, e.strength || 0)
+    if (e.type === 'rumble') input.rumble(e.port || 0, e.strength || 0, e.effect || 0)
     else if (e.type === 'message' && e.text) say(e.text)
     else if (e.type === 'shutdown') { say('The game has ended'); leave() }
     else if (e.type === 'ended') {
@@ -194,6 +208,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   const lastPads = useRef('')
   useEffect(() => {
     if (padName && padName !== lastPads.current) say(padName)
+    else if (!padName && lastPads.current) say('Controller disconnected')
     lastPads.current = padName
   }, [padName, say])
 
@@ -243,19 +258,9 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
       setPanel((p) => (p === 'touch' ? p : p ? (p === 'menu' ? null : 'menu') : 'menu'))
     }
     window.addEventListener('keydown', key)
-    let held = false
-    const iv = setInterval(() => {
-      let both = false
-      try {
-        for (const p of navigator.getGamepads?.() || []) {
-          if (p && ((p.buttons[8]?.pressed && p.buttons[9]?.pressed) || p.buttons[16]?.pressed)) both = true
-        }
-      } catch { /* blocked by policy */ }
-      if (both && !held) setPanel((x) => (x ? null : 'menu'))
-      held = both
-    }, 100)
-    return () => { window.removeEventListener('keydown', key); clearInterval(iv) }
-  }, [tv])
+    input.onMenu = () => setPanel((x) => (x ? null : 'menu'))
+    return () => { window.removeEventListener('keydown', key); input.onMenu = undefined }
+  }, [tv, input])
 
   // A menu's contents change without it closing, so focus has to be put back in by
   // hand, or a remote would have nothing to move from.
@@ -284,6 +289,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   const shape = info?.aspect && info.aspect > 0 ? info.aspect : info ? info.width / info.height : 4 / 3
   const aspect = turned ? 1 / shape : shape
   const onMask = useCallback((m: number) => input.setTouch(m), [input])
+  const onStick = useCallback((x: number, y: number) => input.setTouchStick(x, y), [input])
 
   // A console's touch screen: a press on the picture is the stylus, wherever it
   // came from. Positions are fractions of the picture, which is all the server wants.
@@ -318,7 +324,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         )}
       </div>
 
-      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} onPoint={hasPointer ? onPoint : undefined} />}
+      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} onStick={onStick} onPoint={hasPointer ? onPoint : undefined} />}
 
       {needsTap && !paused && <button type="button" className="wp-tap" onClick={tap}>Tap for sound</button>}
 
@@ -342,7 +348,16 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
       {panel === 'touch' && <TouchEditor data={controls} orientation={orientation} onClose={() => setPanel('menu')}
         onSave={(l) => saveControl({ kind: 'touch', key: deviceId(), orientation, data: l })} />}
 
-      {panel && panel !== 'touch' && (
+      {panel === 'controllers' && <ControllerStudio host={host.profiles} data={controls} known={known} input={input} consoleName={host.consoleName} gameId={host.itemId} gameTitle={host.title}
+        devices={info?.devices} refresh={refreshControls} onTouch={tv ? undefined : () => setPanel('touch')} onClose={() => setPanel('menu')}
+        setDevice={async (port, device) => {
+          const s = sessionRef.current
+          if (!s) return
+          await host.action(s.id, 'device', 0, false, { port, device })
+          setInfo((i) => i && { ...i, devices: i.devices?.map((d) => (d.port === port ? { ...d, current: device } : d)) })
+        }} />}
+
+      {panel && panel !== 'touch' && panel !== 'controllers' && (
         <div className="wp-menu-back" onClick={() => setPanel(null)}>
           <div ref={menuRef} className="wp-menu" role="dialog" aria-modal="true" aria-label={panelTitle(panel, host.title)} onClick={(e) => e.stopPropagation()}>
             {panel === 'menu' && (
@@ -363,6 +378,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
                   <button type="button" className="wp-btn" onClick={() => { const s = sessionRef.current; if (s) void host.action(s.id, 'reset').then(() => { say('Reset'); setPanel(null) }) }}>Reset the game</button>
                   <button type="button" className="wp-btn danger" onClick={leave}>Save and quit</button>
                 </nav>
+                {!padName && padSupport() === 'insecure' && <p className="wp-muted wp-small">Using a gamepad? Most browsers only show them to secure pages. Open this server over https, or at localhost on this computer.</p>}
                 {info && <p className="wp-muted wp-small">{info.core}</p>}
               </>
             )}
@@ -378,13 +394,6 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
                     }}>Disc {n + 1}{n === (info?.disc || 0) ? ' (in the drive)' : ''}</button>
                   ))}
                 </nav>
-                <div className="wp-row"><span className="wp-grow" /><button type="button" className="wp-btn" onClick={() => setPanel('menu')}>Back</button></div>
-              </>
-            )}
-            {panel === 'controllers' && (
-              <>
-                <h2>Controllers</h2>
-                <ControllersPanel input={input} controls={controls} onSave={saveControl} say={say} />
                 <div className="wp-row"><span className="wp-grow" /><button type="button" className="wp-btn" onClick={() => setPanel('menu')}>Back</button></div>
               </>
             )}
@@ -405,6 +414,62 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// The same screen away from a game, for setting things up in peace. It reads controllers
+// but sends them nowhere.
+export function ControllersPage({ profiles, controls, controllers, consoles, consoleId, onConsole, saveControl, onClose }: {
+  profiles: ProfileHost; controls: (consoleId: string, device: string) => Promise<ControlsData>; controllers: () => Promise<ControllerData>; consoles: { id: string; short: string; name: string }[]
+  consoleId: string; onConsole: (id: string) => void; saveControl: (consoleId: string, s: SaveControl) => Promise<void>; onClose: () => void
+}) {
+  const [data, setData] = useState<ControlsData | null>(null)
+  const [known, setKnown] = useState<ControllerData | null>(null)
+  const [error, setError] = useState('')
+  const [touch, setTouch] = useState(false)
+  const orientation = useOrientation()
+  const fetchData = useCallback(() => controls(consoleId, deviceId()), [controls, consoleId])
+  useEffect(() => {
+    let stale = false
+    Promise.all([fetchData(), controllers().catch(() => ({ layouts: {}, pads: [] }))]).then(([c, k]) => { if (!stale) { setKnown(k); setData(c) } }).catch((e) => setError(e?.message || 'This couldn’t be loaded'))
+    return () => { stale = true }
+  }, [fetchData, controllers])
+  const input = useMemo(() => (data && known ? new InputManager(data, known) : null), [data?.console, known]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!input) return
+    input.setEnabled(false) // no keys taken, and nothing sent: this is only for reading pads
+    input.start()
+    return () => input.stop()
+  }, [input])
+  const refresh = useCallback(async () => {
+    const fresh = await fetchData()
+    setData(fresh)
+    input?.setControls(fresh)
+  }, [fetchData, input])
+  // Escape, and the many names of Back on a TV remote.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (touch || !['Escape', 'GoBack', 'BrowserBack', 'Back', 'XF86Back'].includes(e.key)) return
+      e.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [touch, onClose])
+  if (error) return <div className="wp-page"><div className="wp-error" role="alert"><p>{error}</p><button type="button" className="wp-btn primary" onClick={onClose}>Back</button></div></div>
+  if (!data || !input) return <div className="wp-page"><div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />Loading…</div></div>
+  const current = consoles.find((c) => c.id === consoleId)
+  return (
+    <div className="wp-page">
+      {touch
+        ? <TouchEditor data={data} orientation={orientation} onClose={() => setTouch(false)} onSave={async (l) => { await saveControl(consoleId, { kind: 'touch', key: deviceId(), orientation, data: l }); await refresh() }} />
+        : <ControllerStudio key={data.console} host={profiles} data={data} known={known} input={input} consoleName={current?.short || consoleId} refresh={refresh} onClose={onClose} onTouch={onTV() ? undefined : () => setTouch(true)}
+            consolePicker={(
+              <div className="wps-consoles" role="group" aria-label="Which console">
+                {consoles.map((c) => <button key={c.id} type="button" aria-pressed={c.id === consoleId} className={'wp-btn wps-small' + (c.id === consoleId ? ' primary' : '')} onClick={() => onConsole(c.id)}>{c.short}</button>)}
+              </div>
+            )} />}
     </div>
   )
 }

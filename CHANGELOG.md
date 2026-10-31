@@ -114,6 +114,23 @@ disc: neither Blu-ray image on hand has Java menus.
   on Alpine. It is about 800 MB, up from about 150 MB.
 
 ## 0.5.0-alpha
+### Games: controllers
+
+- **Controllers just work:** common pads are recognised by model, including cheap USB ones and pads on Linux whose buttons a
+  browser doesn't put in order. D-pads reported as axes, triggers reported as axes, and hats are all handled. Sticks have a proper
+  round dead zone and can be calibrated, triggers reach games as how far they're held, and each console's controller maps
+  sensibly, with the Nintendo 64's C buttons on the right stick and a DualShock plugged in for PlayStation where the emulator offers one.
+- **Your own profiles:** make, name, copy, edit, delete, export and import mappings, for one controller, console or game. They're kept on
+  the server, so they follow you between devices. Remapping is by pressing, conflicts are shown, a stick can press a button and a
+  button can push a stick, and there's turbo and a reset.
+- **A picture of the controller:** the controller screen, in the game menu and in your account menu, shows a drawing suited to the console, with each
+  button labelled, clickable, and lighting up as you press it. Every mapping is also a plain list. All of it works from a remote or controller.
+- **Your own background** behind the picture, with position, fit and dimming. Only you can see it.
+- **An on-screen analog stick** for consoles with one, and a one-press swap of the face buttons for people who'd rather go by the letters on their pad than by position.
+- **Several players:** a pad goes back to its own player when reconnected, and moving onto a taken player swaps the two.
+- **Fixed:** unplugging a pad, or switching tabs, could leave buttons held. A new pad at the same place took over the old one's layout. The PlayStation's stick also pressed its D-pad. Pads that aren't
+  in standard order couldn't open the menu. Rumble events went out every frame, and only ever ran one motor's strength on both.
+- **Plain http:** browsers hide gamepads from such pages. The controller screen now says so, and what to do about it.
 
 ### Interface audit
 

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +53,8 @@ type runner struct {
 	stop  bool
 	fps   float64 // a new frame rate the game has asked for
 	muted bool    // these frames are only to get a core ready, and nobody should see them
+
+	rumble map[[2]int]int // what each motor was last told
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
@@ -176,6 +179,15 @@ func (r *runner) handlers() engine.Handlers {
 			return r.point
 		},
 		Rumble: func(port, effect, strength int) {
+			// Cores repeat this every frame, and most of it says nothing new.
+			k := [2]int{port, effect}
+			if r.rumble == nil {
+				r.rumble = map[[2]int]int{}
+			}
+			if r.rumble[k] == strength {
+				return
+			}
+			r.rumble[k] = strength
 			r.event(ipc.Event{Type: "rumble", Port: port, Effect: effect, Strength: strength})
 		},
 		Message: func(text string) { r.event(ipc.Event{Type: "message", Text: text}) },
@@ -201,6 +213,34 @@ type command struct {
 	p []byte
 }
 
+// plugInDevices gives each port the kind of controller the console prefers, when the
+// core offers it, and returns the choices for the player to show.
+func plugInDevices(eng engine.Engine, prefer []string) []ipc.PortDevices {
+	d, ok := eng.(engine.Devices)
+	if !ok {
+		return nil
+	}
+	var out []ipc.PortDevices
+	for _, port := range d.ControllerPorts() {
+		p := ipc.PortDevices{Port: port.Port, Current: port.Current}
+		for _, t := range port.Types {
+			p.Types = append(p.Types, ipc.DeviceType{ID: t.ID, Name: t.Name})
+		}
+	search:
+		for _, want := range prefer {
+			for _, t := range port.Types {
+				if strings.Contains(strings.ToLower(t.Name), want) {
+					p.Current = t.ID
+					d.SetDevice(port.Port, t.ID)
+					break search
+				}
+			}
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
 func (r *runner) run(in io.Reader, open Open) error {
 	cmds := make(chan command, 64)
 	readErr := make(chan error, 1)
@@ -216,7 +256,8 @@ func (r *runner) run(in io.Reader, open Open) error {
 			if t == ipc.CmdInput {
 				// Input skips the queue: the newest state is all that matters.
 				if port, b, lx, ly, rx, ry, ok := ipc.ParseInput(p); ok && port < engine.MaxPorts {
-					r.pads.set(port, engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry})
+					l2, r2 := ipc.ParseTriggers(p)
+					r.pads.set(port, engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry, L2: l2, R2: r2})
 				}
 				continue
 			}
@@ -271,7 +312,8 @@ func (r *runner) run(in io.Reader, open Open) error {
 	if discs != nil {
 		disc, discCount = discs.Disc()
 	}
-	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount, Renderer: renderer})
+	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount, Renderer: renderer,
+		Devices: plugInDevices(eng, load.PreferDevices)})
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
@@ -328,6 +370,10 @@ func (r *runner) run(in io.Reader, open Open) error {
 		case ipc.CmdPause:
 			paused = len(c.p) > 0 && c.p[0] != 0
 			next = time.Now()
+		case ipc.CmdDevice:
+			if d, ok := eng.(engine.Devices); ok && len(c.p) == ipc.DeviceSize {
+				d.SetDevice(int(c.p[0]), binary.LittleEndian.Uint32(c.p[1:]))
+			}
 		case ipc.CmdQuit:
 			if len(c.p) > 0 && c.p[0] != 0 {
 				var id [4]byte

@@ -35,6 +35,12 @@ trip through the app switcher loses nothing.
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
 | `POST /games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
+| `GET /game-profiles`, `POST /game-profiles` | user | This account's controller profiles; makes one |
+| `GET`, `PUT`, `DELETE /game-profiles/{id}`; `POST /game-profiles/{id}/copy`, `/active` | user | One profile, only the account's own |
+| `GET /game-profiles/resolve?kind=&controller=&console=&game=&raw=` | user | What a controller should do here: `{profile, map or keys, options}` |
+| `GET /game-profiles/export?id=&id=`, `POST /game-profiles/import` | user | A file of profiles out, and in |
+| `GET /game-controllers` | user | Controllers known by vendor and product. Browsers need it; an app usually doesn't |
+| `GET`, `PUT`, `DELETE /game-background`; `GET`, `PUT /game-background/image` | user | The account's own picture behind the controller screen |
 | `POST /games/{id}/play` | user | Starts a game. Body: `{"resume": bool, "client": "native"}` |
 | `GET /games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb}]` |
 | `GET /games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
@@ -43,6 +49,7 @@ trip through the app switcher loses nothing.
 | `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1 |
+| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "device", "port": n, "device": id}` |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
 
@@ -73,8 +80,14 @@ the screen needs nothing else.
 
 **The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes}`.
 **The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, renderer, modes}`. `renderer` names the graphics card, for a game drawn on one.
+**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes, devices}`.
 Show the picture at `aspect` (width over height), not at the video's own shape: the video is often
 doubled, and consoles' pixels often aren't square.
+
+`devices`, when there, lists the kinds of controller the game's emulator lets each port choose from:
+`[{"port": 0, "current": 261, "types": [{"id": 1, "name": "Standard"}, {"id": 261, "name": "DualShock"}]}]`. The console's
+best choice is already plugged in, so a PlayStation game starts with sticks and rumble where its emulator has them. To let
+someone change it, send a `device` action. Anything the emulator didn't offer answers 422.
 
 **Save slots:** 0 is the automatic one, written when a game stops, and can only be loaded. 1 to 9 are manual.
 
@@ -127,7 +140,8 @@ dropped, and you carry on from the next keyframe.
 
 ## Controller states
 
-An 11-byte binary message, little-endian, on the `input` data channel or the WebSocket:
+A 13-byte binary message, little-endian, on the `input` data channel or the WebSocket. The last two bytes may be left
+off if you can't tell how far triggers are held:
 
 | Bytes | Field | Meaning |
 |---|---|---|
@@ -135,6 +149,7 @@ An 11-byte binary message, little-endian, on the `input` data channel or the Web
 | 1-2 | buttons | u16, a bit per RetroPad button |
 | 3-4, 5-6 | left stick | X, Y: i16, -32768 to 32767, with up negative |
 | 7-8, 9-10 | right stick | X, Y |
+| 11, 12 | L2, R2 | How far each trigger is held, 0 to 255. Also set their button bits, past your press point |
 
 | Bit | Button | Bit | Button |
 |---|---|---|---|
@@ -224,9 +239,21 @@ draw `Y` on a Super Nintendo and `□` on a PlayStation from the same data.
   need more.
 - **Touch** layouts place each control by its `key`: `x` and `y` are its centre, as fractions of the play area,
   and `size` is a fraction of the shorter side. A D-pad is a square of that size; `meta` buttons are about half as
-  tall as wide.
+  tall as wide. A control of kind `stick`, or a D-pad with `"stick": true`, is an analog stick: send how far a finger
+  pushes it as the left stick, measured from its centre to its edge.
 
-**Saving:** `PUT /consoles/{console}/controls` with one of these. `"data": null` goes back to the default.
+More in the same answer: `targets` lists everything this console can have mapped, in the order to show it, and `pad.art` says
+what shape of controller to draw (`one`, `two`, `four`, `six`, `handle` or `dual`). `defaults.options` is how sticks and turbo
+behave until someone changes it. `profiles` is this account's profiles in use here; add `&game=<id>` to include those for that
+game. `background` is below.
+
+Numbers from 16 to 23 used as keys are one direction of a stick, so a mapping treats them like buttons, and a stick can press
+a button or a button can push a stick: 16 left stick left, 17 right, 18 up, 19 down, 20 right stick left, 21 right, 22 up,
+23 down. On a console whose stick is how games steer (`pad.stickFirst`: the Nintendo 64), the arrow keys and on-screen D-pad
+push the stick. Its C buttons are the right stick, as the emulators have them.
+
+**Saving:** `PUT /consoles/{console}/controls` with one of these. `"data": null` goes back to the default. This is the simple
+way, with one layout per model per console. Profiles, below, do more, and win when both exist.
 
 ```json
 { "kind": "gamepad", "key": "Some Pad Model", "data": { "8": { "b": 5 } } }
@@ -236,6 +263,54 @@ draw `Y` on a Super Nintendo and `□` on a PlayStation from the same data.
 
 Bad data answers 400 and saves nothing. Layouts follow the account to every device, except touch layouts, which
 belong to the `device` that saved them. A device id is yours to choose: up to 64 letters, digits, `.`, `_` or `-`.
+
+## Controller profiles
+
+A profile is a named mapping that belongs to one account, and follows it to every device.
+
+```json
+{
+  "id": 12, "name": "Couch", "kind": "gamepad", "active": true,
+  "controller": "054c:0ce6", "controllerName": "DualSense", "console": "snes", "game": 0,
+  "map": { "0": { "b": 5 }, "8": { "a": 2, "d": 1 }, "17": { "b": 15 }, "2": null },
+  "options": { "deadzone": 0.2, "threshold": 0.5, "stickDpad": true, "turbo": [0], "turboHz": 12, "noRumble": false }
+}
+```
+
+- **Scope:** `controller` is `vendor:product` in lowercase hexadecimal, `id:<name>` for a pad with no numbers, or empty for any
+  controller. `console` and `game` are empty or 0 for any. A game needs its console. Keyboard profiles have `"kind": "keyboard"`,
+  `keys` in place of `map`, and `"controller": "keyboard"`.
+- **Which applies:** the most exact one in use wins: this game and this controller, this game, this console and this controller,
+  this console, this controller, then one for anything. With none, the console's defaults. `GET /game-profiles/resolve` works this out,
+  and answers what to use. Of profiles with the same scope, one is `active`; making one active takes the others out of use.
+- **`map`** says what changes: a target left out keeps its default, and `null` means nothing presses it. A value is `{"b": n}` (a
+  button), `{"a": n, "d": 1 or -1}` (a direction of an axis, with `"r": -1 or 1` for a trigger that rests at that end), or
+  `{"h": n, "d": 1 to 4}` (a D-pad reported as one axis: up, right, down, left). Numbers are W3C standard ones. Translate
+  from your platform as for `saved.gamepad` above, and never set `raw`, which is for browsers that can't tell a pad's order.
+- **`options`:** `deadzone` up to 0.6 is how far a stick moves before it counts, measured as a circle. `threshold`, 0.1 to 0.9,
+  is how far an analog input goes to press a button. `stickDpad` lets the left stick steer the D-pad as well. `turbo` lists buttons
+  that repeat while held, `turboHz` times a second, from 2 to 30. `noRumble` turns rumble off. `calibration` is per axis,
+  `[lowest, at rest, highest]`. Applying these is your job: the server only keeps them.
+- **Limits:** 200 profiles an account, 16 KB each, names of up to 60 characters. Bad data answers 400 and saves nothing.
+- **Files:** `GET /game-profiles/export` gives `{"format": "wittyplay-controller-profiles", "version": 1, "profiles": [...]}`, as an
+  attachment. `POST /game-profiles/import` takes that file as its body, up to 256 KB and 100 profiles, and answers
+  `{imported, rejected: [{index, name, error}], notes}`. Good profiles are kept. A profile for a game this server doesn't have
+  becomes one for its console. An imported profile is only put in use if nothing with its scope already is.
+
+Copying (`POST /game-profiles/{id}/copy`) gives a separate profile that isn't in use. Nobody can see, change or address
+another account's profiles: to them, the routes answer 404.
+
+## The picture behind the controller screen
+
+`GET /game-background` answers `{"version": 0, "fit": "cover", "x": 50, "y": 50, "dim": 50}`. `version` is 0 with no picture. Otherwise,
+show `GET /game-background/image?v=<version>` behind your controller screen. `fit` is `cover` or `contain`, `x` and `y` are
+which part of the picture shows (0 to 100), and `dim` is how far to fade it towards your background colour (0 to 90), with a
+solid backing under any text on top.
+
+`PUT /game-background` changes those. `PUT /game-background/image`, with the picture as the body, sets it: PNG, JPEG or WebP, up to 10 MB
+and 24 megapixels. The server decodes it and stores a new JPEG of up to 2560 pixels, so nothing but the picture survives, and
+answers the setting. A file that isn't one of those answers 400. `DELETE /game-background` removes it. All of these are for
+the signed-in account only, as they take no account number.
 
 ## What a TV app must build itself
 
@@ -247,9 +322,9 @@ belong to the `device` that saved them. A device id is yours to choose: up to 64
 - Stopping cleanly with `DELETE /play/{sid}`, including when the app leaves the screen for good.
 
 **Moved to the server for this**, so apps don't have to do it: what every console's controller has, its names
-for its buttons, default layouts, saved layouts, sessions, saves, resume and play time. Nothing about a game lives
-only in the web player, except this device's own choices: which connection mode to force, and whether to show
-touch controls.
+for its buttons, default layouts, saved layouts, controller profiles and which applies, sessions, saves, resume and play time.
+Nothing about a game lives only in the web player, except this device's own choices: which connection mode to force,
+whether to show touch controls, and which controller is on which player.
 
 **To be added when the shared contract lands:** these routes under `/api/v1`, entries in `docs/openapi.json` and
 `docs/CLIENT-API.md`, a `games` feature in `/capabilities`, and a `game` case in `/items/{id}/playback` that points to

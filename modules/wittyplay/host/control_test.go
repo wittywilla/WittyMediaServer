@@ -219,6 +219,7 @@ func TestFastForwardSendsNoMoreFramesThanNormal(t *testing.T) {
 	h := newHarness(t, c)
 	h.pause(false)
 	h.send(ipc.CmdControl, ipc.Control{Speed: ptr(4.0)})
+	time.Sleep(30 * time.Millisecond) // what was on its way when that was said
 	frames, audio := h.run(500 * time.Millisecond)
 	if len(frames) == 0 {
 		t.Fatal("nothing was shown")
@@ -242,6 +243,7 @@ func TestSlowMotionRunsSlower(t *testing.T) {
 	h := newHarness(t, c)
 	h.pause(false)
 	h.send(ipc.CmdControl, ipc.Control{Speed: ptr(0.25)})
+	time.Sleep(30 * time.Millisecond)
 	frames, audio := h.run(500 * time.Millisecond)
 	if len(frames) > 25 || len(frames) < 5 {
 		t.Fatalf("%d frames in half a second at quarter speed of 120 a second", len(frames))

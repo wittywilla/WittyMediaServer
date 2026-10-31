@@ -12,7 +12,7 @@ WittyPlay is developed as part of [WittyMediaServer](https://github.com/wittywil
 
 | Package | What it does |
 |---|---|
-| `wittyplay` | The consoles: extensions, recommended cores and their licences, sorting a file into a console, and each controller as data. No dependencies |
+| `wittyplay` | The consoles: extensions, recommended cores and their licences, sorting a file into a console, and each controller as data. Every setting as data, settings layers and custom settings files. No dependencies |
 | `ipc` | The protocol between a server and a game runner, over pipes |
 | `host`, `cmd/wittyplay-host` | The runner: a separate program that runs one game |
 | `libretro` | The libretro frontend inside the runner, with no cgo |
@@ -20,7 +20,8 @@ WittyPlay is developed as part of [WittyMediaServer](https://github.com/wittywil
 | `testcore` | A tiny game written in Go, so everything can be tested with no third-party code |
 | `stream` | Server side: starts runners, encodes with FFmpeg, serves WebRTC and WebSocket viewers |
 | `cores` | Finds cores on the machine and installs them on request |
-| `web/` | The browser half: the player, controllers, remapping and the touch editor (React) |
+| `patch` | IPS and BPS patches, applied to a copy |
+| `web/` | The browser half: the player, picture effects, the game menu, controllers, remapping and the touch editor (React) |
 
 ## Playing a game from Go
 

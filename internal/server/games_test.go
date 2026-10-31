@@ -194,7 +194,7 @@ func TestGameSessionsBelongToTheirOwner(t *testing.T) {
 		"someone else does not":  {"GET", "/api/play/" + info.ID, g.other, 404},
 		"nor can they stop it":   {"DELETE", "/api/play/" + info.ID, g.other, 404},
 		"nor stream it":          {"GET", "/api/play/" + info.ID + "/ws", g.other, 404},
-		"a bad slot is refused":  {"GET", idPath("/api/games/{id}/saves/10/thumb"), g.admin, 404},
+		"a bad slot is refused":  {"GET", idPath("/api/games/{id}/saves/102/thumb"), g.admin, 404},
 		"a path is not a slot":   {"GET", idPath("/api/games/{id}/saves/..%2F..%2Fsecret/thumb"), g.admin, 404},
 		"nor a negative one":     {"DELETE", idPath("/api/games/{id}/saves/-1"), g.admin, 404},
 		"their saves are theirs": {"GET", idPath("/api/games/{id}/saves"), g.other, 200},

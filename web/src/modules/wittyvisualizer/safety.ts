@@ -11,7 +11,9 @@
 //
 // With the values below, that's under 0.1: a change fast enough to count as more than
 // three flashes a second can't be large enough to count as a flash at all. shaders/passes.glsl
-// runs this on the graphics card ("guard-frag"), and canvas2d.ts runs it here.
+// runs this on the graphics card ("guard-frag"), and canvas2d.ts runs it here. WittyMediaPlayer
+// has a copy for its CD screen's simple visuals (FlashLimiter in src/visual/visualizer.cpp), so
+// a change to this rule goes there too.
 
 export const GUARD = { deadBand: 0.04, rise: 0.15 }
 export const GUARD_CALM = { deadBand: 0.02, rise: 0.05 }

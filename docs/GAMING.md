@@ -218,7 +218,7 @@ default layouts, are data from the server (`modules/wittyplay/controls.go`).
   of everything it held at once. Browsers that don't fire the events are found by the heartbeat.
 - **Several players:** up to four in the UI, with eight supported by the protocol. Moving a pad onto a player who's taken swaps them.
 - **Turbo and rumble:** turbo per button, per profile. Rumble reaches the right player's pad with each of its two motors.
-  The runner only passes on a motor's change, and the player renews it while it runs, so a lost stop can't leave a pad shaking for good.
+  The runner only passes on a motor's change. The player asks for a second at a time and renews it while it's wanted, so a page that goes away can't leave a pad shaking.
 - **Device types:** a core's `SET_CONTROLLER_INFO` list is read, and each console's preferred one is plugged in: a DualShock on PlayStation
   where the core offers it, which is what gives games their sticks and rumble. Players can choose another. Toggling a DualShock between digital
   and analog is the core's own business, by its own button combination.

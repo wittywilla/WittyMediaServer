@@ -284,6 +284,12 @@ export function snapshot(pad: PadLike): Snapshot {
   return { buttons, axes: Array.from(pad.axes as ArrayLike<number>) }
 }
 
+// Forgets what's been let go since listening began, so that the very button a person
+// pressed to get here can be the answer, once they've released it and pressed it again.
+export function noteReleases(pad: PadLike, base: Snapshot) {
+  for (let i = 0; i < base.buttons.length; i++) if (base.buttons[i] && !down(pad.buttons[i])) base.buttons[i] = false
+}
+
 // The first new press, in raw numbers. base holds what was already held or at rest when
 // listening began, so nothing a person was already holding is taken for an answer.
 export function findPress(pad: PadLike, base: Snapshot): Binding | null {

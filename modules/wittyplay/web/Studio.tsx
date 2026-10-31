@@ -3,7 +3,7 @@ import { ControllerPicture } from './art'
 import type { Background, ControlsData, Target } from './consoles'
 import { MAX_PLAYERS, onTV, padSupport, type InputManager, type PadInfo } from './input'
 import {
-  conflicts, describeKey, describeSource, effectiveKeys, effectiveMap, effectiveOptions, findPress, keyConflicts, rawFromDefaults, snapshot, standingOf, toStandard,
+  conflicts, describeKey, describeSource, effectiveKeys, effectiveMap, effectiveOptions, findPress, keyConflicts, noteReleases, rawFromDefaults, resolveProfile, snapshot, standingOf, toStandard,
   type Binding, type ControllerData, type KeyMap, type PadMap, type Profile, type ProfileOptions,
 } from './mapping'
 
@@ -51,6 +51,16 @@ type Tab = 'buttons' | 'players' | 'picture'
 type Device = number | 'keyboard'
 
 const LISTEN_MS = 7000
+const TRY_IDLE_MS = 6000
+
+// While this is held, a pad's buttons mean nothing to the app's own navigation
+// (web/src/tv.ts). Let go a moment late, so that what was just pressed isn't also OK.
+let tvHolds = 0
+function holdTvNavigation(on: boolean) {
+  tvHolds += on ? 1 : -1
+  if (on) document.documentElement.classList.add('wp-capture')
+  else setTimeout(() => { if (tvHolds === 0) document.documentElement.classList.remove('wp-capture') }, 120)
+}
 const MAX_FILE = 10 << 20
 const MAX_IMPORT = 256 << 10
 
@@ -80,15 +90,18 @@ function Toggle({ label, on, onChange, hint }: { label: string; on: boolean; onC
 
 export function ControllerStudio(props: Props) {
   const { host, data, input, onClose, refresh } = props
+  // Something has to have the focus, or a remote has nothing to move from.
+  const root = useRef<HTMLDivElement>(null)
+  useEffect(() => { root.current?.querySelector<HTMLElement>('.wps-tabs button[aria-selected=true]')?.focus({ preventScroll: true }) }, [])
   const [tab, setTab] = useState<Tab>('buttons')
   const [note, setNote] = useState('')
   const [bg, setBg] = useState<Background>(data.background)
   useEffect(() => setBg(data.background), [data.background])
-  const say = useCallback((t: string) => setNote(t), [])
+  const say = useCallback((t: string) => setNote(t && t[0].toUpperCase() + t.slice(1)), [])
   const tabs: [Tab, string][] = [['buttons', 'Buttons'], ['players', 'Players'], ['picture', 'Background']]
 
   return (
-    <div className="wps" role="dialog" aria-label="Controllers">
+    <div ref={root} className="wps" role="dialog" aria-label="Controllers">
       <header className="wps-head">
         <h2>Controllers <span className="wp-muted">· {props.gameTitle || props.consoleName}</span></h2>
         <div className="wps-tabs" role="tablist">
@@ -177,28 +190,16 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
     [profiles, isKeys, model, consoleId, gameId, rawPad])
 
   // What's in use is what the screen opens on.
-  const inUse = useMemo(() => {
-    let best: Profile | null = null, rank = 0
-    for (const p of fitting) {
-      if (!p.active) continue
-      const named = !!p.controller && p.controller !== 'keyboard' || isKeys
-      const r = p.game ? (named ? 6 : 5) : p.console ? (named ? 4 : 3) : named ? 2 : 1
-      if (r > rank) { best = p; rank = r }
-    }
-    return best
-  }, [fitting, isKeys])
+  const inUse = useMemo(() => resolveProfile(fitting, isKeys ? 'keyboard' : 'gamepad', model, consoleId, gameId || 0, rawPad), [fitting, isKeys, model, consoleId, gameId, rawPad])
   useEffect(() => { setSelected(inUse?.id ?? null) }, [inUse?.id, device]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (profiles && selected !== null && !fitting.some((p) => p.id === selected)) setSelected(inUse?.id ?? null) }, [fitting]) // eslint-disable-line react-hooks/exhaustive-deps
   const profile = fitting.find((p) => p.id === selected) || null
 
   const defaults = useMemo<PadMap>(() => {
     const raw = typeof device === 'number' ? navigator.getGamepads?.()[device] : null
     return rawPad && raw ? rawFromDefaults(data.defaults.gamepad, raw) : data.defaults.gamepad
   }, [data.defaults.gamepad, rawPad, device, pads.length])
-  const map = useMemo<PadMap>(() => {
-    if (rawPad && profile) return { ...defaults, ...effectiveMap({}, targetIds, { ...profile, raw: false }) }
-    if (rawPad) return defaults
-    return effectiveMap(data.defaults.gamepad, targetIds, profile)
-  }, [data.defaults.gamepad, targetIds, profile, rawPad, defaults])
+  const map = useMemo<PadMap>(() => (rawPad && !profile ? defaults : effectiveMap(data.defaults.gamepad, targetIds, profile)), [data.defaults.gamepad, targetIds, profile, rawPad, defaults])
   const keys = useMemo<KeyMap>(() => effectiveKeys(data.defaults.keyboard, targetIds, profile), [data.defaults.keyboard, targetIds, profile])
   const clashes = useMemo(() => (isKeys ? keyConflicts(keys) : conflicts(map)), [isKeys, keys, map])
   const options = effectiveOptions(data.defaults.options, profile)
@@ -216,7 +217,8 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
     if (!p) return
     pending.current = null
     queue.current = queue.current.then(() => host.update(p.id, p)).then((saved) => {
-      setProfiles((list) => (list || []).map((x) => (x.id === saved.id ? { ...saved, map: x.id === pending.current?.id ? pending.current.map : saved.map } : x)))
+      // A newer change may be waiting: what's on the screen then stays.
+      setProfiles((list) => (list || []).map((x) => (x.id === saved.id && pending.current?.id !== saved.id ? saved : x)))
       return refresh()
     }).catch((e) => say(e?.message || 'That couldn’t be saved'))
   }, [host, refresh, say])
@@ -294,14 +296,14 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
     const base = snapshot(first)
     const esc = (e: KeyboardEvent) => { cancel(e) }
     input.setCapturing(true)
-    document.documentElement.classList.add('wp-capture')
+    holdTvNavigation(true)
     window.addEventListener('keydown', esc, true)
     let finished = false
     // On a timer rather than animation frames, which stop when the tab isn't drawing.
     const iv = window.setInterval(() => {
       const p = get()
-      if (!p) return
-      if (finished) return
+      if (!p || finished) return
+      noteReleases(p, base)
       const raw = findPress(p, base)
       if (!raw) return
       const st = standingOf(p, known, navigator.userAgent)
@@ -325,10 +327,33 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
       clearTimeout(deadline)
       window.removeEventListener('keydown', esc, true)
       input.setCapturing(false)
-      // tv.ts stands down while this class is on: give it a moment after the release.
-      setTimeout(() => { if (!document.querySelector('.wps-hot.listening')) document.documentElement.classList.remove('wp-capture') }, 120)
+      holdTvNavigation(false)
     }
   }, [listening, device, isKeys]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- trying it out ----
+
+  // Normally a pad also moves around this screen, and its right-hand button goes back.
+  // This lets someone press everything and see it light up, with nothing else happening.
+  // It ends by itself, so that someone with only a controller can't get stuck in it.
+  const [trying, setTrying] = useState(false)
+  useEffect(() => {
+    if (!trying) return
+    let last = performance.now()
+    input.setCapturing(true)
+    holdTvNavigation(true)
+    say('Press anything on the controller. This stops after a few seconds of nothing.')
+    const iv = window.setInterval(() => {
+      const r = typeof device === 'number' ? input.reading(device) : null
+      if (r && (r.mask !== 0 || r.lx !== 0 || r.ly !== 0 || r.rx !== 0 || r.ry !== 0)) last = performance.now()
+      if (performance.now() - last > TRY_IDLE_MS) setTrying(false)
+    }, 200)
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') { e.preventDefault(); e.stopPropagation(); setTrying(false) } else last = performance.now()
+    }
+    window.addEventListener('keydown', key, true)
+    return () => { clearInterval(iv); window.removeEventListener('keydown', key, true); input.setCapturing(false); holdTvNavigation(false); say('') }
+  }, [trying, device, input, say])
 
   // ---- lighting up as buttons are pressed ----
 
@@ -495,6 +520,7 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
         <div className="wps-row">
           <button type="button" className="wp-btn" disabled={(!isKeys && !pad) || listening !== null} onClick={() => { const [n, ...rest] = targets.map((t) => t.id); setWalk(rest); setListening(n) }}>Set them all, one by one</button>
           {listening !== null && <button type="button" className="wp-btn" onClick={() => { setWalk([]); setListening(null); say('Nothing changed') }}>Stop</button>}
+          <button type="button" className={'wp-btn' + (trying ? ' primary' : '')} aria-pressed={trying} disabled={!pad && !isKeys} onClick={() => setTrying((t) => !t)}>{trying ? 'Stop trying' : 'Try your controller'}</button>
           {onTouch && <button type="button" className="wp-btn" onClick={onTouch}>Edit touch controls…</button>}
         </div>
         {list}
@@ -671,9 +697,11 @@ function PictureTab({ host, bg, setBg, refresh, say, data }: { host: ProfileHost
   return (
     <div className="wps-body-grid">
       <section className="wps-left" aria-label="How it looks">
-        <Stage bg={bg} host={host}>
-          <ControllerPicture art={data.pad.art} targets={data.targets} active={null} describe={() => 'shown as an example'} refs={hot} onPick={() => {}} />
-        </Stage>
+        <div inert>
+          <Stage bg={bg} host={host}>
+            <ControllerPicture art={data.pad.art} targets={data.targets} active={null} describe={() => 'shown as an example'} refs={hot} onPick={() => {}} />
+          </Stage>
+        </div>
       </section>
       <section className="wps-right">
         <h3>Your own background</h3>

@@ -126,7 +126,15 @@
 .wps-clash { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 2px 8px; border: 1px dashed var(--wp-fg); border-radius: 8px; }
 .wps-players { display: flex; flex-direction: column; gap: 10px; }
 .wps-players li { padding: 6px 0; border-bottom: 1px solid var(--border, rgba(127, 127, 127, .25)); }
-@media (max-width: 800px) { .wps-body-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 800px) {
+  .wps-body-grid { grid-template-columns: minmax(0, 1fr); }
+  /* A row that scrolls, rather than a wall of buttons above the picture. */
+  .wps-consoles { flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; padding-bottom: 2px; }
+  .wps-consoles .wp-btn { flex: none; }
+}
+/* On a small screen the picture's buttons are drawn small, but are bigger to the finger,
+   as they are on a real pad. The list under the picture has large ones as well. */
+@media (pointer: coarse), (max-width: 600px) { .wps-hot::after { content: ""; position: absolute; inset: -6px; } }
 @media (prefers-reduced-motion: no-preference) { .wps-hot { transition: background-color .06s linear; } }
 @media (forced-colors: active) { .wps-hot[data-on], .wps-hot.listening { outline: 3px solid Highlight; } }
 

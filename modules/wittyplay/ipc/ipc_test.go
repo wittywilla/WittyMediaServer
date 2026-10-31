@@ -79,3 +79,27 @@ func TestParseInput(t *testing.T) {
 		t.Fatal("a short message must fail")
 	}
 }
+
+func TestInputWithAndWithoutTriggers(t *testing.T) {
+	short := make([]byte, InputSize)
+	short[0], short[1] = 2, 0x01
+	port, b, _, _, _, _, ok := ParseInput(short)
+	if !ok || port != 2 || b != 1 {
+		t.Fatalf("%d %d %v", port, b, ok)
+	}
+	if l, r := ParseTriggers(short); l != 0 || r != 0 {
+		t.Errorf("%d %d", l, r)
+	}
+	full := append(append([]byte{}, short...), 128, 255)
+	if _, _, _, _, _, _, ok := ParseInput(full); !ok {
+		t.Error("the longer state should be read")
+	}
+	if l, r := ParseTriggers(full); l != 128 || r != 255 {
+		t.Errorf("%d %d", l, r)
+	}
+	for _, n := range []int{0, 10, 12, 14, 64} {
+		if _, _, _, _, _, _, ok := ParseInput(make([]byte, n)); ok {
+			t.Errorf("%d bytes should be refused", n)
+		}
+	}
+}

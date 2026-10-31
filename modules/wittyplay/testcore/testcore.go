@@ -33,9 +33,26 @@ type Core struct {
 	tick     uint32
 	phase    uint32
 	lastPads uint16
+
+	device uint32 // which kind of controller is plugged in
 }
 
-var _ engine.Engine = (*Core)(nil)
+var (
+	_ engine.Engine  = (*Core)(nil)
+	_ engine.Devices = (*Core)(nil)
+)
+
+// ControllerPorts offers a choice of controller, as many real cores do.
+func (c *Core) ControllerPorts() []engine.PortDevices {
+	cur := c.device
+	if cur == 0 {
+		cur = 1
+	}
+	return []engine.PortDevices{{Port: 0, Current: cur, Types: []engine.DeviceType{{ID: 1, Name: "Plain pad"}, {ID: 261, Name: "Pad with sticks"}}}}
+}
+
+// SetDevice plugs one in.
+func (c *Core) SetDevice(_ int, id uint32) { c.device = id }
 
 // New makes a core reporting to h.
 func New(h engine.Handlers) *Core { return &Core{h: h} }

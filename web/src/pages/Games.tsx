@@ -298,13 +298,12 @@ export function ControllersScreen() {
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const consoles = useConsoles()
-  const playable = consoles.filter((c) => !c.unavailable || c.id === 'n64' || c.id === 'nds' || c.id === 'psp' || c.id === 'dc')
-  const consoleId = params.get('console') || playable.find((c) => c.ready)?.id || playable[0]?.id || ''
+  const consoleId = params.get('console') || consoles.find((c) => c.ready)?.id || consoles[0]?.id || ''
   const controls = useMemo(() => (id: string, device: string) => api.get<ControlsData>(`/consoles/${encodeURIComponent(id)}/controls?device=${encodeURIComponent(device)}`), [])
   if (!consoleId) return <Spinner />
   return (
     <Suspense fallback={<Spinner />}>
-      <Controllers profiles={profileHost} controls={controls} controllers={getControllers} consoles={playable} consoleId={consoleId}
+      <Controllers profiles={profileHost} controls={controls} controllers={getControllers} consoles={consoles} consoleId={consoleId}
         onConsole={(id) => setParams({ console: id }, { replace: true })} saveControl={async (id, s) => { await api.put(`/consoles/${id}/controls`, s) }} onClose={() => nav(-1)} />
     </Suspense>
   )

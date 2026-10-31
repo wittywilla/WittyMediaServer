@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
-      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
+      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run test:play && npm run build
       - name: Theme contrast and design tokens
         run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check
       - name: gofmt

@@ -401,6 +401,22 @@ func TestGameBackgroundIsCleanedAndPrivate(t *testing.T) {
 		t.Errorf("the photo wasn't turned upright: %v", m.Bounds())
 	}
 
+	// An <img> can't send a header, so its address can carry a sign-in, but only for reading it.
+	req := httptest.NewRequest("GET", "/api/game-background/image?token="+g.admin, nil)
+	req.RemoteAddr = "192.168.1.50:4000"
+	rec := httptest.NewRecorder()
+	g.h.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Errorf("signed in by its address: %d", rec.Code)
+	}
+	req = httptest.NewRequest("DELETE", "/api/game-background?token="+g.admin, nil)
+	req.RemoteAddr = "192.168.1.50:4000"
+	rec = httptest.NewRecorder()
+	g.h.ServeHTTP(rec, req)
+	if rec.Code != 401 {
+		t.Errorf("a sign-in in an address mustn't change anything: %d", rec.Code)
+	}
+
 	// Someone else has none, can't reach this one, and can't remove it.
 	if w := g.do("GET", "/api/game-background/image", g.other, nil); w.Code != 404 {
 		t.Errorf("someone else's picture: %d", w.Code)

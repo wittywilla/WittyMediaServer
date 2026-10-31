@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SELECT, START, type ControlsData, type SaveControl } from './consoles'
-import { deviceId, InputManager, load, onTV, save } from './input'
+import { deviceId, InputManager, load, onTV, padSupport, save } from './input'
 import type { ControllerData } from './mapping'
 import { ControllerStudio, type PortChoice, type ProfileHost } from './Studio'
 import { TouchControls, TouchEditor, useOrientation } from './TouchControls'
@@ -179,6 +179,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
   const lastPads = useRef('')
   useEffect(() => {
     if (padName && padName !== lastPads.current) say(padName)
+    else if (!padName && lastPads.current) say('Controller disconnected')
     lastPads.current = padName
   }, [padName, say])
 
@@ -324,6 +325,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
                   <button type="button" className="wp-btn" onClick={() => { const s = sessionRef.current; if (s) void host.action(s.id, 'reset').then(() => { say('Reset'); setPanel(null) }) }}>Reset the game</button>
                   <button type="button" className="wp-btn danger" onClick={leave}>Save and quit</button>
                 </nav>
+                {!padName && padSupport() === 'insecure' && <p className="wp-muted wp-small">Using a gamepad? Most browsers only show them to secure pages. Open this server over https, or at localhost on this computer.</p>}
                 {info && <p className="wp-muted wp-small">{info.core}</p>}
               </>
             )}
@@ -378,6 +380,16 @@ export function ControllersPage({ profiles, controls, controllers, consoles, con
     setData(fresh)
     input?.setControls(fresh)
   }, [fetchData, input])
+  // Escape, and the many names of Back on a TV remote.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (touch || !['Escape', 'GoBack', 'BrowserBack', 'Back', 'XF86Back'].includes(e.key)) return
+      e.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [touch, onClose])
   if (error) return <div className="wp-page"><div className="wp-error" role="alert"><p>{error}</p><button type="button" className="wp-btn primary" onClick={onClose}>Back</button></div></div>
   if (!data || !input) return <div className="wp-page"><div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />Loading…</div></div>
   const current = consoles.find((c) => c.id === consoleId)
@@ -385,7 +397,7 @@ export function ControllersPage({ profiles, controls, controllers, consoles, con
     <div className="wp-page">
       {touch
         ? <TouchEditor data={data} orientation={orientation} onClose={() => setTouch(false)} onSave={async (l) => { await saveControl(consoleId, { kind: 'touch', key: deviceId(), orientation, data: l }); await refresh() }} />
-        : <ControllerStudio host={profiles} data={data} known={known} input={input} consoleName={current?.short || consoleId} refresh={refresh} onClose={onClose} onTouch={onTV() ? undefined : () => setTouch(true)}
+        : <ControllerStudio key={data.console} host={profiles} data={data} known={known} input={input} consoleName={current?.short || consoleId} refresh={refresh} onClose={onClose} onTouch={onTV() ? undefined : () => setTouch(true)}
             consolePicker={(
               <div className="wps-consoles" role="group" aria-label="Which console">
                 {consoles.map((c) => <button key={c.id} type="button" aria-pressed={c.id === consoleId} className={'wp-btn wps-small' + (c.id === consoleId ? ' primary' : '')} onClick={() => onConsole(c.id)}>{c.short}</button>)}

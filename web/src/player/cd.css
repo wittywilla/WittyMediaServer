@@ -123,7 +123,7 @@
 .cdp-tracks { list-style: none; margin: 0; padding: 0; display: grid; }
 .cdp-tracks li { display: flex; align-items: center; min-width: 0; }
 .cdp-tracks li:nth-child(even) { background: rgba(255,255,255,.03); }
-.cdp-tracks li.on { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 55%, #1a2230), color-mix(in srgb, var(--accent) 35%, #101620)); }
+.cdp-tracks li.on { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, #1a2230), color-mix(in srgb, var(--accent) 22%, #101620)); }
 .cdp-row { flex: 1; min-width: 0; min-height: 44px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center; padding: 4px 10px; background: none; border: 0; color: var(--fg); text-align: left; cursor: pointer; font: inherit; }
 .cdp-row:hover:not(:disabled) { background: rgba(255,255,255,.07); }
 .cdp-row:disabled { cursor: default; color: var(--fg-3); }
@@ -162,8 +162,9 @@
 .cdp-key svg { width: 22px; height: 22px; }
 .cdp-key.small { width: 44px; height: 44px; }
 .cdp-key.small svg { width: 19px; height: 19px; }
-.cdp-key.play { width: 66px; height: 66px; color: #fff; margin-inline: 4px;
-  background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.5), rgba(255,255,255,.06) 48%, rgba(0,0,0,.22)), linear-gradient(180deg, color-mix(in srgb, var(--accent) 85%, #fff 15%), color-mix(in srgb, var(--accent) 70%, #000 30%));
+/* Its icon is the theme's own colour for things on the accent, so a bright accent still shows it. */
+.cdp-key.play { width: 66px; height: 66px; color: var(--accent-fg, #fff); margin-inline: 4px;
+  background: radial-gradient(ellipse 70% 42% at 50% 16%, rgba(255,255,255,.42), rgba(255,255,255,0) 100%), linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 88%, #000));
   box-shadow: 0 2px 7px rgba(0,0,0,.7), 0 0 0 3px rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.3), inset 0 -3px 5px rgba(0,0,0,.35); }
 .cdp-key.play svg { width: 32px; height: 32px; }
 .cdp-key:hover:not(:disabled) { filter: brightness(1.14); }
@@ -176,8 +177,8 @@
   background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.02) 55%, rgba(0,0,0,.14)); }
 .cdp-mode:hover:not(:disabled) { filter: brightness(1.2); }
 .cdp-mode:disabled { opacity: .5; cursor: default; }
-.cdp-mode.on { color: #fff; border-color: rgba(255,255,255,.4); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff 12%), color-mix(in srgb, var(--accent) 70%, #000 30%)); }
-@media (pointer: coarse), (max-width: 720px) { .cdp-mode { min-height: 44px; border-radius: 22px; } .d-time { min-height: 44px; } .cdw-brand { display: none; } }
+.cdp-mode.on { color: var(--accent-fg, #fff); border-color: rgba(255,255,255,.4); background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 88%, #000)); }
+@media (pointer: coarse), (max-width: 720px) { .cdp-mode { min-height: 44px; border-radius: 22px; } .d-time { min-height: 44px; } .cdw-brand { display: none; } .cdw .btn.sm { min-height: 44px; } }
 /* On a phone: the picture, the display, then the controls, with the tracks below. The
    transport has a row to itself, and the rest share the next. */
 @media (max-width: 899px) {

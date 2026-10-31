@@ -281,6 +281,7 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     if (!a || !s.disc) return
     const was = !a.paused || s.stopped
     if (s.format === 'wav' && a.src) {
+      s.loadedAt = performance.now()
       a.currentTime = at / CD_RATE
       s.stopped = false
       if (was) a.play().catch(() => {})
@@ -440,6 +441,7 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
         return
       }
       if (s.format === 'wav' && a.src) {
+        s.loadedAt = performance.now()
         a.currentTime = at / CD_RATE
         s.stopped = false
         if (wasPlaying) a.play().catch(() => {})
@@ -534,7 +536,8 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     const s = e.current
     if (!s.disc || s.quality !== 'auto' || s.format === 'aac' || !s.disc.formats.includes('aac')) { publish(); return }
     const t = performance.now()
-    if (t - s.loadedAt < 2500) return
+    // Waiting after a seek is only a seek, however many of them someone makes.
+    if (t - s.loadedAt < 2500 || audio.current?.seeking) return
     s.stalls = s.stalls.filter((x) => t - x < 30000)
     s.stalls.push(t)
     if (s.stalls.length >= 3) {

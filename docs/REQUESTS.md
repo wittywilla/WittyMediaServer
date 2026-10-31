@@ -60,6 +60,17 @@ close some of these.
 - **Confirm by watching:** the Shrek 2 warning screen, the interactive games and the Idol credits have
   fixes, but the owner hasn't confirmed them.
 
+### Audio CDs
+
+WittyCD is in, on its branch. Still to do:
+
+- **CD images inside archives,** once the archive code is merged: it needs a real folder from `gamearchive.Cache`, and nothing else.
+- **CD+G from a raw `.sub` file,** whose subcode is interleaved. A `.cdg` beside the image and `CDG` sectors work.
+- **Double-byte CD-TEXT,** Japanese for example, which needs character tables. It is reported, and names come from elsewhere.
+- **A real image from each ripping tool.** There were none to test with, so the formats were checked with generated images: CHD and TOC against the real
+  tools, CCD and NRG only against their published descriptions.
+- **WittyMediaPlayer and the native apps** can use the routes in `docs/CLIENT-API.md`, but none has a CD player yet.
+
 ## Live TV and recording
 
 - **Recordings in the series' own folder:** an admin toggle to put a recording in the show's folder. Today

@@ -260,6 +260,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       <CdCtx.Provider value={cdValue}>{children}</CdCtx.Provider>
       <audio ref={audio} preload="auto" onPlay={() => { setPlaying(true); if (cdOn.current) cd.onPlay() }} onPause={() => { setPlaying(false); if (cdOn.current) cd.onPause() }} onEnded={onEnded}
         onWaiting={() => { if (cdOn.current) cd.onWaiting() }}
+        onEmptied={() => { if (cdOn.current) setPlaying(!audio.current?.paused) }}
         onError={() => { if (cdOn.current) { cd.onError(); return } if (live && current) toast(`${current.title} can't be reached`) }}
         onTimeUpdate={() => {
           if (cdOn.current) {

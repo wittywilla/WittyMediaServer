@@ -76,7 +76,7 @@
 .d-meter span { opacity: .8; }
 /* Segments: a stripe that only shows where the bar has grown to. */
 .d-meter div { height: 6px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.1) 0 5px, transparent 5px 7px); overflow: hidden; border-radius: 1px; }
-.d-meter i { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left; background: repeating-linear-gradient(90deg, var(--cd-led) 0 5px, transparent 5px 7px); }
+.d-meter i { display: block; height: 100%; width: 100%; will-change: transform; transform: scaleX(0); transform-origin: left; background: repeating-linear-gradient(90deg, var(--cd-led) 0 5px, transparent 5px 7px); }
 
 /* Real-feeling keys: raised metal that sinks as it is pressed. */
 .cdp-keys { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(4px, .9cqw, 9px); }
@@ -98,7 +98,7 @@
 @media (pointer: coarse), (max-width: 720px) { .cdp-mode { min-height: 44px; } .d-time { min-height: 44px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .cdp-disc.spin { animation: none; }
+  .cdp-disc.spin, .cdp-eq b { animation: none; }
   .cdp-disc, .cdp-key, .cdp-cdg { transition: none; }
 }
 
@@ -132,6 +132,12 @@
 .cdp-tracks li.on .cdp-row .t b { color: var(--accent-text); font-weight: 600; }
 .cdp-tracks li.on .cdp-row .n { color: var(--accent-text); }
 .cdp-add { flex: none; }
+/* The bars beside the playing track: transforms only, so they never cost a layout. */
+.cdp-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.cdp-eq b { display: block; width: 3px; height: 100%; background: var(--accent-text); transform-origin: bottom; animation: cdp-eq 900ms ease-in-out infinite; }
+.cdp-eq b:nth-child(2) { animation-delay: -300ms; }
+.cdp-eq b:nth-child(3) { animation-delay: -600ms; }
+@keyframes cdp-eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
 .cdp-program { padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-2); font-size: var(--text-sm); display: grid; gap: var(--sp-2); }
 .cdp-program p { margin: 0; }
 .cdp-program ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: p; }
@@ -144,6 +150,8 @@
 /* Choosing which album it is. */
 .cdp-identify { width: min(640px, calc(100vw - 32px)); max-height: min(84vh, 760px); overflow-y: auto; display: grid; gap: var(--sp-3); }
 .cdp-identify p { margin: 0; }
+.cdp-id-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.cdp-id-head h2 { margin: 0; }
 .cdp-matches { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
 .cdp-match { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: start; padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg-3); }
 .cdp-thumb { width: 56px; height: 56px; border-radius: var(--r-sm); background: var(--bg-4); display: grid; place-items: center; overflow: hidden; color: var(--fg-3); }

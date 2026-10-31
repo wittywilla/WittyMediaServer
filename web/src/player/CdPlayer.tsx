@@ -350,7 +350,7 @@ function TrackRows({ disc, now, playing, editing, onPlay, onAdd, onHidden }: { d
         return (
           <li key={t.number} className={on ? 'on' : ''}>
             <button className="cdp-row" onClick={() => t.audio && onPlay(t.number)} disabled={!t.audio || !now} aria-current={on ? 'true' : undefined}>
-              <span className="n">{on && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : two(t.number)}</span>
+              <span className="n">{on && playing ? <i className="cdp-eq" aria-hidden="true"><b /><b /><b /></i> : two(t.number)}</span>
               <span className="t"><b>{t.title}</b>{t.artist && <small>{t.artist}</small>}{!t.audio && <small>Not played: this is the disc’s data</small>}</span>
               {pos >= 0 && <span className="p" title="Place in the order">{pos + 1}</span>}
               {t.preEmphasis && <span className="p" title="This track has pre-emphasis, which is being corrected">PRE</span>}
@@ -428,7 +428,7 @@ function IdentifyDialog({ disc, onClose, onApplied }: { disc: CdDisc; onClose: (
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal cdp-identify" role="dialog" aria-modal="true" aria-labelledby="cdp-id-h" onClick={(e) => e.stopPropagation()}>
-        <div className="share-head">
+        <div className="cdp-id-head">
           <h2 id="cdp-id-h">Which album is this?</h2>
           <button className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
         </div>

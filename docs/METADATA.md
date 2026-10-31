@@ -152,7 +152,7 @@ or an app never talks to a source.
 | Giant Bomb | Its limits and terms couldn't be confirmed from its own pages. Nothing here depends on it |
 | PCGamingWiki | Its data query needs a login since August 2026, and its licence is non-commercial with share-alike |
 | OpenVGDB | No licence at all, and no release since 2021 |
-| LaunchBox's data file, TheGamesDB's data dump | Downloadable, but no terms could be found that allow this use |
+| Other published data files, including TheGamesDB's own dump | Downloadable, but no terms could be found that allow this use |
 | GameTDB | Its files say not to use them on a website without asking. It's worth asking, and it could be added |
 | ArcadeDB | For arcade games, which game libraries don't have yet. Its author asks developers to get in touch first |
 | Hasheous | Useful as a way between sources' ids, but it would send a checksum of every file to one more place, and it adds no data itself |

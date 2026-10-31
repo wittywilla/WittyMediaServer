@@ -928,7 +928,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 **WittyMoonlight** plays the games on any PC running Sunshine, through this server. Each account has its own list of PCs, and its own pairing with each.
 A client can show the player in a web view (`/moonlight/{id}/play/{app}`), or start a stream and connect with `POST /moonlight/sessions/{sid}/webrtc`:
-H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `modules/wittymoonlight-host/PROTOCOL.md`.
+H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `modules/wittymoonlighthost/PROTOCOL.md`.
 [GAME-RIGS.md](GAME-RIGS.md) is the design.
 
 | Route | Sign-in | What it does |

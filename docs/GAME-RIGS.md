@@ -57,7 +57,7 @@ published on its own terms. The App Store and GPL-3.0 are widely held to conflic
 ## Design decisions
 
 **Moonlight's real code, in a program of its own.** It's the owner's call, and the right one: this protocol has years of quirks in it, and Sunshine changes. So the part that speaks the stream is
-Moonlight's. The boundary is a documented protocol over pipes (`modules/wittymoonlight-host/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
+Moonlight's. The boundary is a documented protocol over pipes (`modules/wittymoonlighthost/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
 frames arrive whole, in order, ready to send on.
 
 **Why this and not the existing web bridge.** [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) already bridges Moonlight to WebRTC, and an earlier version of this design used it, but never
@@ -119,7 +119,7 @@ Reviewed as an attacker would, with an account on the server and a PC of their o
 | Someone ending another's game on a shared PC | Only admins and whoever started it | Yes |
 | A shared PC's game after access is removed | Refused the next time. **A stream that has already begun carries on until it ends** | Yes |
 
-**Logging:** who added or paired a PC, and whether it's on a private network or the internet, at info level. Never PINs, keys or Sunshine's password. Addresses aren't logged at info level, as a friend's address is theirs.
+**Logging:** who added or paired a PC, whether it's on a private network or the internet, and when a stream starts and ends, at info level. Never PINs, keys or Sunshine's password. Addresses aren't logged at info level, as a friend's address is theirs.
 
 ## Away from home
 
@@ -154,10 +154,10 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 | What | Where | License | Why |
 |---|---|---|---|
-| **WittyMoonlight Host** | `modules/wittymoonlight-host/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
+| **WittyMoonlight Host** | `modules/wittymoonlighthost/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
 | moonlight-common-c | Fetched at a pinned commit, into that program | GPL-3.0 | Moonlight's streaming core, unchanged |
 | ENet, nanors | Inside moonlight-common-c | MIT | |
-| Mbed TLS (or OpenSSL) | Linked into that program | Apache-2.0 | Compatible with GPL-3.0 |
+| Mbed TLS | Linked into that program, under the Apache-2.0 it offers | Apache-2.0 | Compatible with GPL-3.0 |
 | **WittyMoonlight** relay, client protocol, player | `modules/wittymoonlight/` (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
 | The API and pages in the server | `internal/server/api_moonlight.go`, `web/src/pages/Moonlight.tsx` | **Apache-2.0**, with the server | Same |
 | **WittySunshine** | `modules/wittysunshine/` | **Apache-2.0** | It only looks for a program and talks to it over the network |

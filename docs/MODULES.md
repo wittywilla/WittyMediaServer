@@ -84,7 +84,7 @@ modules/                    Go plugins
   wittytuner/               → github.com/wittywilla/WittyTuner
   wittyplay/                → github.com/wittywilla/WittyPlay (Go, with its React half in web/)
   wittymoonlight/           → github.com/wittywilla/WittyMoonlight (Go, with its React half in web/)
-  wittymoonlight-host/      → github.com/wittywilla/WittyMoonlightHost (C, GPL-3.0)
+  wittymoonlighthost/       → github.com/wittywilla/WittyMoonlightHost (C, GPL-3.0)
   wittysunshine/            → github.com/wittywilla/WittySunshine
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader

@@ -1,5 +1,5 @@
 // What a browser sends to a PC: controllers, keyboard, mouse. Each message is a type byte and a
-// body, in the protocol in modules/wittymoonlight-host/PROTOCOL.md. Written from that protocol
+// body, in the protocol in modules/wittymoonlighthost/PROTOCOL.md. Written from that protocol
 // and from the browser's own APIs.
 
 const CMD_PAD = 65, CMD_MOVE = 66, CMD_BUTTON = 67, CMD_KEY = 68, CMD_SCROLL = 69, CMD_POSITION = 72, CMD_HSCROLL = 74

@@ -35,7 +35,7 @@ None of these is in the server's release, and no code from them is in WittyMedia
 
 | Program | License | How it's used |
 |---|---|---|
-| **WittyMoonlight Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittymoonlight-host`, with its complete source offered beside each release |
+| **WittyMoonlight Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittymoonlighthost`, with its complete source offered beside each release |
 | [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyMoonlight Host |
 | [ENet](https://github.com/cgutman/enet), [nanors](https://github.com/sleepybishop/nanors) | MIT | Inside moonlight-common-c |
 | [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyMoonlight Host |

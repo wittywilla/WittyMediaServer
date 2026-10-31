@@ -3,6 +3,7 @@
   "name": "WittyDVD",
   "version": "0.2.0",
   "repo": "wittywilla/WittyDVD",
+  "license": "Apache-2.0",
   "delivery": "helper",
   "entry": "wittydvd-module",
   "api": 2,

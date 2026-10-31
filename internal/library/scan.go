@@ -201,6 +201,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	if err != nil {
 		return err
 	}
+	if lib.IsRig() {
+		return nil // its games come from the PC, not from folders here
+	}
 	s.Store.setScanning(ctx, libraryID, true)
 	defer s.Store.setScanning(context.Background(), libraryID, false)
 	if s.slot != nil {

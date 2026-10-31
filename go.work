@@ -16,6 +16,8 @@ use (
 	./apps/wittymediaplayer/engine
 	./modules/wittydvd/wittydvdplayer
 	./modules/wittybluray/wittyblurayplayer
+	./modules/wittysunshine
+	./modules/wittymoonlight
 )
 
 // The player's modules aren't published yet.

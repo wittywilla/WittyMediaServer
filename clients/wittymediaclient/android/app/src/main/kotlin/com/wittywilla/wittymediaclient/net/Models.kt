@@ -1,5 +1,6 @@
 package com.wittywilla.wittymediaclient.net
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 // What the server sends, keeping only the fields this app uses. Times are in
@@ -42,6 +43,7 @@ data class Library(
     val id: Long = 0,
     val name: String = "",
     val type: String = "",
+    val console: String = "",
     val itemCount: Int = 0,
 )
 
@@ -74,6 +76,8 @@ data class Item(
     val nextId: Long? = null,
     val introStart: Double? = null,
     val introEnd: Double? = null,
+    val console: String = "",
+    val tagline: String = "",
 )
 
 @Serializable
@@ -207,3 +211,50 @@ data class ProgressReport(val positionSec: Double, val durationSec: Double)
 
 @Serializable
 data class Credentials(val name: String, val password: String, val device: String)
+
+@Serializable
+data class RigPlayRequest(val client: String, val os: String)
+
+@Serializable
+data class RigInfo(
+    val id: Long = 0,
+    val name: String = "",
+    val canWake: Boolean = false,
+)
+
+// One way to play, best first. Which fields are filled depends on its kind.
+@Serializable
+data class RigMethod(
+    val kind: String = "",
+    val label: String = "",
+    val note: String = "",
+    @SerialName("package") val packageName: String = "",
+    val activity: String = "",
+    val extras: Map<String, String> = emptyMap(),
+    val steps: List<String> = emptyList(),
+)
+
+@Serializable
+data class RigInstall(
+    val name: String = "",
+    val url: String = "",
+    val note: String = "",
+    val license: String = "",
+)
+
+// What POST /rigs/games/{id}/play answers.
+@Serializable
+data class RigPlay(
+    val rig: RigInfo = RigInfo(),
+    val ready: Boolean = false,
+    val message: String = "",
+    val methods: List<RigMethod> = emptyList(),
+    val install: RigInstall? = null,
+    val setup: List<String> = emptyList(),
+)
+
+@Serializable
+data class MoonlightStatus(val allowed: Boolean = false)
+
+@Serializable
+data class RigWake(val ok: Boolean = false, val note: String = "")

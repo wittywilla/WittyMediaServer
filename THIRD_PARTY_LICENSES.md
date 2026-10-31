@@ -40,6 +40,19 @@ Run `go version -m wms` on a binary for the exact module list and versions.
 | github.com/ebitengine/purego | Apache-2.0 |
 | golang.org/x/sys | BSD-3-Clause |
 
+## Game PCs
+
+None of these is in the server's release, and no code from them is in WittyMediaServer. See `docs/GAME-RIGS.md`.
+
+| Program | License | How it's used |
+|---|---|---|
+| **WittyMoonlight Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittymoonlighthost`, with its complete source offered beside each release |
+| [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyMoonlight Host |
+| [ENet](https://github.com/cgutman/enet), [nanors](https://github.com/sleepybishop/nanors) | MIT | Inside moonlight-common-c |
+| [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyMoonlight Host |
+| [Sunshine](https://github.com/LizardByte/Sunshine) | GPL-3.0 | Installed by whoever owns the PC. Reached over its network protocols only |
+| [Moonlight's apps](https://moonlight-stream.org) | GPL-3.0 | Installed by each person on their device, as a fallback. Started as a separate program where the device allows that |
+
 ## Games
 
 Libretro cores are **not bundled**. An administrator installs each one on request from the libretro

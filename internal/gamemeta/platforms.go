@@ -47,6 +47,7 @@ var platforms = map[string]platformIDs{
 	"neogeo": {[]int{80}, []int{12}, []int{24}, []int{142}, []string{"Q1054350", "Q64428080", "Q3338058"}},
 	"arcade": {[]int{52}, nil, []int{23}, []int{75}, []string{"Q192851"}},
 	"pc":     {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil},
+	"rig":    {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil}, // a game on a gaming PC
 }
 
 // PlatformKnown says whether we can name this console to sources.

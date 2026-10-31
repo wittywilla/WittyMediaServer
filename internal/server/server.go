@@ -92,6 +92,10 @@ type Server struct {
 	audioSlots    chan struct{} // audio transcodes running at once
 	gameOnce      sync.Once
 	gameSvc       *gameService
+	rigOnce       sync.Once
+	rigSvc        *rigService
+	moonOnce      sync.Once
+	moonSvc       *moonlightService
 }
 
 type ctxKey int
@@ -368,6 +372,9 @@ func (s *Server) Handler() http.Handler {
 		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
 	}
 	s.gameMetaRoutes(m)
+	s.rigRoutes(m)
+	s.moonlightRoutes(m)
+	s.sunshineRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

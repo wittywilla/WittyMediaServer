@@ -18,6 +18,8 @@ require (
 	github.com/wittywilla/wittydvd v0.1.0
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
 	github.com/wittywilla/wittymodule v0.1.0
+	github.com/wittywilla/wittymoonlight v0.1.0
+	github.com/wittywilla/wittysunshine v0.1.0
 	github.com/wittywilla/wittyphotos v0.2.0
 	github.com/wittywilla/wittyplay v0.1.0
 	github.com/wittywilla/wittytuner v0.1.0
@@ -85,3 +87,6 @@ replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos
 replace github.com/wittywilla/wittytuner => ./modules/wittytuner
 
 replace github.com/wittywilla/wittyplay => ./modules/wittyplay
+
+replace github.com/wittywilla/wittymoonlight => ./modules/wittymoonlight
+replace github.com/wittywilla/wittysunshine => ./modules/wittysunshine

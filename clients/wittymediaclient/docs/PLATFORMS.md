@@ -11,7 +11,7 @@ stay honest: **written** does not mean **works**.
 | **Not started** | Nothing exists yet. |
 | **Blocked** | Needs something only the owner can get. |
 
-The whole Android app compiles, in debug and in the shrunk release form, with 56 unit tests passing,
+The whole Android app compiles, in debug and in the shrunk release form, with 72 unit tests passing,
 including all the shared address cases, and one more against a real server when one is given. Only its
 rules, data handling and network calls have actually been executed: none of its screens, its player or
 its focus handling has ever run, and nothing has run on a device or emulator.
@@ -105,9 +105,49 @@ address, only how long it takes.
 | Music, audiobooks, podcasts | Web interface; not checked here | Not started | Not started |
 | Books and comics | Web interface; not checked here | Not started | Not started |
 | Disc menus | Web interface; not checked here | Not started | Not started |
+| Games on someone's own PC | Web interface, with Moonlight as the fallback. Written; its rules ran in unit tests | Compiled | Written; its rules ran in unit tests on Linux |
 | Gaming, channels, tuners, photos | Arrive with the server | Not started | Not started |
 
-Native apps say plainly that an item can't play yet, rather than failing, for anything but video.
+Native apps say plainly that an item can't play yet, rather than failing, for anything but video and
+games on someone's own PC.
+
+## Games on someone's own PC
+
+A person's own gaming PC runs Sunshine, and the server's web interface has a Moonlight client in the page
+that plays it. The apps show that page where they can. The separately installed Moonlight app is the fallback:
+a GPL-3.0 program they only start, with nothing of it copied, linked or bundled. **No part of this has ever
+reached a real PC or a real Moonlight from these apps, and the player has never run inside any of them.**
+
+| | What happens on Play | How far it was checked |
+|---|---|---|
+| Desktop | The server's page plays it. Starting Moonlight is the fallback, and the main process checks that request | **Written.** The checks, finding the program, starting a stand-in for it and who may lock the mouse ran in 15 unit tests. `main.js` and `preload.js` only had their syntax checked, as the tests start no windows. |
+| Android, phones and tablets | The player in a web view, with "Open in Moonlight instead" as the second choice. A "Game PCs" entry opens the same pages | **Compiled.** Its decisions ran in 16 unit tests: which comes first, only the same server staying in the web view, the shape of the sign-in cookie, and that a server can't name another app. The web view and the intent have never run. |
+| Android TV, Fire TV | Moonlight first, then "Play in this app instead" | **Compiled**, as above. Focus with a remote has never been seen. |
+| iPhone, iPad | The player in a web view, with "Start on <PC>" as the second choice. A "Game PCs" entry opens the same pages | **Written.** The checks in WittyKit built and passed their tests on Linux, with Swift 6.1 in a container. The screens need a Mac and have never been compiled. |
+| Apple TV | "Start on <PC>", then the app says to open Moonlight and Resume | **Written**, as above. |
+| Mac | Running the desktop Moonlight if it's in `/Applications`, the player in the Mac's own browser, or "Start on <PC>" | **Written**, as above. |
+
+**Why TVs don't play in the page first:** whether a TV's web view gives a page the Gamepad API at all is doubtful,
+and a remote alone can't work the player's mouse and keyboard. Moonlight is built for a TV.
+
+**A decision for the owner: Apple TV.** tvOS offers apps no web view at all, and no Moonlight client on any Apple
+device has a URL scheme, so this app can't do more than start the game on the PC. The only way to do better is a
+separate Apple TV app under the GPL, published on its own terms. The App Store and GPL-3.0 are widely held to
+conflict, so that needs thinking through first. Moonlight's code never goes inside this app either way.
+
+**Known limits:**
+
+- The sign-in reaches a web view as the server's own cookie, set for its address only. As with any cookie, that
+  address's other ports would receive it if the page went there, which the web view refuses to do.
+- On plain http, browsers hide game controllers from a page, so a web view may too. Whether they work over HTTPS in
+  either web view has not been seen.
+- Leaving the player with the system's Back relies on the server noticing that the connection closed.
+- The Mac app is sandboxed, and a program it starts stays inside that sandbox, so running Moonlight may not
+  work there. Nobody has tried. The other two ways are offered beside it.
+- A server only offers a command to run to the desktop kind of client, so the Mac app asks as `desktop`
+  rather than `apple`, on purpose.
+- Android can't tell that Moonlight doesn't know a PC yet. Moonlight says so itself, and the app has the setup
+  steps a button away.
 
 ## Not done yet in the native apps
 

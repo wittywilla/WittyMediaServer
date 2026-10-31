@@ -76,6 +76,8 @@ enum Route: Hashable {
     case show(Int64)
     case item(Int64)
     case player(Int64, startOver: Bool)
+    /// The server's own page for playing a game: iPhone and iPad only, see WebPlayerView.
+    case web(String)
 }
 
 enum SignInWay: Hashable {

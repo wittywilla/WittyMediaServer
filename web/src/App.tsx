@@ -20,6 +20,10 @@ const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => (
 const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
+const MoonlightPage = lazy(() => import('./pages/Moonlight'))
+const MoonlightHostPage = lazy(() => import('./pages/Moonlight').then((m) => ({ default: m.MoonlightHostPage })))
+const MoonlightPlayPage = lazy(() => import('./pages/Moonlight').then((m) => ({ default: m.MoonlightPlayPage })))
+const RigPlayPage = lazy(() => import('./pages/Moonlight').then((m) => ({ default: m.RigPlayPage })))
 const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
@@ -78,15 +82,27 @@ function Shell() {
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   const isGame = loc.pathname.startsWith('/game/')
+  const isStream = /^\/moonlight\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/moonlight-rig/')
   return (
     <AudioProvider>
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
+        : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/moonlight/:id/play/:app" element={<MoonlightPlayPage />} /><Route path="/moonlight-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
     </AudioProvider>
   )
+}
+
+// Whether to offer Game PCs. It's asked for once, as the answer rarely changes.
+function useCanUseMoonlight() {
+  const { user } = useApp()
+  const [can, setCan] = useState(false)
+  useEffect(() => {
+    if (user) api.get<{ allowed: boolean }>('/moonlight').then((r) => setCan(r.allowed)).catch(() => setCan(false))
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return can
 }
 
 function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
@@ -109,6 +125,8 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/album/:lib" element={<AlbumPage />} />
             <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
             <Route path="/cd/:id" element={<CdPlayer />} />
+            <Route path="/moonlight" element={<Suspense fallback={<Spinner />}><MoonlightPage /></Suspense>} />
+            <Route path="/moonlight/:id" element={<Suspense fallback={<Spinner />}><MoonlightHostPage /></Suspense>} />
             <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
             <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
             <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
@@ -135,6 +153,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, version, brandName } = useApp()
+  const canUseMoonlight = useCanUseMoonlight()
   return (
     <>
       {open && <div className="backdrop-dim" onClick={onClose} />}
@@ -146,6 +165,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-empty">No libraries yet</div>}
         {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
+        {canUseMoonlight && <NavLink to="/moonlight" className="nav-link"><IconGamepad /> Game PCs</NavLink>}
         <div className="nav-section">Manage</div>
         <NavLink to="/settings" className="nav-link"><IconSettings /> Settings<UpdateDot /></NavLink>
         <div className="sidebar-footer"><VersionTag version={version} /></div>
@@ -160,6 +180,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
   const [q, setQ] = useState('')
   useEffect(() => { if (!loc.pathname.startsWith('/search')) setQ('') }, [loc.pathname])
   const { libraries, brandName } = useApp()
+  const canUseMoonlight = useCanUseMoonlight()
   return (
     <header className="topbar">
       {showMenu && <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Show or hide the side menu" title="Side menu"><IconMenu /></button>}
@@ -170,6 +191,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
           <NavLink to="/tv" className="topnav-link"><IconTv /> <span>TV guide</span></NavLink>
           {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
           {libraries.length > 0 && <NavLink to="/collections" className="topnav-link"><IconLibrary /> <span>Collections</span></NavLink>}
+          {canUseMoonlight && <NavLink to="/moonlight" className="topnav-link"><IconGamepad /> <span>Game PCs</span></NavLink>}
         </nav>
       )}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>

@@ -8,7 +8,7 @@ export type Offer = { version: string; minServer: string; maxServer: string; not
 export type ModuleEvent = { at: number; kind: string; version?: string; detail?: string }
 export type ModuleSource = { repo: string; fingerprint: string; addedAt: number; addedBy?: string }
 export type ModuleStatus = {
-  id: string; name: string; version: string; builtinVersion: string; delivery: string; updatable: boolean
+  id: string; name: string; version: string; builtinVersion: string; delivery: string; updatable: boolean; license?: string
   minServer: string; maxServer: string; api: number; repo: string; stockRepo: string; state: 'builtin' | 'installed' | 'fallback'
   notice?: string; previous?: string; canRollback: boolean; latest?: Offer; tooNew?: Offer
   phase: 'idle' | 'downloading' | 'verifying' | 'installing' | 'failed'; done?: number; total?: number; error?: string

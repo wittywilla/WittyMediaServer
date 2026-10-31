@@ -3,6 +3,7 @@
   "name": "WittyDisc",
   "version": "0.1.0",
   "repo": "wittywilla/WittyDisc",
+  "license": "Apache-2.0",
   "delivery": "library",
   "api": 1,
   "minServer": "0.4.0-alpha",

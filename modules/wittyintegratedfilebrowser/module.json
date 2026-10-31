@@ -3,6 +3,7 @@
   "name": "WittyIntegratedFileBrowser",
   "version": "0.1.0",
   "repo": "wittywilla/WittyIntegratedFileBrowser",
+  "license": "Apache-2.0",
   "delivery": "helper",
   "entry": "wittyintegratedfilebrowser-module",
   "api": 2,

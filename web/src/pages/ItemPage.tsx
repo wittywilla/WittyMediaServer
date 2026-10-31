@@ -1,5 +1,5 @@
 import RatingField from '../components/RatingField'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
@@ -7,6 +7,8 @@ import DiscSections from './DiscSections'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 import { GameDetails } from './Games'
+
+const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
 import { BackLink, EmptyState, Spinner, artHue, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
 import { toast, useApp } from '../state'
@@ -33,6 +35,7 @@ export default function ItemPage() {
   if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
   if (libType === 'radio') return <Navigate replace to={`/radio/${it.id}`} />
+  if (it.kind === 'game' && it.console === 'rig') return <Suspense fallback={<Spinner />}><RigGameDetails it={it} /></Suspense>
   if (it.kind === 'game') return <GameDetails it={it} reload={load} />
   if (it.kind === 'cd-image') return <Navigate replace to={`/cd/${it.id}`} />
   // Songs, chapters and episodes live on their album, book or podcast page.

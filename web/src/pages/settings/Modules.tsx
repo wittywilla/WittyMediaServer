@@ -92,10 +92,12 @@ export default function ModulesSettings() {
   const loc = useLocation()
   const target = params.get('add') || loc.hash.slice(1)
   const reached = useRef('')
+  const [hostReady, setHostReady] = useState(false)
 
   useEffect(() => {
     api.get<ModuleReport>('/modules').then(setR).catch((e) => setFailed(e.message))
     api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
+    api.get<{ ready: boolean }>('/moonlight').then((m) => setHostReady(m.ready)).catch(() => {})
   }, [])
 
   // While something installs, follow it.
@@ -260,6 +262,15 @@ export default function ModulesSettings() {
 
       {versionsOf && <VersionsDialog m={r.modules.find((m) => m.id === versionsOf.id) || versionsOf} onClose={() => setVersionsOf(null)} onReport={setR} />}
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
+
+      <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
+        <div className="mod-list">
+          <div className="mod-row">
+            <span className="mod-name"><b>WittyMoonlight Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: GPL-3.0. <a href="https://github.com/wittywilla/WittyMoonlightHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
+            <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
+          </div>
+        </div>
+      </Section>
     </div>
   )
 }
@@ -299,7 +310,7 @@ function ModuleRow(p: RowProps) {
         <button type="button" className="ms-head" aria-expanded={isOpen} aria-controls={isOpen ? detail : undefined} onClick={p.onToggle}>
           <span className="ms-ic">{moduleIcon(m)}</span>
           <span className="ms-title">
-            <span className="ms-name"><b>{m.name}</b>{m.installed && <span className="ms-ver">{m.version}</span>}<Tags m={m} /></span>
+            <span className="ms-name"><b>{m.name}</b>{m.installed && <span className="ms-ver">{m.version}</span>}{m.license && <span className="ms-ver">{m.license}</span>}<Tags m={m} /></span>
             {m.summary && <span className="ms-sum">{m.summary}</span>}
           </span>
           <span className="ms-chev"><IconDown size={20} /></span>

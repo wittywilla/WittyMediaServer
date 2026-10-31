@@ -3,6 +3,7 @@
   "name": "WittyPlay",
   "version": "0.1.0",
   "repo": "wittywilla/WittyPlay",
+  "license": "Apache-2.0",
   "delivery": "program",
   "entry": "wittyplay-host",
   "api": 2,

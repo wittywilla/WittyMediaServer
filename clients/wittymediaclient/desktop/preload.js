@@ -1,6 +1,7 @@
 // Runs before every page in the main view, in its own isolated world. The
 // connect screen, opened from a file, gets a small bridge. A server's page gets
-// nothing: all it can do is report its colours, so the title bar matches.
+// very little: it can report its colours, so the title bar matches, and ask for
+// Moonlight, which the main process checks strictly (see moonlight.js).
 const { contextBridge, ipcRenderer } = require('electron')
 
 if (location.protocol === 'file:') {
@@ -16,6 +17,12 @@ if (location.protocol === 'file:') {
     redeem: (url, code) => ipcRenderer.invoke('redeem', url, code),
   })
 } else {
+  contextBridge.exposeInMainWorld('wittyClient', {
+    moonlight: {
+      status: () => ipcRenderer.invoke('moonlight-status'),
+      launch: (args) => ipcRenderer.invoke('moonlight-launch', args),
+    },
+  })
   const report = () => {
     const css = getComputedStyle(document.documentElement)
     ipcRenderer.send('theme', {

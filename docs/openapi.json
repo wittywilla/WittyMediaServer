@@ -3504,6 +3504,9 @@
               "null"
             ]
           },
+          "license": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },
@@ -15903,6 +15906,656 @@
         "x-wms-auth": "user"
       }
     },
+    "/moonlight": {
+      "get": {
+        "operationId": "getMoonlight",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether this account may connect to game PCs, whether this server can stream them, and what they are built on.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/find": {
+      "get": {
+        "operationId": "getMoonlightFind",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look for PCs running Sunshine on the server's network.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts": {
+      "get": {
+        "operationId": "getMoonlightHosts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's own game PCs, and how they are doing.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postMoonlightHosts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a game PC by address. It has to answer as Sunshine.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}": {
+      "delete": {
+        "operationId": "deleteMoonlightHostsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget a game PC.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "patch": {
+        "operationId": "patchMoonlightHostsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a game PC.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/apps": {
+      "get": {
+        "operationId": "getMoonlightHostsIdApps",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a paired PC offers.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/apps/{app}/art": {
+      "get": {
+        "operationId": "getMoonlightHostsIdAppsAppArt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An app's picture.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/apps/{app}/play": {
+      "post": {
+        "operationId": "postMoonlightHostsIdAppsAppPlay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start an app, and a stream of it. Body: width, height, fps, bitrate.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/pair": {
+      "delete": {
+        "operationId": "deleteMoonlightHostsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop waiting for a PIN.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getMoonlightHostsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How pairing is going.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postMoonlightHostsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start pairing, and get the PIN to type into Sunshine.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/quit": {
+      "post": {
+        "operationId": "postMoonlightHostsIdQuit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End what is running on a game PC.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/hosts/{id}/wake": {
+      "post": {
+        "operationId": "postMoonlightHostsIdWake",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a game PC the Wake-on-LAN signal.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/sessions/{sid}": {
+      "delete": {
+        "operationId": "deleteMoonlightSessionsSid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End a stream. With ?quit=1, close the game too.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getMoonlightSessionsSid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A stream of this account's.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/moonlight/sessions/{sid}/webrtc": {
+      "post": {
+        "operationId": "postMoonlightSessionsSidWebrtc",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect to a stream: a WebRTC offer in, the answer out.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/music/albums": {
       "get": {
         "operationId": "getMusicAlbums",
@@ -18701,6 +19354,659 @@
         "x-wms-auth": "admin"
       }
     },
+    "/rigs": {
+      "get": {
+        "operationId": "getRigs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The gaming PCs this account can see, and how they are doing.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postRigs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a gaming PC. It has to answer as Sunshine.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/find": {
+      "get": {
+        "operationId": "getRigsFind",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look for PCs running Sunshine on the home network.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/games/{id}/play": {
+      "post": {
+        "operationId": "postRigsGamesIdPlay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this device can do to play a rig's game. Starts nothing on the PC.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/rigs/games/{id}/start": {
+      "post": {
+        "operationId": "postRigsGamesIdStart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a rig's game on the PC, for a Moonlight app to resume.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/rigs/games/{id}/stream": {
+      "post": {
+        "operationId": "postRigsGamesIdStream",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a stream of a shared PC's game.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/rigs/{id}": {
+      "delete": {
+        "operationId": "deleteRigsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget a rig, with its library.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "patch": {
+        "operationId": "patchRigsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a rig name, address, address away from home or MAC address.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/apps": {
+      "get": {
+        "operationId": "getRigsIdApps",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything a rig offers, shown in the library or not.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/apps/{app}": {
+      "put": {
+        "operationId": "putRigsIdAppsApp",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Show or hide an app in the library.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/devices": {
+      "post": {
+        "operationId": "postRigsIdDevices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Type a PIN into Sunshine for a Moonlight app. Sunshine's sign-in is used once and never kept.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/pair": {
+      "delete": {
+        "operationId": "deleteRigsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop waiting for a PIN.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getRigsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How pairing is going.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postRigsIdPair",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start pairing, and get the PIN to type into Sunshine.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/quit": {
+      "post": {
+        "operationId": "postRigsIdQuit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End what is running on a rig: for admins and whoever started it.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/rigs/{id}/sync": {
+      "post": {
+        "operationId": "postRigsIdSync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a rig's games again.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/rigs/{id}/wake": {
+      "post": {
+        "operationId": "postRigsIdWake",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a registered rig the Wake-on-LAN signal.",
+        "tags": [
+          "Game rigs"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/sessions": {
       "delete": {
         "operationId": "deleteSessions",
@@ -19882,6 +21188,66 @@
           "Server"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/sunshine": {
+      "get": {
+        "operationId": "getSunshine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "WittySunshine: whether it is on, and whether Sunshine is on this machine.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putSunshine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See docs/GAME-RIGS.md."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn WittySunshine on or off.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/system": {
@@ -21518,6 +22884,9 @@
     },
     {
       "name": "Share links"
+    },
+    {
+      "name": "Game rigs"
     }
   ]
 }

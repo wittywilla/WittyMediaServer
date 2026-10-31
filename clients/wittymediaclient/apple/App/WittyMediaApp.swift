@@ -43,6 +43,12 @@ struct RootView: View {
                             case .show(let id): ShowView(id: id)
                             case .item(let id): ItemView(id: id)
                             case .player(let id, let startOver): PlayerScreen(id: id, startOver: startOver)
+                            case .web(let path):
+                                #if os(iOS)
+                                WebPlayerView(path: path)
+                                #else
+                                EmptyView()
+                                #endif
                             }
                         }
                 }

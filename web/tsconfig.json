@@ -27,6 +27,9 @@
       "@wittywilla/wittyplay": [
         "../modules/wittyplay/web/index.ts"
       ],
+      "@wittywilla/wittymoonlight": [
+        "../modules/wittymoonlight/web/index.ts"
+      ],
       "@wittywilla/*": [
         "./src/modules/*"
       ],
@@ -47,7 +50,8 @@
   "include": [
     "src",
     "../modules/wittyintegratedfilebrowser/web",
-    "../modules/wittyplay/web"
+    "../modules/wittyplay/web",
+    "../modules/wittymoonlight/web"
   ],
   "exclude": [
     "../modules/wittyplay/web/tests"

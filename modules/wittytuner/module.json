@@ -3,6 +3,7 @@
   "name": "WittyTuner",
   "version": "0.1.0",
   "repo": "wittywilla/WittyTuner",
+  "license": "Apache-2.0",
   "delivery": "helper",
   "entry": "wittytuner-module",
   "api": 2,

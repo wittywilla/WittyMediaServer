@@ -8,6 +8,12 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
 
+    <!-- Moonlight, a separate app, plays games on someone's own PC. Android 11 and later hide
+         other apps unless they're named here. -->
+    <queries>
+        <package android:name="com.limelight" />
+    </queries>
+
     <application
         android:name=".WittyApp"
         android:allowBackup="false"

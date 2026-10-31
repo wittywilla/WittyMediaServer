@@ -3,6 +3,7 @@
   "name": "WittyBluray",
   "version": "0.1.0",
   "repo": "wittywilla/WittyBluray",
+  "license": "Apache-2.0",
   "delivery": "helper",
   "entry": "wittybluray-module",
   "api": 2,

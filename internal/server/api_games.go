@@ -549,6 +549,11 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	if it.Console == library.RigConsole {
+		// A rig's game runs on that PC, not here: see POST /rigs/games/{id}/play.
+		writeJSON(w, 409, map[string]any{"error": "This game plays on your own PC, not on this server.", "rig": true})
+		return
+	}
 	console := wittyplay.ByID(it.Console)
 	if console == nil || (console.Hidden && !s.testingGames()) {
 		writeErr(w, 404, "not found")

@@ -107,6 +107,14 @@ WittyCD is in, on its branch. Still to do:
   a type such as Animation, so channels by type miss it.
 - **Commercial breaks inside programmes:** commercials only play between programmes today.
 
+## Game PCs
+
+- **Try it on a real gaming PC:** a real stream has reached a real browser, from a real Sunshine in a container. A real game with a real GPU hasn't. The
+  checklist is at the end of [GAME-RIGS.md](GAME-RIGS.md#a-checklist-for-the-first-real-test).
+- **Decide on the names** before the repositories exist: [WittySunshine and WittyMoonlight could be mistaken for official releases](GAME-RIGS.md#the-names).
+- **Apple TV:** [a decision for the owner](GAME-RIGS.md#what-each-device-gets).
+- **A WebSocket fallback** for networks that block UDP, and HEVC and AV1, aren't built.
+
 ## Games
 
 - **Real games:** real cores haven't run end to end. The owner's game files are now on the test machine.

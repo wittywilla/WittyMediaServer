@@ -12,6 +12,66 @@ final class ModelTests: XCTestCase {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
+    func testRigPlay() throws {
+        let json = """
+        {"rig":{"id":3,"libraryId":9,"name":"Den PC","paired":true,"state":"online","message":"Ready to play.","canWake":false},
+        "game":{"id":7,"title":"Space Game"},"away":false,"ready":true,
+        "methods":[{"kind":"client","label":"Play here","oneClick":true,"note":"Keyboard only."},
+        {"kind":"command","label":"Open in Moonlight","oneClick":true,"args":["stream","192.168.1.20","Space Game"]},
+        {"kind":"steps","label":"Open it yourself","oneClick":false,"steps":["Open the Moonlight app."]}],
+        "install":{"name":"Moonlight for Apple TV","url":"https://apps.apple.com/x","license":"GPL-3.0","source":"https://example.com"},"setup":null}
+        """
+        let play = try JSONDecoder().decode(RigPlay.self, from: Data(json.utf8))
+        XCTAssertTrue(play.isReady)
+        XCTAssertEqual(play.rig.name, "Den PC")
+        XCTAssertTrue(play.playsInPage)
+        XCTAssertEqual(play.inPageNote, "Keyboard only.")
+        XCTAssertEqual(play.moonlightArgs, ["stream", "192.168.1.20", "Space Game"])
+        XCTAssertEqual(play.steps, ["Open the Moonlight app."])
+        XCTAssertNotNil(play.install?.webURL)
+    }
+
+    func testRigAnswersAreCheckedBeforeUse() throws {
+        let json = #"{"rig":{"id":1,"name":"PC"},"install":{"name":"M","url":"file:///etc/passwd"},"methods":[{"kind":"command","args":["stream","pc","--quit-after"]},{"kind":"client"}]}"#
+        let play = try JSONDecoder().decode(RigPlay.self, from: Data(json.utf8))
+        XCTAssertNil(play.install?.webURL)
+        XCTAssertNil(play.moonlightArgs)
+        XCTAssertFalse(play.isReady)
+        XCTAssertFalse(play.playsInPage, "only when it's what the server puts first")
+    }
+
+    func testWebPlayerKeepsToItsOwnPages() throws {
+        XCTAssertEqual(WebPlayer.rigPath(7), "/moonlight-rig/7")
+        for path in ["/moonlight", "/moonlight/3", "/moonlight/3/play/9", "/moonlight-rig/7"] { XCTAssertTrue(WebPlayer.staysInside(path: path), path) }
+        for path in ["/", "/item/7", "/moonlights", "/settings", "/login"] { XCTAssertFalse(WebPlayer.staysInside(path: path), path) }
+    }
+
+    func testOnlyTheSameServerStaysInTheWebView() throws {
+        let base = "http://192.168.1.5:9797"
+        func same(_ text: String) throws -> Bool { WebPlayer.sameServer(try XCTUnwrap(URL(string: text)), base: base) }
+        XCTAssertTrue(try same("http://192.168.1.5:9797/moonlight-rig/7"))
+        XCTAssertFalse(try same("http://192.168.1.5:9798/"))
+        XCTAssertFalse(try same("https://192.168.1.5:9797/"))
+        XCTAssertFalse(try same("http://192.168.1.5.example.com:9797/"))
+        XCTAssertFalse(try same("https://github.com/moonlight-stream"))
+        XCTAssertFalse(try same("file:///etc/passwd"))
+        XCTAssertTrue(WebPlayer.sameServer(try XCTUnwrap(URL(string: "https://home.example/x")), base: "https://home.example:443"))
+        XCTAssertTrue(WebPlayer.isWebLink(try XCTUnwrap(URL(string: "https://github.com/x"))))
+        XCTAssertFalse(WebPlayer.isWebLink(try XCTUnwrap(URL(string: "tel:123"))))
+    }
+
+    func testMoonlightArguments() {
+        for good in [["stream", "192.168.1.20", "Space Game"], ["stream", "pc.local:48010", "A & B; C"], ["stream", "[fd00::20]:48010", "Game"]] {
+            XCTAssertTrue(MoonlightCommand.isSafe(good), good.joined(separator: " "))
+        }
+        let bad = [
+            [], ["stream"], ["stream", "pc"], ["stream", "pc", "Game", "--extra"], ["list", "pc", "Game"], ["pair", "pc", "Game"],
+            ["stream", "-pc", "Game"], ["stream", "pc name", "Game"], ["stream", "pc:", "Game"], ["stream", "pc:70000", "Game"], ["stream", "[nope]", "Game"],
+            ["stream", "pc", ""], ["stream", "pc", "--quit-after"], ["stream", "pc", " -x"], ["stream", "pc", "a\nb"], ["stream", "pc", String(repeating: "x", count: 201)],
+        ]
+        for args in bad { XCTAssertFalse(MoonlightCommand.isSafe(args), args.joined(separator: " ")) }
+    }
+
     func testStatus() throws {
         let status: ServerStatus = try fixture("status")
         XCTAssertEqual(status.name, "WittyMediaServer")

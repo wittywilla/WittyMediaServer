@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -81,7 +82,8 @@ func encoderArgs(name string, bps int, gop int) (args, inputArgs []string, uploa
 	half := strconv.Itoa(bps / 2)
 	switch name {
 	case "h264_nvenc":
-		args = []string{"-preset", "p1", "-tune", "ull", "-zerolatency", "1", "-rc", "cbr", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
+		// -delay 0: left alone, NVENC keeps several finished frames in a queue.
+		args = []string{"-preset", "p1", "-tune", "ull", "-zerolatency", "1", "-delay", "0", "-rc", "cbr", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
 	case "h264_qsv":
 		args = []string{"-preset", "veryfast", "-async_depth", "1", "-look_ahead", "0", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
 	case "h264_amf":
@@ -118,8 +120,18 @@ func (s *Session) chain(codec string) []string {
 		add("libvpx")
 		return out
 	}
+	// A game on the graphics card makes frames too large to encode on the CPU, and
+	// its card is already awake, so it uses a hardware encoder whatever the
+	// transcoder's setting says.
+	if s.opt.GPU {
+		for _, n := range s.cfg.GPUEncoders {
+			add(n)
+		}
+	}
 	for _, n := range s.cfg.HWEncoders {
-		add(n)
+		if !slices.Contains(out, n) {
+			add(n)
+		}
 	}
 	add("libx264")
 	add("libopenh264")
@@ -141,6 +153,7 @@ type videoEncoder struct {
 	stdin   io.WriteCloser
 	cancel  context.CancelFunc
 	got     chan struct{} // closed at the first frame out
+	sent    timeRing      // when each frame still inside the encoder went in
 	gotOnce sync.Once
 	stopped chan struct{}
 	asked   atomic.Bool // stop was called, so ending without a frame is no failure
@@ -159,11 +172,18 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 	if upload != "" {
 		vf += "," + upload
 	}
+	// NVENC converts colours on the graphics card, so a large frame that needs no
+	// resizing goes straight in and costs no CPU to convert.
+	direct := name == "h264_nvenc" && scale == 1 && hdr.Format == engine.FormatXRGB8888 && hdr.Width%2 == 0 && hdr.Height%2 == 0
 	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
 	args = append(args, inputArgs...)
 	args = append(args, "-fflags", "+nobuffer", "-flags", "+low_delay",
 		"-f", "rawvideo", "-pix_fmt", pixFmt(hdr.Format), "-video_size", fmt.Sprintf("%dx%d", hdr.Width, hdr.Height),
-		"-framerate", strconv.FormatFloat(fps, 'f', 4, 64), "-i", "pipe:0", "-an", "-vf", vf, "-c:v", name)
+		"-framerate", strconv.FormatFloat(fps, 'f', 4, 64), "-i", "pipe:0", "-an")
+	if !direct {
+		args = append(args, "-vf", vf)
+	}
+	args = append(args, "-c:v", name)
 	args = append(args, encArgs...)
 	args = append(args, "-fps_mode", "passthrough", "-flush_packets", "1")
 	if codec == "vp8" {
@@ -195,6 +215,7 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		defer close(e.stopped)
 		emit := func(au AU) {
 			e.gotOnce.Do(func() { close(e.got) })
+			s.stats.encoded(e)
 			s.deliverVideo(codec, au)
 		}
 		var err error
@@ -274,6 +295,7 @@ func (s *Session) videoLoop() {
 		s.viewMu.Unlock()
 		for _, e := range []*videoEncoder{h264, vp8} {
 			if e != nil {
+				e.mark()
 				if _, err := e.stdin.Write(feed); err != nil && !errors.Is(err, os.ErrClosed) {
 					s.log.Debug("writing to the encoder", "err", err)
 				}

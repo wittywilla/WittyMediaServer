@@ -30,10 +30,13 @@ type Config struct {
 	Runner      string   // the wittyplay-host program, or another runner speaking ipc
 	RunnerArgs  []string // extra arguments, before the ones added here
 	FFmpeg      string
-	HWEncoders  []string          // hardware encoders known to work here, best first
+	HWEncoders  []string          // hardware encoders known to work here and switched on, best first
+	GPUEncoders []string          // hardware encoders known to work here at all, best first
 	HaveEncoder func(string) bool // FFmpeg was built with this encoder
 	MaxSessions int               // 0 means 2
+	MaxGPU      int               // games drawn on the graphics card at once; 0 means 2
 	MemoryMB    int64             // 0 means 2048
+	GPUMemoryMB int64             // the same for a game with a graphics driver loaded; 0 means 8192
 	Log         *slog.Logger
 
 	// WebRTC networking; all optional. A fixed UDP port is what a firewall or
@@ -54,6 +57,7 @@ type Options struct {
 	SaveDir        string // this account's folder for this game
 	Resume         bool   // continue from auto.state
 	Quality        string // "" (auto) | low | high
+	GPU            bool   // the core draws with a graphics card
 	CoreOptions    map[string]string
 	Cleanup        func() // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
@@ -66,6 +70,7 @@ type Options struct {
 // CoreChoice is a core and the settings it starts with.
 type CoreChoice struct {
 	Core    string
+	GPU     bool
 	Options map[string]string
 }
 
@@ -83,15 +88,17 @@ type Info struct {
 	SampleRate float64 `json:"sampleRate"`
 	Resumed    bool    `json:"resumed"`
 	Encoder    string  `json:"encoder,omitempty"`
-	Turns      int     `json:"turns,omitempty"` // quarter turns anticlockwise to draw the picture
-	Disc       int     `json:"disc,omitempty"`  // the disc in the drive, from 0
-	Discs      int     `json:"discs,omitempty"` // how many the game has
-	Modes      []Mode  `json:"modes"` // what this client can connect with, best first
+	Turns      int     `json:"turns,omitempty"`    // quarter turns anticlockwise to draw the picture
+	Disc       int     `json:"disc,omitempty"`     // the disc in the drive, from 0
+	Discs      int     `json:"discs,omitempty"`    // how many the game has
+	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
+	Modes      []Mode  `json:"modes"`              // what this client can connect with, best first
 }
 
 // Errors a caller shows to people.
 var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
+	ErrGPUBusy = errors.New("the graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
 	ErrNoSlot  = errors.New("there is no such save slot")
 )
@@ -115,6 +122,12 @@ func NewManager(cfg Config) *Manager {
 	}
 	if cfg.MemoryMB <= 0 {
 		cfg.MemoryMB = 2048
+	}
+	if cfg.MaxGPU <= 0 {
+		cfg.MaxGPU = 2
+	}
+	if cfg.GPUMemoryMB <= 0 {
+		cfg.GPUMemoryMB = 8192
 	}
 	if cfg.Log == nil {
 		cfg.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -185,7 +198,7 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	}
 
 	s, err := m.startOn(opt, len(opt.Fallbacks) > 0)
-	if err == nil || errors.Is(err, ErrBusy) {
+	if err == nil || errors.Is(err, ErrBusy) || errors.Is(err, ErrGPUBusy) {
 		return s, err
 	}
 	// What the core they would have chosen said is the error worth showing.
@@ -193,12 +206,12 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	for i, next := range opt.Fallbacks {
 		m.log.Info("the game would not load; trying the next core", "game", opt.Title, "err", err)
 		try := opt
-		try.Core, try.CoreOptions = next.Core, next.Options
+		try.Core, try.CoreOptions, try.GPU = next.Core, next.Options, next.GPU
 		last := i == len(opt.Fallbacks)-1
 		if s, err = m.startOn(try, !last); err == nil {
 			return s, nil
 		}
-		if errors.Is(err, ErrBusy) {
+		if errors.Is(err, ErrBusy) || errors.Is(err, ErrGPUBusy) {
 			if !last && opt.Cleanup != nil {
 				opt.Cleanup()
 			}
@@ -216,6 +229,22 @@ func (m *Manager) startOn(opt Options, moreToTry bool) (*Session, error) {
 	if len(m.sessions) >= cfg.MaxSessions {
 		m.mu.Unlock()
 		return nil, ErrBusy
+	}
+	if opt.GPU {
+		n := 0
+		for _, o := range m.sessions {
+			if o.opt.GPU {
+				n++
+			}
+		}
+		maxGPU := cfg.MaxGPU
+		if maxGPU <= 0 {
+			maxGPU = 2
+		}
+		if n >= maxGPU {
+			m.mu.Unlock()
+			return nil, ErrGPUBusy
+		}
 	}
 	if moreToTry {
 		final := opt.Cleanup
@@ -349,6 +378,7 @@ type Session struct {
 	audioCh       chan []byte
 	rate          float64
 	turns         int
+	stats         EncodeStats
 
 	stopping  atomic.Bool  // Stop was called, so the runner ending is no surprise
 	lastFrame atomic.Int64 // when the runner last made a frame, in Unix nanoseconds
@@ -374,14 +404,19 @@ func (s *Session) Info() Info {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
 	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs}
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer}
 }
 
 func (s *Session) start() error {
 	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
 		return err
 	}
-	rn, err := StartRunner(s.cfg.Runner, s.cfg.RunnerArgs, s.opt.SaveDir, s.cfg.MemoryMB, s.log)
+	args, memory := s.cfg.RunnerArgs, s.cfg.MemoryMB
+	if s.opt.GPU {
+		// A graphics driver needs what a software-rendered game never should.
+		args, memory = append(append([]string(nil), args...), "-gpu"), s.cfg.GPUMemoryMB
+	}
+	rn, err := StartRunner(s.cfg.Runner, args, s.opt.SaveDir, memory, s.log)
 	if err != nil {
 		return err
 	}
@@ -395,6 +430,7 @@ func (s *Session) start() error {
 	go s.readRunner(stdout, readyCh)
 	go s.audioLoop()
 	go s.videoLoop()
+	go s.logStats()
 	go func() {
 		// Wait closes the pipes, so it comes after the last save has been read.
 		s.wrote.Wait()
@@ -411,6 +447,11 @@ func (s *Session) start() error {
 		s.kill()
 		return err
 	}
+	// The larger consoles build caches and start whole operating systems.
+	loadLimit := 30 * time.Second
+	if s.opt.GPU {
+		loadLimit = 2 * time.Minute
+	}
 	select {
 	case err := <-readyCh:
 		if err != nil {
@@ -421,7 +462,7 @@ func (s *Session) start() error {
 			}
 			return err
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(loadLimit):
 		s.stopping.Store(true)
 		s.kill()
 		<-s.done
@@ -634,9 +675,18 @@ func truncate(s string, n int) string {
 	return s
 }
 
-// Input applies an 11-byte pad message from a viewer. Malformed ones and
-// players beyond what the player offers are ignored.
+// Input applies a message from a viewer: an 11-byte pad state or a pointer state.
+// Malformed ones and players beyond what the player offers are ignored.
 func (s *Session) Input(p []byte) {
+	if len(p) == ipc.PointerSize {
+		if _, _, _, ok := ipc.ParsePointer(p); ok {
+			s.viewMu.Lock()
+			s.lastInput = time.Now()
+			s.viewMu.Unlock()
+			_ = s.command(ipc.CmdPointer, p)
+		}
+		return
+	}
 	port, _, _, _, _, _, ok := ipc.ParseInput(p)
 	if !ok || port >= MaxPlayers {
 		return

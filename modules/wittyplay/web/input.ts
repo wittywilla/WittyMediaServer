@@ -54,6 +54,8 @@ export class InputManager {
   private beat = 0
   private enabled = true
   private polling = false
+  private point = new Uint8Array([0xff, 0, 0, 0, 0, 0]) // the touch screen's state
+  private pointRepeats = 0
 
   constructor(controls: ControlsData) {
     this.controls = controls
@@ -85,11 +87,30 @@ export class InputManager {
 
   setSender(send: (msg: Uint8Array) => void) { this.send = send }
 
+  // The touch screen. x and y run from 0 to 1 across the picture. Sent at once, and
+  // repeated on the beat because the channel may lose it: while held, and a few times
+  // after, since a lost release would hold the stylus down.
+  setPointer(x: number, y: number, pressed: boolean) {
+    const at = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 65534) - 32767
+    const view = new DataView(this.point.buffer)
+    this.point[1] = pressed ? 1 : 0
+    view.setInt16(2, at(x), true)
+    view.setInt16(4, at(y), true)
+    this.pointRepeats = 4
+    this.send(this.point)
+  }
+
+  private beatPointer() {
+    if (this.point[1] === 0 && this.pointRepeats <= 0) return
+    if (this.point[1] === 0) this.pointRepeats--
+    this.send(this.point)
+  }
+
   // While a menu is open the game gets nothing, and everything held is let go.
   setEnabled(on: boolean) {
     if (this.enabled === on) return
     this.enabled = on
-    if (!on) { this.held.clear(); this.touchMask = 0 }
+    if (!on) { this.held.clear(); this.touchMask = 0; if (this.point[1]) { this.point[1] = 0; this.pointRepeats = 4; this.send(this.point) } }
     this.flush(true)
   }
 
@@ -104,7 +125,7 @@ export class InputManager {
     this.raf = requestAnimationFrame(tick)
     // A full state now and then corrects anything lost on an unreliable channel,
     // and keeps polling pads when animation frames stop in a background tab.
-    this.beat = window.setInterval(() => { this.poll(); this.flush(true) }, 250)
+    this.beat = window.setInterval(() => { this.poll(); this.flush(true); this.beatPointer() }, 250)
     this.poll()
   }
 

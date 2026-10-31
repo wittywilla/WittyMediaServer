@@ -2,6 +2,9 @@
 
 package libretro
 
-// RunOnCoreThread just runs fn. Coroutine stacks only trouble Go's Linux runtime,
-// as far as has been tested: bsnes runs on Windows as it is.
-func RunOnCoreThread(fn func()) { fn() }
+// OnCoreThread runs fn. Only Linux needs a thread of its own for this: see
+// thread_linux.go.
+func OnCoreThread(fn func()) error {
+	fn()
+	return nil
+}

@@ -27,6 +27,7 @@
 .gaming-core { display: flex; flex-direction: column; min-width: 0; }
 .gaming-core small { font-size: var(--text-xs); }
 .gaming-rec { margin-left: var(--sp-2); }
+.game-bios-hint { margin: 8px 0 0; font-size: .875rem; overflow-wrap: anywhere; }
 .gaming-bios { margin-top: 8px !important; overflow-wrap: anywhere; }
 .gaming-extra { list-style: none; margin: 0; padding: 0; }
 .gaming-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }

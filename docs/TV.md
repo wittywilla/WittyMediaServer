@@ -109,4 +109,4 @@ Release-group tags in square brackets are ignored, and a year is never taken for
 number. `S01E12`-style names keep working as usual.
 
 ---
-<sub>WittyMediaServer 0.4.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.5.0-alpha documentation</sub>

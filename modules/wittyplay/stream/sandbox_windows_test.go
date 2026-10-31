@@ -2,10 +2,12 @@ package stream
 
 import (
 	"bytes"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -50,4 +52,14 @@ func TestWindowsSandbox(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(outside, "escape")); err == nil {
 		t.Fatal("the child wrote outside its save folder")
 	}
+}
+
+// The graphics card check runs in the same sandbox as a game, with no pipes of its
+// own to claim from, and stays out of every other folder.
+func TestProbeGPUInSandbox(t *testing.T) {
+	got := ProbeGPU(buildRunner(t), filepath.Join(t.TempDir(), "probe"), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if strings.Contains(got.Error, "could not check") {
+		t.Fatalf("the check itself failed: %+v", got)
+	}
+	t.Logf("%+v", got)
 }

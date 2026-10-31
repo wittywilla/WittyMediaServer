@@ -6,21 +6,29 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-// coreThreadStack is generous: emulators keep big things on the stack, and a
-// container's default for a new thread can be as little as 2 MB.
-const coreThreadStack = 16 << 20
-
-// RunOnCoreThread runs fn on a thread created by C rather than by Go, and returns
-// when it has finished. Everything that touches a core belongs inside it.
+// OnCoreThread runs fn on a thread the Go runtime didn't create, and returns when
+// it has finished.
 //
-// Some cores (bsnes, through its coroutine library) switch to stacks of their own
-// and then call back. Go only copes with that on a thread it didn't create: on one
-// of its own it stops the whole program with "morestack on g0".
-func RunOnCoreThread(fn func()) {
-	create, err := purego.Dlsym(purego.RTLD_DEFAULT, "pthread_create")
+// Several cores run the game on stacks of their own (coroutines), and call back
+// from there. The runtime insists that a callback on one of its own threads is on
+// that thread's stack, and dies if it isn't. On a thread it didn't create, it
+// takes the stack it finds. That's why a core lives on one of those.
+func OnCoreThread(fn func()) error {
+	libc, err := purego.Dlopen("libc.so.6", purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
-		fn()
-		return
+		return err
+	}
+	create, err := purego.Dlsym(libc, "pthread_create")
+	if err != nil {
+		return err
+	}
+	attrInit, err := purego.Dlsym(libc, "pthread_attr_init")
+	if err != nil {
+		return err
+	}
+	attrStack, err := purego.Dlsym(libc, "pthread_attr_setstacksize")
+	if err != nil {
+		return err
 	}
 	done := make(chan struct{})
 	entry := purego.NewCallback(func(uintptr) uintptr {
@@ -28,21 +36,16 @@ func RunOnCoreThread(fn func()) {
 		fn()
 		return 0
 	})
+	// Emulators and graphics drivers use a good deal more stack than Go code does.
+	var attr [64]byte
+	purego.SyscallN(attrInit, uintptr(unsafe.Pointer(&attr[0])))
+	purego.SyscallN(attrStack, uintptr(unsafe.Pointer(&attr[0])), coreThreadStack)
 	var thread uintptr
-	var attr [128]byte // pthread_attr_t, whose size differs by platform but is below this
-	attrPtr := uintptr(0)
-	if init, err := purego.Dlsym(purego.RTLD_DEFAULT, "pthread_attr_init"); err == nil {
-		if set, err := purego.Dlsym(purego.RTLD_DEFAULT, "pthread_attr_setstacksize"); err == nil {
-			if r, _, _ := purego.SyscallN(init, uintptr(unsafe.Pointer(&attr))); r == 0 {
-				if r, _, _ := purego.SyscallN(set, uintptr(unsafe.Pointer(&attr)), coreThreadStack); r == 0 {
-					attrPtr = uintptr(unsafe.Pointer(&attr))
-				}
-			}
-		}
-	}
-	if r, _, _ := purego.SyscallN(create, uintptr(unsafe.Pointer(&thread)), attrPtr, entry, 0); r != 0 {
-		fn()
-		return
+	if r, _, _ := purego.SyscallN(create, uintptr(unsafe.Pointer(&thread)), uintptr(unsafe.Pointer(&attr[0])), entry, 0); r != 0 {
+		return errCoreThread
 	}
 	<-done
+	return nil
 }
+
+const coreThreadStack = 16 << 20

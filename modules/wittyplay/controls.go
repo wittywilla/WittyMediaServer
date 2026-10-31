@@ -46,6 +46,7 @@ type PadLayout struct {
 	Shoulder []PadButton `json:"shoulder,omitempty"`
 	Meta     []PadButton `json:"meta"` // Select, Start and their relatives
 	Sticks   bool        `json:"sticks,omitempty"`
+	Pointer  bool        `json:"pointer,omitempty"` // has a touch screen: clients send pointer states
 }
 
 var (
@@ -65,14 +66,24 @@ var pads = map[string]PadLayout{
 	"gg":  {Face: []PadButton{{RetroB, "1"}, {RetroA, "2"}}, Meta: startOnly},
 	"ps1": {Face: []PadButton{{RetroY, "□"}, {RetroX, "△"}, {RetroB, "✕"}, {RetroA, "○"}},
 		Shoulder: []PadButton{{RetroL, "L1"}, {RetroR, "R1"}, {RetroL2, "L2"}, {RetroR2, "R2"}}, Meta: selectStart, Sticks: true},
-	"pce":       {Face: []PadButton{{RetroB, "II"}, {RetroA, "I"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Run"}}},
-	"a2600":     {Face: []PadButton{{RetroB, "Fire"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Reset"}}},
-	"a7800":     {Face: []PadButton{{RetroB, "A"}, {RetroA, "B"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Pause"}}},
-	"lynx":      {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Shoulder: []PadButton{{RetroL, "Opt 1"}, {RetroR, "Opt 2"}}, Meta: []PadButton{{RetroStart, "Pause"}}},
-	"ws":        {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Meta: startOnly},
-	"ngp":       {Face: []PadButton{{RetroB, "A"}, {RetroA, "B"}}, Meta: []PadButton{{RetroStart, "Option"}}},
-	"vb":        {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart},
-	TestConsole: {Face: diamond, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart},
+	"pce":   {Face: []PadButton{{RetroB, "II"}, {RetroA, "I"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Run"}}},
+	"a2600": {Face: []PadButton{{RetroB, "Fire"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Reset"}}},
+	"a7800": {Face: []PadButton{{RetroB, "A"}, {RetroA, "B"}}, Meta: []PadButton{{RetroSelect, "Select"}, {RetroStart, "Pause"}}},
+	"lynx":  {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Shoulder: []PadButton{{RetroL, "Opt 1"}, {RetroR, "Opt 2"}}, Meta: []PadButton{{RetroStart, "Pause"}}},
+	"ws":    {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Meta: startOnly},
+	"ngp":   {Face: []PadButton{{RetroB, "A"}, {RetroA, "B"}}, Meta: []PadButton{{RetroStart, "Option"}}},
+	"vb":    {Face: []PadButton{{RetroB, "B"}, {RetroA, "A"}}, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart},
+	"n64": {Face: []PadButton{{RetroY, "C←"}, {RetroX, "C↑"}, {RetroB, "B"}, {RetroA, "A"}},
+		Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}, {RetroL2, "Z"}}, Meta: startOnly, Sticks: true},
+	"nds": {Face: diamond, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart, Pointer: true},
+	"3ds": {Face: diamond, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}, {RetroL2, "ZL"}, {RetroR2, "ZR"}}, Meta: selectStart, Sticks: true, Pointer: true},
+	"ps2": {Face: []PadButton{{RetroY, "□"}, {RetroX, "△"}, {RetroB, "✕"}, {RetroA, "○"}},
+		Shoulder: []PadButton{{RetroL, "L1"}, {RetroR, "R1"}, {RetroL2, "L2"}, {RetroR2, "R2"}}, Meta: selectStart, Sticks: true},
+	"psp": {Face: []PadButton{{RetroY, "□"}, {RetroX, "△"}, {RetroB, "✕"}, {RetroA, "○"}},
+		Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart, Sticks: true},
+	"dc": {Face: []PadButton{{RetroY, "X"}, {RetroX, "Y"}, {RetroB, "A"}, {RetroA, "B"}},
+		Shoulder: []PadButton{{RetroL2, "L"}, {RetroR2, "R"}}, Meta: startOnly, Sticks: true},
+	TestConsole: {Face: diamond, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}}, Meta: selectStart, Pointer: true},
 }
 
 var fullPad = PadLayout{Face: diamond, Shoulder: []PadButton{{RetroL, "L"}, {RetroR, "R"}, {RetroL2, "L2"}, {RetroR2, "R2"}}, Meta: selectStart, Sticks: true}

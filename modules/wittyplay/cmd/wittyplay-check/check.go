@@ -151,11 +151,18 @@ type proc struct {
 	started time.Time
 }
 
-func start(c *config, saveDir string) (*proc, error) {
+func start(c *config, saveDir, coreID string) (*proc, error) {
 	if err := os.MkdirAll(saveDir, 0o700); err != nil {
 		return nil, err
 	}
-	rn, err := stream.StartRunner(c.runner, nil, saveDir, int64(c.memoryMB), c.log)
+	// As a session does: a graphics driver needs more than a software-rendered game.
+	var args []string
+	memory := int64(c.memoryMB)
+	if wittyplay.Traits(coreID).GPU {
+		args = []string{"-gpu"}
+		memory = max(memory, 8192)
+	}
+	rn, err := stream.StartRunner(c.runner, args, saveDir, memory, c.log)
 	if err != nil {
 		return nil, err
 	}
@@ -698,7 +705,7 @@ func checkGame(c *config, j job) (r Result) {
 	defer cleanup()
 
 	saveDir := filepath.Join(work, "save")
-	p, err := start(c, saveDir)
+	p, err := start(c, saveDir, j.core.id)
 	if err != nil {
 		r.Outcome, r.Reason = OutcomeToolError, err.Error()
 		return r
@@ -928,7 +935,7 @@ func classify(r *Result, state []byte, after []uint64, p *proc) {
 
 // gameOptions are what the server starts this core with, plus any from -options.
 func gameOptions(c *config, j job) map[string]string {
-	out := wittyplay.CoreOptions(j.core.id)
+	out := wittyplay.StartOptions(j.console.ID, j.core.id, "", c.systemDir)
 	if out == nil {
 		out = map[string]string{}
 	}
@@ -942,7 +949,7 @@ func gameOptions(c *config, j job) map[string]string {
 // save, then state, both before the first frame.
 func resumeCheck(c *config, j job, rom, saveDir string, state []byte, after []uint64, ram []byte, r *Result, frameTime time.Duration) {
 	r.Resume = "failed"
-	p, err := start(c, saveDir)
+	p, err := start(c, saveDir, j.core.id)
 	if err != nil {
 		return
 	}

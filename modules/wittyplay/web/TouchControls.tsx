@@ -45,7 +45,10 @@ function ControlFace({ c, active }: { c: Control; active: boolean }) {
   return <span className={'wp-btn-face wp-btn-' + c.kind + (active ? ' on' : '')}>{c.label}</span>
 }
 
-export function TouchControls({ data, orientation, onMask }: { data: ControlsData; orientation: Orientation; onMask: (mask: number) => void }) {
+// On a console with a touch screen, a finger that isn't on a button is the stylus.
+export type OnPoint = (clientX: number, clientY: number, phase: 'down' | 'move' | 'up') => void
+
+export function TouchControls({ data, orientation, onMask, onPoint }: { data: ControlsData; orientation: Orientation; onMask: (mask: number) => void; onPoint?: OnPoint }) {
   const area = useRef<HTMLDivElement>(null)
   const size = useSize(area)
   const controls = data.controls
@@ -53,6 +56,7 @@ export function TouchControls({ data, orientation, onMask }: { data: ControlsDat
   const points = useRef(new Map<number, { x: number; y: number }>())
   const lastMask = useRef(0)
   const [mask, setMask] = useState(0)
+  const stylus = useRef<number | null>(null)
 
   const update = useCallback(() => {
     const el = area.current
@@ -70,17 +74,30 @@ export function TouchControls({ data, orientation, onMask }: { data: ControlsDat
 
   const track = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.buttons === 0) return
-    const r = area.current!.getBoundingClientRect()
-    points.current.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top })
+    const el = area.current!
+    const r = el.getBoundingClientRect()
+    const pt = { x: e.clientX - r.left, y: e.clientY - r.top }
+    if (stylus.current === e.pointerId) { onPoint?.(e.clientX, e.clientY, 'move'); return }
+    if (onPoint && e.type === 'pointerdown' && stylus.current === null && touchMask([pt], controls, layout, { w: el.clientWidth, h: el.clientHeight }) === 0) {
+      stylus.current = e.pointerId
+      onPoint(e.clientX, e.clientY, 'down')
+      return
+    }
+    points.current.set(e.pointerId, pt)
     update()
   }
   const release = (e: React.PointerEvent) => {
+    if (stylus.current === e.pointerId) {
+      stylus.current = null
+      onPoint?.(e.clientX, e.clientY, 'up')
+      return
+    }
     points.current.delete(e.pointerId)
     update()
   }
   const unit = Math.min(size.w, size.h)
   return (
-    <div ref={area} className="wp-touch" aria-hidden="true" onPointerDown={(e) => { e.preventDefault(); try { (e.target as Element).setPointerCapture?.(e.pointerId) } catch { /* fine */ } track(e) }} onPointerMove={(e) => { if (points.current.has(e.pointerId)) track(e) }}
+    <div ref={area} className="wp-touch" aria-hidden="true" onPointerDown={(e) => { e.preventDefault(); try { (e.target as Element).setPointerCapture?.(e.pointerId) } catch { /* fine */ } track(e) }} onPointerMove={(e) => { if (points.current.has(e.pointerId) || stylus.current === e.pointerId) track(e) }}
       onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={(e) => e.preventDefault()}>
       {size.w > 0 && controls.map((c) => {
         const p = layout[c.key]

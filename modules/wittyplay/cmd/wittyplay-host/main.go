@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/wittywilla/wittyplay/engine"
 	"github.com/wittywilla/wittyplay/host"
@@ -17,9 +18,20 @@ import (
 	"github.com/wittywilla/wittyplay/testcore"
 )
 
+// boundedClose stops a core from holding the process open: everything has been
+// saved by then, and some cores hang waiting for their own threads.
+type boundedClose struct{ *libretro.Core }
+
+func (b boundedClose) Close() {
+	time.AfterFunc(5*time.Second, func() { os.Exit(0) })
+	b.Core.Close()
+}
+
 func main() {
 	saveDir := flag.String("save", "", "the only folder this process may write to")
 	memory := flag.Int64("memory-mb", 0, "address space limit in MiB; 0 for none")
+	gpu := flag.Bool("gpu", false, "this game draws with a graphics card, so allow what a driver needs")
+	probe := flag.Bool("probe-gpu", false, "say which graphics card games would draw with, and stop")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Fprintln(os.Stderr, "wittyplay-host is started by WittyMediaServer")
@@ -33,21 +45,38 @@ func main() {
 	}
 	// The sandbox goes on from the thread that will run the core, as some of its
 	// layers apply to one thread and whatever that thread starts.
-	libretro.RunOnCoreThread(func() {
-		if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory}); err != nil {
+	var runErr error
+	err = libretro.OnCoreThread(func() {
+		if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory, GPU: *gpu || *probe}); err != nil {
 			// Each layer is best effort, because kernels and containers differ. The
 			// server's log shows which ones this machine lacks.
 			fmt.Fprintln(os.Stderr, "sandbox:", err)
 		}
-		err := host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
+		if *probe {
+			name, err := libretro.ProbeGPU()
+			if err != nil {
+				fmt.Fprintln(out, "none:", err)
+				return
+			}
+			fmt.Fprintln(out, "gpu:", name)
+			return
+		}
+		runErr = host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
 			if l.Core == ipc.TestCore {
 				return testcore.New(h), nil
 			}
-			return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+			c, err := libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+			if err != nil {
+				return nil, err
+			}
+			return boundedClose{c}, nil
 		})
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
-			os.Exit(1)
-		}
 	})
+	if err == nil {
+		err = runErr
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
+		os.Exit(1)
+	}
 }

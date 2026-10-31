@@ -3,7 +3,7 @@ import { api, type Library } from '../api'
 import { IconFolder, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
 import { ChooseFolderButton } from './FolderPicker'
-import { ConsolePicker } from '../pages/Games'
+import { BiosHint, ConsolePicker } from '../pages/Games'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
 // folder it's in. Used by the setup wizard and the empty home page.
@@ -45,7 +45,7 @@ const FOLDER_HINT: Record<string, string> = {
   musicvideos: 'Name files Artist - Title, or keep one folder per artist. An .nfo or sidecar beside a file adds more. Recordings of 20 minutes or more appear under Concerts, with their chapters as the setlist.',
   channels: 'One folder per channel, with subfolders as playlists. Sidecar files beside a video add its title, date, description and saved comments, and a picture with its name becomes its thumbnail. Nothing is downloaded or looked up.',
   photos: 'Every picture and clip in here and in folders below it. Thumbnails are made when first looked at, so even a large collection scans quickly. Your files are never changed; uploads are saved in an Uploads folder inside it.',
-  games: 'Bring your own game files: nothing is bundled or downloaded. Zipped games work, and a .cue or .m3u keeps a multi-file game together.',
+  games: 'Bring your own game files: nothing is bundled or downloaded. Zipped games work, and a .cue or .m3u keeps a multi-file game together. BIOS files go in a folder named BIOS beside the games.',
 }
 
 export type Grouping = 'combine' | 'separate'
@@ -138,6 +138,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         const s = existing.filter((l) => l.type === 'games' && (l.console || 'auto') === id)
         setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
       }} />}
+      {type === 'games' && <BiosHint console={console_} />}
       {same.length > 0 && (
         <div className="lib-dest" role="radiogroup" aria-label="Where these folders go">
           <label className={'lib-dest-opt' + (joining ? ' on' : '')}>

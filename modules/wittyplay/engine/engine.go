@@ -47,21 +47,32 @@ type PadState struct {
 	RX, RY  int16
 }
 
+// PointerState is a touch screen or mouse. X and Y run from -32767 to 32767 across
+// the picture, as libretro counts them.
+type PointerState struct {
+	X, Y    int16
+	Pressed bool
+}
+
 // Handlers receive what an engine produces. All are called on the thread
 // running Run, and slices are only valid during the call. Any may be nil.
 type Handlers struct {
-	Video    func(data []byte, width, height, stride, format int)
-	Dupe     func() // the previous frame again
-	Audio    func(stereo []int16)
-	Input    func() *[MaxPorts]PadState // once a frame
-	Rumble   func(port, effect, strength int)
-	Message  func(text string)
-	Log      func(level int, text string)
-	Geometry func(width, height int, aspect float64)
-	Rotation func(quarterTurns int)
-	AVInfo   func(info AVInfo)
-	Shutdown func()
-	Trace    func(text string) // everything a core says and is refused; only set when testing
+	Video func(data []byte, width, height, stride, format int)
+	// VideoFlipped is Video for a frame whose first row in memory is the bottom
+	// of the picture, as OpenGL reads them.
+	VideoFlipped func(data []byte, width, height, stride, format int)
+	Dupe         func() // the previous frame again
+	Audio        func(stereo []int16)
+	Input        func() *[MaxPorts]PadState // once a frame
+	Pointer      func() PointerState        // once a frame
+	Rumble       func(port, effect, strength int)
+	Message      func(text string)
+	Log          func(level int, text string)
+	Geometry     func(width, height int, aspect float64)
+	Rotation     func(quarterTurns int)
+	AVInfo       func(info AVInfo)
+	Shutdown     func()
+	Trace        func(text string) // everything a core says and is refused; only set when testing
 }
 
 // Discs is what an engine has if it can change discs: the game may ask for the

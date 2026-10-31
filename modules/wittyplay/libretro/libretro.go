@@ -52,6 +52,7 @@ const (
 	envGetLanguage       = 39
 	envSetQuirks         = 44
 	envGetCoreOptVersion = 52
+	envGetPreferredHW    = 56
 	envGetDiskVersion    = 57
 	envSetDiskControlExt = 58
 	envGetMaxUsers       = 61
@@ -65,15 +66,17 @@ const (
 	envGetTargetRefresh  = 50 | envExperimental
 	envGetAudioVideoEn   = 47 | envExperimental
 	envGetInputBitmasks  = 51 | envExperimental
+	envSetHWShared       = 44 | envExperimental
 	envPrivate           = 0x20000
 )
 
 const (
-	deviceJoypad = 1
-	deviceAnalog = 5
-	idBitmask    = 256 // the whole pad as one value
-	maxPadPorts  = 4
-	maxPitch     = 1 << 16
+	deviceJoypad  = 1
+	deviceAnalog  = 5
+	devicePointer = 6
+	idBitmask     = 256 // the whole pad as one value
+	maxPadPorts   = 4
+	maxPitch      = 1 << 16
 )
 
 // Paths are the folders a core is told about.
@@ -101,10 +104,15 @@ type Core struct {
 	options  map[string]string
 	pinned   [][]byte
 	input    *[engine.MaxPorts]engine.PadState
+	pointer  engine.PointerState
 	gameData []byte
 	loaded   bool
 
-	lastProblem string  // the last thing the core complained about, for a failed load
+	hw         *hwState
+	hwRefused  bool
+	optionList []string
+
+	lastProblem string // the last thing the core complained about, for a failed load
 	problemLvl  int
 	disk        *diskControl
 	ports       int     // how many controller ports the core described
@@ -134,6 +142,8 @@ func makeCallbacks() {
 	cbState = purego.NewCallback(onInputState)
 	cbLog = purego.NewCallback(onLog)
 	cbRumble = purego.NewCallback(onRumble)
+	cbGetFramebuffer = purego.NewCallback(onGetFramebuffer)
+	cbGetProc = purego.NewCallback(onGetProc)
 	perfCallbacks = [7]uintptr{purego.NewCallback(perfTimeUsec), purego.NewCallback(perfCPUFeatures), purego.NewCallback(perfCounter),
 		purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing)}
 }
@@ -144,6 +154,7 @@ func Load(path string, paths Paths, options map[string]string, h engine.Handlers
 	if cur != nil {
 		return nil, errors.New("libretro: a core is already loaded")
 	}
+	prepareGPU()
 	lib, err := openLibrary(path)
 	if err != nil {
 		return nil, fmt.Errorf("opening core: %w", err)
@@ -245,6 +256,9 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 		info.data, info.size = unsafe.Pointer(&data[0]), uintptr(len(data))
 	}
 	if ok, _, _ := purego.SyscallN(c.fnLoadGame, uintptr(unsafe.Pointer(&info))); ok&0xff == 0 {
+		if c.hwRefused {
+			return engine.AVInfo{}, fmt.Errorf("%w: the core needs one and none could be used", ErrNoGPU)
+		}
 		if c.lastProblem != "" {
 			return engine.AVInfo{}, errors.New("the core could not load this game: " + c.lastProblem)
 		}
@@ -261,6 +275,9 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 	}
 	var av avInfoC
 	purego.SyscallN(c.fnAVInfo, uintptr(unsafe.Pointer(&av)))
+	if err := c.startHW(int(av.maxW), int(av.maxH)); err != nil {
+		return engine.AVInfo{}, err
+	}
 	return av.convert(), nil
 }
 
@@ -277,7 +294,8 @@ func (av *avInfoC) convert() engine.AVInfo {
 	return engine.AVInfo{BaseWidth: int(av.baseW), BaseHeight: int(av.baseH), MaxWidth: int(av.maxW), MaxHeight: int(av.maxH), Aspect: float64(av.aspect), FPS: av.fps, SampleRate: av.rate}
 }
 
-// Run advances the game one frame.
+// Run advances the game one frame. A frame drawn on the graphics card arrives
+// after the core returns, so its reading back doesn't hold the core up.
 func (c *Core) Run() {
 	if c.fnFrameTime != 0 {
 		now := time.Now()
@@ -289,6 +307,9 @@ func (c *Core) Run() {
 		purego.SyscallN(c.fnFrameTime, uintptr(usec))
 	}
 	purego.SyscallN(c.fnRun)
+	if c.hw != nil && c.hw.gl != nil {
+		c.hw.gl.deliver(c.h)
+	}
 }
 
 // Reset is the console's reset button.
@@ -331,6 +352,7 @@ func (c *Core) SaveRAM() []byte {
 
 // Close unloads the game and the core.
 func (c *Core) Close() {
+	c.stopCoreHW()
 	t := time.Now()
 	if c.loaded {
 		purego.SyscallN(c.fnUnloadGame)
@@ -340,9 +362,9 @@ func (c *Core) Close() {
 	t = time.Now()
 	purego.SyscallN(c.fnDeinit)
 	c.tracef("retro_deinit took %s", time.Since(t))
-	t = time.Now()
-	closeLibrary(c.lib)
-	c.tracef("closing the library took %s", time.Since(t))
+	c.stopHW()
+	// The library stays mapped: the process is about to end, and a core's worker
+	// threads may still be on their way out of its code.
 	cur = nil
 }
 
@@ -388,6 +410,12 @@ func onVideo(data, width, height, pitch uintptr) uintptr {
 		}
 		return 0
 	}
+	if data == hwFrameValid {
+		if c.hw != nil && c.hw.gl != nil {
+			c.hw.gl.startRead(int(uint32(width)), int(uint32(height)))
+		}
+		return 0
+	}
 	if c.h.Video != nil {
 		w, h, s := int(uint32(width)), int(uint32(height)), int(pitch)
 		if s <= 0 || w <= 0 || h <= 0 || s > maxPitch || h > maxPitch {
@@ -417,6 +445,9 @@ func onInputPoll() uintptr {
 	if c := cur; c != nil && c.h.Input != nil {
 		c.input = c.h.Input()
 	}
+	if c := cur; c != nil && c.h.Pointer != nil {
+		c.pointer = c.h.Pointer()
+	}
 	return 0
 }
 
@@ -429,6 +460,24 @@ func onInputState(port, device, index, id uintptr) uintptr {
 	st := &c.input[port]
 	var v int16
 	switch device & 0xff {
+	case devicePointer:
+		if index != 0 || port != 0 {
+			return 0 // one finger, for one player
+		}
+		switch id {
+		case 0:
+			v = c.pointer.X
+		case 1:
+			v = c.pointer.Y
+		case 2:
+			if c.pointer.Pressed {
+				v = 1
+			}
+		case 3:
+			if c.pointer.Pressed {
+				v = 1
+			}
+		}
 	case deviceJoypad:
 		if id == idBitmask {
 			v = int16(st.Buttons)
@@ -559,7 +608,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		c.ports = countControllerPorts(data)
 	case envGetInputBitmasks:
 	case envGetInputCaps:
-		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog
+		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog | 1<<devicePointer
 	case envGetMaxUsers:
 		*(*uint32)(data) = engine.MaxPorts
 	case envGetCoreOptVersion:
@@ -580,9 +629,15 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Geometry != nil {
 			c.h.Geometry(int(g.baseW), int(g.baseH), float64(g.aspect))
 		}
+		if c.hw != nil && c.hw.gl != nil {
+			_ = c.hw.gl.resize(int(g.maxW), int(g.maxH))
+		}
 	case envSetSystemAVInfo:
 		if c.h.AVInfo != nil {
 			c.h.AVInfo((*avInfoC)(data).convert())
+		}
+		if c.hw != nil && c.hw.gl != nil {
+			_ = c.hw.gl.resize(int((*avInfoC)(data).maxW), int((*avInfoC)(data).maxH))
 		}
 	case envSetRotation:
 		if c.h.Rotation != nil {
@@ -607,7 +662,10 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
-		return false // software-rendered cores only here; see docs/GAMING.md
+		return c.setHWRender(data)
+	case envSetHWShared:
+	case envGetPreferredHW:
+		*(*uint32)(data) = hwOpenGLCore
 	default:
 		return false
 	}
@@ -671,6 +729,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			return
 		}
 		key := cString(v.key)
+		c.optionList = append(c.optionList, key+" = "+cString(v.value))
 		_, list, _ := strings.Cut(cString(v.value), "; ")
 		choices := strings.Split(list, "|")
 		val := choices[0]

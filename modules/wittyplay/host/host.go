@@ -42,6 +42,9 @@ type runner struct {
 
 	pads pads
 
+	pointMu sync.Mutex
+	point   engine.PointerState
+
 	audio []byte
 	video []byte
 	stop  bool
@@ -73,6 +76,17 @@ func (r *runner) handlers() engine.Handlers {
 			}
 			r.write(ipc.MsgVideo, r.video)
 		},
+		VideoFlipped: func(data []byte, w, h, stride, format int) {
+			row := w * engine.BytesPerPixel(format)
+			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+				return
+			}
+			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
+			for y := h - 1; y >= 0; y-- {
+				r.video = append(r.video, data[y*stride:y*stride+row]...)
+			}
+			r.write(ipc.MsgVideo, r.video)
+		},
 		Dupe: func() {
 			if !r.muted {
 				r.write(ipc.MsgDupe)
@@ -84,6 +98,11 @@ func (r *runner) handlers() engine.Handlers {
 			}
 		},
 		Input: r.pads.poll,
+		Pointer: func() engine.PointerState {
+			r.pointMu.Lock()
+			defer r.pointMu.Unlock()
+			return r.point
+		},
 		Rumble: func(port, effect, strength int) {
 			r.event(ipc.Event{Type: "rumble", Port: port, Effect: effect, Strength: strength})
 		},
@@ -129,6 +148,14 @@ func (r *runner) run(in io.Reader, open Open) error {
 				}
 				continue
 			}
+			if t == ipc.CmdPointer {
+				if x, y, pressed, ok := ipc.ParsePointer(p); ok {
+					r.pointMu.Lock()
+					r.point = engine.PointerState{X: x, Y: y, Pressed: pressed}
+					r.pointMu.Unlock()
+				}
+				continue
+			}
 			cmds <- command{t, append([]byte(nil), p...)}
 		}
 	}()
@@ -163,12 +190,16 @@ func (r *runner) run(in io.Reader, open Open) error {
 		av.FPS = 60
 	}
 	info := eng.SystemInfo()
+	renderer := ""
+	if hw, ok := eng.(interface{ Renderer() string }); ok {
+		renderer = hw.Renderer()
+	}
 	discs, _ := eng.(engine.Discs)
 	disc, discCount := 0, 0
 	if discs != nil {
 		disc, discCount = discs.Disc()
 	}
-	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount})
+	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount, Renderer: renderer})
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)

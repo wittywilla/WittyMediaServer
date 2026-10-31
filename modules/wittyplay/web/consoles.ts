@@ -14,6 +14,7 @@ export type Orientation = 'landscape' | 'portrait'
 
 export type ControlsData = {
   console: string
+  pad?: { pointer?: boolean } // the console has a touch screen
   controls: Control[]
   defaults: { gamepad: PadMap; keyboard: KeyMap; remote: KeyMap; touch: Record<Orientation, Layout> }
   saved: { gamepad: Record<string, PadMap>; keyboard: KeyMap | null; touch: Partial<Record<Orientation, Layout>> }

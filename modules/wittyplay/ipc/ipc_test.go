@@ -79,3 +79,16 @@ func TestParseInput(t *testing.T) {
 		t.Fatal("a short message must fail")
 	}
 }
+
+func TestParsePointer(t *testing.T) {
+	p := []byte{PointerMark, 1, 0x10, 0x27, 0xf0, 0xd8} // 10000, -10000
+	x, y, pressed, ok := ParsePointer(p)
+	if !ok || x != 10000 || y != -10000 || !pressed {
+		t.Fatalf("got %d %d %v %v", x, y, pressed, ok)
+	}
+	for _, bad := range [][]byte{nil, p[:5], append(append([]byte(nil), p...), 0), {0, 1, 0, 0, 0, 0}} {
+		if _, _, _, ok := ParsePointer(bad); ok {
+			t.Errorf("%v should be refused", bad)
+		}
+	}
+}

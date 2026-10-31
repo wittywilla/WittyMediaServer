@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
   <img alt="Platforms" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8.svg">
-  <img alt="Version 0.4.0-alpha" src="https://img.shields.io/badge/version-0.4.0--alpha-orange.svg">
+  <img alt="Version 0.5.0-alpha" src="https://img.shields.io/badge/version-0.5.0--alpha-orange.svg">
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
   <br><sub>A real DVD's animated menu, played in the browser and driven with the on-screen remote.</sub>
 </p>
 
-> **Alpha.** Version 0.4.0-alpha is usable every day but still changing quickly. Back up your data
+> **Alpha.** Version 0.5.0-alpha is usable every day but still changing quickly. Back up your data
 > folder before upgrading, and please report anything that goes wrong.
 
 ## Highlights
@@ -109,7 +109,8 @@ review, and playback speed on everything.
 
 ### 🎮 Games
 Your own game files, by console, played in the browser with a gamepad, keyboard or touch controls you
-can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency.
+can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency. Consoles that
+draw with a graphics card use the one in your server, and touch screens work with a mouse or a finger.
 Saves follow your profile. [How it works](docs/GAMING.md).
 
 </td>
@@ -251,4 +252,4 @@ owners.
 
 ---
 
-<p align="center"><sub>WittyMediaServer 0.4.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>
+<p align="center"><sub>WittyMediaServer 0.5.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>

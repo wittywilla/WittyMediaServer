@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"image/jpeg"
 	"log/slog"
 	"net/http"
@@ -409,6 +410,103 @@ func TestBadGameFailsCleanly(t *testing.T) {
 	}
 	if m.Count() != 0 {
 		t.Fatal("no session should remain")
+	}
+}
+
+// A touch goes from a client to the core: the test core draws a white cross where
+// the pointer is pressed, and a JPEG viewer sees it.
+func TestPointerEndToEnd(t *testing.T) {
+	m := newManager(t)
+	s := startGame(t, m, t.TempDir(), false)
+	defer s.Stop()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { s.ServeWS(w, r, "jpeg") }))
+	defer srv.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	c, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	// Three quarters across and a quarter down.
+	press := []byte{ipc.PointerMark, 1, 0, 0, 0, 0}
+	binary.LittleEndian.PutUint16(press[2:], uint16(int16(16383)))
+	neg := int16(-16383)
+	binary.LittleEndian.PutUint16(press[4:], uint16(neg))
+	if err := c.Write(ctx, websocket.MessageBinary, press); err != nil {
+		t.Fatal(err)
+	}
+	white := func(x, y int) bool {
+		for {
+			_, b, err := c.Read(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(b) < 2 || b[0] != wsJPEG {
+				continue
+			}
+			img, err := jpeg.Decode(bytes.NewReader(b[1:]))
+			if err != nil {
+				continue
+			}
+			r, g, b2, _ := img.At(x, y).RGBA()
+			return r>>8 > 200 && g>>8 > 200 && b2>>8 > 200
+		}
+	}
+	found := false
+	for i := 0; i < 300 && !found; i++ {
+		found = white(192, 56)
+	}
+	if !found {
+		t.Fatal("the touch never showed up at the place it was made")
+	}
+	press[1] = 0
+	if err := c.Write(ctx, websocket.MessageBinary, press); err != nil {
+		t.Fatal(err)
+	}
+	gone := false
+	for i := 0; i < 300 && !gone; i++ {
+		gone = !white(192, 56)
+	}
+	if !gone {
+		t.Fatal("the touch never ended")
+	}
+}
+
+func TestGPULimit(t *testing.T) {
+	ff := findFFmpeg(t)
+	m := NewManager(Config{Runner: buildRunner(t), FFmpeg: ff, HaveEncoder: haveEncoder(ff), MaxGPU: 1, MaxSessions: 4})
+	rom := filepath.Join(t.TempDir(), "game.wittytest")
+	if err := os.WriteFile(rom, []byte("a test game"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	opt := func(user int64, gpu bool) Options {
+		return Options{UserID: user, ItemID: 7, Title: "Test", Core: ipc.TestCore, ROM: rom, SystemDir: filepath.Dir(rom), SaveDir: t.TempDir(), GPU: gpu}
+	}
+	a, err := m.Start(opt(1, true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Stop()
+	if _, err := m.Start(opt(2, true)); !errors.Is(err, ErrGPUBusy) {
+		t.Fatalf("a second game on the card should be refused, got %v", err)
+	}
+	b, err := m.Start(opt(3, false))
+	if err != nil {
+		t.Fatalf("a software-rendered game doesn't use the card: %v", err)
+	}
+	defer b.Stop()
+}
+
+func TestGPUGamesPreferHardwareEncoders(t *testing.T) {
+	m := NewManager(Config{HaveEncoder: func(string) bool { return true }, HWEncoders: []string{"h264_qsv"}, GPUEncoders: []string{"h264_nvenc", "h264_qsv"}})
+	gpu := &Session{m: m, cfg: m.config(), opt: Options{GPU: true}}
+	if got := gpu.chain("h264"); got[0] != "h264_nvenc" || got[1] != "h264_qsv" {
+		t.Errorf("GPU game's encoders: %v", got)
+	}
+	soft := &Session{m: m, cfg: m.config()}
+	if got := soft.chain("h264"); got[0] != "h264_qsv" {
+		t.Errorf("software game's encoders: %v", got)
 	}
 }
 

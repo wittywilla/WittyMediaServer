@@ -40,6 +40,7 @@ type Core struct {
 // Manager looks in one folder it owns, plus folders other programs own.
 type Manager struct {
 	Dir    string // installs go here; an administrator may also place files here
+	System string // a core's support files go here, in the folder cores are told is theirs
 	Client *http.Client
 	Extra  []string // folders to read cores from; DefaultExtra if nil
 }
@@ -194,6 +195,42 @@ func (m *Manager) AllForConsole(c *wittyplay.Console, preferred string) []Core {
 	return out
 }
 
+// Playable is ForConsole for a game about to start: a core that would refuse to
+// run for want of a BIOS gives way to the next one that can. It also returns the
+// core wanted, when nothing can run, so the message can say what's missing.
+func (m *Manager) Playable(c *wittyplay.Console, preferred, systemDir string) (ok, blocked *Core) {
+	all := m.List()
+	find := func(id string) *Core {
+		for i := range all {
+			if all[i].ID == id {
+				return &all[i]
+			}
+		}
+		return nil
+	}
+	if preferred != "" {
+		if got := find(preferred); got != nil {
+			if wittyplay.MissingBIOS(got.ID, systemDir) != "" {
+				return nil, got
+			}
+			return got, nil
+		}
+	}
+	for _, want := range c.Cores {
+		got := find(want.ID)
+		if got == nil {
+			continue
+		}
+		if wittyplay.MissingBIOS(got.ID, systemDir) == "" {
+			return got, nil
+		}
+		if blocked == nil {
+			blocked = got
+		}
+	}
+	return nil, blocked
+}
+
 // CanDownload says whether this platform has prebuilt cores to download.
 func CanDownload() bool { return platformPath() != "" }
 
@@ -284,11 +321,72 @@ func (m *Manager) Install(ctx context.Context, id string) (*Core, error) {
 	if err := writeFile(filepath.Join(m.Dir, fileName(id)), lib, 0o755); err != nil {
 		return nil, err
 	}
+	if assets := wittyplay.Traits(id).Assets; assets != "" {
+		if err := m.installAssets(ctx, assets); err != nil {
+			_ = os.Remove(filepath.Join(m.Dir, fileName(id)))
+			return nil, fmt.Errorf("installing %s's support files: %w", id, err)
+		}
+	}
 	rec, _ := json.Marshal(record{SHA256: hex.EncodeToString(sum[:]), Source: url, InstalledAt: time.Now().Unix()})
 	if err := writeFile(filepath.Join(m.Dir, id+".core.json"), rec, 0o644); err != nil {
 		return nil, err
 	}
 	return m.Find(id), nil
+}
+
+// maxAssets caps what a core's support files may unpack to.
+const maxAssets = 256 << 20
+
+// installAssets unpacks a core's support files from the same host into the system
+// folder. The name comes from our own table. Nothing may land outside that folder.
+func (m *Manager) installAssets(ctx context.Context, name string) error {
+	if m.System == "" {
+		return errors.New("there is no system folder to put them in")
+	}
+	body, err := m.fetch(ctx, "https://"+downloadHost+"/assets/system/"+name+".zip")
+	if err != nil {
+		return err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		return err
+	}
+	var total uint64
+	for _, f := range zr.File {
+		total += f.UncompressedSize64
+		if total > maxAssets {
+			return errors.New("the files are larger than any core's should be")
+		}
+	}
+	for _, f := range zr.File {
+		rel := filepath.FromSlash(f.Name)
+		if !filepath.IsLocal(rel) {
+			return fmt.Errorf("the archive names a path outside its folder: %q", f.Name)
+		}
+		out := filepath.Join(m.System, rel)
+		if strings.HasSuffix(f.Name, "/") {
+			if err := os.MkdirAll(out, 0o755); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		b, err := io.ReadAll(io.LimitReader(rc, maxAssets+1))
+		rc.Close()
+		if err != nil {
+			return err
+		}
+		if err := writeFile(out, b, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *Manager) fetch(ctx context.Context, url string) ([]byte, error) {

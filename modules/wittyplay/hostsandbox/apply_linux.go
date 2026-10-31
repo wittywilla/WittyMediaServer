@@ -93,7 +93,7 @@ const (
 	sysLandlockAddRule       = 445
 	sysLandlockRestrictSelf  = 446
 
-	landlockRulePathBeneath = 1
+	landlockRulePathBeneath   = 1
 	landlockRestrictSelfTsync = 1 << 3
 
 	accessFSWriteFile  = 1 << 1

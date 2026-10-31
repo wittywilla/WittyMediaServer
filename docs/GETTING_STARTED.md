@@ -167,4 +167,4 @@ On phones you can choose *Add to Home Screen* to get an app-like icon.
 - [Troubleshooting](TROUBLESHOOTING.md)
 
 ---
-<sub>WittyMediaServer 0.4.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.5.0-alpha documentation</sub>

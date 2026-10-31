@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.5.0-alpha
+
 ### Interface audit
 
 - **Fixed:** the TV guide went blank with no channels. The home banner could be an empty box when the newest
@@ -58,7 +60,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Everything new has JSON routes, plays through standard HLS or direct files, and works with a D-pad, for the
 coming TV apps.
-## Unreleased: security
+### Security
 
 A full security review and its fixes; the details are in `docs/SECURITY-REVIEW.md`. Things you may
 notice:

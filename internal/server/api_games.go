@@ -463,7 +463,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath = core.Path
 		gpu = wittyplay.Traits(core.ID).GPU
-		coreOptions = wittyplay.CoreOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""))
+		coreOptions = wittyplay.StartOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""))
 	}
 	if gpu {
 		s.awaitHardwareProbe(ctx)
@@ -497,7 +497,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.Warn("starting a game", "item", it.ID, "err", err)
-		writeErr(w, 500, "This game could not start: "+err.Error())
+		writeErr(w, 500, "This game could not start. "+err.Error())
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
@@ -680,6 +680,8 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.Reset()
 	case "pause":
 		err = sess.Pause(b.On)
+	case "disc":
+		err = sess.ChangeDisc(b.Slot)
 	default:
 		writeErr(w, 400, "unknown action")
 		return

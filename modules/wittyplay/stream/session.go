@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -75,6 +76,9 @@ type Info struct {
 	SampleRate float64 `json:"sampleRate"`
 	Resumed    bool    `json:"resumed"`
 	Encoder    string  `json:"encoder,omitempty"`
+	Turns      int     `json:"turns,omitempty"`    // quarter turns anticlockwise to draw the picture
+	Disc       int     `json:"disc,omitempty"`     // the disc in the drive, from 0
+	Discs      int     `json:"discs,omitempty"`    // how many the game has
 	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
 	Modes      []Mode  `json:"modes"`              // what this client can connect with, best first
 }
@@ -206,7 +210,7 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	id := newID()
 	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
 		viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
-		audioCh: make(chan []byte, 32)}
+		audioCh: make(chan []byte, 32), stderr: &tailWriter{max: 1 << 16}}
 	m.sessions[id] = s
 	m.mu.Unlock()
 	if err := s.start(); err != nil {
@@ -226,6 +230,7 @@ func (m *Manager) remove(s *Session) {
 const (
 	noViewerLimit = 60 * time.Second
 	idleLimit     = 30 * time.Minute
+	stuckLimit    = 30 * time.Second
 )
 
 // sweep ends games nobody is watching or playing, because an abandoned tab must
@@ -242,6 +247,10 @@ func (m *Manager) sweep() {
 			if s.idleTooLong() {
 				s.log.Info("stopping an unattended game")
 				go s.Stop()
+			} else if s.stuck() {
+				s.log.Warn("the game has stopped making frames; ending it")
+				s.exitErr.CompareAndSwap(nil, "The emulator stopped responding while running this game. Another core may work; you can choose one in Settings, Gaming.")
+				s.kill()
 			}
 		}
 	}
@@ -291,7 +300,12 @@ type Session struct {
 	encName       string
 	audioCh       chan []byte
 	rate          float64
+	turns         int
 	stats         EncodeStats
+
+	stopping  atomic.Bool  // Stop was called, so the runner ending is no surprise
+	lastFrame atomic.Int64 // when the runner last made a frame, in Unix nanoseconds
+	stderr    *tailWriter
 
 	stateMu   sync.Mutex
 	stateWait map[uint32]chan []byte
@@ -313,7 +327,7 @@ func (s *Session) Info() Info {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
 	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Renderer: s.info.Renderer}
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer}
 }
 
 func (s *Session) start() error {
@@ -344,7 +358,8 @@ func (s *Session) start() error {
 		// Wait closes the pipes, so it comes after the last save has been read.
 		s.wrote.Wait()
 		if err := cmd.Wait(); err != nil && s.exitErr.Load() == nil {
-			s.exitErr.Store(err.Error())
+			s.log.Warn("the runner ended unexpectedly", "err", err)
+			s.exitErr.Store(describeExit(s.stderr.String()))
 		}
 		s.finish()
 		close(s.done)
@@ -360,9 +375,13 @@ func (s *Session) start() error {
 		if err != nil {
 			s.kill()
 			<-s.done
+			if v := s.exitErr.Load(); v != nil { // it knows why by now
+				return errors.New(v.(string))
+			}
 			return err
 		}
 	case <-time.After(30 * time.Second):
+		s.stopping.Store(true)
 		s.kill()
 		<-s.done
 		return errors.New("the game took too long to load")
@@ -403,11 +422,22 @@ func (s *Session) command(t byte, parts ...[]byte) error {
 // last thing said before a crash is the part worth reading.
 func (s *Session) logStderr(r io.Reader) {
 	defer s.wrote.Done()
-	tail := &tailWriter{max: 1 << 16}
-	_, _ = io.Copy(tail, r)
-	if text := tail.String(); text != "" {
+	_, _ = io.Copy(s.stderr, r)
+	if text := s.stderr.String(); text != "" {
 		s.log.Info("runner says", "output", text)
 	}
+}
+
+// describeExit says in plain words why a runner ended by itself, from what it left
+// on its error stream.
+func describeExit(stderr string) string {
+	switch {
+	case strings.Contains(stderr, "out of memory"), strings.Contains(stderr, "cannot allocate memory"):
+		return "The emulator ran out of memory running this game."
+	case strings.Contains(stderr, "Exception 0xc000001d"), strings.Contains(stderr, "SIGILL"):
+		return "The emulator crashed: it needs something this processor doesn't have. Another core may work; you can choose one in Settings, Gaming."
+	}
+	return "The emulator crashed while running this game. Another core may work; you can choose one in Settings, Gaming."
 }
 
 // readRunner handles everything the runner sends. Nothing here may block for
@@ -457,8 +487,10 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			s.frame = append(s.frame[:0], data...)
 			s.frameHdr = hdr
 			s.frameMu.Unlock()
+			s.lastFrame.Store(time.Now().UnixNano())
 			s.signalFrame()
 		case ipc.MsgDupe:
+			s.lastFrame.Store(time.Now().UnixNano())
 			s.signalFrame()
 		case ipc.MsgAudio:
 			if len(p)%4 == 0 {
@@ -514,7 +546,19 @@ func (s *Session) handleEvent(p []byte) {
 		return
 	case "shutdown":
 		s.log.Info("the game shut itself down")
+	case "geometry":
+		s.noteGeometry(e)
+	case "rotation":
+		// Cores say this while loading, before anyone is watching.
+		s.viewMu.Lock()
+		s.turns = e.Turns & 3
+		s.viewMu.Unlock()
+	case "disc":
+		s.viewMu.Lock()
+		s.info.Disc, s.info.Discs = e.Index, e.Count
+		s.viewMu.Unlock()
 	case "avinfo":
+		s.noteGeometry(e)
 		if e.Rate > 0 && e.Rate <= 384000 {
 			s.viewMu.Lock()
 			if s.rate != e.Rate {
@@ -530,6 +574,16 @@ func (s *Session) handleEvent(p []byte) {
 	e.Text = truncate(e.Text, 300)
 	b, _ := json.Marshal(e)
 	s.broadcastEvent(b)
+}
+
+// noteGeometry keeps the picture's shape up to date for whoever connects next.
+func (s *Session) noteGeometry(e ipc.Event) {
+	if e.Width <= 0 || e.Height <= 0 || e.Width > ipc.MaxDimension || e.Height > ipc.MaxDimension {
+		return
+	}
+	s.viewMu.Lock()
+	s.info.Width, s.info.Height, s.info.Aspect = e.Width, e.Height, e.Aspect
+	s.viewMu.Unlock()
 }
 
 func truncate(s string, n int) string {
@@ -575,6 +629,17 @@ const MaxPlayers = 4
 
 // Reset is the console's reset button.
 func (s *Session) Reset() error { return s.command(ipc.CmdReset) }
+
+// ChangeDisc swaps the disc in a game that has several.
+func (s *Session) ChangeDisc(index int) error {
+	s.viewMu.Lock()
+	count := s.info.Discs
+	s.viewMu.Unlock()
+	if index < 0 || index >= count || index > 255 {
+		return errors.New("this game has no such disc")
+	}
+	return s.command(ipc.CmdDisc, []byte{byte(index)})
+}
 
 // Pause stops or restarts the game, as a menu does.
 func (s *Session) Pause(on bool) error {
@@ -680,6 +745,7 @@ func (s *Session) deliverState(id uint32, b []byte) {
 // Stop saves the game and ends it. It returns once everything is written.
 func (s *Session) Stop() {
 	s.stopOnce.Do(func() {
+		s.stopping.Store(true)
 		if err := s.command(ipc.CmdQuit, []byte{1}); err != nil {
 			s.kill()
 		}
@@ -703,9 +769,16 @@ func (s *Session) kill() {
 // Done is closed when the game has ended.
 func (s *Session) Done() <-chan struct{} { return s.done }
 
-// finish runs once the runner has gone.
+// finish runs once the runner has gone. If nobody asked it to go, viewers are told
+// why before their connections close, or they would only see a lost connection.
 func (s *Session) finish() {
 	s.m.remove(s)
+	if v := s.exitErr.Load(); v != nil && !s.stopping.Load() {
+		if b, err := json.Marshal(ipc.Event{Type: "ended", Text: truncate(v.(string), 300)}); err == nil && len(s.snapshotViewers()) > 0 {
+			s.broadcastEvent(b)
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
 	s.viewMu.Lock()
 	vs := make([]*viewer, 0, len(s.viewers))
 	for v := range s.viewers {
@@ -728,6 +801,19 @@ func (s *Session) cleanup() {
 			s.opt.Cleanup()
 		}
 	})
+}
+
+// stuck says whether a running game has stopped making frames. Its process is
+// alive, so nothing else would notice, and the player would show one still picture.
+func (s *Session) stuck() bool {
+	s.viewMu.Lock()
+	paused := s.paused
+	s.viewMu.Unlock()
+	if paused {
+		return false
+	}
+	last := s.lastFrame.Load()
+	return last != 0 && time.Since(time.Unix(0, last)) > stuckLimit
 }
 
 func (s *Session) idleTooLong() bool {

@@ -76,6 +76,7 @@ const (
 	devicePointer = 6
 	idBitmask     = 256 // the whole pad as one value
 	maxPadPorts   = 4
+	maxPitch      = 1 << 16
 )
 
 // Paths are the folders a core is told about.
@@ -111,6 +112,9 @@ type Core struct {
 	hwRefused  bool
 	optionList []string
 
+	lastProblem string // the last thing the core complained about, for a failed load
+	problemLvl  int
+	disk        *diskControl
 	ports       int     // how many controller ports the core described
 	quirks      uint64  // what the core said about its save states
 	fnFrameTime uintptr // called before each frame with the time since the last
@@ -180,29 +184,39 @@ func Load(path string, paths Paths, options map[string]string, h engine.Handlers
 	// The environment goes before retro_init, as cores read it as soon as they are
 	// told. Everything else goes after: some cores keep these callbacks in objects
 	// that retro_init creates.
-	sets := []struct {
-		name string
-		cb   uintptr
-		f    uintptr
-	}{
-		{name: "retro_set_environment", cb: cbEnv}, {name: "retro_set_video_refresh", cb: cbVideo}, {name: "retro_set_audio_sample", cb: cbSample},
-		{name: "retro_set_audio_sample_batch", cb: cbBatch}, {name: "retro_set_input_poll", cb: cbPoll}, {name: "retro_set_input_state", cb: cbState},
-	}
-	for i := range sets {
-		f, err := symbol(lib, sets[i].name)
+	funcs := map[string]uintptr{}
+	for _, set := range callbackSetters() {
+		f, err := symbol(lib, set.name)
 		if err != nil {
 			cur = nil
 			closeLibrary(lib)
-			return nil, fmt.Errorf("%s is not a libretro core: missing %s", filepath.Base(path), sets[i].name)
+			return nil, fmt.Errorf("%s is not a libretro core: missing %s", filepath.Base(path), set.name)
 		}
-		sets[i].f = f
+		funcs[set.name] = f
 	}
-	purego.SyscallN(sets[0].f, sets[0].cb)
-	purego.SyscallN(c.fnInit)
-	for _, set := range sets[1:] {
-		purego.SyscallN(set.f, set.cb)
-	}
+	startCore(func(name string, cb uintptr) { purego.SyscallN(funcs[name], cb) }, func() { purego.SyscallN(c.fnInit) })
 	return c, nil
+}
+
+type setter struct {
+	name string
+	cb   uintptr
+}
+
+func callbackSetters() []setter {
+	return []setter{{"retro_set_environment", cbEnv}, {"retro_set_video_refresh", cbVideo}, {"retro_set_audio_sample", cbSample},
+		{"retro_set_audio_sample_batch", cbBatch}, {"retro_set_input_poll", cbPoll}, {"retro_set_input_state", cbState}}
+}
+
+// startCore is the order the libretro API promises: the environment, then
+// retro_init, then the rest.
+func startCore(set func(name string, cb uintptr), init func()) {
+	all := callbackSetters()
+	set(all[0].name, all[0].cb)
+	init()
+	for _, s := range all[1:] {
+		set(s.name, s.cb)
+	}
 }
 
 // SystemInfo asks the core about itself.
@@ -244,6 +258,9 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 	if ok, _, _ := purego.SyscallN(c.fnLoadGame, uintptr(unsafe.Pointer(&info))); ok&0xff == 0 {
 		if c.hwRefused {
 			return engine.AVInfo{}, fmt.Errorf("%w: the core needs one and none could be used", ErrNoGPU)
+		}
+		if c.lastProblem != "" {
+			return engine.AVInfo{}, errors.New("the core could not load this game: " + c.lastProblem)
 		}
 		return engine.AVInfo{}, errors.New("the core could not load this game")
 	}
@@ -297,6 +314,20 @@ func (c *Core) Run() {
 
 // Reset is the console's reset button.
 func (c *Core) Reset() { purego.SyscallN(c.fnReset) }
+
+// quirkMustInitialize is RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE: the core has to
+// run before a state can be restored or taken.
+const quirkMustInitialize = 1 << 1
+
+// NeedsFramesBeforeState says how many frames must run before a state can be
+// restored. A core that asks for this gets a few, as "initialized" isn't defined
+// more exactly than that.
+func (c *Core) NeedsFramesBeforeState() int {
+	if c.quirks&quirkMustInitialize != 0 {
+		return 2
+	}
+	return 0
+}
 
 // SaveState returns a snapshot of the machine, or nil when the core has none.
 func (c *Core) SaveState() []byte {
@@ -398,6 +429,9 @@ func onVideo(data, width, height, pitch uintptr) uintptr {
 	}
 	if c.h.Video != nil {
 		w, h, s := int(uint32(width)), int(uint32(height)), int(pitch)
+		if s <= 0 || w <= 0 || h <= 0 || s > maxPitch || h > maxPitch {
+			return 0 // nothing a software core should send; not worth a crash
+		}
 		c.h.Video(unsafe.Slice((*byte)(ptr(data)), s*h), w, h, s, c.format)
 	}
 	return 0
@@ -491,6 +525,9 @@ func onLog(level, format, a0, a1, a2, a3, a4, a5 uintptr) uintptr {
 	if c.h.Trace != nil {
 		c.h.Trace(fmt.Sprintf("log %d: %s", lvl, text))
 	}
+	if lvl >= 2 && lvl >= c.problemLvl && text != "" {
+		c.lastProblem, c.problemLvl = text, lvl
+	}
 	if c.h.Log != nil {
 		c.h.Log(lvl, text)
 	}
@@ -570,6 +607,12 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 			reference int64
 		})(data)
 		c.fnFrameTime, c.frameRef = ft.callback, ft.reference
+	case envGetDiskVersion:
+		*(*uint32)(data) = 1
+	case envSetDiskControl, envSetDiskControlExt:
+		// The extended form only adds to the end of the same list.
+		c.disk = &diskControl{}
+		*c.disk = *(*diskControl)(data)
 	case envSetQuirks:
 		c.quirks = *(*uint64)(data)
 	case envSetControllerInfo:
@@ -638,6 +681,39 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		return false
 	}
 	return true
+}
+
+// diskControl is the start of retro_disk_control_callback.
+type diskControl struct {
+	setEject, getEject, getIndex, setIndex, getCount, replace, add uintptr
+}
+
+// Disc says which disc is in and how many the game has.
+func (c *Core) Disc() (index, count int) {
+	if c.disk == nil || c.disk.getCount == 0 || c.disk.getIndex == 0 {
+		return 0, 0
+	}
+	n, _, _ := purego.SyscallN(c.disk.getCount)
+	i, _, _ := purego.SyscallN(c.disk.getIndex)
+	return int(uint32(i)), int(uint32(n))
+}
+
+// ChangeDisc opens the drive, swaps the disc and closes it, as a person would.
+func (c *Core) ChangeDisc(index int) bool {
+	if c.disk == nil || c.disk.setEject == 0 || c.disk.setIndex == 0 {
+		return false
+	}
+	if _, n := c.Disc(); index < 0 || index >= n {
+		return false
+	}
+	if ok, _, _ := purego.SyscallN(c.disk.setEject, 1); ok&0xff == 0 {
+		return false
+	}
+	ok, _, _ := purego.SyscallN(c.disk.setIndex, uintptr(index))
+	if closed, _, _ := purego.SyscallN(c.disk.setEject, 0); closed&0xff == 0 {
+		return false
+	}
+	return ok&0xff != 0
 }
 
 // countControllerPorts reads retro_controller_info: one {types, count} per port,

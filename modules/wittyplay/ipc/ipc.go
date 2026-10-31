@@ -40,7 +40,8 @@ const (
 	CmdReset     byte = 69
 	CmdPause     byte = 70 // one byte: 1 paused, 0 running
 	CmdQuit      byte = 71 // one byte: 1 sends a save state first; battery save is always sent
-	CmdPointer   byte = 72 // PointerSize bytes: a touch screen or mouse
+	CmdDisc      byte = 72 // one byte: the disc to change to, from 0
+	CmdPointer   byte = 73 // PointerSize bytes: a touch screen or mouse
 )
 
 // Size limits. MaxVideoFrame is far above what a console produces (4K at four
@@ -63,7 +64,7 @@ func limit(t byte) int {
 		return MaxJSON
 	case MsgState, MsgSaveRAM, CmdSaveRAM, CmdState:
 		return MaxBlob
-	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput, CmdPointer:
+	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput, CmdDisc, CmdPointer:
 		return 16
 	}
 	return 0
@@ -166,12 +167,14 @@ type Ready struct {
 	Aspect     float64 `json:"aspect"`
 	FPS        float64 `json:"fps"`
 	SampleRate float64 `json:"sampleRate"`
+	Disc       int     `json:"disc,omitempty"`     // the disc in the drive, from 0
+	Discs      int     `json:"discs,omitempty"`    // how many the game has; 0 or 1 is nothing to choose
 	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
 }
 
 // Event is something a player should be told about.
 type Event struct {
-	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | statefail | trace
+	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | statefail | trace | disc
 	Port     int     `json:"port,omitempty"`
 	Effect   int     `json:"effect,omitempty"`
 	Strength int     `json:"strength,omitempty"`
@@ -183,6 +186,8 @@ type Event struct {
 	Turns    int     `json:"turns,omitempty"`
 	FPS      float64 `json:"fps,omitempty"`
 	Rate     float64 `json:"rate,omitempty"`
+	Index    int     `json:"index,omitempty"`
+	Count    int     `json:"count,omitempty"`
 }
 
 // VideoHeader starts a MsgVideo payload.

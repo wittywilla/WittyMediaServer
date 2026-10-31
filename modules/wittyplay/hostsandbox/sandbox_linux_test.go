@@ -48,3 +48,30 @@ func landlockAvailable() bool {
 	v, _, e := unix.Syscall(sysLandlockCreateRuleset, 0, 0, 1)
 	return e == 0 && v > 0
 }
+
+// Real cores hold little and reserve a lot. Reservations must fit, and memory
+// actually used must hit the limit.
+func TestMemoryLimitCountsUseNotReservations(t *testing.T) {
+	if os.Getenv("WITTYPLAY_MEMORY_CHILD") == "1" {
+		const limitMB = 256
+		if err := Apply(Limits{SaveDir: t.TempDir(), MemoryMB: limitMB}); err != nil {
+			t.Logf("some layers are unavailable: %v", err)
+		}
+		reserve, err := unix.Mmap(-1, 0, 2<<30, unix.PROT_NONE, unix.MAP_ANON|unix.MAP_PRIVATE)
+		if err != nil {
+			t.Fatalf("reserving 2 GB of nothing under a %d MB limit: %v", limitMB, err)
+		}
+		_ = unix.Munmap(reserve)
+		if b, err := unix.Mmap(-1, 0, (limitMB+64)<<20, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE); err == nil {
+			_ = unix.Munmap(b)
+			t.Fatal("writable memory over the limit should be refused")
+		}
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestMemoryLimitCountsUseNotReservations", "-test.v")
+	cmd.Env = append(os.Environ(), "WITTYPLAY_MEMORY_CHILD=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+}

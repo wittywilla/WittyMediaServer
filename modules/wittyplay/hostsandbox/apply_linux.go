@@ -15,16 +15,19 @@ import (
 func Apply(l Limits) error {
 	var errs []error
 	_ = unix.Setrlimit(unix.RLIMIT_CORE, &unix.Rlimit{})
+	_ = unix.Setrlimit(unix.RLIMIT_FSIZE, &unix.Rlimit{Cur: maxFileSize, Max: maxFileSize})
 	if l.MemoryMB > 0 {
-		// Graphics drivers map far more address space than they use, so for them
-		// the limit is on memory actually written to rather than on addresses.
-		which := unix.RLIMIT_AS
-		if l.GPU {
-			which = unix.RLIMIT_DATA
-		}
-		n := uint64(l.MemoryMB) << 20
-		if err := unix.Setrlimit(which, &unix.Rlimit{Cur: n, Max: n}); err != nil {
+		data := uint64(l.MemoryMB) << 20
+		if err := unix.Setrlimit(unix.RLIMIT_DATA, &unix.Rlimit{Cur: data, Max: data}); err != nil {
 			errs = append(errs, err)
+		}
+		// Graphics drivers map far more address space than a machine has memory, so
+		// with one loaded only the data limit applies.
+		if !l.GPU {
+			as := addressSpace(l.MemoryMB)
+			if err := unix.Setrlimit(unix.RLIMIT_AS, &unix.Rlimit{Cur: as, Max: as}); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 	_ = syscall.Setpriority(syscall.PRIO_PROCESS, 0, 5)

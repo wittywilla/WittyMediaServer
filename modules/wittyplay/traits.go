@@ -113,11 +113,15 @@ func DefaultResolution(consoleID string) int {
 	return 1
 }
 
-// CoreOptions are the options to start a core with. resolution is the setting:
-// "" for the console's default, or "1" to "4".
-func CoreOptions(consoleID, coreID, resolution string) map[string]string {
+// StartOptions are the options to start a core with: what CoreOptions says for
+// it, then what running on a graphics card takes. resolution is the setting: "" for
+// the console's default, or "1" to "4".
+func StartOptions(consoleID, coreID, resolution string) map[string]string {
 	t := Traits(coreID)
-	out := map[string]string{}
+	out := CoreOptions(coreID)
+	if out == nil {
+		out = map[string]string{}
+	}
 	for k, v := range t.Options {
 		out[k] = v
 	}

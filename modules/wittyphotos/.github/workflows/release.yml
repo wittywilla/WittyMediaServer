@@ -11,7 +11,30 @@ on:
 permissions: {}
 
 jobs:
+  # On a machine of their own: a test runs whatever it likes, and could otherwise
+  # change what gets packed.
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - name: Test
+        run: |
+          if grep -q '^replace' go.mod; then echo "go.mod has replace directives, which go install refuses"; exit 1; fi
+          go vet ./...
+          go test ./... -count=1
+
+  # From a fresh checkout, running no tests.
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,11 +51,6 @@ jobs:
         run: |
           want="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' module.json | head -1)"
           [ "v$want" = "$GITHUB_REF_NAME" ] || { echo "module.json says $want, and the tag is $GITHUB_REF_NAME"; exit 1; }
-      - name: Test
-        run: |
-          if grep -q '^replace' go.mod; then echo "go.mod has replace directives, which go install refuses"; exit 1; fi
-          go vet ./...
-          go test ./... -count=1
       - name: Build every platform and write the checksum list
         run: go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 pack -out release .
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -48,11 +66,13 @@ jobs:
 
   # The signing key is used here, on a clean machine that holds nothing of this
   # repository: only the checksum list, and the signing tool at a released version.
+  # Every repository holds the same key, so the tool refuses a list naming anything
+  # but this module and this version, whatever the build offered.
   sign:
     needs: build
     runs-on: ubuntu-latest
-    # Add yourself as a required reviewer of this environment to approve each
-    # signature by hand.
+    # With you as a required reviewer of this environment, nothing is signed until
+    # you approve it.
     environment: release
     permissions: {}
     steps:
@@ -76,7 +96,7 @@ jobs:
           key="$RUNNER_TEMP/module.key"
           trap 'rm -f "$key"' EXIT
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" signed/*-SHA256SUMS.txt
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" -expect "wittyphotos-${GITHUB_REF_NAME#v}" signed/*-SHA256SUMS.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: signature

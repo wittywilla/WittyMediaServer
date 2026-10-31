@@ -92,6 +92,12 @@ def lint(pins, path):
                 bad(f"job {job_name} doesn't keep the key file private, or doesn't remove it")
             if "is missing" not in runs:
                 bad(f"job {job_name} doesn't say so when the key is missing")
+            if name == "release.yml" and "-expect " not in runs:
+                bad(f"job {job_name} signs a checksum list without saying whose it must be")
+            if name == "withdraw.yml" and "-list-key " not in runs:
+                bad(f"job {job_name} signs a list without checking the one already there")
+        if job_name == "build" and re.search(r"\b(go|npm) test\b", runs):
+            bad("the job that packs a release also runs the tests, which could change what is packed")
         if (job.get("permissions") or {}).get("contents") == "write":
             if checkout or re.search(r"\b(go|npm|node)\b", runs):
                 bad(f"job {job_name} can write and also runs project code")

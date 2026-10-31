@@ -11,7 +11,9 @@ on:
 permissions: {}
 
 jobs:
-  build:
+  # On a machine of their own: a test runs whatever it likes, and could otherwise
+  # change what gets packed.
+  test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,7 +38,7 @@ jobs:
 
   # Publishing runs no project code at all.
   publish:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write

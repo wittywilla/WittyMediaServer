@@ -66,7 +66,7 @@ edit('.github/workflows/ci.yml', (t) => {
     `$1          server="$(go run ./cmd/wms version | awk '{print $2}')"
           # The tool wants each manifest in a folder named for its module.
           tmp="$(mktemp -d)"
-          for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/${OWNER}/' | grep -v '/wittymodule$'); do
+          for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/${OWNER}/' | grep -v '/wittymodule$$'); do
             cp -r "$(go list -m -f '{{.Dir}}' "$m")" "$tmp/\${m##*/}"
           done
           for f in web/module-manifests/*.json; do
@@ -78,7 +78,8 @@ edit('.github/workflows/ci.yml', (t) => {
   t = must(t, /( {12}flags=""; case \$t in freebsd[^\n]*\n) {12}\(cd modules\/wittyplay && (GOOS=[^\n]*?) -o \/dev\/null \.\/cmd\/wittyplay-host\) \|\| exit 1\n {12}\(cd modules\/wittyphotos[^\n]*\n/,
     `$1            $2 -o /dev/null github.com/${OWNER}/wittyplay/cmd/wittyplay-host || exit 1\n`, 'the cross-compile lines')
   t = must(t, /( {6}- run: cd web && npm ci[^\n]*\n)/, '$1      - name: The module manifests the server embeds match the modules in package.json\n        run: git diff --exit-code web/module-manifests\n', 'the web build')
-  if (/modules\/witty|go\.work/.test(t)) throw new Error('ci.yml still names module folders')
+  const left = t.split('\n').filter((l) => /(^|[^a-z/.])modules\/witty|\.\/modules\/witty|go\.work/.test(l))
+  if (left.length) throw new Error('ci.yml still names module folders:\n' + left.join('\n'))
   return t
 })
 
@@ -211,15 +212,8 @@ edit('internal/modules/modules_test.go', (t) => {
 })
 
 // Raising the server's version checked the modules' folders. CI checks their ranges now.
-edit('scripts/bump-server.sh', (t) => must(t, /# A server past a module's maxServer[^
-]*
-manifests=[\s\S]*?
-\s*exit 1
-\s*\}
-fi
-/,
-  "# A server past a module's maxServer would quietly run its built-in copy: CI fails on it.
-", "the check of the modules' folders"))
+edit('scripts/bump-server.sh', (t) => must(t, /# A server past a module's maxServer[^\n]*\nmanifests=[\s\S]*?\n\s*exit 1\n\s*\}\nfi\n/,
+  "# A server past a module's maxServer would quietly run its built-in copy: CI fails on it.\n", "the check of the modules' folders"))
 
 // A comment that would otherwise point at a folder that's gone.
 edit('web/src/pages/Games.tsx', (t) => t.replace('(modules/wittyplay/web)', "(the web folder of WittyPlay's repository)"))

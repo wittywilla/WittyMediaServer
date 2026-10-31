@@ -24,46 +24,42 @@ on:
 permissions: {}
 
 jobs:
-  # Runs no code of this repository: only the release tool, at a released version.
-  list:
+  # Fetches the list there is now and hands it on, unread: only the job with the key
+  # can tell whether to trust it.
+  fetch:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
-        with:
-          go-version: "1.27.x"
-          check-latest: true
-          cache: false
-      - name: Add the version to the list
+      - name: Fetch the list and its signature, if there is one
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ inputs.version }}
-          SEVERITY: ${{ inputs.severity }}
-          REASON: ${{ inputs.reason }}
         run: |
-          [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::\"$VERSION\" is not a version such as 1.2.3"; exit 1; }
           list="wittyintegratedfilebrowser-withdrawn.json"
           mkdir list
           # Starting a new list when the old one couldn't be read would give it a
           # lower serial, which servers ignore, so only "no such release" means none yet.
           if assets="$(gh release view withdrawals --json assets --jq '.assets[].name' 2>err.txt)"; then
             if grep -Fxq "$list" <<<"$assets"; then gh release download withdrawals --pattern "$list" --dir list; fi
+            if grep -Fxq "$list.sig" <<<"$assets"; then gh release download withdrawals --pattern "$list.sig" --dir list; fi
           elif ! grep -q 'release not found' err.txt; then
             cat err.txt
             exit 1
           fi
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 withdraw -list "list/$list" -module wittyintegratedfilebrowser -severity "$SEVERITY" -reason "$REASON" -- "$VERSION"
+          # An artifact can't be empty.
+          echo "What the withdraw workflow found." > list/found.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: list
           path: list/*
           if-no-files-found: error
 
-  # The key is used here, on a clean machine that holds only the list and the tool.
+  # The key is used here, on a clean machine that holds only the list and the tool. The
+  # tool refuses a list already there unless it carries this key's signature, so
+  # whoever can write to a release's files can't get their own list signed.
   sign:
-    needs: list
+    needs: fetch
     runs-on: ubuntu-latest
     environment: release
     permissions: {}
@@ -77,10 +73,14 @@ jobs:
         with:
           name: list
           path: list
-      - name: Sign the list
+      - name: Add the version to the list and sign it
         env:
           SIGNING_KEY: ${{ secrets.WMS_SIGNING_KEY }}
+          VERSION: ${{ inputs.version }}
+          SEVERITY: ${{ inputs.severity }}
+          REASON: ${{ inputs.reason }}
         run: |
+          [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::\"$VERSION\" is not a version such as 1.2.3"; exit 1; }
           if [ -z "$SIGNING_KEY" ]; then
             echo "::error::The secret WMS_SIGNING_KEY is missing, and a list without a signature is ignored. Nothing was published. Add it to the release environment, then run this again."
             exit 1
@@ -88,7 +88,10 @@ jobs:
           key="$RUNNER_TEMP/module.key"
           trap 'rm -f "$key"' EXIT
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" "list/wittyintegratedfilebrowser-withdrawn.json"
+          rm -f list/found.txt
+          list="list/wittyintegratedfilebrowser-withdrawn.json"
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 withdraw -list "$list" -list-key "$key" -module wittyintegratedfilebrowser -severity "$SEVERITY" -reason "$REASON" -- "$VERSION"
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" "$list"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: signed-list

@@ -1,10 +1,59 @@
 package host
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wittywilla/wittyplay/engine"
+	"github.com/wittywilla/wittyplay/ipc"
+	"github.com/wittywilla/wittyplay/testcore"
 )
+
+// Leaving a resumed game before its first frame must not save over the state it was
+// about to restore.
+func TestLeavingBeforeTheFirstFrameKeepsTheState(t *testing.T) {
+	inR, inW := io.Pipe()
+	outR, outW := io.Pipe()
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(inR, outW, func(_ ipc.Load, h engine.Handlers) (engine.Engine, error) { return testcore.New(h), nil })
+		outW.Close()
+	}()
+	rom := filepath.Join(t.TempDir(), "game")
+	if err := os.WriteFile(rom, []byte("a test game"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	load, _ := json.Marshal(ipc.Load{Core: ipc.TestCore, ROM: rom})
+	saved := []byte("the state someone's progress is in")
+	go func() {
+		_ = ipc.Write(inW, ipc.CmdLoad, load)
+		_ = ipc.Write(inW, ipc.CmdState, saved)
+		_ = ipc.Write(inW, ipc.CmdQuit, []byte{1})
+	}()
+	rd := ipc.NewReader(outR)
+	for {
+		typ, p, err := rd.Next()
+		if err != nil {
+			t.Fatalf("no state came back: %v", err)
+		}
+		if typ == ipc.MsgError {
+			t.Fatalf("the runner failed: %s", p)
+		}
+		if typ == ipc.MsgState {
+			if !bytes.Equal(p[4:], saved) {
+				t.Fatalf("saved %d bytes of something else", len(p)-4)
+			}
+			break
+		}
+	}
+	go io.Copy(io.Discard, outR)
+	inW.Close()
+	<-done
+}
 
 func TestShortTapReachesTheGame(t *testing.T) {
 	var p pads

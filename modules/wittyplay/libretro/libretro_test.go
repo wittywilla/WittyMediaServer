@@ -320,7 +320,7 @@ func TestCoreLogsKeepTheirArguments(t *testing.T) {
 		{"missing %s", [6]uintptr{uintptr(unsafe.Pointer(name))}, "missing disksys.rom"},
 		{"%d of %u at %#x", [6]uintptr{uintptr(^uint32(0)), 7, 255}, "-1 of 7 at 0xff"},
 		{"%5d|%-3d|%03d", [6]uintptr{1, 2, 3}, "    1|2  |003"},
-		{"%lu %zu", [6]uintptr{1 << 40, 5}, "1099511627776 5"},
+		{"%lu %zu", [6]uintptr{uintptr(wideLogArg), 5}, "1099511627776 5"},
 		{"%c", [6]uintptr{'x'}, "x"},
 		{"%s", [6]uintptr{0}, "(null)"},
 		{"%d %d %d %d %d %d %d", [6]uintptr{1, 2, 3, 4, 5, 6}, "1 2 3 4 5 6 %d"},
@@ -375,3 +375,6 @@ func libraryExtForTest() string {
 	}
 	return ".so"
 }
+
+// A value only a 64-bit platform can hold; the test skips the others.
+var wideLogArg = uint64(1) << 40

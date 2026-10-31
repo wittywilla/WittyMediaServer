@@ -185,6 +185,16 @@ func (r *runner) run(in io.Reader, open Open) error {
 	var lastSave []byte
 	lastSaveAt := time.Now()
 
+	// A state still waiting to be restored is where the game really is. Saving the
+	// freshly started machine instead would overwrite someone's progress when they
+	// leave before the first frame.
+	snapshot := func() []byte {
+		if heldState != nil {
+			return heldState
+		}
+		return eng.SaveState()
+	}
+
 	handle := func(c command) (quit bool) {
 		switch c.t {
 		case ipc.CmdSaveRAM:
@@ -201,7 +211,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 				r.event(ipc.Event{Type: "statefail"})
 			}
 		case ipc.CmdSaveState:
-			r.write(ipc.MsgState, c.p, eng.SaveState())
+			r.write(ipc.MsgState, c.p, snapshot())
 		case ipc.CmdReset:
 			eng.Reset()
 		case ipc.CmdDisc:
@@ -218,7 +228,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 		case ipc.CmdQuit:
 			if len(c.p) > 0 && c.p[0] != 0 {
 				var id [4]byte
-				r.write(ipc.MsgState, id[:], eng.SaveState())
+				r.write(ipc.MsgState, id[:], snapshot())
 			}
 			if ram := eng.SaveRAM(); ram != nil {
 				r.write(ipc.MsgSaveRAM, ram)

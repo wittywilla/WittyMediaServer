@@ -492,7 +492,7 @@ func (g *GameMeta) lookup(ctx context.Context, j *gameJob, set *sourceSet, order
 			failed = true
 		}
 	}
-	if err := g.applyAnswers(ctx, j.it.ID, answersInOrder(answers, set.on), order); err != nil {
+	if err := g.applyAnswers(ctx, j.it.ID, answersInOrder(answers, set.on)); err != nil {
 		return err
 	}
 	if failed && (!faulted || j.meta.Tries < 8) {
@@ -601,7 +601,7 @@ func answersInOrder(answers map[string]*gamemeta.Info, order []string) []gamemet
 // applyAnswers merges the answers and writes the result to the item. Scans never take
 // away what someone chose, and neither does this: a field holding something no source
 // put there (from an NFO, a file beside the game, or someone's edit) stays.
-func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemeta.Answer, order []string) error {
+func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemeta.Answer) error {
 	it, err := g.Store.Item(ctx, id)
 	if err != nil {
 		return err
@@ -942,7 +942,7 @@ func (g *GameMeta) itemPictures(ctx context.Context, id int64) {
 			return
 		}
 	}
-	if retry && r.Status != "stop" {
+	if retry {
 		_, _ = g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET applied = ?, poster_ref = ?, backdrop_ref = ?, art_tries = art_tries + 1,
 			art_wanted = CASE WHEN art_tries >= 6 THEN 0 ELSE 1 END, art_next = ? WHERE item_id = ?`,
 			listOf(r.Applied), r.PosterRef, r.BackdropRef, time.Now().Add(30*time.Minute).Unix(), id)
@@ -975,7 +975,7 @@ func (g *GameMeta) saveBeside(ctx context.Context, it *Item) {
 
 // ---------------------------------------------------------------- what people ask for
 
-// GameScore and the rest of GameDetails are what a game's page shows.
+// GameArt is one of a game's pictures.
 type GameArt struct {
 	Kind string `json:"kind"` // screenshot | title | artwork
 	URL  string `json:"url"`  // on this server
@@ -1114,6 +1114,9 @@ func (g *GameMeta) Search(ctx context.Context, console, title string) ([]gamemet
 	if len(out) > 40 {
 		out = out[:40]
 	}
+	if art, ok := set.all["libretroart"].(*gamemeta.LibretroArt); ok && slices.Contains(set.on, "libretroart") {
+		art.Decorate(ctx, console, out)
+	}
 	return out, failed
 }
 
@@ -1149,7 +1152,7 @@ func (g *GameMeta) Choose(ctx context.Context, it *Item, source, id string, lock
 	if _, err := g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET status = 'pending', next_try = 0, tries = 0, locked = ?, query_title = ? WHERE item_id = ?`, locked, gameCleanTitle(in.Title), it.ID); err != nil {
 		return err
 	}
-	if err := g.applyAnswers(ctx, it.ID, []gamemeta.Answer{{Source: source, Info: in}}, []string{source}); err != nil {
+	if err := g.applyAnswers(ctx, it.ID, []gamemeta.Answer{{Source: source, Info: in}}); err != nil {
 		return err
 	}
 	g.Kick()

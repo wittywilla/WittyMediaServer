@@ -602,6 +602,28 @@ func (s *LibretroArt) Fetch(ctx context.Context, console, id string) (*Info, err
 	return nil, ErrNotFound
 }
 
+// Decorate adds covers to the first few of the database's search results. They're only
+// looked at while someone is choosing, and each is fetched at most once.
+func (s *LibretroArt) Decorate(ctx context.Context, console string, list []Candidate) {
+	d, err := s.DB.load(ctx, console)
+	if err != nil {
+		return
+	}
+	shown := 0
+	for i := range list {
+		if list[i].Source != "libretro" || shown >= 12 {
+			continue
+		}
+		for _, j := range d.byKey[NameKey(list[i].ID)] {
+			if d.recs[j].Name == list[i].ID {
+				list[i].Poster = s.picture(d.allFiles[d.recFile[j]], "Named_Boxarts", d.recs[j].Name)
+				shown++
+				break
+			}
+		}
+	}
+}
+
 // Test implements Source.
 func (s *LibretroArt) Test(ctx context.Context) (string, error) {
 	return "This source needs no key.", nil

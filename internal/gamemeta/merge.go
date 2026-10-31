@@ -46,7 +46,12 @@ type Merged struct {
 const MaxArt = 12
 
 // AcceptConfidence is the least sureness for a source's answer to be used at all.
-const AcceptConfidence = 72
+const AcceptConfidence = 76
+
+// RenameConfidence is the least sureness for a source's name to replace the file's own.
+// A close match may be a hack or a variant of the game it's close to, which still gets its
+// details, but is called what its file calls it.
+const RenameConfidence = 90
 
 // Rating is what to sort by, out of 10: critics if any, otherwise users.
 func (m *Merged) Rating() *float64 {
@@ -102,8 +107,10 @@ func Merge(answers []Answer) *Merged {
 		if in.Confidence > m.Confidence {
 			m.MatchSource, m.MatchID, m.MatchMethod, m.Confidence = src, in.ID, in.Method, in.Confidence
 		}
-		take(&m.Title, in.Title, src)
-		take(&m.Tags, in.Tags, src)
+		if in.Confidence >= RenameConfidence {
+			take(&m.Title, in.Title, src)
+			take(&m.Tags, in.Tags, src)
+		}
 		take(&m.Description, in.Description, src)
 		take(&m.Released, in.Released, src)
 		take(&m.Developer, in.Developer, src)

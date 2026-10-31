@@ -28,7 +28,7 @@ const (
 
 // AcceptScore is the least a name match needs to be used without asking. A wrong
 // game's cover is worse than no cover.
-const AcceptScore = 80
+const AcceptScore = 85
 
 // ErrNotFound: the source answered, and doesn't know this game.
 var ErrNotFound = errors.New("not known to this source")

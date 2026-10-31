@@ -124,7 +124,7 @@ func usable(src gamemeta.Source, settings map[string]string) bool {
 func (g *GameMeta) build(s map[string]string) []gamemeta.Source {
 	client := g.HTTP
 	if client == nil {
-		client = catalogClient(45 * time.Second)
+		client = catalogClient(90 * time.Second) // a whole console's list can take a while
 	}
 	cache := filepath.Join(g.CacheDir, "gamemeta")
 	db := &gamemeta.Libretro{HTTP: client, Dir: filepath.Join(cache, "libretro")}

@@ -165,7 +165,8 @@ or an app never talks to a source.
 2. **By disc code.** A disc's product code is read from a few sectors near its start, or from its file name (PlayStation,
    PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name.
 3. **By name and console.** Region and dump tags are taken off and kept as details. Punctuation, articles and II or 2 don't
-   matter, but different numbers always do. A name must be at least 80% alike to be used without asking.
+   matter, but different numbers always do. A name must be at least 85% alike to be used without asking, and only an exact name or a checksum renames a game: a close match
+   gets its details, but keeps the name on its file, as it may be a variant.
 
 A checksum found by one source gives the exact name to ask the others about, so they match better too. Every game's page
 shows administrators how it was matched and how sure that is, with **Fix match** (search every source and pick), **Lock**

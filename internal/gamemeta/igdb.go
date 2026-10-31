@@ -91,7 +91,6 @@ func (s *IGDB) oauth(ctx context.Context) (string, error) {
 	}
 	s.token = out.AccessToken
 	s.expiry = time.Now().Add(time.Duration(max(out.ExpiresIn-3600, 60)) * time.Second)
-	s.c.Secrets = []string{s.ClientID, s.Secret, s.token}
 	return s.token, nil
 }
 

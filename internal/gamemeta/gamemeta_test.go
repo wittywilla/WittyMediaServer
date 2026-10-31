@@ -365,7 +365,7 @@ func TestLibretroMatching(t *testing.T) {
 	check(q("Other Game and Friends", ""), "Other Game & Friends (USA)", MethodName, 92)
 	// Close, but not the same word for word.
 	in, err := src.Lookup(ctx, q("Quest of Long Name Part Two", ""))
-	if err != nil || in.Confidence < 72 || in.Confidence > 91 {
+	if err != nil || in.Confidence < AcceptConfidence || in.Confidence > 91 {
 		t.Errorf("close match: %v, %+v", err, in)
 	}
 	// Numbers matter, and strangers aren't guessed at.
@@ -470,6 +470,14 @@ func TestLibretroArt(t *testing.T) {
 	}
 	if len(in.Art) != 2 || in.Art[1].Kind != "title" || in.Title != "" {
 		t.Errorf("%+v", in)
+	}
+	list, err := db.Search(context.Background(), "snes", "Odd Name More")
+	if err != nil || len(list) != 2 {
+		t.Fatalf("%v, %+v", err, list)
+	}
+	art.Decorate(context.Background(), "snes", list)
+	if !strings.HasPrefix(list[0].Poster, "https://pics.test/") {
+		t.Errorf("search results have no covers: %+v", list)
 	}
 }
 

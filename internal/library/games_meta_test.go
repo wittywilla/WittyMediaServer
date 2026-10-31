@@ -493,6 +493,20 @@ func TestOwnersWordsStay(t *testing.T) {
 
 // Turning a source off takes away what only it said, and asks nobody anything. Turning it
 // back on brings it back the same way.
+// A close match gets its details, and keeps its own name. Close isn't the same game.
+func TestCloseMatchKeepsItsName(t *testing.T) {
+	src := &fakeSource{id: "a", answer: func(q gamemeta.Query) (*gamemeta.Info, error) {
+		return &gamemeta.Info{ID: "1", Title: "Mega Game", Method: gamemeta.MethodName, Confidence: 81, Description: "About the original"}, nil
+	}}
+	f := newMetaFixture(t, src)
+	it := f.scanFile(t, "Mega Game Redux (v2.0).sfc")
+	f.work(t)
+	got := f.item(t, it.ID)
+	if got.Title != "Mega Game Redux" || got.Tagline != "v2.0" || got.Overview != "About the original" {
+		t.Errorf("%+v", got)
+	}
+}
+
 func TestSwitchingASourceOff(t *testing.T) {
 	a := &fakeSource{id: "a", answer: func(q gamemeta.Query) (*gamemeta.Info, error) {
 		return &gamemeta.Info{ID: "1", Method: gamemeta.MethodName, Confidence: 92, Description: "From A", Developer: "Maker A", Released: "1994"}, nil

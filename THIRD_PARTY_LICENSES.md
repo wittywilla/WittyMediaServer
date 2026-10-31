@@ -2,7 +2,7 @@
 
 WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the following open-source components.
 
-**Settings, About & legal** lists every library in the program you're running, with its version, license and full license
+**Settings, About** lists every library in the program you're running, with its version, license and full license
 text. That list is made from what's really compiled in (`internal/licenses`), and this file is the summary of it.
 
 ## Bundled in release archives / the Docker image

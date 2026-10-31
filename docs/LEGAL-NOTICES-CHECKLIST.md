@@ -73,8 +73,7 @@ To apply when each one merges. Don't edit a notice's words for one screen: add a
      `internal/legal/legal.json`, or to `notContacted` if it's only a link for people to click);
    - anything tells people to decrypt a disc;
    - the wording names another media server.
-2. Search the merged tree for "About & legal" and change what's left to "About": the Legal page is now separate.
-3. A new migration wasn't needed for this work: it stores everything in existing settings.
+2. A new migration wasn't needed for this work: it stores everything in existing settings.
 
 ## Still to fill in
 

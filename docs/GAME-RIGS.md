@@ -169,7 +169,7 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 **What shipping the host program takes** (GPL-3.0 section 6): each binary's release has the matching complete source next to it, including moonlight-common-c, ENet, nanors and Mbed TLS at their pinned commits; its notices stay in; it says what it's modified from. Its release workflow does all this, and it runs in its own repository.
 
-**It's installed separately, and people are told first.** The server's release doesn't contain it, and works without it. Settings, Game PCs says what it is, its license and where its source is before anyone turns to it. Settings, About & legal shows each piece's license and source, and the Modules page shows the license beside each module.
+**It's installed separately, and people are told first.** The server's release doesn't contain it, and works without it. Settings, Game PCs says what it is, its license and where its source is before anyone turns to it. Settings, About shows each piece's license and source, and the Modules page shows the license beside each module.
 
 **The App Store:** GPL-3.0 and Apple's App Store terms are widely held to conflict, so nothing of Moonlight's or the host program's goes inside the iOS or tvOS apps. They use the permissive web client, in a web view, or hand off to Moonlight's own app.
 

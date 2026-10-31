@@ -255,7 +255,7 @@ disc: neither Blu-ray image on hand has Java menus.
   be linked by a real disc at all.
 ### Licenses you can read
 
-- **Settings, About & legal** now lists everything in the server that someone else made: every library with its version, license and
+- **Settings, About** now lists everything in the server that someone else made: every library with its version, license and
   full license text, the separate programs, the game cores, and the online services and their terms. Before, it pointed to a file.
 ### Game details and ratings
 

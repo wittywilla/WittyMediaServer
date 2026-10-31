@@ -238,7 +238,7 @@ a.mod-row:hover { background: var(--hover); }
 .mod-card .upd-msg, .mod-card .upd-new, .mod-card .upd-progress, .mod-actions { margin: 0 var(--sp-3); }
 .mod-local.warn { background: var(--danger-soft, var(--bg-4)); color: var(--danger); }
 
-/* Third-party licenses (About & legal). */
+/* Third-party licenses (About). */
 .lic { display: grid; gap: var(--sp-3); max-width: 72ch; color: var(--fg-2); font-size: var(--text-md); }
 .lic-summary { margin: 0; line-height: 1.6; }
 .lic-summary b { color: var(--fg); }

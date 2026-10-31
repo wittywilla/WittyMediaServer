@@ -260,7 +260,7 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
   const setOption = useCallback((patch: Partial<ProfileOptions>) => change((p) => ({ ...p, options: { ...(p.options || {}), ...patch } })), [change])
 
   // The two pairs of face buttons people most often want the other way round.
-  const swaps = useMemo(() => [[0, 8], [1, 9]].filter(([a, b]) => targetIds.has(a) && targetIds.has(b)), [targetIds])
+  const swaps = useMemo(() => (data.pad.art === 'six' ? [] : [[0, 8], [1, 9]].filter(([a, b]) => targetIds.has(a) && targetIds.has(b))), [targetIds, data.pad.art]) // six in two rows have no such pairs
   const swapTargets = (a: number, b: number) => {
     void change((p) => ({ ...p, map: { ...(p.map || {}), [a]: map[b] ?? null, [b]: map[a] ?? null } }))
     say(`Swapped ${labelOf(a)} and ${labelOf(b)}`)

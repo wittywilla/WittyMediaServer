@@ -29,8 +29,12 @@ typedef pthread_mutex_t lock_t;
 #define lock_give(l) pthread_mutex_unlock(l)
 #endif
 #ifdef __linux__
+#include <linux/landlock.h>
 #include <signal.h>
 #include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 #endif
 
 #include <Limelight.h>
@@ -363,6 +367,34 @@ static void handle_input(uint8_t type, const uint8_t *p, uint32_t n)
     }
 }
 
+#ifdef __linux__
+// What comes from a PC is parsed here in C, and that PC may be a stranger's. So this program gives
+// up what it doesn't need before it connects to anything: it can't gain privileges, write a core
+// file, or open a file at all where the kernel has Landlock. It only needs its pipes and the network.
+static void give_things_up(void)
+{
+    struct rlimit none = {0, 0};
+    setrlimit(RLIMIT_CORE, &none);
+    setrlimit(RLIMIT_FSIZE, &none);
+    prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+#ifdef LANDLOCK_ACCESS_FS_EXECUTE
+    long abi = syscall(__NR_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
+    if (abi > 0) {
+        struct landlock_ruleset_attr attr = {0};
+        attr.handled_access_fs = LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR |
+                                 LANDLOCK_ACCESS_FS_REMOVE_DIR | LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR |
+                                 LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK |
+                                 LANDLOCK_ACCESS_FS_MAKE_SYM;
+        long fd = syscall(__NR_landlock_create_ruleset, &attr, sizeof(attr), 0);
+        if (fd >= 0) {
+            syscall(__NR_landlock_restrict_self, fd, 0);
+            close((int)fd);
+        }
+    }
+#endif
+}
+#endif
+
 int main(int argc, char **argv)
 {
     // Half of an install check: it has to run, and say what it is.
@@ -372,6 +404,7 @@ int main(int argc, char **argv)
     }
 #ifdef __linux__
     prctl(PR_SET_PDEATHSIG, SIGKILL);
+    give_things_up();
 #endif
 #ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);

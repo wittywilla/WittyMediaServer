@@ -182,7 +182,7 @@ export default function MoonlightPlayer({ host }: { host: MoonlightHost }) {
     }
     const onDown = key(true), onUp = key(false)
     const lock = () => {
-      const locked = document.pointerLockElement === video.current
+      const locked = document.pointerLockElement === video.current || !!document.fullscreenElement
       if (!locked && captured) {
         // Anything held down when focus went stays down on the PC unless it's let go here.
         held.forEach((code) => { const m = keyMessage(code, false, { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }); if (m) send(m, true) })
@@ -193,7 +193,9 @@ export default function MoonlightPlayer({ host }: { host: MoonlightHost }) {
     window.addEventListener('keydown', onDown)
     window.addEventListener('keyup', onUp)
     document.addEventListener('pointerlockchange', lock)
+    document.addEventListener('fullscreenchange', lock)
     return () => {
+      document.removeEventListener('fullscreenchange', lock)
       window.removeEventListener('keydown', onDown)
       window.removeEventListener('keyup', onUp)
       document.removeEventListener('pointerlockchange', lock)
@@ -208,10 +210,10 @@ export default function MoonlightPlayer({ host }: { host: MoonlightHost }) {
     try {
       await (navigator as Navigator & { keyboard?: { lock?(): Promise<void> } }).keyboard?.lock?.()
     } catch { /* only some browsers, and only when fullscreen */ }
-    try {
-      await (v.requestPointerLock() as unknown as Promise<void> | undefined)
-      setCaptured(true)
-    } catch { setCaptured(false) }
+    // Some browsers and most phones won't lock the pointer. The keyboard still comes along, and
+    // the mouse then moves by where it is rather than how far it went.
+    try { await (v.requestPointerLock() as unknown as Promise<void> | undefined) } catch { /* see above */ }
+    setCaptured(true)
   }
 
   const mousePosition = (e: ReactPointerEvent<HTMLVideoElement>) => {

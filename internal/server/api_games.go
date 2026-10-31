@@ -131,6 +131,28 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string) {
 	return findProgram("wittyplay-host"), nil
 }
 
+// awaitHardwareProbe finds out which hardware encoders work, the first time a game
+// needs one. It waits long enough for a working encoder to answer, and no longer:
+// the game can start without it, and the result is there for the next.
+func (s *Server) awaitHardwareProbe(ctx context.Context) {
+	s.Tools.StartHardwareProbe()
+	deadline := time.After(8 * time.Second)
+	tick := time.NewTicker(100 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if _, done := s.Tools.HardwareStatus(); done {
+			return
+		}
+		select {
+		case <-tick.C:
+		case <-deadline:
+			return
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func (s *Server) configureGames(ctx context.Context) error {
 	g := s.games()
 	runner, args := s.gameRunner(ctx)
@@ -143,9 +165,13 @@ func (s *Server) configureGames(ctx context.Context) error {
 	for _, n := range strings.Split(s.DB.GetSetting(ctx, "hwEncoders", ""), ",") {
 		enabled[strings.TrimSpace(n)] = true
 	}
+	var gpuEnc []string
 	for _, e := range list {
 		if e.Working && enabled[e.Name] {
 			hw = append(hw, e.Name)
+		}
+		if e.Working {
+			gpuEnc = append(gpuEnc, e.Name)
 		}
 	}
 	maxSessions, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingMaxSessions", "2"))
@@ -155,7 +181,7 @@ func (s *Server) configureGames(ctx context.Context) error {
 		port = 0
 	}
 	g.mgr.Configure(func(c *stream.Config) {
-		c.Runner, c.RunnerArgs, c.HWEncoders, c.MaxSessions, c.MaxGPU, c.UDPPort = runner, args, hw, maxSessions, maxGPU, port
+		c.Runner, c.RunnerArgs, c.HWEncoders, c.GPUEncoders, c.MaxSessions, c.MaxGPU, c.UDPPort = runner, args, hw, gpuEnc, maxSessions, maxGPU, port
 		c.PublicIPs = splitNonEmpty(s.DB.GetSetting(ctx, "gamingPublicIp", ""))
 		c.STUN = splitNonEmpty(s.DB.GetSetting(ctx, "gamingStun", ""))
 	})
@@ -407,10 +433,6 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	if err := s.configureGames(ctx); err != nil {
-		writeErr(w, 503, err.Error())
-		return
-	}
 	g := s.games()
 	systemDir := g.systemDir()
 	if err := os.MkdirAll(systemDir, 0o755); err != nil {
@@ -442,6 +464,13 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		corePath = core.Path
 		gpu = wittyplay.Traits(core.ID).GPU
 		coreOptions = wittyplay.CoreOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""))
+	}
+	if gpu {
+		s.awaitHardwareProbe(ctx)
+	}
+	if err := s.configureGames(ctx); err != nil {
+		writeErr(w, 503, err.Error())
+		return
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")

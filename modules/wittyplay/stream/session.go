@@ -29,7 +29,8 @@ type Config struct {
 	Runner      string   // the wittyplay-host program, or another runner speaking ipc
 	RunnerArgs  []string // extra arguments, before the ones added here
 	FFmpeg      string
-	HWEncoders  []string          // hardware encoders known to work here, best first
+	HWEncoders  []string          // hardware encoders known to work here and switched on, best first
+	GPUEncoders []string          // hardware encoders known to work here at all, best first
 	HaveEncoder func(string) bool // FFmpeg was built with this encoder
 	MaxSessions int               // 0 means 2
 	MaxGPU      int               // games drawn on the graphics card at once; 0 means 2

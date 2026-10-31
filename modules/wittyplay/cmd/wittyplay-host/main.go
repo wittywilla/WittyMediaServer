@@ -20,11 +20,11 @@ import (
 
 // boundedClose stops a core from holding the process open: everything has been
 // saved by then, and some cores hang waiting for their own threads.
-type boundedClose struct{ engine.Engine }
+type boundedClose struct{ *libretro.Core }
 
 func (b boundedClose) Close() {
 	time.AfterFunc(5*time.Second, func() { os.Exit(0) })
-	b.Engine.Close()
+	b.Core.Close()
 }
 
 func main() {

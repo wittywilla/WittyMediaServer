@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -117,8 +118,18 @@ func (s *Session) chain(codec string) []string {
 		add("libvpx")
 		return out
 	}
+	// A game on the graphics card makes frames too large to encode on the CPU, and
+	// its card is already awake, so it uses a hardware encoder whatever the
+	// transcoder's setting says.
+	if s.opt.GPU {
+		for _, n := range s.cfg.GPUEncoders {
+			add(n)
+		}
+	}
 	for _, n := range s.cfg.HWEncoders {
-		add(n)
+		if !slices.Contains(out, n) {
+			add(n)
+		}
 	}
 	add("libx264")
 	add("libopenh264")

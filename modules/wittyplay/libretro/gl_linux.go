@@ -56,7 +56,6 @@ func newGLPlatform(req glRequest) (glPlatform, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: no OpenGL library (libEGL) is installed", ErrNoGPU)
 	}
-	useVirtualGPU()
 	var f eglFuncs
 	for name, slot := range map[string]*uintptr{
 		"eglGetProcAddress": &f.getProc, "eglInitialize": &f.initialize, "eglTerminate": &f.terminate, "eglBindAPI": &f.bindAPI, "eglChooseConfig": &f.chooseConfig,
@@ -134,10 +133,11 @@ func newGLPlatform(req glRequest) (glPlatform, error) {
 	return nil, fmt.Errorf("%w (tried: %s)", ErrNoGPU, strings.Join(tried, "; "))
 }
 
-// useVirtualGPU points the graphics library at the host's card under WSL, where the
+// prepareGPU points the graphics library at the host's card under WSL, where the
 // only way to it is /dev/dxg and nothing else says so. The library reads these
-// through C, so that's how they're set, for this process only.
-func useVirtualGPU() {
+// through C, so that's how they're set, for this process only. It has to be done
+// before a core loads: some cores load the library along with themselves.
+func prepareGPU() {
 	if _, err := os.Stat("/dev/dxg"); err != nil {
 		return
 	}

@@ -81,7 +81,7 @@ var wglClassDone bool
 // newGLPlatform makes a context of the kind a core asked for, current on this
 // thread. A context the driver can't make is an error, not a quiet step down.
 func newGLPlatform(req glRequest) (glPlatform, error) {
-	preferDiscreteGPU()
+	prepareGPU()
 	if err := opengl32.Load(); err != nil {
 		return nil, fmt.Errorf("this server has no OpenGL: %w", err)
 	}
@@ -155,10 +155,11 @@ func newGLPlatform(req glRequest) (glPlatform, error) {
 	return p, nil
 }
 
-// preferDiscreteGPU asks a two-GPU laptop for the fast one. The NVIDIA driver's
+// prepareGPU asks a two-GPU laptop for the fast one. The NVIDIA driver's
 // hybrid-graphics layer reads this variable when OpenGL starts, for this process
-// only, so no system setting changes. Other drivers ignore it.
-func preferDiscreteGPU() {
+// only, so no system setting changes. Other drivers ignore it. It has to be set
+// before a core loads: some cores load OpenGL along with themselves.
+func prepareGPU() {
 	if os.Getenv("SHIM_MCCOMPAT") == "" {
 		_ = os.Setenv("SHIM_MCCOMPAT", "0x800000001")
 	}

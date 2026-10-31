@@ -119,6 +119,22 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
   (`llvmpipe`, Microsoft's GDI renderer) doesn't count: it works, far too slowly to play. Settings, Gaming names
   the card in use, or says why there is none.
 
+### What it costs
+
+Measured on one laptop with an RTX 3070 and an 8-core CPU, through the whole path (sandboxed runner, NVENC, WebRTC to
+a browser) while other work was keeping the CPU busy, so these are on the cautious side:
+
+| Game | Picture | Frames a second | Encoder delay | Graphics card | CPU |
+|---|---|---|---|---|---|
+| Nintendo 64, Mupen64Plus-Next | 1280x960 | 59 | 28 ms | 24%, encoder 11% | 0.3 of a thread, and 0.25 for the server |
+| PlayStation 2, LRPS2 | 1024x832 to 1280x896 | 42, with the CPU fully taken by other work | 34 ms | 23%, encoder 5% | 1.1 threads |
+
+On its own, NVENC's part is 22 ms at 1280x960, of which FFmpeg's command line holds one frame (17 ms at 60 frames a
+second). It was 53 ms before `-delay 0`. The runner runs at below-normal priority so a game never starves a film, which
+means a server with its CPU fully taken by other work will slow a game right down: to 4 frames a second, in one test.
+
+Five minutes each of Nintendo 64 and PlayStation 2, running at once, gave no crash and no fault.
+
 ### Two graphics cards
 
 On a laptop with Intel and NVIDIA, Windows hands OpenGL to the card driving the display, usually the slow one.

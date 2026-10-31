@@ -154,6 +154,7 @@ func Load(path string, paths Paths, options map[string]string, h engine.Handlers
 	if cur != nil {
 		return nil, errors.New("libretro: a core is already loaded")
 	}
+	prepareGPU()
 	lib, err := openLibrary(path)
 	if err != nil {
 		return nil, fmt.Errorf("opening core: %w", err)

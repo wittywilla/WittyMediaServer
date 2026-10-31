@@ -165,6 +165,8 @@ EOF
   export GOPRIVATE="github.com/$OWNER/*"
   export GOPROXY="file://$real_mod/cache/download,https://proxy.golang.org"
   export npm_config_cache="$npm_cache"
+  mkdir -p "$work/tmp"
+  export TMPDIR="$work/tmp"
   repo_url() { echo "file://$work/bare/$1.git"; }
 
   if [ ! -d "$work/wms" ]; then
@@ -383,7 +385,7 @@ check_alone() { # <dir>
 
 # Real run: the release workflow, on GitHub.
 wait_release_real() { # <repository> <tag> <delivery> <module path or empty>
-  local repo=$1 tag=$2 delivery=$3 mod=$4 id="" i assets
+  local repo=$1 tag=$2 delivery=$3 mod=$4 id="" assets
   if ! "$GH" release view "$tag" --repo "$OWNER/$repo" --json tagName >/dev/null 2>&1; then
     for _ in $(seq 1 30); do
       id=$("$GH" run list --repo "$OWNER/$repo" --workflow release.yml --branch "$tag" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
@@ -436,8 +438,8 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
   run python3 "$kit_dir/workflow.py" run "$flow/release.yml" test --state "$state" --checkout "$clone" --ref "$tag" --repo "$OWNER/$repo"
   (cd "$clone" && git clean -qfdx)
   # Copied wrong? The tag check has to say so. A library has no build job, and checks in its tests.
-  tag_job=test
-  if signs "$delivery" || [ "$delivery" = app ]; then tag_job=build; fi
+  tag_job="test"
+  if signs "$delivery" || [ "$delivery" = app ]; then tag_job="build"; fi
   if python3 "$kit_dir/workflow.py" run "$flow/release.yml" "$tag_job" --state "$state" --checkout "$clone" --ref v9.9.9 --only "The tag must match the version" >/dev/null 2>&1; then
     die "$repo's release didn't notice a tag that differs from its version"
   fi

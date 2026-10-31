@@ -14,6 +14,7 @@ This imitates GitHub's runner and proves what a job's commands do. It can't prov
 GitHub does itself: environments, secrets, tokens and the actions it skips.
 Needs PyYAML.
 """
+import atexit
 import glob
 import json
 import os
@@ -153,7 +154,11 @@ def run(args):
     values.update({"github.ref_name": options["--ref"], "github.token": "dry-run-token", "github.repository": options["--repo"]})
 
     temp = tempfile.mkdtemp(prefix="runner-")
-    cwd = options["--checkout"] if any(s.get("uses", "").startswith("actions/checkout@") for s in job["steps"]) else tempfile.mkdtemp(prefix="job-")
+    atexit.register(shutil.rmtree, temp, True)
+    cwd = options["--checkout"]
+    if not any(s.get("uses", "").startswith("actions/checkout@") for s in job["steps"]):
+        cwd = tempfile.mkdtemp(prefix="job-")
+        atexit.register(shutil.rmtree, cwd, True)
     if cwd is None:
         sys.exit(f"workflow.py: job {job_name} checks the repository out: give --checkout")
     base = dict(os.environ, GITHUB_REF_NAME=options["--ref"], GITHUB_REF_TYPE="tag", RUNNER_TEMP=temp, GITHUB_REPOSITORY=options["--repo"])
@@ -203,7 +208,6 @@ def run(args):
             done = subprocess.run(["bash", "-e", script], cwd=cwd, env=env)
             if done.returncode:
                 sys.exit(f"job {job_name}: step \"{label.splitlines()[0]}\" failed ({done.returncode})")
-    shutil.rmtree(temp, ignore_errors=True)
 
 
 def main():

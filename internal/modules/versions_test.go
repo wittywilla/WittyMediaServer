@@ -15,6 +15,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -659,15 +660,16 @@ func TestWebBundle(t *testing.T) {
 		t.Fatalf("%+v", s)
 	}
 	b := m.WebBundles()
-	if len(b) != 1 || b[0].Entry != "index.js" || b[0].Base != "/api/modules/wittyphotos/web/0.2.0/" {
+	if len(b) != 1 || b[0].Entry != "index.js" || !strings.HasPrefix(b[0].Base, "/api/modules/wittyphotos/web/0.2.0~") {
 		t.Fatalf("%+v", b)
 	}
-	p, h, err := m.WebFile(id, "0.2.0", "chunk-a.js")
+	addr := strings.TrimSuffix(strings.TrimPrefix(b[0].Base, "/api/modules/wittyphotos/web/"), "/")
+	p, h, err := m.WebFile(id, addr, "chunk-a.js")
 	if err != nil || h != sha(files["chunk-a.js"]) || !strings.HasSuffix(filepath.ToSlash(p), "chunk-a.js") {
 		t.Fatalf("%q %q %v", p, h, err)
 	}
-	for _, c := range [][2]string{{"0.2.0", "../state.json"}, {"0.2.0", "..\\..\\state.json"}, {"0.2.0", "SHA256SUMS.txt"}, {"0.2.0", wittymodule.ManifestFile},
-		{"0.2.0", "nothing.js"}, {"0.1.9", "index.js"}, {"0.2.0", ""}, {"0.2.0", "/etc/passwd"}} {
+	for _, c := range [][2]string{{addr, "../state.json"}, {addr, "..\\..\\state.json"}, {addr, "SHA256SUMS.txt"}, {addr, wittymodule.ManifestFile},
+		{addr, "nothing.js"}, {"0.1.9", "index.js"}, {"0.2.0", "index.js"}, {addr, ""}, {addr, "/etc/passwd"}} {
 		if _, _, err := m.WebFile(id, c[0], c[1]); !errors.Is(err, ErrNoFile) {
 			t.Errorf("%v: %v", c, err)
 		}
@@ -677,13 +679,21 @@ func TestWebBundle(t *testing.T) {
 	// A file changed after installing is refused, here and on the next start.
 	m = newM()
 	defer m.Close()
-	if _, _, err := m.WebFile(id, "0.2.0", "index.js"); err != nil {
+	if _, _, err := m.WebFile(id, addr, "index.js"); err != nil {
 		t.Fatalf("after a restart: %v", err)
 	}
-	if err := os.WriteFile(p, []byte("stolen = document.cookie"), 0o644); err != nil {
+	// The same size, and the same date: it is the hash that sees it.
+	st, err := os.Stat(p)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := m.WebFile(id, "0.2.0", "chunk-a.js"); !errors.Is(err, ErrNoFile) {
+	if err := os.WriteFile(p, bytes.Repeat([]byte("x"), int(st.Size())), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(p, st.ModTime(), st.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := m.WebFile(id, addr, "chunk-a.js"); !errors.Is(err, ErrNoFile) {
 		t.Fatalf("served a changed file: %v", err)
 	}
 	if s := one(t, m); s.Version != "0.1.0" || len(m.WebBundles()) != 0 {
@@ -1027,6 +1037,232 @@ func TestBuiltinPartsHaveNoAutoUpdateSwitch(t *testing.T) {
 	for _, s := range m.Report().Modules {
 		if s.AutoUpdate {
 			t.Errorf("%s says it updates by itself", s.ID)
+		}
+	}
+}
+
+// A release that fails its signature costs one look, and fake tags can't hide what is known.
+func TestFakeReleasesCantHideRealOnes(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	m := w.manager()
+	defer m.Close()
+	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {
+		t.Fatalf("%+v", s)
+	}
+	_, stranger, _ := ed25519.GenerateKey(rand.Reader)
+	real := w.key
+	w.key = stranger
+	for i := range maxNewChecks + 3 {
+		v := fmt.Sprintf("9.0.%d", i)
+		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", 1))
+	}
+	w.key = real
+	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {
+		t.Fatalf("what was known went away: %+v", s)
+	}
+	if v := find(t, versions(t, m), "0.2.0"); !v.Allowed {
+		t.Fatalf("%+v", v)
+	}
+	// A real one published after them is found once the fakes have been looked at.
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", 1))
+	var s Status
+	for range 3 {
+		s = check(t, m)
+	}
+	if s.Latest == nil || s.Latest.Version != "0.3.0" {
+		t.Fatalf("%+v", s)
+	}
+}
+
+// The list of withdrawn versions is read even when thirty newer releases hide its release
+// from the list of the newest.
+func TestWithdrawalsAreFoundByName(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeveritySecurity, Reason: "bad"})
+	all := w.gh.rels
+	hidden := []update.GHRelease{}
+	for _, r := range all {
+		if r.TagName != wittymodule.WithdrawalsTag {
+			hidden = append(hidden, r)
+		}
+	}
+	m := w.manager()
+	defer m.Close()
+	w.gh.feedOnly = hidden
+	check(t, m)
+	if v := find(t, versions(t, m), "0.2.0"); v.Allowed {
+		t.Fatalf("%+v", v)
+	}
+}
+
+// A 403 about one repository isn't a reason to stop asking about the others.
+func TestA403WithoutTheLimitDoesntHoldEveryone(t *testing.T) {
+	w := newWorld(t)
+	m := w.manager()
+	defer m.Close()
+	w.gh.mu.Lock()
+	w.gh.forbidden = true
+	w.gh.mu.Unlock()
+	if r := m.Check(context.Background(), 0); r.HoldUntil != 0 || r.CheckError == "" {
+		t.Fatalf("%+v", r)
+	}
+}
+
+// What a fork said about data doesn't stay to refuse the stock releases, and its list of
+// withdrawn versions doesn't replace the module's own.
+func TestGoingBackFromAForkLeavesNothingBehind(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.withdraw("wittyphotos", 5, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeverityBroken, Reason: "stock list"})
+	m := w.manager()
+	defer m.Close()
+	check(t, m)
+	pub, _, _ := ed25519.GenerateKey(rand.Reader)
+	if err := m.SetSource("wittyphotos", "someone/WittyPhotos", base64.StdEncoding.EncodeToString(pub), "admin", true); err != nil {
+		t.Fatal(err)
+	}
+	m.mu.Lock()
+	e := m.mods["wittyphotos"]
+	e.state.DataHigh = 1 << 30 // what a fork could have declared
+	m.mu.Unlock()
+	if err := m.ClearSource("wittyphotos"); err != nil {
+		t.Fatal(err)
+	}
+	m.mu.Lock()
+	high, serial := e.state.DataHigh, 0
+	if e.state.Withdrawn != nil {
+		serial = e.state.Withdrawn.Serial
+	}
+	m.mu.Unlock()
+	if high != 0 || serial != 5 {
+		t.Fatalf("data %d, list %d", high, serial)
+	}
+}
+
+// A state file edited to name a fork that can't be chosen gets nothing.
+func TestSavedSourceIsChecked(t *testing.T) {
+	w := newWorld(t)
+	pub, _, _ := ed25519.GenerateKey(rand.Reader)
+	key := base64.StdEncoding.EncodeToString(pub)
+	raw := []byte(`{"id":"wittytuner","name":"WittyTuner","version":"0.1.0","repo":"wittywilla/WittyTuner","delivery":"helper","entry":"wittytuner-module","api":2,"minServer":"0.1.0","maxServer":"0.x"}`)
+	state, _ := json.Marshal(map[string]moduleState{"wittytuner": {Active: "0.2.0", Source: &Source{Repo: "someone/WittyTuner", Key: key}}})
+	if err := os.MkdirAll(w.dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(w.dir, "state.json"), state, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{raw}, Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	defer m.Close()
+	if s := one(t, m); s.Source != nil || s.Version != "0.1.0" || s.Repo != "wittywilla/WittyTuner" {
+		t.Fatalf("%+v", s)
+	}
+}
+
+// A report from someone who isn't an admin is kept for an admin to see, and takes nothing
+// away from anyone. An admin's count, at most one a minute.
+func TestBrowserReports(t *testing.T) {
+	old := browserReportEvery
+	browserReportEvery = 0
+	defer func() { browserReportEvery = old }()
+	w := newWorld(t)
+	raw, _ := json.Marshal(wittymodule.Manifest{ID: "wittyphotos", Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryHelper, Entry: "x", API: 1, MinServer: "0.1.0", MaxServer: "0.x"})
+	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{raw}, Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	defer m.Close()
+	// A helper: nothing a browser says counts.
+	if err := m.ReportBrowserFailure("wittyphotos", "0.1.0", "x", true); err != nil {
+		t.Fatal(err)
+	}
+	if ev := one(t, m).Events; len(ev) != 0 {
+		t.Fatalf("%+v", ev)
+	}
+	if err := m.ReportBrowserFailure("nothing", "0.1.0", "x", true); !errors.Is(err, ErrUnknown) {
+		t.Fatal(err)
+	}
+}
+
+// Two modules can bring one kind of library, which the store says, and a kind can have a
+// name of this server's own that lasts and can't be the same as another's.
+func TestLibraryKindsCanBeNamed(t *testing.T) {
+	w := newWorld(t)
+	m := storeManager(t, w)
+	lt := func(typ string) LibraryType {
+		t.Helper()
+		for _, l := range m.LibraryTypes() {
+			if l.Type == typ {
+				return l
+			}
+		}
+		t.Fatalf("%s isn't listed", typ)
+		return LibraryType{}
+	}
+	if !lt("discs").Shared || lt("movies").Shared {
+		t.Fatalf("%+v %+v", lt("discs"), lt("movies"))
+	}
+	taken := map[string]string{"movies": "Movies", "shows": "TV shows"}
+	if err := m.SetLibraryLabel("discs", "Blu-rays and DVDs", taken); err != nil {
+		t.Fatal(err)
+	}
+	if lt("discs").Label != "Blu-rays and DVDs" {
+		t.Fatalf("%+v", lt("discs"))
+	}
+	for _, bad := range []string{"movies", "MOVIES", strings.Repeat("x", maxLabel+1), "two\nlines"} {
+		if err := m.SetLibraryLabel("discs", bad, taken); err == nil {
+			t.Errorf("accepted %q", bad)
+		}
+	}
+	if err := m.SetLibraryLabel("movies", "blu-rays and dvds", taken); err == nil {
+		t.Error("two kinds with one name")
+	}
+	if err := m.SetLibraryLabel("nothing", "A name", nil); !errors.Is(err, ErrUnknown) {
+		t.Errorf("%v", err)
+	}
+	m.Close()
+	m = storeManager(t, w)
+	defer m.Close()
+	if lt("discs").Label != "Blu-rays and DVDs" {
+		t.Fatalf("after a restart: %+v", lt("discs"))
+	}
+	if err := m.SetLibraryLabel("discs", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	if lt("discs").Label != "" {
+		t.Fatalf("%+v", lt("discs"))
+	}
+}
+
+// Two modules bringing the same kind of library share it, on purpose. Each pair is written
+// down here, so a new module that happens to pick a kind already in use is caught when it is
+// added rather than found by someone whose library plays the wrong way.
+func TestLibraryKindsAreSharedOnlyOnPurpose(t *testing.T) {
+	onPurpose := map[string]string{
+		"discs": "wittybluray,wittydvd",            // a disc library holds either kind
+		"books": "wittycomics,wittyebook,wittypdf", // a book library holds any of these
+	}
+	all := append(GoManifests(), ServerManifests()...)
+	for _, dir := range []string{"wittycomics", "wittyebook", "wittyink", "wittypdf"} {
+		b, err := os.ReadFile(filepath.Join("..", "..", "web", "src", "modules", dir, "module.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		all = append(all, b)
+	}
+	byKind := map[string][]string{}
+	for _, raw := range all {
+		man, err := wittymodule.ParseManifest(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, k := range man.Libraries {
+			byKind[k] = append(byKind[k], man.ID)
+		}
+	}
+	for kind, ids := range byKind {
+		sort.Strings(ids)
+		if len(ids) > 1 && onPurpose[kind] != strings.Join(ids, ",") {
+			t.Errorf("%s all bring %q. If they should share it, say so here; if not, one needs a kind of its own.", strings.Join(ids, ", "), kind)
 		}
 	}
 }

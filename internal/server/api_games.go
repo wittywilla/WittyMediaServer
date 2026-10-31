@@ -127,8 +127,8 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string, ve
 		}
 	}
 	if s.Modules != nil {
-		if p, ver, ok := s.Modules.Program(wittyPlayID); ok {
-			return p, nil, ver
+		if p, a, ver, ok := s.Modules.ProgramCommand(wittyPlayID); ok {
+			return p, a, ver
 		}
 	}
 	return findProgram("wittyplay-host"), nil, ""

@@ -259,6 +259,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/modules/{id}/remove", s.requireAdmin(s.handleModuleRemove))
 	m.Handle("PUT /api/modules/installed", s.requireAdmin(s.handleModulesInstalled))
 	m.Handle("GET /api/modules/libraries", s.requireUser(s.handleModulesLibraries))
+	m.Handle("PUT /api/modules/libraries/{type}/label", s.requireAdmin(s.handleModuleLibraryLabel))
 	// A bundle runs in the browser of whoever is reading, so these are for anyone signed in.
 	m.Handle("GET /api/modules/web", s.requireUser(s.handleModulesWeb))
 	m.Handle("GET /api/modules/{id}/web/{version}/{path...}", s.requireUser(s.handleModuleWebFile))

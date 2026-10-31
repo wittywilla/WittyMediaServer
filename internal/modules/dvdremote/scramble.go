@@ -118,7 +118,16 @@ func rawScrambled(path string) bool {
 	if st, err := os.Stat(path); err == nil && st.IsDir() {
 		dir := path
 		if !strings.EqualFold(filepath.Base(path), "VIDEO_TS") {
+			// However it is spelled: a disc's own folder name isn't always in capitals, and
+			// missing it here would mean not looking at all.
 			dir = filepath.Join(path, "VIDEO_TS")
+			if subs, err := os.ReadDir(path); err == nil {
+				for _, s := range subs {
+					if s.IsDir() && strings.EqualFold(s.Name(), "VIDEO_TS") {
+						dir = filepath.Join(path, s.Name())
+					}
+				}
+			}
 		}
 		entries, _ := os.ReadDir(dir)
 		files = files[:0]

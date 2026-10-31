@@ -46,6 +46,7 @@ type proc struct {
 	mu      sync.Mutex
 	cmd     *exec.Cmd
 	stdin   io.WriteCloser
+	stdout  io.Closer
 	conn    *wittymodule.Conn
 	release func() // what the sandbox holds for a running helper
 	idle    *time.Timer
@@ -92,7 +93,14 @@ func (p *proc) env() []string {
 func (p *proc) newCmd() *exec.Cmd {
 	// More address space than the job's limit on Windows, which counts only memory in
 	// use: Go asks for more than it touches. GOMEMLIMIT keeps real use to softMemory.
-	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, p.network, p.strict, []string{wittymodule.HelperFlag})
+	mode := 0
+	if p.network {
+		mode |= SandboxNetwork
+	}
+	if p.strict {
+		mode |= SandboxStrict
+	}
+	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, mode, []string{wittymodule.HelperFlag})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()
@@ -110,8 +118,14 @@ func (p *proc) start() error {
 			return err
 		}
 	}
+	if p.strict && runtime.GOOS == "linux" && p.launch == "" {
+		return errors.New("this server can't apply the limits a module from another publisher needs")
+	}
 	cmd := p.newCmd()
 	sandboxed := prepareSandbox(cmd, p.network, p.log)
+	if p.strict && sandboxAvailable && !sandboxed {
+		return errors.New("this system won't run it with the limits a module from another publisher needs")
+	}
 	stdin, stdout, stderr, err := pipes(cmd)
 	if err != nil {
 		return err
@@ -139,7 +153,9 @@ func (p *proc) start() error {
 	go func() { _, _ = io.Copy(t, stderr) }()
 	conn := wittymodule.NewConn(stdout, stdin)
 
-	stop := time.AfterFunc(helloTimeout, func() { _ = cmd.Process.Kill() })
+	// Closing our end too: killing a helper doesn't end a child of its that still holds
+	// the pipe, and a read on it would never return.
+	stop := time.AfterFunc(helloTimeout, func() { _ = cmd.Process.Kill(); _ = stdout.Close() })
 	hello, err := conn.ReadHello()
 	stop.Stop()
 	if err == nil {
@@ -159,7 +175,7 @@ func (p *proc) start() error {
 		release()
 		return fmt.Errorf("%w %s", err, t.String())
 	}
-	p.cmd, p.stdin, p.conn, p.release, p.stderr = cmd, stdin, conn, release, t
+	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = cmd, stdin, stdout, conn, release, t
 	return nil
 }
 
@@ -200,7 +216,7 @@ func (p *proc) halt() {
 		<-done
 	}
 	p.release()
-	p.cmd, p.stdin, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil
+	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil, nil
 }
 
 // Call asks the helper one thing. A *wittymodule.CallError is a working helper
@@ -219,7 +235,8 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 	if p.timeout > 0 {
 		limit = p.timeout
 	}
-	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill() })
+	stdout := p.stdout
+	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill(); _ = stdout.Close() })
 	blob, err := p.conn.Call(method, params, out)
 	kill.Stop()
 	var ce *wittymodule.CallError
@@ -251,7 +268,8 @@ func (p *proc) Stream(method string, params, out any) (io.Reader, error) {
 	if p.timeout > 0 {
 		limit = p.timeout
 	}
-	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill() })
+	stdout := p.stdout
+	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill(); _ = stdout.Close() })
 	r, err := p.conn.Stream(method, params, out)
 	kill.Stop()
 	var ce *wittymodule.CallError

@@ -362,7 +362,8 @@ the page says until when.
 browser reports a bundle failing three times in a day: that version is blocked with the reason and the
 previous version or built-in copy takes over. A bad file that a parser refuses is not a failure. An admin
 can also roll back by hand. A blocked version isn't installed automatically again, but an admin can still
-choose to.
+choose to. Only an admin's browser counts towards this: anyone else's report goes in the module's log for an admin to
+see, and their page has already fallen back to the app's copy.
 
 **On disk.** Everything is in `<data>/modules/`, never in the program folder, so this also works in
 containers and in protected installs. The active, previous and pinned versions are kept. The signed list
@@ -420,6 +421,14 @@ of a kind whose module isn't there is answered with what it needs.
   then, and a link to the store.
 - **Settings, Modules** is the store.
 
+**When two modules bring the same kind of library,** they share it: a discs library is one kind, and WittyDVD and
+WittyBluray each play their half of what's in it. The store says so under **Brings these libraries**, naming the others.
+A kind can also be given a name of this server's own there, such as "Blu-rays and DVDs", which is what Add library then
+shows. A name another kind already has is refused, so two can't read alike. What a kind is called doesn't change what it
+is, and clearing the name goes back to the usual one. Only the kinds a module's built-in copy declares count: a release
+or a fork can't claim a kind it didn't come with. A test lists which modules share a kind on purpose, so a new module
+that happens to pick one already in use is caught when it is added.
+
 A kind of library is available if any one module providing it is there, so a discs library needs WittyDVD or
 WittyBluray. A module can't be removed while libraries need it, and the reason names them. Removing touches no
 data. Its downloaded versions go, because the built-in copy is there if it comes back. Leaving a module out
@@ -449,10 +458,15 @@ What the server does about it:
 |---|---|---|
 | Signed | With this project's key | With the key an admin gave, for this one module only |
 | Automatic updates | If the owner turned them on | **Never**: an admin chooses each version |
-| Network, Linux | Only WittyTuner | **None, and it won't run if the system can't take it away** |
-| Network, other systems | Only WittyTuner should use it | **Can't be taken away**, and the warning says so |
-| Changing files, Linux | Refused | Refused |
+| Network, Linux | Only WittyTuner | **None: no sockets at all, and it won't run if the system can't apply that** |
+| Changing what's in files, Linux | Refused | **Refused, and it won't run on a kernel too old to do so** (5.19 or newer) |
+| Windows | Can't change the server's files or start programs | The same, and **it keeps its network**, which the warning says |
+| macOS, FreeBSD | No limits | **No limits**, which the warning says |
 | Encrypted media | Refused | **Refused**: the server checks for itself, and only accepts file locations inside the disc |
+
+A forked game runner goes through the same limits, and may also write to its own save folder and open devices such as a
+graphics card. On Linux a fork's helper has no 32-bit build it can run on, since the filter those limits rely on needs a
+64-bit system.
 
 The server shows the key's fingerprint and the warning before anything changes, and shows "from another
 publisher" on that module for as long as it is in use. Check the fingerprint with the publisher, somewhere other
@@ -502,15 +516,24 @@ version rules and release tool, and has no dependencies.
 |---|---|---|---|---|
 | Small environment, soft memory limit, one call at a time with a time limit | Yes | | | |
 | Hard memory limit | | Yes | Yes | No |
-| Can't change files | | Yes (Landlock, kernel 5.13 or newer) | Yes (low integrity) | No |
-| No network | | Yes, where unprivileged namespaces are allowed | No | No |
+| Can't write to or create files | | Yes (Landlock). Emptying a file too, from kernel 5.19 | Yes (low integrity) | No |
+| Can't change who owns a file or may use it, or reach into another process | | Yes on 64-bit (a call filter) | Yes | No |
+| No network | | Yes on 64-bit (no sockets, which also keeps it from socket files), and an empty network where namespaces are allowed | No | No |
+| Can't signal the server | | Yes where namespaces are allowed, or from kernel 6.12 | Yes | No |
 | Can't start programs | | No | Yes (job) | No |
 | Dies with the server | Yes, when stdin closes | Also on the server's death | Also by the job | |
 
 The Linux limits are applied by the server starting itself as a launcher, which applies them and then becomes
 the helper, so nothing in a helper can skip them. Containers often refuse unprivileged namespaces; a stock
-helper then runs without an empty network, and a fork doesn't run. Reading is left alone on every system, since a
-helper reads media wherever it is: that is the one limit no system here gives, and why the warning above says so.
+helper then runs without them, and a fork doesn't run. Reading is left alone on every system, since a helper reads
+media wherever it is: that is the one limit no system here gives, and why the warning above says so.
+
+**What these don't protect against.** Someone who can write to the data folder can change the accounts in the
+database, so that folder has to be protected whatever is done here. `verifyInstalled` catches a changed file, and a fork
+named in the state file that couldn't have been chosen is ignored, but such a person can still name a fork of a module
+that can be forked. A fork's menus and subtitles are pictures the server can't read, and it checks only samples of a disc
+for encryption, so a disc scrambled only in places a sample misses could in principle show a fork's pictures of it.
+FFmpeg still can't play such a disc's video.
 Encrypted media stays refused: no plugin, helper or not, gets a way around that.
 
 ### Releasing a plugin
@@ -540,8 +563,13 @@ that falls outside a plugin's range fails until its `maxServer` is raised.
 - A release key can sign a server, which runs with no limits at all. A key that signs modules has to sit in
   thirteen repositories' secrets, where it is far more exposed, so it shouldn't be able to. `moduleKey` in
   `internal/update/keys.go` is trusted for modules and never for a server.
-- One key per module would mean thirteen keys to look after, and a new server for every rotation, and would buy
-  little: every module can already reach an admin's session in some way, and a bundle certainly can.
+- One key per module would mean thirteen keys to look after, and a new server for every rotation. What it would buy
+  is real but limited: a leak from one repository couldn't sign another module's helper. A bundle signed with a leaked
+  key can already act as an admin in that admin's browser, though, which reaches everything the same way.
+- Because one key is shared, a compromised build in any repository could ask for any module to be signed. So the
+  signing job refuses a checksum list naming anything but its own module and version, and **required approval on the
+  `release` environment, with a protection rule on `v*` tags, is strongly recommended**. It's the owner's click, in
+  [MODULES-CUTOVER.md](MODULES-CUTOVER.md).
 - Forks already have keys of their own, good for one module only.
 
 Until the owner makes one with `scripts/new-module-key.sh`, modules are signed with the release key, which works

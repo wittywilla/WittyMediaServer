@@ -163,10 +163,20 @@ func (e *RateLimited) Error() string {
 	return "GitHub is limiting requests from this network; try again after " + e.Until.Local().Format("15:04")
 }
 
-// rateLimited reads how long GitHub wants us to wait, from either way it says so.
-// The wait is capped, so a strange answer can't stop checks for good.
+// refused turns a 403 or 429 into the right error. GitHub also answers 403 for one
+// repository it won't serve, which says nothing about the others, so only an answer that
+// says it is about the limit makes everything wait.
+func refused(res *http.Response, now time.Time) error {
+	if res.StatusCode == 429 || res.Header.Get("Retry-After") != "" || res.Header.Get("X-RateLimit-Remaining") == "0" {
+		return rateLimited(res, now)
+	}
+	return fmt.Errorf("GitHub answered %s", res.Status)
+}
+
+// rateLimited reads how long GitHub wants us to wait, from either way it says so. The wait
+// is capped, so a strange answer can't stop checks for long: GitHub's limits last an hour.
 func rateLimited(res *http.Response, now time.Time) *RateLimited {
-	const longest = 24 * time.Hour
+	const longest = 2 * time.Hour
 	until := now.Add(time.Hour)
 	if s, err := strconv.Atoi(strings.TrimSpace(res.Header.Get("Retry-After"))); err == nil && s >= 0 {
 		until = now.Add(time.Duration(s) * time.Second)
@@ -229,7 +239,7 @@ func (f *Fetcher) Get(ctx context.Context, raw string, accept string) (*http.Res
 	if res.StatusCode != 200 {
 		res.Body.Close()
 		if res.StatusCode == 403 || res.StatusCode == 429 {
-			return nil, rateLimited(res, time.Now())
+			return nil, refused(res, time.Now())
 		}
 		if res.StatusCode == 404 {
 			return nil, ErrNotFound
@@ -268,13 +278,30 @@ func (f *Fetcher) getIfChanged(ctx context.Context, raw, accept, etag string) (r
 		return nil, true, nil
 	case 403, 429:
 		res.Body.Close()
-		return nil, false, rateLimited(res, time.Now())
+		return nil, false, refused(res, time.Now())
 	case 404:
 		res.Body.Close()
 		return nil, false, ErrNotFound
 	}
 	res.Body.Close()
 	return nil, false, fmt.Errorf("GitHub answered %s", res.Status)
+}
+
+// ReleaseByTag asks for one release of a repository by its tag.
+func (f *Fetcher) ReleaseByTag(ctx context.Context, repo, tag string) (*GHRelease, error) {
+	if devModuleFeed != "" {
+		return nil, ErrNotFound // the test feed lists everything
+	}
+	res, err := f.Get(ctx, "https://api.github.com/repos/"+repo+"/releases/tags/"+url.PathEscape(tag), "application/vnd.github+json")
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	var g GHRelease
+	if err := json.NewDecoder(io.LimitReader(res.Body, maxFeedBytes)).Decode(&g); err != nil {
+		return nil, fmt.Errorf("unreadable release: %w", err)
+	}
+	return &g, nil
 }
 
 // ReleasesSince lists a repository's releases unless they are unchanged since the

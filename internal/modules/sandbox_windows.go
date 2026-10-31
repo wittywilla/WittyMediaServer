@@ -9,10 +9,20 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const createNoWindow = 0x08000000
+const (
+	createNoWindow  = 0x08000000
+	createSuspended = 0x00000004
+)
 
+// sandboxAvailable: this system can limit a helper, so a fork never runs without them.
+const sandboxAvailable = true
+
+// ntResumeProcess starts a process created suspended, with no need to find its thread.
+var ntResumeProcess = windows.NewLazySystemDLL("ntdll.dll").NewProc("NtResumeProcess")
+
+// A helper starts suspended, so it can't run a moment before it is in its job.
 func hideWindow(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | windows.BELOW_NORMAL_PRIORITY_CLASS}
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | createSuspended | windows.BELOW_NORMAL_PRIORITY_CLASS}
 }
 
 // prepareSandbox gives a helper a low-integrity token: it can read what the
@@ -53,24 +63,31 @@ func lowIntegrityToken() (windows.Token, error) {
 	return tok, nil
 }
 
-func launchWith(launcher, program string, memoryMB int64, devices, strict bool, args []string) (string, []string) {
+func launchWith(launcher, program string, memoryMB int64, mode int, args []string) (string, []string) {
 	return program, args
 }
-
-// SandboxFlag is only used on Linux.
-const SandboxFlag = "__module-sandbox"
 
 // RunSandboxed is only used on Linux.
 func RunSandboxed(args []string) int { return 2 }
 
 // lockDown puts a started helper in a job: it dies with the server, has a memory
-// cap and can't start other programs. It does nothing until it is called, so
-// nothing has run outside the job.
+// cap and can't start other programs. The helper was created suspended, so nothing has
+// run outside the job, and this is what lets it start, whatever else happens here.
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() {
 	if t := cmd.SysProcAttr.Token; t != 0 {
 		_ = windows.Token(t).Close()
 		cmd.SysProcAttr.Token = 0
 	}
+	resume, err := windows.OpenProcess(0x0800 /* PROCESS_SUSPEND_RESUME */, false, uint32(cmd.Process.Pid))
+	if err != nil {
+		log.Warn("modules: opening the helper to start it", "err", err)
+		_ = cmd.Process.Kill() // it could never run, so don't leave it waiting
+		return func() {}
+	}
+	defer func() {
+		_, _, _ = ntResumeProcess.Call(uintptr(resume))
+		_ = windows.CloseHandle(resume)
+	}()
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
 		log.Warn("modules: no job object", "err", err)

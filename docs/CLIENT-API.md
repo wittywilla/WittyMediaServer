@@ -742,6 +742,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /modules/{id}/source` | admin | Take this module's releases from a fork: `{"repo": "someone/WittyDVD", "key": "<public key>", "confirm": true}`. Answered 409 with `"code": "confirm"` and the security warning until confirmed. Show that warning; don't replace it. See [MODULES.md](MODULES.md), "Using someone's fork". |
 | `DELETE /modules/{id}/source` | admin | Go back to the module's own repository. |
 | `GET /modules/libraries` | user | Every kind of library a module provides, whether it can be made here, and what it takes. A kind not listed is always available. |
+| `PUT /modules/libraries/{type}/label` | admin | What this server calls a kind of library, for when two read alike or two modules share one: `{"label": "Blu-rays and DVDs", "taken": {"movies": "Movies"}}`. An empty label goes back to the usual name. `taken` is what the app shows for the other kinds, and a name already in use is refused. |
 | `GET /modules/web` | user | The web bundles in use instead of the copies in the app. Usually none. |
 | `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
 | `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, take that version out of use. 204. |

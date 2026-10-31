@@ -339,7 +339,12 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
 			return fmt.Errorf("the package has no %s", man.EntryFile(runtime.GOOS))
 		}
-		if err := newProc(man, stage, nil, m.log).Try(); err != nil {
+		// With the limits it would have in use: this is the first time its code runs.
+		m.mu.Lock()
+		p := m.newProcFor(id, e, man, stage)
+		m.mu.Unlock()
+		p.verify = nil
+		if err := p.Try(); err != nil {
 			return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
 		}
 	} else {

@@ -118,3 +118,9 @@
 /* At ten feet the root size is 20px, so 2.4rem is the 48 the rules ask for. */
 .using-controller .ms-filter .chip, .using-controller .ms-page .btn, .using-controller .ms-versions .btn, .using-controller .ms-more summary { min-height: 2.4rem; }
 @media (pointer: none) { .ms-filter .chip, .ms-page .btn, .ms-versions .btn, .ms-more summary { min-height: 2.4rem; } }
+
+.ms-kind + .ms-kind { margin-top: var(--sp-2); }
+.ms-kind .ms-note { margin: var(--sp-1) 0 0; }
+.ms-kind-form { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); max-width: 420px; }
+.ms-kind-form label { display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
+.ms-kind-form p { margin: 0; font-size: var(--text-sm); }

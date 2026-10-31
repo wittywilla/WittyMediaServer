@@ -59,6 +59,9 @@ func (g *gitHub) RoundTrip(req *http.Request) (*http.Response, error) {
 	answer := func(code int, b []byte) (*http.Response, error) {
 		return &http.Response{StatusCode: code, Status: fmt.Sprint(code), Body: io.NopCloser(bytes.NewReader(b)), ContentLength: int64(len(b)), Header: http.Header{}, Request: req}, nil
 	}
+	if req.URL.Host == "api.github.com" && strings.Contains(req.URL.Path, "/releases/tags/") {
+		return answer(404, nil)
+	}
 	if req.URL.Host == "api.github.com" {
 		b, _ := json.Marshal(g.rels)
 		return answer(200, b)

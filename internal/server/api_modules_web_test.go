@@ -38,7 +38,9 @@ type bundleFeed struct {
 
 func (g *bundleFeed) RoundTrip(req *http.Request) (*http.Response, error) {
 	b, code := g.files[req.URL.Path], 200
-	if req.URL.Host == "api.github.com" {
+	if req.URL.Host == "api.github.com" && strings.Contains(req.URL.Path, "/releases/tags/") {
+		code = 404
+	} else if req.URL.Host == "api.github.com" {
 		b, _ = json.Marshal(g.rels)
 	} else if b == nil {
 		code = 404
@@ -137,7 +139,7 @@ func TestModuleScriptLoadsUnderThePagePolicy(t *testing.T) {
 	const style = `#probe { color: rgb(1, 2, 3); }`
 	ts.Modules = installedBundle(t, script, style)
 	_, tok := ts.user(t, "reader", "adult", false, "")
-	const base = "/api/modules/wittycomics/web/0.2.0/"
+	base := ts.Modules.WebBundles()[0].Base
 
 	// What a browser insists on, and the policy that this test is about.
 	w := ts.do(t, "GET", base+"index.js", tok, nil)

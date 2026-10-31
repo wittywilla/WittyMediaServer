@@ -158,12 +158,15 @@ type moduleState struct {
 	NoAuto bool `json:"noAuto,omitempty"`
 	// Chosen: the active version was picked by hand, so it is used even when the
 	// built-in copy is newer.
-	Chosen    bool                     `json:"chosen,omitempty"`
-	Removed   bool                     `json:"removed,omitempty"`   // someone took it off this server
-	Source    *Source                  `json:"source,omitempty"`    // a fork in place of its own repository
-	DataHigh  int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
-	Withdrawn *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
-	Events    []Event                  `json:"events,omitempty"`
+	Chosen  bool    `json:"chosen,omitempty"`
+	Removed bool    `json:"removed,omitempty"` // someone took it off this server
+	Source  *Source `json:"source,omitempty"`  // a fork in place of its own repository
+	// StockWithdrawn keeps the module's own list while a fork is in use, so going back
+	// can't bring an older list in.
+	StockWithdrawn *wittymodule.Withdrawals `json:"stockWithdrawn,omitempty"`
+	DataHigh       int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
+	Withdrawn      *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
+	Events         []Event                  `json:"events,omitempty"`
 }
 
 type entry struct {
@@ -179,6 +182,7 @@ type entry struct {
 	failedAt time.Time
 
 	known      map[string]*knownRelease // verified, by version
+	badFiles   map[string]bool          // signed lists that failed, so they aren't fetched each check
 	feedLoaded bool
 	etag       string
 	rel        *release // the newest compatible release
@@ -227,6 +231,7 @@ type Manager struct {
 	checking  chan struct{}
 	closed    bool
 	attached  map[*Attached]bool
+	labels    map[string]string // kinds of library someone gave a name of their own
 }
 
 // New reads what is installed and picks the version of each module to use. A
@@ -244,6 +249,7 @@ func New(cfg Config) *Manager {
 		m.fetch = &update.Fetcher{UserAgent: "WittyMediaServer/" + cfg.Server, Transport: cfg.Transport}
 	}
 	saved := m.loadState()
+	m.loadLabels()
 	for _, raw := range cfg.Builtins {
 		man, err := wittymodule.ParseManifest(raw)
 		if err != nil {
@@ -256,6 +262,7 @@ func New(cfg Config) *Manager {
 	}
 	sort.Strings(m.order)
 	for _, id := range m.order {
+		m.checkSavedSource(id, m.mods[id])
 		m.resolve(id, m.mods[id])
 		m.prune(id, m.mods[id])
 	}
@@ -661,20 +668,34 @@ func firstLine(s string) string {
 	return s
 }
 
-// browserReportEvery is how often a browser's report can count. Anyone signed in can
-// send one, so this keeps a profile from taking a version out of use in one go.
+// browserReportEvery is how often a browser's report can count.
 var browserReportEvery = time.Minute
 
 // ReportBrowserFailure records a browser saying a bundle failed. It only applies to
-// bundles: nothing a browser says counts against a helper or a program.
-func (m *Manager) ReportBrowserFailure(id, ver, reason string) error {
+// bundles: nothing a browser says counts against a helper or a program. Only an admin's
+// report can take a version out of use. Anyone else's goes in the module's log for an
+// admin to see: their own page has already fallen back, and a profile shouldn't be able to
+// take a version, perhaps one with a security fix, away from everyone.
+func (m *Manager) ReportBrowserFailure(id, ver, reason string, admin bool) error {
 	m.mu.Lock()
 	e := m.mods[id]
 	if e == nil {
 		m.mu.Unlock()
 		return ErrUnknown
 	}
-	if e.builtin.Delivery != wittymodule.DeliveryWeb || (!e.failedAt.IsZero() && time.Since(e.failedAt) < browserReportEvery) {
+	if e.builtin.Delivery != wittymodule.DeliveryWeb || e.man.Version != ver || e.dir == "" {
+		m.mu.Unlock()
+		return nil
+	}
+	if !admin {
+		e.note("reported", ver, reason)
+		if err := m.saveState(); err != nil {
+			m.log.Warn("modules: saving the state", "err", err)
+		}
+		m.mu.Unlock()
+		return nil
+	}
+	if !e.failedAt.IsZero() && time.Since(e.failedAt) < browserReportEvery {
 		m.mu.Unlock()
 		return nil
 	}
@@ -897,18 +918,31 @@ func (m *Manager) prune(id string, e *entry) {
 	}
 }
 
-// Close stops every helper.
+// Close stops every helper. A helper in the middle of a call may keep it waiting until
+// its time limit, so nothing waits for long, and none of them outlives the server anyway.
 func (m *Manager) Close() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	m.closed = true
+	var procs []*proc
 	for _, e := range m.mods {
 		if e.proc != nil {
-			e.proc.Close()
+			procs = append(procs, e.proc)
 		}
 	}
 	for a := range m.attached {
-		a.p.Close()
+		procs = append(procs, a.p)
+	}
+	m.mu.Unlock()
+	var wg sync.WaitGroup
+	for _, p := range procs {
+		wg.Add(1)
+		go func() { defer wg.Done(); p.Close() }()
+	}
+	done := make(chan struct{})
+	go func() { wg.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
 	}
 }
 

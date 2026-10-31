@@ -17,7 +17,7 @@ export type ModuleStatus = {
   installed: boolean; core?: boolean; libraries?: string[]; requires?: string[]; requiredBy?: string[]
   source?: ModuleSource; noFork?: string; autoUpdate: boolean
 }
-export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[] }
+export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[]; label?: string; shared?: boolean }
 export type ModuleRef = { id: string; name: string; installed: boolean }
 export type ModuleReport = { server: string; api: number; minApi: number; checkedAt?: number; checkError?: string; holdUntil?: number; modules: ModuleStatus[]; libraries: LibraryKind[] }
 export type VersionInfo = Offer & { builtin?: boolean; inUse?: boolean; installed?: boolean; older?: boolean; allowed: boolean; refused?: string; warning?: string; withdrawn?: Withdrawn }
@@ -42,6 +42,9 @@ export function shelves(mods: ModuleStatus[]): { id: string; title: string; modu
 // an answer that doesn't come, gives nothing, which means everything is available:
 // the server still has the last word when a library is made.
 export const libraryKinds = () => api.get<{ libraries: LibraryKind[] }>('/modules/libraries').then((r) => r.libraries || []).catch(() => [] as LibraryKind[])
+
+// What this server calls a kind of library, if it has chosen a name of its own.
+export const kindTitle = (kinds: LibraryKind[] | null, type: string, usual: string) => kinds?.find((k) => k.type === type)?.label || usual
 
 export const orList = (names: string[]) => names.length < 2 ? names[0] || '' : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
 

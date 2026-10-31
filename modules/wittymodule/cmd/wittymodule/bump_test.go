@@ -158,3 +158,56 @@ func TestNeedsBump(t *testing.T) {
 		t.Fatalf("after a bump: %v", err)
 	}
 }
+
+// A signature only covers files of this module and this version.
+func TestSignRefusesOtherFiles(t *testing.T) {
+	dir := t.TempDir()
+	keyPath := filepath.Join(dir, "key")
+	if err := keygen(keyPath); err != nil {
+		t.Fatal(err)
+	}
+	write := func(text string) string {
+		p := filepath.Join(dir, "sums")
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	good := write("aa  wittydvd-0.2.1-web.tar.gz\nbb  wittydvd-0.2.1-web/index.js\n")
+	if err := sign(keyPath, "wittydvd-0.2.1", []string{good}); err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"aa  wittytuner-0.2.1-web.tar.gz\n", "aa  wittydvd-0.2.0-web.tar.gz\n", "aa  wittydvd-0.2.1-web/../../x\n"} {
+		if err := sign(keyPath, "wittydvd-0.2.1", []string{write(bad)}); err == nil {
+			t.Errorf("signed %q", bad)
+		}
+	}
+}
+
+// A list on a release can't get a signature on top of it unless it already had one.
+func TestWithdrawChecksTheListThere(t *testing.T) {
+	dir := t.TempDir()
+	keyPath := filepath.Join(dir, "key")
+	if err := keygen(keyPath); err != nil {
+		t.Fatal(err)
+	}
+	list := filepath.Join(dir, "wittydvd-withdrawn.json")
+	if err := withdraw(list, "wittydvd", "broken", "first", keyPath, []string{"0.1.0"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := sign(keyPath, "", []string{list}); err != nil {
+		t.Fatal(err)
+	}
+	if err := withdraw(list, "wittydvd", "broken", "second", keyPath, []string{"0.1.1"}); err != nil {
+		t.Fatalf("a list carrying its signature: %v", err)
+	}
+	if err := withdraw(list, "wittydvd", "broken", "third", keyPath, []string{"0.1.2"}); err == nil {
+		t.Fatal("the list changed since it was signed, so it should be refused")
+	}
+	if err := os.WriteFile(list, []byte(`{"module":"wittydvd","serial":999,"versions":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := withdraw(list, "wittydvd", "broken", "fourth", keyPath, []string{"0.1.3"}); err == nil {
+		t.Fatal("a planted list should be refused")
+	}
+}

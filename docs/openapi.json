@@ -1388,6 +1388,9 @@
           "available": {
             "type": "boolean"
           },
+          "label": {
+            "type": "string"
+          },
           "modules": {
             "items": {
               "$ref": "#/components/schemas/ModuleRef"
@@ -1396,6 +1399,9 @@
               "array",
               "null"
             ]
+          },
+          "shared": {
+            "type": "boolean"
           },
           "type": {
             "type": "string"
@@ -10019,6 +10025,67 @@
           "Server"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/modules/libraries/{type}/label": {
+      "put": {
+        "operationId": "putModulesLibrariesTypeLabel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "taken": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this server calls a kind of library. An empty label goes back to the usual name.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/modules/web": {

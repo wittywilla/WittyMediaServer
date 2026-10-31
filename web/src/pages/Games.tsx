@@ -312,11 +312,11 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
   const [showSettings, setShowSettings] = useState(false)
   const [note, setNote] = useState('')
   useEffect(() => {
-    api.get<GamePersonal>(`/games/${it.id}/mine`).then((m) => { setMine(m); setNote(m.note) }).catch(() => {})
+    api.get<GamePersonal>(`/games/${it.id}/meta`).then((m) => { setMine(m); setNote(m.note) }).catch(() => {})
     api.get<{ resolved: { values: Record<string, unknown> } }>(`/games/settings?item=${it.id}`).then((v) => setResumeMode(String(v.resolved.values['states.resume'] || 'ask'))).catch(() => {})
   }, [it.id])
   const putMeta = async (patch: Partial<GamePersonal>) => {
-    try { setMine(await api.put<GamePersonal>(`/games/${it.id}/mine`, patch)) } catch (e: any) { toast(e.message) }
+    try { setMine(await api.put<GamePersonal>(`/games/${it.id}/meta`, patch)) } catch (e: any) { toast(e.message) }
   }
   const settingsHost = useSettingsHost(!!user?.isAdmin)
   const say = useCallback((m: string) => toast(m), [])

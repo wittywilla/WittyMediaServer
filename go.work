@@ -18,8 +18,9 @@ use (
 	./modules/wittybluray/wittyblurayplayer
 )
 
-// The player's disc modules aren't published yet.
+// The player's modules aren't published yet.
 replace (
+	github.com/wittywilla/wittycd v0.1.0 => ./modules/wittycd
 	github.com/wittywilla/wittybluray/wittyblurayplayer v0.1.0 => ./modules/wittybluray/wittyblurayplayer
 	github.com/wittywilla/wittydvd/wittydvdplayer v0.1.0 => ./modules/wittydvd/wittydvdplayer
 )

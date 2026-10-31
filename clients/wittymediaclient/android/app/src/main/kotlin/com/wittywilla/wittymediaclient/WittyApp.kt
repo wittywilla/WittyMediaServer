@@ -32,6 +32,9 @@ class WittyApp : Application(), SingletonImageLoader.Factory {
         (getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
     }
 
+    // A Fire TV counts as a TV above, and only this says which store it has.
+    val isFireTv: Boolean by lazy { packageManager.hasSystemFeature("amazon.hardware.fire_tv") }
+
     // How this device is named in the server's list of sign-ins.
     val deviceName: String get() = "${Build.MANUFACTURER} ${Build.MODEL}".take(60)
     val platformName: String get() = if (isTv) "Android TV" else "Android"

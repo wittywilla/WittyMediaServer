@@ -14,7 +14,8 @@ stay honest: **written** does not mean **works**.
 The whole Android app compiles, in debug and in the shrunk release form, with 56 unit tests passing,
 including all the shared address cases, and one more against a real server when one is given. Only its
 rules, data handling and network calls have actually been executed: none of its screens, its player or
-its focus handling has ever run, and nothing has run on a device or emulator.
+its focus handling has ever run, and nothing has run on a device or emulator. The game rig code came
+after that and hasn't been compiled: see [Games on someone's own PC](#games-on-someones-own-pc).
 
 ## Platforms
 
@@ -105,9 +106,36 @@ address, only how long it takes.
 | Music, audiobooks, podcasts | Web interface; not checked here | Not started | Not started |
 | Books and comics | Web interface; not checked here | Not started | Not started |
 | Disc menus | Web interface; not checked here | Not started | Not started |
+| Games on someone's own PC, through Moonlight | Written; its rules ran in unit tests | Written | Written; its rules ran in unit tests on Linux |
 | Gaming, channels, tuners, photos | Arrive with the server | Not started | Not started |
 
-Native apps say plainly that an item can't play yet, rather than failing, for anything but video.
+Native apps say plainly that an item can't play yet, rather than failing, for anything but video and
+games on someone's own PC.
+
+## Games on someone's own PC
+
+A game rig is a person's own gaming PC running Sunshine. Its games play in the Moonlight app, which is a
+separate program under GPL-3.0: these apps only start it where the device allows that, and nothing of it
+is copied, linked or bundled. **No part of this has ever reached a real Moonlight or a real PC from these apps.**
+
+| | What happens on Play | How far it was checked |
+|---|---|---|
+| Desktop | The server's page asks the main process, which checks the request and starts Moonlight | The checks, finding the program and starting it ran in 14 unit tests, with a stand-in for the program. The window's side (`main.js`, `preload.js`) only had its syntax checked: **Written**, as the tests start no windows. |
+| Android, phones and tablets | Starts Moonlight with an explicit intent, or opens the store, or offers browser play | **Written.** This machine has no Gradle or Android SDK now, so it hasn't been compiled, and neither have its new unit tests. The first push to CI will be the first compile. Expect mistakes. |
+| Android TV, Fire TV | The same, without the browser | **Written**, as above. Focus with a remote has never been seen. |
+| Apple TV, iPhone, iPad | Nothing can start Moonlight, as it has no URL scheme. "Start on <PC>" starts the game on the PC, then the app says to open Moonlight and Resume | The models and checks in WittyKit built and passed their tests on Linux, with Swift 6.1 in a container. The screen itself needs a Mac: **Written**, never compiled. |
+| Mac | The same, plus running the desktop Moonlight if it's in `/Applications` | **Written**, as above. |
+
+**Known limits:**
+
+- The Mac app is sandboxed, and a program it starts stays inside that sandbox, so running Moonlight may not
+  work there. Nobody has tried. Starting the game on the PC is still offered beside it.
+- A server only offers a command to run to the desktop kind of client, so the Mac app asks as `desktop`
+  rather than `apple`.
+- A PC reached by a bare IPv6 address on the default port gets a command the desktop app refuses, because it
+  only accepts `[ipv6]`. The server has to send the brackets, and until then those PCs fall back to the steps.
+- Android can't tell that Moonlight doesn't know a PC yet. Moonlight says so itself, and the app has the setup
+  steps a button away.
 
 ## Not done yet in the native apps
 

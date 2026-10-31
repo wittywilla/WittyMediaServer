@@ -113,6 +113,13 @@ class Api(val base: String, val token: String, private val quick: Boolean = fals
         call("POST", "/items/$id/progress", json.encodeToString(ProgressReport(positionSec, durationSec)))
     }
 
+    // What this device can do to play a game on someone's own PC. It starts nothing there.
+    suspend fun rigPlay(gameId: Long, request: RigPlayRequest): RigPlay =
+        json.decodeFromString(call("POST", "/rigs/games/$gameId/play", json.encodeToString(request)))
+
+    suspend fun rigWake(rigId: Long): RigWake =
+        json.decodeFromString(call("POST", "/rigs/$rigId/wake", "{}"))
+
     suspend fun logout() {
         call("POST", "/logout", "{}")
     }

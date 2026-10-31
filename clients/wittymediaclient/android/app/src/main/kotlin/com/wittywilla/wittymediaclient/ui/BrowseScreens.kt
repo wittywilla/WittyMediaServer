@@ -32,6 +32,8 @@ import com.wittywilla.wittymediaclient.net.Item
 import com.wittywilla.wittymediaclient.net.Library
 import com.wittywilla.wittymediaclient.net.Show
 import com.wittywilla.wittymediaclient.net.ShowDetail
+import com.wittywilla.wittymediaclient.net.isRigGame
+import com.wittywilla.wittymediaclient.net.isRigGames
 
 private fun posterWidth(nav: Nav) = if (nav.app.isTv) 150 else 112
 
@@ -90,7 +92,7 @@ fun HomeScreen(nav: Nav, s: Map<String, String>) {
             h == null -> Loading()
             else -> LazyColumn(contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 item {
-                    val libraries = h.libraries.filter { it.type in BROWSABLE_LIBRARIES }
+                    val libraries = h.libraries.filter { it.type in BROWSABLE_LIBRARIES || it.isRigGames }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(libraries, key = { it.id }) { lib ->
                             ActionButton(lib.name, { nav.push(Route.Library(lib)) }, requestFocus = lib.id == libraries.first().id)
@@ -245,7 +247,10 @@ fun ItemScreen(nav: Nav, id: Long) {
                     Heading(it.title)
                     Secondary(listOfNotNull(it.year?.toString(), runtimeText(it.runtimeSec).ifEmpty { null }, it.contentRating.ifEmpty { null }).joinToString(" · "))
                     if (it.genres.isNotEmpty()) Secondary(it.genres.joinToString(", "))
-                    if (it.kind == PLAYABLE) {
+                    if (it.isRigGame) {
+                        if (it.tagline.isNotEmpty()) Secondary(it.tagline)
+                        RigPlayPanel(nav, it)
+                    } else if (it.kind == PLAYABLE) {
                         // The server decides where Resume goes; 0 means start over.
                         val resume = (it.progress?.resumeSec ?: 0.0) > 0
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

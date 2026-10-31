@@ -118,7 +118,7 @@ struct HomeView: View {
                     LazyVStack(alignment: .leading, spacing: 24) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                ForEach((home.libraries ?? []).filter { browsableTypes.contains($0.type) }) { library in
+                                ForEach((home.libraries ?? []).filter { browsableTypes.contains($0.type) || $0.isRigGames }) { library in
                                     NavigationLink(library.name, value: Route.library(library))
                                 }
                                 Button("Switch profile") { model.signOut() }
@@ -285,7 +285,10 @@ struct ItemView: View {
                         if let genres = item.genres, !genres.isEmpty {
                             Text(genres.joined(separator: ", ")).foregroundStyle(.secondary)
                         }
-                        if item.isPlayable {
+                        if item.isRigGame {
+                            if let tagline = item.tagline, !tagline.isEmpty { Text(tagline).foregroundStyle(.secondary) }
+                            RigPlayPanel(item: item)
+                        } else if item.isPlayable {
                             HStack(spacing: 12) {
                                 if item.resumeSeconds != nil {
                                     NavigationLink("Resume", value: Route.player(item.id, startOver: false))

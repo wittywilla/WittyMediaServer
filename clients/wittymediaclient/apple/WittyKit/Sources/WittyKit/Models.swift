@@ -51,9 +51,12 @@ public struct Library: Decodable, Identifiable, Hashable {
     public let id: Int64
     public let name: String
     public let type: String
+    public let console: String?
     public let itemCount: Int?
 
     public var isShows: Bool { type == "shows" || type == "anime" }
+    /// The games on someone's own PC: see Rigs.swift.
+    public var isRigGames: Bool { type == "games" && console == "rig" }
 }
 
 public struct Progress: Decodable, Equatable {
@@ -83,9 +86,13 @@ public struct Item: Decodable, Identifiable, Equatable {
     public let nextId: Int64?
     public let introStart: Double?
     public let introEnd: Double?
+    public let console: String?
+    public let tagline: String?
 
     /// Only video plays in these apps for now: see docs/DESIGN.md.
     public var isPlayable: Bool { kind == "video" }
+    /// A game on someone's own PC, which plays in the Moonlight app: see Rigs.swift.
+    public var isRigGame: Bool { kind == "game" && console == "rig" }
 
     /// The server decides where Resume goes; nil means start over.
     public var resumeSeconds: Double? {

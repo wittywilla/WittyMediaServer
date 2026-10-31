@@ -1,13 +1,14 @@
 // WittyMediaClient for Windows and Linux: a frameless window with two views.
 // The title bar is our own local page. Below it, the content view shows the
 // connect screen and then the server's web UI, which has no access to Node or
-// to the app beyond reporting its theme colours.
+// to the app beyond reporting its theme colours and asking for Moonlight.
 const { app, BaseWindow, WebContentsView, ipcMain, net, session, shell } = require('electron')
 const os = require('os')
 const path = require('path')
 const { normalizeAddress } = require('./connect/address.js')
 const { judge, judgeMissing, fingerprintOf, newNonce } = require('./identity.js')
 const { startDiscovery } = require('./discover.js')
+const moonlight = require('./moonlight.js')
 const state = require('./state.js')
 
 const TITLE_BAR = 32
@@ -31,6 +32,10 @@ const isConnectPage = (url) => {
 const senderIs = (e, check) => { try { return check(e.senderFrame.url) } catch { return false } }
 const fromConnect = (e) => senderIs(e, isConnectPage)
 const fromBar = (e) => e.sender === bar.webContents
+// The page the content view is meant to be showing, and not a frame inside it.
+const fromServerPage = (e) => e.sender === content.webContents && e.senderFrame === e.sender.mainFrame &&
+  senderIs(e, (url) => server !== '' && new URL(url).origin === server)
+const launchMoonlight = moonlight.launcher()
 
 // Only web and mail links leave the app: anything else could open programs or files.
 function openOutside(url) {
@@ -245,6 +250,10 @@ ipcMain.on('theme', (e, t) => {
   // A hairline in a form this check doesn't know mustn't stop the rest applying.
   if (ok(t.bg) && ok(t.fg)) bar.webContents.send('theme', { bg: t.bg, fg: t.fg, border: ok(t.border) ? t.border : 'transparent' })
 })
+
+// A game on someone's own PC, handed to the Moonlight app. The page gets a yes or a no.
+ipcMain.handle('moonlight-status', (e) => (fromServerPage(e) ? moonlight.status() : { installed: false }))
+ipcMain.handle('moonlight-launch', (e, args) => (fromServerPage(e) ? launchMoonlight(args) : { ok: false, error: moonlight.REFUSED }))
 
 ipcMain.on('window', (e, action) => {
   if (!fromBar(e)) return

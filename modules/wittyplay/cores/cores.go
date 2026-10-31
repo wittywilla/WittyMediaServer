@@ -35,6 +35,14 @@ type Core struct {
 	SHA256        string `json:"sha256,omitempty"`
 	Installed     int64  `json:"installedAt,omitempty"`
 	NonCommercial bool   `json:"nonCommercial,omitempty"`
+	// For custom cores.
+	Version       string   `json:"version,omitempty"`
+	Consoles      []string `json:"consoles,omitempty"`
+	LicenseSource string   `json:"licenseSource,omitempty"` // info | table | admin
+	Assets        string   `json:"-"`
+	// Unapproved is a file someone placed that our table doesn't know and nobody has
+	// added: it stays listed so it can be, and nothing runs it until then.
+	Unapproved bool `json:"unapproved,omitempty"`
 }
 
 // Manager looks in one folder it owns, plus folders other programs own.
@@ -42,6 +50,8 @@ type Manager struct {
 	Dir    string // installs go here; an administrator may also place files here
 	Client *http.Client
 	Extra  []string // folders to read cores from; DefaultExtra if nil
+	// Custom lists the approved custom cores, when they are switched on.
+	Custom func() []Core
 }
 
 const (
@@ -96,6 +106,12 @@ func DefaultExtra() []string {
 func (m *Manager) List() []Core {
 	seen := map[string]bool{}
 	out := []Core{}
+	if m.Custom != nil {
+		for _, c := range m.Custom() {
+			seen[c.ID] = true
+			out = append(out, c)
+		}
+	}
 	read := func(dir, source string) {
 		ents, err := os.ReadDir(dir)
 		if err != nil {
@@ -112,6 +128,7 @@ func (m *Manager) List() []Core {
 			if known, ok := wittyplay.CoreLicense(id); ok {
 				c.Name, c.License = known.Name, known.License
 			}
+			c.Unapproved = !Offered(id)
 			if source == "installed" {
 				c.SHA256, c.Installed = m.record(id)
 			}

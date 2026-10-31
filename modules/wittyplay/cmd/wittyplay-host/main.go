@@ -34,7 +34,7 @@ func main() {
 		if l.Core == ipc.TestCore {
 			return testcore.New(h), nil
 		}
-		return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+		return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save, Assets: l.Assets}, l.Options, h)
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)

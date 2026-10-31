@@ -181,6 +181,158 @@ files. The host sends the bytes over its pipe, and the server writes them atomic
 that has been exploited can't choose a path. Battery saves are written every 30 seconds when they
 have changed, and on stop.
 
+## Adding your own core
+
+A **core** is the program that emulates a console. This server offers a list of them with their licences checked, under
+Settings, Gaming, Consoles and cores. If you want one that isn't on the list, such as a newer build, or a core for a
+system we don't have, you can add it yourself. This is the guide for doing that. It assumes you've never done it before.
+
+### Before you start
+
+**A core is a program, and it will run on your server** whenever someone plays with it. It always runs boxed in, in a
+process of its own, never inside the server itself. A box can have holes, though, so only add cores you trust.
+
+You'll need:
+
+- **The core file**, built for the computer your server runs on. On Windows it ends in `.dll`, on Linux in `.so`, on a Mac in
+  `.dylib`, and its name usually ends in `_libretro`, like `something_libretro.dll`. It may come in a `.zip`.
+- **Your password.** You'll be asked for it each time.
+- **Where to get a core is your call.** This project doesn't suggest sources. Get it from the people who make it. WittyMediaServer
+  has not checked anything you add here, and doesn't offer or support it.
+
+### 1. Turn it on
+
+Custom cores are **off on every server until an administrator turns them on**. Go to Settings, Gaming, Custom cores, and
+turn on **Allow custom cores**. It asks for your password.
+
+Why off by default: most people never need this, and a server shared with others shouldn't be one setting away from running
+new programs. Turning it on takes a moment, once. Turning it off needs no password: the cores stay where they are, don't run,
+and can still be removed.
+
+If someone else runs the machine, they can keep it off whatever the settings say by starting the server with
+`WMS_GAMING_NO_CUSTOM_CORES=1`. On a system that can't box a core in (anything but Windows, Linux or macOS), it can't be turned on
+at all.
+
+Kids and guest profiles, and anyone who isn't an administrator, never see any of this.
+
+### 2. Add the core
+
+Choose **Add a core**, then one of three ways:
+
+| Way | What to do |
+|---|---|
+| **Upload a file** | Pick the core, or a `.zip` holding it, from your computer |
+| **Web address** | Paste an `https://` address. It has to be on the public internet: this server won't fetch from itself or your own network |
+| **In the cores folder** | Put the file in the cores folder (the page shows where) first, then pick it from the list |
+
+If the place you got it from publishes a SHA-256, paste it in, and the file is refused if it doesn't match.
+
+Enter your password and choose **Test this core**. The server test-loads it in the sandbox. It takes a few seconds, or up to a
+minute if a virus scanner wants a look first.
+
+If it fails, it says why, in plain words, and nothing is kept:
+
+| It says | What that means |
+|---|---|
+| Built for something else | You have the Windows build and a Linux server, say. Get the one for your server |
+| Isn't a program library | It's a text file, a web page saved by mistake, or an archive that needs unpacking |
+| Isn't a libretro core | It's a real library, but a different kind of program. It needs to be a libretro core |
+| Needs another library | It depends on something this server doesn't have. Check what its makers say it needs |
+| Crashed, or didn't finish loading | The core is broken, or doesn't suit this server. Only the test stopped; your server is fine |
+
+### 3. Look at what it reports
+
+If it passes, the page shows what the core says about itself: its name, version and the files it opens, the computer it's built
+for, whether it wants BIOS files or a graphics card, its size and its SHA-256. All of that comes from the file, so read it as what
+the core claims. Passing shows it's a libretro core, not that it's safe or that your games will run well on it.
+
+It also shows its **licence**, and where that came from: its info file, our list going by its name, or nothing at all, when it says
+**Unknown license**. Non-commercial cores are labelled, and are never offered by us. You can correct it if you know better.
+
+### 4. Say which consoles it's for
+
+Tick the consoles, which are sorted so that the ones its file types fit come first. Then:
+
+- **Use by default** makes it what that console plays with. Without it, the core is available but only used if nothing from our list is
+  installed for that console.
+- Other cores stay available. Change a console's core on its card in Settings, Gaming.
+- **For one game:** on the game's own page, administrators see a Core setting. That page also shows how each core has gone on that game,
+  and marks the one that has gone best, once there's been enough real play to say.
+
+Confirm that you understand it runs as code on the server, and choose **Add this core**.
+
+### A core for a system we don't have
+
+If no console fits, make a **custom console**, either from the link in that same step or under Custom consoles. It needs a name, a short
+name and its file extensions. You can also add other folder names that mean it, BIOS file names, and which controller it should look
+like. Prefer to paste? The **JSON** tab takes the same thing:
+
+```json
+{
+  "name": "Fantasy Box 3000",
+  "short": "FBox",
+  "extensions": [".fbx", ".fb3"],
+  "aliases": ["fantasy box"],
+  "bios": [{"file": "fbox.rom", "for": "the start-up screen", "required": false}],
+  "padLike": "snes"
+}
+```
+
+It then appears when adding a library, like any other console. Games can sit in a folder named after it, in a library set to it, or in
+archives, as usual. An extension another console already uses, like `.iso`, is only trusted in a library set to this console or a folder
+named after it, so nothing gets taken from a console that already works.
+
+### Cores that need more than one file
+
+Some cores come with a small **info file** (`something_libretro.info`), and some need **extra files** to work. To add those with the core, make
+a `.zip` laid out like this:
+
+```
+something_libretro.dll      the core itself, at the top
+something_libretro.info     its info file, optional
+assets/...                  files only this core uses
+system/...                  files that belong in the BIOS folder
+```
+
+Anything else in the zip is ignored. Or add them later, with **Add files** on the core's card. A file placed in the cores folder brings an info
+file of the same name with it. Files for the BIOS folder never overwrite one already there, because that one is yours. Removing a core takes back
+only the files it added.
+
+### Replacing, going back and removing
+
+- **Replace** takes a new file the same way as adding one, and keeps its consoles and settings.
+- **Going back:** the previous versions are kept, and a core's card lists them under What it reports. Each is tested again first. A core never updates
+  by itself: what runs is exactly the file you approved, until you approve another.
+- **Remove** takes the core. **Saves are never touched**, by any of this: they belong to your account and the game. A battery save usually
+  works in any version of a core. A save state is only sure to work in the version that made it.
+
+### If a core's file changes
+
+If a core's file stops matching the SHA-256 you approved, it **won't run**. Players are told the core has changed, and its card shows both
+hashes and an entry in its history. Unless you changed that file yourself, take it seriously: something else wrote to your data folder. If it was you,
+**Test and approve again**. Otherwise, **Remove** it and add a copy you trust.
+
+### Safety: what this does and doesn't protect
+
+| Guard | How |
+|---|---|
+| Who | Administrators only, with an adult account. Adding, approving again and going back all ask for the password. Kids and guests can't reach any of it |
+| Off by default | One server-wide setting, which the general settings route can't change, plus `WMS_GAMING_NO_CUSTOM_CORES=1` for whoever runs the machine |
+| Where it runs | Always in a runner process with the same sandbox as any game, listed under [Security](#security). The server never loads one. Custom cores get no more rights than the cores we offer |
+| Tested first | The first thing a file ever does is load in that sandbox, where a crash is an exit code and a hang is a timeout. Its answers are treated as hostile and cleaned before they're shown |
+| The file | SHA-256 recorded when approved, and read in full before every game. It's the file as approved or it doesn't run |
+| Sizes | 1.5 GB for an upload or download, 1 GB for a core, 4 GB unpacked, 20,000 files |
+| Paths | Nothing a person or a file sends becomes a path to write to. File names that name folders are refused. A zip with any entry that climbs out, or any link, is refused whole. A placed file is chosen from the server's own list, and links aren't followed |
+| Web addresses | `https` only, and only the public internet: checked when connecting, so a name can't resolve its way onto your network, and again at every redirect. No proxy, no passwords in addresses |
+| Record | Every addition, change, removal, refused file and failure during play is in the history on that page and in the server's log |
+
+What it can't do: the sandbox limits what a core can do to your machine, and it's as strong as your system allows. On Linux, some layers need a recent
+kernel, and the report says if one wasn't available. It reads files like any program under your server's account, so a hostile core can read what that account
+can read, and it can't send anything anywhere because it has no network. The SHA-256 check notices a changed file. It doesn't stop someone who can already write to your
+data folder, and it says nothing about whether the file you approved was good to begin with.
+
+**Copy protection stays in force.** A custom core changes nothing about what the server will open. Encrypted media is still refused, and nothing here decrypts anything.
+
 ## Clients other than a browser
 
 Games have to work from the Apple TV and Android TV apps as well, so nothing about a game is decided
@@ -253,6 +405,7 @@ Treat a ROM as hostile and a core as buggy:
 - Only admins can install cores. Downloads go to one fixed host over HTTPS, the core name comes
   from our own list, the size is capped, only the single expected file is unpacked, and it is
   written atomically with its SHA-256 recorded.
+- Custom cores have their own rules: see [Adding your own core](#adding-your-own-core).
 - Input packets have a fixed size, and players outside the session's limit are ignored.
 - SDP offers are capped in size.
 
@@ -274,8 +427,11 @@ sandboxed.
 | FFmpeg | GPL builds | Already a separate program |
 
 **Non-commercial cores** (`snes9x`, `genesis_plus_gx`, `picodrive`, `fbneo`, `mame2003*`) are not
-offered for download. If an admin places one in the cores folder, it's listed with its licence
-shown, as that's their own copy and their own decision.
+offered for download. An admin can add one with [Adding your own core](#adding-your-own-core), where it is labelled as
+non-commercial, as that's their own copy and their own decision.
+
+**Custom cores are third-party and unverified.** Each one shows its licence if there's anything to go on, and says where that came
+from, or says "Unknown license". They are never offered, and the list of what we offer is kept apart from them in the code.
 
 **ROMs and BIOS files are never bundled, downloaded or linked.** The console page lists the BIOS
 file names a core expects, so you can supply your own.

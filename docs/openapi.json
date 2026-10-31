@@ -331,6 +331,603 @@
         ],
         "type": "object"
       },
+      "CoreAudit": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer"
+          },
+          "core": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "at",
+          "user"
+        ],
+        "type": "object"
+      },
+      "CoreBinary": {
+        "properties": {
+          "arch": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "library": {
+            "type": "boolean"
+          },
+          "matches": {
+            "type": "boolean"
+          },
+          "os": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "format",
+          "library",
+          "matches",
+          "os"
+        ],
+        "type": "object"
+      },
+      "CoreFileState": {
+        "properties": {
+          "found": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "CoreFirmware": {
+        "properties": {
+          "desc": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file",
+          "present",
+          "required"
+        ],
+        "type": "object"
+      },
+      "CorePickOption": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "CorePlays": {
+        "properties": {
+          "failures": {
+            "type": "integer"
+          },
+          "lastAt": {
+            "type": "integer"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "starts": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "failures",
+          "seconds",
+          "starts"
+        ],
+        "type": "object"
+      },
+      "CoreReport": {
+        "properties": {
+          "arch": {
+            "type": "string"
+          },
+          "assets": {
+            "type": "integer"
+          },
+          "binary": {
+            "$ref": "#/components/schemas/CoreBinary"
+          },
+          "bios": {
+            "items": {
+              "$ref": "#/components/schemas/CoreFirmware"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "biosKnown": {
+            "type": "boolean"
+          },
+          "blockExtract": {
+            "type": "boolean"
+          },
+          "consoles": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "gpuWhy": {
+            "type": "string"
+          },
+          "hasInfo": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ignored": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "license": {
+            "type": "string"
+          },
+          "licenseSource": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "needFullPath": {
+            "type": "boolean"
+          },
+          "needsGpu": {
+            "type": "string"
+          },
+          "noGame": {
+            "type": "boolean"
+          },
+          "nonCommercial": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "options": {
+            "type": "integer"
+          },
+          "sandboxNote": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "systemFiles": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "arch",
+          "binary",
+          "bios",
+          "biosKnown",
+          "consoles",
+          "extensions",
+          "file",
+          "id",
+          "license",
+          "name",
+          "needsGpu",
+          "sha256",
+          "size",
+          "source",
+          "version",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "CoreVersion": {
+        "properties": {
+          "addedAt": {
+            "type": "integer"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "addedAt",
+          "current",
+          "sha256",
+          "version"
+        ],
+        "type": "object"
+      },
+      "CustomConsoleView": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "bios": {
+            "items": {
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "for": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "file",
+                "for",
+                "required"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cores": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "games": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "libraries": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "padLike": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "extensions",
+          "games",
+          "libraries",
+          "name",
+          "short"
+        ],
+        "type": "object"
+      },
+      "CustomCore": {
+        "properties": {
+          "addedAt": {
+            "type": "integer"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "consoles": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "defaultFor": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "licenseSource": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nonCommercial": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "plays": {
+            "$ref": "#/components/schemas/CorePlays"
+          },
+          "report": {
+            "$ref": "#/components/schemas/CoreReport"
+          },
+          "running": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CoreFileState"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/CoreVersion"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "addedAt",
+          "addedBy",
+          "consoles",
+          "defaultFor",
+          "id",
+          "license",
+          "name",
+          "plays",
+          "report",
+          "running",
+          "sha256",
+          "size",
+          "source",
+          "state",
+          "updatedAt",
+          "version",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "CustomStatus": {
+        "properties": {
+          "audit": {
+            "items": {
+              "$ref": "#/components/schemas/CoreAudit"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "canEnable": {
+            "type": "boolean"
+          },
+          "consoles": {
+            "items": {
+              "$ref": "#/components/schemas/CustomConsoleView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cores": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CustomCore"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "coresDir": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "haveRunner": {
+            "type": "boolean"
+          },
+          "libraryExt": {
+            "type": "string"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "maxUploadMB": {
+            "type": "integer"
+          },
+          "otherCores": {
+            "items": {
+              "$ref": "#/components/schemas/CorePickOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "padChoices": {
+            "items": {
+              "$ref": "#/components/schemas/CorePickOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "placed": {
+            "items": {
+              "$ref": "#/components/schemas/PlacedCoreFile"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          },
+          "sandbox": {
+            "type": "string"
+          },
+          "systemDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "audit",
+          "canEnable",
+          "consoles",
+          "cores",
+          "coresDir",
+          "enabled",
+          "haveRunner",
+          "libraryExt",
+          "maxUploadMB",
+          "otherCores",
+          "padChoices",
+          "placed",
+          "platform",
+          "sandbox",
+          "systemDir"
+        ],
+        "type": "object"
+      },
       "DiscAction": {
         "properties": {
           "button": {
@@ -885,6 +1482,50 @@
         },
         "required": [
           "error"
+        ],
+        "type": "object"
+      },
+      "GameCoreOption": {
+        "properties": {
+          "best": {
+            "type": "boolean"
+          },
+          "failures": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nonCommercial": {
+            "type": "boolean"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          },
+          "starts": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "failures",
+          "id",
+          "license",
+          "name",
+          "seconds",
+          "source",
+          "starts"
         ],
         "type": "object"
       },
@@ -1564,6 +2205,36 @@
           "name",
           "showIds",
           "shows"
+        ],
+        "type": "object"
+      },
+      "PlacedCoreFile": {
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ours": {
+            "type": "boolean"
+          },
+          "refuse": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder",
+          "key",
+          "name",
+          "ours",
+          "size"
         ],
         "type": "object"
       },
@@ -3040,7 +3711,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6117,6 +6788,59 @@
         "x-wms-auth": "admin"
       }
     },
+    "/gaming/consoles/{console}/core": {
+      "put": {
+        "operationId": "putGamingConsolesConsoleCore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "console",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "core": "core id"
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose the core a console plays with unless a game says otherwise. An empty core goes back to the first one here.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/gaming/cores/{id}": {
       "delete": {
         "operationId": "deleteGamingCoresId",
@@ -6193,6 +6917,822 @@
         "summary": "Core install.",
         "tags": [
           "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom": {
+      "get": {
+        "operationId": "getGamingCustom",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomStatus"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Custom cores and consoles: whether they're on, what's here, what's in the cores folder, and the audit log.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/consoles": {
+      "post": {
+        "operationId": "postGamingCustomConsoles",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "aliases": [
+                  "folder name"
+                ],
+                "bios": [
+                  {
+                    "file": "a.rom",
+                    "for": "...",
+                    "required": false
+                  }
+                ],
+                "cores": [
+                  "core id"
+                ],
+                "extensions": [
+                  ".abc"
+                ],
+                "name": "...",
+                "padLike": "snes",
+                "short": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a custom console, as one JSON object.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/consoles/{id}": {
+      "delete": {
+        "operationId": "deleteGamingCustomConsolesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a custom console no library is set to.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putGamingCustomConsolesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "extensions": [
+                  ".abc"
+                ],
+                "name": "...",
+                "short": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a custom console.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/cores/{id}": {
+      "delete": {
+        "operationId": "deleteGamingCustomCoresId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a custom core. Saves are never touched.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putGamingCustomCoresId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "consoles": [
+                  "nes"
+                ],
+                "defaultFor": [
+                  "nes"
+                ],
+                "license": "...",
+                "name": "...",
+                "note": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomCore"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a custom core's name, license, note and consoles.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/cores/{id}/files": {
+      "post": {
+        "operationId": "postGamingCustomCoresIdFiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a core's .info file, or a .zip with assets/ or system/ folders. Multipart, with the password field first, then file.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/cores/{id}/reapprove": {
+      "post": {
+        "operationId": "postGamingCustomCoresIdReapprove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "password": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomCore"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test-load a core whose file has changed and approve it as it now is. Needs the password.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/cores/{id}/rollback": {
+      "post": {
+        "operationId": "postGamingCustomCoresIdRollback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "password": "...",
+                "sha256": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomCore"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Go back to a kept version of a custom core, after testing it again. Needs the password.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/enabled": {
+      "put": {
+        "operationId": "putGamingCustomEnabled",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enabled": true,
+                "password": "..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn custom cores on (needs the password) or off (doesn't).",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/staged/placed": {
+      "post": {
+        "operationId": "postGamingCustomStagedPlaced",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "key": "0/name_libretro.dll",
+                "password": "...",
+                "replaces": "optional core id"
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test-load a file from the cores folder in the sandbox. key comes from GET /gaming/custom.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/staged/upload": {
+      "post": {
+        "operationId": "postGamingCustomStagedUpload",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a core or a .zip package and test-load it in the sandbox. Multipart, with the password field first, then optional replaces and sha256, then file.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/staged/url": {
+      "post": {
+        "operationId": "postGamingCustomStagedUrl",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "password": "...",
+                "replaces": "optional core id",
+                "sha256": "optional",
+                "url": "https://..."
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch a core or a .zip package from a public https address and test-load it in the sandbox.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/staged/{token}": {
+      "delete": {
+        "operationId": "deleteGamingCustomStagedToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Throw away a core waiting for approval.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/custom/staged/{token}/approve": {
+      "post": {
+        "operationId": "postGamingCustomStagedTokenApprove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "acknowledged": true,
+                "consoles": [
+                  "nes"
+                ],
+                "defaultFor": [
+                  "nes"
+                ],
+                "id": "name",
+                "license": "optional",
+                "name": "Shown name"
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomCore"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a core that passed its test-load, for the person who tested it.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/gaming/games/{id}/core": {
+      "get": {
+        "operationId": "getGamingGamesIdCore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What would play this game, what else could, and how each has gone on it.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putGamingGamesIdCore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "core": "core id"
+              },
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose a core for this game alone. An empty core goes back to the console's.",
+        "tags": [
+          "Games"
         ],
         "x-wms-auth": "admin"
       }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -55,6 +57,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
+	s.customRoutes(m)
 }
 
 // gameService is built the first time anything needs it, so a server nobody
@@ -63,6 +66,8 @@ type gameService struct {
 	mgr   *stream.Manager
 	cores *cores.Manager
 	dir   string
+
+	custom *customService
 }
 
 // testingGames: the built-in test console is only offered to developers.
@@ -73,11 +78,16 @@ func (s *Server) testingGames() bool {
 func (s *Server) games() *gameService {
 	s.gameOnce.Do(func() {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
-		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), Client: library.SafeClient},
-			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
+		coresDir := filepath.Join(dir, "cores")
+		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: coresDir, Client: library.SafeClient, Custom: s.customCoreList},
+			custom: newCustomService(filepath.Join(dir, "custom-cores"), filepath.Join(dir, "system"), append([]string{coresDir}, cores.DefaultExtra()...), customFetchClient()),
+			mgr:    stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
 	})
 	return s.gameSvc
 }
+
+// systemDir is the folder cores read BIOS files from.
+func (g *gameService) systemDir() string { return filepath.Join(g.dir, "system") }
 
 // StopGames saves and ends every game; the server is shutting down.
 func (s *Server) StopGames() {
@@ -172,9 +182,13 @@ func (s *Server) preferredCores(ctx context.Context) map[string]string {
 // consoleView is a console with what this server has for it.
 type consoleView struct {
 	wittyplay.Console
-	Installed []cores.Core        `json:"installed"`
-	Ready     bool                `json:"ready"`
-	Pad       wittyplay.PadLayout `json:"pad"`
+	Installed []cores.Core `json:"installed"`
+	// For an administrator: approved custom cores assigned to it, and which core it
+	// uses unless a game says otherwise.
+	Custom      []cores.Core        `json:"customCores,omitempty"`
+	DefaultCore string              `json:"defaultCore,omitempty"`
+	Ready       bool                `json:"ready"`
+	Pad         wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
 }
@@ -187,7 +201,9 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 	}
 	testing := s.testingGames()
 	out := []consoleView{}
-	for _, c := range wittyplay.Consoles {
+	prefs := s.preferredCores(ctx)
+	customOn := s.customCoresOn(ctx)
+	for _, c := range wittyplay.All() {
 		if c.Hidden && !testing {
 			continue
 		}
@@ -200,9 +216,25 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 				v.Installed = append(v.Installed, got)
 			}
 		}
+		for _, got := range all {
+			if got.Source == cores.SourceCustom && slices.Contains(got.Consoles, c.ID) {
+				v.Custom = append(v.Custom, got)
+				if !slices.ContainsFunc(v.Installed, func(x cores.Core) bool { return x.ID == got.ID }) {
+					v.Installed = append(v.Installed, got)
+				}
+			}
+		}
+		v.DefaultCore = prefs[c.ID]
+		// An administrator assigning a core has answered "not playable yet" for themselves.
+		if len(v.Custom) > 0 {
+			v.Unavailable = ""
+		}
+		if wittyplay.IsCustomConsole(c.ID) && !customOn && len(v.Installed) == 0 {
+			v.Unavailable = "Custom cores are turned off on this server."
+		}
 		// A core someone placed themselves shows up under every console it could
 		// serve only when we know it; anything else is chosen by name in Settings.
-		v.Ready = c.Unavailable == "" && (len(v.Installed) > 0 || c.ID == wittyplay.TestConsole)
+		v.Ready = v.Unavailable == "" && (len(v.Installed) > 0 || c.ID == wittyplay.TestConsole)
 		out = append(out, v)
 	}
 	return out
@@ -210,6 +242,11 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 
 func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 	views := s.consoleViews(r.Context())
+	if !userFrom(r).IsAdmin {
+		for i := range views {
+			views[i].Custom, views[i].DefaultCore = nil, ""
+		}
+	}
 	if id := int64(qInt(r, "library", 0)); id != 0 {
 		if counts, err := s.Store.GameCounts(r.Context(), id, s.access(r)); err == nil {
 			for i := range views {
@@ -387,24 +424,32 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	if console.Unavailable != "" {
+	ctx := r.Context()
+	if console.Unavailable != "" && !s.customFor(ctx, console.ID) {
 		writeErr(w, 409, console.Unavailable)
 		return
 	}
-	ctx := r.Context()
 	if err := s.configureGames(ctx); err != nil {
 		writeErr(w, 503, err.Error())
 		return
 	}
 	g := s.games()
 	corePath := ipc.TestCore
+	var playing *cores.Core
 	if console.ID != wittyplay.TestConsole {
-		core := g.cores.ForConsole(console, s.preferredCores(ctx)[console.ID])
+		core := g.cores.ForConsole(console, s.preferredCore(ctx, console, it.ID))
 		if core == nil {
 			writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 			return
 		}
+		if core.Source == cores.SourceCustom {
+			if err := s.checkCustomCore(ctx, core); err != nil {
+				writeErr(w, 409, err.Error())
+				return
+			}
+		}
 		corePath = core.Path
+		playing = core
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")
@@ -421,9 +466,14 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := userFrom(r).ID
+	var coreAssets string
+	if playing != nil {
+		coreAssets = playing.Assets
+	}
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
-		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
+		CoreAssets: coreAssets,
+		SaveDir:    g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
 	})
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {
@@ -431,10 +481,20 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.Warn("starting a game", "item", it.ID, "err", err)
+		if playing != nil {
+			s.noteCorePlay(ctx, playing.ID, it.ID, 1, 1, 0, err.Error())
+			if playing.Source == cores.SourceCustom {
+				s.auditCore(ctx, userFrom(r), "use-failed", playing.ID, fmt.Sprintf("item %d: %v", it.ID, err))
+			}
+		}
 		writeErr(w, 500, "This game could not start: "+err.Error())
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
+	if playing != nil {
+		s.noteCorePlay(ctx, playing.ID, it.ID, 1, 0, 0, "")
+		go s.watchCorePlay(sess, playing, userFrom(r), it.ID)
+	}
 	info := sess.Info()
 	info.Modes = g.mgr.Modes(gameClient(b.Client))
 	writeJSON(w, 201, info)

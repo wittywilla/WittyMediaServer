@@ -82,6 +82,13 @@ func Pad(consoleID string) PadLayout {
 	if p, ok := pads[consoleID]; ok {
 		return p
 	}
+	if IsCustomConsole(consoleID) {
+		if c := ByID(consoleID); c != nil {
+			if p, ok := pads[c.PadLike]; ok {
+				return p
+			}
+		}
+	}
 	return fullPad
 }
 

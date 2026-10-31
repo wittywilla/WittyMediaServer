@@ -80,6 +80,17 @@ type SystemInfo struct {
 	BlockExtract  bool
 }
 
+// ProbeDetails is what a test-load finds out beyond SystemInfo.
+type ProbeDetails struct {
+	NoGame, HWRender bool
+	Options          int
+}
+
+// Prober is an engine that noticed more while loading than SystemInfo says.
+type Prober interface {
+	ProbeDetails() ProbeDetails
+}
+
 // Engine runs one game. Every method is called from one locked OS thread.
 type Engine interface {
 	SystemInfo() SystemInfo

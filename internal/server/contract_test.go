@@ -25,6 +25,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittyplay/cores"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and
@@ -383,6 +384,9 @@ func schemaTypes() map[string]reflect.Type {
 		"ThemeMeta": ty(themes.Meta{}), "ThemeTokens": ty(themes.Tokens{}), "UpdateStatus": ty(update.Status{}), "UpdateInfo": ty(update.Info{}),
 		"ModuleReport": ty(modmgr.Report{}), "ModuleStatus": ty(modmgr.Status{}), "ModuleOffer": ty(modmgr.Offer{}),
 		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}),
+		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
+		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),
+		"CoreBinary": ty(cores.Binary{}), "CoreFirmware": ty(cores.Firmware{}), "CoreFileState": ty(cores.CoreFileState{}), "PlacedCoreFile": ty(cores.PlacedFile{}),
 	}
 }
 

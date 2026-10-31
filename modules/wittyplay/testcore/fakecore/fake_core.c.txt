@@ -1,0 +1,143 @@
+/* The WittyPlay test core as a real libretro library, for tests of adding one. It
+ * draws a square you move on a coloured field, the same as package testcore, and
+ * opens the same .wittytest files. Built with one VARIANT_ to choose how it behaves
+ * (fakecore.go has the list). This file is not part of any release. */
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define W 256
+#define H 224
+
+#ifdef VARIANT_CRASH_OPEN
+__attribute__((constructor)) static void on_open(void) { *(volatile int *)0 = 1; }
+#endif
+#ifdef VARIANT_HANG_OPEN
+__attribute__((constructor)) static void on_open(void) { for (;;) {} }
+#endif
+
+typedef bool (*env_t)(unsigned, void *);
+typedef void (*video_t)(const void *, unsigned, unsigned, size_t);
+typedef void (*audio_t)(int16_t, int16_t);
+typedef size_t (*batch_t)(const int16_t *, size_t);
+typedef void (*poll_t)(void);
+typedef int16_t (*state_t)(unsigned, unsigned, unsigned, unsigned);
+
+struct sysinfo { const char *name, *version, *exts; bool full, block; };
+struct avinfo { unsigned bw, bh, mw, mh; float aspect; double fps, rate; };
+struct gameinfo { const char *path; const void *data; size_t size; const char *meta; };
+
+static env_t env;
+static video_t video;
+static batch_t batch;
+static poll_t poll_input;
+static state_t state;
+static uint32_t frame[W * H];
+static int16_t sound[735 * 2];
+static uint32_t seed, tick;
+static int x = W / 2, y = H / 2;
+static uint8_t saved[16];
+
+#ifdef VARIANT_MISSING
+void retro_some_other_function(void) {}
+#else
+
+unsigned retro_api_version(void) {
+#ifdef VARIANT_WRONG_API
+	return 9;
+#else
+	return 1;
+#endif
+}
+void retro_set_environment(env_t cb) {
+	bool yes = true;
+	env = cb;
+	cb(18, &yes); /* it can run with no game */
+}
+void retro_set_video_refresh(video_t cb) { video = cb; }
+void retro_set_audio_sample(audio_t cb) { (void)cb; }
+void retro_set_audio_sample_batch(batch_t cb) { batch = cb; }
+void retro_set_input_poll(poll_t cb) { poll_input = cb; }
+void retro_set_input_state(state_t cb) { state = cb; }
+void retro_init(void) {
+#ifdef VARIANT_CRASH_INIT
+	*(volatile int *)0 = 1;
+#endif
+#ifdef VARIANT_HANG_INIT
+	for (;;) {}
+#endif
+}
+void retro_deinit(void) {}
+void retro_get_system_info(struct sysinfo *i) {
+	memset(i, 0, sizeof *i);
+#ifdef VARIANT_HOSTILE_NAMES
+	static char name[3000];
+	memset(name, 'A', sizeof name - 1);
+	memcpy(name, "Evil\x07\x1b[31m", 9);
+	i->name = name;
+#else
+	i->name = "WittyPlay fake core";
+#endif
+	i->version = "1.2.3";
+	i->exts = "wittytest|fake";
+}
+void retro_get_system_av_info(struct avinfo *a) {
+	a->bw = a->mw = W;
+	a->bh = a->mh = H;
+	a->aspect = 4.0f / 3;
+	a->fps = 60;
+	a->rate = 44100;
+}
+bool retro_load_game(const struct gameinfo *g) {
+	unsigned fmt = 1; /* XRGB8888 */
+	size_t n;
+	if (!g || !g->data || !g->size) return false;
+	env(10, &fmt);
+	seed = 2166136261u;
+	for (n = 0; n < g->size; n++) seed = (seed ^ ((const uint8_t *)g->data)[n]) * 16777619u;
+	return true;
+}
+void retro_unload_game(void) {}
+void retro_reset(void) { x = W / 2; y = H / 2; tick = 0; }
+void retro_run(void) {
+	int i, j;
+	poll_input();
+	if (state(0, 1, 0, 6) && x >= 2) x -= 2;
+	if (state(0, 1, 0, 7) && x < W - 18) x += 2;
+	if (state(0, 1, 0, 4) && y >= 2) y -= 2;
+	if (state(0, 1, 0, 5) && y < H - 18) y += 2;
+	tick++;
+	for (j = 0; j < H; j++)
+		for (i = 0; i < W; i++) {
+			uint32_t band = (j + tick) / 8, col = i / 8;
+			frame[j * W + i] = 0xff000000u | (seed & 0xff0000) >> 1 | ((seed >> 8 & 0xff) / 2 + col) << 8 | ((seed & 0xff) / 2 + band);
+		}
+	for (j = y; j < y + 16; j++)
+		for (i = x; i < x + 16; i++) frame[j * W + i] = 0xffffffffu;
+	video(frame, W, H, W * 4);
+	batch(sound, 735);
+}
+size_t retro_serialize_size(void) { return 12 + sizeof saved; }
+bool retro_serialize(void *p, size_t n) {
+	int v[3] = {x, y, (int)tick};
+	if (n < 12 + sizeof saved) return false;
+	memcpy(p, v, 12);
+	memcpy((char *)p + 12, saved, sizeof saved);
+	return true;
+}
+bool retro_unserialize(const void *p, size_t n) {
+	int v[3];
+	if (n < 12 + sizeof saved) return false;
+	memcpy(v, p, 12);
+	x = v[0];
+	y = v[1];
+	tick = (uint32_t)v[2];
+	memcpy(saved, (const char *)p + 12, sizeof saved);
+	return true;
+}
+void *retro_get_memory_data(unsigned id) { return id == 0 ? saved : NULL; }
+size_t retro_get_memory_size(unsigned id) { return id == 0 ? sizeof saved : 0; }
+void retro_set_controller_port_device(unsigned p, unsigned d) { (void)p; (void)d; }
+#endif

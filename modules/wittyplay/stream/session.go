@@ -55,6 +55,7 @@ type Options struct {
 	Resume         bool   // continue from auto.state
 	Quality        string // "" (auto) | low | high
 	CoreOptions    map[string]string
+	CoreAssets     string // support files of its own, if it has any
 	Cleanup        func() // runs when the session has ended
 }
 
@@ -332,7 +333,7 @@ func (s *Session) start() error {
 		close(s.done)
 	}()
 
-	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions})
+	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions, Assets: s.opt.CoreAssets})
 	if err := s.command(ipc.CmdLoad, load); err != nil {
 		s.kill()
 		return err

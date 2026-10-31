@@ -12,6 +12,8 @@ import './games.css'
 // is opened.
 
 const GamePlayer = lazy(() => import('@wittywilla/wittyplay'))
+// Only administrators ever see this, so nobody else downloads the settings code for it.
+const GameCorePicker = lazy(() => import('./settings/GamingCustom').then((m) => ({ default: m.GameCorePicker })))
 
 let consolesCache: Promise<GameConsole[]> | null = null
 export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
@@ -183,6 +185,7 @@ export function GameDetails({ it }: { it: Item }) {
             {auto && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
             {ready && <button className={'btn' + (auto ? '' : ' primary')} onClick={() => nav(`/game/${it.id}`)}><IconPlay /> {auto ? 'Start over' : 'Play'}</button>}
           </div>
+          {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} /></Suspense>}
           {c && !ready && (
             <div className="game-note" role="status">
               {c.unavailable || <>This server has no core for the {c.name} yet.{' '}

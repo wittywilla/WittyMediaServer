@@ -28,6 +28,7 @@ const (
 	MsgSaveRAM byte = 6 // battery save
 	MsgEvent   byte = 7 // JSON: Event
 	MsgError   byte = 8 // text, then the host exits
+	MsgProbe   byte = 20 // JSON: Probe, the answer to CmdProbe
 )
 
 // Commands to the host.
@@ -40,6 +41,7 @@ const (
 	CmdReset     byte = 69
 	CmdPause     byte = 70 // one byte: 1 paused, 0 running
 	CmdQuit      byte = 71 // one byte: 1 sends a save state first; battery save is always sent
+	CmdProbe     byte = 90 // JSON: Load. Test-loads the core, answers MsgProbe and exits
 )
 
 // Size limits. MaxVideoFrame is far above what a console produces (4K at four
@@ -58,7 +60,7 @@ func limit(t byte) int {
 		return MaxVideoFrame + VideoHeaderSize
 	case MsgAudio:
 		return MaxAudio
-	case MsgReady, MsgEvent, MsgError, CmdLoad:
+	case MsgReady, MsgEvent, MsgError, MsgProbe, CmdLoad, CmdProbe:
 		return MaxJSON
 	case MsgState, MsgSaveRAM, CmdSaveRAM, CmdState:
 		return MaxBlob
@@ -150,6 +152,7 @@ type Load struct {
 	System  string            `json:"system"`
 	Save    string            `json:"save"`
 	Options map[string]string `json:"options,omitempty"`
+	Assets  string            `json:"assets,omitempty"` // support files of its own, if it has any
 }
 
 // TestCore is the Load.Core value for the built-in test core.
@@ -229,4 +232,17 @@ func ParseInput(p []byte) (port int, buttons uint16, lx, ly, rx, ry int16, ok bo
 	}
 	return int(p[0]), binary.LittleEndian.Uint16(p[1:]), int16(binary.LittleEndian.Uint16(p[3:])), int16(binary.LittleEndian.Uint16(p[5:])),
 		int16(binary.LittleEndian.Uint16(p[7:])), int16(binary.LittleEndian.Uint16(p[9:])), true
+}
+
+// Probe is what a core says about itself when test-loaded. It comes from code
+// nobody has vouched for, so the server cleans it before showing it to anyone.
+type Probe struct {
+	Name         string   `json:"name"`
+	Version      string   `json:"version"`
+	Extensions   []string `json:"extensions"`
+	NeedFullPath bool     `json:"needFullPath,omitempty"`
+	BlockExtract bool     `json:"blockExtract,omitempty"`
+	NoGame       bool     `json:"noGame,omitempty"`   // it can run with no game
+	HWRender     bool     `json:"hwRender,omitempty"` // it already asked for a graphics card
+	Options      int      `json:"options,omitempty"`  // how many settings it offered
 }

@@ -33,6 +33,7 @@ const (
 	envGetVariable       = 15
 	envSetVariables      = 16
 	envGetVariableUpdate = 17
+	envSetSupportNoGame  = 18
 	envGetLibretroPath   = 19
 	envGetRumble         = 23
 	envGetInputCaps      = 24
@@ -67,6 +68,7 @@ const (
 type Paths struct {
 	System string // BIOS files
 	Save   string // the core's own save files
+	Assets string // its own support files; its save folder when empty
 }
 
 // Core is a loaded libretro core. A process holds at most one, because the
@@ -90,6 +92,8 @@ type Core struct {
 	input    *[engine.MaxPorts]engine.PadState
 	gameData []byte
 	loaded   bool
+	noGame   bool
+	hwAsked  bool
 }
 
 var _ engine.Engine = (*Core)(nil)
@@ -223,6 +227,11 @@ type avInfoC struct {
 
 func (av *avInfoC) convert() engine.AVInfo {
 	return engine.AVInfo{BaseWidth: int(av.baseW), BaseHeight: int(av.baseH), MaxWidth: int(av.maxW), MaxHeight: int(av.maxH), Aspect: float64(av.aspect), FPS: av.fps, SampleRate: av.rate}
+}
+
+// ProbeDetails says what the core did while it was loading.
+func (c *Core) ProbeDetails() engine.ProbeDetails {
+	return engine.ProbeDetails{NoGame: c.noGame, HWRender: c.hwAsked, Options: len(c.vars)}
 }
 
 // Run advances the game one frame.
@@ -408,8 +417,16 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		c.format = int(f)
 	case envGetSystemDir:
 		*(**byte)(data) = c.pin(c.paths.System)
-	case envGetSaveDir, envGetCoreAssetsDir:
+	case envGetSaveDir:
 		*(**byte)(data) = c.pin(c.paths.Save)
+	case envGetCoreAssetsDir:
+		if c.paths.Assets != "" {
+			*(**byte)(data) = c.pin(c.paths.Assets)
+		} else {
+			*(**byte)(data) = c.pin(c.paths.Save)
+		}
+	case envSetSupportNoGame:
+		c.noGame = data != nil && *(*bool)(data)
 	case envGetLibretroPath:
 		*(**byte)(data) = c.pin(c.corePath)
 	case envGetUsername:
@@ -468,6 +485,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
+		c.hwAsked = true
 		return false // software-rendered cores only here; see docs/GAMING.md
 	default:
 		return false

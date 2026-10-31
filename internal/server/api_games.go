@@ -497,7 +497,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if console.ID == "snes" && wittyplay.IsSatellaview(rom) {
-		// Every other core loads these happily and shows nothing, so nothing else is tried.
+		// No other core will load one, so nothing else is tried.
 		core := g.cores.AllForConsole(console, wittyplay.SatellaviewCore)
 		problem := ""
 		if _, err := os.Stat(filepath.Join(systemDir, wittyplay.SatellaviewBIOS)); err != nil {

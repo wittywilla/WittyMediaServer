@@ -12,8 +12,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-// A broadcast game shows a blank picture on any core that lacks what it needs, with
-// no error, so pressing Play has to say what's missing.
+// A .bs file loads on one core and only with the receiver's cartridge, so pressing
+// Play has to say what's missing rather than "this game could not start".
 func TestSatellaviewGameSaysWhatIsMissing(t *testing.T) {
 	g := newGameServer(t)
 	defer g.s.StopGames()

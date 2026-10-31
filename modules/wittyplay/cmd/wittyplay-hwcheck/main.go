@@ -38,6 +38,8 @@ func main() {
 	verbose := flag.Bool("v", false, "show everything the core logs")
 	realtime := flag.Bool("realtime", true, "run at the console's own speed; off shows how fast it can go")
 	listOptions := flag.Bool("options", false, "list the core's options and stop")
+	touch := flag.String("touch", "", "press the touch screen: x,y@at+hold, with x and y from 0 to 1 and times in seconds")
+	var begin time.Time
 	var opts, press multi
 	flag.Var(&opts, "opt", "a core option as key=value; may repeat")
 	flag.Var(&press, "press", "hold a RetroPad button at a time, like start@5 or a@8+0.2; may repeat")
@@ -104,6 +106,17 @@ func main() {
 			}
 		},
 		Input: func() *[engine.MaxPorts]engine.PadState { return &pads },
+		Pointer: func() engine.PointerState {
+			if *touch == "" {
+				return engine.PointerState{}
+			}
+			var x, y, at, hold float64
+			if _, err := fmt.Sscanf(*touch, "%f,%f@%f+%f", &x, &y, &at, &hold); err != nil {
+				fail(err)
+			}
+			now := time.Since(begin).Seconds()
+			return engine.PointerState{X: int16((x*2 - 1) * 32767), Y: int16((y*2 - 1) * 32767), Pressed: !begin.IsZero() && now >= at && now < at+hold}
+		},
 		Log: func(level int, text string) {
 			if *verbose || level >= 2 {
 				fmt.Printf("core[%d]: %s\n", level, text)
@@ -135,7 +148,7 @@ func main() {
 		av.BaseWidth, av.BaseHeight, av.MaxWidth, av.MaxHeight, av.Aspect, av.FPS, av.SampleRate)
 	fmt.Printf("graphics: %q\n", c.Renderer())
 
-	begin := time.Now()
+	begin = time.Now()
 	next := begin
 	frame := time.Duration(float64(time.Second) / av.FPS)
 	var lastFrames, lastChanges, lastDupes int64

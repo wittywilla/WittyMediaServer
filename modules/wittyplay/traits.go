@@ -82,12 +82,11 @@ var traits = map[string]CoreTraits{
 		Resolution: pick("swanstation_GPU_ResolutionScale", "1", "2", "3", "4")},
 	"mednafen_psx_hw": {GPU: true, Options: map[string]string{"beetle_psx_hw_renderer": "hardware_gl"},
 		Resolution: pick("beetle_psx_hw_internal_resolution", "1x(native)", "2x", "4x", "4x")},
-	// The DS cores read the stylus from the pointer device, and draw in software
-	// if told to, but both are faster and sharper on a graphics card.
-	"melonds": {GPU: true, Options: map[string]string{"melonds_opengl_renderer": "enabled", "melonds_touch_mode": "Touch", "melonds_screen_layout": "Top/Bottom"},
-		Resolution: pick("melonds_opengl_resolution", "1x native (256x192)", "2x native (512x384)", "3x native (768x576)", "4x native (1024x768)")},
-	"desmume": {GPU: true, Options: map[string]string{"desmume_opengl_mode": "enabled", "desmume_pointer_type": "touch", "desmume_pointer_mouse": "enabled", "desmume_screens_layout": "top/bottom"},
-		Resolution: pick("desmume_internal_resolution", "256x192", "512x384", "768x576", "1024x768")},
+	// The DS cores read the stylus from the pointer device. Their software renderers
+	// are all a DS needs, so these need no graphics card at all. melonDS's fast memory
+	// faults on purpose, in a way this runner's process can't recover from.
+	"melonds": {Options: map[string]string{"melonds_touch_mode": "Touch", "melonds_screen_layout": "Top/Bottom", "melonds_jit_fast_memory": "disabled", "melonds_threaded_renderer": "enabled"}},
+	"desmume": {Options: map[string]string{"desmume_pointer_type": "touch", "desmume_pointer_mouse": "enabled", "desmume_screens_layout": "top/bottom", "desmume_opengl_mode": "disabled"}},
 	"azahar": {GPU: true, Options: map[string]string{"citra_enable_touch_touchscreen": "enabled", "citra_enable_mouse_touchscreen": "disabled", "citra_enable_touch_pointer_timeout": "disabled", "citra_layout_option": "default"},
 		Resolution: pick("citra_resolution_factor", "1", "2", "3", "4")},
 	"citra": {GPU: true, Options: map[string]string{"citra_touch_touchscreen": "enabled", "citra_mouse_touchscreen": "disabled", "citra_layout_option": "Default Top-Bottom Screen"},
@@ -112,7 +111,7 @@ func Traits(id string) CoreTraits {
 // to stream well.
 func DefaultResolution(consoleID string) int {
 	switch consoleID {
-	case "n64", "ps1", "ps2", "psp", "dc", "nds":
+	case "n64", "ps1", "ps2", "psp", "dc":
 		return 2
 	}
 	return 1

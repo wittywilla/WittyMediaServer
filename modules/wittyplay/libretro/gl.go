@@ -8,6 +8,7 @@ import (
 
 	"github.com/ebitengine/purego"
 	"github.com/wittywilla/wittyplay/engine"
+	"github.com/wittywilla/wittyplay/ipc"
 )
 
 // glPlatform is the system's half of an OpenGL context: a hidden window on
@@ -121,6 +122,8 @@ type glOut struct {
 	renderer     string
 }
 
+const maxFramebuffer = ipc.MaxDimension
+
 func newGLOut(req glRequest, depth, stencil, flip bool) (*glOut, error) {
 	p, err := newGLPlatform(req)
 	if err != nil {
@@ -165,12 +168,9 @@ func glString(p uintptr) string {
 // resize makes the framebuffer at least this big. The names stay the same, so a
 // core holding them keeps working.
 func (o *glOut) resize(w, h int) error {
-	if w < 1 {
-		w = 1
-	}
-	if h < 1 {
-		h = 1
-	}
+	// Cores may claim a far larger maximum than they ever draw. Anything over this
+	// couldn't reach the server anyway.
+	w, h = min(max(w, 1), maxFramebuffer), min(max(h, 1), maxFramebuffer)
 	if w <= o.w && h <= o.h && o.fbo != 0 {
 		return nil
 	}
@@ -196,7 +196,6 @@ func (o *glOut) resize(w, h int) error {
 	call(f.bindTexture, glTexture2D, uintptr(o.color))
 	call(f.texParameteri, glTexture2D, glTexMinFilter, glNearest)
 	call(f.texParameteri, glTexture2D, glTexMagFilter, glNearest)
-	call(f.bindBuffer, glPixelPackBuffer, 0) // a stray binding would change what TexImage reads? only unpack does, but be tidy
 	call(f.texImage2D, glTexture2D, 0, glRGBA8, uintptr(w), uintptr(h), 0, glRGBA, glUnsignedByte, 0)
 	call(f.bindFramebuffer, glFramebuffer, uintptr(o.fbo))
 	call(f.framebufferTexture2D, glFramebuffer, glColorAttachment0, glTexture2D, uintptr(o.color), 0)

@@ -12,6 +12,7 @@ starts clean.
 |---|---|---|
 | WittyMediaClient | The client apps for desktop, Android, Apple and others (`clients/wittymediaclient`) | In this repository, ready to move |
 | WittyMediaPlayer | The standalone desktop player (`apps/wittymediaplayer`) | Being built |
+| WittyCD | The CD image engine and on-screen CD player (`modules/wittycd`) | Being built |
 | WittySunshine | Finding, pairing with and managing a gaming PC that runs Sunshine | Being built; the name may change |
 | WittyMoonlight | Launching and streaming from that PC with Moonlight | Being built; the name may change |
 | WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |

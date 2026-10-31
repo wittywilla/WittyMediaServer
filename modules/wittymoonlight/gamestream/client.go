@@ -463,9 +463,19 @@ func (r *Rig) StartOnly(ctx context.Context, appID int) error {
 	return err
 }
 
-// Quit ends whatever is running on the PC, and any stream of it.
+// Quit ends whatever is running on the PC, and any stream of it. A PC answers once the game has
+// gone, which can take a while, and it answers nothing else until then.
 func (r *Rig) Quit(ctx context.Context) error {
-	body, err := r.ask(ctx, "/cancel", r.params())
+	if len(r.Cert) == 0 {
+		return ErrNotPaired
+	}
+	c, err := r.pinnedClient(true, r.Cert)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, launchTimeout)
+	defer cancel()
+	body, err := get(ctx, c, r.url("https", r.base()+offsetHTTPS, "/cancel", r.params()), maxAnswer)
 	if err != nil {
 		return err
 	}

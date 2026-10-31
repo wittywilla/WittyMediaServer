@@ -169,6 +169,31 @@ func (m *Manager) ForConsole(c *wittyplay.Console, preferred string) *Core {
 	return nil
 }
 
+// AllForConsole is every core here that can play a console, the one asked for first.
+func (m *Manager) AllForConsole(c *wittyplay.Console, preferred string) []Core {
+	all := m.List()
+	var out []Core
+	add := func(id string) {
+		for _, got := range out {
+			if got.ID == id {
+				return
+			}
+		}
+		for i := range all {
+			if all[i].ID == id {
+				out = append(out, all[i])
+			}
+		}
+	}
+	if preferred != "" {
+		add(preferred)
+	}
+	for _, want := range c.Cores {
+		add(want.ID)
+	}
+	return out
+}
+
 // CanDownload says whether this platform has prebuilt cores to download.
 func CanDownload() bool { return platformPath() != "" }
 

@@ -41,7 +41,7 @@ trip through the app switcher loses nothing.
 | `GET /play/{sid}` | owner | The session |
 | `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
-| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}` |
+| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1 |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}` | admin | Server setup. An app can leave this to the web interface |
 
@@ -148,6 +148,8 @@ JSON text on the `events` data channel or the WebSocket. Ignore types you don't 
 | `rotation` | `turns` | Rotate the picture by this many quarter turns |
 | `avinfo` | `width`, `height`, `aspect`, `fps`, `rate` | The game's timing changed |
 | `shutdown` | | The game ended itself: leave the player |
+| `ended` | `text` | The game stopped: it crashed, stopped responding, or was stopped from elsewhere. `text` says which, for showing to a person |
+| `disc` | `index`, `count` | The disc in the drive changed |
 
 ## The controller as data
 

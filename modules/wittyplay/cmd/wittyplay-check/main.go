@@ -33,7 +33,7 @@ type config struct {
 	jobs, memoryMB, limit, every                              int
 	seconds                                                   float64
 	loadTimeout, hang                                         time.Duration
-	install, smoke, shots, keepGoing, trace                   bool
+	install, smoke, shots, keepGoing, trace, quick            bool
 	options                                                   map[string]string
 	log                                                       *slog.Logger
 }
@@ -59,6 +59,7 @@ func main() {
 	flag.BoolVar(&c.smoke, "smoke", false, "with no games: check that each core opens in the sandboxed runner and refuses junk without crashing")
 	flag.BoolVar(&c.shots, "shots", true, "write each game's last picture, and contact sheets, to the report folder")
 	flag.BoolVar(&c.keepGoing, "continue", false, "skip games already in the report folder's results.jsonl, except those too slow to judge")
+	flag.BoolVar(&c.quick, "quick", false, "only load and play: no state, input or resume checks, for going over a very large library")
 	flag.BoolVar(&c.trace, "trace", false, "write everything each core says, and what it was refused, to trace-*.log in the report folder")
 	flag.StringVar(&opts, "options", "", "core options: key=value,key=value")
 	flag.Usage = func() {

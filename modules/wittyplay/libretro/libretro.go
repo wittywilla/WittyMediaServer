@@ -466,7 +466,9 @@ func onLog(level, format, a0, a1, a2, a3, a4, a5 uintptr) uintptr {
 		c.h.Trace(fmt.Sprintf("log %d: %s", lvl, text))
 	}
 	if lvl >= 2 && lvl >= c.problemLvl && text != "" {
-		c.lastProblem, c.problemLvl = text, lvl
+		// One line: some cores log whole documents.
+		first, _, _ := strings.Cut(text, "\n")
+		c.lastProblem, c.problemLvl = strings.TrimSpace(first), lvl
 	}
 	if c.h.Log != nil {
 		c.h.Log(lvl, text)

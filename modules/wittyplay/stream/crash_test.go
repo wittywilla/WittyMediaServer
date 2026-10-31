@@ -33,13 +33,16 @@ func TestFakeRunner(t *testing.T) {
 		os.Exit(2)
 	}
 	rd := ipc.NewReader(os.Stdin)
-	if _, _, err := rd.Next(); err != nil { // the load command
+	_, first, err := rd.Next() // the load command
+	if err != nil {
 		os.Exit(1)
 	}
-	if mode == "crash-loading" {
+	var load ipc.Load
+	_ = json.Unmarshal(first, &load)
+	if mode == "crash-loading" || (mode == "crash-on-bad" && load.Core == "bad") {
 		crash()
 	}
-	ready, _ := json.Marshal(ipc.Ready{Name: "fake", Width: 16, Height: 16, FPS: 60, SampleRate: 44100})
+	ready, _ := json.Marshal(ipc.Ready{Name: load.Core, Width: 16, Height: 16, FPS: 60, SampleRate: 44100})
 	_ = ipc.Write(os.Stdout, ipc.MsgReady, ready)
 	for {
 		c, _, err := rd.Next()
@@ -108,6 +111,39 @@ func TestCrashWhilePlayingTellsTheViewer(t *testing.T) {
 			}
 			return
 		}
+	}
+}
+
+func TestAGameThatWontLoadTriesTheNextCore(t *testing.T) {
+	m := fakeRunnerManager(t, "crash-on-bad")
+	cleaned := false
+	s, err := m.Start(Options{UserID: 1, ItemID: 7, Title: "Test", Core: "bad", ROM: "fake", SystemDir: t.TempDir(), SaveDir: t.TempDir(),
+		Fallbacks: []CoreChoice{{Core: "bad"}, {Core: "good"}}, Cleanup: func() { cleaned = true }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Info().Core; got != "good" {
+		t.Fatalf("playing on %q", got)
+	}
+	if cleaned {
+		t.Fatal("the unpacked game was removed while it was still needed")
+	}
+	s.Stop()
+	if !cleaned {
+		t.Fatal("the unpacked game should go when the game ends")
+	}
+}
+
+func TestEveryCoreFailingSaysSoAndCleansUp(t *testing.T) {
+	m := fakeRunnerManager(t, "crash-loading")
+	cleaned := 0
+	_, err := m.Start(Options{UserID: 1, ItemID: 7, Title: "Test", Core: "a", ROM: "fake", SystemDir: t.TempDir(), SaveDir: t.TempDir(),
+		Fallbacks: []CoreChoice{{Core: "b"}, {Core: "c"}}, Cleanup: func() { cleaned++ }})
+	if err == nil || !strings.Contains(err.Error(), "emulator crashed") {
+		t.Fatalf("error: %v", err)
+	}
+	if cleaned == 0 {
+		t.Fatal("nothing cleaned up")
 	}
 }
 

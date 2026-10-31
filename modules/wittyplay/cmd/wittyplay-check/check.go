@@ -761,7 +761,7 @@ func checkGame(c *config, j job) (r Result) {
 	var state []byte
 	var after []uint64
 	var stateErr error
-	if !hung && !p.ended() {
+	if !hung && !p.ended() && !c.quick {
 		state, after, stateErr = p.stateCheck(&r, frameTime)
 		p.tracePicture(j, "after-state")
 		if stateErr != nil && !p.ended() {
@@ -909,6 +909,9 @@ func classify(r *Result, state []byte, after []uint64, p *proc) {
 		r.warn("silent")
 	case r.AudioRatio < 0.8 || r.AudioRatio > 1.25:
 		r.warn("audio-rate")
+	}
+	if p.c.quick {
+		return
 	}
 	switch {
 	case r.StateSize == 0:

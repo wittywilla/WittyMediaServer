@@ -399,6 +399,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	g := s.games()
 	corePath := ipc.TestCore
 	var coreOptions map[string]string
+	var fallbacks []stream.CoreChoice
 	if console.ID != wittyplay.TestConsole {
 		core := g.cores.ForConsole(console, s.preferredCores(ctx)[console.ID])
 		if core == nil {
@@ -407,6 +408,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath = core.Path
 		coreOptions = wittyplay.CoreOptions(core.ID)
+		for _, other := range g.cores.AllForConsole(console, core.ID)[1:] {
+			fallbacks = append(fallbacks, stream.CoreChoice{Core: other.Path, Options: wittyplay.CoreOptions(other.ID)})
+		}
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")
@@ -425,7 +429,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
-		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), CoreOptions: coreOptions, Cleanup: cleanup,
+		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), CoreOptions: coreOptions, Fallbacks: fallbacks, Cleanup: cleanup,
 	})
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {

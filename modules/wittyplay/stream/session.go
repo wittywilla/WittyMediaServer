@@ -56,6 +56,17 @@ type Options struct {
 	Quality        string // "" (auto) | low | high
 	CoreOptions    map[string]string
 	Cleanup        func() // runs when the session has ended
+	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
+	// that one core refuses often play on another, and nobody should have to know.
+	Fallbacks []CoreChoice
+
+	keep *keptCleanup
+}
+
+// CoreChoice is a core and the settings it starts with.
+type CoreChoice struct {
+	Core    string
+	Options map[string]string
 }
 
 // Info is what a browser needs to know about a session.
@@ -173,11 +184,44 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 		s.Stop()
 	}
 
+	s, err := m.startOn(opt, len(opt.Fallbacks) > 0)
+	if err == nil || errors.Is(err, ErrBusy) {
+		return s, err
+	}
+	// What the core they would have chosen said is the error worth showing.
+	first := err
+	for i, next := range opt.Fallbacks {
+		m.log.Info("the game would not load; trying the next core", "game", opt.Title, "err", err)
+		try := opt
+		try.Core, try.CoreOptions = next.Core, next.Options
+		last := i == len(opt.Fallbacks)-1
+		if s, err = m.startOn(try, !last); err == nil {
+			return s, nil
+		}
+		if errors.Is(err, ErrBusy) {
+			if !last && opt.Cleanup != nil {
+				opt.Cleanup()
+			}
+			return nil, err
+		}
+	}
+	return nil, first
+}
+
+// startOn starts a game on one core. With more cores to try, a failure leaves the
+// unpacked game in place for the next.
+func (m *Manager) startOn(opt Options, moreToTry bool) (*Session, error) {
 	cfg := m.config()
 	m.mu.Lock()
 	if len(m.sessions) >= cfg.MaxSessions {
 		m.mu.Unlock()
 		return nil, ErrBusy
+	}
+	if moreToTry {
+		final := opt.Cleanup
+		kept := &keptCleanup{run: final}
+		opt.Cleanup = kept.onEnd
+		opt.keep = kept
 	}
 	id := newID()
 	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
@@ -190,7 +234,39 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 		s.cleanup()
 		return nil, err
 	}
+	if opt.keep != nil {
+		opt.keep.commit()
+	}
 	return s, nil
+}
+
+// keptCleanup holds a session's cleanup back until the session is known to have
+// started, so that a failed attempt doesn't remove what the next one needs.
+type keptCleanup struct {
+	mu        sync.Mutex
+	run       func()
+	committed bool
+	ended     bool
+}
+
+func (k *keptCleanup) onEnd() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.ended = true
+	if k.committed && k.run != nil {
+		k.run()
+		k.run = nil
+	}
+}
+
+func (k *keptCleanup) commit() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.committed = true
+	if k.ended && k.run != nil {
+		k.run()
+		k.run = nil
+	}
 }
 
 func (m *Manager) remove(s *Session) {

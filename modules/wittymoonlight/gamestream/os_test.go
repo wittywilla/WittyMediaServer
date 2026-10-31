@@ -1,4 +1,4 @@
-package wittysunshine
+package gamestream
 
 import "runtime"
 

@@ -1,4 +1,4 @@
-package wittysunshine
+package gamestream
 
 import (
 	"bytes"
@@ -15,15 +15,15 @@ import (
 
 // TestRealSunshine runs against a real Sunshine, when one is named:
 //
-//	WITTYSUNSHINE_REAL=127.0.0.1 WITTYSUNSHINE_USER=name WITTYSUNSHINE_PASS=secret go test -run TestRealSunshine -v
+//	WITTYMOONLIGHT_REAL=127.0.0.1 WITTYMOONLIGHT_USER=name WITTYMOONLIGHT_PASS=secret go test -run TestRealSunshine -v
 //
 // It pairs a new identity, which stays on that PC's list of devices afterwards.
 func TestRealSunshine(t *testing.T) {
-	addr := os.Getenv("WITTYSUNSHINE_REAL")
+	addr := os.Getenv("WITTYMOONLIGHT_REAL")
 	if addr == "" {
 		t.Skip("no real Sunshine named")
 	}
-	user, pass := os.Getenv("WITTYSUNSHINE_USER"), os.Getenv("WITTYSUNSHINE_PASS")
+	user, pass := os.Getenv("WITTYMOONLIGHT_USER"), os.Getenv("WITTYMOONLIGHT_PASS")
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	id, err := NewIdentity()
@@ -105,7 +105,7 @@ func TestRealSunshine(t *testing.T) {
 	if game.ID == 0 {
 		game = apps[len(apps)-1]
 	}
-	err = r.Launch(ctx, game.ID)
+	err = r.StartOnly(ctx, game.ID)
 	t.Logf("launch %q: %v", game.Title, err)
 	if err == nil {
 		now, err := r.Status(ctx)
@@ -113,7 +113,7 @@ func TestRealSunshine(t *testing.T) {
 		if err == nil && now.CurrentGame != game.ID {
 			t.Errorf("running %d, wanted %d", now.CurrentGame, game.ID)
 		}
-		if err := r.Launch(ctx, game.ID); !errors.Is(err, ErrBusy) {
+		if err := r.StartOnly(ctx, game.ID); !errors.Is(err, ErrBusy) {
 			t.Errorf("second launch: %v", err)
 		}
 	}

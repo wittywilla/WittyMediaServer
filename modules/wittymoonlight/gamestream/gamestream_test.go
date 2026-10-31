@@ -1,4 +1,4 @@
-package wittysunshine
+package gamestream
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittysunshine/fake"
+	"github.com/wittywilla/wittymoonlight/gamestream/fake"
 	"golang.org/x/net/dns/dnsmessage"
 )
 
@@ -184,13 +184,13 @@ func TestAppsAndArt(t *testing.T) {
 func TestLaunchAndQuit(t *testing.T) {
 	s, r := paired(t)
 	ctx := context.Background()
-	if err := r.Launch(ctx, 7); err != nil {
+	if err := r.StartOnly(ctx, 7); err != nil {
 		t.Fatal(err)
 	}
 	if s.Running() != 7 {
 		t.Errorf("running %d", s.Running())
 	}
-	if err := r.Launch(ctx, 7); !errors.Is(err, ErrBusy) {
+	if err := r.StartOnly(ctx, 7); !errors.Is(err, ErrBusy) {
 		t.Errorf("second launch: %v", err)
 	}
 	info, err := r.Status(ctx)
@@ -204,7 +204,7 @@ func TestLaunchAndQuit(t *testing.T) {
 		t.Error("still running after quit")
 	}
 	var se *StatusError
-	if err := r.Launch(ctx, 12345); !errors.As(err, &se) || se.Code != 404 {
+	if err := r.StartOnly(ctx, 12345); !errors.As(err, &se) || se.Code != 404 {
 		t.Errorf("unknown app: %v", err)
 	}
 }

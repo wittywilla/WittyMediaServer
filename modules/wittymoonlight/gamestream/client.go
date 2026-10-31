@@ -1,7 +1,7 @@
-// Package wittysunshine finds, pairs with and manages a gaming PC running Sunshine,
-// the open-source game stream host. It talks to Sunshine over its network protocols
-// only and contains none of its code, which is GPL-3.0: see docs/GAME-RIGS.md.
-package wittysunshine
+// Package gamestream speaks the protocol a Sunshine server offers to its clients: finding a PC,
+// pairing with it, listing what it offers and starting it. Written from the protocol, and talks
+// over the network only: it contains no Sunshine or Moonlight code. See docs/GAME-RIGS.md.
+package gamestream
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/pem"
 	"encoding/xml"
@@ -38,6 +39,7 @@ const (
 	// How long a question may take. A PC that doesn't answer is usually asleep, and
 	// people are looking at a page while this is asked.
 	questionTimeout = 5 * time.Second
+	launchTimeout   = 40 * time.Second
 )
 
 // Rig is one PC running Sunshine. Cert is the certificate pinned at pairing: once it
@@ -230,6 +232,8 @@ func checkStatus(a answer) error {
 type Info struct {
 	Name        string `xml:"hostname" json:"name"`
 	Version     string `xml:"appversion" json:"version"`
+	GfeVersion  string `xml:"GfeVersion" json:"-"`
+	CodecModes  int    `xml:"ServerCodecModeSupport" json:"-"`
 	UUID        string `xml:"uniqueid" json:"uuid"`
 	MAC         string `xml:"mac" json:"-"`
 	CurrentGame int    `xml:"currentgame" json:"currentGame"`
@@ -363,41 +367,100 @@ func (r *Rig) AppImage(ctx context.Context, id int) (data []byte, ext string, er
 	return nil, "", ErrBadAnswer
 }
 
-// Launch starts an app on the PC, for a Moonlight app to pick up with Resume. The stream
-// keys sent here are thrown away, as this server never streams with them: a client that
-// resumes sends its own. The PC's display settings are left alone (sops=0).
-func (r *Rig) Launch(ctx context.Context, appID int) error {
-	key := make([]byte, 16)
-	if _, err := rand.Read(key); err != nil {
-		return err
-	}
-	keyID := make([]byte, 3)
-	if _, err := rand.Read(keyID); err != nil {
-		return err
-	}
+// StreamOptions are what a stream is asked for. Key and IV protect the stream's input, and are
+// made fresh for each one by whoever is going to receive it.
+type StreamOptions struct {
+	AppID         int
+	Width, Height int
+	FPS           int
+	Key, IV       [16]byte
+	LocalAudio    bool // also play the sound on the PC itself
+}
+
+// Launched is what the PC says when a stream can begin.
+type Launched struct {
+	SessionURL string
+}
+
+func (o StreamOptions) query(r *Rig) url.Values {
 	q := r.params()
-	q.Set("appid", strconv.Itoa(appID))
-	q.Set("mode", "1920x1080x60")
-	q.Set("additionalStates", "1")
-	q.Set("sops", "0")
-	q.Set("rikey", hex.EncodeToString(key))
-	q.Set("rikeyid", strconv.Itoa(int(keyID[0])<<16|int(keyID[1])<<8|int(keyID[2])))
-	q.Set("localAudioPlayMode", "0")
-	q.Set("surroundAudioInfo", "196610")
-	q.Set("remoteControllersBitmap", "0")
-	q.Set("gcmap", "0")
-	body, err := r.ask(ctx, "/launch", q)
-	if err != nil {
-		return err
+	if o.AppID > 0 {
+		q.Set("appid", strconv.Itoa(o.AppID))
 	}
-	var a answer
+	q.Set("mode", fmt.Sprintf("%dx%dx%d", o.Width, o.Height, o.FPS))
+	q.Set("additionalStates", "1")
+	q.Set("sops", "0") // the PC's display settings are left alone
+	q.Set("rikey", hex.EncodeToString(o.Key[:]))
+	// The key's ID is the IV's first four bytes, as a signed number.
+	q.Set("rikeyid", strconv.Itoa(int(int32(binary.BigEndian.Uint32(o.IV[:4])))))
+	local := "0"
+	if o.LocalAudio {
+		local = "1"
+	}
+	q.Set("localAudioPlayMode", local)
+	q.Set("surroundAudioInfo", "196610")
+	q.Set("remoteControllersBitmap", "15")
+	q.Set("gcmap", "15")
+	q.Set("gcpersist", "0")
+	q.Set("corever", "1")
+	return q
+}
+
+// Launch asks the PC to start an app and get ready to stream it.
+func (r *Rig) Launch(ctx context.Context, o StreamOptions) (*Launched, error) {
+	return r.startStream(ctx, "/launch", o)
+}
+
+// Resume asks the PC to stream what it's already running.
+func (r *Rig) Resume(ctx context.Context, o StreamOptions) (*Launched, error) {
+	return r.startStream(ctx, "/resume", o)
+}
+
+func (r *Rig) startStream(ctx context.Context, path string, o StreamOptions) (*Launched, error) {
+	if len(r.Cert) == 0 {
+		return nil, ErrNotPaired
+	}
+	c, err := r.pinnedClient(true, r.Cert)
+	if err != nil {
+		return nil, err
+	}
+	// A game takes a while to start.
+	ctx, cancel := context.WithTimeout(ctx, launchTimeout)
+	defer cancel()
+	body, err := get(ctx, c, r.url("https", r.base()+offsetHTTPS, path, o.query(r)), maxAnswer)
+	if err != nil {
+		return nil, err
+	}
+	var a struct {
+		answer
+		SessionURL string `xml:"sessionUrl0"`
+	}
 	if err := xml.Unmarshal(body, &a); err != nil {
-		return ErrBadAnswer
+		return nil, ErrBadAnswer
 	}
 	if a.Code == 400 && strings.Contains(a.Message, "already running") {
-		return ErrBusy
+		return nil, ErrBusy
 	}
-	return checkStatus(a)
+	if err := checkStatus(a.answer); err != nil {
+		return nil, err
+	}
+	// The address in it is the PC's own view of itself, so only its scheme and port matter
+	// to the stream, and it's checked against the address already allowed.
+	return &Launched{SessionURL: clip(a.SessionURL, 200)}, nil
+}
+
+// StartOnly starts an app for a Moonlight app to pick up with Resume. The stream keys sent
+// here are thrown away, as nothing here will stream with them.
+func (r *Rig) StartOnly(ctx context.Context, appID int) error {
+	o := StreamOptions{AppID: appID, Width: 1920, Height: 1080, FPS: 60}
+	if _, err := rand.Read(o.Key[:]); err != nil {
+		return err
+	}
+	if _, err := rand.Read(o.IV[:]); err != nil {
+		return err
+	}
+	_, err := r.Launch(ctx, o)
+	return err
 }
 
 // Quit ends whatever is running on the PC, and any stream of it.

@@ -124,7 +124,10 @@ func TestRealSunshine(t *testing.T) {
 		t.Errorf("after quit: %+v %v", now, err)
 	}
 
-	// Typing a device's PIN through the web interface, to the pinned certificate.
+	// Typing a device's PIN through the web interface, to the pinned certificate. Sunshine's
+	// web port doesn't answer for a few seconds after a PIN it's still waiting on, which the
+	// wrong one above is.
+	time.Sleep(12 * time.Second)
 	if err := r.SubmitPIN(ctx, user, pass, "1234", ""); !errors.Is(err, ErrNoPending) {
 		t.Errorf("nothing waiting: %v", err)
 	}

@@ -274,6 +274,21 @@ var migrations = []string{
 	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
 	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(user_id, console, kind, key));`,
+	// 17: game rigs: gaming PCs running Sunshine, each with a library of its games. The
+	// certificate here is the rig's own, which isn't secret: this server's key is in a file.
+	`CREATE TABLE IF NOT EXISTS wittysunshine_rigs (
+	   id INTEGER PRIMARY KEY,
+	   library_id INTEGER NOT NULL UNIQUE REFERENCES libraries(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NOT NULL DEFAULT 0,
+	   remote_address TEXT NOT NULL DEFAULT '', allow_public INTEGER NOT NULL DEFAULT 0,
+	   uuid TEXT NOT NULL DEFAULT '', mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
+	   paired_at INTEGER, bridge_host TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+	 CREATE TABLE IF NOT EXISTS wittysunshine_apps (
+	   rig_id INTEGER NOT NULL REFERENCES wittysunshine_rigs(id) ON DELETE CASCADE,
+	   app_id INTEGER NOT NULL, title TEXT NOT NULL, shown INTEGER NOT NULL,
+	   item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
+	   PRIMARY KEY(rig_id, app_id));
+	 CREATE INDEX IF NOT EXISTS wittysunshine_apps_item ON wittysunshine_apps(item_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

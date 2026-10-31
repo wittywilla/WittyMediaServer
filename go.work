@@ -12,4 +12,6 @@ use (
 	./modules/wittyphotos
 	./modules/wittytuner
 	./modules/wittyplay
+	./modules/wittysunshine
+	./modules/wittymoonlight
 )

@@ -29,6 +29,8 @@ COPY modules/wittymodule/go.mod modules/wittymodule/
 COPY modules/wittyphotos/go.mod modules/wittyphotos/
 COPY modules/wittytuner/go.mod modules/wittytuner/
 COPY modules/wittyplay/go.mod modules/wittyplay/go.sum modules/wittyplay/
+COPY modules/wittysunshine/go.mod modules/wittysunshine/go.sum modules/wittysunshine/
+COPY modules/wittymoonlight/go.mod modules/wittymoonlight/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

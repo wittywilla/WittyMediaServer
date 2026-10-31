@@ -145,6 +145,27 @@ func (h *HTTPS) Apply(cfg HTTPSConfig) error {
 	return nil
 }
 
+// TLSConfig is for another port of this server that serves the same names, or nil while the
+// HTTPS port is off or has no certificate.
+func (h *HTTPS) TLSConfig() *tls.Config {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	switch {
+	case h.acme != nil:
+		m, domain := h.acme, h.cfg.Domain
+		return &tls.Config{MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}, GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			if hello.ServerName != domain {
+				return nil, errors.New("unknown name")
+			}
+			return m.GetCertificate(hello)
+		}}
+	case h.file != nil:
+		f := h.file
+		return &tls.Config{MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}, GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) { return f.get() }}
+	}
+	return nil
+}
+
 func (h *HTTPS) failed(err error) error {
 	h.certErr = err.Error()
 	h.log.Warn("HTTPS is not available", "err", err)

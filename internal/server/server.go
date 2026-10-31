@@ -88,6 +88,8 @@ type Server struct {
 	audioSlots    chan struct{} // audio transcodes running at once
 	gameOnce      sync.Once
 	gameSvc       *gameService
+	rigOnce       sync.Once
+	rigSvc        *rigService
 }
 
 type ctxKey int
@@ -326,6 +328,7 @@ func (s *Server) Handler() http.Handler {
 
 	s.channelRoutes(m)
 	s.gameRoutes(m)
+	s.rigRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

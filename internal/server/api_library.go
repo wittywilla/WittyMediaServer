@@ -135,6 +135,10 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	if cur, err := s.Store.Library(r.Context(), id); err == nil && cur.IsRig() {
+		writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs.")
+		return
+	}
 	if err := s.validateLibrary(&b); err != nil {
 		writeErr(w, 400, err.Error())
 		return

@@ -307,6 +307,51 @@ func TestNobodyReachesSomeoneElsesGameData(t *testing.T) {
 	}
 }
 
+// A page or an app can't add a header to an <img> or a download link, so a sign-in in the
+// address opens these, and only these, and only for reading.
+func TestASignInInTheAddressOpensOnlyPicturesAndDownloads(t *testing.T) {
+	g := newGameServer(t)
+	defer g.s.StopGames()
+	id := g.aGame(t, "one.wittytest")
+	item := "/api/games/" + strconv.FormatInt(id, 10)
+	if w := g.raw("PUT", item+"/saves/1/file", g.other, []byte("a state")); w.Code != 200 {
+		t.Fatalf("%d", w.Code)
+	}
+	if w := g.raw("PUT", item+"/battery", g.other, []byte("a save")); w.Code != 200 {
+		t.Fatalf("%d", w.Code)
+	}
+	w := g.raw("POST", "/api/game-bezels?name=a.png", g.other, aPNG(t, 4, 4))
+	if w.Code != 201 {
+		t.Fatalf("%d", w.Code)
+	}
+	var added struct {
+		ID int64 `json:"id"`
+	}
+	jsonBody(t, w, &added)
+	q := "?token=" + g.other
+	for _, path := range []string{item + "/saves/1/file", item + "/battery", "/api/game-bezels/" + strconv.FormatInt(added.ID, 10)} {
+		if w := g.raw("GET", path+q, "", nil); w.Code != 200 {
+			t.Errorf("GET %s with a token in the address: %d", path, w.Code)
+		}
+		// A wrong one opens nothing, and nor does another person's.
+		if w := g.raw("GET", path+"?token=nonsense", "", nil); w.Code != 401 {
+			t.Errorf("GET %s with a made up token: %d", path, w.Code)
+		}
+	}
+	if w := g.raw("GET", item+"/saves/1/file?token="+g.kid, "", nil); w.Code != 404 {
+		t.Errorf("another person's token opened a save: %d", w.Code)
+	}
+	for _, c := range []struct{ method, path string }{
+		{"PUT", item + "/saves/1/file"}, {"PUT", item + "/battery"}, {"DELETE", item + "/saves/1"},
+		{"DELETE", "/api/game-bezels/" + strconv.FormatInt(added.ID, 10)}, {"GET", item + "/saves"}, {"GET", item + "/meta"},
+		{"GET", item + "/cheats"}, {"GET", "/api/games/settings"}, {"PUT", "/api/games/settings"},
+	} {
+		if w := g.raw(c.method, c.path+q, "", []byte("{}")); w.Code != 401 {
+			t.Errorf("%s %s with a token in the address: %d, want 401", c.method, c.path, w.Code)
+		}
+	}
+}
+
 func TestSlotNumbersOnlyEverNameTheirOwnFile(t *testing.T) {
 	g := newGameServer(t)
 	defer g.s.StopGames()

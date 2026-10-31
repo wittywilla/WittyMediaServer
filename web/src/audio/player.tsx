@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, getPrefs, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../api'
+import { reportMediaError } from '../errorReport'
 import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop, IconVisualizer } from '../icons'
 import { Placeholder } from '../components/common'
 import { setSpeed, SPEEDS } from '../player/Controls'
@@ -426,7 +427,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           if (cdOn.current) { cd.onError(); return }
           if (!live || !current || !audio.current?.getAttribute('src')) return
           if (wasPlaying.current) { reconnect(); return }
-          const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`) }
+          const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`); if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`) }
           if (current.radio?.hls) { fail(); return }
           // A station added by its address may have turned out to be HLS just now.
           api.get<Item>(`/radio/${current.id}`).then((r) => {

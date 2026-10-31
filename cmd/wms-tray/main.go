@@ -22,6 +22,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 )
@@ -42,7 +43,7 @@ type launcher struct {
 	configFile string
 	cmd        *exec.Cmd
 	stdin      io.WriteCloser
-	logFile    *os.File
+	logFile    *serverOutput
 	running    bool
 	healthy    bool
 	wantRun    bool
@@ -211,16 +212,10 @@ func (l *launcher) start() {
 	if l.running {
 		return
 	}
-	f, err := os.OpenFile(l.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	f, err := openServerOutput(l.logPath)
 	if err != nil {
 		l.lastErr = err.Error()
 		return
-	}
-	// Keep the log from growing without bound.
-	if st, _ := f.Stat(); st != nil && st.Size() > 20<<20 {
-		f.Close()
-		_ = os.Rename(l.logPath, l.logPath+".1")
-		f, _ = os.OpenFile(l.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	}
 	args := []string{"serve", "-data", l.dataDir, "-listen", l.listen, "-watch-stdin"}
 	if l.configFile != "" {
@@ -230,6 +225,7 @@ func (l *launcher) start() {
 	cmd.Dir = filepath.Dir(l.exe)
 	cmd.Stdout = f
 	cmd.Stderr = f
+	cmd.WaitDelay = 5 * time.Second // something it left behind holding stderr mustn't hide that it ended
 	hideWindow(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -259,6 +255,9 @@ func (l *launcher) start() {
 				l.lastErr = lastLogLine(l.logPath)
 			}
 			if l.logFile != nil {
+				if err != nil && !updated {
+					fmt.Fprintf(l.logFile, "--- tray: the server stopped at %s: %s ---\n", time.Now().Format(time.RFC3339), logging.ExitReason(err))
+				}
 				l.logFile.Close()
 				l.logFile = nil
 			}
@@ -291,6 +290,67 @@ func (l *launcher) start() {
 		}
 	}(cmd)
 	l.refreshLocked()
+}
+
+// serverOutput is the file the server's own output goes to while the tray runs it.
+// It starts over in a second file at a size, so a server that runs for months
+// can't fill the disk with it: at most twice serverOutputMax.
+type serverOutput struct {
+	path string
+	mu   sync.Mutex
+	f    *os.File
+	size int64
+}
+
+const serverOutputMax = 20 << 20
+
+func openServerOutput(path string) (*serverOutput, error) {
+	o := &serverOutput{path: path}
+	return o, o.open()
+}
+
+func (o *serverOutput) open() error {
+	f, err := os.OpenFile(o.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	o.f, o.size = f, 0
+	if st, err := f.Stat(); err == nil {
+		o.size = st.Size()
+	}
+	return nil
+}
+
+func (o *serverOutput) Write(b []byte) (int, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.size+int64(len(b)) > serverOutputMax && o.f != nil {
+		o.f.Close()
+		o.f = nil
+		_ = os.Rename(o.path, o.path+".1")
+	}
+	if o.f == nil {
+		if err := o.open(); err != nil {
+			return len(b), nil // what the server says isn't worth stopping it for
+		}
+	}
+	n, err := o.f.Write(b)
+	o.size += int64(n)
+	if err != nil {
+		return len(b), nil
+	}
+	return n, nil
+}
+
+func (o *serverOutput) Close() error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.f == nil {
+		return nil
+	}
+	err := o.f.Close()
+	o.f = nil
+	return err
 }
 
 // relaunchTray starts the updated tray app with the same arguments.

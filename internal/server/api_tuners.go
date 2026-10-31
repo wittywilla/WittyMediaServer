@@ -12,6 +12,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
 
@@ -305,11 +306,11 @@ func (s *Server) handleRefreshEPGSource(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, "bad id")
 		return
 	}
-	go func() {
+	logging.Go("guide refresh", func() {
 		if err := s.TV.FetchSource(context.WithoutCancel(r.Context()), id); err != nil {
-			s.Log.Info("guide source", "cat", "tv", "err", err)
+			s.Log.WarnContext(r.Context(), "guide refresh failed", "cat", "tv", "source", id, "err", err)
 		}
-	}()
+	}, "cat", "tv")
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -332,7 +333,7 @@ func (s *Server) tunerRows(ctx context.Context, r *http.Request) []guideChannel 
 	}
 	list, err := s.TV.GuideChannels(ctx)
 	if err != nil {
-		s.Log.Warn("guide", "err", err)
+		s.Log.WarnContext(ctx, "could not read the guide's channels", "cat", "tv", "err", err)
 		return nil
 	}
 	alts := livetv.Alternatives(list, s.silentChannel)
@@ -357,7 +358,7 @@ func (s *Server) tunerProgrammes(ctx context.Context, row *guideChannel, from, t
 	}
 	list, err := s.TV.Guide(ctx, c, from, to)
 	if err != nil {
-		s.Log.Warn("guide", "channel", row.Name, "err", err)
+		s.Log.WarnContext(ctx, "could not read a channel's guide", "cat", "tv", "channel", row.Name, "err", err)
 		return out
 	}
 	for _, p := range list {
@@ -485,7 +486,8 @@ func (s *Server) ensureTunerLive(r *http.Request, id int64) (*hls.LiveSession, e
 	minutes := s.tvSettingInt(r.Context(), "tvTunerBufferMin")
 	// A stream that fails to open right away gives the viewer a clear answer,
 	// rather than a player waiting for segments that will never come.
-	octx, ocancel := context.WithCancel(context.Background())
+	session := logging.NewID("tv")
+	octx, ocancel := context.WithCancel(logging.WithSession(context.Background(), session))
 	opened, err := s.TV.Open(octx, id)
 	if err != nil {
 		ocancel()
@@ -494,13 +496,13 @@ func (s *Server) ensureTunerLive(r *http.Request, id int64) (*hls.LiveSession, e
 	s.silentCheck(opened)
 	first := opened
 	spec := hls.LiveSpec{
-		ID: key, Quality: q, MaxHeight: h, Preset: preset, WindowSec: float64(minutes * 60),
+		ID: key, LogSession: session, Quality: q, MaxHeight: h, Preset: preset, WindowSec: float64(minutes * 60),
 		Feed: func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
 			o := first
 			first = nil
 			if o == nil {
 				var err error
-				if o, err = s.TV.Open(ctx, id); err != nil {
+				if o, err = s.TV.Open(logging.WithSession(ctx, session), id); err != nil {
 					return nil, err
 				}
 			}

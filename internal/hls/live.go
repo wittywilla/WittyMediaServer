@@ -6,16 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Live sessions: a rolling stream for TV channels and tuners. A session asks
@@ -52,7 +53,9 @@ type LiveFeed func(ctx context.Context, at time.Time) (*LiveInput, error)
 
 // LiveSpec describes a live session.
 type LiveSpec struct {
-	ID         string
+	ID string
+	// LogSession is the session it logs under; "" = its ID.
+	LogSession string
 	Feed       LiveFeed
 	SegmentSec float64 // default 4
 	WindowSec  float64 // how much stays available for pausing and rewinding; default 300
@@ -79,6 +82,7 @@ type LiveSession struct {
 	Dir  string
 
 	m      *Manager
+	log    *slog.Logger
 	mu     sync.Mutex
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -137,7 +141,7 @@ func (m *Manager) liveSweep() {
 // EnsureLive returns the running session with this id, starting one if
 // needed. Live sessions count against the transcode limit.
 func (m *Manager) EnsureLive(spec LiveSpec) (*LiveSession, error) {
-	m.live.once.Do(func() { go m.liveSweep() })
+	m.live.once.Do(func() { logging.Loop("live sweep", m.liveSweep, "cat", "transcode") })
 	m.live.mu.Lock()
 	defer m.live.mu.Unlock()
 	if m.live.sessions == nil {
@@ -152,8 +156,15 @@ func (m *Manager) EnsureLive(spec LiveSpec) (*LiveSession, error) {
 	}
 	s := m.newLive(spec)
 	m.live.sessions[spec.ID] = s
-	go s.loop()
+	logging.Go("live stream", s.loop, "cat", "transcode", "session", s.logID())
 	return s, nil
+}
+
+func (s *LiveSession) logID() string {
+	if s.Spec.LogSession != "" {
+		return s.Spec.LogSession
+	}
+	return s.Spec.ID
 }
 
 func (m *Manager) newLive(spec LiveSpec) *LiveSession {
@@ -168,10 +179,14 @@ func (m *Manager) newLive(spec LiveSpec) *LiveSession {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	dir := filepath.Join(m.root, "live-"+safeName(spec.ID))
-	_ = os.RemoveAll(dir)
-	_ = os.MkdirAll(dir, 0o755)
-	return &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), anonAt: time.Now().Add(-viewerStale), target: spec.SegmentSec,
+	s := &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), anonAt: time.Now().Add(-viewerStale), target: spec.SegmentSec,
 		failed: make(chan struct{}), ready: make(chan struct{})}
+	s.log = m.sessionLog(s.logID())
+	_ = os.RemoveAll(dir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		s.log.Warn("could not make the stream's folder", "dir", dir, "err", err)
+	}
+	return s
 }
 
 // GetLive returns a running session, or nil.
@@ -232,14 +247,16 @@ func (s *LiveSession) stop() {
 		s.Spec.OnStop()
 	}
 	// FFmpeg may need a moment to let go of its files, on Windows above all.
-	go func() {
+	logging.Go("live cleanup", func() {
+		var err error
 		for i := 0; i < 20; i++ {
-			if os.RemoveAll(s.Dir) == nil {
+			if err = os.RemoveAll(s.Dir); err == nil {
 				return
 			}
 			time.Sleep(250 * time.Millisecond)
 		}
-	}()
+		s.log.Warn("could not remove a stream's segments", "dir", s.Dir, "err", err)
+	}, "cat", "transcode", "session", s.logID())
 }
 
 // Touch records that someone is still watching.
@@ -297,6 +314,7 @@ func (m *Manager) LeaveLive(id, viewer string) {
 	delete(s.viewers, viewer)
 	s.mu.Unlock()
 	time.AfterFunc(leaveGrace, func() {
+		defer logging.Recover("live leave", "cat", "transcode", "session", s.logID())
 		if !s.watched() && m.GetLive(id) == s {
 			m.StopLive(id)
 		}
@@ -312,11 +330,15 @@ func (s *LiveSession) Err() error {
 
 func (s *LiveSession) fail(err error) {
 	s.mu.Lock()
-	if s.err == nil {
+	first := s.err == nil
+	if first {
 		s.err = err
 		close(s.failed)
 	}
 	s.mu.Unlock()
+	if first {
+		s.log.Warn("live stream failed", "err", err)
+	}
 }
 
 // WaitReady blocks until there is something to play, the session fails or
@@ -387,6 +409,7 @@ func (s *LiveSession) loop() {
 				s.fail(err)
 				return
 			}
+			s.log.Debug("trying the stream again", "retries", retries, "err", err)
 			select {
 			case <-s.ctx.Done():
 				return
@@ -416,6 +439,7 @@ func (m *Manager) forgetFailed(s *LiveSession) {
 		return
 	}
 	time.AfterFunc(10*time.Second, func() {
+		defer logging.Recover("live cleanup", "cat", "transcode", "session", s.logID())
 		m.live.mu.Lock()
 		if m.live.sessions[s.Spec.ID] == s {
 			delete(m.live.sessions, s.Spec.ID)
@@ -434,7 +458,7 @@ func (m *Manager) burstSupported() bool {
 	readrateOnce.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if out, err := ffmpeg.Command(ctx, m.tools.FFmpeg, "-hide_banner", "-h", "long").Output(); err == nil {
+		if out, _, err := ffmpeg.Run(ctx, m.tools.FFmpeg, []string{"-hide_banner", "-h", "long"}); err == nil {
 			hasBurst = strings.Contains(string(out), "readrate_initial_burst")
 		}
 	})
@@ -538,36 +562,26 @@ func nostdinOff(args []string) []string {
 	return args
 }
 
-// Hidden from the log: a stream address can carry a login.
-var urlCreds = regexp.MustCompile(`([a-z0-9+]+://)[^/@\s]+@`)
-
-func redactArgs(args []string) string {
-	out := make([]string, len(args))
-	for i, a := range args {
-		if i > 0 && args[i-1] == "-headers" {
-			a = "(hidden)"
-		}
-		out[i] = urlCreds.ReplaceAllString(a, "$1(hidden)@")
-	}
-	return strings.Join(out, " ")
-}
-
 func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error {
 	args := s.liveArgs(in, run, burst)
 	cmd := ffmpeg.Command(ctx, s.m.tools.FFmpeg, args...)
-	var stderr tailBuffer
+	var stderr logging.Tail
 	cmd.Stderr = &stderr
 	if in.Stdin != nil {
 		cmd.Stdin = in.Stdin
 		// The copy to FFmpeg's input can block on a silent tuner; do not wait for it.
 		cmd.WaitDelay = 3 * time.Second
 	}
-	s.m.log.Info("ffmpeg start", "cat", "ffmpeg", "live", s.Spec.ID, "run", run, "args", redactArgs(args))
+	cmdline := ffmpeg.RedactArgs(args)
+	s.log.Info("live transcode started", "run", run, "copy", in.CopyVideo, "slate", in.Slate)
+	s.log.Debug("ffmpeg command", "args", cmdline)
+	started := time.Now()
 	if err := cmd.Start(); err != nil {
+		s.log.Error("ffmpeg could not start", "reason", logging.ExitReason(err), "err", err, "args", cmdline)
 		return err
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	logging.Go("ffmpeg wait", func() { done <- cmd.Wait() }, "cat", "transcode", "session", s.logID())
 	r := &liveRun{n: run, playlist: filepath.Join(s.Dir, fmt.Sprintf("r%05d.m3u8", run))}
 	tick := time.NewTicker(250 * time.Millisecond)
 	defer tick.Stop()
@@ -575,6 +589,7 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 		select {
 		case err := <-done:
 			s.readRun(r)
+			logging.ChildExit(s.log, "ffmpeg", err, ctx.Err() != nil, &stderr, started, "run", run, "args", cmdline)
 			if ctx.Err() != nil {
 				return nil
 			}

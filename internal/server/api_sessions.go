@@ -128,8 +128,8 @@ func (s *Server) handleTwoFactorConfirm(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, err.Error())
 		return
 	}
-	_ = s.Auth.EndSessions(r.Context(), u.ID, currentToken(r))
-	s.Log.Info("two-factor sign-in turned on", "cat", "signin", "name", u.Name)
+	s.endSessions(r, u.ID, currentToken(r))
+	s.Log.InfoContext(r.Context(), "two-factor sign-in turned on", "cat", "auth", "name", u.Name)
 	writeJSON(w, 200, map[string]any{"recovery": codes})
 }
 
@@ -157,7 +157,7 @@ func (s *Server) handleTwoFactorDisable(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.Info("two-factor sign-in turned off", "cat", "signin", "name", u.Name)
+	s.Log.InfoContext(r.Context(), "two-factor sign-in turned off", "cat", "auth", "name", u.Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -182,7 +182,7 @@ func (s *Server) handleUserTwoFactorReset(w http.ResponseWriter, r *http.Request
 		writeErr(w, 500, err.Error())
 		return
 	}
-	_ = s.Auth.EndSessions(r.Context(), id, "")
-	s.Log.Info("two-factor sign-in reset by an administrator", "cat", "signin", "name", target.Name, "by", userFrom(r).Name)
+	s.endSessions(r, id, "")
+	s.Log.WarnContext(r.Context(), "two-factor sign-in reset by an administrator", "cat", "auth", "name", target.Name, "user", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

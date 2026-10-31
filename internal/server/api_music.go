@@ -10,6 +10,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Music and audiobooks: albums (or books), artists (or authors), the
@@ -137,9 +138,15 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
 	cmd := ffmpeg.Command(r.Context(), s.Tools.FFmpeg, args...)
 	cmd.Stdout = &stallWriter{w: w, rc: http.NewResponseController(w), limit: maxStreamStall}
+	var stderr logging.Tail
+	cmd.Stderr = &stderr
 	w.Header().Set("Content-Type", "audio/aac")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-WMS-Transcoded", "1")
-	s.Log.Info("audio transcode", "cat", "playback", "item", it.ID, "codec", it.VideoCodec, "start", start)
-	_ = cmd.Run() // ends when the file is done or the listener disconnects
+	session := logging.NewID("audio")
+	s.Log.InfoContext(r.Context(), "audio transcode started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "codec", it.VideoCodec, "start", start)
+	started := time.Now()
+	err = cmd.Run() // ends when the file is done or the listener disconnects
+	// The headers have gone out, so this record is all that's left of a failure.
+	logging.ChildExit(s.Log.With("cat", "transcode", "session", session), "ffmpeg", err, r.Context().Err() != nil, &stderr, started, "item", it.ID, "file", it.Path)
 }

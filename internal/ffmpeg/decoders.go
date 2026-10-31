@@ -23,7 +23,7 @@ func (t *Tools) CanDecode(name string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	set := map[string]bool{}
-	if out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-decoders").Output(); err == nil {
+	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-decoders"}); err == nil {
 		for k := range parseDecoders(string(out)) {
 			set[k] = true
 		}

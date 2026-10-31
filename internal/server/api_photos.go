@@ -219,7 +219,7 @@ func (s *Server) serveThumb(w http.ResponseWriter, r *http.Request, it *library.
 	p, err := s.Scanner.Thumb(r.Context(), it, width)
 	if err != nil {
 		if r.Context().Err() == nil {
-			s.Log.Info("thumbnail failed", "cat", "library", "item", it.ID, "err", err)
+			s.Log.WarnContext(r.Context(), "could not make a thumbnail", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		}
 		writeErr(w, 415, "this picture could not be read")
 		return
@@ -601,7 +601,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 			if errors.As(err, &bad) {
 				res.Err = bad.Error()
 			} else {
-				s.Log.Warn("upload", "err", err)
+				s.Log.WarnContext(r.Context(), "could not save an upload", "cat", "library", "library", lib.ID, "file", res.Name, "err", err)
 				res.Err = "could not be saved"
 			}
 		} else {

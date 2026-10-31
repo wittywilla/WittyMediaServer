@@ -240,7 +240,7 @@ func TestLiveArgs(t *testing.T) {
 }
 
 func TestRedactArgs(t *testing.T) {
-	got := redactArgs([]string{"-headers", "Authorization: Basic abc", "-i", "http://me:secret@host/x"})
+	got := ffmpeg.RedactArgs([]string{"-headers", "Authorization: Basic abc", "-i", "http://me:secret@host/x"})
 	if strings.Contains(got, "secret") || strings.Contains(got, "abc") {
 		t.Fatalf("logged a login: %s", got)
 	}

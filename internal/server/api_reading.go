@@ -95,6 +95,7 @@ func (s *Server) handleBookSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	zr, done, err := library.OpenArchive(it.Path)
 	if err != nil {
+		s.Log.WarnContext(r.Context(), "could not open a book", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		writeErr(w, 500, "cannot open this book")
 		return
 	}
@@ -134,6 +135,9 @@ func (s *Server) handleDictionary(w http.ResponseWriter, r *http.Request) {
 	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.dictionaryapi.dev/api/v2/entries/en/"+url.PathEscape(word), nil)
 	res, err := library.SafeClient.Do(req)
 	if err != nil {
+		if r.Context().Err() == nil {
+			s.Log.WarnContext(r.Context(), "could not reach the dictionary", "err", err)
+		}
 		writeErr(w, 502, "the dictionary did not answer")
 		return
 	}

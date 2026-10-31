@@ -15,6 +15,7 @@ if (location.protocol === 'file:') {
     recent: () => ipcRenderer.invoke('recent'),
     open: (server) => ipcRenderer.invoke('open-server', server),
     redeem: (url, code) => ipcRenderer.invoke('redeem', url, code),
+    openLogs: () => ipcRenderer.send('open-logs'),
   })
 } else {
   contextBridge.exposeInMainWorld('wittyClient', {

@@ -320,6 +320,7 @@ func (d *dvb) Scan(ctx context.Context, _ ScanOptions, progress func(Progress)) 
 		}
 		r, err := d.openTuned(ctx, t, 3*time.Second)
 		if errors.Is(err, errNoLock) {
+			d.env.logger().DebugContext(ctx, "no signal on this frequency", "topic", "tuner", "mhz", float64(t.Frequency)/1e6)
 			continue
 		}
 		if err != nil {

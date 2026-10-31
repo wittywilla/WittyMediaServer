@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -199,7 +200,7 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 	metaEdit := b.Title != nil || b.Year != nil || b.Overview != nil || b.Genres != nil || b.Poster != nil || b.Backdrop != nil || b.Refresh || b.TVDBID != ""
 	if metaEdit && s.saveMeta(r) {
 		if err := s.Scanner.SaveShowMetadata(ctx, sh); err != nil {
-			s.Log.Warn("save show metadata", "show", sh.Title, "err", err)
+			s.Log.WarnContext(ctx, "could not save metadata beside the media", "cat", "library", "show", sh.Title, "err", err)
 		}
 	}
 	if err := s.Store.UpsertShow(ctx, sh); err != nil {
@@ -436,7 +437,7 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"tvdb":        s.DB.GetSetting(ctx, "tvdbKey", "") != "",
 		"tmdb":        s.DB.GetSetting(ctx, "tmdbKey", "") != "",
 		"maxSpeed":    maxSpeed(s.DB.GetSetting(ctx, "maxSpeed", "4")),
-		"clientLogs":  s.Logs != nil && s.Logs.On("client"),
+		"clientLogs":  s.Logs != nil && s.Logs.Accepts("clients", slog.LevelWarn),
 		"shareLinks":  s.DB.GetSetting(ctx, "shareLinks", "1") == "1",
 		"uploads":     s.DB.GetSetting(ctx, "uploads", "1") == "1",
 		"visualizer":  s.Modules == nil || s.Modules.Installed("wittyvisualizer"),

@@ -1,16 +1,18 @@
 package ffmpeg
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // HWEncoder describes a hardware H.264 encoder WittyMediaServer can use.
@@ -56,12 +58,15 @@ const vaapiDevice = "/dev/dri/renderD128"
 // asks: on a small machine every test is a process that starts up, looks for
 // a device and fails.
 func (t *Tools) StartHardwareProbe() {
-	hw.once.Do(func() { go t.ProbeHardware(context.Background()) })
+	hw.once.Do(func() {
+		logging.Go("hardware encoder test", func() { t.ProbeHardware(context.Background()) }, "cat", "transcode")
+	})
 }
 
 // ProbeHardware test-encodes a few frames with every compiled hardware
 // encoder.
 func (t *Tools) ProbeHardware(ctx context.Context) {
+	log := slog.Default().With("cat", "transcode")
 	for _, e := range HWEncoders {
 		st := &HWStatus{HWEncoder: e, Compiled: t.Encoders[e.Name]}
 		if st.Compiled && !(e.Vendor == "apple" && runtime.GOOS != "darwin") && !(e.Vendor == "vaapi" && runtime.GOOS != "linux" && runtime.GOOS != "freebsd") {
@@ -78,12 +83,18 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 			args = append(args, "-f", "null", "-")
 			cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			cmd := Command(cctx, t.FFmpeg, args...)
-			var stderr bytes.Buffer
+			var stderr logging.Tail
 			cmd.Stderr = &stderr
+			started := time.Now()
 			err := cmd.Run()
 			cancel()
+			// FFmpeg lists encoders this machine has no hardware for, so most of
+			// these failing says nothing is wrong: the details are only a debug line.
+			logging.ChildExit(log, "ffmpeg", err, true, &stderr, started, "encoder", e.Name)
 			st.Tested, st.Working = true, err == nil
-			if err != nil {
+			if err == nil {
+				log.Info("hardware encoder works", "encoder", e.Name)
+			} else {
 				msg := strings.TrimSpace(stderr.String())
 				if i := strings.LastIndex(msg, "\n"); i > 0 && len(msg) > 300 {
 					msg = msg[i+1:]
@@ -92,6 +103,7 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 					msg = msg[:300]
 				}
 				st.Error = msg
+				log.Info("hardware encoder can't be used", "encoder", e.Name, "err", msg)
 			}
 		}
 		hw.mu.Lock()

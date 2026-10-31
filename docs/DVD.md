@@ -135,7 +135,7 @@ programs, decoy titles, broken IFOs with an intact backup, menus in only some la
 
 ## Diagnosing a disc
 
-The `wms` command-line tool inspects a disc without the web interface:
+The easy way is *Settings → [WittyDiagnoser](DIAGNOSER.md)*: it checks a disc and makes a report to attach, with nothing copyrighted in it. The `wms` command-line tool inspects a disc without the web interface:
 
 ```bash
 wms dvd info  SHREK_2.ISO               # titles, menus, languages, first-play program

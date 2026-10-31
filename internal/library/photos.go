@@ -83,8 +83,10 @@ const motionClipMax = 40 << 20
 
 func discoverPhotos(root string) ([]candidate, error) {
 	var out []candidate
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil // unreadable folders are skipped, not fatal
 		}
 		name := d.Name()
@@ -113,7 +115,7 @@ func discoverPhotos(root string) ([]candidate, error) {
 		out = append(out, candidate{path: p, kind: kind, size: st.Size(), mtime: st.ModTime().Unix()})
 		return nil
 	})
-	return pairPhotos(out), err
+	return pairPhotos(out), bad.with(err)
 }
 
 // pairPhotos folds what belongs together: a RAW file with the JPEG the camera
@@ -261,6 +263,8 @@ func (s *Scanner) readPhoto(ctx context.Context, it *Item, m *photoMeta) {
 			m.Lat, m.Lon, m.Alt, m.AltSet = &la, &lo, in.Alt, true
 		}
 		it.Width, it.Height = in.Width, in.Height
+	} else {
+		s.Log.DebugContext(ctx, "no details read from a photo", "file", it.Path, "err", err)
 	}
 	if w, h := photos().Dimensions(it.Path); w > 0 {
 		it.Width, it.Height = w, h // the picture's own header beats EXIF, which editors leave stale
@@ -286,6 +290,7 @@ func (s *Scanner) videoDate(ctx context.Context, it *Item, m *photoMeta) {
 	defer cancel()
 	p, err := s.Tools.ProbeFile(pctx, it.Path)
 	if err != nil {
+		s.minorFailure(ctx, "could not read a file's details", err, "file", it.Path)
 		return
 	}
 	for k, v := range p.Format.Tags {

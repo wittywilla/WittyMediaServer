@@ -128,7 +128,10 @@ func (s *Session) textEvents(pl *wittybluray.Playlist, pi playedItem, st *wittyb
 	key := fmt.Sprintf("%s-%x", clip, st.PID)
 	cues, ok := s.textCues[key]
 	if !ok {
-		cues, _ = s.disc.TextSubtitles(clip, st.PID, st.CharCode)
+		var err error
+		if cues, err = s.disc.TextSubtitles(clip, st.PID, st.CharCode); err != nil {
+			s.log.Warn("a subtitle track can't be read", "clip", clip, "err", err)
+		}
 		if s.textCues == nil {
 			s.textCues = map[string][]wittybluray.TextCue{}
 		}

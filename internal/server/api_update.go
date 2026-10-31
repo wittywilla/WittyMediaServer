@@ -24,7 +24,7 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "updates are not available in this build")
 		return
 	}
-	writeJSON(w, 200, s.Update.Check(r.Context(), time.Minute))
+	writeJSON(w, 200, s.Update.Check(r.Context(), time.Minute)) // a failed check is logged by the updater
 }
 
 // POST /api/update/apply: download, verify and install the newest release,
@@ -35,9 +35,10 @@ func (s *Server) handleUpdateApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Update.Apply(); err != nil {
+		s.Log.WarnContext(r.Context(), "update refused", "cat", "update", "err", err)
 		writeErr(w, 409, err.Error())
 		return
 	}
-	s.Log.Info("update started", "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "update asked for", "cat", "update", "user", userFrom(r).Name)
 	writeJSON(w, 202, s.Update.Status())
 }

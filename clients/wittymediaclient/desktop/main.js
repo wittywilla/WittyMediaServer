@@ -2,13 +2,14 @@
 // The title bar is our own local page. Below it, the content view shows the
 // connect screen and then the server's web UI, which has no access to Node or
 // to the app beyond reporting its theme colours and asking for Moonlight.
-const { app, BaseWindow, WebContentsView, ipcMain, net, session, shell } = require('electron')
+const { app, BaseWindow, Menu, WebContentsView, clipboard, ipcMain, net, session, shell } = require('electron')
 const os = require('os')
 const path = require('path')
 const { normalizeAddress } = require('./connect/address.js')
 const { judge, judgeMissing, fingerprintOf, newNonce } = require('./identity.js')
 const { startDiscovery } = require('./discover.js')
 const moonlight = require('./moonlight.js')
+const { createClientLog } = require('./clientlog.js')
 const state = require('./state.js')
 
 const TITLE_BAR = 32
@@ -25,6 +26,66 @@ let win, bar, content
 let server = '' // the origin the content view may show
 let lastServer = ''
 let stopDiscovery = null
+
+const OS_NAMES = { win32: 'Windows', linux: 'Linux', darwin: 'macOS' }
+const DEVICE = `${OS_NAMES[process.platform] || process.platform} ${os.release()} ${process.arch}, Electron ${process.versions.electron}`
+
+// The sign-in stays in the session's cookie, which no page script can read. Only
+// the main process reads it here, to send this app's own reports to that server.
+async function reportTarget() {
+  if (!server) return null
+  const origin = server
+  const cookies = await session.defaultSession.cookies.get({ url: origin, name: SESSION_COOKIE })
+  const token = cookies.length ? cookies[0].value : ''
+  return token ? { origin, token } : null
+}
+
+async function postReport(to, body) {
+  const res = await fetchJson(to.origin + API + '/logs/client', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${to.token}` }, body,
+  })
+  res.text().catch(() => {})
+  return { status: res.status, retryAfter: res.headers.get('retry-after') }
+}
+
+// Only what the main process sees: the server's page reports its own errors.
+const log = createClientLog({
+  dir: path.join(app.getPath('userData'), 'logs'), app: 'WittyMedia desktop', version: app.getVersion(), device: DEVICE,
+  target: reportTarget, post: postReport,
+})
+
+// Carrying on is safe here: a failed window or request is reported where it
+// happens, and these are the ones nobody caught. A failed start ends the app below.
+process.on('uncaughtException', (err) => log.noteError('error', 'crash', 'Uncaught error in the main process', err, { page: 'main process' }))
+process.on('unhandledRejection', (err) => log.noteError('error', 'crash', 'Unhandled rejection in the main process', err, { page: 'main process' }))
+
+function openLogs() {
+  shell.openPath(log.dir)
+    .then((problem) => { if (problem) log.info('app', `The logs folder could not be opened: ${problem}`) })
+    .catch((err) => log.noteError('info', 'app', 'The logs folder could not be opened', err))
+}
+
+function copyDiagnostics() {
+  clipboard.writeText(log.diagnostics([`Connected to a server: ${server ? 'yes' : 'no'}`]))
+}
+
+function showHelpMenu() {
+  Menu.buildFromTemplate([
+    { label: 'Open logs folder', click: openLogs },
+    { label: 'Copy diagnostic info', click: copyDiagnostics },
+  ]).popup({ window: win })
+}
+
+// Everything that can go wrong with a view that the view can't report itself.
+function watchContents(wc, name) {
+  wc.on('render-process-gone', (_e, details) => {
+    if (details.reason === 'clean-exit') return
+    log.error('crash', `The ${name} stopped: ${details.reason}, exit code ${details.exitCode}`, { page: name })
+  })
+  wc.on('unresponsive', () => log.warn('crash', `The ${name} stopped responding`, { page: name }))
+  wc.on('responsive', () => log.info('crash', `The ${name} is responding again`, { page: name }))
+  wc.on('preload-error', (_e, _preload, err) => log.noteError('error', 'crash', `The ${name} failed to prepare`, err, { page: name }))
+}
 
 const isConnectPage = (url) => {
   try { return new URL(url).protocol === 'file:' && path.normalize(decodeURIComponent(new URL(url).pathname)).endsWith(path.join('connect', 'index.html')) } catch { return false }
@@ -74,6 +135,7 @@ function showServer(url) {
   lastServer = server
   bar.webContents.send('server', url)
   content.webContents.loadURL(url)
+  log.kick()
 }
 
 const fetchJson = (url, options) =>
@@ -88,12 +150,17 @@ async function identify(url) {
   try {
     const res = await postJson(url + API + '/identity', { nonce })
     if (res.status === 404) return { state: judgeMissing(url, saved.recent) }
-    if (!res.ok) return { state: 'bad' }
+    if (!res.ok) {
+      log.warn('network', `The identity check was answered with ${res.status}`, { where: url })
+      return { state: 'bad' }
+    }
     const answer = await res.json()
     const result = judge(answer, nonce, url, saved.recent)
+    if (result === 'bad' || result === 'different') log.warn('network', `The server's identity check came back as ${result}`, { where: url })
     if (result === 'bad') return { state: 'bad' }
     return { state: result, serverId: answer.serverId, publicKey: answer.publicKey, fingerprint: fingerprintOf(answer.publicKey) }
-  } catch {
+  } catch (err) {
+    log.noteError('warn', 'network', 'The identity check failed', err, { where: url })
     return { state: 'unreachable' }
   }
 }
@@ -106,14 +173,20 @@ async function probe(url) {
   try {
     const res = await fetchJson(r.url + '/api/status')
     const data = await res.json()
-    if (data.name !== 'WittyMediaServer') return { error: 'not-server' }
+    if (data.name !== 'WittyMediaServer') {
+      log.info('network', 'Something answered that is not a WittyMediaServer', { where: r.url })
+      return { error: 'not-server' }
+    }
     const identity = await identify(r.url)
     return {
       ok: true, url: r.url, version: String(data.version || ''), name: String(data.brandName || data.name),
       setupRequired: data.setupRequired === true,
       identity: { state: identity.state, fingerprint: identity.fingerprint || '' },
     }
-  } catch { return { error: 'unreachable' } }
+  } catch (err) {
+    log.noteError('warn', 'network', 'A server could not be reached', err, { where: r.url })
+    return { error: 'unreachable' }
+  }
 }
 
 // Sign-ins made for the old key must never reach whoever holds the new one.
@@ -141,8 +214,15 @@ async function redeem(url, code) {
       code: String(code), device: `${os.hostname()} (WittyMedia)`.slice(0, 60), platform: process.platform === 'win32' ? 'Windows' : 'Linux',
     })
     data = await res.json()
-  } catch { return { error: 'unreachable' } }
-  if (!res.ok || !data.token) return { message: String(data.error || ''), reason: String(data.reason || '') }
+  } catch (err) {
+    log.noteError('warn', 'network', 'Signing in with a code failed', err, { where: found.url })
+    return { error: 'unreachable' }
+  }
+  if (!res.ok || !data.token) {
+    log.warn('network', `Signing in with a code was refused: ${res.status} ${String(data.reason || '')}`, { where: found.url })
+    return { message: String(data.error || ''), reason: String(data.reason || '') }
+  }
+  log.addSecret(data.token)
   await session.defaultSession.cookies.set({
     url: found.url, name: SESSION_COOKIE, value: data.token, httpOnly: true, sameSite: 'lax',
     secure: found.url.startsWith('https:'), expirationDate: Date.now() / 1000 + SESSION_DAYS * 86400,
@@ -181,8 +261,10 @@ function guardContent(wc) {
   wc.on('will-redirect', stay)
   wc.on('will-attach-webview', (e) => e.preventDefault())
   // A server that can't be reached goes back to the connect screen and says so.
-  wc.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
-    if (isMainFrame && code !== -3 && server) showConnect({ lost: '1' })
+  wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
+    if (!isMainFrame || code === -3) return
+    log.warn('network', `A page failed to load: ${desc} (${code})`, { where: url })
+    if (server) showConnect({ lost: '1' })
   })
   wc.on('enter-html-full-screen', () => { htmlFullScreen = true; layout() })
   wc.on('leave-html-full-screen', () => { htmlFullScreen = false; layout() })
@@ -203,6 +285,8 @@ function createWindow() {
   win.contentView.addChildView(bar)
   win.contentView.addChildView(content)
   guardContent(content.webContents)
+  watchContents(content.webContents, 'page')
+  watchContents(bar.webContents, 'title bar')
   bar.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   bar.webContents.on('will-navigate', (e) => e.preventDefault())
 
@@ -243,6 +327,8 @@ ipcMain.on('discover-start', (e) => {
   stopDiscovery = startDiscovery((servers) => { if (!page.isDestroyed()) page.send('servers', servers) })
 })
 
+ipcMain.on('open-logs', (e) => { if (fromConnect(e)) openLogs() })
+
 // Theme colours from the server's page: checked strictly, since a page decides them.
 ipcMain.on('theme', (e, t) => {
   if (e.sender !== content.webContents || !t) return
@@ -261,12 +347,22 @@ ipcMain.on('window', (e, action) => {
   else if (action === 'maximize') { if (win.isMaximized()) win.unmaximize(); else win.maximize() }
   else if (action === 'close') win.close()
   else if (action === 'change-server') { saved.server = ''; state.save(stateFile(), saved); showConnect() }
+  else if (action === 'help') showHelpMenu()
 })
 
 // One window only: a second launch brings the first to the front.
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus() } })
+  log.info('app', `Started, version ${app.getVersion()}, ${DEVICE}`)
+  // Listening doesn't change the answer: without preventDefault a bad certificate stays refused.
+  app.on('certificate-error', (_e, _wc, url, error, _cert, _done, isMainFrame) => {
+    log.warn('network', `A certificate was refused: ${error}${isMainFrame ? ', for the page itself' : ''}`, { where: url })
+  })
+  app.on('child-process-gone', (_e, details) => {
+    if (details.reason === 'clean-exit') return
+    log.error('crash', `A ${details.type} process stopped: ${details.reason}, exit code ${details.exitCode}${details.name ? `, ${details.name}` : ''}`, { page: 'main process' })
+  })
   app.whenReady().then(() => {
     saved = state.load(stateFile())
     // Pages may go fullscreen and copy text, and the server's own may lock the mouse for a
@@ -275,7 +371,16 @@ else {
     const allowed = (perm, url) => moonlight.permissionAllowed(perm, url, server)
     session.defaultSession.setPermissionRequestHandler((_wc, perm, done, details) => done(allowed(perm, details.requestingUrl)))
     session.defaultSession.setPermissionCheckHandler((_wc, perm, origin) => allowed(perm, origin))
+    // Someone signed in through the server's page: reports waiting can go now.
+    session.defaultSession.cookies.on('changed', (_e, cookie, _cause, removed) => { if (!removed && cookie.name === SESSION_COOKIE) log.kick() })
     createWindow()
+  }).catch((err) => {
+    // There's no window and never will be, and an app with none can't be closed.
+    log.noteError('error', 'crash', 'The app could not start', err, { page: 'main process' })
+    log.drainSync()
+    app.exit(1)
   })
   app.on('window-all-closed', () => app.quit())
+  app.on('before-quit', () => { log.flush() }) // one last try, which may not finish
+  app.on('will-quit', () => log.drainSync())
 }

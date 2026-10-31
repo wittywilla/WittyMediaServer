@@ -1,5 +1,6 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
+import { reportRequestFailure } from './errorReport'
 
 export type User = { id: number; name: string; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
 // A device signed in to an account.
@@ -150,7 +151,7 @@ export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) { super(message) }
 }
 
-async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
@@ -159,14 +160,18 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   try {
     res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
   } catch {
+    reportRequestFailure(method, path, 0, '')
     // The browser's own wording ("Failed to fetch") means nothing to people.
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
   }
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
-  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
-  return data as T
+  if (!res.ok) {
+    reportRequestFailure(method, path, res.status, data?.error || res.statusText, res.headers.get('X-Request-Id'))
+    throw new ApiError(res.status, data?.error || res.statusText, data)
+  }
+  return { text, data }
 }
 
 // A file as the body of a request, for the endpoints that take one.
@@ -186,13 +191,44 @@ export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): 
   if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
   return data as T
 }
+const req = <T>(method: string, path: string, body?: unknown) => send(method, path, body).then((r) => r.data as T)
 
 export const api = {
   get: <T>(p: string) => req<T>('GET', p),
+  text: (p: string) => send('GET', p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
   patch: <T>(p: string, b?: unknown) => req<T>('PATCH', p, b ?? {}),
   del: <T>(p: string) => req<T>('DELETE', p),
+}
+
+// downloadFile saves what the server sends, signed in the same way as any other
+// request, so no token goes in an address. The server's own file name wins.
+export async function downloadFile(path: string, name: string) {
+  const headers: Record<string, string> = {}
+  const tok = getToken()
+  if (tok) headers['Authorization'] = 'Bearer ' + tok
+  let res: Response
+  try {
+    res = await fetch(serverBase() + '/api' + path, { headers, credentials: 'same-origin' })
+  } catch {
+    throw new ApiError(0, "Can't reach your server.")
+  }
+  if (!res.ok) {
+    const text = await res.text()
+    let msg = text
+    try { msg = JSON.parse(text)?.error || text } catch { /* it was plain text */ }
+    throw new ApiError(res.status, msg || res.statusText)
+  }
+  const given = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1]
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = given || name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 // Media URLs that go through <img>/<video>: append the token so native

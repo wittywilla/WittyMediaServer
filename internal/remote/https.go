@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -72,6 +73,7 @@ type HTTPS struct {
 
 // NewHTTPS prepares an HTTPS port serving handler. Nothing opens until Apply.
 func NewHTTPS(handler http.Handler, dataDir string, log *slog.Logger) *HTTPS {
+	log = log.With("cat", "remote")
 	return &HTTPS{handler: handler, cacheDir: filepath.Join(dataDir, "certs", "acme"), log: log}
 }
 
@@ -136,11 +138,11 @@ func (h *HTTPS) Apply(cfg HTTPSConfig) error {
 		ErrorLog:          slog.NewLogLogger(h.log.Handler(), slog.LevelDebug), // internet scanners fail handshakes all day
 	}
 	h.srv, h.ln = srv, ln
-	go func() {
+	logging.Go("https server", func() {
 		if err := srv.ServeTLS(ln, "", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			h.log.Error("https", "err", err)
+			h.log.Error("the HTTPS port stopped", "err", err)
 		}
-	}()
+	}, "cat", "remote")
 	h.log.Info("HTTPS port open", "port", ln.Addr().(*net.TCPAddr).Port, "mode", cfg.Mode)
 	return nil
 }
@@ -173,7 +175,7 @@ func (h *HTTPS) Obtain() {
 	}
 	h.obtaining = true
 	h.mu.Unlock()
-	go func() {
+	logging.Go("https certificate", func() {
 		hello := &tls.ClientHelloInfo{
 			ServerName:        cfg.Domain,
 			SignatureSchemes:  []tls.SignatureScheme{tls.ECDSAWithP256AndSHA256},
@@ -192,7 +194,7 @@ func (h *HTTPS) Obtain() {
 		} else {
 			h.log.Info("Let's Encrypt certificate ready", "domain", cfg.Domain)
 		}
-	}()
+	}, "cat", "remote")
 }
 
 // Addr is the port's address (nil when closed).
@@ -357,7 +359,9 @@ func (f *fileCert) get() (*tls.Certificate, error) {
 		f.checked = time.Now()
 		if stamp, err := f.newest(); err == nil && !stamp.Equal(f.stamp) {
 			// Half-written files during a renewal keep the old certificate.
-			_ = f.load()
+			if err := f.load(); err != nil {
+				slog.Default().Warn("could not read the new certificate files; keeping the old ones", "cat", "remote", "err", err)
+			}
 		}
 	}
 	return f.cert, nil

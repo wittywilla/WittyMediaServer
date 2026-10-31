@@ -218,7 +218,7 @@ func (s *Scanner) applyAgents(ctx context.Context, it *Item, libType string) {
 		}
 		r, err := a.Lookup(ctx, it.Title, it.Year, libType)
 		if err != nil {
-			s.Log.Info("agent lookup", "cat", "library", "agent", a.Name, "title", it.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", a.Name, "title", it.Title)
 			continue
 		}
 		s.applyAgentResult(ctx, &a, it, r)

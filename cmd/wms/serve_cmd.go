@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -34,6 +35,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/server"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	builtinthemes "github.com/wittywilla/wittymediaserver/themes"
@@ -55,6 +57,7 @@ func cmdServe(args []string) int {
 	case "error":
 		level = slog.LevelError
 	}
+	logging.FreeSpace = sysinfo.FreeBytes
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
@@ -63,6 +66,18 @@ func cmdServe(args []string) int {
 	defer logs.Close()
 	log := slog.New(logs.Handler())
 	slog.SetDefault(log)
+	if h := logs.Health(); h.Error != "" {
+		log.Error("the log folder can't be used: messages stay in memory until it can", "dir", cfg.LogDir, "err", h.Error)
+	}
+	// Armed before anything else can go wrong: a crash from here on leaves a report.
+	guard, lastRun, err := logging.StartCrashGuard(filepath.Join(cfg.DataDir, "crash"), cfg.LogDir, version)
+	if err != nil {
+		log.Warn("crash reports can't be kept", "err", err)
+	}
+	defer guard.Close()
+	for _, c := range lastRun {
+		log.Error("the server stopped unexpectedly last time", "report", c.ID, "kind", c.Kind, "version", c.Version, "summary", c.Summary)
+	}
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
 	}
@@ -96,6 +111,23 @@ func cmdServe(args []string) int {
 		if v := database.GetSetting(ctx, "logCategories", ""); v != "" {
 			logs.SetCategories(strings.Split(v, ","))
 		}
+		if v := database.GetSetting(ctx, "logLevels", ""); v != "" {
+			var saved map[string]string
+			if err := json.Unmarshal([]byte(v), &saved); err != nil {
+				log.Warn("saved log levels can't be read", "err", err)
+			}
+			want := map[string]slog.Level{}
+			for k, name := range saved {
+				if lv, ok := logging.ParseLevel(name); ok {
+					want[k] = lv
+				}
+			}
+			logs.SetLevels(want)
+		}
+		if level == slog.LevelDebug {
+			logs.SetFloor(slog.LevelDebug) // -log debug means everything, whatever the settings say
+		}
+		guard.SetLogDir(logs.Dir())
 	}
 
 	// Find out which hardware encoders really work here, if any are to be used.
@@ -164,7 +196,7 @@ func cmdServe(args []string) int {
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
-		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(),
+		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
 			v := database.GetSetting(ctx, "moduleUpdateCheck", "")
@@ -188,12 +220,13 @@ func cmdServe(args []string) int {
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
-		Update: updater, Modules: modMgr,
+		Update: updater, Modules: modMgr, Crashes: guard,
 	}
 	handler := srv.Handler()
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           handler,
+		ErrorLog:          logs.StdLogger("http", slog.LevelInfo),
 		ReadHeaderTimeout: 15 * time.Second,
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    64 << 10,
@@ -204,11 +237,16 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
 		log.Warn("session tokens", "err", err)
 	}
 	if srv.Auth.UserCount(context.Background()) == 0 {
-		log.Warn("This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", "setupCode", srv.SetupCode())
+		// On the console only, on purpose: the person at the server is meant to see
+		// it, and the log files and viewer never hold it.
+		logging.AddSecret(srv.SetupCode())
+		fmt.Fprintln(os.Stderr, "This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", srv.SetupCode())
+		log.Warn("This server has no accounts yet. Set it up in your browser; the setup code is on the server's console.")
 	}
 	// Remote access: nothing opens unless the owner turned it on.
 	srv.StartRemote(context.Background(), handler)
@@ -220,13 +258,13 @@ func cmdServe(args []string) int {
 	}
 
 	// Check podcast feeds for new episodes.
-	go func() {
+	logging.Loop("podcast refresh", func() {
 		time.Sleep(time.Minute)
 		for {
 			scanner.RefreshPodcasts(context.Background())
 			time.Sleep(2 * time.Hour)
 		}
-	}()
+	}, "cat", "library")
 
 	// Radio: details from the directory, and station checks if turned on. Each step
 	// has its own limits, and does nothing for a server with no stations.
@@ -239,14 +277,17 @@ func cmdServe(args []string) int {
 	}()
 
 	// Rescan libraries periodically.
-	go func() {
+	logging.Loop("periodic library scan", func() {
 		for range time.Tick(6 * time.Hour) {
-			libs, _ := store.Libraries(context.Background())
+			libs, err := store.Libraries(context.Background())
+			if err != nil {
+				log.Error("periodic scan: can't list the libraries", "cat", "library", "err", err)
+			}
 			for _, l := range libs {
 				scanner.Start(l.ID)
 			}
 		}
-	}()
+	}, "cat", "library")
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -260,6 +301,9 @@ func cmdServe(args []string) int {
 			_, _ = io.Copy(io.Discard, os.Stdin)
 			cancel()
 			time.Sleep(10 * time.Second)
+			log.Warn("shutdown took too long: stopping now")
+			logs.Close()
+			guard.Close() // asked to stop, so not a crash
 			os.Exit(0)
 		}()
 	}
@@ -274,13 +318,16 @@ func cmdServe(args []string) int {
 			Info:    func() discovery.Info { return srv.DiscoveryInfo(port) },
 			Enabled: func() bool { return database.GetSetting(context.Background(), "lanDiscovery", "1") == "1" },
 			Bind:    bind,
-			Log:     log,
+			Log:     log.With("cat", "remote"),
 		}
 		srv.Discovery = d
-		go d.Run(ctx)
+		logging.Go("discovery", func() { d.Run(ctx) }, "cat", "remote")
 	}
-	go updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
-	go modMgr.Run(ctx)
+	srv.WatchModules(ctx)
+	logging.Loop("update check", func() {
+		updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
+	}, "cat", "update")
+	logging.Loop("module update check", func() { modMgr.Run(ctx) }, "cat", "modules")
 	var restarting atomic.Bool
 	go func() {
 		select {
@@ -306,7 +353,9 @@ func cmdServe(args []string) int {
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)
-		_ = httpServer.Shutdown(sctx)
+		if err := httpServer.Shutdown(sctx); err != nil {
+			log.Info("streams still open at shutdown are being closed", "err", err)
+		}
 		_ = httpServer.Close() // long streams: their contexts end, and their FFmpeg with them
 		hlsMgr.StopAll()
 	}()

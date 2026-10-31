@@ -22,6 +22,10 @@
 .set-head p { margin: 0; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; line-height: var(--leading-body); }
 .set-head-actions { flex: none; display: flex; gap: 8px; }
 
+/* A crash report waiting to be looked at. */
+.set-notice { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); min-height: var(--control-h); border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent); background: var(--danger-soft); color: var(--fg); font-size: var(--text-md); font-weight: 600; }
+.set-notice svg { flex: none; width: 18px; height: 18px; }
+
 /* Section cards. The older pages' panels look the same. */
 .set-card, .set-main .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 0 var(--sp-5); max-width: none; padding: 0; }
 .set-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6) var(--sp-1); }

@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // ExitRestart is the exit code with which the server asks the program that
@@ -80,7 +82,7 @@ type Updater struct {
 
 // New prepares an updater for the program in dir.
 func New(current, dir string, protect []string, tr http.RoundTripper, log *slog.Logger) *Updater {
-	u := &Updater{Current: current, Dir: realPath(dir), Transport: tr, Log: log}
+	u := &Updater{Current: current, Dir: realPath(dir), Transport: tr, Log: log.With("cat", "update")}
 	for _, p := range protect {
 		if p != "" {
 			u.Protect = append(u.Protect, realPath(p))
@@ -257,8 +259,11 @@ func (u *Updater) Apply() error {
 	u.busy = true
 	u.st.Phase, u.st.Error, u.st.Done, u.st.Total = PhaseDownloading, "", 0, u.rel.Archive.Size
 	rel := *u.rel
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	session := logging.NewID("update")
+	log := u.Log.With("session", session, "version", rel.Version)
+	log.Info("update started", "current", u.Current)
+	logging.Go("update", func() {
+		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), time.Hour)
 		defer cancel()
 		err := u.install(ctx, &rel)
 		u.mu.Lock()
@@ -270,14 +275,14 @@ func (u *Updater) Apply() error {
 		}
 		u.mu.Unlock()
 		if err != nil {
-			u.Log.Error("update failed", "version", rel.Version, "err", err)
+			log.Error("update failed", "err", err)
 			return
 		}
-		u.Log.Info("update installed; restarting", "version", rel.Version)
+		log.Info("update installed; restarting")
 		// Let Settings see "restarting" before the server goes away.
 		time.Sleep(1500 * time.Millisecond)
 		u.Restart()
-	}()
+	}, "cat", "update", "session", session)
 	return nil
 }
 
@@ -348,7 +353,7 @@ func (u *Updater) install(ctx context.Context, rel *Release) error {
 		return err
 	}
 	if err := RecordOld(u.Dir, olds); err != nil {
-		u.Log.Warn("update: could not list the old files to remove", "err", err)
+		u.Log.WarnContext(ctx, "update: could not list the old files to remove", "err", err)
 	}
 	noteInstalled(u.Dir, rel.Version)
 	return nil

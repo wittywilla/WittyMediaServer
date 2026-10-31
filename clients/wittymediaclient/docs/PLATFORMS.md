@@ -74,8 +74,8 @@ differs between devices and has known problems on some, and whether API 23 devic
 **Apple has never been compiled,** since nothing here has Swift or a Mac. This code was reviewed by reading,
 with a script confirming that its brackets balance and its wording keys exist, which proves little. Expect
 compile errors. `NWBrowser` and the focus code are the most likely places, and how tvOS moves focus around
-the pad can only be seen on one. On Linux WittyKit should build, but can't verify signatures: every answer
-is refused there, and the signature tests only run on Apple platforms.
+the pad can only be seen on one. WittyKit alone has built on Linux with Swift 6.1, but can't verify signatures
+there: every answer is refused, and the signature tests only run on Apple platforms.
 
 **Known limits of the identity check,** on every client: the very first connection trusts whatever key it
 is shown, so someone already impersonating the server at that moment gets pinned, and would see a code
@@ -107,6 +107,7 @@ address, only how long it takes.
 | Disc menus | Web interface; not checked here | Not started | Not started |
 | Games on someone's own PC | Web interface, with Moonlight as the fallback. Written; its rules ran in unit tests | Compiled | Written; its rules ran in unit tests on Linux |
 | Gaming, channels, tuners, photos | Arrive with the server | Not started | Not started |
+| Own log, with errors reported to the server | The log's logic ran in tests; never run inside the app | The log's logic ran in tests off Android; its use in the app was not compiled | The log's logic ran in tests on Linux; its use in the app was not compiled, and catching crashes only builds on Apple |
 
 Native apps say plainly that an item can't play yet, rather than failing, for anything but video and
 games on someone's own PC.

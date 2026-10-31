@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 var videoExts = map[string]bool{
@@ -74,7 +76,7 @@ type ScanProgress struct {
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log, slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
 }
 
 // Start scans a library in the background (no-op if already scanning).
@@ -88,7 +90,9 @@ func (s *Scanner) Start(libraryID int64) bool {
 	s.running[libraryID] = cancel
 	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix()}
 	s.mu.Unlock()
-	go func() {
+	id := logging.NewID("scan")
+	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
+	logging.Go("library scan", func() {
 		defer func() {
 			s.mu.Lock()
 			delete(s.running, libraryID)
@@ -96,10 +100,66 @@ func (s *Scanner) Start(libraryID int64) bool {
 			s.mu.Unlock()
 		}()
 		if err := s.scan(ctx, libraryID); err != nil {
-			s.Log.Error("scan failed", "library", libraryID, "err", err)
+			if errors.Is(err, context.Canceled) {
+				s.Log.InfoContext(ctx, "scan cancelled", "library", libraryID)
+				return
+			}
+			s.Log.ErrorContext(ctx, "scan failed", "library", libraryID, "err", err)
 		}
-	}()
+	}, "cat", "library", "session", id)
 	return true
+}
+
+// scanTally counts what a file or a lookup failed at without stopping the scan,
+// for the summary at its end. With the network down, a scan of thousands would
+// otherwise say the same thing thousands of times.
+type scanTally struct {
+	mu   sync.Mutex
+	what map[string]*tallied
+}
+
+type tallied struct {
+	n   int
+	err error // the last one
+}
+
+type tallyKey struct{}
+
+// minorFailure records one such failure: at Debug during a scan, where the
+// summary counts it, and as a warning when it happens outside one.
+func (s *Scanner) minorFailure(ctx context.Context, msg string, err error, args ...any) {
+	args = append(args, "err", err)
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) {
+		s.Log.DebugContext(ctx, msg, args...)
+		return
+	}
+	t, _ := ctx.Value(tallyKey{}).(*scanTally)
+	if t == nil {
+		s.Log.WarnContext(ctx, msg, args...)
+		return
+	}
+	s.Log.DebugContext(ctx, msg, args...)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	e := t.what[msg]
+	if e == nil {
+		e = &tallied{}
+		t.what[msg] = e
+	}
+	e.n++
+	e.err = err
+}
+
+// report leaves a warning for each kind of failure, and says how many in all.
+func (t *scanTally) report(ctx context.Context, log *slog.Logger) int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	total := 0
+	for msg, e := range t.what {
+		total += e.n
+		log.WarnContext(ctx, "scan had failures", "what", msg, "count", e.n, "err", e.err)
+	}
+	return total
 }
 
 // Cancel stops a running scan.
@@ -148,10 +208,32 @@ func discover(root string) ([]candidate, error) { return discoverVideos(root, tr
 // discoverClips is for commercials: short, small files are the whole point.
 func discoverClips(root string) ([]candidate, error) { return discoverVideos(root, false) }
 
+// unreadable remembers what a walk couldn't open. The walk carries on past it,
+// and the scan, which is handed it as an error along with what was found, logs it.
+type unreadable struct {
+	n     int
+	first error
+}
+
+func (u *unreadable) note(err error) {
+	if u.n++; u.first == nil {
+		u.first = err
+	}
+}
+
+func (u *unreadable) with(err error) error {
+	if err != nil || u.n == 0 {
+		return err
+	}
+	return fmt.Errorf("%d folders or files could not be read, the first: %w", u.n, u.first)
+}
+
 func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	var out []candidate
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil
 		}
 		name := d.Name()
@@ -193,7 +275,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 		}
 		return nil
 	})
-	return out, err
+	return out, bad.with(err)
 }
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
@@ -215,7 +297,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			return ctx.Err()
 		}
 	}
-	s.Log.Info("scan start", "library", lib.Name)
+	s.Log.InfoContext(ctx, "scan started", "library", lib.Name, "type", lib.Type, "folders", len(lib.Paths))
+	started := time.Now()
+	tally := &scanTally{what: map[string]*tallied{}}
+	ctx = context.WithValue(ctx, tallyKey{}, tally)
+	failed := 0
 
 	var all []candidate
 	var offline []string
@@ -232,7 +318,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		// A drive or share that is away (an unmounted mount point reads as an
 		// empty folder) is not the same as every file having been deleted.
 		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
-			s.Log.Warn("library folder is empty or can't be reached; keeping its items", "library", lib.Name, "folder", root, "err", err)
+			s.Log.WarnContext(ctx, "library folder is empty or can't be reached; keeping its items", "library", lib.Name, "dir", root, "err", err)
 			offline = append(offline, root)
 			continue
 		}
@@ -253,7 +339,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		c, err := find(root)
 		if err != nil {
-			s.Log.Warn("discover", "root", root, "err", err)
+			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
 		}
 		if lib.Type == "discs" {
 			images := discoverDiscCDs(root)
@@ -298,9 +384,12 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			return s.index(ctx, lib, c)
 		})
 		if err != nil {
-			s.Log.Warn("index failed", "path", c.path, "err", err)
+			if ctx.Err() == nil {
+				failed++
+				s.Log.WarnContext(ctx, "could not add a file to the library", "file", c.path, "err", err)
+			}
 		} else {
-			s.Log.Info("indexed", "cat", "library", "library", lib.Name, "path", c.path)
+			s.Log.DebugContext(ctx, "indexed", "file", c.path)
 		}
 	}
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
@@ -310,7 +399,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		return err
 	}
 	s.Store.DB.Optimize(ctx)
-	s.Log.Info("scan done", "library", lib.Name, "items", len(all))
+	problems := tally.report(ctx, s.Log)
+	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
+		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
 	if lib.Type == "games" {
 		s.GameMeta.Kick()
 	}
@@ -410,12 +501,12 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if key := s.TMDBKey(); key != "" && movieLike && (it.Overview == "" || it.Poster == "") {
 		t := &TMDB{Key: key}
 		if err := t.Enrich(ctx, it); err != nil {
-			s.Log.Info("tmdb lookup failed", "cat", "library", "title", it.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", "tmdb", "title", it.Title)
 		}
 	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) {
 		// No TMDB key: basic facts and the rating from Wikidata (no key needed).
 		if err := (&Wikidata{}).Enrich(ctx, it); err != nil {
-			s.Log.Info("wikidata lookup failed", "cat", "library", "title", it.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", "wikidata", "title", it.Title)
 		}
 	}
 	// Generated thumbnail as the last resort.
@@ -423,7 +514,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
 		} else {
-			s.Log.Info("thumbnail failed", "cat", "library", "path", c.path, "err", err)
+			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
 		}
 	}
 	s.saveOnScan(ctx, it)
@@ -440,11 +531,14 @@ func (s *Scanner) findPoster(ctx context.Context, it *Item, c candidate) {
 	}
 	p, _ := localArtwork(dir, base)
 	if p == "" && (it.Disc == nil || !it.Disc.Scrambled) {
-		p, _ = s.thumbnail(ctx, it)
+		var err error
+		if p, err = s.thumbnail(ctx, it); err != nil {
+			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
+		}
 	}
 	if p != "" {
 		if err := s.Store.setPoster(ctx, it.ID, p); err != nil {
-			s.Log.Warn("poster", "path", it.Path, "err", err)
+			s.Log.WarnContext(ctx, "could not save a poster", "file", it.Path, "err", err)
 		}
 	}
 }
@@ -454,7 +548,7 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	defer cancel()
 	p, err := s.Tools.ProbeFile(pctx, it.Path)
 	if err != nil {
-		s.Log.Info("probe failed", "cat", "library", "path", it.Path, "err", err)
+		s.minorFailure(ctx, "could not read a file's details", err, "file", it.Path)
 		return
 	}
 	it.RuntimeSec = p.Duration()
@@ -647,7 +741,7 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 		return
 	}
 	if err := s.Store.retitle(ctx, it.ID, title); err != nil {
-		s.Log.Warn("retitle", "path", it.Path, "err", err)
+		s.Log.WarnContext(ctx, "could not save a corrected title", "file", it.Path, "err", err)
 	}
 }
 
@@ -657,6 +751,7 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 func guard(f func() error) (err error) {
 	defer func() {
 		if p := recover(); p != nil {
+			logging.ReportPanic("library index", p, "cat", "library") // a bug, whatever the file was
 			err = fmt.Errorf("could not read this file (%v)", p)
 		}
 	}()
@@ -690,6 +785,6 @@ func (s *Scanner) fillDiscContent(ctx context.Context, it *Item, libType string)
 	}
 	it.Disc.Content = GuessDiscContent(libType, it.Title, it.Disc.Label)
 	if err := s.Store.setDisc(ctx, it.ID, it.Disc); err != nil {
-		s.Log.Warn("disc content", "path", it.Path, "err", err)
+		s.Log.WarnContext(ctx, "could not save what a disc holds", "file", it.Path, "err", err)
 	}
 }

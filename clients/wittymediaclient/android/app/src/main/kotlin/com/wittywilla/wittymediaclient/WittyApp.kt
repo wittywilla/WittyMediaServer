@@ -12,6 +12,8 @@ import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.wittywilla.wittymediaclient.data.SessionStore
+import com.wittywilla.wittymediaclient.diag.ClientLog
+import com.wittywilla.wittymediaclient.diag.ReportTarget
 import com.wittywilla.wittymediaclient.net.Api
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +40,17 @@ class WittyApp : Application(), SingletonImageLoader.Factory {
     // How this device is named in the server's list of sign-ins.
     val deviceName: String get() = "${Build.MANUFACTURER} ${Build.MODEL}".take(60)
     val platformName: String get() = if (isTv) "Android TV" else "Android"
+
+    override fun onCreate() {
+        super.onCreate()
+        val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
+        // Reports go only to the server this app is signed in to.
+        ClientLog.start(filesDir.resolve("logs"), "WittyMedia $platformName", version, "$deviceName, Android ${Build.VERSION.RELEASE}", scope) {
+            val using = api
+            if (using.base.isEmpty() || using.token.isEmpty()) null
+            else ReportTarget(using.token) { body -> Api(using.base, using.token, quick = true).sendClientLog(body) }
+        }
+    }
 
     // Small bounded caches: a TV stick has little memory to spare.
     override fun newImageLoader(context: PlatformContext): ImageLoader =

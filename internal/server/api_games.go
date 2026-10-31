@@ -24,6 +24,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittyplay/cores"
 	"github.com/wittywilla/wittyplay/ipc"
@@ -126,7 +127,7 @@ func (s *Server) games() *gameService {
 		coresDir := filepath.Join(dir, "cores")
 		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: coresDir, System: filepath.Join(dir, "system"), Client: library.SafeClient, Custom: s.customCoreList},
 			custom: newCustomService(filepath.Join(dir, "custom-cores"), filepath.Join(dir, "system"), append([]string{coresDir}, cores.DefaultExtra()...), customFetchClient()),
-			mgr:    stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
+			mgr:    stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log.With("cat", "games", "module", "wittyplay")})}
 		s.gameSvc.archives = &gamearchive.Cache{Dir: filepath.Join(dir, "unpacked"), Limit: s.unpackLimit}
 	})
 	return s.gameSvc
@@ -367,7 +368,9 @@ func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 
 // handleGameModes says how a kind of client can connect to a game on this server.
 func (s *Server) handleGameModes(w http.ResponseWriter, r *http.Request) {
-	_, _ = s.configureGames(r.Context()) // so that hardware encoders count
+	if _, err := s.configureGames(r.Context()); err != nil { // so that hardware encoders count
+		s.Log.WarnContext(r.Context(), "could not set up games", "cat", "games", "err", err)
+	}
 	client := gameClient(r.URL.Query().Get("client"))
 	writeJSON(w, 200, map[string]any{"client": client, "modes": s.games().mgr.Modes(client)})
 }
@@ -594,6 +597,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if core == nil {
+			s.Log.WarnContext(ctx, "a game couldn't start: no core is installed for its console", "cat", "games", "module", "wittyplay", "console", console.ID, "game", it.Title)
 			writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 			return
 		}
@@ -701,7 +705,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 409, "This game draws with a graphics card, and this server doesn't have one it can use. Games for older consoles still play.")
 			return
 		}
-		s.Log.Warn("starting a game", "item", it.ID, "err", err)
+		s.Log.WarnContext(r.Context(), "could not start a game", "cat", "games", "item", it.ID, "game", it.Title, "err", err)
 		if version != "" && runnerFailed(err) {
 			_ = s.Modules.ReportFailure(wittyPlayID, version, "the game runner stopped before the game was ready: "+err.Error())
 		}
@@ -717,10 +721,11 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if version != "" {
 		s.Modules.ReportWorking(wittyPlayID, version)
 	}
-	go s.recordPlayTime(sess, userID, it.ID)
+	logging.Go("game play time", func() { s.recordPlayTime(sess, userID, it.ID) }, "cat", "games", "session", sess.ID())
 	if playing != nil {
 		s.noteCorePlay(ctx, playing.ID, it.ID, 1, 0, 0, "")
-		go s.watchCorePlay(sess, playing, userFrom(r), it.ID)
+		watcher := userFrom(r)
+		logging.Go("game core watch", func() { s.watchCorePlay(sess, playing, watcher, it.ID) }, "cat", "games", "session", sess.ID())
 	}
 	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
 		s.Log.Warn("recording a play", "err", err)
@@ -740,7 +745,7 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	var total float64
 	_ = s.DB.QueryRowContext(ctx, `SELECT position_sec FROM progress WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&total)
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {
-		s.Log.Warn("recording play time", "err", err)
+		s.Log.Warn("could not save time played", "cat", "games", "session", sess.ID(), "err", err)
 	}
 }
 
@@ -888,7 +893,7 @@ func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
 	}
 	answer, err := sess.Answer(r.Context(), b.SDP, b.Prefer)
 	if err != nil {
-		s.Log.Warn("webrtc", "err", err)
+		s.Log.WarnContext(r.Context(), "could not connect to a game by WebRTC", "cat", "games", "session", sess.ID(), "err", err)
 		writeErr(w, 422, err.Error())
 		return
 	}
@@ -1100,11 +1105,11 @@ func (s *Server) handleCoreInstall(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	c, err := s.games().cores.Install(ctx, id)
 	if err != nil {
-		s.Log.Warn("installing a core", "core", id, "err", err)
+		s.Log.WarnContext(r.Context(), "could not install a core", "cat", "games", "core", id, "err", err)
 		writeErr(w, 502, "The core could not be installed: "+err.Error())
 		return
 	}
-	s.Log.Info("core installed", "core", id, "sha256", c.SHA256)
+	s.Log.InfoContext(r.Context(), "core installed", "cat", "games", "core", id, "sha256", c.SHA256)
 	writeJSON(w, 200, c)
 }
 

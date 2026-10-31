@@ -96,7 +96,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !s.setupCodeOK(c.SetupCode) {
-			s.Log.Warn("setup refused: wrong setup code", "from", addressKey(r))
+			s.Log.WarnContext(r.Context(), "setup refused: wrong setup code", "cat", "auth", "from", addressKey(r))
 			writeErr(w, 403, "Setting up this server from another network takes its setup code. You'll find it in the server's log.")
 			return
 		}
@@ -148,7 +148,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.passed(r, c.Name)
-	s.Log.Info("signed in", "cat", "signin", "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
+	s.Log.InfoContext(r.Context(), "signed in", "cat", "auth", "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
@@ -216,6 +216,14 @@ func waitText(d time.Duration) string {
 	return fmt.Sprintf("%d minutes", int(d.Minutes())+1)
 }
 
+// endSessions signs an account out everywhere after a change meant to do that. A
+// failure means devices that should have gone are still signed in.
+func (s *Server) endSessions(r *http.Request, id int64, keep string) {
+	if err := s.Auth.EndSessions(r.Context(), id, keep); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not sign an account out of its other devices", "cat", "auth", "account", id, "err", err)
+	}
+}
+
 func (s *Server) signInFailed(r *http.Request, name string) {
 	s.logins.failed(r, name)
 	s.logSignInFailure(r, name)
@@ -223,9 +231,9 @@ func (s *Server) signInFailed(r *http.Request, name string) {
 
 // logSignInFailure writes down a failure that has already been counted.
 func (s *Server) logSignInFailure(r *http.Request, name string) {
-	s.Log.Info("sign-in failed", "cat", "signin", "name", limitName(name), "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
+	s.Log.InfoContext(r.Context(), "sign-in failed", "cat", "auth", "name", limitName(name), "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	if d := s.logins.gate(r, name); d > 0 {
-		s.Log.Warn("sign-in locked after repeated failures", "name", limitName(name), "from", clientFrom(r).IP.String(), "wait", d.Round(time.Second).String())
+		s.Log.WarnContext(r.Context(), "sign-in locked after repeated failures", "cat", "auth", "name", limitName(name), "from", clientFrom(r).IP.String(), "wait", d.Round(time.Second).String())
 	}
 }
 
@@ -505,6 +513,6 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	if id == u.ID {
 		keep = auth.TokenFrom(r)
 	}
-	_ = s.Auth.EndSessions(r.Context(), id, keep)
+	s.endSessions(r, id, keep)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

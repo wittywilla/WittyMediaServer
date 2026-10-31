@@ -36,8 +36,10 @@ func IsGalleryLibrary(t string) bool { return t == "photos" || IsCreatorLibrary(
 
 func discoverCreatorVideos(root string) ([]candidate, error) {
 	var out []candidate
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil
 		}
 		name := d.Name()
@@ -57,7 +59,7 @@ func discoverCreatorVideos(root string) ([]candidate, error) {
 		out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix()})
 		return nil
 	})
-	return out, err
+	return out, bad.with(err)
 }
 
 // videoSidecar reads the common sidecar formats: the JSON that video archivers

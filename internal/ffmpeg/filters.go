@@ -23,7 +23,7 @@ func (t *Tools) HasFilter(name string) bool {
 		filterCache.set = map[string]bool{}
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		out, err := Command(ctx, t.FFmpeg, "-hide_banner", "-filters").Output()
+		out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-filters"})
 		if err != nil {
 			return
 		}

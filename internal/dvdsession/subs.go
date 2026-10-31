@@ -119,6 +119,7 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 func (s *Session) renderSub(u wittydvd.SPUUnit, cellStart float64, base uint32, cellEnd, next float64, pgc *wittydvd.PGC) []*subPic {
 	frames, err := wittydvd.DecodeSPUFrames(u.Bytes)
 	if err != nil {
+		s.log.Debug("could not read a subtitle picture", "err", err)
 		return nil
 	}
 	var pal [16]uint32

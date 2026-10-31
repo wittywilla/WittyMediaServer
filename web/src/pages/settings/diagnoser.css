@@ -1,0 +1,65 @@
+/* WittyDiagnoser. Long names and paths must wrap: nothing here may push the page
+   wider than a phone. */
+
+.dgn-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.dgn-err { margin: var(--sp-2) 0; }
+.dgn-start { display: flex; justify-content: flex-end; padding: var(--sp-4) 0; border-top: 1px solid var(--border); }
+
+/* Choosing a disc */
+.dgn-pick { display: grid; gap: var(--sp-3); min-width: 0; }
+.dgn-picked { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); background: var(--accent-soft); border-radius: var(--r-md); min-width: 0; }
+.dgn-picked svg { flex: none; margin-top: 2px; }
+.dgn-picked span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.dgn-pick-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.set-row-ctl .select.dgn-known { flex: 1 1 200px; min-width: 0; max-width: 100%; }
+
+.dgn-browser { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); min-width: 0; overflow: hidden; }
+.dgn-browser-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); }
+.dgn-where { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.dgn-browser .dgn-entries { max-height: 360px; overflow-y: auto; padding: var(--sp-1); }
+.dgn-browser-empty { display: flex; justify-content: center; padding: var(--sp-5); color: var(--fg-2); font-size: var(--text-sm); }
+.dgn-trunc { padding: 0 var(--sp-3) var(--sp-2); }
+
+.dgn-entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; min-width: 0; }
+.dgn-entry { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); width: 100%; min-height: var(--control-h); padding: var(--sp-2) var(--sp-3); background: transparent; border: 0; border-radius: var(--r-sm); color: var(--fg); font-size: var(--text-md); text-align: left; cursor: pointer; }
+.dgn-entry:hover { background: var(--hover); }
+.dgn-entry svg { flex: none; color: var(--fg-3); }
+.dgn-entry.disc svg { color: var(--accent-text); }
+.dgn-entry.disc .dgn-entry-name { font-weight: 600; }
+.dgn-entry.current { background: var(--accent-soft); }
+.dgn-entry-name { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.dgn-entry small { color: var(--fg-3); font-size: var(--text-xs); }
+
+/* Choosing storage */
+.dgn-groups { display: grid; gap: var(--sp-4); padding: var(--sp-3) 0; }
+.dgn-group { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 2px; }
+.dgn-group legend { padding: 0 0 var(--sp-1); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.dgn-check { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-2); border-radius: var(--r-sm); cursor: pointer; min-width: 0; }
+.dgn-check:hover { background: var(--hover); }
+.dgn-check input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
+.dgn-check span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-size: var(--text-md); }
+.dgn-check b { font-weight: 600; }
+
+/* A check under way, and what it found */
+.dgn-phase { margin: var(--sp-2) 0; font-weight: 600; font-size: var(--text-md); overflow-wrap: anywhere; }
+.dgn-bar { display: block; width: 100%; height: 8px; margin-bottom: var(--sp-3); accent-color: var(--accent); }
+.dgn-cards { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; min-width: 0; }
+.dgn-card { padding: var(--sp-3) var(--sp-4); background: var(--bg-3); border-radius: var(--r-md); border-left: 4px solid var(--fg-3); min-width: 0; overflow-wrap: anywhere; }
+.dgn-card.sev-problem { border-left-color: var(--danger); background: var(--danger-soft); }
+.dgn-card.sev-warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.dgn-card.sev-ok { border-left-color: var(--ok); }
+.dgn-card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+.dgn-sev { font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-2); }
+.dgn-card.sev-problem .dgn-sev { color: var(--danger); }
+.dgn-card.sev-warn .dgn-sev { color: var(--warn); }
+.dgn-card.sev-ok .dgn-sev { color: var(--ok); }
+.dgn-target { font-size: var(--text-xs); color: var(--fg-2); min-width: 0; }
+.dgn-card h3 { margin: var(--sp-1) 0; font-size: var(--text-base); font-weight: var(--weight-heading); }
+.dgn-card p { margin: var(--sp-1) 0 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; max-width: 72ch; }
+.dgn-card b { color: var(--fg); }
+.dgn-card details { margin-top: var(--sp-2); font-size: var(--text-sm); }
+.dgn-card summary { cursor: pointer; color: var(--accent-text); font-weight: 600; min-height: 24px; }
+.dgn-card ul { margin: var(--sp-2) 0 0; padding-left: var(--sp-4); color: var(--fg-2); font-size: var(--text-xs); line-height: 1.6; }
+
+.dgn-download .set-row { border-top: 1px solid var(--border); }
+.dgn-download-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2); padding-bottom: var(--sp-4); }

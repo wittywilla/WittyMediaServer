@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Links that share one item or album with someone who has no account.
@@ -280,6 +282,7 @@ func (s *Server) handleSharePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.ensureShareStream(r, it); err != nil {
+		s.Log.WarnContext(r.Context(), "could not start a shared video", "cat", "playback", "item", id, "err", err)
 		writeErr(w, 500, "this video can't be played")
 		return
 	}
@@ -297,7 +300,8 @@ func (s *Server) browserSafeVideo(ctx context.Context, it *library.Item) bool {
 func shareStreamID(it *library.Item) string { return "share-" + hls.Key(it.Path) }
 
 func (s *Server) ensureShareStream(r *http.Request, it *library.Item) error {
-	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	id := shareStreamID(it)
+	pctx, cancel := context.WithTimeout(logging.WithSession(r.Context(), id), 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
 	if err != nil {
@@ -309,6 +313,7 @@ func (s *Server) ensureShareStream(r *http.Request, it *library.Item) error {
 	}
 	q, maxHeight := s.quality(r)
 	s.HLS.Ensure(hls.Spec{ID: shareStreamID(it), InputArgs: ffmpeg.FileInput(it.Path), Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, Quality: q, MaxHeight: maxHeight, AudioCodec: "aac"})
+	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "session", shareStreamID(it), "item", it.ID, "title", it.Title, "mode", "shared")
 	return nil
 }
 
@@ -372,6 +377,10 @@ func (s *Server) handleShareHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := sess.Segment(r.Context(), n)
 	if err != nil {
+		if !errors.Is(err, context.Canceled) {
+			// The visitor is told nothing about the server; the owner should be.
+			s.Log.WarnContext(r.Context(), "could not serve a shared segment", "cat", "transcode", "session", sess.LogSession(), "segment", n, "err", err)
+		}
 		writeErr(w, 500, "segment failed")
 		return
 	}
@@ -420,6 +429,8 @@ func (s *Server) logWatched(r *http.Request, id int64, p library.Progress) {
 		last = 0
 	}
 	if d := p.PositionSec - last; d > 0 && d <= 90 {
-		_ = s.Store.LogPlay(r.Context(), u.ID, id, d)
+		if err := s.Store.LogPlay(r.Context(), u.ID, id, d); err != nil && r.Context().Err() == nil {
+			s.Log.WarnContext(r.Context(), "could not record watching time", "cat", "playback", "item", id, "err", err)
+		}
 	}
 }

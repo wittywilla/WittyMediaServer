@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
 
@@ -128,7 +129,7 @@ type ScanState struct {
 // New makes a manager. Background work starts only when something needs it.
 func New(database *db.DB, tools *ffmpeg.Tools, log *slog.Logger) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Manager{DB: database, Tools: tools, Log: log, sources: map[int64]wittytuner.Source{}, scans: map[int64]*ScanState{},
+	return &Manager{DB: database, Tools: tools, Log: log.With("cat", "tv"), sources: map[int64]wittytuner.Source{}, scans: map[int64]*ScanState{},
 		inUse: map[int64]int{}, viewers: map[int64]func(){}, stopCtx: ctx, stop: cancel}
 }
 
@@ -140,8 +141,11 @@ func (m *Manager) Start() {
 	if n == 0 {
 		return
 	}
-	m.epgOnce.Do(func() { go m.epgLoop() })
-	m.dvrOnce.Do(func() { go m.dvrLoop() })
+	m.epgOnce.Do(func() { logging.Loop("guide refresher", m.epgLoop, "cat", "tv") })
+	m.dvrOnce.Do(func() {
+		m.failInterrupted()
+		logging.Loop("recording scheduler", m.dvrLoop, "cat", "tv")
+	})
 }
 
 // Close stops background work and releases sources.
@@ -155,12 +159,16 @@ func (m *Manager) Close() {
 	m.sources = map[int64]wittytuner.Source{}
 }
 
+// tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
+func (m *Manager) tunerLog() *slog.Logger { return m.Log.With("module", "wittytuner") }
+
 // Env is what drivers get.
 func (m *Manager) Env() wittytuner.Env {
 	env := wittytuner.Env{
 		HTTP:          &http.Client{Timeout: 30 * time.Second},
 		Stream:        &http.Client{},
 		AllowCommands: os.Getenv("WMS_TUNER_COMMANDS") == "1",
+		Log:           m.tunerLog(),
 		Command: func(ctx context.Context, name string, args ...string) *exec.Cmd {
 			return ffmpeg.Command(ctx, name, args...)
 		},
@@ -269,7 +277,7 @@ func (m *Manager) Create(ctx context.Context, t *Tuner) (*Tuner, error) {
 	id, _ := res.LastInsertId()
 	m.Start()
 	if err := m.Refresh(ctx, id); err != nil {
-		m.Log.Info("tuner added, channels not read yet", "cat", "tv", "tuner", t.Name, "err", err)
+		m.Log.WarnContext(ctx, "tuner added, channels not read yet", "tuner", t.Name, "err", err)
 	}
 	return m.Tuner(ctx, id)
 }
@@ -398,7 +406,7 @@ func (m *Manager) ensureGuide(ctx context.Context, id int64, s wittytuner.Source
 	_, _ = m.DB.ExecContext(ctx, `INSERT INTO epg_sources(name, url, auth, tuner_id) VALUES(?,?,?,?) ON CONFLICT(url) DO UPDATE SET auth = excluded.auth, tuner_id = excluded.tuner_id`,
 		"From "+info.Name, info.GuideURL, auth, id)
 	m.Start()
-	go m.refreshDue(context.WithoutCancel(ctx))
+	logging.Go("guide refresh", func() { m.refreshDue(context.WithoutCancel(ctx)) }, "cat", "tv")
 }
 
 // saveChannels merges a channel list: what the owner chose stays, what has gone
@@ -486,7 +494,11 @@ func (m *Manager) StartScan(id int64, source string) error {
 	m.scans[id] = st
 	m.inUse[id]++
 	m.mu.Unlock()
-	go func() {
+	session := logging.NewID("tv")
+	ctx = logging.WithSession(ctx, session)
+	log := m.tunerLog().With("topic", "tuner", "tuner", id)
+	log.InfoContext(ctx, "channel scan started")
+	logging.Go("channel scan", func() {
 		defer cancel()
 		ch, err := s.Scan(ctx, wittytuner.ScanOptions{Source: source}, func(p wittytuner.Progress) {
 			m.mu.Lock()
@@ -518,14 +530,21 @@ func (m *Manager) StartScan(id int64, source string) error {
 		} else {
 			st.Percent, st.Message = 100, ""
 		}
+		found2 := st.Found
 		m.mu.Unlock()
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				log.InfoContext(ctx, "channel scan cancelled")
+			} else {
+				log.WarnContext(ctx, "channel scan failed", "err", err)
+			}
 			m.setError(id, err.Error())
 		} else {
+			log.InfoContext(ctx, "channel scan finished", "found", found2, "added", added)
 			m.setError(id, "")
 			m.ensureGuide(context.Background(), id, s)
 		}
-	}()
+	}, "cat", "tv", "session", session)
 	return nil
 }
 
@@ -796,16 +815,32 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	st, err := s.Open(ctx, wittytuner.Channel{ID: c.SourceID, Number: c.Number, Name: c.Name, Locator: c.locator, Program: c.Program})
 	if err != nil {
 		release()
+		m.noteOpenFailure(ctx, c, err)
 		return nil, err
 	}
 	if st.Guard != nil {
 		st.Guard.OnEvent = m.broadcastEvents(c)
 	}
+	m.Log.DebugContext(ctx, "channel opened", "module", "wittytuner", "topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
 	note := func(why string) { m.noteStream(c.ID, why) }
 	if st.Verified {
 		note("")
 	}
 	return &Opened{Stream: st, Channel: c, release: release, note: note}, nil
+}
+
+// noteOpenFailure leaves a record of a tuner that wouldn't give a channel.
+// Being busy, or the caller leaving, isn't a fault; a refusal is only worth a note.
+func (m *Manager) noteOpenFailure(ctx context.Context, c *Channel, err error) {
+	log := m.tunerLog().With("topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
+	switch {
+	case ctx.Err() != nil, errors.Is(err, ErrBusy):
+		log.DebugContext(ctx, "channel not opened", "err", err)
+	case wittytuner.IsEncrypted(err):
+		log.InfoContext(ctx, "channel refused: encrypted", "err", err)
+	default:
+		log.WarnContext(ctx, "could not open a tuner channel", "err", err)
+	}
 }
 
 // noteStream keeps what a stream showed, so the guide and settings are right
@@ -818,7 +853,10 @@ func (m *Manager) noteStream(id int64, why string) {
 		_, err = m.DB.Exec(`UPDATE tuner_channels SET seen_clear = 1, encrypted_seen = '' WHERE id = ?`, id)
 	}
 	if err != nil {
-		m.Log.Warn("tuner channel", "cat", "tv", "err", err)
+		m.Log.Warn("could not save what a stream showed", "channel", id, "err", err)
+	}
+	if why != "" {
+		m.Log.Info("channel marked as encrypted", "module", "wittytuner", "topic", "tuner", "channel", id, "why", why)
 	}
 }
 

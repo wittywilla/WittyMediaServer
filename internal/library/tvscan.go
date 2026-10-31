@@ -194,7 +194,7 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
 		} else {
-			s.Log.Debug("thumbnail", "path", c.path, "err", err)
+			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
 		}
 	}
 	it.ShowTitle = sh.Title
@@ -289,7 +289,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 			meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
 		}
 		if err != nil {
-			s.Log.Info("show lookup failed", "cat", "library", "source", t.Name(), "show", sh.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", t.Name(), "show", sh.Title)
 		} else {
 			applySeriesMeta(sh, t.Name(), meta, fromNFO, false)
 		}
@@ -338,7 +338,7 @@ func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]i
 	if t := s.sourceNamed(sh.Provider); t != nil && sh.ProviderID != "" {
 		var err error
 		if eps, err = t.Episodes(ctx, sh.ProviderID); err != nil {
-			s.Log.Info("episode lookup failed", "cat", "library", "source", t.Name(), "show", sh.Title, "err", err)
+			s.minorFailure(ctx, "metadata lookup failed", err, "source", t.Name(), "show", sh.Title)
 		}
 	}
 	tv.episodes[sh.ID] = eps

@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -210,6 +211,8 @@ type Config struct {
 	// Launcher is this server's own program, which boxes a helper in before it runs
 	// (Linux; see RunSandboxed). Without it helpers have the rest of their limits.
 	Launcher string
+	// LogEnv is how the owner wants a module logged, as environment for its helper.
+	LogEnv func(id string) []string
 	// For tests.
 	Keys  []ed25519.PublicKey
 	Fetch *update.Fetcher
@@ -244,6 +247,7 @@ func New(cfg Config) *Manager {
 	if m.log == nil {
 		m.log = slog.Default()
 	}
+	m.log = m.log.With("cat", "modules")
 	if m.keys == nil {
 		m.keys = update.ModuleKeys()
 	}
@@ -450,7 +454,7 @@ func (m *Manager) resolve(id string, e *entry) {
 	if e.proc != nil {
 		p := e.proc
 		m.retiring.Add(1) // a call in progress can hold it up, so it isn't waited for here
-		go func() { defer m.retiring.Done(); p.Close() }()
+		logging.Go("module close", func() { defer m.retiring.Done(); p.Close() }, "cat", "modules")
 		e.proc = nil
 	}
 	e.fails, e.web, e.dir = 0, nil, ""
@@ -494,6 +498,7 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 	p.network = mayUseNetwork[id] && man.Asks(wittymodule.PermissionNetwork) && e.state.Source == nil
 	p.strict = e.state.Source != nil
 	p.launch = m.cfg.Launcher
+	p.logEnv = m.cfg.LogEnv
 	return p
 }
 

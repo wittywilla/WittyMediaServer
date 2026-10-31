@@ -5,6 +5,7 @@ import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
 import { IconEdit, IconGamepad, IconImage, IconPlay, IconSettings, IconSortDown, IconSortUp, IconStar } from '../icons'
 import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } from './GameMeta'
+import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
 import './games.css'
@@ -517,7 +518,8 @@ export function GamePage() {
       ...settingsHost,
       itemId: it.id, title: it.title, consoleId: it.console || '', consoleName: consoleName(it.console || ''), resume: params.get('resume') === '1', safeMode: params.get('safe') === '1',
       prepare: () => api.post<PrepareStatus>(`/games/${it.id}/prepare`),
-      start: (resume, safeMode) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, safeMode, client: 'browser' }),
+      start: (resume, safeMode) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, safeMode, client: 'browser' }).then((s) => { setLogSession(s.id); return s }),
+      report: (level, message) => reportClient({ level, kind: 'game', message, module: 'wittyplay' }),
       relaunch: ({ resume, safeMode }) => {
         const q = [resume ? 'resume=1' : '', safeMode ? 'safe=1' : ''].filter(Boolean).join('&')
         window.location.assign(window.location.pathname + (q ? '?' + q : ''))
@@ -525,7 +527,7 @@ export function GamePage() {
       controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}&game=${it.id}`),
       controllers: getControllers, profiles: profileHost,
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
-      stop: async (sid) => { await api.del(`/play/${sid}`) },
+      stop: async (sid) => { setLogSession(null); await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
       wsUrl: (sid, video) => {
         const tok = getToken()

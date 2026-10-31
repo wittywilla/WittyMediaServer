@@ -143,6 +143,46 @@ follows you. See [GAMING.md](docs/GAMING.md).
 - **Refuses copy-protected discs,** for playing and for copying, in plain words. It carries no decryption library, no key
   database and nothing that could load one, VLC's disc modules aren't used, and it never uses the network. See
   [its design note](apps/wittymediaplayer/DESIGN.md).
+### WittyLog: logging that captures problems across everything
+
+- **Every area has its own level**, changed live with no restart: playback, transcoding, discs, games, Live TV,
+  library, modules, updates, remote access, sign-ins, app errors, web requests and storage.
+- **Every module has its own controls too.** A level of its own and advanced options, such as a helper's every
+  call or a disc's navigation. A module that is installed later is noticed and listed by itself. All of it is in
+  *Settings → WittyLog*, and a module can list options of its own in its manifest.
+- **Everything about one playback is tied together.** One session links the request that started it, FFmpeg's
+  output, a disc's or game's steps, and what the player reported on your device. One press shows it all.
+- **A viewer in Settings:** live tail, filters by level, area, module, session and text, and common failures
+  explained in plain words with a suggested fix. It works on a phone and with a TV remote.
+- **Catch a problem:** one button records everything for a while, then goes back to your usual settings by itself.
+- **Crash reports.** A fatal error, a caught panic, or a run that ended without shutting down (a power cut, say)
+  leaves a report that survives, and the next start points it out. Each start also logs a summary: version, modules,
+  system, graphics card and encoders, disk space and settings that matter.
+- **FFmpeg, game runners and module helpers** each leave how they ended, in words, with what they printed, bounded.
+- **Failures that used to vanish are recorded:** database errors, failed requests, scans, recordings, installs,
+  updates, certificates, port mapping, sign-in lock-outs and background tasks that crash.
+- **The apps report too.** The web app sends uncaught errors, failed requests and player and game errors to your
+  server. The desktop, Android and Apple apps keep a small log of their own and report crashes to your server.
+- **One-click support bundle:** recent logs, crash reports and a system summary as a zip, with a preview and a
+  switch to hide titles and file paths. It's downloaded by you, and nothing is uploaded anywhere.
+- **It can't get in the way.** Logging never makes anything wait: when a disk is slow, full or gone, messages are
+  dropped with a count and the server carries on. Files are limited by size and age. A quiet line costs about 40 ns
+  and a written one about 3 µs.
+- **Secrets are removed centrally,** tested with secrets planted every way we could think of. Text from outside can't
+  forge a log line. The setup code is now only printed on the console, and not kept in the log files.
+- Failed requests are now recorded by default. So are app errors, which you can turn off.
+- [How every part logs](docs/LOGGING.md), for anyone adding code.
+
+### WittyDiagnoser: check discs and drives without a command line
+
+- *Settings → WittyDiagnoser* checks **a disc**: whether it's encrypted (detected and explained, never bypassed),
+  its structure, titles and menus, every menu button pressed with dead ends reported, Blu-ray and Java menu details,
+  and damaged or unreadable sectors. The report it saves has nothing copyrighted in it.
+- It checks **storage**: free space, permissions, unreadable and missing files, read speed and whether that keeps up
+  with a stream, network-drive and file-system quirks, and the drive's own health where the system tells without
+  administrator rights. Nothing is changed. The only thing written is a small temporary file, never in a media folder.
+- Long checks run in the background, one at a time, with progress and cancel, and give way to anyone watching.
+  [What it checks](docs/DIAGNOSER.md).
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

@@ -276,6 +276,49 @@ func TestApplication(t *testing.T) {
 	}
 }
 
+// A runtime that dies leaves its reason with whoever started it: this "Java" is
+// the test program, which refuses the runtime's options and stops at once.
+func TestCrashIsReported(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Skip(err)
+	}
+	type exit struct {
+		err     error
+		stopped bool
+	}
+	ended := make(chan exit, 1)
+	var mu sync.Mutex
+	var said []string
+	_, err = Start(context.Background(), testDisc(t), Options{Java: &Java{Path: self}, CacheDir: t.TempDir(), WorkDir: t.TempDir(), PersistDir: t.TempDir(),
+		Log: func(s string) {
+			mu.Lock()
+			defer mu.Unlock()
+			said = append(said, s)
+		},
+		OnExit: func(err error, stopped bool) { ended <- exit{err, stopped} },
+	})
+	if err == nil {
+		t.Fatal("Start should say the runtime stopped")
+	}
+	select {
+	case e := <-ended:
+		if e.err == nil {
+			t.Error("the exit should be reported as a failure")
+		}
+		if e.stopped {
+			t.Error("nobody asked it to stop")
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("OnExit was never called")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(said) == 0 {
+		t.Error("what it printed was lost")
+	}
+}
+
 // A disc's JAR is untrusted, and the check reads it without Java.
 func FuzzClassRefs(f *testing.F) {
 	f.Add([]byte{0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 52, 0, 3, 1, 0, 1, 'x', 7, 0, 1})

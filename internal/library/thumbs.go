@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyphotos"
 )
 
@@ -94,7 +95,11 @@ func (s *Scanner) Thumb(ctx context.Context, it *Item, width int) (string, error
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
+				logging.ReportPanic("thumbnail", p, "cat", "library")
 				c.err = fmt.Errorf("could not read this file (%v)", p)
+			}
+			if c.err != nil {
+				s.Log.Warn("could not make a thumbnail", "file", it.Path, "err", c.err)
 			}
 			thumbMu.Lock()
 			delete(thumbCalls, key)

@@ -140,6 +140,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	if gameKeyChanged {
 		s.GameMeta.KeysChanged(r.Context()) // the new source can be asked about every game
 	}
+	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {
 		s.Discovery.Refresh() // it may have been switched off, or the server renamed
 	}

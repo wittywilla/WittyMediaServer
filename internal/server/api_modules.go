@@ -62,10 +62,11 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		err = s.Modules.InstallVersion(r.PathValue("id"), b.Version, b.Confirm)
 	}
 	if err != nil {
+		s.Log.WarnContext(r.Context(), "module update refused", "cat", "modules", "module", r.PathValue("id"), "err", err)
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info("module version change started", "module", r.PathValue("id"), "version", b.Version, "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module update started", "cat", "modules", "module", r.PathValue("id"), "version", b.Version, "user", userFrom(r).Name)
 	writeJSON(w, 202, s.Modules.Report())
 }
 
@@ -360,10 +361,11 @@ func (s *Server) handleModuleRollback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Modules.Rollback(r.PathValue("id")); err != nil {
+		s.Log.WarnContext(r.Context(), "module rollback failed", "cat", "modules", "module", r.PathValue("id"), "err", err)
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info("module rolled back", "module", r.PathValue("id"), "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module rolled back", "cat", "modules", "module", r.PathValue("id"), "user", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())
 }
 

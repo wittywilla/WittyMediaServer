@@ -5,6 +5,7 @@ for (const action of ['minimize', 'maximize', 'close']) {
   document.getElementById(action).addEventListener('click', () => win.send(action))
 }
 change.addEventListener('click', () => win.send('change-server'))
+document.getElementById('help').addEventListener('click', () => win.send('help'))
 document.body.addEventListener('dblclick', (e) => { if (e.target === document.body || e.target.id === 'title') win.send('maximize') })
 
 win.onServer((url) => { change.hidden = !url })

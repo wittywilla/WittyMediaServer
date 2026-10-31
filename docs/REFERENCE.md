@@ -21,7 +21,7 @@ portable mode and the folders the server uses.
 | `-listen` | `WMS_LISTEN` | `:9797` | address and port; `127.0.0.1:9797` keeps it to this computer |
 | `-ffmpeg`, `-ffprobe` | `WMS_FFMPEG`, `WMS_FFPROBE` | bundled `bin/`, then next to the program, then `PATH` | FFmpeg programs |
 | `-max-transcodes` | `WMS_MAX_TRANSCODES` | `4` | FFmpeg jobs at once |
-| `-log` | `WMS_LOG` | `info` | `debug` logs every FFmpeg command line |
+| `-log` | `WMS_LOG` | `info` | `debug` makes every area of the log as detailed as it goes, whatever *Settings → WittyLog* says |
 | `-public-url` | `WMS_PUBLIC_URL` | — | the outside address, behind a reverse proxy; also turns remote access on |
 | `-remote-access` | `WMS_REMOTE_ACCESS=1` | off | allow connections from outside the home network ([REMOTE.md](REMOTE.md)) |
 | `-trusted-proxies` | `WMS_TRUSTED_PROXIES` | — | reverse proxies whose `X-Forwarded-For` is believed |
@@ -89,7 +89,7 @@ other devices.
 | Music & podcasts | `GET /music/albums` · `…/artists` · `…/tracks` · `GET /items/{id}/stream` · `GET/POST /podcasts` · `PUT/DELETE /podcasts/{id}` · `POST /podcasts/{id}/refresh` · `POST /items/{id}/download` |
 | Books | `GET /items/{id}/book` · `…/page/{n}` (comics) · `…/epub/{file}` · `…/search?q=` · `GET/POST /items/{id}/annotations` · `PUT/DELETE /annotations/{aid}` · `GET /dictionary?word=` |
 | Metadata agents | `GET/PUT /agents` · `POST /agents/test` · `POST /metadata/test` |
-| Administration | `GET/PUT /settings` · `GET /system` · `GET/POST /users` · `DELETE /users/{id}` · `PUT /users/{id}/access` · `PUT /users/{id}/password` · `GET /fs?path=` · `GET/PUT /logs` |
+| Administration | `GET/PUT /settings` · `GET /system` · `GET/POST /users` · `DELETE /users/{id}` · `PUT /users/{id}/access` · `PUT /users/{id}/password` · `GET /fs?path=` · `GET/PUT /logs` · `GET /logs/entries` · `GET /logs/bundle` |
 | Themes | `GET /themes` · `GET /themes/{id}/{file}` · `GET /themes/{id}/download` · `POST /themes` · `DELETE /themes/{id}` |
 
 A disc *presentation* tells a client exactly what to show: `kind` (`menu`, `title` or `stop`),

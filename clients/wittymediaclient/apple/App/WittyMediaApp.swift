@@ -5,6 +5,11 @@ import WittyKit
 struct WittyMediaApp: App {
     @StateObject private var model = AppModel()
 
+    init() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        ClientLog.shared.start(app: "WittyMedia Apple", version: version)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

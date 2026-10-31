@@ -83,6 +83,7 @@
       children.push(el('h2', { textContent: S.recentServers }), el('div', { className: 'list' }, ...recent.map(serverButton)))
     }
     children.push(el('div', { className: 'row' }, button(S.enterAddress, () => addressScreen())))
+    if (bridge.openLogs) children.push(button(S.openLogs, () => bridge.openLogs(), { className: 'link' }))
     show(...children)
 
     // Servers come and go while this is on screen: keep focus on the same one,

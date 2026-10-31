@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 const (
@@ -132,10 +134,10 @@ func (k *Keeper) Set(external, internal int) {
 	k.cancel, k.done, k.want = stop, d, [2]int{external, internal}
 	k.st = Status{On: true, InternalPort: internal}
 	k.mu.Unlock()
-	go func() {
+	logging.Go("port mapping", func() {
 		defer close(d)
 		k.run(ctx, external, internal)
-	}()
+	}, "cat", "remote")
 }
 
 // Stop removes the mapping and waits until that has been tried.
@@ -188,6 +190,9 @@ func (k *Keeper) run(ctx context.Context, external, internal int) {
 			found, err := discover(dctx)
 			cancel()
 			if err != nil {
+				if ctx.Err() == nil {
+					k.Log.Warn("no router found for port mapping", "err", err)
+				}
 				k.set(func(s *Status) { s.Working, s.Error = false, err.Error() })
 				if !wait(retryWait) {
 					return
@@ -207,7 +212,7 @@ func (k *Keeper) run(ctx context.Context, external, internal int) {
 			if ctx.Err() != nil {
 				return
 			}
-			k.Log.Warn("port mapping", "err", err)
+			k.Log.Warn("port mapping failed", "err", err)
 			k.set(func(s *Status) { s.Working, s.Error, s.Protocol = false, err.Error(), r.Protocol() })
 			r = nil // look for the router again next time
 			if !wait(retryWait) {

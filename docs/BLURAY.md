@@ -171,6 +171,8 @@ and AACS discs are refused.
 
 ## Diagnosing a disc
 
+The easy way is *Settings → [WittyDiagnoser](DIAGNOSER.md)*: it checks a disc and makes a report to attach, with nothing copyrighted in it. From the command line:
+
 ```bash
 wms bluray info   THE_LORAX.iso          # titles, program, playlists, clips, streams, 3D/HDR flags
 wms bluray walk   THE_LORAX.iso          # simulate inserting the disc; the menu's buttons and commands

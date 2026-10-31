@@ -1,6 +1,7 @@
 package com.wittywilla.wittymediaclient.net
 
 import com.wittywilla.wittymediaclient.data.SavedServer
+import com.wittywilla.wittymediaclient.diag.ClientLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
@@ -31,6 +32,8 @@ private const val QUICK_SECONDS = 5L
 private const val QUICK_MAX_BYTES = 64L * 1024
 private val shared = OkHttpClient() // connections and threads are reused across servers
 
+private data class Answer(val status: Int, val text: String, val requestId: String)
+
 // One connection to one server. The token only ever goes to that server, in a
 // header, so it stays out of URLs and logs. Redirects are never followed. Quick is
 // for questions to an address not yet trusted: short waits and small answers.
@@ -53,20 +56,39 @@ class Api(val base: String, val token: String, private val quick: Boolean = fals
         runCatching { json.parseToJsonElement(text).jsonObject["error"]?.jsonPrimitive?.content }.getOrNull()
             ?: "The server answered with an error ($status)."
 
-    private suspend fun raw(method: String, path: String, body: String?): Pair<Int, String> = withContext(Dispatchers.IO) {
+    private suspend fun raw(method: String, path: String, body: String?): Answer = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("$base$API$path")
             .method(method, body?.toRequestBody(JSON_TYPE))
             .build()
         http.newCall(request).execute().use { res ->
-            res.code to if (quick) res.peekBody(QUICK_MAX_BYTES).string() else res.body.string()
+            Answer(res.code, if (quick) res.peekBody(QUICK_MAX_BYTES).string() else res.body.string(), res.header("X-Request-Id").orEmpty())
         }
     }
 
+    // Only for a signed-in connection: an address being tried has its own words on
+    // screen. A sign-in that has run out and a stream already gone are normal.
+    private fun reportsFailure(method: String, status: Int) =
+        !quick && token.isNotEmpty() && status != 401 && !(method == "DELETE" && status == 404)
+
     private suspend fun call(method: String, path: String, body: String? = null): String {
-        val (status, text) = raw(method, path, body)
-        if (status !in 200..299) throw ApiError(status, errorText(status, text))
-        return text
+        val where = "$method ${path.substringBefore('?')}"
+        val answer = try {
+            raw(method, path, body)
+        } catch (e: IOException) {
+            if (reportsFailure(method, 0)) ClientLog.warn("network", "$where failed: ${e.javaClass.simpleName}")
+            throw e
+        }
+        if (answer.status !in 200..299) {
+            val message = errorText(answer.status, answer.text)
+            if (reportsFailure(method, answer.status)) {
+                val words = "$where answered ${answer.status}: $message"
+                if (answer.status >= 500) ClientLog.error("request", words, request = answer.requestId)
+                else ClientLog.warn("request", words, request = answer.requestId)
+            }
+            throw ApiError(answer.status, message)
+        }
+        return answer.text
     }
 
     private suspend inline fun <reified T> get(path: String): T = json.decodeFromString(call("GET", path))
@@ -125,6 +147,10 @@ class Api(val base: String, val token: String, private val quick: Boolean = fals
     suspend fun logout() {
         call("POST", "/logout", "{}")
     }
+
+    // This app's own errors, for the server's log. The answer is all that comes back:
+    // it skips `call`, so a report that fails can't become a report of its own.
+    suspend fun sendClientLog(body: String): Int = raw("POST", "/logs/client", body).status
 
     fun posterUrl(it: Item) = "$base$API/items/${it.id}/poster?v=${it.updatedAt}"
     fun showPosterUrl(s: Show) = "$base$API/shows/${s.id}/art/poster?v=${s.updatedAt}"

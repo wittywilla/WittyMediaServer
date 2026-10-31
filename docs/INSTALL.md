@@ -173,8 +173,8 @@ home network only**: every device on the same Wi-Fi or cable network can open
 server, so from this computer and your home network setup just works. A server nobody can reach from
 a home network first (a rented one, say) needs `remoteAccess` turned on in its configuration
 ([CONFIG.md](CONFIG.md)) and HTTPS, and from there, through a reverse proxy, or under a domain name,
-setup also asks for a **setup code**. The server writes the code to its log when it starts (`This server has no accounts yet…`, in
-`logs/` inside the data folder, in `docker logs`, or in `journalctl -u wittymediaserver`).
+setup also asks for a **setup code**. The server prints the code on its console when it starts (`This server has no accounts yet...`, in
+`docker logs` or in `journalctl -u wittymediaserver`). It is never kept in the log files or shown in the log viewer.
 
 **Installed with `install.ps1`?** Its firewall rule covers home and work networks, not public ones.
 If other devices can't connect, set your network to *Private* in Windows' network settings.

@@ -1,91 +1,111 @@
-import { useEffect, useState } from 'react'
-import { api, mediaUrl } from '../api'
-import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconFolder } from '../icons'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { api } from '../api'
+import { Spinner } from '../components/common'
+import { IconRefresh } from '../icons'
 import { toast } from '../state'
+import Bundle from './settings/logs/Bundle'
+import Crashes, { CrashBanner } from './settings/logs/Crashes'
+import Files from './settings/logs/Files'
+import LogModules from './settings/logs/LogModules'
+import type { Health, LogsView } from './settings/logs/types'
+import Viewer from './settings/logs/Viewer'
+import WhatToLog from './settings/logs/WhatToLog'
+import './settings/logs/logs.css'
 
-type Category = { id: string; label: string; description: string }
-type LogFile = { name: string; size: number; modified: string }
-type LogsView = { dir: string; level: string; categories: Category[]; on: string[]; files: LogFile[]; canOpen: boolean }
+// Settings → WittyLog: reading the log as it's written, how much each part of the
+// server and each module records, the files, crash reports and the bundle for a
+// bug report. The address says which tab, session or module, so a link can jump
+// straight to one: /settings/logs?session=abc, /settings/logs?module=wittydvd.
 
-// Settings → Logs & privacy: what the server writes to its log files, where
-// they are, and getting a file to attach to a bug report.
+const TABS = [
+  { id: 'viewer', label: 'Viewer' },
+  { id: 'levels', label: 'What to log' },
+  { id: 'modules', label: 'Modules' },
+  { id: 'files', label: 'Files' },
+  { id: 'crashes', label: 'Crash reports' },
+  { id: 'bundle', label: 'Support bundle' },
+]
+
+// Logging itself in trouble, in plain words.
+function healthProblems(h: Health): string[] {
+  const out: string[] = []
+  if (h.error) out.push(`The log can't be written to its folder: ${h.error}. Until that's fixed, lines are kept only in memory and on the console, and the server tries again every 30 seconds. Check the folder under Files.`)
+  if (h.lowDisk) out.push('The disk holding the logs is nearly full. To save room only warnings and errors are being written, and old logs are being removed.')
+  if (h.lost) out.push(`${h.lost.toLocaleString()} lines could not be written to the log.`)
+  if (h.dropped) out.push(`${h.dropped.toLocaleString()} lines were left out because the disk could not keep up.`)
+  return out
+}
+
 export default function LogSettings() {
-  const [v, setV] = useState<LogsView | null>(null)
-  const [dirInput, setDirInput] = useState('')
-  const load = () => api.get<LogsView>('/logs').then((x) => { setV(x); setDirInput(x.dir) }).catch((e) => toast(e.message))
-  useEffect(() => { load() }, [])
-  if (!v) return null
-  const put = async (body: Partial<{ on: string[]; level: string; dir: string }>) => {
-    try { const x = await api.put<LogsView>('/logs', body); setV(x); setDirInput(x.dir); toast('Log settings saved') } catch (e: any) { toast(e.message) }
-  }
-  const toggle = (id: string) => put({ on: v.on.includes(id) ? v.on.filter((x) => x !== id) : [...v.on, id] })
-  const open = async () => { try { await api.post('/logs/open') } catch (e: any) { toast(e.message) } }
-  const size = (n: number) => (n > 1 << 20 ? (n / (1 << 20)).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB')
+  const [params] = useSearchParams()
+  const [view, setView] = useState<LogsView | null>(null)
+  const [health, setHealth] = useState<Health | null>(null)
+  const [err, setErr] = useState('')
+  const asked = params.get('tab') || ''
+  const tab = params.get('session') || params.get('module') ? 'viewer' : TABS.some((t) => t.id === asked) ? asked : 'viewer'
+
+  const load = useCallback(() => {
+    setErr('')
+    return api.get<LogsView>('/logs').then((v) => { setView(v); setHealth(v.health) }).catch((e) => setErr(e.message))
+  }, [])
+  useEffect(() => { void load() }, [load])
+
+  // The viewer's every answer carries this; only a change is worth drawing.
+  const lastHealth = useRef('')
+  const onHealth = useCallback((h: Health) => {
+    const s = JSON.stringify(h)
+    if (s !== lastHealth.current) { lastHealth.current = s; setHealth(h) }
+  }, [])
+  const onView = useCallback((v: LogsView) => { setView(v); setHealth(v.health) }, [])
+
+  const markSeen = useCallback((id: string) => {
+    api.post(`/logs/crashes/${encodeURIComponent(id)}/seen`).then(() => {
+      setView((v) => v && { ...v, crashes: v.crashes.map((c) => (c.id === id ? { ...c, seen: true } : c)) })
+    }).catch((e) => toast(e.message))
+  }, [])
+
+  // On a phone the tabs scroll sideways: keep the open one in sight, for a deep link.
+  useEffect(() => {
+    const a = document.querySelector<HTMLElement>('.lg-tabs a.active')
+    if (a?.parentElement) a.parentElement.scrollLeft = a.offsetLeft - a.parentElement.offsetLeft - 16
+  }, [tab, !view])
+
+  if (err && !view) return <div className="error" role="alert">{err}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> Try again</button></div></div>
+  if (!view) return <Spinner />
+  const problems = health ? healthProblems(health) : []
+  const stopRecording = () => { api.put<LogsView>('/logs', { recordMinutes: 0 }).then(onView).catch((e) => toast(e.message)) }
   return (
     <>
-      <div className="panel privacy-note" role="note">
-        <h2>Your logs stay with you</h2>
-        <p>
-          Logs are written only to this server's own disk. <b>They are never uploaded or sent anywhere, and nobody, including the people who make
-          this software, ever sees them unless you choose to send a file yourself</b> (for example with a bug report).
-        </p>
-        <p className="muted">Warnings and errors are always logged so problems can be traced. Everything below is off until you turn it on, and you can see exactly what each switch adds.</p>
-      </div>
-
-      <div className="panel">
-        <h2>What to log</h2>
-        <div className="log-cats">
-          {v.categories.map((c) => {
-            const on = v.on.includes(c.id)
-            return (
-              <div key={c.id} className="log-cat">
-                <div className="grow">
-                  <div className="lc-title">{c.label}</div>
-                  <div className="muted lc-desc">{c.description}</div>
-                </div>
-                <button type="button" role="switch" aria-checked={on} aria-label={c.label} className={'switch' + (on ? ' on' : '')} onClick={() => toggle(c.id)}><i /></button>
-              </div>
-            )
-          })}
+      <CrashBanner crashes={view.crashes} onSeen={markSeen} />
+      {view.recordingUntil && (
+        <div className="lg-banner" role="status">
+          <div className="lg-banner-text">
+            <b>Recording everything until {new Date(view.recordingUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b>
+            <p>Try to make the problem happen now. Logging goes back to your usual settings by itself.</p>
+          </div>
+          <div className="lg-banner-actions"><button type="button" className="btn sm" onClick={stopRecording}>Stop now</button></div>
         </div>
-        <label className="log-level">Detail of everything else
-          <select className="select" value={v.level} onChange={(e) => put({ level: e.target.value })}>
-            <option value="error">Errors only</option>
-            <option value="warn">Warnings and errors</option>
-            <option value="info">Normal (recommended)</option>
-            <option value="debug">Everything (for troubleshooting)</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="panel">
-        <h2>Where the logs are</h2>
-        <div className="log-dir">
-          <IconFolder />
-          <code className="grow" title={v.dir}>{v.dir}</code>
-          {v.canOpen && <button className="btn primary" onClick={open}>Open folder</button>}
+      )}
+      {problems.length > 0 && (
+        <div className="lg-banner warn" role="status">
+          <div className="lg-banner-text">
+            <b>Logging has a problem</b>
+            {problems.map((p) => <p key={p}>{p}</p>)}
+          </div>
         </div>
-        <div className="field-row" style={{ marginTop: 10 }}>
-          <ChooseFolderButton className="btn" label="Choose another folder…" onPick={(p) => put({ dir: p })} />
-          <input className="input" aria-label="Log folder" value={dirInput} onChange={(e) => setDirInput(e.target.value)} />
-          <button className="btn" disabled={!dirInput.trim() || dirInput === v.dir} onClick={() => put({ dir: dirInput })}>Use this folder</button>
-          <button className="btn ghost" onClick={() => put({ dir: '' })} title="Back to the folder inside the server's data folder">Default</button>
-        </div>
-        <p className="muted" style={{ fontSize: 13 }}>New messages go to the new folder; existing files stay where they are. Files older than 14 days are deleted automatically.</p>
-
-        <h3 className="section-title" style={{ marginTop: 18 }}>Log files</h3>
-        {v.files.length === 0 && <div className="muted">No log files yet.</div>}
-        <div className="list">
-          {v.files.map((f) => (
-            <div key={f.name} className="list-item">
-              <div className="grow"><b>{f.name}</b> <span className="muted">· {size(f.size)} · {new Date(f.modified).toLocaleString()}</span></div>
-              <a className="btn sm" href={mediaUrl(`/api/logs/files/${encodeURIComponent(f.name)}`)} download={f.name}>Download</a>
-            </div>
-          ))}
-        </div>
-        <button className="btn ghost sm" style={{ marginTop: 10 }} onClick={load}>Refresh</button>
-      </div>
+      )}
+      <nav className="tabs lg-tabs" aria-label="WittyLog">
+        {TABS.map((t) => (
+          <Link key={t.id} to={t.id === 'viewer' ? '?' : `?tab=${t.id}`} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined}>{t.label}</Link>
+        ))}
+      </nav>
+      {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} onHealth={onHealth} />}
+      {tab === 'levels' && <WhatToLog view={view} onView={onView} />}
+      {tab === 'modules' && <LogModules view={view} onView={onView} />}
+      {tab === 'files' && <Files view={view} onView={onView} reload={() => void load()} />}
+      {tab === 'crashes' && <Crashes crashes={view.crashes} reload={() => void load()} onSeen={markSeen} />}
+      {tab === 'bundle' && <Bundle />}
     </>
   )
 }

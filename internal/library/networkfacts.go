@@ -3,6 +3,8 @@ package library
 import (
 	"context"
 	"sync/atomic"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Filling in network facts: shows scanned before channels existed, or whose
@@ -34,12 +36,12 @@ func (s *Scanner) FillNetworkFacts() bool {
 	if !factsRun.on.CompareAndSwap(false, true) {
 		return false
 	}
-	go func() {
+	logging.Go("network facts", func() {
 		defer factsRun.on.Store(false)
 		if err := s.fillNetworkFacts(context.Background()); err != nil {
-			s.Log.Warn("network facts", "cat", "library", "err", err)
+			s.Log.Warn("could not fill in network facts", "err", err)
 		}
-	}()
+	}, "cat", "library")
 	return true
 }
 
@@ -80,15 +82,18 @@ func (s *Scanner) fillNetworkFacts(ctx context.Context) error {
 
 func (s *Scanner) lookupFacts(ctx context.Context, sh *Show, src SeriesSource) *SeriesMeta {
 	if t := s.sourceNamed(sh.Provider); t != nil && sh.ProviderID != "" {
-		if m, err := t.Series(ctx, sh.ProviderID); err == nil {
+		m, err := t.Series(ctx, sh.ProviderID)
+		if err == nil {
 			return m
 		}
+		s.Log.DebugContext(ctx, "network facts lookup failed", "source", t.Name(), "show", sh.Title, "err", err)
 	}
 	if src == nil || sh.Provider != "" {
 		return nil
 	}
 	m, err := src.FindSeries(ctx, sh.Title, sh.Year)
 	if err != nil {
+		s.Log.DebugContext(ctx, "network facts lookup failed", "source", src.Name(), "show", sh.Title, "err", err)
 		return nil
 	}
 	return m

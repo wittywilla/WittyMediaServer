@@ -450,7 +450,7 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if metaEdit && !gallery && s.saveMeta(r) {
 		if err := s.Scanner.SaveItemMetadata(r.Context(), it); err != nil {
-			s.Log.Warn("save metadata", "path", it.Path, "err", err)
+			s.Log.WarnContext(r.Context(), "could not save metadata beside the media", "cat", "library", "file", it.Path, "err", err)
 		}
 	}
 	if err := s.Store.UpdateItem(r.Context(), it); err != nil {
@@ -620,7 +620,7 @@ func (s *Server) nextUp(r *http.Request, libs []library.Library) []*library.Item
 	}
 	out, err := s.Store.NextUpItems(ctx, uid, started, acc, 20)
 	if err != nil {
-		s.Log.Warn("next up", "err", err)
+		s.Log.WarnContext(ctx, "could not work out what's next to watch", "cat", "library", "err", err)
 	}
 	return out
 }

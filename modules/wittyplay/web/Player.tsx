@@ -41,6 +41,7 @@ export interface PlayHost extends SettingsHost {
   controllers(): Promise<ControllerData>
   profiles: ProfileHost
   close(): void // leave the player
+  report?(level: 'error' | 'warn', message: string): void // for the app's error log, if it keeps one
 }
 
 type SettingsGroup = 'display' | 'osd' | 'emulation' | 'audio' | 'states' | 'hotkeys'
@@ -196,6 +197,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
         if (stale()) { t.close(); return }
         t.onLost = () => {
           if (closing.current || transportRef.current !== t) return
+          host.report?.('error', `The game stream was lost (${kind})`)
           skip.add(kind)
           void connect(s, m, skip)
         }
@@ -211,9 +213,11 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
         t.close()
         if (stale()) return
         last = e?.message || String(e)
+        host.report?.('error', `The game stream could not connect (${kind}): ${last}`)
         skip.add(kind)
       }
     }
+    host.report?.('error', 'Every way of connecting to the game failed')
     setError('The game is running, but this browser couldn’t connect to it' + (last ? `: ${last}` : '.'))
   }, [host, input, onEvent])
 
@@ -228,7 +232,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
       else if (s.safeMode) say('Safe mode: your settings, cheats and patches aren’t being used')
       else if (s.resumed) say('Back where you left off')
       void connect(s, mode)
-    }).catch((e) => { if (!cancelled) setError(e?.message || 'The game could not start.') })
+    }).catch((e) => { if (cancelled) return; host.report?.('error', `The game could not start: ${e?.message || e}`); setError(e?.message || 'The game could not start.') })
     input.start()
     input.onChange = () => {
       const pads = input.listPads()

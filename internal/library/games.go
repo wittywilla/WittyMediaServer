@@ -40,8 +40,10 @@ func discoverGames(root, console string) ([]candidate, error) {
 func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 	var found []candidate
 	hidden := map[string]bool{}
+	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			bad.note(err)
 			return nil
 		}
 		name := d.Name()
@@ -81,7 +83,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 			out = append(out, c)
 		}
 	}
-	return out, err
+	return out, bad.with(err)
 }
 
 // gameLikeExts are files that are probably games. One that gameConsole turns down

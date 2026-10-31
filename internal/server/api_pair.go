@@ -246,6 +246,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 	}
 	k := s.logins.key(r, "redeem")
 	if d := s.logins.wait(k); d > 0 {
+		s.Log.WarnContext(r.Context(), "code sign-in locked after repeated failures", "cat", "auth", "from", ipOf(r), "wait", d.Round(time.Second).String())
 		redeemFailed(w, redeemTooMany, d)
 		return
 	}
@@ -255,6 +256,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 		if reason == redeemWrong {
 			s.logins.fail(k)
 		}
+		s.Log.InfoContext(r.Context(), "code sign-in failed", "cat", "auth", "from", ipOf(r), "why", reason)
 		redeemFailed(w, reason, 0)
 		return
 	}
@@ -268,7 +270,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 		redeemFailed(w, redeemExpired, 0)
 		return
 	}
-	s.Log.Info("device signed in with a code", "device", device, "user", u.Name, "from", ipOf(r))
+	s.Log.InfoContext(r.Context(), "device signed in with a code", "cat", "auth", "device", device, "user", u.Name, "from", ipOf(r))
 	writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 }
 
@@ -535,7 +537,7 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 			return
 		}
-		s.Log.Info("device signed in by pairing", "device", p.device, "user", u.Name)
+		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "device", p.device, "user", u.Name)
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
 		writeJSON(w, 200, map[string]any{"status": "pending", "intervalSec": int(pairInterval.Seconds())})
@@ -548,6 +550,7 @@ func (s *Server) pairCodeFrom(w http.ResponseWriter, r *http.Request, v any, cod
 	k := s.logins.key(r, "pair:"+userFrom(r).Name)
 	if d := s.logins.wait(k); d > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
+		s.Log.WarnContext(r.Context(), "pairing locked after repeated wrong codes", "cat", "auth", "from", ipOf(r))
 		writeErr(w, 429, "Too many wrong codes. Try again in a little while.")
 		return nil, "", false
 	}
@@ -558,6 +561,7 @@ func (s *Server) pairCodeFrom(w http.ResponseWriter, r *http.Request, v any, cod
 	p := s.pair.waiting(code())
 	if p == nil {
 		s.logins.fail(k)
+		s.Log.InfoContext(r.Context(), "pairing failed: wrong code", "cat", "auth", "from", ipOf(r))
 		writeErr(w, 404, "That code isn't valid. Check it on the TV: codes last ten minutes and work once.")
 		return nil, "", false
 	}
@@ -630,7 +634,7 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
-	s.Log.Info("pairing approved", "device", p.device, "for", target.Name, "by", me.Name, "deviceIp", p.ip)
+	s.Log.InfoContext(r.Context(), "pairing approved", "cat", "auth", "device", p.device, "account", target.Name, "user", me.Name, "ip", p.ip)
 	writeJSON(w, 200, map[string]any{"ok": true, "device": p.device, "user": target})
 }
 

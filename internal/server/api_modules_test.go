@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -32,7 +33,7 @@ func TestModuleRoutes(t *testing.T) {
 
 	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: modmgr.GoManifests()})
 	defer m.Close()
-	s := &Server{Modules: m}
+	s := &Server{Modules: m, Log: slog.New(slog.DiscardHandler)}
 	w := call(s, list, "")
 	if w.Code != 200 {
 		t.Fatalf("list: %d", w.Code)

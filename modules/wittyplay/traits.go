@@ -1,6 +1,8 @@
 package wittyplay
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -36,6 +38,8 @@ type BIOSRule struct {
 	Match   *regexp.Regexp // file names, lower case
 	MinSize int64
 	MaxSize int64
+	// Option is the core option naming which BIOS to use, when it finds several.
+	Option string
 }
 
 // One choice per resolution multiple, from a list of what the core offers.
@@ -56,7 +60,8 @@ var ps2BIOS = &BIOSRule{
 	Folder:  "pcsx2/bios",
 	Example: "scph39001.bin",
 	For:     "a PlayStation 2 you own",
-	Match:   regexp.MustCompile(`^(scph[-_ ]?\d+|ps2[-_ ].*|.*\bbios\b.*)\.(bin|rom0|rom)$`),
+	Match:   regexp.MustCompile(`^(scph.*|ps2.*bios.*|(.*[^a-z])?bios([^a-z].*)?)\.(bin|rom0|rom)$`),
+	Option:  "pcsx2_bios",
 	MinSize: 4 << 20,
 	MaxSize: (4 << 20) + (1 << 20),
 }
@@ -115,8 +120,8 @@ func DefaultResolution(consoleID string) int {
 
 // StartOptions are the options to start a core with: what CoreOptions says for
 // it, then what running on a graphics card takes. resolution is the setting: "" for
-// the console's default, or "1" to "4".
-func StartOptions(consoleID, coreID, resolution string) map[string]string {
+// the console's default, or "1" to "4". systemDir is where its BIOS files are.
+func StartOptions(consoleID, coreID, resolution, systemDir string) map[string]string {
 	t := Traits(coreID)
 	out := CoreOptions(coreID)
 	if out == nil {
@@ -134,7 +139,41 @@ func StartOptions(consoleID, coreID, resolution string) map[string]string {
 			out[k] = v
 		}
 	}
+	if r := t.RequiredBIOS; r != nil && r.Option != "" {
+		if name := r.preferred(filepath.Join(systemDir, filepath.FromSlash(r.Folder))); name != "" {
+			out[r.Option] = name
+		}
+	}
 	return out
+}
+
+// preferred picks one BIOS when someone has a whole set: a core left to itself
+// takes the first by name, which is often the oldest and least compatible. A late
+// US first-generation model is the usual choice, and it runs every region's games.
+func (r *BIOSRule) preferred(dir string) string {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	best, bestScore := "", -1
+	for _, e := range ents {
+		if e.IsDir() || !r.matches(dir, e) {
+			continue
+		}
+		n, score := strings.ToLower(e.Name()), 0
+		switch {
+		case strings.Contains(n, "39001"):
+			score = 3
+		case strings.Contains(n, "usa"):
+			score = 2
+		case strings.Contains(n, "eur"):
+			score = 1
+		}
+		if score > bestScore {
+			best, bestScore = e.Name(), score
+		}
+	}
+	return best
 }
 
 // IsBIOSFile says whether a file beside the games is firmware rather than a game,

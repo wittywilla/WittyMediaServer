@@ -463,7 +463,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath = core.Path
 		gpu = wittyplay.Traits(core.ID).GPU
-		coreOptions = wittyplay.StartOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""))
+		coreOptions = wittyplay.StartOptions(console.ID, core.ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
 	if gpu {
 		s.awaitHardwareProbe(ctx)

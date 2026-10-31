@@ -81,7 +81,8 @@ func encoderArgs(name string, bps int, gop int) (args, inputArgs []string, uploa
 	half := strconv.Itoa(bps / 2)
 	switch name {
 	case "h264_nvenc":
-		args = []string{"-preset", "p1", "-tune", "ull", "-zerolatency", "1", "-rc", "cbr", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
+		// -delay 0: left alone, NVENC keeps several finished frames in a queue.
+		args = []string{"-preset", "p1", "-tune", "ull", "-zerolatency", "1", "-delay", "0", "-rc", "cbr", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
 	case "h264_qsv":
 		args = []string{"-preset", "veryfast", "-async_depth", "1", "-look_ahead", "0", "-b:v", b, "-bf", "0", "-profile:v", "baseline"}
 	case "h264_amf":

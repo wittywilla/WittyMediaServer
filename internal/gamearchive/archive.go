@@ -18,7 +18,6 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
-	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -198,7 +197,9 @@ func decompress(how string, r io.Reader) (io.Reader, func(), error) {
 	case formatBz2:
 		return bzip2.NewReader(r), none, nil
 	case formatXz:
-		x, err := xz.ReaderConfig{DictCap: int(min(maxDictionary, math.MaxInt32))}.NewReader(r)
+		// Its config sets how much it always reserves, not a most it may use: left alone,
+		// it reserves what the file asks for, and the worker's memory limit is the most.
+		x, err := xz.NewReader(r)
 		return x, none, err
 	case formatZst:
 		z, err := zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderLowmem(true), zstd.WithDecoderMaxWindow(uint64(maxDictionary)))

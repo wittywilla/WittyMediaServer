@@ -14,6 +14,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -220,6 +221,29 @@ func TestEveryCompressionPlays(t *testing.T) {
 	_, err = unpackIn(context.Background(), unpackRequest{Path: bomb, Dst: t.TempDir(), Want: []Want{{Name: "bomb.sfc", Out: "game.sfc"}}, Limit: 1 << 20}, nil)
 	if !errors.Is(err, ErrTooBig) {
 		t.Errorf("bomb: %v", err)
+	}
+}
+
+// A small file must cost little to read, however it was compressed: this runs on servers
+// with very little memory.
+func TestSmallFilesTakeLittleMemory(t *testing.T) {
+	rom := bytes.Repeat([]byte("the game"), 1024)
+	for how, data := range map[string][]byte{formatGz: gzBytes(t, rom, ""), formatXz: xzBytes(t, rom), formatZst: zstBytes(t, rom)} {
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		src, done, err := decompress(how, bytes.NewReader(data))
+		if err != nil {
+			t.Fatalf("%s: %v", how, err)
+		}
+		got, err := io.ReadAll(src)
+		done()
+		if err != nil || !bytes.Equal(got, rom) {
+			t.Fatalf("%s: %v, %d bytes", how, err, len(got))
+		}
+		runtime.ReadMemStats(&after)
+		if used := after.TotalAlloc - before.TotalAlloc; used > 128<<20 {
+			t.Errorf("%s: %d MB to read %d KB", how, used>>20, len(rom)>>10)
+		}
 	}
 }
 

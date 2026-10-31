@@ -58,7 +58,9 @@ close some of these.
 - **Blu-ray:** secondary audio, picture-in-picture and MVC 3D decoding. Testing on retail discs, including
   Java menus, 4K and HDR, waits for discs from the owner.
 - **Confirm by watching:** the Shrek 2 warning screen, the interactive games and the Idol credits have
-  fixes, but the owner hasn't confirmed them.
+  fixes, but the owner hasn't confirmed them. The same goes for the DVD chapter-change fix: on Shrek 2, play
+  straight through 2:20 to 2:35 and 33:55 to 36:45. Only PAL discs could be measured, so an NTSC disc is
+  still to be tried.
 
 ## Live TV and recording
 

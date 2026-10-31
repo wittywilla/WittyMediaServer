@@ -157,6 +157,17 @@ type Probe struct {
 	} `json:"chapters"`
 }
 
+// SeekMargin is how far ahead of a start to begin reading this file, for
+// hls.Spec.SeekMargin: transport and program streams have no index to seek by.
+func (p *Probe) SeekMargin() float64 {
+	for _, f := range strings.Split(p.Format.FormatName, ",") {
+		if f == "mpegts" || f == "mpeg" {
+			return 3
+		}
+	}
+	return 0
+}
+
 func (p *Probe) Duration() float64 {
 	d, _ := strconv.ParseFloat(p.Format.Duration, 64)
 	return d
@@ -243,6 +254,15 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 type Segment struct {
 	Extents  []wittydvd.FileExtent
 	Duration float64 // seconds, 0 = unknown
+	// Lead is how long before its first picture a segment's earliest packet
+	// lies (seconds): usually sound, stored ahead of its picture, up to a
+	// quarter of a second on a DVD, a different amount in every segment. The
+	// concat demuxer puts a segment on the timeline by that earliest packet, so
+	// without this the picture lands late by that much, and each join repeats
+	// or drops frames and sound. (The demuxer's inpoint would say the same thing
+	// directly, but it seeks to get there, and that can land a whole group of
+	// pictures in.)
+	Lead float64
 }
 
 // SubfileURL builds a subfile protocol URL for one extent.
@@ -279,13 +299,14 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 				return "", fmt.Errorf("unusable file name: %q", e.File)
 			}
 		}
+		pieces := splitExtents(s.Extents)
 		var url string
-		if len(s.Extents) == 1 {
-			url = SubfileURL(s.Extents[0])
+		if len(pieces) == 1 {
+			url = SubfileURL(pieces[0])
 		} else {
 			side := filepath.Join(dir, fmt.Sprintf("%s-seg%d.txt", name, i+1))
 			var lines []string
-			for _, e := range s.Extents {
+			for _, e := range pieces {
 				lines = append(lines, SubfileURL(e))
 			}
 			if err := os.WriteFile(side, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
@@ -295,11 +316,35 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 		}
 		fmt.Fprintf(&b, "file %s\n", quoteConcat(url))
 		if s.Duration > 0 {
-			fmt.Fprintf(&b, "duration %.3f\n", s.Duration)
+			// The next segment starts where this one's duration says. Moving that
+			// by the difference in lead puts its first picture where it belongs.
+			d := s.Duration + s.Lead
+			if i+1 < len(segs) {
+				d -= segs[i+1].Lead
+			}
+			fmt.Fprintf(&b, "duration %.6f\n", max(d, 0.001))
 		}
 	}
 	p := filepath.Join(dir, name+".ffconcat")
 	return p, os.WriteFile(p, []byte(b.String()), 0o644)
+}
+
+// maxSubfile is the most one subfile address reads. Past 2 GiB in one FFmpeg
+// misjudges a program stream's end, and then loses about a second of its start.
+const maxSubfile = 1 << 30
+
+// splitExtents cuts extents into pieces that FFmpeg reads reliably.
+func splitExtents(ext []wittydvd.FileExtent) []wittydvd.FileExtent {
+	var out []wittydvd.FileExtent
+	for _, e := range ext {
+		for e.Length > maxSubfile {
+			out = append(out, wittydvd.FileExtent{File: e.File, Offset: e.Offset, Length: maxSubfile})
+			e.Offset += maxSubfile
+			e.Length -= maxSubfile
+		}
+		out = append(out, e)
+	}
+	return out
 }
 
 // ConcatInputArgs are the ffmpeg input flags for an ffconcat list of subfiles.

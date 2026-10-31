@@ -6,6 +6,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 ## Unreleased
 
 ## 0.5.0-alpha
+### Smooth DVD playback
+
+- **Fixed:** a DVD could freeze or skip for a moment around a chapter change, with nothing pressed, and the
+  sound could slip with it. The disc's sections were read one by one and placed by their earliest sound, which
+  lies up to a quarter of a second ahead of the picture and differs each time. Sections that follow each other on
+  the disc are now read as one recording, and where a join is real its first picture lands exactly in place.
+- **Fixed:** a smaller stutter every few minutes on DVD and Blu-ray, at the moment the server starts converting
+  again after resting. Sound and picture now carry on from exactly where they left off.
+- **Fixed:** skipping within a DVD or Blu-ray could hold the first picture for up to half a second. It now lands
+  on the right frame.
+- **Fixed:** picking a chapter on a DVD's page could start at your saved place instead of that chapter.
+- **Fixed:** the same late landing on TV recordings and other .ts, .m2ts, .vob and .mpg files when skipping or
+  when conversion starts again.
+- **New for developers:** a measuring check compares a stream with the disc, frame by frame and sound by sound,
+  at every chapter. See [DVD.md](docs/DVD.md#diagnosing-a-disc).
 
 ### Interface audit
 

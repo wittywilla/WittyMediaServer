@@ -85,7 +85,7 @@ type pairing struct {
 func Start() (*Sunshine, error) {
 	s := &Sunshine{
 		Name: "Test Rig", UUID: "11111111-2222-3333-4444-555555555555", MAC: "aa:bb:cc:dd:ee:02", Version: "7.1.431.-1",
-		Apps: []App{{ID: 881448767, Title: "Desktop"}, {ID: 1093255277, Title: "Steam Big Picture"}, {ID: 7, Title: "Space Game", Image: tinyPNG(1)}},
+		Apps:    []App{{ID: 881448767, Title: "Desktop"}, {ID: 1093255277, Title: "Steam Big Picture"}, {ID: 7, Title: "Space Game", Image: tinyPNG(1)}},
 		WebUser: "admin", WebPass: "secret",
 		paired: map[string]bool{}, pending: map[string]*pairing{}, waiting: make(chan struct{}, 8),
 		HoldPairFor: time.Minute,

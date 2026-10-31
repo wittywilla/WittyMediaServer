@@ -134,7 +134,9 @@ func CheckAddress(ctx context.Context, host string, lookup func(context.Context,
 		return r, nil
 	}
 	if lookup == nil {
-		lookup = func(ctx context.Context, h string) ([]netip.Addr, error) { return net.DefaultResolver.LookupNetIP(ctx, "ip", h) }
+		lookup = func(ctx context.Context, h string) ([]netip.Addr, error) {
+			return net.DefaultResolver.LookupNetIP(ctx, "ip", h)
+		}
 	}
 	ips, err := lookup(ctx, host)
 	if err != nil || len(ips) == 0 {

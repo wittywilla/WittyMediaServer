@@ -53,6 +53,16 @@ func lowIntegrityToken() (windows.Token, error) {
 	return tok, nil
 }
 
+func launchWith(launcher, program string, memoryMB int64, devices bool, args []string) (string, []string) {
+	return program, args
+}
+
+// SandboxFlag is only used on Linux.
+const SandboxFlag = "__module-sandbox"
+
+// RunSandboxed is only used on Linux.
+func RunSandboxed(args []string) int { return 2 }
+
 // lockDown puts a started helper in a job: it dies with the server, has a memory
 // cap and can't start other programs. It does nothing until it is called, so
 // nothing has run outside the job.

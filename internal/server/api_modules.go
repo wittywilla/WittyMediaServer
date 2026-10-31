@@ -272,18 +272,20 @@ func (s *Server) handleModuleWebFile(w http.ResponseWriter, r *http.Request) {
 	h.Set("ETag", `"`+hash+`"`)
 	h.Set("Vary", "Accept-Encoding")
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		if gz, _, err := s.Modules.WebFile(id, ver, rel+".gz"); err == nil {
+		if gz, gzHash, err := s.Modules.WebFile(id, ver, rel+".gz"); err == nil {
 			file = gz
 			h.Set("Content-Encoding", "gzip")
+			h.Set("ETag", `"`+gzHash+`"`)
 		}
 	}
 	http.ServeFile(w, r, file)
 }
 
 // POST /api/modules/{id}/failed: a browser saying a bundle wouldn't load or crashed.
-// Three reports within a day take that version out of use, for the built-in copy.
-// Anyone signed in can do that, and the worst it can cost is the newer version of a
-// reader until an admin chooses it again, so it is logged with who said so.
+// Three reports within a day, at most one a minute, take that version out of use for
+// the built-in copy. Anyone signed in can send them, and the worst that can cost is the
+// newer version of a reader until an admin chooses it again, so each is logged with who
+// said so.
 func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
@@ -298,7 +300,7 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.Warn("a browser reported a module failing", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
-	if err := s.Modules.ReportFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason); err != nil {
+	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason); err != nil {
 		writeModuleErr(w, err)
 		return
 	}

@@ -528,7 +528,8 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			v.Refused, v.Warning = m.judge(e, k.man)
 			v.Allowed = v.Refused == ""
 		}
-		if ver == e.builtin.Version {
+		// The same number from a fork is someone else's code, not the built-in copy.
+		if ver == e.builtin.Version && e.state.Source == nil {
 			v.Builtin = true
 		}
 		l.Versions = append(l.Versions, v)
@@ -551,7 +552,7 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 		}
 	}
 	// The built-in copy can always be chosen.
-	if !seen[e.builtin.Version] {
+	if !seen[e.builtin.Version] || e.state.Source != nil {
 		l.Versions = append(l.Versions, VersionInfo{Offer: Offer{Version: e.builtin.Version, MinServer: e.builtin.MinServer, MaxServer: e.builtin.MaxServer},
 			Builtin: true, InUse: e.dir == "", Allowed: e.dir != "", Older: wittymodule.Compare(e.builtin.Version, e.man.Version) < 0})
 	} else {

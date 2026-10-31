@@ -195,6 +195,9 @@ type Config struct {
 	// happens on its own.
 	CheckEnabled func() bool
 	AutoInstall  func() bool
+	// Launcher is this server's own program, which boxes a helper in before it runs
+	// (Linux; see RunSandboxed). Without it helpers have the rest of their limits.
+	Launcher string
 	// For tests.
 	Keys  []ed25519.PublicKey
 	Fetch *update.Fetcher
@@ -468,6 +471,8 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 	keys := m.keysFor(e)
 	p := newProc(man, dir, func() error { return verifyInstalled(dir, man, keys) }, m.log)
 	p.network = mayUseNetwork[id] && man.Asks(wittymodule.PermissionNetwork) && e.state.Source == nil
+	p.strict = e.state.Source != nil
+	p.launch = m.cfg.Launcher
 	return p
 }
 
@@ -620,6 +625,27 @@ func firstLine(s string) string {
 		s = s[:500]
 	}
 	return s
+}
+
+// browserReportEvery is how often a browser's report can count. Anyone signed in can
+// send one, so this keeps a profile from taking a version out of use in one go.
+var browserReportEvery = time.Minute
+
+// ReportBrowserFailure records a browser saying a bundle failed. It only applies to
+// bundles: nothing a browser says counts against a helper or a program.
+func (m *Manager) ReportBrowserFailure(id, ver, reason string) error {
+	m.mu.Lock()
+	e := m.mods[id]
+	if e == nil {
+		m.mu.Unlock()
+		return ErrUnknown
+	}
+	if e.builtin.Delivery != wittymodule.DeliveryWeb || (!e.failedAt.IsZero() && time.Since(e.failedAt) < browserReportEvery) {
+		m.mu.Unlock()
+		return nil
+	}
+	m.mu.Unlock()
+	return m.ReportFailure(id, ver, reason)
 }
 
 // ReportFailure records a version failing where the server can't see it itself: a

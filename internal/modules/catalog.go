@@ -237,7 +237,35 @@ func (m *Manager) SetInstalled(ids []string, libraries map[string][]string) erro
 		}
 		want[id] = true
 	}
-	// Refuse the whole choice or none of it: work out what would strand first.
+	// All of it or none of it: look at the end result before changing anything.
+	for _, id := range m.order {
+		e := m.mods[id]
+		if want[id] || e.state.Removed || e.builtin.Core {
+			continue
+		}
+		if e.busy {
+			return errors.New("an update of " + e.builtin.Name + " is being installed")
+		}
+		var using []string
+		for _, t := range e.builtin.Libraries {
+			kept := false
+			for _, oid := range m.order {
+				o := m.mods[oid]
+				if !o.state.Removed && (want[oid] || o.builtin.Core) || want[oid] {
+					for _, ot := range o.builtin.Libraries {
+						kept = kept || ot == t
+					}
+				}
+			}
+			if !kept {
+				using = append(using, libraries[t]...)
+			}
+		}
+		if len(using) > 0 {
+			sort.Strings(using)
+			return &ErrInUse{Module: e.builtin.Name, Libraries: using}
+		}
+	}
 	for _, id := range m.order {
 		e := m.mods[id]
 		if want[id] && e.state.Removed {

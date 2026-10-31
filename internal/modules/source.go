@@ -48,11 +48,11 @@ var noFork = map[string]string{
 // ForkWarning is what someone agrees to before using a fork. It is said by the server, so
 // every client that offers this says the same thing.
 const ForkWarning = "Only do this for someone you trust. A module from another publisher is their code running on your server, " +
-	"and neither this project nor anyone else has reviewed it. A helper or game runner runs with limits but can read what this server's account can read, " +
-	"which may include your media and this server's database. A reader bundle runs in the browser of whoever is reading, with their access, including yours as an admin. " +
-	"The signature only proves it came from whoever holds that key, not that it is safe. " +
-	"This server won't install updates from a fork by itself, gives it no network access, and still refuses encrypted media whatever the fork says. " +
-	"Check the key's fingerprint with the publisher, somewhere other than the place you got the key."
+	"and neither this project nor anyone else has reviewed it. A helper or game runner can read what this server's account can read, " +
+	"which may include your media and this server's database. A reader bundle runs in the browser of whoever is reading, with their access, " +
+	"including yours as an admin. The signature only proves it came from whoever holds that key, not that it is safe. " +
+	"This server won't install updates from a fork by itself, and still refuses encrypted media whatever the fork says. " + forkLimits +
+	" Check the key's fingerprint with the publisher, somewhere other than the place you got the key."
 
 var sourceRepoRe = regexp.MustCompile(`^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$`)
 

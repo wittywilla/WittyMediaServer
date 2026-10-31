@@ -155,7 +155,7 @@ func cmdServe(args []string) int {
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
-		Transport: library.SafeClient.Transport, Log: log,
+		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(),
 		CheckEnabled: func() bool {
 			ctx := context.Background()
 			v := database.GetSetting(ctx, "moduleUpdateCheck", "")

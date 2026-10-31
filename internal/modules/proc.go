@@ -38,6 +38,8 @@ type proc struct {
 	verify  func() error // checked before every start; nil only for tests
 	log     *slog.Logger
 	network bool          // it may have a network; see mayUseNetwork
+	strict  bool          // refuse to run without its sandbox: a fork, whose only limits these are
+	launch  string        // the program that applies limits before it runs; "" for none
 	keep    bool          // not stopped when idle: it holds state for a job
 	timeout time.Duration // for one call; 0 is callTimeout
 
@@ -88,7 +90,10 @@ func (p *proc) env() []string {
 }
 
 func (p *proc) newCmd() *exec.Cmd {
-	cmd := exec.Command(p.path(), wittymodule.HelperFlag)
+	// More address space than the job's limit on Windows, which counts only memory in
+	// use: Go asks for more than it touches. GOMEMLIMIT keeps real use to softMemory.
+	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, p.network, []string{wittymodule.HelperFlag})
+	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()
 	return cmd
@@ -112,6 +117,9 @@ func (p *proc) start() error {
 		return err
 	}
 	err = cmd.Start()
+	if err != nil && sandboxed && p.strict {
+		return fmt.Errorf("this system won't run it with the limits a module from another publisher needs: %w", err)
+	}
 	if err != nil && sandboxed {
 		// Containers and some systems refuse what the sandbox asks for. The
 		// helper is signed, and its other limits still apply.

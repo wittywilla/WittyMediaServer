@@ -290,7 +290,8 @@ func (f *Fetcher) ReleasesSince(ctx context.Context, repo, etag string) (rels []
 		return nil, etag, unchanged, err
 	}
 	defer res.Body.Close()
-	if err := json.NewDecoder(io.LimitReader(res.Body, maxFeedBytes)).Decode(&rels); err != nil {
+	// Thirty releases, each with notes of up to 125 KB on GitHub's side.
+	if err := json.NewDecoder(io.LimitReader(res.Body, 4*maxFeedBytes)).Decode(&rels); err != nil {
 		return nil, "", false, fmt.Errorf("unreadable release list: %w", err)
 	}
 	if len(rels) > 100 {

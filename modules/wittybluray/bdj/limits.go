@@ -38,6 +38,13 @@ type procUsage struct {
 	threads int
 }
 
+// Usage is what the process holds now and the processor time it has had, for the
+// diagnostic. ok is false where that cannot be read.
+func (h *Host) Usage() (memory uint64, threads int, cpu time.Duration, ok bool) {
+	u, ok := usage(h.cmd.Process.Pid)
+	return u.memory, u.threads, u.cpu, ok
+}
+
 // watch ends the process when it passes a limit.
 func (h *Host) watch(l Limits) {
 	if l.Every <= 0 {

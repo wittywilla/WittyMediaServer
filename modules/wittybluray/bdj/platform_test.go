@@ -3,6 +3,8 @@ package bdj
 import (
 	"context"
 	"fmt"
+	"os"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -96,5 +98,29 @@ func TestPlatformCalls(t *testing.T) {
 		if time.Now().After(end) {
 			t.Fatal("the ended application's picture stayed on screen")
 		}
+	}
+}
+
+// The diagnostic names what a disc reaches for and the sandbox will not give it.
+func TestRefusedClasses(t *testing.T) {
+	j := javaForTest(t)
+	jar, err := os.ReadFile("testdata/attack.jar")
+	if err != nil {
+		t.Skip("test application not built")
+	}
+	names, err := JDKClasses(jar)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refused, err := j.Refused(context.Background(), t.TempDir(), names)
+	if err != nil {
+		t.Fatal(err)
+	}
+	has := func(c string) bool { return slices.Contains(refused, c) }
+	if !slices.Contains(names, "java/lang/ProcessBuilder") || !has("java/lang/ProcessBuilder") || !has("java/rmi/Naming") {
+		t.Errorf("should be refused: %v", refused)
+	}
+	if has("java/lang/String") || has("java/io/File") || has("javax/xml/parsers/SAXParser") {
+		t.Errorf("should be allowed or replaced: %v", refused)
 	}
 }

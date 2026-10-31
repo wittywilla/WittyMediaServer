@@ -176,7 +176,7 @@ wms bluray info   THE_LORAX.iso          # titles, program, playlists, clips, st
 wms bluray walk   THE_LORAX.iso          # simulate inserting the disc; the menu's buttons and commands
 wms bluray walk   THE_LORAX.iso 2 5      # ...then press buttons 2 and 5
 wms bluray render THE_LORAX.iso out/     # the menu's pages as PNG files
-wms bluray bdj    THE_LORAX.iso 20 a.png # BD-J titles; with Java, run them for 20 seconds
+wms bluray bdj    THE_LORAX.iso 20 a.png down enter # BD-J titles; with Java, run them for 20 seconds, pressing those keys
 ```
 
 The same commands exist as a standalone tool, `wittybluray`, from the

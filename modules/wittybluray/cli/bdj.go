@@ -13,11 +13,39 @@ import (
 	"github.com/wittywilla/wittybluray/bdj"
 )
 
+// The remote's keys by name, for pressing during a run.
+var bdjKeyCodes = map[string]int{"up": 38, "down": 40, "left": 37, "right": 39, "enter": 10, "red": 403, "green": 404, "yellow": 405, "blue": 406, "popup": 461,
+	"0": 48, "1": 49, "2": 50, "3": 51, "4": 52, "5": 53, "6": 54, "7": 55, "8": 56, "9": 57}
+
+// jdkNames lists the Java library classes the disc's JARs name.
+func jdkNames(d *wittybluray.Disc, jars map[string]bool) []string {
+	seen := map[string]bool{}
+	var out []string
+	for j := range jars {
+		b, err := d.ReadProgramFile("JAR/"+j+".jar", 256<<20)
+		if err != nil {
+			continue
+		}
+		names, err := bdj.JDKClasses(b)
+		if err != nil {
+			continue
+		}
+		for _, n := range names {
+			if !seen[n] {
+				seen[n] = true
+				out = append(out, n)
+			}
+		}
+	}
+	return out
+}
+
 // bdjInfo reports a disc's BD-J titles and whether the runtime has what their
 // code links against; with Java on the machine it also runs the first title's
-// applications for some seconds and saves what they draw. Its output is what
-// a bug report about a BD-J disc needs, and it holds no disc content.
-func bdjInfo(d *wittybluray.Disc, seconds int, out string) int {
+// applications for some seconds, pressing any keys named, and saves what they
+// draw. Its output is what a bug report about a BD-J disc needs, and it holds no
+// disc content.
+func bdjInfo(d *wittybluray.Disc, seconds int, out string, keys []string) int {
 	seen := map[string]bool{}
 	names := []string{}
 	add := func(o wittybluray.IndexObject) {
@@ -108,6 +136,13 @@ func bdjInfo(d *wittybluray.Disc, seconds int, out string) int {
 		return 1
 	}
 	defer os.RemoveAll(tmp)
+	if refused, err := java.Refused(context.Background(), filepath.Join(tmp, "c"), jdkNames(d, jars)); err == nil && len(refused) > 0 {
+		sort.Strings(refused)
+		fmt.Printf("%d Java library classes they name are refused by the sandbox:\n", len(refused))
+		for _, c := range refused {
+			fmt.Println(" ", c)
+		}
+	}
 	fmt.Printf("running object %s with %s for %d seconds\n", first.Name, java.Path, seconds)
 	h, err := bdj.Start(context.Background(), d, bdj.Options{Java: java, CacheDir: filepath.Join(tmp, "c"), WorkDir: filepath.Join(tmp, "w"), PersistDir: filepath.Join(tmp, "p"),
 		Log: func(s string) { fmt.Println("  java:", s) },
@@ -123,8 +158,23 @@ func bdjInfo(d *wittybluray.Disc, seconds int, out string) int {
 	defer h.Close()
 	h.Sync(wittybluray.NewRegisters(wittybluray.RegisterOptions{}))
 	h.StartTitle(0xffff, first)
-	time.Sleep(time.Duration(seconds) * time.Second)
+	// Keys go in evenly through the run, each after the menu has had time to show.
+	each := time.Duration(seconds) * time.Second / time.Duration(len(keys)+1)
+	for _, k := range keys {
+		time.Sleep(each)
+		code, known := bdjKeyCodes[k]
+		if !known {
+			fmt.Printf("no key called %q\n", k)
+			continue
+		}
+		fmt.Println("  pressing", k)
+		h.Send("key %d", code)
+	}
+	time.Sleep(each)
 	fmt.Printf("%d pictures drawn\n", h.Version())
+	if mem, threads, cpu, ok := h.Usage(); ok {
+		fmt.Printf("the Java process holds %d MB and %d threads, and has used %v of processor time\n", mem>>20, threads, cpu.Round(time.Second))
+	}
 	if out != "" && h.Version() > 0 {
 		b, _ := h.PNG()
 		if err := os.WriteFile(out, b, 0o644); err != nil {

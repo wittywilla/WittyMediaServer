@@ -161,9 +161,32 @@ for setup, and [the licensing notes](BLURAY.md#java-and-licensing).
 | Playlists | JMF players with `bd://` locators play on the server's normal video path, with end-of-media and mark events | Java |
 | Registers | `RegisterAccess` shares the navigator's registers, with the same write rules | Java |
 | Storage | Each disc has its own persistent area, limited to 64 MB | Java |
-| Fonts and images | The disc's font index and fonts; pictures from JARs and files | None |
+| Drawing straight to the screen | What most animated menus do: `getGraphics`, then `Toolkit.sync`. What is drawn stays, like a real graphics plane | Java, Sample |
+| HAVi widgets | Buttons, text, lists, entry fields, ranges and animations, with focus and looks | Java, Sample |
+| Fonts and images | The disc's font index and fonts; pictures from JARs and files, with the callback `prepareImage` promises | Java, Sample |
+| XML | Parsers read only what they are given; a DOCTYPE or entity fetches nothing | Java |
+| Quitting | An application that ends itself returns the disc to its menu; a film it started goes on. A menu that only ever quits ends at the feature | Java |
 | Falling back | If an application cannot start, or Java is off, missing or crashes, the disc plays its main feature | Java |
-| BD-Live | No network: applications see what they would with the cable out | Java |
+| BD-Live | No network: applications see what they would with the cable out | Java, Sample |
+| Other classes of the published APIs | About 300 written from the specifications, many of them returning empty answers a disc player has no data for. Tested only where a sample calls them | Partly |
+
+"Sample" means an open-source application that was not written for this project ran it. See below.
+
+**What has run, and how far.** The published BD-J samples are the closest thing to a real disc that is
+freely available; they are used in testing only, and none of their code is in this project.
+
+| Application | How far it got |
+|---|---|
+| HD Cookbook hello xlet, built as discs are (class version 47) | Starts, draws |
+| HD Cookbook GRIN engine: tumbling duke, bouncing Reddy | Parses its show, loads pictures, animates through its segments. Scene graph and direct drawing work |
+| HD Cookbook storage writer | Its own test passes |
+| HD Cookbook progressive playlist | Starts, draws, is told downloaded content is not available, as designed |
+| A test menu with HAVi buttons, on a real disc structure with real video | In the player: keys move focus, a playlist plays under the graphics, its score is saved across sessions, and quitting returns to the disc's menu |
+| The two Blu-ray images tried | Neither has Java menus |
+
+Not reached: a retail disc; the HD Cookbook's full book menu and game, which need a show compiler that
+wasn't run. How well the API classes match a real disc's calls past these is still unknown. Frame-accurate
+timing with video has not been tried at all.
 
 **The sandbox.** A disc's classes load through a default-deny list, so a name not on it cannot be
 linked. That rules out reflection, class loading, processes, native code, sockets and file systems.
@@ -236,7 +259,11 @@ wms bluray info  THE_DISC.iso              # structure, flags, anything unreadab
 wms bluray walk  THE_DISC.iso              # simulate inserting it
 wms bluray bdj   THE_DISC.iso              # BD-J titles, and what their code needs that the runtime lacks
 wms bluray bdj   THE_DISC.iso 20 menu.png  # with Java: run them for 20 seconds, save the picture
+wms bluray bdj   THE_DISC.iso 30 menu.png down enter  # the same, pressing those keys on the way
 ```
+
+With Java it also lists the Java library classes the disc names that the sandbox refuses, and what the
+process used in memory, threads and processor time.
 
 If a BD-J disc falls back to its feature, the output of `bdj` usually says why. Attach it to a bug
 report; it holds no disc content.

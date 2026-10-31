@@ -35,6 +35,11 @@ public struct Profile: Decodable, Identifiable, Equatable {
 public struct Profiles: Decodable, Equatable {
     public let style: String?
     public let profiles: [Profile]?
+
+    public init(style: String?, profiles: [Profile]?) {
+        self.style = style
+        self.profiles = profiles
+    }
 }
 
 public struct LoginResult: Decodable {

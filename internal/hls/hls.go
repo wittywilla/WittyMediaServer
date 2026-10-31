@@ -258,6 +258,9 @@ func (m *Manager) sweepOnce() {
 // reached, the transcode nobody has asked anything of for the longest time
 // gives way; if everyone is watching, s has to wait.
 func (m *Manager) makeRoom(s *Session) error {
+	if s.Spec.Growing { // growing streams copy, and have their own limit
+		return nil
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	running := 0
@@ -297,10 +300,18 @@ func (m *Manager) Get(id string) *Session {
 
 // Ensure returns the session with this spec id, creating it if needed.
 func (m *Manager) Ensure(spec Spec) *Session {
+	s, created := m.ensure(spec)
+	if created && spec.Growing {
+		s.Warm() // without the manager's lock: starting FFmpeg takes time, and other streams wait on it
+	}
+	return s
+}
+
+func (m *Manager) ensure(spec Spec) (s *Session, created bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if s, ok := m.session[spec.ID]; ok {
-		return s
+		return s, false
 	}
 	if len(m.session) >= maxSessions {
 		m.dropOldestLocked()
@@ -311,17 +322,14 @@ func (m *Manager) Ensure(spec Spec) *Session {
 			spec.SegmentSec = 2
 		}
 	}
-	s := &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m, viewers: map[string]time.Time{}}
+	s = &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.log.With("hls", spec.ID), m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
 	_ = os.MkdirAll(s.Dir, 0o755)
 	if spec.Growing {
 		m.evictGrowing(maxGrowing - 1)
 	}
 	m.session[spec.ID] = s
-	if spec.Growing {
-		s.Warm()
-	}
-	return s
+	return s, true
 }
 
 // dropOldestLocked ends the least recently used stream. Call with m.mu held.

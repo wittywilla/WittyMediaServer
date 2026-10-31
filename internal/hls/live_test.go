@@ -245,3 +245,28 @@ func TestRedactArgs(t *testing.T) {
 		t.Fatalf("logged a login: %s", got)
 	}
 }
+
+// Opening a growing stream must not hold the manager's lock while it starts:
+// starting asks the manager for room, and every other stream waits on that lock.
+func TestEnsureGrowingDoesNotBlockTheManager(t *testing.T) {
+	m := liveTestManager(t)
+	done := make(chan *Session, 1)
+	go func() { done <- m.Ensure(Spec{ID: "grow", Growing: true, CopyVideo: true, Duration: 20}) }()
+	select {
+	case s := <-done:
+		if m.Get("grow") != s {
+			t.Error("the stream was not kept")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("Ensure never returned: the manager's lock is held for good")
+	}
+}
+
+// Growing streams have their own limit, so a busy server still opens one.
+func TestGrowingStreamsSkipTheTranscodeLimit(t *testing.T) {
+	m := liveTestManager(t)
+	m.max = 0
+	if err := m.makeRoom(&Session{Spec: Spec{ID: "grow", Growing: true}, m: m}); err != nil {
+		t.Errorf("makeRoom: %v", err)
+	}
+}

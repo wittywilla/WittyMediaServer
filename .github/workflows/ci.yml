@@ -31,6 +31,10 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
+      # Before the tests: those that stream through a real FFmpeg skip without it,
+      # and WittyPlay's run a real game runner through it.
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Tests
         run: |
           WMS_TEST_LAN=1 go test ./... -count=1 -json > "$RUNNER_TEMP/go-test.json" || failed=1
@@ -43,9 +47,6 @@ jobs:
         continue-on-error: true
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       # go.work builds the modules against each other's local source.
-      # WittyPlay's streaming tests run a real game runner through a real FFmpeg.
-      - name: Install FFmpeg for the WittyPlay tests
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Modules (their own go.mod)
         run: |
           (cd modules/wittymodule && go vet ./... && go test ./... -count=1)

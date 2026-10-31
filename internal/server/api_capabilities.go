@@ -21,7 +21,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 3
+	apiRevision = 4
 	apiPrefix   = "/api/v1/"
 )
 
@@ -66,6 +66,7 @@ var serverFeatures = []string{
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations",
 	"themes", "theme-tokens", "modules",
+	"game-settings",
 }
 
 // GET /api/capabilities (public): what this server is and can do, the first

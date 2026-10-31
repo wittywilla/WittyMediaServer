@@ -142,6 +142,30 @@ type videoEncoder struct {
 	got     chan struct{} // closed at the first frame out
 	gotOnce sync.Once
 	stopped chan struct{}
+
+	fedMu sync.Mutex
+	fed   []time.Time // when each frame still inside the encoder went in
+}
+
+func (e *videoEncoder) noteFed() {
+	e.fedMu.Lock()
+	if len(e.fed) < 64 {
+		e.fed = append(e.fed, time.Now())
+	}
+	e.fedMu.Unlock()
+}
+
+// encodeTime is how long the oldest frame inside it took. These encoders have no
+// reordering or lookahead, so what comes out is the oldest that went in.
+func (e *videoEncoder) encodeTime() (time.Duration, bool) {
+	e.fedMu.Lock()
+	defer e.fedMu.Unlock()
+	if len(e.fed) == 0 {
+		return 0, false
+	}
+	d := time.Since(e.fed[0])
+	e.fed = e.fed[:copy(e.fed, e.fed[1:])]
+	return d, true
 }
 
 func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps float64) (*videoEncoder, error) {
@@ -193,6 +217,10 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		defer close(e.stopped)
 		emit := func(au AU) {
 			e.gotOnce.Do(func() { close(e.got) })
+			if d, ok := e.encodeTime(); ok {
+				s.encodeNs.Add(int64(d))
+				s.encoded.Add(1)
+			}
 			s.deliverVideo(codec, au)
 		}
 		var err error
@@ -265,12 +293,15 @@ func (s *Session) videoLoop() {
 		feed = append(feed[:0], s.frame...)
 		hdr = s.frameHdr
 		s.frameMu.Unlock()
+		s.framePend.Store(false)
+		s.framesFed.Add(1)
 
 		s.viewMu.Lock()
 		h264, vp8, jp := s.syncEncodersLocked(hdr)
 		s.viewMu.Unlock()
 		for _, e := range []*videoEncoder{h264, vp8} {
 			if e != nil {
+				e.noteFed()
 				if _, err := e.stdin.Write(feed); err != nil && !errors.Is(err, os.ErrClosed) {
 					s.log.Debug("writing to the encoder", "err", err)
 				}

@@ -191,6 +191,12 @@ export class InputManager {
 
   // ---- the state of every player ----
 
+  // Sees each player's buttons before the game does, and can keep some back: shortcuts.
+  filter?: (port: number, mask: number) => number
+
+  // A key some button already answers to, which a shortcut then leaves alone.
+  isBound(code: string) { return this.keyOf.has(code) }
+
   private poll() { if (this.flush()) this.onActivity?.() }
   onActivity?: () => void
 
@@ -207,6 +213,7 @@ export class InputManager {
         const a = readAxes(p)
         if (a) axes[s.port] = a
       }
+      if (this.filter) for (let port = 0; port < MAX_PLAYERS; port++) buttons[port] = this.filter(port, buttons[port])
     }
     let sent = false
     for (let port = 0; port < MAX_PLAYERS; port++) {

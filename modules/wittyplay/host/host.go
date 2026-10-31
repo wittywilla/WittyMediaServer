@@ -29,6 +29,7 @@ func Run(in io.Reader, out io.Writer, open Open) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	r := &runner{out: out}
+	r.ctl = newControl(r)
 	err := r.run(in, open)
 	if err != nil && !errors.Is(err, io.EOF) {
 		_ = ipc.Write(out, ipc.MsgError, []byte(err.Error()))
@@ -47,9 +48,13 @@ type runner struct {
 	audio []byte
 	video []byte
 	stop  bool
+	ctl   *control
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
+	if (r.ctl.dropVideo && (t == ipc.MsgVideo || t == ipc.MsgDupe)) || (r.ctl.dropAudio && t == ipc.MsgAudio) {
+		return
+	}
 	if r.writeE == nil {
 		r.writeE = ipc.Write(r.out, t, parts...)
 	}
@@ -61,7 +66,7 @@ func (r *runner) event(e ipc.Event) {
 }
 
 func (r *runner) handlers() engine.Handlers {
-	return engine.Handlers{
+	return r.ctl.wrap(engine.Handlers{
 		Video: func(data []byte, w, h, stride, format int) {
 			row := w * engine.BytesPerPixel(format)
 			if w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
@@ -102,7 +107,7 @@ func (r *runner) handlers() engine.Handlers {
 			r.event(ipc.Event{Type: "avinfo", Width: a.BaseWidth, Height: a.BaseHeight, Aspect: a.Aspect, FPS: a.FPS, Rate: a.SampleRate})
 		},
 		Shutdown: func() { r.event(ipc.Event{Type: "shutdown"}); r.stop = true },
-	}
+	})
 }
 
 type command struct {
@@ -153,6 +158,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 		return err
 	}
 	defer eng.Close()
+	r.ctl.eng = eng
+	if load.Probe {
+		r.ctl.sendOptions()
+		return r.writeE
+	}
 	av, err := eng.LoadGame(load.ROM)
 	if err != nil {
 		return err
@@ -162,9 +172,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 	}
 	info := eng.SystemInfo()
 	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate})
+	r.ctl.sendOptions()
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
+	r.ctl.frameTime = frame
 	next := time.Now()
 	paused := true // until the server has a viewer
 	var lastSave []byte
@@ -178,11 +190,17 @@ func (r *runner) run(in io.Reader, open Open) error {
 				lastSave = append(lastSave[:0], ram...)
 			}
 		case ipc.CmdState:
-			eng.LoadState(c.p)
+			if !eng.LoadState(c.p) {
+				r.event(ipc.Event{Type: "statefail"})
+			}
+			r.ctl.stateChanged()
 		case ipc.CmdSaveState:
 			r.write(ipc.MsgState, c.p, eng.SaveState())
 		case ipc.CmdReset:
 			eng.Reset()
+			r.ctl.stateChanged()
+		case ipc.CmdControl, ipc.CmdOption, ipc.CmdCheats:
+			r.ctl.command(c.t, c.p)
 		case ipc.CmdPause:
 			paused = len(c.p) > 0 && c.p[0] != 0
 			next = time.Now()
@@ -203,7 +221,7 @@ func (r *runner) run(in io.Reader, open Open) error {
 		if r.writeE != nil {
 			return r.writeE
 		}
-		if paused {
+		if paused && !r.ctl.wantsFrame() {
 			c, ok := <-cmds
 			if !ok {
 				return <-readErr
@@ -227,10 +245,10 @@ func (r *runner) run(in io.Reader, open Open) error {
 				break drain
 			}
 		}
-		if paused {
+		if paused && !r.ctl.wantsFrame() {
 			continue
 		}
-		eng.Run()
+		r.ctl.runFrame()
 		if len(r.audio) > 0 {
 			r.write(ipc.MsgAudio, r.audio)
 			r.audio = r.audio[:0]
@@ -242,11 +260,16 @@ func (r *runner) run(in io.Reader, open Open) error {
 				r.write(ipc.MsgSaveRAM, ram)
 			}
 		}
-		next = next.Add(frame)
 		now := time.Now()
+		if paused { // a frame advanced by hand keeps to no schedule
+			next = now
+			continue
+		}
+		next = next.Add(time.Duration(float64(frame) / r.ctl.pace()))
+		r.ctl.lag = 0
 		if d := next.Sub(now); d > 0 {
 			time.Sleep(d)
-		} else if d < -5*frame {
+		} else if r.ctl.lag = -d; d < -5*frame {
 			next = now // too far behind to catch up: the machine is overloaded
 		}
 	}

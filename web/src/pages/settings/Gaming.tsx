@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, type GameConsole, type GameCore } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast } from '../../state'
@@ -109,6 +110,21 @@ export default function GamingSettings() {
                 <option value="high">High</option>
               </select>
             </label>
+            <label>Fastest fast-forward
+              <input className="input" type="number" min={1} max={16} step={0.5} defaultValue={settings.gamingMaxSpeed || ''} placeholder="Automatic" onBlur={(e) => put({ gamingMaxSpeed: e.target.value })} />
+              <small className="muted">Times normal speed, for everyone. Automatic is 4×, or 2× on a machine with few CPU threads. 1 turns it off.</small>
+            </label>
+            <label>Memory for rewind, per game
+              <input className="input" type="number" min={0} max={512} defaultValue={settings.gamingRewindMB || ''} placeholder="Automatic" onBlur={(e) => put({ gamingRewindMB: e.target.value })} />
+              <small className="muted">In MB. Automatic is 32, or 16 on a machine with few CPU threads. 0 turns rewind off for everyone.</small>
+            </label>
+            <label>Run-ahead
+              <select className="select" value={settings.gamingRunAhead === '0' ? '0' : '1'} onChange={(e) => put({ gamingRunAhead: e.target.value })}>
+                <option value="1">Allowed</option>
+                <option value="0">Not allowed</option>
+              </select>
+              <small className="muted">Lowers delay, and uses several times the CPU of a normal game.</small>
+            </label>
             <label>Game runner
               <select className="select" value={settings.gamingRunner || 'auto'} onChange={(e) => put({ gamingRunner: e.target.value })}>
                 <option value="auto">Automatic</option>
@@ -128,6 +144,9 @@ export default function GamingSettings() {
           </div>
         </Section>
       )}
+      <Section title="What everyone starts with" desc="Set a picture, shortcuts or anything else as the starting point for everyone on this server. People can still change anything for themselves.">
+        <p><Link to="/settings/games">Open game settings</Link>, then choose <b>Everyone</b> at the top of a panel.</p>
+      </Section>
       {confirm && (
         <div className="modal-backdrop" onClick={() => setConfirm(null)}>
           <div className="modal" role="dialog" aria-label={`Install ${confirm.name}`} onClick={(e) => e.stopPropagation()}>

@@ -13,6 +13,7 @@ import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
 import GamingSettings from './settings/Gaming'
+import { GameSettingsPage } from './Games'
 import ModulesSettings from './settings/Modules'
 import { ConsolePicker } from './Games'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
@@ -41,6 +42,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'You', pages: [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
+    { to: 'games', label: 'Games', icon: <IconGamepad />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
@@ -83,6 +85,7 @@ export default function SettingsPage() {
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="gaming" element={<GamingSettings />} />
+          <Route path="games" element={<><PageHead title="Games" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />

@@ -140,7 +140,8 @@ func (s *Session) snapshotViewers() []*viewer {
 }
 
 func (s *Session) deliverVideo(codec string, au AU) {
-	dur := time.Duration(float64(time.Second) / s.info.FPS)
+	dur := s.auDuration(codec)
+	s.bytesOut.Add(int64(len(au.Data)))
 	for _, v := range s.snapshotViewers() {
 		if v.codec != codec {
 			continue
@@ -168,6 +169,7 @@ func (s *Session) deliverVideo(codec string, au AU) {
 }
 
 func (s *Session) deliverJPEG(b []byte) {
+	s.bytesOut.Add(int64(len(b)))
 	for _, v := range s.snapshotViewers() {
 		if v.codec == "jpeg" {
 			v.send(websocket.MessageBinary, append([]byte{wsJPEG}, b...))

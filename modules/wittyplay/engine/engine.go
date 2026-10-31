@@ -80,6 +80,39 @@ type SystemInfo struct {
 	BlockExtract  bool
 }
 
+// Option is one setting an engine offers. The first choice is its default.
+type Option struct {
+	Key     string
+	Label   string
+	Choices []string
+	Value   string
+}
+
+// Options is an engine with settings of its own. SetOption refuses a key or a value
+// the engine didn't offer.
+type Options interface {
+	Options() []Option
+	SetOption(key, value string) bool
+}
+
+// Cheats is an engine that takes cheat codes.
+type Cheats interface {
+	CheatReset()
+	CheatSet(index int, enabled bool, code string)
+}
+
+// Output tells an engine what's wanted from the next frame, so that one which can
+// skip drawing or mixing saves the work.
+type Output interface {
+	SetOutput(video, audio, fastForward bool)
+}
+
+// StateInto is an engine that can save a state into a buffer it's given, for taking
+// one every frame without making garbage. It returns nil when it can't.
+type StateInto interface {
+	SaveStateInto(buf []byte) []byte
+}
+
 // Engine runs one game. Every method is called from one locked OS thread.
 type Engine interface {
 	SystemInfo() SystemInfo

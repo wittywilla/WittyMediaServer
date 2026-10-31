@@ -32,7 +32,9 @@ func main() {
 	}
 	err := host.Run(os.Stdin, os.Stdout, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
 		if l.Core == ipc.TestCore {
-			return testcore.New(h), nil
+			c := testcore.New(h)
+			c.ApplyOptions(l.Options)
+			return c, nil
 		}
 		return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
 	})

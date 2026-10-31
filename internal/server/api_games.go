@@ -31,7 +31,7 @@ import (
 // docs/GAMING.md.
 
 func init() {
-	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality")
+	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingMaxSpeed", "gamingRewindMB", "gamingRunAhead")
 	settingDefaults["gamingMaxSessions"] = "2"
 	settingDefaults["gamingRunner"] = "auto"
 }
@@ -55,6 +55,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
+	s.gameOptionRoutes(m)
 }
 
 // gameService is built the first time anything needs it, so a server nobody
@@ -375,8 +376,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Resume bool   `json:"resume"`
-		Client string `json:"client"` // browser, or anything else for a native app
+		Resume   bool   `json:"resume"`
+		Client   string `json:"client"`   // browser, or anything else for a native app
+		SafeMode bool   `json:"safeMode"` // with default settings, no cheats and no patches
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -397,14 +399,14 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g := s.games()
-	corePath := ipc.TestCore
+	corePath, coreID := ipc.TestCore, "test"
 	if console.ID != wittyplay.TestConsole {
 		core := g.cores.ForConsole(console, s.preferredCores(ctx)[console.ID])
 		if core == nil {
 			writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 			return
 		}
-		corePath = core.Path
+		corePath, coreID = core.Path, core.ID
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")
@@ -421,10 +423,12 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := userFrom(r).ID
-	sess, err := g.mgr.Start(stream.Options{
+	opts := stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
-	})
+	}
+	s.applyGameSettings(ctx, &opts, it, console, coreID, b.SafeMode)
+	sess, err := g.mgr.Start(opts)
 	if err != nil {
 		if errors.Is(err, stream.ErrBusy) {
 			writeErr(w, 503, err.Error())
@@ -435,6 +439,9 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
+	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
+		s.Log.Warn("recording a play", "err", err)
+	}
 	info := sess.Info()
 	info.Modes = g.mgr.Modes(gameClient(b.Client))
 	writeJSON(w, 201, info)
@@ -592,9 +599,12 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Type string `json:"type"`
-		Slot int    `json:"slot"`
-		On   bool   `json:"on"`
+		Type  string  `json:"type"`
+		Slot  int     `json:"slot"`
+		On    bool    `json:"on"`
+		Value float64 `json:"value"`
+		Key   string  `json:"key"`
+		Text  string  `json:"text"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -614,6 +624,20 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.Reset()
 	case "pause":
 		err = sess.Pause(b.On)
+	case "speed":
+		var held float64
+		if held, err = sess.SetSpeed(b.Value); err == nil {
+			writeJSON(w, 200, map[string]any{"ok": true, "speed": held})
+			return
+		}
+	case "rewind":
+		err = sess.SetRewinding(b.On)
+	case "advance":
+		err = sess.Advance(max(int(b.Value), 1))
+	case "undo":
+		err = sess.Undo(r.Context())
+	case "option":
+		err = sess.SetOption(b.Key, b.Text)
 	default:
 		writeErr(w, 400, "unknown action")
 		return
@@ -626,10 +650,11 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 }
 
 type saveSlot struct {
-	Slot      int   `json:"slot"`
-	UpdatedAt int64 `json:"updatedAt"`
-	Size      int64 `json:"size"`
-	HasThumb  bool  `json:"hasThumb"`
+	Slot      int    `json:"slot"`
+	UpdatedAt int64  `json:"updatedAt"`
+	Size      int64  `json:"size"`
+	HasThumb  bool   `json:"hasThumb"`
+	Core      string `json:"core,omitempty"` // the core that made it, when known
 }
 
 func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
@@ -640,14 +665,17 @@ func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
 	}
 	dir := s.games().saveDir(userFrom(r).ID, it.ID)
 	out := []saveSlot{}
-	for slot := 0; slot <= 9; slot++ {
-		name, _ := stream.SlotName(slot)
+	for slot := 0; slot <= stream.SlotPrevAuto; slot++ {
+		name, err := stream.SlotName(slot)
+		if err != nil {
+			continue
+		}
 		st, err := os.Stat(filepath.Join(dir, name+".state"))
 		if err != nil {
 			continue
 		}
 		_, terr := os.Stat(filepath.Join(dir, name+".png"))
-		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: terr == nil})
+		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: terr == nil, Core: slotCore(dir, name)})
 	}
 	writeJSON(w, 200, out)
 }
@@ -691,6 +719,7 @@ func (s *Server) handleGameSaveDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	dir := s.games().saveDir(userFrom(r).ID, it.ID)
 	_ = os.Remove(filepath.Join(dir, name+".png"))
+	_ = os.Remove(filepath.Join(dir, name+".json"))
 	if err := os.Remove(filepath.Join(dir, name+".state")); err != nil {
 		writeErr(w, 404, "not found")
 		return

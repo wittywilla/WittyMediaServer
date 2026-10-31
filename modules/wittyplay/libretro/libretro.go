@@ -82,6 +82,8 @@ type Core struct {
 	fnMemData, fnMemSize, fnAVInfo, fnSysInfo, fnSetCtrl       uintptr
 	fnAPIVersion                                               uintptr
 
+	optionState
+
 	format   int
 	vars     map[string]*byte
 	varDirty bool
@@ -462,9 +464,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envSetPerformance, envSetInputDescs, envSetControllerInfo, envSetSubsystemInfo:
 		// Noted, and needed by nothing here.
 	case envGetAudioVideoEn:
-		*(*int32)(data) = 3 // both on
+		*(*int32)(data) = c.avEnable()
 	case envGetFastForwarding:
-		*(*bool)(data) = false
+		*(*bool)(data) = c.fastForward
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
@@ -485,7 +487,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			return
 		}
 		key := cString(v.key)
-		_, list, _ := strings.Cut(cString(v.value), "; ")
+		label, list, _ := strings.Cut(cString(v.value), "; ")
 		choices := strings.Split(list, "|")
 		val := choices[0]
 		if want, ok := c.options[key]; ok {
@@ -496,6 +498,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			}
 		}
 		c.vars[key] = c.pin(val)
+		c.noteOption(key, label, choices, val)
 	}
 }
 

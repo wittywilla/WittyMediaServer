@@ -14,8 +14,8 @@ require (
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
 	github.com/wittywilla/wittymodule v0.1.0
 	github.com/wittywilla/wittyphotos v0.2.0
-	github.com/wittywilla/wittytuner v0.1.0
 	github.com/wittywilla/wittyplay v0.1.0
+	github.com/wittywilla/wittytuner v0.1.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.60.0
 	golang.org/x/sys v0.49.0
@@ -45,6 +45,7 @@ require (
 	github.com/pion/turn/v5 v5.1.3 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
+	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	modernc.org/libc v1.79.0 // indirect
@@ -63,6 +64,9 @@ replace github.com/wittywilla/wittyintegratedfilebrowser => ./modules/wittyinteg
 
 // Not released yet: built from this repository's copy.
 replace github.com/wittywilla/wittymodule => ./modules/wittymodule
+
 replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos
+
 replace github.com/wittywilla/wittytuner => ./modules/wittytuner
+
 replace github.com/wittywilla/wittyplay => ./modules/wittyplay

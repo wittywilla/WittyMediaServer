@@ -140,6 +140,24 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data as T
 }
 
+// A file as the body of a request, for the endpoints that take one.
+export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream' }
+  const tok = getToken()
+  if (tok) headers['Authorization'] = 'Bearer ' + tok
+  let res: Response
+  try {
+    res = await fetch(serverBase() + '/api' + path, { method, headers, body, credentials: 'same-origin' })
+  } catch {
+    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
+  }
+  const text = await res.text()
+  let data: any = null
+  try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
+  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
+  return data as T
+}
+
 export const api = {
   get: <T>(p: string) => req<T>('GET', p),
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),

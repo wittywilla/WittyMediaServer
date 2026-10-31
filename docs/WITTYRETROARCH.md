@@ -93,7 +93,7 @@ In that mode it has no window and no menus, and it speaks the protocol on stdin 
 | Video | A `wittyplay` video driver sending `MsgVideo`. For hardware-rendered cores, a headless GL context (EGL surfaceless on Linux, a hidden window elsewhere) and a read-back of each frame |
 | Audio | A `wittyplay` audio driver sending `MsgAudio`, with no local sound device |
 | Input | A `wittyplay` input driver reading `CmdInput` from the pipe |
-| Main loop | Handling `CmdLoad`, `CmdSaveRAM`, `CmdState`, `CmdSaveState`, `CmdReset`, `CmdPause` and `CmdQuit` |
+| Main loop | Handling `CmdLoad`, `CmdSaveRAM`, `CmdState`, `CmdSaveState`, `CmdReset`, `CmdPause`, `CmdControl`, `CmdOption`, `CmdCheats` and `CmdQuit`. `CmdLoad` with `"probe": true` sends `options` with no game loaded, then exits. A runner that ignores the last three still works: those features just do nothing |
 | Network | Built without netplay, the updater, cloud sync and the HTTP stack, so that a sandboxed process has nothing to reach for |
 
 **What this buys:** the consoles the built-in runner can't play yet, meaning Nintendo 64, PSP and
@@ -120,6 +120,9 @@ the payload. The limits are in `modules/wittyplay/ipc/ipc.go`, and the server en
 | 69 | `CmdReset` | None |
 | 70 | `CmdPause` | One byte: 1 paused, 0 running. A runner starts paused |
 | 71 | `CmdQuit` | One byte: 1 sends a save state first. The battery save is always sent |
+| 96 | `CmdControl` | JSON: `{"speed","frameSkip","rewindBytes","rewindSeconds","rewinding","runAhead","advance"}`. Only what's present changes. `speed` 1 is normal, from 0.1 to 16. `frameSkip` -1 is automatic, 0 none, or how many to leave out after each one sent. `rewindBytes` is the memory rewind may hold, 0 for off. `runAhead` is frames, up to 3. `advance` runs that many frames while paused, up to 60 |
+| 97 | `CmdOption` | JSON: `{"key","value"}`. A core option. A key the core didn't offer or a value it didn't list is ignored |
+| 98 | `CmdCheats` | JSON: `[{"code","enabled"}]`. The whole list, replacing what was there |
 
 **Runner to server**
 
@@ -131,7 +134,7 @@ the payload. The limits are in `modules/wittyplay/ipc/ipc.go`, and the server en
 | 4 | `MsgAudio` | Signed 16-bit little-endian stereo |
 | 5 | `MsgState` | u32 request id (0 when sent on quit), then the state; nothing after the id if there is none |
 | 6 | `MsgSaveRAM` | Battery save |
-| 7 | `MsgEvent` | JSON: `{"type": "rumble", "port", "effect", "strength"}`, or `message`, `geometry`, `rotation`, `avinfo`, `log`, `shutdown` |
+| 7 | `MsgEvent` | JSON: `{"type": "rumble", "port", "effect", "strength"}`, or `message`, `geometry`, `rotation`, `avinfo`, `log`, `shutdown`, `statefail` (a state wouldn't load), `options` (`"options": [{"key","label","choices","value"}]`, sent before `MsgReady` and after a change), `stats` (`"stats": {"ran","shown","skipped","rewindBytes","rewindFrames"}`, once a second while running) |
 | 8 | `MsgError` | Text, then the runner exits |
 
 ## What's needed from you to start the fork

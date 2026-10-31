@@ -274,6 +274,33 @@ var migrations = []string{
 	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
 	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(user_id, console, kind, key));`,
+	// 17: games: each person's settings, what they keep about each game, and their own files.
+	`CREATE TABLE wittyplay_settings (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   console TEXT NOT NULL, item_id INTEGER NOT NULL,
+	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
+	   PRIMARY KEY(user_id, console, item_id));
+	 CREATE TABLE wittyplay_game_meta (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   favourite INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
+	   plays INTEGER NOT NULL DEFAULT 0, last_played INTEGER NOT NULL DEFAULT 0,
+	   cheats TEXT NOT NULL DEFAULT '',
+	   PRIMARY KEY(user_id, item_id));
+	 CREATE INDEX idx_wittyplay_meta_recent ON wittyplay_game_meta(user_id, last_played);
+	 CREATE TABLE wittyplay_core_options (
+	   core TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE TABLE wittyplay_bezels (
+	   id INTEGER PRIMARY KEY AUTOINCREMENT,
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, size INTEGER NOT NULL, created_at INTEGER NOT NULL);
+	 CREATE INDEX idx_wittyplay_bezels_user ON wittyplay_bezels(user_id);
+	 CREATE TABLE wittyplay_patches (
+	   id INTEGER PRIMARY KEY AUTOINCREMENT,
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, kind TEXT NOT NULL, size INTEGER NOT NULL, enabled INTEGER NOT NULL, created_at INTEGER NOT NULL);
+	 CREATE INDEX idx_wittyplay_patches_game ON wittyplay_patches(user_id, item_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -71,6 +71,26 @@ test('resolution falls under load, frames fall only when that is not enough, and
   for (let i = 0; i < 60 * 30; i++) assert.equal(fine.frame(1 / 60), false, 'and left alone at full speed')
 })
 
+test('aiming at thirty frames a second, on purpose, is not taken for being slow', () => {
+  const b = new Budget(0.33, 0.2, 1)
+  b.frameGap = 1 / 30
+  for (let i = 0; i < 30 * 90; i++) b.frame(1 / 30)
+  assert.equal(b.scale, 1, 'it can use more pixels when there is time')
+  const held = new Budget(0.33, 0.2, 1)
+  held.frameGap = 1 / 30
+  for (let i = 0; i < 400; i++) held.frame(1 / 20)
+  assert.equal(held.scale, 0.2, 'and fewer when there is not')
+})
+
+test('it stops trying for more pixels when they keep failing', () => {
+  const b = new Budget(0.5, 0.25, 1)
+  let changes = 0
+  // A machine that manages 60 at this resolution and 40 at any more.
+  const limit = b.scale
+  for (let i = 0; i < 60 * 300; i++) if (b.frame(b.scale > limit + 1e-6 ? 1 / 40 : 1 / 60)) changes++
+  assert.ok(changes < 16, `changed resolution ${changes} times in five minutes`)
+})
+
 test('a chosen resolution stays, and a long pause is not taken for slowness', () => {
   const b = new Budget(0.5, 0.5, 0.5)
   for (let i = 0; i < 200; i++) b.frame(1 / 15)

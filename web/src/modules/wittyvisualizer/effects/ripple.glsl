@@ -2,7 +2,7 @@
 {
   "format": 1, "id": "ripple", "name": "Ripple Tank",
   "description": "A pool of water seen from above. Each beat is a drop that sends rings across it, and they bend the light on the bottom.",
-  "tags": ["water", "calm"], "cost": 2, "motion": "gentle"
+  "tags": ["water", "calm"], "cost": 3, "motion": "gentle"
 }
 */
 float surface(vec2 p) {

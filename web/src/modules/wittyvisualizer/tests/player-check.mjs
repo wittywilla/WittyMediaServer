@@ -130,7 +130,8 @@ try {
           const d = x.getImageData(0, 0, 8, 5).data, row = []
           let m = 0
           for (let i = 0; i < d.length; i += 4) { const l = 0.2126 * lum(d[i]) + 0.7152 * lum(d[i + 1]) + 0.0722 * lum(d[i + 2]); row.push(l); m += l }
-          window.__wvRec.tiles.push(m / 40); window.__wvRec.t.push(performance.now() / 1000)
+          row.push(m / 40)
+          window.__wvRec.tiles.push(row); window.__wvRec.t.push(performance.now() / 1000)
           requestAnimationFrame(loop)
         }
       }
@@ -148,7 +149,11 @@ try {
       await p.eval(`window.__wvRec.tiles.length = 0; window.__wvRec.t.length = 0`)
       await new Promise((d) => setTimeout(d, 4500))
       const r = await p.eval(`window.__wvRec`)
-      worst[id] = { flashes: worstFlashesPerSecond(r.tiles, r.t), frames: r.t.length, low: Math.round(Math.min(...r.tiles) * 1000) / 1000, high: Math.round(Math.max(...r.tiles) * 1000) / 1000 }
+      // The whole screen, and the worst single tile of the 40.
+      const whole = r.tiles.map((row) => row[40])
+      let tile = 0
+      for (let k = 0; k < 40; k++) tile = Math.max(tile, worstFlashesPerSecond(r.tiles.map((row) => row[k]), r.t))
+      worst[id] = { whole: worstFlashesPerSecond(whole, r.t), worstTile: tile, frames: r.t.length, high: Math.round(Math.max(...whole) * 1000) / 1000 }
     }
     await p.eval(`window.__wvRec = null`)
     results.flashCheck = worst

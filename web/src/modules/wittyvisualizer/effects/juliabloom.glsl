@@ -2,7 +2,7 @@
 {
   "format": 1, "id": "juliabloom", "name": "Fractal Bloom",
   "description": "A Julia fractal whose shape is steered by the music, opening and folding like a flower on a slow orbit.",
-  "tags": ["fractal"], "cost": 3, "motion": "gentle"
+  "tags": ["fractal"], "cost": 2, "motion": "gentle"
 }
 */
 vec4 effect(vec2 uv) {

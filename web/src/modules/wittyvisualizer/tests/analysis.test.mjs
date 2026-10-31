@@ -134,9 +134,28 @@ test('a mono-sized or unusual sample rate still places notes correctly', () => {
   }
 })
 
-test('history keeps a row for each frame and wraps around', () => {
-  const { a } = run(song, (HISTORY_ROWS + 5) / 60)
-  assert.ok(a.frame.historyRow >= 0 && a.frame.historyRow < HISTORY_ROWS)
+test('history covers one second on any screen, slow or fast', () => {
+  for (const fps of [15, 24, 60, 144, 240]) {
+    const a = new Analyzer()
+    const left = new Float32Array(FFT_SIZE), right = new Float32Array(FFT_SIZE)
+    let rows = 0
+    for (let f = 0; f < fps * 2; f++) {
+      a.process(left, right, RATE, 1 / fps)
+      rows += a.frame.historyMoved
+      assert.ok(a.frame.historyRow >= 0 && a.frame.historyRow < HISTORY_ROWS)
+    }
+    assert.ok(Math.abs(rows - HISTORY_ROWS * 2) <= 1, `${fps} fps: ${rows} rows in two seconds`)
+  }
+})
+
+test('every new history row holds this moment', () => {
+  const a = new Analyzer()
+  const left = new Float32Array(FFT_SIZE), right = new Float32Array(FFT_SIZE)
+  fill(tone(440), 1, RATE, left, right)
+  for (let i = 0; i < 12; i++) a.process(left, right, RATE, 1 / 15)
+  const t = a.frame.texture, w = SPECTRUM_BINS
+  const at = (4 + a.frame.historyRow) * w
+  for (let i = 0; i < w; i += 41) assert.equal(t[at + i], t[i])
 })
 
 test('a frame takes well under a millisecond here', () => {

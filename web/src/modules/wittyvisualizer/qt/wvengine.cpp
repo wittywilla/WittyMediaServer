@@ -195,8 +195,14 @@ bool Budget::frame(double dt)
     held_ += dt;
     if (held_ < 1.2)
         return false;
-    const bool slow = avg_ > 1.0 / 45, fast = avg_ < 1.0 / 54;
+    // Judged against the rate it's aiming for: 30 a second on purpose isn't slow.
+    const double aim = frameGap > 0 ? frameGap : 1.0 / 60;
+    const bool slow = avg_ > aim * 1.33, fast = avg_ < aim * 1.11;
     if (slow) {
+        // If it has just tried more pixels and that failed, it waits longer before the next try.
+        if (calmFor_ == 0 && rose_)
+            patience_ = std::min(120.0, patience_ * 2);
+        rose_ = false;
         calmFor_ = 0;
         held_ = 0;
         if (scale > floor_ + 1e-3) {
@@ -209,11 +215,12 @@ bool Budget::frame(double dt)
         }
         return false;
     }
-    if (fast && frameGap == 0) {
+    if (fast) {
         calmFor_ += dt;
-        if (calmFor_ > 6 && scale < ceiling_ - 1e-3) {
+        if (calmFor_ > patience_ && scale < ceiling_ - 1e-3) {
             calmFor_ = 0;
             held_ = 0;
+            rose_ = true;
             scale = std::min(ceiling_, scale * 1.12);
             return true;
         }

@@ -68,7 +68,6 @@ bool Renderer::init(QRhi *rhi, QRhiRenderPassDescriptor *screenPass)
     audio_->create();
     black_.reset(rhi_->newTexture(QRhiTexture::RGBA8, QSize(1, 1)));
     black_->create();
-    sentHistory_ = -1;
     audioNew_ = true;
 
     composeUbo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, kUniformFloats * sizeof(float)));
@@ -310,14 +309,15 @@ void Renderer::draw(QRhiCommandBuffer *cb, QRhiRenderTarget *screen, const DrawI
     rows.setSourceSize(QSize(kSpectrumBins, 4));
     rows.setDataStride(kSpectrumBins);
     QVector<QRhiTextureUploadEntry> entries{{0, 0, rows}};
-    if (a.historyRow != sentHistory_) {
-        const int row = 4 + a.historyRow;
-        QRhiTextureSubresourceUploadDescription hist(a.texture.data() + size_t(row) * kSpectrumBins, quint32(kSpectrumBins));
-        hist.setSourceSize(QSize(kSpectrumBins, 1));
+    if (a.historyMoved > 0) {
+        // Usually one row. A slow frame can owe several, and then all of it goes.
+        const int row = a.historyMoved == 1 ? 4 + a.historyRow : 4;
+        const int count = a.historyMoved == 1 ? 1 : kHistoryRows;
+        QRhiTextureSubresourceUploadDescription hist(a.texture.data() + size_t(row) * kSpectrumBins, quint32(size_t(count) * kSpectrumBins));
+        hist.setSourceSize(QSize(kSpectrumBins, count));
         hist.setDataStride(kSpectrumBins);
         hist.setDestinationTopLeft(QPoint(0, row));
         entries.push_back({0, 0, hist});
-        sentHistory_ = a.historyRow;
     }
     QRhiTextureUploadDescription up;
     up.setEntries(entries.cbegin(), entries.cend());

@@ -176,5 +176,7 @@ button.ab-info:hover { background: var(--hover); }
 .pod-folder .muted { font-size: var(--text-sm); }
 
 /* The visualizer takes the artwork's place in the full player. */
-.ab-art-big.ab-viz { aspect-ratio: auto; height: min(62vw, 340px); overflow: hidden; background: #000; }
+.ab-art-big.ab-viz { position: relative; padding: 0; height: min(90vw, 400px); aspect-ratio: auto; overflow: hidden; background: #000; }
+.audio-bar.full .ab-art-big.ab-viz { width: 100%; max-width: 560px; }
+.ab-art-big.ab-viz .wv-stage { position: absolute; inset: 0; }
 .ab-viz-btn.on { color: var(--accent-text); }

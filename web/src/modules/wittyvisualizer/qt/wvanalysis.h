@@ -13,11 +13,13 @@ constexpr int kSpectrumBins = 512;
 constexpr int kWavePoints = 512;
 constexpr int kHistoryRows = 64;
 constexpr int kAudioRows = 4 + kHistoryRows;
+constexpr int kHistoryRate = 64; // rows a second, so they hold one second on any screen
 constexpr double kMinBeatGap = 0.24;
 
 struct AudioFrame {
     std::vector<uint8_t> texture; // kSpectrumBins wide, kAudioRows high
     int historyRow = 0;
+    int historyMoved = 0; // how many rows that is on from the last frame
     double bass = 0, mid = 0, treble = 0, level = 0;
     double beat = 0;
     int beatCount = 0;
@@ -54,6 +56,7 @@ private:
     Band bass_, mid_, treble_, level_;
     std::vector<double> lows_, lowsAt_;
     int lowsHead_ = 0;
+    double historyDue_ = 0;
     double lastLow_ = 0, lastLowInput_ = 0, clock_ = 0, lastBeat_ = -10, specPeak_ = 1e-3;
     int rate_ = 0;
     std::array<double, 4> beats_{60, 60, 60, 60};

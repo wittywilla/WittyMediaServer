@@ -42,7 +42,7 @@ export class Session {
   loaded = false
   status: Status = { running: false, effect: '', tap: 'closed', tapWhy: '', renderer: '', rendererDetail: '', fps: 0, width: 0, height: 0, scale: 1, frameMs: 0, beats: 0, problem: '' }
   effects: EffectFile[] = BUILTIN_EFFECTS
-  canvas = document.createElement('canvas')
+  canvas: HTMLCanvasElement
 
   private host: VisualizerHost
   private listeners = new Set<() => void>()
@@ -78,13 +78,22 @@ export class Session {
 
   constructor(host: VisualizerHost) {
     this.host = host
-    this.canvas.className = 'wv-canvas'
-    this.canvas.setAttribute('aria-hidden', 'true')
-    this.canvas.tabIndex = -1
-    this.canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.onContextLost() })
-    this.canvas.addEventListener('webglcontextrestored', () => { if (this.wanted) this.resumeLoop() })
+    this.canvas = this.makeCanvas()
     this.loadCustom()
     document.addEventListener('visibilitychange', this.onVisibility)
+  }
+
+  private makeCanvas() {
+    const c = document.createElement('canvas')
+    c.className = 'wv-canvas'
+    c.setAttribute('aria-hidden', 'true')
+    c.tabIndex = -1
+    c.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault()
+      if (c === this.canvas && this.renderer) this.onContextLost()
+    })
+    c.addEventListener('webglcontextrestored', () => { if (c === this.canvas && this.wanted) this.resumeLoop() })
+    return c
   }
 
   // --- what the interface reads and changes
@@ -119,7 +128,8 @@ export class Session {
 
   private inRunning() {
     const usable = this.effects.filter((e) => !this.renderer || this.renderer.supports(e.id))
-    return eligible(usable, this.settings, this.calm, this.budget.frameGap > 0 && this.budget.scale <= this.budget.floor + 1e-3)
+    const weak = this.renderer?.software || (this.budget.frameGap > 0 && this.budget.scale <= this.budget.floor + 1e-3)
+    return eligible(usable, this.settings, this.calm, !!weak)
   }
 
   next() { this.change(this.cycle.next(this.inRunning().map((e) => e.id), this.settings.random)) }
@@ -201,11 +211,16 @@ export class Session {
   stop() {
     this.wanted = false
     this.pauseLoop()
-    this.renderer?.dispose()
+    // A context told to let go can't be used again, so the next time gets a new canvas.
+    const r = this.renderer
     this.renderer = null
     this.observer?.disconnect()
     this.sizer?.disconnect()
     this.observer = this.sizer = null
+    r?.dispose()
+    this.canvas.remove()
+    this.canvas = this.makeCanvas()
+    this.visible = true
     this.host.saveSettings(this.settings)
     this.status = { ...this.status, running: false, tap: 'closed' }
     this.emit()
@@ -238,9 +253,7 @@ export class Session {
     if (gl) {
       try { return new GlRenderer(gl) } catch (e) { this.status = { ...this.status, problem: (e as Error).message } }
       // A canvas that has given itself to WebGL can't draw any other way.
-      const fresh = document.createElement('canvas')
-      fresh.className = this.canvas.className
-      fresh.setAttribute('aria-hidden', 'true')
+      const fresh = this.makeCanvas()
       this.canvas.replaceWith(fresh)
       this.canvas = fresh
       return new CanvasRenderer(fresh)

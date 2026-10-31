@@ -61,6 +61,9 @@ wittymediaplayer.exe D:
 | N, P | Next and previous chapter |
 | 1 to 9 | Go to that chapter on a disc; that far through a file |
 | M (files) | Mute |
+| V | The visualizer, for music |
+
+While the visualizer is on the whole screen or has the focus, Left and Right change the effect, R is random order, S a favourite, and + and - its strength.
 
 On a disc, in its menus:
 

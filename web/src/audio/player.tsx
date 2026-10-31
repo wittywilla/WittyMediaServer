@@ -24,6 +24,8 @@ type AudioCtx = {
   index: number
   current: Item | null
   mode: AudioMode
+  // The element playing, for what wants to listen to it: the visualizer.
+  media: () => HTMLAudioElement | null
   playing: boolean
   play: (items: Item[], start?: number, mode?: AudioMode) => void
   enqueue: (items: Item[]) => void
@@ -238,7 +240,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   })
 
   const ctx = useMemo<AudioCtx>(() => ({
-    queue, index, current, mode, playing,
+    queue, index, current, mode, playing, media: () => audio.current,
     play: (items, start = 0, m = 'music') => { setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) audio.current?.play() },
     enqueue: (items) => setQueue((q) => [...q, ...items]),
     toggle: () => { const a = audio.current; if (a) a.paused ? a.play().catch(() => {}) : a.pause() },

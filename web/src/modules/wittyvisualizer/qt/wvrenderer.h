@@ -76,7 +76,6 @@ private:
     QRhiRenderPassDescriptor *screenPass_ = nullptr;
     QString error_;
     QSize size_{2, 2};
-    int sentHistory_ = -1;
     bool audioNew_ = true;
 
     QShader fullVert_, quadFrag_;
@@ -89,7 +88,6 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> guardSrb_, presentSrb_;
     std::unique_ptr<QRhiGraphicsPipeline> guardPipe_, presentPipe_;
     int guardAt_ = 0;
-    bool uniformsKeepY_ = true;
     QHash<QString, std::shared_ptr<Effect>> effects_;
     QHash<QString, std::shared_ptr<Target>> targets_;
 };

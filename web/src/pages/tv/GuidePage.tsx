@@ -370,7 +370,7 @@ export default function GuidePage() {
                   {ch ? (
                     <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
                       <span className="ctv-num">{ch.number}</span>
-                      {look.logos && ch.logo ? <img className="ctv-logo" src={logoSrc(ch.logo)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
+                      {look.logos && logoSrc(ch.logo) ? <img className="ctv-logo" src={logoSrc(ch.logo)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
                       <span className="ctv-name">{ch.name}</span>
                       {ch.encrypted && <span className="ctv-lock" aria-hidden="true">🔒</span>}
                     </div>

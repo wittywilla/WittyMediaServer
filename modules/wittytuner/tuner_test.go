@@ -56,6 +56,31 @@ file:///etc/passwd
 rtsp://camera.test/1
 `
 
+// A playlist's logo is a web address or nothing.
+func TestParseM3ULogos(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("#EXTM3U\n")
+	logos := map[string]string{
+		"http://logo.test/1.png": "http://logo.test/1.png", "HTTPS://logo.test/2.png": "HTTPS://logo.test/2.png",
+		"file:///etc/passwd": "", "/etc/passwd": "", `C:\Users\someone\a.png`: "", "cache:a.jpg": "", "ftp://logo.test/a.png": "",
+	}
+	for logo := range logos {
+		fmt.Fprintf(&b, "#EXTINF:-1 tvg-logo=%q,%s\nhttp://stream.test/%d.ts\n", logo, logo, b.Len())
+	}
+	m, err := ParseM3U(strings.NewReader(b.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Entries) != len(logos) {
+		t.Fatalf("%d entries", len(m.Entries))
+	}
+	for _, e := range m.Entries {
+		if e.Logo != logos[e.Name] {
+			t.Errorf("%s: got %q", e.Name, e.Logo)
+		}
+	}
+}
+
 func TestParseM3U(t *testing.T) {
 	m, err := ParseM3U(strings.NewReader(samplePlaylist))
 	if err != nil {

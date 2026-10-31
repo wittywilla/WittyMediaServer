@@ -869,6 +869,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /tv/{key}/live/playlist.m3u8` | user | Live playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user | Live segment. |
 | `POST /tv/{key}/leave` | user | Live leave. |
+| `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
 | `PUT /libraries/{id}/main` | admin | Library show main. |

@@ -111,6 +111,16 @@ type M3U struct {
 	Skipped  int
 }
 
+// webLogo keeps a playlist's logo only when it is a web address: a playlist has
+// no business naming files on this machine.
+func webLogo(s string) string {
+	s = strings.TrimSpace(s)
+	if l := strings.ToLower(s); strings.HasPrefix(l, "http://") || strings.HasPrefix(l, "https://") {
+		return s
+	}
+	return ""
+}
+
 // ParseM3U reads an extended M3U playlist. Comments it does not understand are
 // skipped, so one odd line does not lose a channel list.
 func ParseM3U(r io.Reader) (*M3U, error) {
@@ -140,7 +150,7 @@ func ParseM3U(r io.Reader) (*M3U, error) {
 			head, title := splitExtinf(line[len("#EXTINF:"):])
 			attrs := parseAttrs(head)
 			cur = &M3UEntry{Channel: Channel{
-				Name: firstNonEmpty(title, attrs["tvg-name"]), EPGID: attrs["tvg-id"], Logo: attrs["tvg-logo"],
+				Name: firstNonEmpty(title, attrs["tvg-name"]), EPGID: attrs["tvg-id"], Logo: webLogo(attrs["tvg-logo"]),
 				Group: attrs["group-title"], Number: firstNonEmpty(attrs["tvg-chno"], attrs["channel-number"]),
 			}}
 		case strings.HasPrefix(line, "#EXTGRP:"):

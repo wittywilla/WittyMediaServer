@@ -371,6 +371,7 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 | `GET /api/tv/{key}/tune` | signed in | What is on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | signed in | A player has gone |
+| `GET /api/tv/{key}/logo` | signed in, may watch the channel | A tuner channel's logo, through the server. Internet addresses only |
 | `GET /api/tv/encrypted-help` | signed in | The help page behind the encrypted label |
 | `GET /api/channels` | signed in | Library channels this account may see |
 | `POST /api/channels`, `PUT`/`DELETE /api/channels/{id}` | admin | Manage |

@@ -87,7 +87,7 @@ func TestTVRoutesNeedTheRightAccount(t *testing.T) {
 			t.Errorf("%s %s signed out: %d", c.method, c.path, w.Code)
 		}
 	}
-	for _, p := range []string{"/api/guide", "/api/channels", "/api/tv/lib-1/tune", "/api/tv/lib-1/live/playlist.m3u8", "/api/tv/lib-1/live/seg/x.ts", "/api/recordings"} {
+	for _, p := range []string{"/api/guide", "/api/channels", "/api/tv/lib-1/tune", "/api/tv/lib-1/live/playlist.m3u8", "/api/tv/lib-1/live/seg/x.ts", "/api/tv/tun-1/logo", "/api/recordings"} {
 		if w := tvCall(h, "GET", p, "", ""); w.Code != 401 {
 			t.Errorf("GET %s signed out: %d", p, w.Code)
 		}

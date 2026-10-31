@@ -63,7 +63,8 @@ export type RecordingRule = { id: number; channelId: number; channel: string; ti
 
 export const emptyDefinition = (): Definition => ({ mode: 'simple', rules: {}, order: { mode: 'rotate' }, blocks: [], filler: {}, alignMin: 30 })
 
-export const logoSrc = (u?: string) => (u ? (u.startsWith('/') ? mediaUrl(u) : u) : '')
+// Logos only ever come from this server: another site would see the viewer's address.
+export const logoSrc = (u?: string) => (u?.startsWith('/') ? mediaUrl(u) : '')
 
 // How a stream address answers before the player gets it: a refused or broken
 // channel says why, in words. This also waits for the first picture.

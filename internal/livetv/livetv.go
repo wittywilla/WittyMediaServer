@@ -51,7 +51,7 @@ type Channel struct {
 	Name      string `json:"name"`
 	Group     string `json:"group,omitempty"`
 	CallSign  string `json:"callsign,omitempty"`
-	Logo      string `json:"logo,omitempty"`
+	Logo      string `json:"-"` // the source's address, never sent to clients: see handleTunerLogo
 	HD        bool   `json:"hd,omitempty"`
 	Radio     bool   `json:"radio,omitempty"`
 	Encrypted string `json:"encrypted,omitempty"`

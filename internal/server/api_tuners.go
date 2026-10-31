@@ -2,9 +2,13 @@ package server
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -36,6 +40,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 		s.TV.Start()
 	}
 	m.Handle("GET /api/tv/encrypted-help", a(s.handleEncryptedHelp))
+	m.Handle("GET /api/tv/{key}/logo", a(s.handleTunerLogo))
 	m.Handle("GET /api/tuners/drivers", ad(s.handleTunerDrivers))
 	m.Handle("GET /api/tuners/discover", ad(s.handleTunerDiscover))
 	m.Handle("GET /api/tuners", ad(s.handleTuners))
@@ -338,7 +343,7 @@ func (s *Server) tunerRows(ctx context.Context, r *http.Request) []guideChannel 
 	alts := livetv.Alternatives(list, s.silentChannel)
 	out := make([]guideChannel, 0, len(list))
 	for _, c := range list {
-		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: c.Logo, HD: c.HD, Radio: c.Radio,
+		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: tunerLogoURL(c), HD: c.HD, Radio: c.Radio,
 			Encrypted: c.Encrypted, CanRecord: c.Encrypted == "" && c.NoRecord == "", NoRecord: c.NoRecord, ATSC3: c.ATSC3, Security: securityOf(c), Alternative: alts[c.ID], Notices: s.channelNotices(c)}
 		out = append(out, row)
 	}
@@ -364,6 +369,123 @@ func (s *Server) tunerProgrammes(ctx context.Context, row *guideChannel, from, t
 		out = append(out, broadcast(p))
 	}
 	return out
+}
+
+// ---------------------------------------------------------------------------
+// Channel logos
+// ---------------------------------------------------------------------------
+
+// A playlist names each channel's logo on someone else's site. Viewers get it
+// from this server, so that site never sees their addresses. Clients are only
+// given tunerLogoURL: the playlist's address stays here, and may hold a login.
+
+const (
+	// A dead site must not hold on to the browser's few connections to this
+	// server, which the guide and the stream need too.
+	logoFetchTime  = 8 * time.Second
+	logoRetryAfter = 10 * time.Minute
+	maxChannelLogo = 5 << 20
+)
+
+// logoFetches: scrolling a long guide must not start hundreds of downloads on a small machine.
+var logoFetches = make(chan struct{}, 4)
+
+// logoAddress is a channel's logo, if it is a web address. Nothing else counts:
+// not a cache name, and not a path on this machine.
+func logoAddress(c *livetv.Channel) *url.URL {
+	u, err := url.Parse(strings.TrimSpace(c.Logo))
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+		return nil
+	}
+	return u
+}
+
+// tunerLogoURL is where a client gets a channel's logo. The address's hash is
+// there so that a browser notices when a playlist changes the logo.
+func tunerLogoURL(c *livetv.Channel) string {
+	u := logoAddress(c)
+	if u == nil {
+		return ""
+	}
+	h := sha1.Sum([]byte(u.String()))
+	return "/api/tv/tun-" + strconv.FormatInt(c.ID, 10) + "/logo?v=" + hex.EncodeToString(h[:6])
+}
+
+// tunerLogoFile gets a logo into the cache, from the internet only. One that
+// can't be had isn't tried again for a while, nor is a site that doesn't answer.
+func (s *Server) tunerLogoFile(ctx context.Context, u *url.URL) (string, error) {
+	addr := u.String()
+	p := s.remoteArtPath(addr)
+	if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+		return p, nil
+	}
+	missed := func() bool { return s.logoMissed(addr) || s.logoMissed(u.Host) }
+	if missed() {
+		return "", errArtUnreachable
+	}
+	select {
+	case logoFetches <- struct{}{}:
+		defer func() { <-logoFetches }()
+	case <-ctx.Done(): // the viewer has scrolled past it
+		return "", ctx.Err()
+	}
+	if missed() { // found out while this one waited
+		return "", errArtUnreachable
+	}
+	p, err := s.fetchRemote(ctx, addr, logoFetchTime, maxChannelLogo)
+	if err != nil {
+		s.Log.Info("channel logo", "cat", "tv", "site", u.Hostname(), "err", err)
+		again := time.Now().Add(logoRetryAfter)
+		s.logoMisses.Store(addr, again)
+		if errors.Is(err, errArtUnreachable) {
+			s.logoMisses.Store(u.Host, again)
+		}
+	}
+	return p, err
+}
+
+func (s *Server) logoMissed(key string) bool {
+	v, ok := s.logoMisses.Load(key)
+	if !ok {
+		return false
+	}
+	if time.Now().After(v.(time.Time)) {
+		s.logoMisses.Delete(key)
+		return false
+	}
+	return true
+}
+
+// GET /api/tv/{key}/logo: a tuner channel's logo, for anyone who may watch the
+// channel. Library channels have their own, at /api/channels/{id}/logo.
+func (s *Server) handleTunerLogo(w http.ResponseWriter, r *http.Request) {
+	kind, id, ok := parseKey(r.PathValue("key"))
+	if !ok || kind != "tun" || !s.canWatchTuner(r, id) {
+		writeErr(w, 404, "no logo")
+		return
+	}
+	c, err := s.TV.Channel(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "no logo")
+		return
+	}
+	u := logoAddress(c)
+	if u == nil {
+		writeErr(w, 404, "no logo")
+		return
+	}
+	// Why it failed goes in the log: the answer must not give away the address.
+	p, err := s.tunerLogoFile(r.Context(), u)
+	if err != nil {
+		writeErr(w, 502, "this channel's logo could not be fetched")
+		return
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		writeErr(w, 404, "no logo")
+		return
+	}
+	s.serveArtFile(w, r, f, p)
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +525,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	}
 	ls.Viewer(viewerName(r))
 	now := time.Now()
-	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: c.Logo, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
+	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: tunerLogoURL(c), URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		ServerTime: now.Unix(), CanRecord: c.NoRecord == "", BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {

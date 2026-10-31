@@ -1,7 +1,7 @@
 {
   "id": "wittytuner",
   "name": "WittyTuner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repo": "wittywilla/WittyTuner",
   "delivery": "builtin",
   "api": 1,

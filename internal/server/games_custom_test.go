@@ -931,3 +931,16 @@ func TestBestCoreComesFromRealPlay(t *testing.T) {
 		t.Errorf("options = %+v", options)
 	}
 }
+
+func TestTheCoresFolderIsThereWhenThePageNamesIt(t *testing.T) {
+	g := newGameServer(t)
+	g.enableCustom(t)
+	dir := g.s.games().cores.Dir
+	_ = os.RemoveAll(dir)
+	if w := g.do("GET", "/api/gaming/custom", g.admin, nil); w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+	if st, err := os.Stat(dir); err != nil || !st.IsDir() {
+		t.Errorf("the cores folder isn't there: %v", err)
+	}
+}

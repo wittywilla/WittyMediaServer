@@ -2,6 +2,8 @@ package stream
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -62,4 +64,13 @@ func TestProbeGPUInSandbox(t *testing.T) {
 		t.Fatalf("the check itself failed: %+v", got)
 	}
 	t.Logf("%+v", got)
+}
+
+func TestAPathTooLongForWindowsIsSaidPlainly(t *testing.T) {
+	deep := `C:\` + strings.Repeat("d", 250)
+	_, err := Probe(context.Background(), ProbeOptions{Runner: "wittyplay-host", Core: `C:\core.dll`, WorkDir: deep})
+	var pe *ProbeError
+	if !errors.As(err, &pe) || !strings.Contains(pe.Reason, "shorter path") {
+		t.Errorf("got %v", err)
+	}
 }

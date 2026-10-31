@@ -126,7 +126,7 @@ func run(c *config, args []string) error {
 		}
 		consoles = append(consoles, cn)
 	}
-	mgr := &cores.Manager{Dir: c.coresDir, Extra: []string{}}
+	mgr := &cores.Manager{Dir: c.coresDir, Extra: []string{}, System: c.systemDir}
 	if c.install {
 		installAll(c, mgr, consoles)
 	}

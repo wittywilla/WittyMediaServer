@@ -167,13 +167,36 @@ for setup, and [the licensing notes](BLURAY.md#java-and-licensing).
 
 **The sandbox.** A disc's classes load through a default-deny list, so a name not on it cannot be
 linked. That rules out reflection, class loading, processes, native code, sockets and file systems.
-File, URL, System and Toolkit classes are swapped for checked versions in the class file itself.
-The process has a 192 MB heap and no copy of the server's environment, and it dies with the
-session. BD-J is off until an administrator turns it on. The test application tries each of these
-escapes and the test fails if one works.
+File, URL, System, Toolkit and XML parser classes are swapped for checked versions in the class file
+itself. An XML parser reads only the bytes it is given: it follows no name, external entity or DTD.
+Behind that, no socket of the process connects, whoever asks. BD-J is off until an administrator
+turns it on.
+
+A hostile test disc (`bdj/java/testxlet/a`) tries each way out and the test fails if one works,
+checked from outside as well: a file that appears, a port that answers. Its first run found real
+holes that a review had missed. Three allowed packages turned out to be doors: `java.rmi` opens
+sockets, the XML packages fetch what a document names, and `java.awt.color.ICC_Profile` reads and
+writes any file. So a whole package goes on the list only after reading every class in it.
+
+**What a runaway disc costs.** These are enforced from the server's side of the pipe, where disc code
+cannot reach them.
+
+| It does | What happens |
+|---|---|
+| Fills the Java heap, direct buffers or class space | Limits of 192, 32 and 96 MB; running out ends the process |
+| Holds native memory the heap does not count | Past 768 MB in all, the process is ended |
+| Starts thread after thread | Past 512 threads, the process is ended |
+| Spins on many cores | Past about 2 cores for a minute, the process is ended. On Linux and macOS it also runs slightly niced |
+| Floods the link with messages or printing | Read at a set rate, which holds the disc back; the excess is dropped |
+| Asks for playlists or titles as fast as it can | Only the newest is carried out, at most about 7 a second |
+| Fills its storage | 64 MB, however it writes: `RandomAccessFile` holes and `setLength` count |
+| Hangs in `initXlet`, `paint` or a listener | Only itself. Ending the session ends the process |
+
+When the process ends, the disc plays its main feature, and the log says why. A single core kept busy
+is tolerated, since some menus do that; it ends with the session.
 
 This is a strong barrier, not a guarantee. Disc code still runs inside a real JVM and uses its image
-decoders and AWT, so a JVM bug could be reached from a hostile disc. Run the server as an
+and font decoders and AWT, so a JVM bug could be reached from a hostile disc. Run the server as an
 unprivileged user, and only turn this on for discs you trust.
 
 ## File layouts and damage

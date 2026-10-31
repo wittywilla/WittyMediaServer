@@ -12,8 +12,8 @@ import (
 	"github.com/wittywilla/wittybluray/bdj"
 )
 
-// A BD-J object naming the test application, as bdj's own test builds it.
-func testBDJO() []byte {
+// A BD-J object naming one application, as bdj's own test builds it.
+func testBDJO(class string, params ...string) []byte {
 	var b []byte
 	u32 := func(v uint32) { b = binary.BigEndian.AppendUint32(b, v) }
 	u16 := func(v int) { b = binary.BigEndian.AppendUint16(b, uint16(v)) }
@@ -45,11 +45,15 @@ func testBDJO() []byte {
 	u16(0)
 	str("00000")
 	str("")
-	str("t.TestXlet")
-	param := "hello world"
-	b = append(b, byte(len(param)+1), byte(len(param)))
-	b = append(b, param...)
-	if (len(param)+2)&1 != 0 {
+	str(class)
+	var block []byte
+	for _, p := range params {
+		block = append(block, byte(len(p)))
+		block = append(block, p...)
+	}
+	b = append(b, byte(len(block)))
+	b = append(b, block...)
+	if (len(block)+1)&1 != 0 {
 		b = append(b, 0)
 	}
 	u32(0)
@@ -93,17 +97,12 @@ func testClip() []byte {
 	return append(append(b, seq...), make([]byte, 6)...)
 }
 
-// The whole path: a BD-J first play starts Java, the application's picture
-// reaches the poll, keys reach it, its playlist plays, and when the disc's
-// application cannot run the disc still plays.
-func TestBDJSession(t *testing.T) {
-	jar, err := os.ReadFile("../../modules/wittybluray/bdj/testdata/00000.jar")
+// bdjDisc is a folder holding a disc whose first play is the given object and test JAR.
+func bdjDisc(t *testing.T, jarName string, object []byte) string {
+	t.Helper()
+	jar, err := os.ReadFile("../../modules/wittybluray/bdj/testdata/" + jarName)
 	if err != nil {
 		t.Skip("test application not built")
-	}
-	java := os.Getenv("WMS_TEST_JAVA")
-	if _, err := bdj.Find(java); err != nil {
-		t.Skip("no Java on this machine")
 	}
 	dir := t.TempDir()
 	index := make([]byte, 78)
@@ -122,7 +121,7 @@ func TestBDJSession(t *testing.T) {
 		"BDMV/PLAYLIST/00001.mpls": testPlaylist(),
 		"BDMV/CLIPINF/00001.clpi":  testClip(),
 		"BDMV/STREAM/00001.m2ts":   make([]byte, 192),
-		"BDMV/BDJO/00000.bdjo":     testBDJO(),
+		"BDMV/BDJO/00000.bdjo":     object,
 		"BDMV/JAR/00000.jar":       jar,
 	} {
 		p := filepath.Join(dir, filepath.FromSlash(name))
@@ -133,6 +132,32 @@ func TestBDJSession(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	return dir
+}
+
+// javaForTest is the Java to test with: the path bdj.Find takes, or the test skips.
+func javaForTest(t *testing.T) string {
+	t.Helper()
+	path := os.Getenv("WMS_TEST_JAVA")
+	j, err := bdj.Find(path)
+	if err == nil {
+		_, err = j.Probe(context.Background(), t.TempDir())
+	}
+	if err != nil {
+		if os.Getenv("WMS_REQUIRE_JAVA") != "" {
+			t.Fatal("this test must run here: ", err)
+		}
+		t.Skip("no usable Java on this machine: ", err)
+	}
+	return path
+}
+
+// The whole path: a BD-J first play starts Java, the application's picture
+// reaches the poll, keys reach it, its playlist plays, and when the disc's
+// application cannot run the disc still plays.
+func TestBDJSession(t *testing.T) {
+	java := javaForTest(t)
+	dir := bdjDisc(t, "00000.jar", testBDJO("t.TestXlet", "hello world"))
 	ctx := context.Background()
 
 	// With BD-J off, the disc plays from its playlists.
@@ -221,5 +246,72 @@ func TestBDJSession(t *testing.T) {
 	s.mu.Unlock()
 	if p.BDJ != nil || active {
 		t.Fatalf("still in BD-J: %+v", p)
+	}
+}
+
+// A disc asking for playlists and titles as fast as it can holds up nothing: the
+// session keeps answering, and the requests that would start work are paced.
+func TestBDJFloodsDoNotHoldUpTheSession(t *testing.T) {
+	java := javaForTest(t)
+	for _, mode := range []string{"flood-play", "flood-title", "flood-gpr"} {
+		t.Run(mode, func(t *testing.T) {
+			dir := bdjDisc(t, "attack.jar", testBDJO("a.AttackXlet", mode))
+			m := testManager(t)
+			m.BDJ = func() (bool, string) { return true, java }
+			s, err := m.Open(1, dir, Prefs{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Close()
+			ctx := context.Background()
+			if p := s.Start(ctx); p.BDJ == nil {
+				t.Fatalf("no BD-J view: %+v", p)
+			}
+			// Let the flood build up, then ask the session for what a player asks for.
+			time.Sleep(2 * time.Second)
+			var worst time.Duration
+			for i := 0; i < 30; i++ {
+				start := time.Now()
+				s.Do(ctx, Action{Type: "tick", PositionSec: float64(i) + 1})
+				s.Current()
+				if d := time.Since(start); d > worst {
+					worst = d
+				}
+				time.Sleep(50 * time.Millisecond)
+			}
+			if worst > 3*time.Second {
+				t.Errorf("the session took %v to answer", worst)
+			}
+			start := time.Now()
+			s.Close()
+			if d := time.Since(start); d > 5*time.Second {
+				t.Errorf("closing took %v", d)
+			}
+		})
+	}
+}
+
+// When a disc's code passes a limit, Java ends and the disc plays from its playlists.
+func TestBDJRunawayFallsBack(t *testing.T) {
+	java := javaForTest(t)
+	dir := bdjDisc(t, "attack.jar", testBDJO("a.AttackXlet", "heap"))
+	m := testManager(t)
+	m.BDJ = func() (bool, string) { return true, java }
+	s, err := m.Open(1, dir, Prefs{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	if p := s.Start(ctx); p.BDJ == nil {
+		t.Fatalf("no BD-J view: %+v", p)
+	}
+	for end := time.Now().Add(60 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		if p := s.Current(); p != nil && p.BDJ == nil {
+			return
+		}
+		if time.Now().After(end) {
+			t.Fatal("the session stayed on the disc's menu after Java ended")
+		}
 	}
 }

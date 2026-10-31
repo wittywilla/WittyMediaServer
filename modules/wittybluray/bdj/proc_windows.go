@@ -7,11 +7,13 @@ import (
 	"unsafe"
 )
 
-// hide keeps a console window from appearing for the Java process, and runs it
-// below normal priority so a disc's code gives way to everything else the server does.
+// hide keeps a console window from appearing for the Java process. It keeps normal
+// priority: Windows gives a lower one almost nothing while anything else is busy,
+// so the menu would stall whenever FFmpeg transcodes, which is exactly when a menu
+// with moving video runs. The limits in limits.go deal with a disc that spins.
 func hide(c *exec.Cmd) {
-	const noWindow, belowNormal = 0x08000000, 0x00004000
-	c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: noWindow | belowNormal}
+	const noWindow = 0x08000000
+	c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: noWindow}
 }
 
 func javaCommand(path string, args ...string) *exec.Cmd { return exec.Command(path, args...) }

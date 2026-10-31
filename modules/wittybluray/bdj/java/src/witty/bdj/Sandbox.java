@@ -43,7 +43,7 @@ final class Sandbox {
      */
     private static final String[] PACKAGES = {
         "java.lang.ref.", "java.math.", "java.text.", "java.util.concurrent.", "java.awt.event.", "java.awt.image.", "java.awt.geom.",
-        "java.awt.font.", "org.w3c.dom.traversal.", "org.w3c.dom.events.", "org.w3c.dom.ranges.",
+        "java.awt.font.", "java.util.regex.", "org.w3c.dom.traversal.", "org.w3c.dom.events.", "org.w3c.dom.ranges.",
     };
     static {
         String[] xml = {"java.awt.color.ColorSpace", "java.awt.color.CMMException", "java.awt.color.ProfileDataException",
@@ -88,7 +88,7 @@ final class Sandbox {
         String[] awt = {"Adjustable", "AlphaComposite", "AWTError", "AWTEvent", "AWTEventMulticaster", "AWTException", "BasicStroke", "BorderLayout", "CardLayout", "Color", "Component", "Component$BaselineResizeBehavior", "Composite", "CompositeContext",
             "Container", "Cursor", "Dimension", "EventQueue", "FlowLayout", "Font", "FontFormatException", "FontMetrics", "GradientPaint", "Graphics", "Graphics2D", "GraphicsConfiguration", "GraphicsDevice", "GraphicsEnvironment",
             "GridBagConstraints", "GridBagLayout", "GridLayout", "HeadlessException", "IllegalComponentStateException", "Image", "Insets", "ItemSelectable", "KeyboardFocusManager", "KeyEventDispatcher", "KeyEventPostProcessor", "LayoutManager", "LayoutManager2",
-            "LinearGradientPaint", "MediaTracker", "MultipleGradientPaint", "Paint", "PaintContext", "Point", "Polygon", "RadialGradientPaint", "Rectangle", "RenderingHints", "RenderingHints$Key", "Shape", "Stroke", "TexturePaint", "Transparency", "Frame", "Window"};
+            "LinearGradientPaint", "MediaTracker", "MultipleGradientPaint", "Paint", "PaintContext", "Point", "Polygon", "RadialGradientPaint", "Rectangle", "RenderingHints", "RenderingHints$Key", "Shape", "Stroke", "TexturePaint", "Transparency", "Frame", "Window", "Panel", "Canvas", "AWTPermission", "GraphicsConfigTemplate"};
         for (int i = 0; i < awt.length; i++) EXACT.add("java.awt." + awt[i]);
     }
 

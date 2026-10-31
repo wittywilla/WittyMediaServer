@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittybluray"
@@ -46,7 +47,20 @@ type bdjState struct {
 	seek   *float64
 	video  []int
 	active bool // the current presentation belongs to BD-J
+	// A disc can ask for playlists and titles far faster than they can start, so
+	// only the newest request of each kind is carried out, at a steady pace.
+	pending map[string]*atomic.Int32
+	lastGo  time.Time
+	limit   string // why the process was ended, if it passed a limit
 }
+
+// newPending counts the waiting requests of the kinds that start something expensive.
+func newPending() map[string]*atomic.Int32 {
+	return map[string]*atomic.Int32{"play": {}, "title": {}}
+}
+
+// bdjPace is how often a disc's requests may start something expensive.
+const bdjPace = 150 * time.Millisecond
 
 // ensureHost starts Java for this session, once. nil means BD-J is off or
 // cannot run, and the disc plays from its playlists instead.
@@ -66,7 +80,7 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 		s.warn("BD-J", err)
 		return nil
 	}
-	st := &bdjState{events: make(chan bdj.Event, 4096)}
+	st := &bdjState{events: make(chan bdj.Event, 4096), pending: newPending()}
 	host, err := bdj.Start(ctx, s.disc, bdj.Options{
 		Java:       java,
 		CacheDir:   filepath.Join(s.m.CacheDir, "bdj"),
@@ -78,9 +92,20 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 			}
 		},
 		OnEvent: func(e bdj.Event) {
+			if e.Kind == "exit" {
+				st.events <- e // never lost: the loop below is waiting for it to end
+				return
+			}
+			p := st.pending[e.Kind]
+			if p != nil {
+				p.Add(1)
+			}
 			select {
 			case st.events <- e:
 			default: // a disc flooding the link loses its own messages
+				if p != nil {
+					p.Add(-1)
+				}
 			}
 		},
 	})
@@ -102,6 +127,15 @@ func (s *Session) warn(what string, err error) {
 
 func (s *Session) bdjLoop(st *bdjState) {
 	for e := range st.events {
+		if p := st.pending[e.Kind]; p != nil {
+			if p.Add(-1) > 0 {
+				continue // a newer one is on its way
+			}
+			if wait := bdjPace - time.Since(st.lastGo); wait > 0 {
+				time.Sleep(wait)
+			}
+			st.lastGo = time.Now()
+		}
 		s.mu.Lock()
 		if s.bd == st {
 			s.bdjEvent(st, e)
@@ -199,11 +233,18 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 		if st.obj != nil && st.failed >= len(st.obj.Autostart()) && st.host.Version() == 0 {
 			s.bdjFallback(ctx, st, "This disc's menu could not run ("+shortReason(e.Args)+"). Playing the main feature.")
 		}
+	case "limit":
+		st.limit = strings.Join(e.Args, " ")
+		s.warn("BD-J application", fmt.Errorf("stopped: %s", st.limit))
 	case "exit":
 		st.active = false
 		s.bd = nil
 		if s.current != nil && s.current.BDJ != nil {
-			s.bdjFallbackStep(ctx, "This disc's menu stopped unexpectedly. Playing the main feature.")
+			why := "This disc's menu stopped unexpectedly. Playing the main feature."
+			if st.limit != "" {
+				why = "This disc's menu was stopped because " + st.limit + ". Playing the main feature."
+			}
+			s.bdjFallbackStep(ctx, why)
 		}
 	}
 }

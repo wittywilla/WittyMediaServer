@@ -35,8 +35,13 @@ jobs:
       # and WittyPlay's run a real game runner through it.
       - name: Install FFmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      # BD-J's tests run disc code in Java. They skip where there is none, and the
+      # runner has one: here a skip would hide a hole in the sandbox, so it fails.
       - name: Tests
+        env:
+          WMS_REQUIRE_JAVA: "1"
         run: |
+          java -version
           WMS_TEST_LAN=1 go test ./... -count=1 -json > "$RUNNER_TEMP/go-test.json" || failed=1
           python3 scripts/ci-test-report.py "$RUNNER_TEMP/go-test.json"
           exit ${failed:-0}
@@ -48,6 +53,8 @@ jobs:
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       # go.work builds the modules against each other's local source.
       - name: Modules (their own go.mod)
+        env:
+          WMS_REQUIRE_JAVA: "1"
         run: |
           (cd modules/wittymodule && go vet ./... && go test ./... -count=1)
           (cd modules/wittyphotos && go vet ./... && go test ./... -count=1 && CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyphotos-module)

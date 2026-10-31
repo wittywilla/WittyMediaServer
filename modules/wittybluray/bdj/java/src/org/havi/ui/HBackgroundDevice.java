@@ -5,7 +5,7 @@ public class HBackgroundDevice extends HScreenDevice {
     public HBackgroundConfiguration[] getConfigurations() { return new HBackgroundConfiguration[] {c}; }
     public HBackgroundConfiguration getDefaultConfiguration() { return c; }
     public HBackgroundConfiguration getCurrentConfiguration() { return c; }
-    public boolean setBackgroundConfiguration(HBackgroundConfiguration n) { return true; }
+    public boolean setBackgroundConfiguration(HBackgroundConfiguration n) throws SecurityException, HPermissionDeniedException, HConfigurationException { return n != null; }
     public HBackgroundConfiguration getBestConfiguration(HBackgroundConfigTemplate t) { return c; }
     public HBackgroundConfiguration getBestConfiguration(HBackgroundConfigTemplate[] t) { return c; }
 }

@@ -1,8 +1,12 @@
 package org.havi.ui;
-public class HTextButton extends HButtonBase {
-    public HTextButton() { super(new HTextLook()); }
-    public HTextButton(String t) { this(); setTextContent(t, ALL_STATES); }
-    public HTextButton(String t, int x, int y, int w, int h) { this(t); setBounds(x, y, w, h); }
-    public HTextButton(String t, java.awt.Font f, java.awt.Color fg, java.awt.Color bg, HTextLayoutManager m) { this(t); setFont(f); setForeground(fg); setBackground(bg); }
-    public HTextButton(String t, int x, int y, int w, int h, java.awt.Font f, java.awt.Color fg, java.awt.Color bg, HTextLayoutManager m) { this(t, x, y, w, h); setFont(f); setForeground(fg); setBackground(bg); }
+
+import java.awt.Color;
+import java.awt.Font;
+
+public class HTextButton extends HText implements HActionable {
+    public HTextButton() {}
+    public HTextButton(String t) { super(t); }
+    public HTextButton(String t, int x, int y, int w, int h) { super(t, x, y, w, h); }
+    public HTextButton(String t, Font f, Color fg, Color bg, HTextLayoutManager m) { super(t, f, fg, bg, m); }
+    public HTextButton(String t, int x, int y, int w, int h, Font f, Color fg, Color bg, HTextLayoutManager m) { super(t, x, y, w, h, f, fg, bg, m); }
 }

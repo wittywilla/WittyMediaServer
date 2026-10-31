@@ -44,7 +44,7 @@ final class Hostile {
         } else if (mode.equals("flood-title")) {
             for (;;) {
                 try {
-                    javax.tv.service.selection.ServiceContextFactory.getInstance().createServiceContext().select(new org.bluray.ti.Title(1));
+                    javax.tv.service.selection.ServiceContextFactory.getInstance().createServiceContext().select(javax.tv.service.SIManager.createInstance().getService(new org.bluray.net.BDLocator("bd://1")));
                 } catch (Exception e) {
                     return;
                 }

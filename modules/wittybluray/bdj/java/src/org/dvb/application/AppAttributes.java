@@ -14,4 +14,5 @@ public interface AppAttributes {
     javax.tv.locator.Locator getServiceLocator();
     Object getProperty(String k);
     boolean isVisible();
+    AppIcon getAppIcon();
 }

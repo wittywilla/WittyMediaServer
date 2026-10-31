@@ -1,0 +1,4 @@
+Compile-time only, never in a JAR. A real disc is compiled against the published
+signatures, which name java.net.URL and java.io.File; the sandbox renames those in
+the class file when it loads it. Our runtime declares its shim types for that
+reason, so a test disc must be compiled against these to arrive looking like a real one.

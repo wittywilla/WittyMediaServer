@@ -17,6 +17,7 @@ public final class DVBGraphicsImpl extends DVBGraphics {
     private final Graphics2D g;
     private DVBAlphaComposite dvb = DVBAlphaComposite.SrcOver;
     public DVBGraphicsImpl(Graphics2D g) { this.g = g; }
+    private static Image u(Image i) { return i instanceof DVBBufferedImage ? ((DVBBufferedImage) i).getImage() : i; }
     public int[] getAvailableCompositeRules() { return new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}; }
     public DVBAlphaComposite getDVBComposite() { return dvb; }
     public void setDVBComposite(DVBAlphaComposite c) { dvb = c; g.setComposite(c.toAWT()); }
@@ -27,7 +28,7 @@ public final class DVBGraphicsImpl extends DVBGraphics {
         else g.setComposite(c);
     }
     public void draw(Shape s) { g.draw(s); }
-    public boolean drawImage(Image i, AffineTransform t, ImageObserver o) { return g.drawImage(i, t, o); }
+    public boolean drawImage(Image i, AffineTransform t, ImageObserver o) { return g.drawImage(u(i), t, o); }
     public void drawImage(BufferedImage i, BufferedImageOp op, int x, int y) { g.drawImage(i, op, x, y); }
     public void drawRenderedImage(RenderedImage i, AffineTransform t) { g.drawRenderedImage(i, t); }
     public void drawRenderableImage(RenderableImage i, AffineTransform t) { g.drawRenderableImage(i, t); }
@@ -88,11 +89,11 @@ public final class DVBGraphicsImpl extends DVBGraphics {
     public void drawPolyline(int[] x, int[] y, int n) { g.drawPolyline(x, y, n); }
     public void drawPolygon(int[] x, int[] y, int n) { g.drawPolygon(x, y, n); }
     public void fillPolygon(int[] x, int[] y, int n) { g.fillPolygon(x, y, n); }
-    public boolean drawImage(Image i, int x, int y, ImageObserver o) { return g.drawImage(i, x, y, o); }
-    public boolean drawImage(Image i, int x, int y, int w, int h, ImageObserver o) { return g.drawImage(i, x, y, w, h, o); }
-    public boolean drawImage(Image i, int x, int y, Color c, ImageObserver o) { return g.drawImage(i, x, y, c, o); }
-    public boolean drawImage(Image i, int x, int y, int w, int h, Color c, ImageObserver o) { return g.drawImage(i, x, y, w, h, c, o); }
-    public boolean drawImage(Image i, int a, int b, int c, int d, int e, int f, int h, int j, ImageObserver o) { return g.drawImage(i, a, b, c, d, e, f, h, j, o); }
-    public boolean drawImage(Image i, int a, int b, int c, int d, int e, int f, int h, int j, Color k, ImageObserver o) { return g.drawImage(i, a, b, c, d, e, f, h, j, k, o); }
+    public boolean drawImage(Image i, int x, int y, ImageObserver o) { return g.drawImage(u(i), x, y, o); }
+    public boolean drawImage(Image i, int x, int y, int w, int h, ImageObserver o) { return g.drawImage(u(i), x, y, w, h, o); }
+    public boolean drawImage(Image i, int x, int y, Color c, ImageObserver o) { return g.drawImage(u(i), x, y, c, o); }
+    public boolean drawImage(Image i, int x, int y, int w, int h, Color c, ImageObserver o) { return g.drawImage(u(i), x, y, w, h, c, o); }
+    public boolean drawImage(Image i, int a, int b, int c, int d, int e, int f, int h, int j, ImageObserver o) { return g.drawImage(u(i), a, b, c, d, e, f, h, j, o); }
+    public boolean drawImage(Image i, int a, int b, int c, int d, int e, int f, int h, int j, Color k, ImageObserver o) { return g.drawImage(u(i), a, b, c, d, e, f, h, j, k, o); }
     public void dispose() { g.dispose(); }
 }

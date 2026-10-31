@@ -57,7 +57,9 @@ public class Toolkit {
     public Dimension getScreenSize() { return new Dimension(Host.width, Host.height); }
     public int getScreenResolution() { return 96; }
     public ColorModel getColorModel() { return ColorModel.getRGBdefault(); }
-    public void sync() {}
+    /** An application that draws directly says here that its picture is ready. */
+    public void sync() { witty.bdj.Plane.invalidate(); }
+    public java.awt.EventQueue getSystemEventQueue() { return java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue(); }
     public void beep() {}
     public boolean prepareImage(Image i, int w, int h, ImageObserver o) { return true; }
     public int checkImage(Image i, int w, int h, ImageObserver o) { return ImageObserver.ALLBITS | ImageObserver.WIDTH | ImageObserver.HEIGHT; }

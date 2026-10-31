@@ -17,7 +17,7 @@ public abstract class ServiceContextFactory {
         private final List<ServiceContextListener> ls = new java.util.concurrent.CopyOnWriteArrayList<ServiceContextListener>();
         public void start(org.bluray.ti.Title t, boolean restart) { select(t); }
         public void select(javax.tv.service.Service s) {
-            if (s instanceof org.bluray.ti.Title) Host.send("title " + ((org.bluray.ti.Title) s).getTitleNumber());
+            if (s instanceof org.bluray.ti.TitleImpl) Host.send("title " + ((org.bluray.ti.TitleImpl) s).getTitleNumber());
             fire();
         }
         public void select(javax.tv.locator.Locator[] l) {
@@ -34,7 +34,7 @@ public abstract class ServiceContextFactory {
         public void stop() {}
         public void destroy() {}
         public ServiceContentHandler[] getServiceContentHandlers() { return new ServiceContentHandler[0]; }
-        public javax.tv.service.Service getService() { return new org.bluray.ti.Title(witty.bdj.Apps.title); }
+        public javax.tv.service.Service getService() { return new org.bluray.ti.TitleImpl(witty.bdj.Apps.title); }
         public void addListener(ServiceContextListener l) { ls.add(l); }
         public void removeListener(ServiceContextListener l) { ls.remove(l); }
     }

@@ -11,12 +11,12 @@ import (
 
 func hide(c *exec.Cmd) {}
 
-// javaCommand runs Java niced where nice exists, so a disc's code gives way to
-// everything else the server does. nice replaces itself with Java: the process
-// is the same one.
+// javaCommand runs Java slightly niced where nice exists, so a disc's code gives
+// way to the server without stalling beside a busy FFmpeg. nice replaces itself
+// with Java: the process is the same one.
 func javaCommand(path string, args ...string) *exec.Cmd {
 	if n, err := exec.LookPath("nice"); err == nil {
-		return exec.Command(n, append([]string{"-n", "10", path}, args...)...)
+		return exec.Command(n, append([]string{"-n", "5", path}, args...)...)
 	}
 	return exec.Command(path, args...)
 }

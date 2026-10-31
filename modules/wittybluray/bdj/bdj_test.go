@@ -77,8 +77,14 @@ func TestParseOwnObject(t *testing.T) {
 func javaForTest(t *testing.T) *Java {
 	t.Helper()
 	j, err := Find(os.Getenv("WMS_TEST_JAVA"))
+	if err == nil {
+		_, err = j.Probe(context.Background(), t.TempDir())
+	}
 	if err != nil {
-		t.Skip("no Java on this machine: ", err)
+		if os.Getenv("WMS_REQUIRE_JAVA") != "" {
+			t.Fatal("these tests must run here: ", err)
+		}
+		t.Skip("no usable Java on this machine: ", err)
 	}
 	return j
 }

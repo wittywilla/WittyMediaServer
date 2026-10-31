@@ -10,10 +10,8 @@ import witty.bdj.Host;
 public class FontFactory {
     private static final Map<String, Font> loaded = new HashMap<String, Font>();
     private static Map<String, String> index;
-    private final java.net.URL source;
-    public FontFactory() throws FontFormatException, IOException { source = null; }
-    public FontFactory(java.net.URL u) throws FontFormatException, IOException { source = u; }
-    public FontFactory(witty.shim.URL u) throws FontFormatException, IOException { source = null; }
+    public FontFactory() throws FontFormatException, IOException {}
+    public FontFactory(witty.shim.URL u) throws FontFormatException, IOException {}
 
     private static synchronized String fileFor(String name) {
         if (index == null) {

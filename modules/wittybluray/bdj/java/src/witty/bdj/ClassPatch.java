@@ -24,11 +24,11 @@ final class ClassPatch {
         CALLS.put("*.getContextClassLoader()Lwitty/shim/Loader;", "getContextClassLoader(Ljava/lang/Thread;)Lwitty/shim/Loader;");
         CALLS.put("*.getToolkit()Lwitty/shim/Toolkit;", "getToolkit(Ljava/awt/Component;)Lwitty/shim/Toolkit;");
         // These JDK methods take a type renamed here, so as named by a disc they would not link.
-        CALLS.put("*.printStackTrace(Lwitty/shim/PrintStream;)V", "printStackTrace(Ljava/lang/Object;Ljava/io/PrintStream;)V");
-        CALLS.put("*.printStackTrace(Lwitty/shim/PrintWriter;)V", "printStackTrace(Ljava/lang/Object;Ljava/io/PrintWriter;)V");
+        CALLS.put("*.printStackTrace(Lwitty/shim/PrintStream;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintStream;)V");
+        CALLS.put("*.printStackTrace(Lwitty/shim/PrintWriter;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintWriter;)V");
         for (String owner : new String[] {"java/util/Properties", "java/awt/Component", "java/awt/Container"}) {
-            CALLS.put(owner + ".list(Lwitty/shim/PrintStream;)V", "list(Ljava/lang/Object;Ljava/io/PrintStream;)V");
-            CALLS.put(owner + ".list(Lwitty/shim/PrintWriter;)V", "list(Ljava/lang/Object;Ljava/io/PrintWriter;)V");
+            CALLS.put(owner + ".list(Lwitty/shim/PrintStream;)V", "list(Ljava/lang/Object;Lwitty/shim/PrintStream;)V");
+            CALLS.put(owner + ".list(Lwitty/shim/PrintWriter;)V", "list(Ljava/lang/Object;Lwitty/shim/PrintWriter;)V");
         }
     }
 

@@ -62,7 +62,7 @@ public final class Plane {
                             paint();
                         }
                     } catch (InterruptedException e) {
-                        return;
+                        // Disc code can reach this thread; stopping it would blank the picture for good.
                     } catch (Throwable e) {
                         Host.log("paint: " + e); // a disc's paint method can throw anything
                     }

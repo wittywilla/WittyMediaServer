@@ -26,4 +26,14 @@ public final class Patch {
     public static Loader getClassLoader(Class<?> c) { return c.getClassLoader() instanceof DiscLoader ? loader() : null; }
     public static Loader getContextClassLoader(Thread t) { return loader(); }
     public static Toolkit getToolkit(Component c) { return Toolkit.getDefaultToolkit(); }
+    public static void printStackTrace(Object t, java.io.PrintStream s) { if (t instanceof Throwable) ((Throwable) t).printStackTrace(s); }
+    public static void printStackTrace(Object t, java.io.PrintWriter w) { if (t instanceof Throwable) ((Throwable) t).printStackTrace(w); }
+    public static void list(Object o, java.io.PrintStream s) {
+        if (o instanceof java.util.Properties) ((java.util.Properties) o).list(s);
+        else if (o instanceof java.awt.Component) ((java.awt.Component) o).list(s);
+    }
+    public static void list(Object o, java.io.PrintWriter w) {
+        if (o instanceof java.util.Properties) ((java.util.Properties) o).list(w);
+        else if (o instanceof java.awt.Component) ((java.awt.Component) o).list(w);
+    }
 }

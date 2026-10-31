@@ -14,4 +14,7 @@ find src -name '*.java' > "$T/files"
 cp testxlet/t/hello.txt "$T/test/t/"
 mkdir -p ../testdata
 "${B}jar" --create --no-manifest --file ../testdata/00000.jar -C "$T/test" .
+# The hostile disc. Its probes name what disc code must not link, so it builds against the full JDK.
+"${B}javac" -nowarn --release 8 -Xlint:-options -encoding UTF-8 -cp "$T/classes" -d "$T/attack" testxlet/a/*.java
+"${B}jar" --create --no-manifest --file ../testdata/attack.jar -C "$T/attack" .
 rm -rf "$T"

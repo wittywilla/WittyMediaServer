@@ -29,6 +29,7 @@ public final class Main {
             Host.send("ok " + java.lang.System.getProperty("java.version"));
             java.lang.System.exit(0);
         }
+        NoNetwork.install();
         Host.vfsRoot = new File(args[0]).getCanonicalPath();
         Host.persistRoot = new File(args[1]).getCanonicalPath();
         Host.tempRoot = new File(args[2]).getCanonicalPath();

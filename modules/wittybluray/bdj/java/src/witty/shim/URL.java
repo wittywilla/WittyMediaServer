@@ -38,7 +38,9 @@ public final class URL implements java.io.Serializable {
         if (text.startsWith("file:")) {
             String p = text.substring(5);
             while (p.startsWith("//")) p = p.substring(1);
-            return new FileInputStream(java.net.URLDecoder.decode(p, "UTF-8"));
+            p = java.net.URLDecoder.decode(p, "UTF-8");
+            if (p.length() > 2 && p.charAt(0) == '/' && p.charAt(2) == ':') p = p.substring(1); // /C:/x on Windows
+            return new FileInputStream(p);
         }
         throw new IOException("the network is not available to disc applications: " + text);
     }

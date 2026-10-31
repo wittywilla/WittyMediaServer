@@ -53,7 +53,7 @@ public final class Playback {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
-                        return;
+                        continue; // disc code can reach this thread
                     }
                     if (!running) continue;
                     double now = now();

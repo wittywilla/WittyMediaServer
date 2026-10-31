@@ -751,6 +751,10 @@ func (g *Guard) Verified() bool { return !g.fatal.Load() && g.packets.Load() >= 
 // Close closes the stream underneath.
 func (g *Guard) Close() error { return g.r.Close() }
 
+// Underneath is the stream being watched, for a helper handing it to a server that
+// watches it for itself: looking twice would cost twice, and only the server's look counts.
+func (g *Guard) Underneath() io.ReadCloser { return g.r }
+
 // --------------------------------------------------------------------------
 // Picking one programme out of a whole multiplex
 // --------------------------------------------------------------------------

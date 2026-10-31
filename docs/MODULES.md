@@ -230,9 +230,9 @@ project.
 | **WittyPhotos** | Helper: **converted** | Stateless parsers of untrusted files, and scanning already does file I/O per call |
 | WittyDVD, WittyBluray | Helper, one per open disc, **later** | Performance turns out not to be the obstacle: FFmpeg already reads the disc image directly from the extents the engine gives it, so video never passes through the engine, only menus and button presses. The work is the size of the API the session code uses (`internal/dvdsession`, `internal/bdsession`) |
 | WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
-| WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
-| WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
-| WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |
+| WittyTuner | Helper for what only needs a network: **converted** | Network tuners, IPTV over HTTP and external backends. One process per question and per stream, and every stream passes the server's own guard. Custom commands, capture cards, DVB, SAT>IP and addresses that need FFmpeg stay built in, because a helper may start no programs and has no devices |
+| WittyPlay | Program: **converted** | `wittyplay-host` is delivered on its own, and a server refuses one speaking another version of the `ipc` protocol. The streaming half (WebRTC) stays in the server |
+| WittyIntegratedFileBrowser | Helper: **converted** | Read-only listing. Its helper stops when idle, so it costs nothing until someone browses. The server checks each listing is of the folder asked for, names what kind each file is, and asks its built-in copy when a helper says no |
 | WittyInk, WittyEbook, WittyPDF, WittyComics | Web bundle, **later** | Designed below; not built yet |
 
 **Web bundles (design, not built).** A release holds ES modules built with `react` and

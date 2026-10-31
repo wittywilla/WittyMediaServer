@@ -229,3 +229,34 @@
 .lib-summary-list .muted { font-size: var(--text-xs); }
 .lib-grouping { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--text-sm); margin: 0 0 14px; }
 .lib-grouping .seg { max-width: 100%; flex-wrap: wrap; }
+
+/* Kinds of library whose module isn't on this server: greyed, but still in reach. */
+.oobe-added { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--ok-soft); color: var(--fg); font-size: var(--text-sm); }
+.oobe-added svg { flex: none; color: var(--ok); }
+.oobe-locked .oobe-hint { margin-bottom: var(--sp-3); }
+.oobe-locked .error { margin-bottom: var(--sp-3); }
+.oobe-locked-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.oobe-locked-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); border: 1px dashed var(--border-strong); }
+.oobe-locked-item .ic svg { display: block; width: 24px; height: 24px; color: var(--fg-3); }
+.oobe-locked-text { flex: 1 1 180px; min-width: 0; display: grid; gap: 2px; color: var(--fg-2); }
+.oobe-locked-text b { font-size: var(--text-md); font-weight: 600; }
+.oobe-locked-text .muted { font-size: var(--text-sm); }
+.oobe-locked-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.oobe-locked-link { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--accent-text); font-size: var(--text-sm); text-decoration: underline; }
+.oobe-grow { flex: 1 1 200px; }
+@media (max-width: 600px), (pointer: coarse) { .oobe-locked-acts .btn.sm { min-height: 2.75rem; } }
+
+/* Choosing modules. */
+.oobe-mod-groups { display: grid; gap: var(--sp-5); }
+.oobe-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--sp-3); }
+.oobe-mod { display: flex; align-items: flex-start; gap: var(--sp-3); min-height: 3rem; padding: var(--sp-4); border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--bg-3); color: var(--fg); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.oobe-mod:hover { border-color: var(--border-strong); background: var(--bg-4); }
+.oobe-mod.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.oobe-mod .ic svg { display: block; width: 24px; height: 24px; color: var(--fg-3); }
+.oobe-mod.on .ic svg { color: var(--accent-text); }
+.oobe-mod-text { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); }
+.oobe-mod-text b { font-size: var(--text-base); }
+.oobe-mod-text .muted { font-size: var(--text-sm); line-height: 1.4; }
+.oobe-mod-text small { color: var(--fg-2); font-size: var(--text-xs); line-height: 1.4; }
+.oobe-mod .set-switch { pointer-events: none; display: block; }
+.oobe-mod-note { margin: var(--sp-5) 0 0; }

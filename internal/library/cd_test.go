@@ -320,25 +320,6 @@ func TestSeveralDifferentMatchesWait(t *testing.T) {
 	}
 }
 
-func TestSameAlbumPressingsNeedNoAsking(t *testing.T) {
-	a := CDMatch{Title: "Same", Artist: "Band", Exact: true, Tracks: []CDTrackName{{Number: 1, Title: "One"}}}
-	b := a
-	b.ReleaseID = "other"
-	if !sameAlbum([]CDMatch{a, b}) {
-		t.Fatal("two pressings of one album should need no asking")
-	}
-	c := a
-	c.Exact = false
-	if sameAlbum([]CDMatch{a, c}) {
-		t.Fatal("a close match isn't good enough")
-	}
-	d := a
-	d.Tracks = []CDTrackName{{Number: 1, Title: "Different"}}
-	if sameAlbum([]CDMatch{a, d}) {
-		t.Fatal("different tracks are a different album")
-	}
-}
-
 func TestSidecarOnlyWhenSavingIsOn(t *testing.T) {
 	s, st, ctx := cdScanner(t)
 	s.SaveMeta = func() bool { return true }

@@ -27,12 +27,13 @@ described formats, under a permissive licence, with no code from GPL libraries.
 | 🗜️ | **Streams FLAC or WAV** | its own small FLAC encoder (about 200 times real time on a desktop), and a WAV view with byte ranges that takes no work at all |
 | 🎚️ | **Corrects pre-emphasis** | flagged tracks are de-emphasised as a real player does in hardware: within 0.1 dB of the 50/15 µs curve |
 | 🔎 | **Finds what's hidden** | audio before track 1 (HTOA), byte order that a sheet got wrong, CD+G pictures, CD-TEXT |
-| 🆔 | **Identifies discs** | MusicBrainz disc ID and table of contents, and the older CDDB ID, including the rules for CD-Extra |
+| 🆔 | **Identifies discs** | MusicBrainz disc ID and table of contents, the older CDDB ID, the rules for CD-Extra, and a small client for the lookup |
 | 🩹 | **Copes with damage** | every file is hostile input: size limits, sheets can't reach outside their folder, truncated images give a shorter disc and a message, and all readers are fuzz tested |
 | 🛠️ | **Diagnoses** | `wittycd info` for structure, `wittycd check` to read the whole image and say what is wrong |
 
 **What it leaves to the player:** the buttons and the screen. WittyCD says what is on the disc and hands over
-samples.
+samples. In WittyMediaServer that is a player window in the spirit of the desktop media players of the early 2000s, with a
+lit display, a list of tracks, and a stage showing the spinning disc or the WittyVisualizer plugin, in our own design.
 
 **Copy protection:** nothing here decrypts or bypasses anything. Plain CD audio needs nothing of the kind. An
 image whose audio is scrambled shows up as noise, and is reported as such. A DTS surround disc is reported too, as
@@ -69,27 +70,55 @@ wittycd info "Album.cue"
 wittycd check "Album.cue"
 ```
 
-To use the library:
+## Using the library
+
+It needs nothing from any server, and is meant to be used from other programs: playing, ripping, tagging.
 
 ```go
 d, err := wittycd.Open("Album.cue")
 if err != nil {
-    return err
+    return err // errors.Is with wittycd.ErrNotCD, ErrNoAudio, ErrUnsupported; each reads as a sentence
 }
 defer d.Close()
-
-toc := d.TOC()
-fmt.Println(toc.MusicBrainzID(), toc.LookupString())
-
-// The whole disc, as laid out, with pre-emphasis corrected.
-s, err := d.NewStream(nil, 1, true)
-if err != nil {
-    return err
-}
-err = s.WriteFLAC(w, 0)          // to any io.Writer, starting at a sample
-wav := s.WAV(0)                  // or a file you can read at any offset
-_ = io.NewSectionReader(wav, 0, wav.Size())
 ```
+
+**The track map.** `d.Tracks` lists every track, data ones too, in sectors from the start of the disc (75 to the second, 588
+stereo samples each): `Pregap`, `Start` and `End`, `Indexes`, `Audio`, `PreEmphasis`, `ISRC`, and `Text` (title, performer and so
+on, from CD-TEXT or the sheet). `d.Text`, `d.Catalog`, `d.Date` and `d.Genre` describe the disc. `d.AudioTracks()` leaves out the data.
+`d.Facts()` is all of it as plain data for JSON. `d.Warnings` says what's wrong with an image in plain words.
+
+**Reading samples.** A `Stream` is little-endian 16-bit stereo at 44.1 kHz, readable at any offset by any number of readers at once:
+
+```go
+s, _ := d.TrackStream(3)              // one track exactly as on the disc, for a rip
+s, _ = d.RangeStream(from, to)        // any run of sectors, for a rip that keeps pregaps its own way
+s, _ = d.NewStream(nil, 1, true)      // the whole disc to play, pregaps in place, pre-emphasis corrected
+s, _ = d.NewStream([]int{3, 1}, 2, true) // chosen tracks, twice round, with no join
+
+io.Copy(w, s.Reader())                // raw samples
+s.ReadAt(p, off)                      // or from anywhere
+s.WriteFLAC(w, 0)                     // FLAC, from a sample on (the stream's MD5 is left unset, as it is written live)
+wav := s.WAV(0)                       // a WAV file you can read at any offset
+io.Copy(w, io.NewSectionReader(wav, 0, wav.Size()))
+```
+
+**The disc's ID.** `toc := d.TOC()`, then `toc.MusicBrainzID()`, `toc.LookupString()` and `toc.CDDBID()`. A `TOC` is a plain struct, so a
+program reading a real drive can fill one in from the drive and use all of this, including the lookup, with no image at all.
+
+**What it is.** `github.com/wittywilla/wittycd/lookup` asks MusicBrainz and the Cover Art Archive, sending only the table of contents:
+
+```go
+c := &lookup.Client{UserAgent: "MyPlayer/1.0 ( https://example.org )"}
+matches, err := c.Find(ctx, toc)      // the likeliest first; empty means nobody knows the disc
+if lookup.SameAlbum(matches) {        // pressings of one album: no need to ask anyone
+    album := matches[0]               // Title, Artist, Date, Tracks...
+}
+cover, err := c.Cover(ctx, album.ReleaseID, 500)
+```
+
+The client keeps a whole program to one request a second, as the service asks. Show `lookup.Attribution` wherever the data is used.
+
+**Checking an image.** `report := d.Check(progress)` reads every audio sector and lists what it finds: `report.Findings`, `report.Worst`.
 
 ## Limits
 

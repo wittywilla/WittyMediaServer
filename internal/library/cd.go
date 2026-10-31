@@ -5,17 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittycd"
+	"github.com/wittywilla/wittycd/lookup"
 )
 
 // CD images. A disc is one item (kind cd-image), which is what a shelf shows and
@@ -369,8 +367,7 @@ func (s *Scanner) identifyCD(ctx context.Context, lib *Library, it *Item, d *wit
 		cd.Lookup = "off"
 		return s.Store.setDiscJSON(ctx, it)
 	}
-	toc := d.TOC()
-	matches, err := (&MusicBrainz{Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}).Lookup(ctx, cd.DiscID, toc.LookupString(), len(toc.Offsets))
+	matches, err := s.mbClient().Find(ctx, d.TOC())
 	if err != nil {
 		cd.Lookup = "failed"
 		_ = s.Store.setDiscJSON(ctx, it)
@@ -380,7 +377,7 @@ func (s *Scanner) identifyCD(ctx context.Context, lib *Library, it *Item, d *wit
 	switch {
 	case len(matches) == 0:
 		cd.Lookup = "unknown"
-	case len(matches) == 1 && matches[0].Exact, sameAlbum(matches):
+	case len(matches) == 1 && matches[0].Exact, lookup.SameAlbum(matches):
 		return s.ApplyCDMatch(ctx, lib, it, d, &matches[0])
 	default:
 		cd.Lookup = "ask"
@@ -430,7 +427,7 @@ func (s *Scanner) ApplyCDMatch(ctx context.Context, lib *Library, it *Item, d *w
 
 // fetchCDCover downloads a release's cover into the artwork cache.
 func (s *Scanner) fetchCDCover(ctx context.Context, release string) string {
-	if !validMBID(release) {
+	if !lookup.ValidID(release) {
 		return ""
 	}
 	name := "cd-" + release + ".jpg"
@@ -438,7 +435,7 @@ func (s *Scanner) fetchCDCover(ctx context.Context, release string) string {
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return "cache:" + name
 	}
-	b, err := (&MusicBrainz{Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}).Cover(ctx, release, 500)
+	b, err := s.mbClient().Cover(ctx, release, 500)
 	if err != nil || !isPicture(b) {
 		return ""
 	}
@@ -622,12 +619,6 @@ func cdSidecarPathIfSaving(s *Scanner, image string) string {
 	return cdSidecarPath(image)
 }
 
-func sortStable[T any](s []T, less func(a, b *T) bool) {
-	sort.SliceStable(s, func(i, j int) bool { return less(&s[i], &s[j]) })
-}
-
-func limitBody(res *http.Response, n int64) io.Reader { return io.LimitReader(res.Body, n) }
-
 // cdIdentifyTimeout bounds a person's "find this album".
 const cdIdentifyTimeout = 45 * time.Second
 
@@ -635,20 +626,25 @@ const cdIdentifyTimeout = 45 * time.Second
 func (s *Scanner) CDLookup(ctx context.Context, d *wittycd.Disc) ([]CDMatch, error) {
 	cctx, cancel := context.WithTimeout(ctx, cdIdentifyTimeout)
 	defer cancel()
-	toc := d.TOC()
-	return (&MusicBrainz{Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}).Lookup(cctx, toc.MusicBrainzID(), toc.LookupString(), len(toc.Offsets))
+	return s.mbClient().Find(cctx, d.TOC())
 }
 
 // CDRelease finds the release a person picked.
 func (s *Scanner) CDRelease(ctx context.Context, d *wittycd.Disc, release string) (*CDMatch, error) {
 	cctx, cancel := context.WithTimeout(ctx, cdIdentifyTimeout)
 	defer cancel()
-	toc := d.TOC()
-	return (&MusicBrainz{Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}).Release(cctx, release, toc.MusicBrainzID(), len(toc.Offsets))
+	return s.mbClient().Release(cctx, release, d.TOC())
 }
 
 // CDCoverPreview fetches a release's cover small, for the choosing dialog, so
 // the browser doesn't have to ask another site for it.
 func (s *Scanner) CDCoverPreview(ctx context.Context, release string) ([]byte, error) {
-	return (&MusicBrainz{Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}).Cover(ctx, release, 250)
+	b, err := s.mbClient().Cover(ctx, release, 250)
+	if err != nil {
+		return nil, err
+	}
+	if !isPicture(b) {
+		return nil, errors.New("not a picture")
+	}
+	return b, nil
 }

@@ -204,6 +204,34 @@ func TestProgramOrder(t *testing.T) {
 	}
 }
 
+func TestRipAPI(t *testing.T) {
+	path, pcm := cueDisc(t)
+	d, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	// Track 3 is flagged pre-emphasis, and a rip keeps it as it is on the disc.
+	s, err := d.TrackStream(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(s.Reader())
+	if err != nil || !bytes.Equal(got, pcm[15*75*SectorBytes:]) {
+		t.Fatalf("track 3: %d bytes, %v", len(got), err)
+	}
+	r, err := d.RangeStream(450, 600) // track 2's pregap
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := io.ReadAll(r.Reader()); !bytes.Equal(got, pcm[450*SectorBytes:600*SectorBytes]) {
+		t.Fatal("the run of sectors differs")
+	}
+	if _, err := d.RangeStream(5, 2); err == nil {
+		t.Fatal("a backwards run should be refused")
+	}
+}
+
 func TestWAV(t *testing.T) {
 	path, pcm := cueDisc(t)
 	d, err := Open(path)

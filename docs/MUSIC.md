@@ -58,8 +58,9 @@ while playing — a light job even for small servers.
 
 Keep images of your audio CDs in a **Music** library and they become albums, with their tracks in the Songs list and
 search like any others. Keep them in a **Discs** library (**DVDs, Blu-rays & CDs**) and they sit on the shelf with your
-other discs. Either way they play in the CD player: the disc goes in, spins behind a window, and a lit display shows the
-track, index and time. Press the time to change what it shows.
+other discs. Either way they play in the CD player, a window in the spirit of the desktop players of the early 2000s: the disc
+goes in, spins behind a window on a dark stage, and a lit display shows the track, index and time beside the list of tracks.
+Press the time to change what it shows. **Visualizer** (or V) puts the light shows on the stage instead of the disc.
 
 **Which should I use?** Music, unless you want your CDs on the same shelf as your films. An album from a CD works like
 every other album, and pressing **Insert disc** brings up the player.
@@ -86,7 +87,7 @@ also looked up on MusicBrainz, using only its table of contents: see [Metadata](
 image always wins. If several albums match, the disc keeps its own names and offers a **Choose from N matches** button.
 
 **Keys:** Space play or pause, N and P next and previous, J and L back and forward 10 seconds, S stop, R repeat, H shuffle,
-E eject. Remotes and controllers move around the deck as they do everywhere else.
+V visualizer, E eject. Remotes and controllers move around the deck as they do everywhere else.
 
 **A damaged image** plays as far as it goes, and says so. To find out what is wrong with one:
 

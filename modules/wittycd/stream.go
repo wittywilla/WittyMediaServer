@@ -96,6 +96,25 @@ func (d *Disc) NewStream(tracks []int, loops int, deemphasis bool) (*Stream, err
 	return s, nil
 }
 
+// TrackStream is one track exactly as it is on the disc, index 1 to its end, with
+// nothing corrected: what a rip wants.
+func (d *Disc) TrackStream(n int) (*Stream, error) { return d.NewStream([]int{n}, 1, false) }
+
+// RangeStream is any run of audio sectors exactly as it is on the disc, for a rip that
+// keeps pregaps its own way. Sectors of a data track, or that the image doesn't
+// supply, read as silence.
+func (d *Disc) RangeStream(from, to int) (*Stream, error) {
+	if from < 0 || to <= from || to > MaxSectors {
+		return nil, errors.New("that isn't a run of sectors on a disc")
+	}
+	s := &Stream{d: d, ranges: []streamRange{{lba: from, sectors: to - from}}}
+	s.total = int64(to-from) * SectorSamples
+	return s, nil
+}
+
+// Reader reads the whole program in order, as little-endian samples.
+func (s *Stream) Reader() io.Reader { return io.NewSectionReader(s, 0, s.Size()) }
+
 // Samples is the program's length.
 func (s *Stream) Samples() int64 { return s.total }
 

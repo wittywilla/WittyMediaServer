@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, fmtRuntime, mediaUrl } from '../api'
+import { api, fmtRuntime, getPrefs, mediaUrl } from '../api'
 import { useCd } from '../audio/player'
 import { type CdDisc, type CdNow, type CdRepeat } from '../audio/cdEngine'
 import { BackLink, EmptyState, Spinner } from '../components/common'
@@ -10,12 +10,18 @@ import { CdGraphics } from './CdGraphics'
 import InsertDisc from './InsertDisc'
 import './cd.css'
 
-// The CD player: an original deck in the same family as the disc loading screen.
-// The disc goes in, spins behind a smoked window while it plays, and a lit display
-// shows the track, the index and the time. The music itself lives in the audio
-// player, so it carries on, with the bar along the bottom, when you leave this page.
+// The CD player: a window in the spirit of the desktop media players of the early
+// 2000s, with our own design and colours: glossy keys, a dark stage, a list of tracks
+// and a lit display. The disc goes in as on the disc loading screen, and spins behind a
+// smoked window in the drive's lid. The music itself lives in the audio player, so it
+// carries on, with the bar along the bottom, when you leave this page.
 
 const SECTORS_PER_SEC = 75
+
+// The visualizer is a plugin of its own, which arrives with the first press. It is
+// looked for rather than imported, so this player builds and works with or without it.
+type VizProps = { media: () => HTMLMediaElement | null; place: 'panel' | 'full'; onPlace?: (p: string) => void; onClose?: () => void }
+const findViz = Object.values(import.meta.glob<{ VisualizerView: React.ComponentType<VizProps> }>('../audio/visualizer.tsx'))[0] as (() => Promise<{ VisualizerView: React.ComponentType<VizProps> }>) | undefined
 
 const clock = (sec: number) => {
   const s = Math.floor(Math.abs(sec))
@@ -119,6 +125,9 @@ export default function CdPlayer() {
   const [identify, setIdentify] = useState(false)
   const [showGraphics, setShowGraphics] = useState(true)
   const [ejecting, setEjecting] = useState(false)
+  const [viz, setViz] = useState<'off' | 'panel' | 'full'>('off')
+  const [Viz, setVizComponent] = useState<React.ComponentType<VizProps> | null>(null)
+  const [vizAllowed, setVizAllowed] = useState(true)
   const playKey = useRef<HTMLButtonElement>(null)
   const meterL = useRef<HTMLElement>(null)
   const meterR = useRef<HTMLElement>(null)
@@ -152,6 +161,16 @@ export default function CdPlayer() {
   useEffect(() => { if (phase === 'ready') playKey.current?.focus({ preventScroll: true }) }, [phase])
   useLevels(audioEl, phase === 'ready' && visible && playing && !!mine, meterL, meterR)
 
+  // The owner can remove the plugin in the module store, which hides its button.
+  useEffect(() => { if (findViz) getPrefs().then((p) => setVizAllowed((p as { visualizer?: boolean }).visualizer !== false)).catch(() => {}) }, [])
+  const vizAvailable = !!findViz && vizAllowed
+  const vizOn = viz !== 'off'
+  const toggleViz = () => {
+    if (vizOn) { setViz('off'); return }
+    setViz('panel')
+    if (!Viz) findViz?.().then((m) => setVizComponent(() => m.VisualizerView)).catch(() => setViz('off'))
+  }
+
   const eject = () => {
     if (ejecting) return
     setEjecting(true)
@@ -175,6 +194,7 @@ export default function CdPlayer() {
         s: actions.stop, MediaStop: actions.stop, e: eject,
         r: () => actions.setRepeat(mine.repeat === 'off' ? 'all' : mine.repeat === 'all' ? 'one' : 'off'),
         h: () => actions.setShuffle(!mine.shuffle),
+        ...(vizAvailable ? { v: toggleViz } : {}),
       }
       const f = act[e.key]
       if (!f) return
@@ -213,39 +233,80 @@ export default function CdPlayer() {
         </div>
       )}
       <BackLink to={`/library/${disc.libraryId}`} label="Back to the library" />
-      <div className="cdp-layout">
-        <section className={'cdp-deck' + (ejecting ? ' ejecting' : '')} aria-label="CD player">
-          <div className="cdp-lid">
-            <span className="cdp-shine" />
-            <div className="cdp-well">
-              <div className="cdp-plane">
-                <div className={'cdp-disc' + (spinning ? ' spin' : '')}>
-                  <div className="cdp-label" style={label}>{!art && <span>{disc.title}</span>}</div>
-                  <div className="cdp-hole" />
+      <section className={'cdw' + (ejecting ? ' ejecting' : '')} aria-label="CD player">
+        <header className="cdw-title">
+          <span className={'cdp-led' + (mine && playing ? ' on' : '')} aria-hidden="true" />
+          <span className="cdw-brand" aria-hidden="true">Witty<b>CD</b></span>
+          <span className="cdw-now" aria-hidden="true">{mine?.track && !mine.stopped ? `${playing ? 'Now playing' : 'Paused'}: ${mine.track.title}` : disc.title}</span>
+        </header>
+        <div className="cdw-body">
+          <div className="cdw-main">
+            <div className="cdw-stage">
+              {vizOn ? (
+                <div className="cdw-viz">
+                  {Viz && audioEl && <Viz media={() => audioEl} place={viz === 'full' ? 'full' : 'panel'} onPlace={(p) => setViz(p === 'full' ? 'full' : 'panel')} onClose={() => setViz('off')} />}
                 </div>
-              </div>
+              ) : (
+                <div className="cdp-lid">
+                  <span className="cdp-shine" />
+                  <div className="cdp-well">
+                    <div className="cdp-plane">
+                      <div className={'cdp-disc' + (spinning ? ' spin' : '')}>
+                        <div className="cdp-label" style={label}>{!art && <span>{disc.title}</span>}</div>
+                        <div className="cdp-hole" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!vizOn && disc.hasGraphics && showGraphics && mine && <CdGraphics disc={disc} now={mine} el={audioEl} />}
             </div>
-            {disc.hasGraphics && showGraphics && mine && <CdGraphics disc={disc} now={mine} el={audioEl} />}
-          </div>
-          <div className="cdp-front">
-            <span className="cdp-slot" />
-            <div className="cdp-brand" aria-hidden="true"><span className={'cdp-led' + (mine && playing ? ' on' : '')} />Witty<b>CD</b></div>
             <Display disc={disc} now={mine} playing={playing} timeMode={timeMode} cycleTime={() => setTimeMode(timeMode === 'elapsed' ? 'remain' : timeMode === 'remain' ? 'disc' : 'elapsed')} meterL={meterL} meterR={meterR} />
+          </div>
+          <aside className="cdw-side" aria-label="Disc">
+            <header className="cdp-head">
+              <div className="cdw-cover" style={art ? undefined : label}>{art ? <img src={art} alt="" /> : <IconDisc />}</div>
+              <div className="cdw-head-text">
+                <h1>{disc.title}</h1>
+                <p className="cdp-artist">{[disc.artist, disc.year].filter(Boolean).join(' · ')}</p>
+                <p className="cdp-sum">{audioTracks.length} {audioTracks.length === 1 ? 'track' : 'tracks'} · {fmtRuntime(disc.durationSec)}</p>
+              </div>
+            </header>
+            <div className="cdp-actions">
+              <button className="btn ghost sm" onClick={() => setDetails(!details)} aria-expanded={details}><IconInfo /> About this disc</button>
+              {user?.isAdmin && <button className={'btn sm ' + (disc.lookup === 'ask' ? 'primary' : 'ghost')} onClick={() => setIdentify(true)}><IconSearch /> {disc.lookup === 'ask' ? `Choose from ${disc.matches} matches` : disc.lookup === 'matched' ? 'Change album' : 'Find this album'}</button>}
+            </div>
+            {disc.warnings.filter((w) => w.code !== 'data-track' && w.code !== 'no-sheet').map((w) => <div key={w.code} className="cdp-note" role="note">{w.message}</div>)}
+            {details && <Details disc={disc} now={mine} actions={actions} />}
+            {editing && <ProgramBar program={mine?.program || null} disc={disc} onChange={actions.setProgram} onDone={() => setEditing(false)} />}
+            <div className="cdw-list">
+              <div className="cdw-list-head" aria-hidden="true"><span>#</span><span>Title</span><span>Length</span></div>
+              <TrackRows disc={disc} now={mine} playing={playing} editing={editing}
+                onPlay={(n) => { if (mine) actions.goTrack(n, true) }}
+                onAdd={(n) => actions.setProgram([...(mine?.program || []), n])}
+                onHidden={() => actions.goHidden()} />
+            </div>
+          </aside>
+        </div>
+        <footer className="cdw-bar">
+          {mine && mine.track ? (
+            <input className="range cdp-seek" type="range" min={0} max={Math.max(1, Math.floor(mine.trackLen))} step={1} value={Math.max(0, Math.min(mine.trackSec, mine.trackLen))}
+              style={{ '--pct': (mine.trackLen > 0 ? Math.max(0, Math.min(100, (mine.trackSec / mine.trackLen) * 100)) : 0) + '%' } as React.CSSProperties}
+              aria-label="Position in this track" aria-valuetext={spoken(mine.trackSec)} onChange={(e) => actions.seekInTrack(Number(e.target.value))} />
+          ) : <div className="cdp-seek-empty" />}
+          <div className="cdw-controls">
+            <div className="cdw-side-keys" role="group" aria-label="Disc">
+              <button className="cdp-key small" onClick={eject} aria-label="Eject" title="Eject (E)" aria-keyshortcuts="e"><IconEject /></button>
+              <button className="cdp-key small" onClick={actions.stop} disabled={!mine || mine.stopped} aria-label="Stop" title="Stop: back to the start of the disc (S)" aria-keyshortcuts="s"><IconStop /></button>
+            </div>
             <div className="cdp-keys" role="group" aria-label="Transport">
-              <button className="cdp-key" onClick={eject} aria-label="Eject" title="Eject (E)" aria-keyshortcuts="e"><IconEject /></button>
               <button className="cdp-key" onClick={actions.prev} disabled={!mine} aria-label="Previous track" title="Previous track (P)" aria-keyshortcuts="p"><IconPrev /></button>
               <button className="cdp-key" onClick={() => actions.nudge(-10)} disabled={!mine} aria-label="Back 10 seconds" title="Back 10 seconds (J)" aria-keyshortcuts="j"><IconRew /></button>
               <button ref={playKey} className="cdp-key play" onClick={toggle} disabled={!mine} aria-label={playing && mine ? 'Pause' : 'Play'} title="Play or pause (Space)" aria-keyshortcuts="Space">{playing && mine ? <IconPause /> : <IconPlay />}</button>
               <button className="cdp-key" onClick={() => actions.nudge(10)} disabled={!mine} aria-label="Forward 10 seconds" title="Forward 10 seconds (L)" aria-keyshortcuts="l"><IconFf /></button>
               <button className="cdp-key" onClick={actions.next} disabled={!mine} aria-label="Next track" title="Next track (N)" aria-keyshortcuts="n"><IconNext /></button>
-              <button className="cdp-key" onClick={actions.stop} disabled={!mine || mine.stopped} aria-label="Stop" title="Stop: back to the start of the disc (S)" aria-keyshortcuts="s"><IconStop /></button>
             </div>
-            {mine && mine.track && (
-              <input className="range cdp-seek" type="range" min={0} max={Math.max(1, Math.floor(mine.trackLen))} step={1} value={Math.max(0, Math.min(mine.trackSec, mine.trackLen))}
-                style={{ '--pct': (mine.trackLen > 0 ? Math.max(0, Math.min(100, (mine.trackSec / mine.trackLen) * 100)) : 0) + '%' } as React.CSSProperties}
-                aria-label="Position in this track" aria-valuetext={spoken(mine.trackSec)} onChange={(e) => actions.seekInTrack(Number(e.target.value))} />
-            )}
-            <div className="cdp-modes" role="group" aria-label="Play order">
+            <div className="cdp-modes" role="group" aria-label="Play order and picture">
               <button className={'cdp-mode' + (mine?.repeat !== 'off' && mine ? ' on' : '')} disabled={!mine} aria-label={`Repeat: ${mine?.repeat === 'one' ? 'this track' : mine?.repeat === 'all' ? 'the whole disc' : 'off'}`} title="Repeat (R)"
                 onClick={() => mine && actions.setRepeat(({ off: 'all', all: 'one', one: 'off' } as Record<CdRepeat, CdRepeat>)[mine.repeat])}>Repeat{mine?.repeat === 'one' ? ' 1' : mine?.repeat === 'all' ? ' all' : ''}</button>
               <button className={'cdp-mode' + (mine?.shuffle ? ' on' : '')} disabled={!mine} aria-pressed={!!mine?.shuffle} title="Shuffle (H)" onClick={() => mine && actions.setShuffle(!mine.shuffle)}>Shuffle</button>
@@ -254,31 +315,14 @@ export default function CdPlayer() {
                 <button className="cdp-mode" onClick={() => actions.nextIndex(-1)} aria-label="Previous index">Index −</button>
                 <button className="cdp-mode" onClick={() => actions.nextIndex(1)} aria-label="Next index">Index +</button>
               </>}
+              {vizAvailable && <button className={'cdp-mode' + (vizOn ? ' on' : '')} aria-pressed={vizOn} title="Visualizer (V)" onClick={toggleViz}>Visualizer</button>}
               {disc.hasGraphics && <button className={'cdp-mode' + (showGraphics ? ' on' : '')} aria-pressed={showGraphics} onClick={() => setShowGraphics(!showGraphics)}>Pictures</button>}
             </div>
           </div>
-        </section>
-        <section className="cdp-side" aria-label="Disc">
-          <header className="cdp-head">
-            <h1>{disc.title}</h1>
-            <p className="cdp-artist">{[disc.artist, disc.year].filter(Boolean).join(' · ')}</p>
-            <p className="muted cdp-sum">{audioTracks.length} {audioTracks.length === 1 ? 'track' : 'tracks'} · {fmtRuntime(disc.durationSec)}</p>
-            <div className="cdp-actions">
-              <button className="btn ghost sm" onClick={() => setDetails(!details)} aria-expanded={details}><IconInfo /> About this disc</button>
-              {user?.isAdmin && <button className={'btn sm ' + (disc.lookup === 'ask' ? 'primary' : 'ghost')} onClick={() => setIdentify(true)}><IconSearch /> {disc.lookup === 'ask' ? `Choose from ${disc.matches} matches` : disc.lookup === 'matched' ? 'Change album' : 'Find this album'}</button>}
-            </div>
-          </header>
-          {disc.warnings.filter((w) => w.code !== 'data-track' && w.code !== 'no-sheet').map((w) => <div key={w.code} className="cdp-note" role="note">{w.message}</div>)}
-          {details && <Details disc={disc} now={mine} actions={actions} />}
-          {editing && <ProgramBar program={mine?.program || null} disc={disc} onChange={actions.setProgram} onDone={() => setEditing(false)} />}
-          <TrackRows disc={disc} now={mine} playing={playing} editing={editing}
-            onPlay={(n) => { if (mine) actions.goTrack(n, true) }}
-            onAdd={(n) => actions.setProgram([...(mine?.program || []), n])}
-            onHidden={() => actions.goHidden()} />
-          {disc.attribution && <p className="muted cdp-credit">{disc.attribution}{disc.releaseId && <> <a href={`https://musicbrainz.org/release/${disc.releaseId}`} target="_blank" rel="noreferrer">See this release</a>.</>}</p>}
-          <p className="muted cdp-keyhelp"><kbd>Space</kbd> play or pause, <kbd>N</kbd>/<kbd>P</kbd> next or previous, <kbd>J</kbd>/<kbd>L</kbd> back or forward 10 seconds, <kbd>S</kbd> stop, <kbd>R</kbd> repeat, <kbd>H</kbd> shuffle, <kbd>E</kbd> eject.</p>
-        </section>
-      </div>
+        </footer>
+      </section>
+      {disc.attribution && <p className="muted cdp-credit">{disc.attribution}{disc.releaseId && <> <a href={`https://musicbrainz.org/release/${disc.releaseId}`} target="_blank" rel="noreferrer">See this release</a>.</>}</p>}
+      <p className="muted cdp-keyhelp"><kbd>Space</kbd> play or pause, <kbd>N</kbd>/<kbd>P</kbd> next or previous, <kbd>J</kbd>/<kbd>L</kbd> back or forward 10 seconds, <kbd>S</kbd> stop, <kbd>R</kbd> repeat, <kbd>H</kbd> shuffle, {vizAvailable && <><kbd>V</kbd> visualizer, </>}<kbd>E</kbd> eject.</p>
       {identify && <IdentifyDialog disc={disc} onClose={() => setIdentify(false)} onApplied={(d) => { setDisc(d); actions.refresh(d); setIdentify(false) }} />}
     </div>
   )

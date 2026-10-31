@@ -83,3 +83,16 @@ The custom command driver runs a program, so it stays off unless the host sets
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Developed by WittyWilla as part of
 [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
+
+<!-- module-kit -->
+## Releasing
+
+WittyTuner reaches a server inside the projects built with it, so a release has no files of its own: a version tag runs the tests and publishes a release that those projects can require.
+
+1. Raise `version` in `module.json` and commit it.
+2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
+   suffix, such as `v1.2.0-beta`, is published as a prerelease.
+3. Watch the *Actions* tab. There is nothing to sign.
+
+Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<!-- /module-kit -->

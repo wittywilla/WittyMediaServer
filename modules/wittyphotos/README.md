@@ -20,3 +20,18 @@ malformed file gives an error or empty fields, never a panic or a large allocati
 are fuzz-tested: `go test -fuzz=FuzzParse`.
 
 Developed by WittyWilla. Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+<!-- module-kit -->
+## Releasing
+
+A version tag builds a program for every platform, signs the checksum list, and publishes a release that servers can install.
+
+1. Raise `version` in `module.json` and commit it.
+2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
+   suffix, such as `v1.2.0-beta`, is published as a prerelease.
+3. Watch the *Actions* tab. The signing step uses the `WMS_SIGNING_KEY` secret of the `release` environment, and nothing is published without it.
+
+To take a version back, run the *withdraw* workflow from the *Actions* tab. It adds the version to a signed list on the release tagged `withdrawals`, which servers read.
+
+Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<!-- /module-kit -->

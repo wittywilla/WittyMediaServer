@@ -75,3 +75,16 @@ No cgo and no dependencies beyond the standard library. Go 1.26 or newer.
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyDisc, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+<!-- module-kit -->
+## Releasing
+
+WittyDisc reaches a server inside the projects built with it, so a release has no files of its own: a version tag runs the tests and publishes a release that those projects can require.
+
+1. Raise `version` in `module.json` and commit it.
+2. Tag that commit and push the tag: `git tag vX.Y.Z`, then `git push origin vX.Y.Z`. A tag with a
+   suffix, such as `v1.2.0-beta`, is published as a prerelease.
+3. Watch the *Actions* tab. There is nothing to sign.
+
+Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<!-- /module-kit -->

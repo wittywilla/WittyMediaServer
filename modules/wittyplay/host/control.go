@@ -31,9 +31,11 @@ type control struct {
 	rewindEmpty   bool
 	stateBuf      []byte
 
-	runAhead  int
-	aheadBuf  []byte
-	aheadSlow int // frames over budget, less those under
+	runAhead    int
+	aheadBuf    []byte
+	aheadSince  time.Time // when this count of late and on-time frames began
+	aheadLate   int
+	aheadOnTime int
 
 	frameTime time.Duration
 
@@ -173,7 +175,7 @@ func (c *control) sendOptions() {
 		list := o.Options()
 		out := make([]ipc.Option, 0, len(list))
 		for _, x := range list {
-			out = append(out, ipc.Option{Key: x.Key, Label: x.Label, Choices: x.Choices, Value: x.Value})
+			out = append(out, ipc.Option{Key: x.Key, Label: x.Label, Info: x.Info, Category: x.Category, Choices: x.Choices, Labels: x.Labels, Default: x.Default, Value: x.Value, Hidden: x.Hidden})
 		}
 		c.r.event(ipc.Event{Type: "options", Options: out})
 	}
@@ -228,6 +230,9 @@ func (c *control) runFrame() {
 		c.advance--
 	}
 	c.count(show, now)
+	if o, ok := c.eng.(engine.OptionsChanged); ok && o.OptionsChanged() {
+		c.sendOptions()
+	}
 }
 
 func (c *control) setOutput(video, audio bool) {
@@ -332,7 +337,6 @@ func (c *control) stepBack() {
 // goes back. The game reacts that many frames sooner. It costs that many extra frames
 // and a save and a load each time, so it turns itself off when it doesn't fit.
 func (c *control) runAheadFrame(show bool) {
-	start := time.Now()
 	c.setOutput(false, true)
 	c.eng.Run()
 	state := c.saveState(&c.aheadBuf)
@@ -355,16 +359,23 @@ func (c *control) runAheadFrame(show bool) {
 		c.r.event(ipc.Event{Type: "message", Text: "Run-ahead is off: this core can’t go back to a state that quickly."})
 	}
 	c.quiet = false
-	// One slow frame says nothing: another program ran for a moment. Half a second of
-	// them says it doesn't fit.
-	switch {
-	case c.frameTime > 0 && time.Since(start) > c.frameTime*8/10:
-		c.aheadSlow++
-	case c.aheadSlow > 0:
-		c.aheadSlow--
+	// What counts is whether the game has fallen behind its schedule. Timing this work
+	// would also count the wait for whoever reads the picture, which isn't this work's
+	// fault. A late frame says nothing: another program ran for a moment. A couple of
+	// seconds of almost nothing but late frames says it doesn't fit. It's counted over
+	// time rather than in frames, because the later they are, the fewer there are.
+	if c.lag > c.frameTime {
+		c.aheadLate++
+	} else {
+		c.aheadOnTime++
 	}
-	if c.aheadSlow > 30 {
-		c.runAhead, c.aheadSlow = 0, 0
-		c.r.event(ipc.Event{Type: "message", Text: "Run-ahead is off: this server can’t keep up with it on this game."})
+	if now := time.Now(); c.aheadSince.IsZero() {
+		c.aheadSince = now
+	} else if now.Sub(c.aheadSince) >= 2*time.Second {
+		if c.aheadLate > 3*c.aheadOnTime {
+			c.runAhead = 0
+			c.r.event(ipc.Event{Type: "message", Text: "Run-ahead is off: this server can’t keep up with it on this game."})
+		}
+		c.aheadSince, c.aheadLate, c.aheadOnTime = now, 0, 0
 	}
 }

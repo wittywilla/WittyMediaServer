@@ -228,7 +228,7 @@ func (s *Session) Apply(c ipc.Control, coreOptions map[string]string) error {
 	for _, o := range opts {
 		want, ok := coreOptions[o.Key]
 		if !ok {
-			want = o.Choices[0]
+			want = o.Default
 		}
 		if want != o.Value && slices.Contains(o.Choices, want) {
 			if err := s.sendOption(o.Key, want); err != nil {
@@ -323,6 +323,7 @@ const (
 	maxOffered       = 1024
 	maxOfferedChoice = 512
 	maxOfferedText   = 300
+	maxOfferedInfo   = 1000
 )
 
 func cleanOffered(list []ipc.Option) []ipc.Option {
@@ -338,16 +339,27 @@ func cleanOffered(list []ipc.Option) []ipc.Option {
 			o.Choices = o.Choices[:maxOfferedChoice]
 		}
 		clean := make([]string, 0, len(o.Choices))
-		for _, c := range o.Choices {
+		names := make([]string, 0, len(o.Choices))
+		for i, c := range o.Choices {
 			if len(c) <= ipc.MaxOptionValue {
 				clean = append(clean, c)
+				name := c
+				if i < len(o.Labels) && o.Labels[i] != "" {
+					name = truncate(o.Labels[i], maxOfferedText)
+				}
+				names = append(names, name)
 			}
 		}
 		if len(clean) == 0 {
 			continue
 		}
-		o.Choices = clean
+		o.Choices, o.Labels = clean, names
+		if !slices.Contains(clean, o.Default) {
+			o.Default = clean[0]
+		}
 		o.Label = truncate(o.Label, maxOfferedText)
+		o.Info = truncate(o.Info, maxOfferedInfo)
+		o.Category = truncate(o.Category, maxOfferedText)
 		o.Value = truncate(o.Value, ipc.MaxOptionValue)
 		out = append(out, o)
 	}

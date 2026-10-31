@@ -522,8 +522,12 @@ func ControlFor(values map[string]any, lim Limits) ipc.Control {
 // OptionInfo is one option a core offers, as told to clients. It's what a runner said,
 // so it's cut to size before anyone stores or shows it.
 type OptionInfo struct {
-	Key     string   `json:"key"`
-	Label   string   `json:"label"`
-	Choices []string `json:"choices"`
-	Default string   `json:"default"`
+	Key      string   `json:"key"`
+	Label    string   `json:"label"`
+	Info     string   `json:"info,omitempty"`
+	Category string   `json:"category,omitempty"`
+	Choices  []string `json:"choices"`
+	Labels   []string `json:"labels,omitempty"` // the name of each choice
+	Default  string   `json:"default"`
+	Hidden   bool     `json:"hidden,omitempty"` // the core says it doesn't apply just now
 }

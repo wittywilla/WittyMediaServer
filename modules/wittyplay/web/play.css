@@ -185,6 +185,8 @@
 .wp-osd-br { bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right)); }
 .wp-state { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 7; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 6px 12px; border-radius: 10px; background: rgba(10, 12, 18, .85); color: #fff; font-weight: 600; max-width: 90vw; }
 .wp-touchbar { position: absolute; top: max(8px, env(safe-area-inset-top)); right: calc(56px + env(safe-area-inset-right)); z-index: 6; display: flex; gap: 4px; }
+/* With touch controls in portrait there's room under the picture, so it stays clear of the game. */
+.wp-portrait.wp-with-touch .wp-touchbar { top: calc(52% + 8px); right: max(8px, env(safe-area-inset-right)); }
 .wp-touchbar .wp-btn { min-height: 40px; padding: 4px 8px; font-size: 12px; background: rgba(20, 22, 30, .55); color: #fff; border-color: transparent; touch-action: none; white-space: normal; max-width: 78px; }
 
 /* The settings page */

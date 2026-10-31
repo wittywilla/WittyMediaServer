@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyboardEvent } from 'react'
 import { reducedMotion } from './display'
-import { downloadBlob, fileName, layerDocument, levelName, LEVEL_RANK, pickFile, type Choice, type CoreOptionsView, type CustomControl, type Issue, type Level, type Preset, type Report, type Schema, type SettingDef, type SettingsApi, type SettingsHost, type SettingsView } from './settings'
+import { downloadBlob, fileName, layerDocument, levelName, LEVEL_RANK, pickFile, type Choice, type CoreOptionsView, type CustomControl, type Issue, type Level, type OptionInfo, type Preset, type Report, type Schema, type SettingDef, type SettingsApi, type SettingsHost, type SettingsView } from './settings'
 
 // The panels of the game menu and of the settings page. They're drawn from what the
 // server describes, and every control works with touch, a mouse, arrow keys, a TV remote
@@ -210,7 +210,7 @@ export function SettingsPanel({ schema, api, view, groups, level, levels, onLeve
 
 // ---- core options ----
 
-const optionChoices = (list: string[]): Choice[] => list.map((c) => ({ value: c, label: c }))
+const optionChoices = (o: OptionInfo): Choice[] => o.choices.map((c, i) => ({ value: c, label: o.labels?.[i] || c }))
 
 function CustomControlRow({ c, value, known, onChange }: { c: CustomControl; value: string; known: boolean; onChange: (v: string) => void }) {
   if (c.type === 'toggle') {
@@ -251,6 +251,10 @@ export function CorePanel({ host, itemId, api, view, level, levels, onLevel, con
   const [filter, setFilter] = useState('')
   const load = useCallback(() => host.request<CoreOptionsView>('GET', `/games/${itemId}/core-options`).then(setCore).catch((e) => say(e?.message || 'The core’s options couldn’t be read')), [host, itemId, say])
   useEffect(() => { void load() }, [load])
+  // Changing one option can make a core hide or show others.
+  const refreshTimer = useRef(0)
+  const refreshSoon = () => { window.clearTimeout(refreshTimer.current); refreshTimer.current = window.setTimeout(() => void load(), 700) }
+  useEffect(() => () => window.clearTimeout(refreshTimer.current), [])
   const res = view.resolved
   const offered = new Map((core?.options || []).map((o) => [o.key, o]))
   // What a core ignored isn't what it's using, so that's not what to show.
@@ -260,7 +264,15 @@ export function CorePanel({ host, itemId, api, view, level, levels, onLevel, con
     if (chosen !== undefined && (!offer || offer.choices.includes(chosen))) return chosen
     return core?.running[key] ?? fallback
   }
-  const list = (core?.options || []).filter((o) => !filter || (o.label + ' ' + o.key).toLowerCase().includes(filter.toLowerCase()))
+  // What a core has hidden doesn't apply just now, unless someone's looking for it.
+  const list = (core?.options || []).filter((o) => (filter ? (o.label + ' ' + o.key + ' ' + (o.category || '')).toLowerCase().includes(filter.toLowerCase()) : !o.hidden))
+  const groups: { title: string; options: OptionInfo[] }[] = []
+  for (const o of list) {
+    const title = o.category || ''
+    const found = groups.find((g) => g.title === title)
+    if (found) found.options.push(o)
+    else groups.push({ title, options: [o] })
+  }
   if (!core) return <p className="wp-muted" role="status">Asking the core…</p>
   return (
     <>
@@ -279,22 +291,26 @@ export function CorePanel({ host, itemId, api, view, level, levels, onLevel, con
         </section>
       )}
       {(core.options.length > 12) && <input className="wp-input" type="search" placeholder="Find an option…" aria-label="Find an option" value={filter} onChange={(e) => setFilter(e.target.value)} />}
-      <section className="wp-section">
-        {core.known && <h3>{core.core} options</h3>}
-        {list.map((o) => {
-          const source = res.coreSources[o.key]
-          return (
-            <div key={o.key} className="wp-setting">
-              <div className="wp-setting-text">
-                <b>{o.label || o.key}</b>
-                <small className="wp-muted wp-mono">{o.key}</small>
-                {source && <SourceNote source={source} level={level} consoleName={consoleName} onClear={(at) => api.setOption(at, o.key, null)} />}
+      {groups.map((g) => (
+        <section key={g.title} className="wp-section">
+          {core.known && <h3>{g.title || `${core.core} options`}</h3>}
+          {g.options.map((o) => {
+            const source = res.coreSources[o.key]
+            return (
+              <div key={o.key} className="wp-setting">
+                <div className="wp-setting-text">
+                  <b>{o.label || o.key}</b>
+                  {o.info && <small className="wp-muted">{o.info}</small>}
+                  <small className="wp-muted wp-mono">{o.key}</small>
+                  {o.hidden && <small className="wp-muted">The core says this doesn’t apply just now.</small>}
+                  {source && <SourceNote source={source} level={level} consoleName={consoleName} onClear={(at) => api.setOption(at, o.key, null)} />}
+                </div>
+                <Cycler label={o.label || o.key} value={valueOf(o.key, o.default)} options={optionChoices(o)} onChange={(x) => { api.setOption(level, o.key, x); refreshSoon() }} />
               </div>
-              <Cycler label={o.label || o.key} value={valueOf(o.key, o.default)} options={optionChoices(o.choices)} onChange={(x) => api.setOption(level, o.key, x)} />
-            </div>
-          )
-        })}
-      </section>
+            )
+          })}
+        </section>
+      ))}
       {core.ignored.length > 0 && (
         <section className="wp-section" aria-label="Set but ignored">
           <h3>Set, but ignored by this core</h3>
@@ -446,7 +462,7 @@ export function JsonEditor({ host, api, view, scope, level, levels, onLevel, con
             {options.map((o) => (
               <li key={o.key}>
                 <button type="button" className="wp-link wp-mono" onClick={() => insert(`"${o.key}": "${o.default}"`)} aria-label={`Insert ${o.key}`}>{o.key}</button>
-                <small className="wp-muted">{o.label}: {o.choices.join(', ')}</small>
+                <small className="wp-muted">{o.label}: {o.choices.join(', ')}{o.hidden ? ' (hidden by the core just now)' : ''}</small>
               </li>
             ))}
           </ul>

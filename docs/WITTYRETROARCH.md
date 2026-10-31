@@ -134,7 +134,7 @@ the payload. The limits are in `modules/wittyplay/ipc/ipc.go`, and the server en
 | 4 | `MsgAudio` | Signed 16-bit little-endian stereo |
 | 5 | `MsgState` | u32 request id (0 when sent on quit), then the state; nothing after the id if there is none |
 | 6 | `MsgSaveRAM` | Battery save |
-| 7 | `MsgEvent` | JSON: `{"type": "rumble", "port", "effect", "strength"}`, or `message`, `geometry`, `rotation`, `avinfo`, `log`, `shutdown`, `statefail` (a state wouldn't load), `options` (`"options": [{"key","label","choices","value"}]`, sent before `MsgReady` and after a change), `stats` (`"stats": {"ran","shown","skipped","rewindBytes","rewindFrames"}`, once a second while running) |
+| 7 | `MsgEvent` | JSON: `{"type": "rumble", "port", "effect", "strength"}`, or `message`, `geometry`, `rotation`, `avinfo`, `log`, `shutdown`, `statefail` (a state wouldn't load), `options` (`"options": [{"key","label","info","category","choices","labels","default","value","hidden"}]`, of which `key`, `label`, `choices` and `value` are required, sent before `MsgReady` and after a change), `stats` (`"stats": {"ran","shown","skipped","rewindBytes","rewindFrames"}`, once a second while running) |
 | 8 | `MsgError` | Text, then the runner exits |
 
 ## What's needed from you to start the fork

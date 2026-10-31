@@ -428,9 +428,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetMaxUsers:
 		*(*uint32)(data) = engine.MaxPorts
 	case envGetCoreOptVersion:
-		// Version 0: the plain "label; a|b|c" option lists below, which every
-		// core falls back to.
-		*(*uint32)(data) = 0
+		// Version 2: labels for values, descriptions and categories. A core that only
+		// has an older list still uses it. See options.go.
+		*(*uint32)(data) = 2
 	case envSetVariables:
 		c.setVariables(data)
 	case envGetVariable:
@@ -472,7 +472,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envSetHWRender:
 		return false // software-rendered cores only here; see docs/GAMING.md
 	default:
-		return false
+		return c.optionEnvironment(cmd, data)
 	}
 	return true
 }

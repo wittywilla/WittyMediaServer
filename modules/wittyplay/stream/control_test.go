@@ -243,6 +243,11 @@ func TestCoreOptionsArriveAndStartValuesTakeEffect(t *testing.T) {
 	if err := s.SetOption("no_such", "1"); err == nil {
 		t.Error("an option it doesn't offer wasn't refused")
 	}
+	for _, o := range s.CoreOptions() {
+		if o.Key == "test_colours" && (o.Category != "Picture" || o.Info == "" || o.Default != "normal" || o.Labels[1] != "Inverted") {
+			t.Errorf("what the core said about it didn't arrive: %+v", o)
+		}
+	}
 	// Settings that say nothing about an option put it back to the core's own default.
 	if err := s.Apply(ipc.Control{}, map[string]string{"test_speed": "4"}); err != nil {
 		t.Fatal(err)

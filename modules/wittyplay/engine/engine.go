@@ -82,10 +82,15 @@ type SystemInfo struct {
 
 // Option is one setting an engine offers. The first choice is its default.
 type Option struct {
-	Key     string
-	Label   string
-	Choices []string
-	Value   string
+	Key      string
+	Label    string
+	Info     string // a longer description
+	Category string // the heading it belongs under
+	Choices  []string
+	Labels   []string // the name of each choice, when the core gives them
+	Default  string
+	Value    string
+	Hidden   bool // the core says it doesn't apply just now
 }
 
 // Options is an engine with settings of its own. SetOption refuses a key or a value
@@ -93,6 +98,11 @@ type Option struct {
 type Options interface {
 	Options() []Option
 	SetOption(key, value string) bool
+}
+
+// OptionsChanged is an engine whose options can change on their own: it says when they have.
+type OptionsChanged interface {
+	OptionsChanged() bool
 }
 
 // Cheats is an engine that takes cheat codes.

@@ -121,8 +121,11 @@ step in the player's settings.
 ### What low-end servers can expect
 
 A retro console at 2x is about 512x448 at 60 frames a second. Two sessions is the default limit.
-The host runs at below-normal priority so a game never starves a film being transcoded. Audio
-costs about 1% of a core.
+On Linux and macOS the host runs at a slightly lower priority, so a film being transcoded comes
+first without the game being starved. Windows has no such gentle setting: below-normal gets next
+to nothing while other programs are busy (one game measured 1 frame a second, against 61 at normal,
+with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a
+software-rendered core uses about one CPU core. Audio costs about 1% of a core.
 
 The in-browser mode below is the answer for servers that can't keep up.
 
@@ -257,12 +260,14 @@ nothing waits for a timer. The shader is our own, about 60 lines. Its only unifo
   a state costs over a quarter of a frame it takes them less often, and if it still doesn't fit it turns off and says
   so. Loading a state or resetting starts its history again.
 - **Run-ahead** runs the real frame with its sound, saves, runs on with only the last picture kept, and goes back. That
-  takes frames off the delay at the cost of a save, a load and extra frames each time. Half a second of frames over
-  budget turns it off, with a message.
+  takes frames off the delay at the cost of a save, a load and extra frames each time. On FCEUmm that's about a millisecond a
+  frame. If the game falls behind its schedule for a couple of seconds, it turns off, with a message.
 
 ### Core options
 
-A runner tells the server what a core offers, with its labels and allowed values, as it starts. The server keeps that
+A runner tells the server what a core offers as it starts: labels, allowed values and their names, descriptions, categories, and
+which options the core currently wants hidden (a core can hide options that don't apply, and show them again when another changes). The
+newest libretro option format is read, and the older two for cores that only have those. The server keeps that
 per core, so settings screens can show it with no game running. For a core never run here, it starts one with no game
 for a moment to ask, boxed in as any game is. The runner refuses a key the core didn't offer and a value it didn't
 list, so nothing written in a setting can reach anything else, whatever the server let through.
@@ -367,8 +372,8 @@ Treat a ROM as hostile and a core as buggy:
   refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder; memory and
   file-size rlimits; lower priority; killed when the server dies.
 - **Windows:** a job object that kills it with the server, limits memory and forbids child
-  processes, plus a low-integrity token so it can only write to its save folder; below-normal
-  priority.
+  processes, plus a low-integrity token so it can only write to its save folder. It keeps normal
+  priority: see below.
 - **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits.
 - **FreeBSD and others:** rlimits and priority only. Docs say so plainly.
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
@@ -440,12 +445,7 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 - **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code, so a code that
   does nothing can't be told apart from a wrong one. Some cores have no cheat support at all.
 - **Slow motion and fast-forward have no sound.**
-- **Run-ahead depends on how quickly a core saves and loads.** The first real core tried (FCEUmm, on a busy machine) turned it off
-  by itself within a few seconds. It's proven on the test core, and needs trying on a quiet server.
-- **A game may not start on a machine with no CPU to spare.** The runner runs at below-normal priority so that it never starves a
-  film being transcoded, and on a saturated machine it can miss the 30-second limit on loading a game.
-- **A core's option labels are its own**, in English. The newer libretro option format with translated labels and
-  descriptions isn't read yet: cores also offer the older one, which is what's used.
+- **A core's option labels are its own**, and in English: this frontend tells a core its language is English.
 - **Patches** work on games that are a single file, not on discs (`.cue`, `.chd`, `.iso` and so on).
 - **Software-rendered cores only** with the built-in runner.
 - **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has

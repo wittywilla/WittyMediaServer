@@ -30,7 +30,8 @@ follows you. See [GAMING.md](docs/GAMING.md).
 - **Screenshots and short clips**, saved to your device.
 - **Cheats**, through the core's cheat interface, typed in or from your own file. **IPS and BPS patches** of your
   own, applied to a copy when the game starts. Nothing is bundled.
-- **Core options:** every option a core really has, in the menu and on the settings page, changing the running game.
+- **Core options:** every option a core really has, with its own names and descriptions, in its categories, in the menu and on the
+  settings page, changing the running game. Options a core hides because they don't apply stay out of the way.
 - **Custom settings in JSON:** edit, import, export and share a settings file, to set anything a core offers, and
   to define your own presets and controls: a toggle, slider or choice with your own label. Mistakes are shown at
   their line, with the list of what the core accepts beside them. Anything unknown is listed as ignored. A file
@@ -42,6 +43,13 @@ follows you. See [GAMING.md](docs/GAMING.md).
   controller, a TV remote and touch.
 - **The game's page:** favourites, your own notes, play count, last played, and a resume banner with a picture.
   Administrators can set what everyone starts with.
+
+### More reliable
+
+- **Games stay playable on a busy Windows server.** The game runner used to run at below-normal priority, and Windows gives that next to
+  nothing while other programs are busy: a game could fail with "took too long to load", or crawl at one frame a second. It now runs at
+  normal priority there, and shares the machine fairly with a transcode.
+- **Save pictures and your own images load in apps that can't send a sign-in cookie.**
 
 ### Lower delay
 

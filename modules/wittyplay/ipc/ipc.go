@@ -194,10 +194,15 @@ type Event struct {
 
 // Option is one setting a core offers. The first choice is the core's default.
 type Option struct {
-	Key     string   `json:"key"`
-	Label   string   `json:"label"`
-	Choices []string `json:"choices"`
-	Value   string   `json:"value"`
+	Key      string   `json:"key"`
+	Label    string   `json:"label"`
+	Info     string   `json:"info,omitempty"`
+	Category string   `json:"category,omitempty"`
+	Choices  []string `json:"choices"`
+	Labels   []string `json:"labels,omitempty"` // the name of each choice, when it has one
+	Default  string   `json:"default,omitempty"`
+	Value    string   `json:"value"`
+	Hidden   bool     `json:"hidden,omitempty"` // the core says it doesn't apply just now
 }
 
 // OptionSet changes one option. A runner ignores a key the core didn't offer or a

@@ -19,7 +19,7 @@ export type Issue = { line?: number; column?: number; path?: string; message: st
 export type Report = { errors: Issue[]; ignored: Issue[] }
 export type SettingsView = { resolved: Resolved; layers: Record<string, Layer>; limits: Limits; console: string; item: number; ignored?: Issue[] }
 export type Level = 'person' | 'console' | 'game' | 'server' | 'serverConsole'
-export type OptionInfo = { key: string; label: string; choices: string[]; default: string }
+export type OptionInfo = { key: string; label: string; info?: string; category?: string; choices: string[]; labels?: string[]; default: string; hidden?: boolean }
 export type CoreOptionsView = { core: string; known: boolean; options: OptionInfo[]; values: Record<string, string>; sources: Record<string, string>; running: Record<string, string>; ignored: Issue[]; controls: CustomControl[] }
 
 // How the panels reach the server. The app provides it.

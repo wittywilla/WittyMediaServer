@@ -50,8 +50,8 @@ var _ engine.Engine = (*Core)(nil)
 // New makes a core reporting to h.
 func New(h engine.Handlers) *Core {
 	return &Core{h: h, optionList: []engine.Option{
-		{Key: "test_colours", Label: "Colours", Choices: []string{"normal", "inverted"}, Value: "normal"},
-		{Key: "test_speed", Label: "Square speed", Choices: []string{"2", "4"}, Value: "2"},
+		{Key: "test_colours", Label: "Colours", Category: "Picture", Info: "Swaps the field's colours.", Choices: []string{"normal", "inverted"}, Labels: []string{"Normal", "Inverted"}, Default: "normal", Value: "normal"},
+		{Key: "test_speed", Label: "Square speed", Choices: []string{"2", "4"}, Default: "2", Value: "2"},
 	}, cheats: map[int]string{}}
 }
 

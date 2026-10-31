@@ -256,12 +256,17 @@ scaled on the way and the size in the first answer is only what the core expecte
 `height`, `core`, `encoder`, `speed`, `paused`, `rewindBytes` and `rewindFrames`. Ask at most once a second, and only
 while showing them. `GET /play/{id}/screenshot` gives a PNG with no effects on it.
 
+`GET /games/{id}/core-options` lists each option with `key`, `label`, `info`, `category`, `choices`, `labels` (the name of each choice),
+`default` and `hidden` (the core says it doesn't apply just now, so leave it out of a menu).
+
 `POST /games/{id}/play` also takes `"safeMode": true`: defaults only, no cheats, no patches. Its answer has `safeMode`,
 `maxSpeed`, and `notices` to show, such as a patch that wasn't applied.
 
 ## A person's own files
 
-All of these are private to the person. Files go as the request body.
+All of these are private to the person. Files go as the request body. A loader that can't add a header, such as an image
+tag or a download link, can put the sign-in in the address as `?token=` on these reading routes only: a save's `thumb` and
+`file`, `battery`, one image from `game-bezels`, and `play/{id}/screenshot`.
 
 | Route | Limits |
 |---|---|

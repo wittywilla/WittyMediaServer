@@ -154,7 +154,7 @@ func (s *Server) keepCoreOptions(coreID string, list []ipc.Option) {
 }
 
 func optionInfo(o ipc.Option) wittyplay.OptionInfo {
-	return wittyplay.OptionInfo{Key: o.Key, Label: o.Label, Choices: o.Choices, Default: o.Choices[0]}
+	return wittyplay.OptionInfo{Key: o.Key, Label: o.Label, Info: o.Info, Category: o.Category, Choices: o.Choices, Labels: o.Labels, Default: o.Default, Hidden: o.Hidden}
 }
 
 func (s *Server) handleGameSettingsSchema(w http.ResponseWriter, r *http.Request) {

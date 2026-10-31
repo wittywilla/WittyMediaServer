@@ -440,6 +440,10 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 - **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code, so a code that
   does nothing can't be told apart from a wrong one. Some cores have no cheat support at all.
 - **Slow motion and fast-forward have no sound.**
+- **Run-ahead depends on how quickly a core saves and loads.** The first real core tried (FCEUmm, on a busy machine) turned it off
+  by itself within a few seconds. It's proven on the test core, and needs trying on a quiet server.
+- **A game may not start on a machine with no CPU to spare.** The runner runs at below-normal priority so that it never starves a
+  film being transcoded, and on a saturated machine it can miss the 30-second limit on loading a game.
 - **A core's option labels are its own**, in English. The newer libretro option format with translated labels and
   descriptions isn't read yet: cores also offer the older one, which is what's used.
 - **Patches** work on games that are a single file, not on discs (`.cue`, `.chd`, `.iso` and so on).

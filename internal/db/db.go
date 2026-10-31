@@ -274,6 +274,9 @@ var migrations = []string{
 	   console TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
 	   data TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(user_id, console, kind, key));`,
+	// 17: CD images: a track item says which disc item it belongs to.
+	`ALTER TABLE items ADD COLUMN cd_disc INTEGER;
+	 CREATE INDEX IF NOT EXISTS items_cd_disc ON items(cd_disc) WHERE cd_disc IS NOT NULL;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

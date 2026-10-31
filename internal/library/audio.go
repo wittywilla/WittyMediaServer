@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
@@ -29,7 +30,7 @@ var audioExts = map[string]bool{
 func IsAudioLibrary(t string) bool { return t == "music" || t == "audiobooks" || t == "podcasts" }
 
 func discoverAudio(root string) ([]candidate, error) {
-	var out []candidate
+	var out, sheets, raw []candidate
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil // unreadable folders are skipped, not fatal
@@ -38,6 +39,18 @@ func discoverAudio(root string) ([]candidate, error) {
 		if d.IsDir() {
 			if p != root && (strings.HasPrefix(name, ".") || strings.HasPrefix(name, "$") || strings.EqualFold(name, "@eaDir")) {
 				return filepath.SkipDir
+			}
+			return nil
+		}
+		if wittycd.IsImageName(name) && !strings.HasPrefix(name, "._") {
+			if st, err := d.Info(); err == nil && mediaEntry(root, p, d) {
+				sheets = append(sheets, candidate{path: p, kind: CDKind, size: st.Size(), mtime: st.ModTime().Unix()})
+			}
+			return nil
+		}
+		if wittycd.MayBeRaw(name) && !strings.HasPrefix(name, "._") {
+			if st, err := d.Info(); err == nil && st.Size()%wittycd.SectorBytes == 0 && mediaEntry(root, p, d) {
+				raw = append(raw, candidate{path: p, kind: CDKind, size: st.Size(), mtime: st.ModTime().Unix()})
 			}
 			return nil
 		}
@@ -51,7 +64,11 @@ func discoverAudio(root string) ([]candidate, error) {
 		out = append(out, candidate{path: p, kind: "audio", size: st.Size(), mtime: st.ModTime().Unix()})
 		return nil
 	})
-	return out, err
+	// CD images, and what their sheets take out of the list of songs.
+	images, claimed := cdCandidates(sheets)
+	out = dropClaimed(out, claimed, images)
+	raw = dropClaimed(raw, claimed, images)
+	return append(append(out, images...), raw...), err
 }
 
 // tag reads a tag case-insensitively from the format, then the audio stream.

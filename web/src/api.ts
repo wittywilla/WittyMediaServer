@@ -22,7 +22,7 @@ export type DiscTitle = {
   audio: string[]; subtitles: string[]; wide: boolean; standard: string
 }
 export type DiscInfo = { label: string; format: string; hasMenus: boolean; mainTitle: number; titles: DiscTitle[]; scrambled: boolean
-  content?: 'movie' | 'tv'; contentManual?: boolean } // a film, or episodes of a series
+  content?: 'movie' | 'tv' | 'music'; contentManual?: boolean } // a film, or episodes of a series
 // resumeSec: where "Resume" picks up, 0 to start over (the server's rule).
 export type Progress = { positionSec: number; durationSec: number; watched: boolean; discTitle?: number; updatedAt: number; resumeSec?: number }
 export type Item = {
@@ -43,6 +43,8 @@ export type Item = {
   reading?: '' | 'ltr' | 'rtl' | 'webtoon'
   // Games: the console it runs on.
   console?: string
+  // CD images: a track says which disc item it belongs to.
+  cdDisc?: number
 }
 export type GameCore = { id: string; name: string; license: string; source?: string; sha256?: string; nonCommercial?: boolean }
 export type GameConsole = {
@@ -202,10 +204,12 @@ export function fmtRuntime(sec: number): string {
   return h > 0 ? `${h} h ${m} min` : `${m} min`
 }
 
+// An audio CD image: it opens in the CD player rather than the video player.
+export const isCD = (it: Item) => it.kind === 'cd-image'
 export const isDisc = (it: Item) => it.kind === 'dvd-iso' || it.kind === 'dvd-folder' || it.kind === 'bluray-iso' || it.kind === 'bluray-folder'
 export const isBluray = (it: Item) => it.kind === 'bluray-iso' || it.kind === 'bluray-folder'
 // The kind of disc, for labels: "DVD" or "Blu-ray".
-export const discName = (it: Item) => (isBluray(it) ? 'Blu-ray' : 'DVD')
+export const discName = (it: Item) => (isCD(it) ? 'CD' : isBluray(it) ? 'Blu-ray' : 'DVD')
 // Video codecs by the names people know ("mpeg2video" is MPEG-2).
 const CODECS: Record<string, string> = { h264: 'H.264', hevc: 'HEVC', h265: 'HEVC', mpeg2video: 'MPEG-2', mpeg1video: 'MPEG-1', mpeg4: 'MPEG-4', vc1: 'VC-1', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', prores: 'ProRes' }
 export const codecName = (c?: string) => (c ? CODECS[c.toLowerCase()] || c.toUpperCase() : '')

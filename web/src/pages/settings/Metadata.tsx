@@ -29,6 +29,9 @@ export default function MetadataSettings() {
         <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies: facts, ratings and plot summaries (no posters). Used until you add a TMDB key.">
           <Switch label="Use Wikidata" checked={on('wikidata')} onChange={(v) => set('wikidata', v ? '1' : '0')} />
         </Row>
+        <Row label="MusicBrainz and the Cover Art Archive" badge={NO_KEY} desc="Audio CD images: album and track names and covers. A disc is looked up by its table of contents, the track lengths and nothing else: no names, no audio. Album data is CC0.">
+          <Switch label="Use MusicBrainz" checked={on('musicbrainz')} onChange={(v) => set('musicbrainz', v ? '1' : '0')} />
+        </Row>
         <Row label="AniList" badge={NO_KEY} desc="Anime libraries: titles in your chosen language, plots, posters and episode numbering.">
           <span className="set-pill">Always on</span>
         </Row>

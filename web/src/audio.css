@@ -54,6 +54,13 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .ab-art svg { width: 22px; height: 22px; }
 .ab-art:hover { transform: scale(1.04); }
 .ab-art img { width: 100%; height: 100%; object-fit: cover; }
+/* A disc in the bar: the same art, turned into a disc that turns while it plays. */
+.ab-art.cd { position: relative; border-radius: 50%; background: conic-gradient(from 30deg, #ddd, #9be, #fdf, #cfc, #ffd, #ddd, #bde, #fcf, #ddd); padding: 11%; }
+.ab-art.cd img, .ab-art.cd svg { border-radius: 50%; }
+.ab-art.cd::after { content: ""; position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: var(--bg-3); box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
+.ab-art.cd.spin { animation: ab-disc 2.2s linear infinite; }
+@keyframes ab-disc { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ab-art.cd.spin { animation: none; } }
 .ab-info { grid-area: info; min-width: 0; text-align: left; background: none; border: 0; padding: 4px 8px; margin: -4px -8px; border-radius: var(--r-md); color: inherit; font: inherit; }
 button.ab-info { cursor: pointer; }
 button.ab-info:hover { background: var(--hover); }

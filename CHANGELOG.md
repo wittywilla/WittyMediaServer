@@ -5,6 +5,18 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### WittyCD: audio CD images
+
+- **CD images play in a CD player:** `.cue` with `.bin`, `.wav` or a single `.flac`, `.toc`, `.ccd`, `.nrg`, `.chd`, and a bare
+  `.iso` or `.img` that is really audio. In a Music library a disc is an album with its tracks; in a Discs library it sits on the shelf.
+- **Gapless by design:** the whole disc is sent as one stream, as lossless FLAC or WAV, with AAC for slow connections. Repeats,
+  shuffle, your own program, index points, hidden tracks, pre-emphasis correction, and your place on the disc for each person.
+- **Identified by table of contents** through MusicBrainz and the Cover Art Archive, sending nothing else, with a dialog when
+  several albums match. It can be turned off in Settings, Metadata agents.
+- **Native apps** get it through `GET /cd/{id}`, `GET /cd/{id}/audio` and the ordinary playback door: see *Audio CDs* in
+  `docs/CLIENT-API.md`.
+- **Tools:** `wms cd info`, `wms cd check` and a standalone `wittycd` command.
+
 ## 0.5.0-alpha
 
 ### Interface audit

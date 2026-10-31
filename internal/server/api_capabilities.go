@@ -21,7 +21,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 3
+	apiRevision = 4
 	apiPrefix   = "/api/v1/"
 )
 
@@ -62,7 +62,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 var serverFeatures = []string{
 	"profiles", "pairing", "pair-invite", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
-	"dvd", "dvd-menus", "bluray", "bluray-menus",
+	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations",
 	"themes", "theme-tokens", "modules",
@@ -114,7 +114,7 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 			"directPlay": s.DB.GetSetting(ctx, "directPlay", "1") == "1",
 		},
 		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books"},
-		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "audio", "book"},
+		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "cd-image", "audio", "book"},
 	})
 }
 

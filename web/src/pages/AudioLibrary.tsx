@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, mediaUrl, type Album, type Artist, type Item, type Library } from '../api'
 import { useAudio, type AudioMode } from '../audio/player'
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
-import { IconAudio, IconCheck, IconPlay } from '../icons'
+import { IconAudio, IconCheck, IconDisc, IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 
@@ -121,6 +121,7 @@ export function AlbumPage() {
   const [tracks, setTracks] = useState<Item[] | null>(null)
   const [reloadTracks, setReloadTracks] = useState(0)
   const audio = useAudio()
+  const nav = useNavigate()
   useEffect(() => {
     api.get<Library[]>('/libraries').then((ls) => setLib(ls.find((l) => String(l.id) === libId) || null)).catch(() => {})
     api.get<Item[]>(`/music/tracks?library=${libId}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`).then(setTracks).catch(() => setTracks([]))
@@ -134,6 +135,13 @@ export function AlbumPage() {
   const resumeAt = Math.max(0, tracks.findIndex((t) => !t.progress?.watched))
   const started = books && tracks.some((t) => t.progress && t.progress.positionSec > 5)
   const coverId = tracks.find((t) => t.poster)?.id
+  // Tracks from CD images play from their disc, with no gaps between them.
+  const discs = [...new Set(tracks.map((t) => t.cdDisc).filter((d): d is number => !!d))]
+  const playTrack = (i: number) => {
+    const t = tracks[i]
+    if (t?.cdDisc) nav(`/cd/${t.cdDisc}?play=1&track=${t.track}`)
+    else audio.play(tracks, i, mode)
+  }
   return (
     <div className="album-page">
       <BackLink to={`/library/${libId}`} label={lib?.name || (books ? 'Audiobooks' : 'Music')} />
@@ -145,7 +153,8 @@ export function AlbumPage() {
           <Link to={`/library/${libId}?tab=albums&artist=${encodeURIComponent(artist)}`} className="album-artist">{artist || 'Unknown'}</Link>
           <div className="muted">{tracks.length} {pods ? 'episodes' : books ? 'chapters' : 'tracks'}{pods ? '' : ` · ${fmtRuntime(total)}`}{tracks[0]?.year && !pods ? ` · ${tracks[0].year}` : ''}</div>
           <div className="actions">
-            <button className="btn primary" onClick={() => audio.play(tracks, books && !pods ? resumeAt : 0, mode)}><IconPlay /> {pods ? 'Play newest' : started ? 'Continue' : 'Play'}</button>
+            <button className="btn primary" onClick={() => playTrack(books && !pods ? resumeAt : 0)}><IconPlay /> {pods ? 'Play newest' : started ? 'Continue' : 'Play'}</button>
+            {discs.length > 0 && discs.map((d, i) => <Link key={d} className="btn" to={`/cd/${d}?play=1`}><IconDisc /> {discs.length > 1 ? `Disc ${i + 1}` : 'Insert disc'}</Link>)}
             {!books && <button className="btn" onClick={() => audio.play([...tracks].sort(() => Math.random() - 0.5), 0, mode)}>Shuffle</button>}
             <button className="btn ghost" onClick={() => audio.enqueue(tracks)}>Add to queue</button>
           </div>
@@ -153,7 +162,7 @@ export function AlbumPage() {
           {pods && libId && <PodcastAdmin libraryId={Number(libId)} title={album} onChanged={() => setReloadTracks((n) => n + 1)} />}
         </div>
       </div>
-      <TrackList items={tracks} onPlay={(i) => audio.play(tracks, i, mode)} episodes={pods}
+      <TrackList items={tracks} onPlay={playTrack} episodes={pods}
         extra={pods ? (t) => <DownloadButton item={t} onDone={(x) => setTracks((ts) => ts!.map((y) => (y.id === x.id ? { ...y, path: x.path } : y)))} /> : undefined} />
     </div>
   )

@@ -549,6 +549,45 @@ Offer Title menu, Play movie and Back. This server never decrypts discs.
 **What's left out.** BD-J (Java) Blu-ray menus aren't run by the server: such a disc plays its feature
 directly, on TV apps as in the browser.
 
+## Audio CDs
+
+An audio CD image is an item of kind `cd-image`. In a Discs library that is all there is. In a Music library each of
+its tracks is an ordinary `audio` item as well, with `cdDisc` naming the disc, so albums, songs, search and queues
+work with no special case, and `GET /items/{id}/stream` plays one track as plain samples with byte ranges (or AAC with
+`?transcode=1`). That is all a simple player needs.
+
+**To play the disc as a disc,** gaplessly, use the whole-disc stream. `POST /items/{id}/playback` on the `cd-image` answers
+with `decision: cd`, a `url` for the stream and a `cdUrl` for its map. Or go straight there:
+
+- `GET /cd/{id}` lists `tracks`, each with `pregap`, `start`, `end` and `indexes` in sectors from the start of the disc
+  (75 to the second, 588 stereo samples each), plus `formats` you can ask for, the one `suggested` for this person's
+  connection, and `positionSec`, their place on the disc.
+- `GET /cd/{id}/audio` is the stream. **There is one stream and tracks are places in it,** so nothing needs joining.
+
+**The map of a stream.** Work it out from the track table; the server does the same:
+
+- With no `tracks`: every audio track in order, each from its `pregap` to its `end`. Sample 0 is sector `pregap` of the
+  first audio track. Data tracks are left out. To start where a player does, use `start` to skip the first track's pregap.
+- With `tracks=3,7,1`: each from its `start` to its `end`, in that order. `0` is the hidden track, what is in track 1's pregap
+  (`hiddenTrack` says when there is one).
+- `loops=N` plays all of that N times over with no join.
+
+**Formats and seeking:**
+
+| `format` | Seek | Notes |
+|---|---|---|
+| `flac` (default) | New request with `start=SAMPLE`, then add `start` to the player's clock | Lossless. Its duration is in the stream's header. `X-WMS-Samples` says how long it is |
+| `wav` | In the player, by byte range | Lossless, 1.4 Mbit/s, no work for the server |
+| `aac` | New request with `start=SAMPLE` | For slow connections. Gapless across tracks too, though not sample-exact after a seek. Counts against the server's audio conversions |
+
+A busy server answers 503 with `Retry-After`. Pre-emphasised tracks (`preEmphasis`) are corrected unless `deemphasis=0`.
+
+**Your place.** Send `POST /items/{id}/progress` on the `cd-image` with `positionSec` counted from sector 0 of the disc, and
+`DELETE` it when someone presses stop. Unlike films, any position above 3 seconds is worth resuming.
+
+**A disc that isn't music.** `problem` is `dts` or `noise` when the audio would be loud noise, with a `warnings` entry that
+says why. Ask before playing it. Nothing is decrypted or unscrambled: a clean copy is the only way to play one.
+
 ## Themes and design data
 
 `GET /themes` lists the themes, with four preview colours and `scheme` (`dark` or `light`), and which
@@ -819,6 +858,17 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
 | `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
+
+### Audio CDs
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /cd/{id}` | user, `st` | A disc's tracks and layout, and this person's place on it. |
+| `GET /cd/{id}/audio` | user, `st` | The disc as one continuous stream: `format`, `tracks`, `loops`, `start`, `deemphasis`. |
+| `GET /cd/{id}/graphics` | user, `st` | CD+G packets for a run of sectors. |
+| `GET /cd/{id}/matches` | admin | What this disc could be, from MusicBrainz, asked with only its table of contents. |
+| `POST /cd/{id}/identify` | admin | Use a release's names and cover. An empty `releaseId` goes back to the disc's own. |
+| `GET /cd-covers/{release}` | admin | A release's cover, small, for choosing between matches. |
 
 ### Music, audiobooks and podcasts
 

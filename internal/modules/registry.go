@@ -2,6 +2,7 @@ package modules
 
 import (
 	"github.com/wittywilla/wittybluray"
+	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittydisc"
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittyintegratedfilebrowser"
@@ -14,6 +15,6 @@ import (
 // modules listed here (and the web ones) are ever accepted: a release of anything
 // else has nowhere to go.
 func GoManifests() [][]byte {
-	return [][]byte{wittybluray.ManifestJSON, wittydisc.ManifestJSON, wittydvd.ManifestJSON, wittyintegratedfilebrowser.ManifestJSON,
+	return [][]byte{wittybluray.ManifestJSON, wittycd.ManifestJSON, wittydisc.ManifestJSON, wittydvd.ManifestJSON, wittyintegratedfilebrowser.ManifestJSON,
 		wittyphotos.ManifestJSON, wittyplay.ManifestJSON, wittytuner.ManifestJSON}
 }

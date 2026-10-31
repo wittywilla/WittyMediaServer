@@ -7,6 +7,7 @@ wizard) and point it at your folders.
 - [What is read from your files](#what-is-read-from-your-files)
 - [Playing](#playing)
 - [Formats](#formats)
+- [CD images](#cd-images)
 - [Podcasts](#podcasts)
 
 ## Folder layout
@@ -52,6 +53,49 @@ view with the queue.
 MP3, AAC/M4A, FLAC, Opus, Ogg Vorbis and WAV are sent to the browser as they are (instant
 seeking, no server work). ALAC, WMA, APE, WavPack, AIFF, DSD and others are converted to AAC
 while playing — a light job even for small servers.
+
+## CD images
+
+Keep images of your audio CDs in a **Music** library and they become albums, with their tracks in the Songs list and
+search like any others. Keep them in a **Discs** library (**DVDs, Blu-rays & CDs**) and they sit on the shelf with your
+other discs. Either way they play in the CD player: the disc goes in, spins behind a window, and a lit display shows the
+track, index and time. Press the time to change what it shows.
+
+**Which should I use?** Music, unless you want your CDs on the same shelf as your films. An album from a CD works like
+every other album, and pressing **Insert disc** brings up the player.
+
+**Formats:** `.cue` with `.bin`, `.wav`, `.aiff` or one `.flac`; `.toc`; `.ccd` with `.img`; `.nrg`; `.chd`; and a bare `.iso`,
+`.img` or `.bin` that is really audio, which plays as one long track as nothing says where the others begin. A sheet beside
+already tagged per-track files, or files in formats such as MP3, is left alone, and those stay ordinary songs.
+
+**Better than the real thing:**
+
+- **No gaps, ever.** The whole disc is sent as one continuous stream, so a live album or a segued record plays exactly as
+  it was laid out, pregaps included. The display counts down through a pregap, as a good player does.
+- **Lossless,** as FLAC, or as compressed AAC if a connection can't keep up: that switch is automatic, and can be set by hand
+  under *About this disc*. Limits for people away from home apply as usual.
+- **Your place on the disc** is kept for each person, on every device.
+- **Repeat one or all, shuffle, and your own program,** all without a join between repeats.
+- **Hidden tracks:** press Previous at the start of track 1 to rewind into audio hidden before it, or pick it from the list.
+- **Pre-emphasis,** a treble boost on some early CDs, is corrected as a good player would.
+- **Index points** and **CD+G** karaoke pictures, from a `.cdg` file beside the image.
+- The music keeps playing while you browse, in the bar along the bottom, with lock screen and media key controls.
+
+**Names and covers.** A disc's own text comes first (CD-TEXT or the sheet), then its folder and file names. Each new disc is
+also looked up on MusicBrainz, using only its table of contents: see [Metadata](METADATA.md#audio-cds). A cover beside the
+image always wins. If several albums match, the disc keeps its own names and offers a **Choose from N matches** button.
+
+**Keys:** Space play or pause, N and P next and previous, J and L back and forward 10 seconds, S stop, R repeat, H shuffle,
+E eject. Remotes and controllers move around the deck as they do everywhere else.
+
+**A damaged image** plays as far as it goes, and says so. To find out what is wrong with one:
+
+```bash
+wms cd check "Album.cue"
+```
+
+**Copy protection:** plain CD audio doesn't have any. An image whose audio is scrambled sounds like noise and is reported as
+such, and nothing in this project unscrambles it. DTS surround discs are reported too.
 
 ## Podcasts
 

@@ -26,6 +26,7 @@ const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((
 const LibraryPage = lazy(() => import('./pages/LibraryPage'))
 const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
+const CdPlayer = lazy(() => import('./player/CdPlayer'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
@@ -104,6 +105,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/cd/:id" element={<CdPlayer />} />
             <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
             <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
             <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />

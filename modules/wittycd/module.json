@@ -1,0 +1,18 @@
+{
+  "id": "wittycd",
+  "name": "WittyCD",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyCD",
+  "delivery": "builtin",
+  "api": 1,
+  "minServer": "0.5.0-alpha",
+  "maxServer": "0.5.x",
+  "group": "discs",
+  "summary": "Audio CD images played as discs: gapless, with their tracks, indexes and CD-TEXT, in a CD player.",
+  "libraries": [
+    "music",
+    "discs"
+  ],
+  "updates": "Reading CD images, disc IDs, CD-TEXT and the lossless stream.",
+  "stays": "The CD player page and looking discs up online."
+}

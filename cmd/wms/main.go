@@ -7,6 +7,7 @@ import (
 	"os"
 
 	bdcli "github.com/wittywilla/wittybluray/cli"
+	cdcli "github.com/wittywilla/wittycd/cli"
 	"github.com/wittywilla/wittydvd/cli"
 )
 
@@ -19,6 +20,8 @@ func main() {
 			os.Exit(cli.DVD(os.Args[2:]))
 		case "bluray":
 			os.Exit(bdcli.Bluray(os.Args[2:]))
+		case "cd":
+			os.Exit(cdcli.CD(os.Args[2:]))
 		case "config":
 			os.Exit(cmdConfig(os.Args[2:]))
 		case "serve":
@@ -66,5 +69,7 @@ usage:
   wms bluray render <disc> <out-dir>  save a Blu-ray menu's pages as PNG files
   wms bluray bdj <disc> [seconds [picture.png]]  a Blu-ray's Java titles and what their code needs; with Java, run them
                              write menu overlay/highlight PNGs for the first menu
+  wms cd info <image>        an audio CD image's tracks, indexes, CD-TEXT and disc ID
+  wms cd check <image>       read a CD image from end to end and report what is wrong with it
   wms version`)
 }

@@ -372,7 +372,7 @@ func schemaTypes() map[string]reflect.Type {
 	return map[string]reflect.Type{
 		"User": ty(auth.User{}), "UserView": ty(userView{}), "Access": ty(library.Access{}),
 		"Library": ty(library.Library{}), "Item": ty(library.Item{}), "Progress": ty(library.Progress{}), "Show": ty(library.Show{}), "Season": ty(library.Season{}),
-		"DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "Network": ty(library.Network{}),
+		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
 		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
 		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}),

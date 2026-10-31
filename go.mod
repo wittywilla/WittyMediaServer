@@ -10,6 +10,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/wittywilla/wittybluray v0.1.0
 	github.com/wittywilla/wittydisc v0.1.0
+	github.com/wittywilla/wittycd v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
 	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
 	github.com/wittywilla/wittymodule v0.1.0
@@ -53,6 +54,8 @@ require (
 )
 
 replace github.com/wittywilla/wittydvd => ./modules/wittydvd
+
+replace github.com/wittywilla/wittycd => ./modules/wittycd
 
 replace github.com/wittywilla/wittydisc => ./modules/wittydisc
 

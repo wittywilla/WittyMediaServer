@@ -23,6 +23,7 @@ ENV GOWORK=off
 COPY go.mod go.sum ./
 COPY modules/wittydisc/go.mod modules/wittydisc/
 COPY modules/wittydvd/go.mod modules/wittydvd/
+COPY modules/wittycd/go.mod modules/wittycd/
 COPY modules/wittybluray/go.mod modules/wittybluray/
 COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
 COPY modules/wittymodule/go.mod modules/wittymodule/

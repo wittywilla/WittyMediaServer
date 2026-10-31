@@ -92,7 +92,7 @@ type playbackDisc struct {
 
 type playbackResponse struct {
 	ItemID int64 `json:"itemId"`
-	// Decision: direct | remux | transcode | disc | audio-direct | audio-transcode.
+	// Decision: direct | remux | transcode | disc | audio-direct | audio-transcode | cd.
 	Decision string   `json:"decision"`
 	Reasons  []string `json:"reasons"`
 	// Protocol: file (a plain file with byte ranges) | hls | adts | disc-session.
@@ -123,6 +123,9 @@ type playbackResponse struct {
 	Intro            *playbackIntro `json:"intro,omitempty"`
 	NextID           *int64         `json:"nextId,omitempty"`
 	Disc             *playbackDisc  `json:"disc,omitempty"`
+	// CDURL: for a CD (decision cd), its tracks and layout: GET it for the map of
+	// the stream in URL.
+	CDURL string `json:"cdUrl,omitempty"`
 	ProgressURL      string         `json:"progressUrl"`
 }
 
@@ -338,6 +341,8 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		s.playbackDisc(r, it, &out)
 	case it.Kind == "audio":
 		s.playbackAudio(r, it, p, b, &out)
+	case it.Kind == library.CDKind:
+		s.playbackCD(it, p, &out)
 	case it.Kind == "video":
 		if err := s.playbackVideo(r, it, p, b, &out); err != nil {
 			code := 500
@@ -352,6 +357,21 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, out)
+}
+
+// playbackCD answers with the whole disc as one stream: the format the player
+// names that needs least from it, FLAC, then plain samples, then AAC.
+func (s *Server) playbackCD(it *library.Item, p playback.Profile, out *playbackResponse) {
+	format, seek := "aac", "restart"
+	switch {
+	case slices.Contains(p.AudioCodecs, "flac"):
+		format = "flac"
+	case slices.Contains(p.AudioCodecs, "pcm_s16le"):
+		format, seek = "wav", "native"
+	}
+	out.Decision, out.Protocol, out.Seek = "cd", "file", seek
+	out.CDURL = withStream(fmt.Sprintf("/api/cd/%d", it.ID), out.StreamToken)
+	out.URL = withStream(fmt.Sprintf("/api/cd/%d/audio?format=%s", it.ID, format), out.StreamToken)
 }
 
 func (s *Server) playbackDisc(r *http.Request, it *library.Item, out *playbackResponse) {

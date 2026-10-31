@@ -36,6 +36,7 @@ import (
 )
 
 type Server struct {
+	cds cdDiscs
 	Cfg     *config.Config
 	DB      *db.DB
 	Log     *slog.Logger
@@ -179,6 +180,12 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/play", a(s.handlePlayInfo))
 	m.Handle("GET /api/items/{id}/file", a(s.handleFile))
 	m.Handle("GET /api/items/{id}/stream", a(s.handleAudioStream))
+	m.Handle("GET /api/cd/{id}", a(s.handleCD))
+	m.Handle("GET /api/cd/{id}/audio", a(s.handleCDAudio))
+	m.Handle("GET /api/cd/{id}/graphics", a(s.handleCDGraphics))
+	m.Handle("GET /api/cd/{id}/matches", s.requireAdmin(s.handleCDMatches))
+	m.Handle("POST /api/cd/{id}/identify", s.requireAdmin(s.handleCDIdentify))
+	m.Handle("GET /api/cd-covers/{release}", s.requireAdmin(s.handleCDCover))
 	m.Handle("GET /api/items/{id}/book", a(s.handleBookInfo))
 	m.Handle("GET /api/items/{id}/page/{n}", a(s.handleComicPage))
 	m.Handle("GET /api/items/{id}/epub/{file...}", a(s.handleEPUBFile))

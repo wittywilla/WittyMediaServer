@@ -44,7 +44,7 @@ sealed interface RigChoice {
 fun rigChoice(play: RigPlay, isTv: Boolean): RigChoice {
     val intent = play.methods.firstOrNull { it.kind == "intent" }
     val start = intent?.let(::moonlightStart)
-    if (start != null) return RigChoice.Open(start, intent?.note.orEmpty())
+    if (start != null) return RigChoice.Open(start, intent.note)
     if (!isTv) {
         val bridge = play.methods.firstOrNull { it.kind == "bridge" && isWebLink(it.url) }
         if (bridge != null) return RigChoice.Browser(bridge.url, bridge.note)

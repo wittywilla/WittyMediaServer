@@ -11,7 +11,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
-const testPassword = "password1"
+const resetPassword = "password1" // the one newGalleryServer gives everyone
 
 func TestResetAsksEveryoneToBeSure(t *testing.T) {
 	ts := newGalleryServer(t)
@@ -20,13 +20,13 @@ func TestResetAsksEveryoneToBeSure(t *testing.T) {
 	data := t.TempDir()
 	ts.s.Cfg.DataDir = data
 
-	if w := ts.do("POST", "/api/reset", "", map[string]any{"password": testPassword, "confirm": "RESET"}); w.Code != 401 {
+	if w := ts.do("POST", "/api/reset", "", map[string]any{"password": resetPassword, "confirm": "RESET"}); w.Code != 401 {
 		t.Errorf("signed out: %d", w.Code)
 	}
-	if w := ts.do("POST", "/api/reset", ts.kid, map[string]any{"password": testPassword, "confirm": "RESET"}); w.Code != 403 {
+	if w := ts.do("POST", "/api/reset", ts.kid, map[string]any{"password": resetPassword, "confirm": "RESET"}); w.Code != 403 {
 		t.Errorf("not an administrator: %d", w.Code)
 	}
-	if w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": testPassword}); w.Code != 400 {
+	if w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": resetPassword}); w.Code != 400 {
 		t.Errorf("without typing RESET: %d", w.Code)
 	}
 	if w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": "not it", "confirm": "RESET"}); w.Code != 403 {
@@ -45,7 +45,7 @@ func TestResetAsksEveryoneToBeSure(t *testing.T) {
 		t.Errorf("%+v", v)
 	}
 
-	if w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": testPassword, "confirm": "RESET"}); w.Code != 202 {
+	if w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": resetPassword, "confirm": "RESET"}); w.Code != 202 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	if p := reset.Pending(data); p == nil || p.Mode != reset.ModeKeepCopy {
@@ -64,10 +64,10 @@ func TestResetAsksEveryoneToBeSure(t *testing.T) {
 
 	// Copies are only ever named by what the server made.
 	for _, name := range []string{"..", "../..", "wms.db", "before-reset-20990101-000000"} {
-		if w := ts.do("POST", "/api/reset/restore", ts.admin, map[string]any{"password": testPassword, "copy": name}); w.Code == 202 {
+		if w := ts.do("POST", "/api/reset/restore", ts.admin, map[string]any{"password": resetPassword, "copy": name}); w.Code == 202 {
 			t.Errorf("restore %q", name)
 		}
-		if w := ts.do("POST", "/api/reset/copies/delete", ts.admin, map[string]any{"password": testPassword, "copy": name}); w.Code == 200 {
+		if w := ts.do("POST", "/api/reset/copies/delete", ts.admin, map[string]any{"password": resetPassword, "copy": name}); w.Code == 200 {
 			t.Errorf("delete %q", name)
 		}
 	}
@@ -85,7 +85,7 @@ func TestResetRefusesMediaInTheDataFolder(t *testing.T) {
 	if _, err := ts.s.Store.CreateLibrary(context.Background(), "Inside", "movies", []string{filepath.Join(data, "movies")}); err != nil {
 		t.Fatal(err)
 	}
-	w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": testPassword, "confirm": "RESET", "delete": true})
+	w := ts.do("POST", "/api/reset", ts.admin, map[string]any{"password": resetPassword, "confirm": "RESET", "delete": true})
 	if w.Code != 409 || !strings.Contains(w.Body.String(), "inside the data folder") {
 		t.Errorf("%d %s", w.Code, w.Body)
 	}

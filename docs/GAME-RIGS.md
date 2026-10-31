@@ -1,247 +1,218 @@
-# Game rigs: your own gaming PC as a source of games
+# Game PCs: WittyMoonlight and WittySunshine
 
-Next to emulated consoles, a person's own gaming PC can be a source of games. The PC runs **Sunshine**, the
-open-source game stream host. They play on the couch through **Moonlight**, the open-source client. WittyMediaServer
-finds and pairs the PC, lists its games in the library with everyone's permissions applied, wakes it up, and gets
-each device as close to one press as that device allows.
+People play the games on any PC running Sunshine, in their browser or in WittyMediaClient, through this server. That PC might be
+theirs or a friend's. Nothing needs installing on the device they're holding.
 
-Two modules do this. **WittySunshine** (`modules/wittysunshine`) is the host side: finding, pairing with and managing
-a rig. **WittyMoonlight** (`modules/wittymoonlight`) is the client side: what each device can do, handing off to
-Moonlight, and browser play. The server's part is `internal/server/api_rigs.go` and `api_rigs_browser.go`. The web
-pages are `web/src/pages/Rigs.tsx` and `web/src/pages/settings/GameRigs.tsx`. The API is in
-[CLIENT-API.md](CLIENT-API.md#game-rigs).
+Two modules, which aren't to be confused:
 
-**How much of this has really run:** see [What has been tested](#what-has-been-tested). In short, the server and its pages have
-run against a real Sunshine, as far as adding, pairing, listing and starting. Browser play's program has never been run.
-No game has been streamed, and no real Moonlight app or real device has been tried.
+| | What it is | Who it's for | On by default |
+|---|---|---|---|
+| **WittyMoonlight** | **The main feature.** A Moonlight client in the page: finding a PC, pairing with a PIN, its games, and playing them with controllers, keyboard, mouse or touch | Anyone an admin allows, connecting to **any** Sunshine server | Yes, for adult profiles with no limits |
+| **WittySunshine** | **An advanced option.** Hosting demanding PC games on this server's own hardware, through Sunshine as a separate program. It isn't a way to reach other PCs | An admin whose server has a good graphics card, in Settings, Advanced | No |
 
-## What each device can do
+Handing off to the separately installed Moonlight app is still there, as the fallback for devices that can't play in a page.
 
-Moonlight has no link or URL scheme on any platform (checked in each client's source on 2026-10-31). So a web page can
-never open it: only a native app can, and only where the platform allows one app to start another.
+**How much of this has really run:** a real stream from a real Sunshine reached a real browser, with controller, keyboard and mouse
+input reaching Sunshine. See [What has been tested](#what-has-been-tested). A real game on a real gaming PC, and the app versions, haven't been tried.
 
-| Device | Through | What happens | Needs | Checked |
-|---|---|---|---|---|
-| **Windows, Linux, Mac: WittyMediaClient desktop app** | Moonlight's command line (`moonlight stream <PC> "<game>"`) | **One press** | Moonlight installed, and paired once | Its checks are unit tested with a stand-in program. Not tried with Moonlight |
-| **Windows, Mac, Linux: a browser** | Browser play, if set up. Otherwise a command to copy | **One press** with browser play. Otherwise paste a command, or open Moonlight yourself | Browser play, or Moonlight installed and paired once | Plan tested. Browser play never run |
-| **Android phone or tablet: WittyMediaClient app** | Moonlight's exported shortcut activity, by explicit intent | **One press** | Moonlight installed, and paired once | Written, never compiled: this machine has no Android tools |
-| **Android TV, Google TV, Fire TV: WittyMediaClient app** | The same | **One press** with the remote | Moonlight installed, and paired once | Written, never compiled |
-| **Android: a browser** | Browser play, if set up | **One press** with browser play. Otherwise open Moonlight yourself. Chrome won't start an activity like this from a web page | Browser play, or Moonlight | Plan tested. Browser play never run |
-| **iPhone, iPad: a browser or the app** | Browser play, if set up, in Safari | **One press** with browser play. Otherwise open Moonlight yourself | Browser play, or Moonlight | Plan tested. Browser play never run on Safari |
-| **Apple TV: WittyMediaClient app** | Nothing can start Moonlight. The app has a **Start on the PC** button, then you open Moonlight and press Resume | **Three steps**: the game is already running when you get there | Moonlight installed, and paired once | Written, never compiled. The start itself ran against a real Sunshine |
-| **Mac: WittyMediaClient Apple app** | Moonlight's command line | **One press, if macOS allows it.** The app is sandboxed, which may stop it starting another program, and it then shows the steps | Moonlight installed, and paired once | Written, never compiled |
-| **Chromebook** | Browser play, or the Android Moonlight app by hand | One press with browser play | Browser play, or Moonlight | Plan tested |
-| **Older TV browsers, LG webOS, Samsung Tizen** | Moonlight has community versions for these, which you open by hand | Not from this server | Moonlight from its community port | Not tried. Browser play is not expected to work on them |
-| **Xbox, PlayStation, Switch, Roku** | Moonlight has community versions for some of these, opened by hand | **Doesn't work from this server** | | Not tried |
+## How a stream travels
 
-**Pairing a device** happens once per device and is Moonlight's own: Moonlight shows a PIN, and it's typed into
-Sunshine on that PC, or by an admin in Settings, Game rigs. WittyMediaServer can't do this for a device, because
-Moonlight keeps its own certificate.
+```
+ PC running Sunshine            wittymoonlight-host          wms (this server)              Browser or app
+┌────────────────┐  GameStream ┌───────────────────┐  pipes ┌──────────────────────┐ WebRTC ┌──────────────────┐
+│ the game       │────────────►│ moonlight-common-c│───────►│ WittyMoonlight relay │───────►│ <video>          │
+│ its encoder    │  encrypted  │ whole frames, not │ frames │ never decodes either │  H.264 │ Gamepad, keys,   │
+│ virtual pads   │◄────────────│ decoded           │◄───────│ checks all input     │◄───────│ mouse, touch     │
+└────────────────┘    input    └───────────────────┘  input └──────────────────────┘  Opus  └──────────────────┘
+      GPL-3.0                       GPL-3.0                        Apache-2.0              input on data channels
+                                                                                                  Apache-2.0
+```
 
-Controllers in browser play need HTTPS, as browsers hide the Gamepad API from plain http pages. On plain http,
-browser play is keyboard and mouse only. Moonlight apps have no such limit, and are smoother: browser play adds a
-second hop.
+- **`wms` talks to the PC's client API directly**, in its own Go code (`modules/wittymoonlight/gamestream`): identifying it, pairing, its games and art, and asking it to start one.
+- **The stream itself** goes through Moonlight's real streaming core, in a program of its own. Moonlight's core is "too powerful a tool to make in house": RTSP, ENet control, encrypted video with error correction, and every Sunshine feature as it arrives.
+- **The relay is thin.** It reads whole frames and Opus packets from a pipe and writes them to a WebRTC track. Frames are never decoded or re-encoded, so a low-end server can carry a 4K stream.
+
+## What each device gets
+
+"In the page" means WittyMoonlight's own client. Moonlight's app is only needed where it says so.
+
+| Device | What Play does | Needs | How far it was checked |
+|---|---|---|---|
+| **Windows, Mac, Linux, Chromebook: a browser** | **Plays in the page** | Nothing but pairing the PC once | **Ran: Edge on Windows, the whole way, against a real Sunshine** (H.264 picture and input). Firefox, Chrome and Safari not tried |
+| **WittyMediaClient desktop** | **Plays in the page**, as it shows the server's web interface. Starting Moonlight is the fallback | Nothing | Written: its Moonlight checks are unit tested. Pointer lock is allowed for the server's page. Not run with a stream |
+| **Android phone or tablet: the app** | **Plays in a web view**, with Moonlight as a second choice | Nothing | Compiled, and its decisions unit tested. Never run on a device |
+| **Android phone or tablet: a browser** | **Plays in the page** | Nothing | Not tried. Same WebRTC as above, and an on-screen controller |
+| **iPhone, iPad: the app** | **Plays in a web view** (WKWebView has WebRTC) | Nothing | Written. Needs a Mac to compile |
+| **iPhone, iPad: Safari** | **Plays in the page** | Nothing | Not tried |
+| **Android TV, Google TV, Fire TV: the app** | **Moonlight first**, then the page as a second choice. A TV's web view may not give a page the Gamepad API, and a remote can't work a mouse | Moonlight installed, and paired once | Compiled. Never run on a device |
+| **Apple TV: the app** | **Start on the PC**, then open Moonlight and press Resume. tvOS has no web view, and Moonlight no link | Moonlight installed, and paired once | Written. See the decision below |
+| **Older TV browsers, LG webOS, Samsung Tizen** | Not expected to work in a page | Moonlight has community versions, opened by hand | Not tried |
+| **Xbox, PlayStation, Switch, Roku** | **Doesn't work from this server** | Moonlight has community versions for some | Not tried |
+
+Controllers in a browser need HTTPS on some browsers, as they hide the Gamepad API from plain http. WebRTC itself works on either.
+
+**A decision for the owner: Apple TV.** This app can't do better than Start on the PC. The only way to is a separate Apple TV app under the GPL, built on Moonlight's iOS code and
+published on its own terms. The App Store and GPL-3.0 are widely held to conflict. Moonlight's own tvOS app does exist in the App Store from its own authors, which is what this hands off to.
 
 ## Design decisions
 
-**A rig's games are ordinary items in a library of their own** (`type: games`, `console: rig`). Every access rule then
-applies with no new code: library limits, age limits, per-title allow and block lists, in Home, search and every other
-list. Hidden titles answer "not found" and a Kids profile doesn't learn that a rig exists. A PC's games have no ratings, so
-Kids and Guest profiles (which don't allow unrated titles) see nothing until an admin gives them a game in Profiles.
-The alternative, separate tables with separate permission checks, would have been a second permission system to get
-wrong.
+**Moonlight's real code, in a program of its own.** It's the owner's call, and the right one: this protocol has years of quirks in it, and Sunshine changes. So the part that speaks the stream is
+Moonlight's. The boundary is a documented protocol over pipes (`modules/wittymoonlight-host/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
+frames arrive whole, in order, ready to send on.
 
-**Items carry a made-up path** (`rig://<rig>/<app>`). Nothing can mistake it for a file, and a library marked as a rig's is
-never scanned, or edited as a folder library.
+**Why this and not the existing web bridge.** [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) already bridges Moonlight to WebRTC, and an earlier version of this design used it, but never
+ran it. Reading its source: its roles can't limit anyone to a PC or a game, it has its own users, pairing and pages to keep out of the way, and video from PC to server isn't encrypted. Our relay is about 700 lines, reuses this
+server's accounts and remote access on the same port, and asks for encrypted video. Its client also gets to match WittyPlay's.
 
-**Moonlight is handed to, never embedded.** It has its own certificate on each device, its own pairing and its own list
-of PCs. This is what keeps the licences apart, and is the only way anything works on Apple devices.
+**The same origin, unlike that design.** With our own client and relay there's no third party's page to keep apart, so the player is an ordinary part of the app, and it goes over the same port as everything else.
 
-**Sunshine's sign-in is never stored.** It can run any command on that PC, because that's what its app list is. Nothing
-needs it except typing a PIN for someone's Moonlight app, so an admin types it each time, it goes once to the pinned
-certificate, and that's all. The first pairing can't use it at all, since there's no pinned certificate yet: the PIN is
-typed at the PC, where Sunshine was just installed anyway. Art and the app list come over the client protocol, which needs
-no sign-in.
+**Each person's own PCs.** A person's list, certificate and pairings are theirs (`wittymoonlight_hosts`, one key file per account). One account's pairing can't be used by another.
 
-**Desktop apps start hidden.** Sunshine's "Desktop" app hands over the whole computer. Anything that looks like that stays
-out of the library until an admin shows it. Game streams also give keyboard and mouse, which can often get out of a game to
-the desktop. Sunshine has no way to limit that, so the settings page says so plainly.
+**A shared PC is still possible.** An admin can pair a PC once for everyone, from Settings, Game PCs. It gets a library of its own (`type: games`, `console: rig`), and its games are ordinary items, so every access rule applies with no new code. Kids and Guest
+profiles (which don't allow unrated titles) see nothing until given a game. That's the way to give a child one game without giving them the PC.
 
-**A paired Moonlight app is outside this server's permissions.** Sunshine has no per-client limits on apps here. So a
-device that has paired can run anything the PC offers, whatever its owner's profile says, which is why pairing a device takes
-an admin or someone at the PC. Only browser play is limited by game.
+**WittySunshine is just this, for this machine.** Turning it on makes that same kind of library for a Sunshine at `127.0.0.1`. It isn't a way to reach anything else.
 
-**Browser play is optional and is a separate program.** Writing a Moonlight client into this server's Go would mean
-reimplementing a large protocol, with no benefit over an existing, maintained one. [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream)
-is the one that fits: it runs on a server and reaches the PC over the network, relaying frames without re-encoding. Another project,
-[moonlight-web](https://github.com/linckosz/moonlight-web), is built to be installed on the gaming PC itself, which is a different design.
+**Desktop apps stay out of the way.** Sunshine's "Desktop" app hands over the whole computer. In a shared library, anything like it stays out until an admin adds it. On someone's own PC it's behind one more press. Game streams give keyboard and mouse, which can often get out of a game to the desktop, and Sunshine
+has no way to limit that: the settings page says so.
 
-**The bridge's own permissions aren't enough, so a proxy stands in front of it.** From reading its source: its roles can't
-limit by PC or by app, a user can launch any app ID including Desktop, a launch on a busy PC becomes a resume of whatever's
-running, and it trusts its user header from anyone who reaches its port. So:
+**Sunshine's sign-in is never stored.** It can run any command on that PC. Typing a PIN for someone's Moonlight app takes it, once, sent only to the certificate pinned at pairing.
 
-- It binds to the loopback address only.
-- The proxy is the only way in, and a person arrives with a one-time ticket from the API, good for two minutes, for one game on
-  one rig. It becomes a session for that alone.
-- Only what the stream page needs is passed on: not its host list, admin pages, pairing, user or role changes.
-- A stream request is read before it's passed on, and must name that rig and game exactly once. Its parser takes the last copy of
-  a line, so two are refused rather than guessed at.
-- Just before a stream starts, the server checks the account still exists, may still see the game, and isn't about to join
-  someone else's session.
-- WebSocket transport is switched off in the bridge, as its first message would need checking too. So browser play needs UDP.
-- It asks no outside server for anything unless an admin names a STUN server. Otherwise it would ask Google's, and tell every browser to.
+**H.264 only, for now.** It's what every browser can decode in WebRTC. HEVC and AV1 can follow where a browser has them.
 
-**It has a port of its own**, as the bridge's pages are someone else's code. On another origin, a flaw in them can't read this
-server's pages or make signed-in calls whose answers it can read. It also means a reverse proxy in front of the server doesn't
-cover it. Both it and the bridge start when someone presses Play, and stop after 30 idle minutes, so a server pays nothing
-until this is used.
+**One picture size per stream.** Sunshine encodes what's asked for at the start, so changing it means starting again.
 
-**A status check is only ever a question.** `GET /rigs` costs one request to each PC at most every five seconds. A PC's games
-are read at pairing, on request, and at most every ten minutes while someone is looking. Nothing polls in the background, in keeping
-with a low-end server.
+## Who may connect, and where: the defaults, and why
 
-**Art.** From the PC first. Sunshine answers with one default picture for any app without its own, so a picture that several apps
-share counts as none, and the tile shows the game's name. Year, developer and summary come from Wikidata, with the same setting
-as scanned games. Box art isn't taken from there, because it's copyrighted.
+This feature makes the server connect wherever a person says. That's the riskiest thing about it. An earlier version of this design simply refused to let anyone but an admin name an address, and the owner asked for the opposite: anyone, to any server. So the protection moved rather than went away.
 
-## Sunshine, from its own source
+| Setting (Settings, Game PCs) | Default | Why |
+|---|---|---|
+| Who can use it | **Adult profiles with no limits set**, and admins | The owner's request. Kids and Guest profiles and limited accounts don't get it: a PC's desktop is outside anything age limits can reach. Shared PCs are how they play |
+| PCs on this server's network | **On** | The main case: your own PC at home. It only ever speaks this protocol to them |
+| PCs over the internet | **On** | The owner's "any and all": a friend's PC. Turn it off if this server shouldn't make outside connections for people |
+| Other ports than Sunshine's own | **Off** | Reaching a custom port is rarely needed, and the choice of port is what makes a scanner. Admins can always |
+| Streams at once | **2** | Each one's bitrate passes through this server |
 
-Read from LizardByte/Sunshine at v2026.914.233613 and run against that same version. Ports move with the base port.
+**This machine, and link-local addresses, are never reachable by anyone but an admin.** Multicast, link-local (169.254.169.254 is where cloud machines keep credentials) and the like aren't reachable by anyone.
+
+## Security review
+
+Reviewed as an attacker would, with an account on the server and a PC of their own.
+
+| Attack | What stops it | Tested |
+|---|---|---|
+| Using the server as a network probe (SSRF) | It only speaks GameStream, on its port family, to fixed paths with no user-chosen parts. Answers become a few parsed fields, with nothing passed back raw. What refused and what timed out read the same to non-admins. 20 attempts per person per 10 minutes, and 32 PCs per account | Yes |
+| Reaching this machine's other services | Loopback is refused for non-admins, when an address is typed and again at connect time, so a DNS name can't sneak there later | Yes |
+| A PC telling the stream to go somewhere else | The host program connects where it's told, so the address isn't taken from the PC: `wms` resolves and checks it, and rebuilds the stream address from the PC's scheme and port alone | Yes |
+| Seeing or using someone else's PC | Every route looks a PC up by owner as well, and says "not found" | Yes |
+| Using someone else's pairing | A certificate per account, in its own file, never in an answer or the database | Yes |
+| Someone else's stream | Streams belong to their owner, and say "not found" to anyone else | Yes |
+| Someone on the network posing as the PC | The certificate is pinned at pairing and compared byte for byte on every connection | Yes |
+| Someone in the middle of pairing | The PC's secret must be signed by the certificate it offered | Yes |
+| A listener saving the pairing messages, and trying all 10,000 PINs | **Not stopped.** It's the protocol's limit, shared by every Moonlight client. The page says to pair on a network you trust | Not applicable |
+| **A hostile PC attacking the host program** | **The biggest remaining risk.** It parses a stranger's data in C, so it's a separate process that gets no address or key on its command line and an empty environment. Linux: no new privileges, no core files, no files at all (Landlock). Windows: low integrity, so it can't write to this account's files. A crash ends one stream. **It can still use the network, and read what its account can on Windows.** It's a real reason to keep "over the internet" to people you trust | Linux yes. Windows flagged below |
+| A hostile host program attacking the server | Everything it says has a size limit, and only known messages are read | Yes |
+| A hostile browser | Input messages have exact sizes, and only input types pass. A browser can't start or end anything that way. Picture size, rate and bitrate are clamped | Yes, fuzzed |
+| Hostile titles, names and pictures | Clipped, shown as text. Art must be PNG or JPEG, and is served as a picture only, with its own strict policy | Yes |
+| Waking other machines | Only a PC its owner registered, its own MAC, never a group address, at most every ten seconds, and never for a PC over the internet | Yes |
+| Someone ending another's game on a shared PC | Only admins and whoever started it | Yes |
+| A shared PC's game after access is removed | Refused the next time. **A stream that has already begun carries on until it ends** | Yes |
+
+**Logging:** who added or paired a PC, and whether it's on a private network or the internet, at info level. Never PINs, keys or Sunshine's password. Addresses aren't logged at info level, as a friend's address is theirs.
+
+## Away from home
+
+The PC doesn't need to be opened to the internet if it's at home with the server: **only the server is reached, and it reaches the PC.** That's the design's biggest advantage over running Moonlight directly.
+
+| You are | The PC is | What it takes |
+|---|---|---|
+| Away | At home with the server | Remote Access, plus the UDP port in Settings, Game PCs (and its public address) forwarded to the server. Without one, WebRTC often finds its own way with a STUN server |
+| Anywhere | Elsewhere: a friend's | That PC's owner has to make it reachable from this server. A private network (Tailscale, ZeroTier) is much safer than forwarding |
+| Using the Moonlight app, away | At home | A private network on both ends. Put the PC's private address in its settings |
+
+**Warn people off:** forwarding Sunshine's ports puts that PC on the internet, for anyone who finds it. Pairing is still needed to use it, but anyone can knock. **Never forward port 47990**, its web interface, which can run commands on that PC.
+
+**WebRTC needs UDP.** If a network blocks it there's no WebSocket fallback yet, and the page says it couldn't connect.
+
+## Sunshine's ports
+
+Read from LizardByte/Sunshine at v2026.914.233613, and run against that same version. They move with its base port.
 
 | Port | Protocol | What for |
 |---|---|---|
-| 47989 (base) | TCP, HTTP | `/serverinfo` and `/pair`, unencrypted. This server uses it to recognise a PC and to pair |
-| 47984 (base − 5) | TCP, HTTPS with a client certificate | `/serverinfo`, `/applist`, `/appasset`, `/launch`, `/resume`, `/cancel`. Everything after pairing |
-| 47990 (base + 1) | TCP, HTTPS, password | Its web interface and JSON API. **It can run commands.** Only on the local network by default |
+| 47989 (base) | TCP, HTTP | `/serverinfo` and `/pair`, unencrypted. Recognising a PC, and pairing |
+| 47984 (base − 5) | TCP, HTTPS with a client certificate | `/serverinfo`, `/applist`, `/appasset`, `/launch`, `/resume`, `/cancel` |
+| 47990 (base + 1) | TCP, HTTPS, password | Its web interface. **It can run commands.** Only on the local network by default |
 | 48010 | TCP | RTSP, while streaming |
 | 47998, 47999, 48000 | UDP | Video, control and audio, while streaming |
 | 5353 | UDP | mDNS: it announces `_nvstream._tcp` |
 
-- **Pairing:** `/pair` with `phrase=getservercert` holds the connection until the PIN is typed in Sunshine. Both sides then prove
-  they know the PIN (AES-128-ECB with a key from SHA-256 of salt and PIN), and the PC signs its secret with its certificate's key.
-  Our code is written from the protocol: it uses the same message names as every Moonlight client, and no code from them.
-- **Trust:** after pairing, each knows the other by certificate. An unknown client gets `status_code="401"`.
-- **Web API:** Basic auth. `GET /api/pin` lists waiting devices, `POST /api/pin` takes `{pairing_id, pin, name}` and only answers once
-  the device has finished, or after about ten seconds. The web port doesn't answer other requests in that time. Non-browser clients
-  are exempt from its CSRF tokens.
-- **Limits of the protocol:** `/launch` needs stream keys, which this server makes and discards, as it never streams. Nothing removes
-  this server from a PC's list over this protocol: that's done in Sunshine, on the PC.
-
-**`/launch` from here** exists only for devices that can't be handed a game, such as an Apple TV. It leaves the PC's display
-settings alone (`sops=0`). If nobody picks the game up, it stays running until someone ends it.
-
-## Away from home
-
-| Way | The PC is exposed? | Works over Remote Access? | What it needs |
-|---|---|---|---|
-| **Browser play** | **No.** Only this server is. The rig only ever talks to the server, at home | Mostly. It needs its own TCP port (47900) and UDP ports (47910 to 47920) forwarded to the server, and the server's HTTPS. It isn't offered over plain http from outside. A reverse proxy or tunnel carries the main port only, so browser play needs those ports too, or a private network | |
-| **Moonlight on a private network** (Tailscale, ZeroTier) | **No** | Not through this server. Moonlight talks straight to the PC. Put the PC's private address in "Address away from home" and the plan offers it | The private network's software on both. Moonlight's guide says a relayed Tailscale link won't stream |
-| **Sunshine's UPnP, or forwarding its ports** | **Yes.** To everyone on the internet. Pairing is still needed to use it, but anyone can knock | Not through this server | Don't, unless you mean to. **Never forward 47990** |
-
-GameStream can't go through this server's Remote Access itself: it needs UDP to the PC, and clients go straight to the PC's address.
-This server won't add a rig at a public address without being told twice.
-
-**Waking from outside works**, as the signal goes out from this server, on the rig's own network.
-
-## Security review
-
-Reviewed as an attacker would, since this reaches a computer that may hold everything.
-
-| Attack | What stops it | Tested |
-|---|---|---|
-| A viewer makes the server connect somewhere (SSRF) | No route takes an address but admin ones. Viewers only ever trigger requests to registered rigs, on fixed paths | Yes: every admin route refused for every kind of account |
-| An admin's request is tricked into reaching a metadata service or link-local address | `CleanAddress` takes a name or IP and nothing else. `Classify` refuses link-local, multicast, unspecified, and IPv4-mapped forms of them. The policy is checked again while connecting, so DNS rebinding is caught, and proxies from the environment aren't used | Yes |
-| A public address by accident | Asks first, with the reason | Yes |
-| Someone on the network poses as the PC | The certificate is pinned at pairing and compared byte for byte on every connection. Without a match, nothing is sent: not this server's questions, not Sunshine's sign-in | Yes |
-| Someone in the middle of pairing swaps the certificate | The PC's secret must be signed by the certificate it offered | Yes |
-| A listener saves the pairing messages, and tries all 10,000 PINs | **Not stopped.** It's the protocol's limit, shared by every Moonlight client. It's why the guide says to pair at home | Not applicable |
-| A fake answer from anything on the network to discovery | mDNS only says where to ask next. Only private addresses are kept, only a real reply counts, and a paired rig only "moves" if it answers with its pinned certificate | Yes, parser fuzzed |
-| Stealing this server's rig key | A file of its own, readable only by the server's account where the system allows. Not in the database, so not in a database backup. Never logged or in an API answer. Windows permissions come from the data folder | Yes, for the API and database |
-| Stealing Sunshine's password | Never stored or logged. Only sent to the pinned certificate | Yes |
-| A hostile rig or app names | Answers are size-limited and XML only. Titles are clipped and shown as text. Art must be PNG or JPEG, and is served as a picture. A name that starts with `-` or has a line break is never put on a command line | Yes |
-| A hostile page in the desktop app | It can only ask for two fixed shapes of command, checked in the main process, with no shell. The path is never from the page | Unit tested |
-| Waking other machines | Only a registered rig's own MAC address, never a group address. At most every ten seconds | Yes |
-| A viewer ends someone else's game | Only admins and whoever started it from here | Yes |
-| Joining someone's stream through browser play | Refused unless it's your own, or you're an admin. Checked at the last moment | Yes |
-| Reaching the bridge directly | Loopback only. On a multi-user machine, anyone local could reach it and name any user: don't run this on a shared computer | Config tested. Bridge not run |
-| The bridge's first sign-in becoming its admin | Done by this server before anyone is let in, with a generated password in the bridge's folder | Against a stand-in |
-| A person's access removed mid-stream | **Not stopped.** A stream that has started carries on over UDP until it ends. New streams are refused | New streams, yes |
-| The bridge's data file | **Holds its client key in plain text**, as the program itself does. Its folder is only readable by the server's account where the system allows. Removing browser play deletes it | Not applicable |
-| Video on the home network between the bridge and the PC | **Not encrypted** in the bridge's protocol. Someone on that network could capture it. Audio is | Not applicable |
-| A flaw in the bridge's pages | Its own origin, a strict Content-Security-Policy, nothing identifying passed through | Against a stand-in |
-
 ## Licensing
 
-This is an engineer's reading of the licences, not legal advice. [WITTYRETROARCH.md](WITTYRETROARCH.md) is the model for it.
+**The owner's decisions:** use Moonlight's real code rather than rewriting it; let what's built from it carry its license; keep everything else permissive; and keep every other project's license exactly as it is. This is an engineer's reading of the licenses, not legal advice.
 
-| Project | Licence (read from each repository's `LICENSE` file) | How it's kept apart |
-|---|---|---|
-| Sunshine | GPL-3.0 | Installed by the owner on their own PC. Only ever talked to over its network protocols |
-| Moonlight (Qt, Android, iOS and tvOS) | GPL-3.0 | Installed by the person on their device. Started as another program, never linked, copied or bundled |
-| moonlight-web-stream | GPL-3.0-or-later | Downloaded at an admin's request from its own release, and checked against a recorded digest. A separate program talking HTTP on loopback |
-| WittySunshine, WittyMoonlight | Apache-2.0 | Ours |
+| What | Where | License | Why |
+|---|---|---|---|
+| **WittyMoonlight Host** | `modules/wittymoonlight-host/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
+| moonlight-common-c | Fetched at a pinned commit, into that program | GPL-3.0 | Moonlight's streaming core, unchanged |
+| ENet, nanors | Inside moonlight-common-c | MIT | |
+| Mbed TLS (or OpenSSL) | Linked into that program | Apache-2.0 | Compatible with GPL-3.0 |
+| **WittyMoonlight** relay, client protocol, player | `modules/wittymoonlight/` (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
+| The API and pages in the server | `internal/server/api_moonlight.go`, `web/src/pages/Moonlight.tsx` | **Apache-2.0**, with the server | Same |
+| **WittySunshine** | `modules/wittysunshine/` | **Apache-2.0** | It only looks for a program and talks to it over the network |
+| WittyMediaServer, WittyMediaClient, WittyPlay and everything else | | **Unchanged** | They contain nothing of the above |
+| Sunshine | On someone's PC, or this server if an admin installs it | GPL-3.0 | Installed separately by whoever owns that computer |
+| Moonlight's own apps | On someone's device | GPL-3.0 | Installed separately. Only started, where a device allows |
 
-- **No code is copied.** GameStream's message names and flow are facts about a protocol, needed to speak it. Sunshine's and Moonlight's
-  sources were read for those, and our code is our own. `modules/wittysunshine/fake` is written from the protocol too.
-- **Nothing of theirs ships in the server's release,** so there are no GPL obligations for us to meet: the admin's server gets the program from
-  its own authors, with their source there. That's how cores work too. Their licence and source link are shown before installing.
-- **No fork is needed.** If one is ever wanted, it must be its own GPL-3.0 repository with source offered for each release.
-- **The App Store:** GPL-3.0 and Apple's App Store terms are widely held to be incompatible, so no Moonlight code can go inside the iOS or tvOS
-  apps. Handing off to the separately installed Moonlight app avoids the question, as its project publishes that app itself.
+**Is the permissive part really permissive?** Reading GPL source to learn a protocol doesn't make what's written from that protocol GPL, but copying or translating code would. So `gamestream/` and `input.ts` were written from the wire format, and share names only where the protocol requires. **Worth a lawyer's look before this is sold:** that a program built to work with a GPL program over pipes is separate is the usual reading (FSF's GPL FAQ, "mere aggregation"), and it's the same reasoning as FFmpeg and [WITTYRETROARCH.md](WITTYRETROARCH.md), but it depends on how much the two are designed for each other. The protocol is deliberately general and documented for that reason.
+
+**What shipping the host program takes** (GPL-3.0 section 6): each binary's release has the matching complete source next to it, including moonlight-common-c, ENet, nanors and Mbed TLS at their pinned commits; its notices stay in; it says what it's modified from. Its release workflow does all this, and it runs in its own repository.
+
+**It's installed separately, and people are told first.** The server's release doesn't contain it, and works without it. Settings, Game PCs says what it is, its license and where its source is before anyone turns to it. Settings, About & legal shows each piece's license and source, and the Modules page shows the license beside each module.
+
+**The App Store:** GPL-3.0 and Apple's App Store terms are widely held to conflict, so nothing of Moonlight's or the host program's goes inside the iOS or tvOS apps. They use the permissive web client, in a web view, or hand off to Moonlight's own app.
 
 ### The names
 
-**WittySunshine and WittyMoonlight could be mistaken for official releases of those projects**, or for forks. They're neither, and the GPL gives rights
-to code, not names. The READMEs and NOTICE files say so, and the UI calls them by what they do ("Game rigs") and names Sunshine and Moonlight only
-as the separate things they are. If either project objects, or for less risk now, **WittyRigs** (host side) and **WittyCouch** (client side) say the
-same thing with no one else's name in them. Renaming is cheap: the two folders, their Go module paths, and a few lines in `go.mod`, `go.work`, `Dockerfile`,
-`scripts/mirror.sh`, the CI file and `api_about.go`. It gets expensive once a repository and a release exist, so that's the time to decide.
+**WittySunshine and WittyMoonlight can be mistaken for official releases of those projects**, or for forks, especially now that one is built on Moonlight's code. They're neither, and the GPL gives rights to code, not names. The READMEs and NOTICE files say so, and the app calls the feature **Game PCs**, naming Sunshine and Moonlight only as the separate things they are. For less risk, **WittyRigs** and **WittyCouch** say the same with no one else's name in them, and the host program would become **WittyCouch Host**. Renaming is cheap until a repository and a release exist, so that's the time to decide.
 
 ## What has been tested
 
-**Ran for real, against Sunshine v2026.914.233613** in Docker under WSL, with no changes to Windows
-(`modules/wittysunshine/real_test.go`): recognising it, pairing with a PIN, its certificate pinned, status and MAC address, the app list, art, a stranger's
-certificate refused, a wrong PIN refused, starting a game, a second start refused while it runs, ending it, typing another device's PIN through its web
-interface, and a wrong Sunshine password. That real Sunshine ran without virtual input, and has no display but a virtual one.
+**Ran for real, end to end:** Sunshine v2026.914.233613 in Docker under WSL, with a virtual screen and software x264; this server beside it, on Linux; the real host program built on moonlight-common-c; and **real Microsoft Edge on Windows**, driven by a test script:
 
-**The whole server and its pages also ran against it, in a browser:** adding the PC by address on the settings page, its PIN shown and typed into the real
-Sunshine (which listed it as "WittyMediaServer"), the library filling with its real games and art, its two desktop apps left out, the game's page, Play and what it offers,
-**Start it on the PC first**, the status changing to "is running", and ending it. No errors in the browser's console.
+- From a clean install: adding the PC by address on the page, its PIN shown and typed into the real Sunshine, its games and art appearing, with desktop apps set apart.
+- Pressing Play: **the first picture in about 1.2 to 1.7 seconds, 30 frames a second with none or almost none dropped**, on the encrypted channel, with test colour bars recognisable pixel by pixel and moving.
+- **A controller, keyboard and mouse: Sunshine's own log shows each kind of packet arriving** (`--begin controller packet--`, keyboard, mouse button). Whether a game responds isn't shown, as this Sunshine has no virtual input device.
+- Leaving a game running and resuming it, and closing it.
+- The protocol client against the same Sunshine (`gamestream/real_test.go`, `relay/real_test.go`): certificates, a stranger refused, a wrong PIN refused, a second launch refused.
 
-**Only against stand-ins:**
-
-- `modules/wittysunshine/fake`: permissions for each kind of account, Kids profiles, failures, and addresses. The fake behaves as the real one did where they were compared, but they are not the same thing.
-- A stand-in for the bridge (in `wittymoonlight_test.go`), written from its published API types. The proxy's allow-list comes from reading its stream page's source.
+**Only against stand-ins, in the automated tests:** who may use it, addresses, rate limits, separate pairings, failures, and the relay's WebRTC with a stand-in host program.
 
 **Never run:**
 
-- **The real bridge program has never been downloaded or run**, so browser play has not been seen to work, on any browser. Running a program downloaded from the
-  internet on this machine needs the owner's go-ahead, which hasn't been asked for yet. Expect fixes when it's run.
-- **No real game has been streamed**, by anything.
-- **No real Moonlight app** has been handed a game. The command line and Android extras come from reading their source.
-- **mDNS discovery on a real network:** only the parsing has been tested. The Sunshine under test had no mDNS daemon.
-- **Wake-on-LAN on a real PC:** the packet is tested, and a real PC hasn't woken.
-- **Windows or Linux as the PC:** Sunshine ran only in a Linux container.
+- **A real game on a real gaming PC with a real GPU**, on Windows. Sunshine ran only in a Linux container, with a software encoder and no virtual input.
+- **Real controllers.** The pad in the test is a pretend one, as a browser would report it. Rumble hasn't been felt.
+- Firefox, Chrome, Safari, phones and tablets in a browser, and the player inside any of the apps.
+- **Discovery on a real network** (only the parsing), and **Wake-on-LAN on a real PC** (only the packet).
+- Reaching this over Remote Access, or through a real router.
 
 ### A checklist for the first real test
 
-1. On the gaming PC, install Sunshine and set its password ([the steps are in Settings, Game rigs](#what-each-device-can-do)).
-2. In Settings, Game rigs: press **Find PCs on my network**. Does it appear? If not, does typing its address work?
-3. Press **Pair this PC**, and type the PIN into Sunshine's PIN page. Do its games appear in the library, with pictures for any that have them?
-4. Sign in as a Kids profile. Is the PC's library empty? Give that profile one game in Profiles. Does only that one show?
-5. Install Moonlight on a computer, and pair it using **Pair a Moonlight app from here**. In the desktop app, press Play. Does the game start?
-6. Do the same on an Android TV, with the Android app. Does Play start it?
-7. On an Apple TV, press **Start on the PC**, open Moonlight, and press Resume on the game.
+1. On the gaming PC, install Sunshine and set its password ([the steps are in Game PCs](#what-each-device-gets)).
+2. Put `wittymoonlight-host` beside the server (its build is below).
+3. In **Game PCs**, press **Find PCs on the network**. Does it appear? If not, does typing its address work?
+4. Press **Pair this PC**, and type the PIN into Sunshine's PIN page. Do its games appear, with their pictures?
+5. Press Play on a real game, with a real controller. Is it smooth? Does the controller work? Does sound come through? Does rumble?
+6. On a phone: does it play, in Safari or Chrome? Does the on-screen controller work?
+7. Sign in as a Kids profile: is there no Game PCs at all? In Settings, Game PCs, share the PC, then give that profile one game in Profiles. Can they play only that?
 8. Put the PC to sleep. Does the page say so, and does **Wake it up** work? Wake-on-LAN must be on in its BIOS and network adapter, and usually needs a wired connection.
-9. Install browser play, set it up on the PC, and press Play in a browser. If Windows Defender stops it, say so: it has flagged earlier versions.
-10. Change the PC's address (or its router's reservation), and press Find. Does the rig follow it?
+9. Away from home, on a phone's data: does it connect?
 
 ## Limits today
 
-- Removing a rig here leaves this server on the PC's paired list. Sunshine has to remove it, on the PC.
-- Moonlight only starts games it can name, so a game renamed in Sunshine needs a new read of the list.
-- Browser play has no bandwidth adaptation beyond what the bridge does, and doesn't work through a reverse proxy on its own.
-- The bridge's client certificate is valid for 365 days, in the program's own code. Whether Sunshine cares isn't known: if browser play stops after a year, pair it again.
-- The Apple TV flow has three steps and always will, until Moonlight has a URL scheme.
-- If the server crashes on Windows, Mac or FreeBSD, browser play's program can be left running on the loopback address until the machine restarts. On Linux it ends with the server.
-- Browser play's program runs as the server's own account, unsandboxed, as it needs the network. It's checked against a recorded digest, and is only there if an admin asks.
+- No WebSocket fallback when UDP is blocked, and no adapting of the bitrate as the network changes.
+- H.264 only, and stereo sound only.
+- Pairing a stream to a device's own Moonlight, and the host program being downloaded in-app, aren't there yet: an admin puts it in place by hand until its repository publishes releases.
+- Removing a PC here leaves this account on the PC's paired list. Sunshine has to remove it, on the PC.
+- A person's streams go through this server, so a low-end server's network speed is the limit. It doesn't decode anything.

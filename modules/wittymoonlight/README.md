@@ -1,31 +1,31 @@
 <h1 align="center">WittyMoonlight</h1>
 
 <p align="center">
-  <b>Get from "Play" to a game on your own PC, on whatever device you're holding.</b>
+  <b>Play the games on any PC running Sunshine, in your browser.</b><br>
+  A client protocol in Go, a WebRTC relay, and a player with controllers, keyboard, mouse and touch.
 </p>
 
-> **Not an official project.** WittyMoonlight is not part of, or made by, the [Moonlight](https://moonlight-stream.org)
-> project or the [Sunshine](https://github.com/LizardByte/Sunshine) project (LizardByte). It contains none of their code.
-> It hands off to separately installed programs.
+> **Not an official project.** WittyMoonlight isn't part of, or made by, the [Moonlight](https://moonlight-stream.org) project or the
+> [Sunshine](https://github.com/LizardByte/Sunshine) project (LizardByte).
 
 > Read-only mirror of `modules/wittymoonlight` in [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer),
 > where development happens. Please open issues and pull requests there.
 
-## What it does
+## What's here
 
 | Part | What for |
 |---|---|
-| `Plan` | What really works on a device, best first: Moonlight's command line, an Android intent, a bridge link, or the steps to take by hand |
-| `InstallFor` | Where a device gets Moonlight, from its own project |
-| `Bridge` | Downloads [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) at an admin's request, from its own release, checked against a recorded digest, and runs it as a separate program on the loopback address |
-| `Proxy` | The only way to that program: a one-time ticket for one game on one PC, an allow-list of requests, and every stream request read before it goes on |
+| `gamestream` | A PC's client API: `Browse` finds PCs, `Rig.Pair` the PIN flow with its certificate pinned, `Apps`, `AppImage`, `Launch`, `Resume`, `Quit`, `Wake`, and the rules on which addresses may be reached. `gamestream/fake` is a stand-in for Sunshine, for tests |
+| `relay` | Runs [WittyMoonlight Host](https://github.com/wittywilla/WittyMoonlightHost) and carries its frames to a browser over WebRTC, without decoding them, and input back |
+| `web` | The player. Its host app provides the API through `MoonlightHost` |
+| `plan.go` | What each device can do when it can't play in a page: handing off to the separately installed Moonlight app |
+
+## Licences
+
+**This module is Apache-2.0**: see [LICENSE](LICENSE) and [NOTICE](NOTICE). It's written from the protocol and the browser's APIs, and contains no Moonlight code.
+
+To stream, it starts **WittyMoonlight Host**, a separate program under the **GPL-3.0**, built on Moonlight's own [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c). The two exchange only the messages in that program's `PROTOCOL.md`, over pipes. Without it, everything but playing still works.
 
 ## How it has been tested
 
-Automated tests cover `Plan`, unpacking archives that try to climb out, and everything in `Proxy`, against a stand-in. **The real bridge
-program hasn't been run yet, and no real Moonlight app has been handed a game.** See `docs/GAME-RIGS.md` in WittyMediaServer.
-
-## Licence
-
-Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE). Moonlight and moonlight-web-stream are GPL-3.0, and stay separate programs that
-are never linked, copied or bundled.
+Automated tests run `gamestream` against `fake`, and `relay` over real WebRTC with a stand-in for the host program. `gamestream/real_test.go` and `relay/real_test.go` run against a real Sunshine, and a real browser has played a real stream end to end. Real games on real gaming PCs haven't been tried yet: see `docs/GAME-RIGS.md` in WittyMediaServer.

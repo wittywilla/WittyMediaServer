@@ -33,8 +33,9 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
 | **WittyPlay** | Console games streamed to a browser or an app: a libretro game runner in its own sandboxed process, WebRTC with fallbacks, every controller, a touch layout editor | WittyMediaServer |
-| **WittySunshine** | Finds, pairs with and manages a gaming PC running Sunshine, over its network protocols: discovery, the PIN flow, a pinned certificate, the app list, Wake-on-LAN. Not an official Sunshine project | WittyMediaServer |
-| **WittyMoonlight** | Gets a device from Play to a game on that PC: what each device can do, handing off to the separately installed Moonlight, and browser play as a separate program behind a proxy. Not an official Moonlight project | WittyMediaServer |
+| **WittyMoonlight** | A Moonlight client in the page, for connecting to any Sunshine server: finding, pairing, its games, and playing them with every kind of controller. Apache-2.0: it starts WittyMoonlight Host for the stream. Not an official Moonlight project | WittyMediaServer, WittyMediaClient |
+| **WittyMoonlight Host** | Moonlight's streaming core as a program of its own, speaking a documented protocol over pipes. **GPL-3.0**, as it's built on Moonlight's code. Installed separately | WittyMoonlight |
+| **WittySunshine** | An advanced option, off by default: hosting demanding games on the server's own hardware, using a separately installed Sunshine. Not an official Sunshine project | WittyMediaServer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
 | **WittyModule** | What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool. Go, no dependencies | Every plugin, WittyMediaServer |
 | **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, fuzz-tested, and can update without a new server | WittyMediaServer |
@@ -55,7 +56,7 @@ The server's libraries carry the name where it reads naturally:
 | Vertical videos | **WittyShorts** |
 | Creator videos, music videos and concerts | **WittyChannels** |
 | Live TV and DVR | **WittyTV** |
-| Games | **WittyPlay**; on your own gaming PC, **WittySunshine** and **WittyMoonlight** |
+| Games | **WittyPlay**; on any PC running Sunshine, **WittyMoonlight**; hosted on this server, **WittySunshine** |
 
 The plumbing underneath (accounts, transcoding, metadata, settings, logging) keeps plain
 names. So do features inside a plugin, such as the selection toolbar or the eraser.
@@ -82,8 +83,9 @@ modules/                    Go plugins
   wittyphotos/              → github.com/wittywilla/WittyPhotos
   wittytuner/               → github.com/wittywilla/WittyTuner
   wittyplay/                → github.com/wittywilla/WittyPlay (Go, with its React half in web/)
+  wittymoonlight/           → github.com/wittywilla/WittyMoonlight (Go, with its React half in web/)
+  wittymoonlight-host/      → github.com/wittywilla/WittyMoonlightHost (C, GPL-3.0)
   wittysunshine/            → github.com/wittywilla/WittySunshine
-  wittymoonlight/           → github.com/wittywilla/WittyMoonlight
 apps/
   wittyreader/              → github.com/wittywilla/WittyReader
   wittymediaplayer/         → github.com/wittywilla/WittyMediaPlayer
@@ -93,7 +95,7 @@ Each plugin and app folder carries what its own repository needs:
 
 - **README.md:** what it does.
 - **wiki/:** the full guide, published to the repository's GitHub wiki.
-- **LICENSE:** Apache-2.0, the same as WittyMediaServer.
+- **LICENSE:** Apache-2.0, the same as WittyMediaServer, except for WittyMoonlight Host, which is GPL-3.0 because it's built on Moonlight's code.
 - **NOTICE:** credits *"<name>, developed by WittyWilla"*. The licence requires anyone who
   redistributes the code or builds on it to keep that attribution.
 
@@ -236,7 +238,8 @@ project.
 | WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
 | WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
 | WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
-| WittySunshine, WittyMoonlight | Stays built in, for now | Both hold a rig's trust, and need the network: a helper would have to be given what the sandbox takes away. Their protocol code could move later if there's a reason |
+| WittyMoonlight, WittySunshine | Stays built in, for now | They need the network and hold people's pairings: a helper would have to be given what the sandbox takes away |
+| WittyMoonlight Host | Already a separate program | Its releases come from its own repository, signed the same way, once it has one |
 | WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |
 | WittyInk, WittyEbook, WittyPDF, WittyComics | Web bundle, **later** | Designed below; not built yet |
 

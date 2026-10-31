@@ -5,19 +5,17 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
-### Game rigs: your own gaming PC as a source of games
+### Game PCs: play on any PC running Sunshine, in your browser
 
-- **Add a PC running Sunshine** in **Settings, Game rigs**, by finding it on your network or typing its address, and pair it
-  with a PIN. Several PCs are fine. You'll see if one is online, asleep, off or not running Sunshine, and you can wake it up, even from away.
-- **Its games are a library,** labelled as playing on that PC, with art from the PC and details from Wikidata. Library, age and
-  per-title limits all apply. Kids and Guest profiles see none until given one, and desktop apps start hidden.
-- **Play hands off to Moonlight** where a device allows: one press in the desktop app and on Android and Android TV. On Apple TV,
-  nothing can start Moonlight, so a button starts the game on the PC, and you resume it in Moonlight. On a browser, it says what to do.
-- **Browser play** is optional: it downloads a separate program from its own project when an admin asks. It's limited by game, and
-  doesn't open the PC to the internet. **It has not been run for real yet.**
-- New modules: **WittySunshine** and **WittyMoonlight**. Sunshine and Moonlight are separate GPL-3.0 projects, and none of their
-  code is here. The design, a table of what works per device, and what has really been tested: `docs/GAME-RIGS.md`.
-## 0.5.0-alpha
+- **A Moonlight client in the page.** **Game PCs** lists your own PCs, yours or a friend's: find one on the network or type its address, pair it with a PIN, and its games
+  are there. Press Play, and it streams right in the page with a controller, keyboard, mouse or touch. Nothing to install on the device. Your pairings are yours alone.
+- **It's played for real:** a real Sunshine, Moonlight's real streaming core, a real browser. Real games on real gaming PCs are next.
+- **WittyMoonlight** (Apache-2.0) is the client and relay. It uses **WittyMoonlight Host**, a separate **GPL-3.0** program built on Moonlight's own code, which is installed separately.
+- **Who may use it:** adult profiles with no limits by default, and admins. Admins choose who, and whether it can reach the server's network or the internet. A PC can also be shared with everyone
+  as a library, where Kids and Guest profiles see only the games they're given.
+- **WittySunshine** is an advanced option, off by default, for hosting demanding games on the server's own hardware.
+- **Handing off to the Moonlight app** stays as the fallback, and is what Android TV and Apple TV use.
+- The design, licenses and what's really been tested: `docs/GAME-RIGS.md`.
 
 ### Interface audit
 

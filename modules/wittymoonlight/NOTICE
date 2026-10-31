@@ -12,5 +12,6 @@ this NOTICE file - in a NOTICE file, in documentation, or in an "About"
 display of the derivative work.
 
 WittyMoonlight is not part of, or made by, the Moonlight project or the Sunshine
-project (LizardByte). It contains none of their code: it hands off to separately
-installed programs. Moonlight and its browser bridge are GPL-3.0 software.
+project (LizardByte). It contains none of their code. For the stream it starts WittyMoonlight
+Host, a separate GPL-3.0 program built on Moonlight's own code, and hands off to separately
+installed programs. Moonlight and Sunshine are GPL-3.0 software.

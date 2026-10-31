@@ -8,8 +8,8 @@ on the server and stream to the browser with low latency, through **WittyPlay**
 This page explains how it is built and why. It is the reference for anyone changing it.
 [GAMING-API.md](GAMING-API.md) is the API a client uses, including the Apple TV and Android TV apps.
 
-Everything here is about games the server emulates. A person's own gaming PC, played through Sunshine
-and Moonlight, is a different thing that lives alongside it: see [GAME-RIGS.md](GAME-RIGS.md). Those games are
+Everything here is about games the server emulates. Playing on any PC running Sunshine, through a Moonlight client
+in the page, is a different thing that lives alongside it: see [GAME-RIGS.md](GAME-RIGS.md). A shared PC's games are
 items with `console: rig`, and `POST /games/{id}/play` sends them there.
 
 ## What it has to do

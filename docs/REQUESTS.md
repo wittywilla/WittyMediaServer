@@ -72,14 +72,13 @@ close some of these.
   a type such as Animation, so channels by type miss it.
 - **Commercial breaks inside programmes:** commercials only play between programmes today.
 
-## Game rigs
+## Game PCs
 
-- **Try it on a real gaming PC:** the protocol has run against a real Sunshine in a container, and nothing else is real yet. The
+- **Try it on a real gaming PC:** a real stream has reached a real browser, from a real Sunshine in a container. A real game with a real GPU hasn't. The
   checklist is at the end of [GAME-RIGS.md](GAME-RIGS.md#a-checklist-for-the-first-real-test).
-- **Browser play's program has never been run.** Expect fixes when it is.
 - **Decide on the names** before the repositories exist: [WittySunshine and WittyMoonlight could be mistaken for official releases](GAME-RIGS.md#the-names).
-  **WittyRigs** and **WittyCouch** are the alternatives.
-- **Android's rig screens have never been compiled,** as this machine has no Android tools. Apple's need a Mac.
+- **Apple TV:** [a decision for the owner](GAME-RIGS.md#what-each-device-gets).
+- **A WebSocket fallback** for networks that block UDP, and HEVC and AV1, aren't built.
 
 ## Games
 

@@ -3,6 +3,7 @@
   "name": "WittyPhotos",
   "version": "0.2.0",
   "repo": "wittywilla/WittyPhotos",
+  "license": "Apache-2.0",
   "delivery": "helper",
   "entry": "wittyphotos-module",
   "api": 1,

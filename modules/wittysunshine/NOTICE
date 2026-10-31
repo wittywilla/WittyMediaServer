@@ -11,6 +11,5 @@ this software or derivative works must reproduce the attribution notices in
 this NOTICE file - in a NOTICE file, in documentation, or in an "About"
 display of the derivative work.
 
-WittySunshine is not part of, or made by, the Sunshine project (LizardByte) or
-the Moonlight project. It contains none of their code: it talks to a separately
-installed Sunshine over the network. Sunshine is GPL-3.0 software.
+WittySunshine is not part of, or made by, the Sunshine project (LizardByte). It contains none
+of its code: it only looks for a separately installed Sunshine, which is GPL-3.0 software.

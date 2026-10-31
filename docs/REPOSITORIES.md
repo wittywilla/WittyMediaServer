@@ -12,8 +12,9 @@ starts clean.
 |---|---|---|
 | WittyMediaClient | The client apps for desktop, Android, Apple and others (`clients/wittymediaclient`) | In this repository, ready to move |
 | WittyMediaPlayer | The standalone desktop player (`apps/wittymediaplayer`) | Being built |
-| WittySunshine | Finding, pairing with and managing a gaming PC that runs Sunshine | Being built; the name may change |
-| WittyMoonlight | Launching and streaming from that PC with Moonlight | Being built; the name may change |
+| WittyMoonlight | A Moonlight client in the page, for any Sunshine server: its relay, protocol code and player. **Apache-2.0** | Ready to move; wait, the name may change |
+| WittyMoonlightHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release (`modules/wittymoonlight-host`) | Ready to move; wait, the name may change |
+| WittySunshine | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | Ready to move; wait, the name may change |
 | WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |
 
 ## Exists

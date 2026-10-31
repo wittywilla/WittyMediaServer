@@ -70,6 +70,7 @@ type Status struct {
 	MaxServer      string `json:"maxServer"`
 	API            int    `json:"api"`
 	Repo           string `json:"repo"`
+	License        string `json:"license,omitempty"`
 	State          string `json:"state"`
 	Notice         string `json:"notice,omitempty"`   // why a version isn't in use, in plain words
 	Previous       string `json:"previous,omitempty"` // an installed version to go back to
@@ -347,7 +348,7 @@ func sentence(s string) string {
 func updatable(man *wittymodule.Manifest) bool { return man.Delivery == wittymodule.DeliveryHelper }
 
 func (e *entry) status(id string) Status {
-	st := Status{ID: id, Name: e.builtin.Name, Version: e.man.Version, BuiltinVersion: e.builtin.Version, Delivery: e.builtin.Delivery,
+	st := Status{ID: id, Name: e.builtin.Name, Version: e.man.Version, BuiltinVersion: e.builtin.Version, Delivery: e.builtin.Delivery, License: e.builtin.License,
 		Updatable: updatable(e.builtin), MinServer: e.man.MinServer, MaxServer: e.man.MaxServer, API: e.man.API, Repo: e.builtin.Repo,
 		Notice: e.notice, Latest: e.latest, TooNew: e.tooNew, Phase: e.phase, Done: e.done, Total: e.total, Error: e.lastError, Previous: e.state.Previous}
 	switch {

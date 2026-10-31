@@ -6,7 +6,7 @@ import { PageHead, Row, Section, Switch } from './ui'
 
 type Offer = { version: string; minServer: string; maxServer: string; notes?: string; url?: string; published?: number; prerelease: boolean; size?: number; reason?: string; blocked?: string }
 type ModuleStatus = {
-  id: string; name: string; version: string; builtinVersion: string; delivery: string; updatable: boolean
+  id: string; name: string; version: string; builtinVersion: string; delivery: string; updatable: boolean; license?: string
   minServer: string; maxServer: string; api: number; repo: string; state: 'builtin' | 'installed' | 'fallback'
   notice?: string; previous?: string; canRollback: boolean; latest?: Offer; tooNew?: Offer
   phase: 'idle' | 'downloading' | 'verifying' | 'installing' | 'failed'; done?: number; total?: number; error?: string
@@ -88,7 +88,7 @@ export default function ModulesSettings() {
           {updatable.map((m) => (
             <div key={m.id} className="mod-card">
               <div className="mod-row">
-                <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}</span></span>
+                <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}{m.license ? `. License: ${m.license}` : ''}</span></span>
                 <span className="mod-ver">{m.version}<span className={'mod-local' + (m.state === 'fallback' ? ' warn' : '')}>{stateLabel(m)}</span></span>
               </div>
               {m.notice && <p className="upd-msg warn">{m.notice}</p>}

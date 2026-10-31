@@ -3,6 +3,7 @@
   "name": "WittyComics",
   "version": "0.1.0",
   "repo": "wittywilla/WittyComics",
+  "license": "Apache-2.0",
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",

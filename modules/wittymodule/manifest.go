@@ -36,6 +36,7 @@ type Manifest struct {
 	Name      string `json:"name"`
 	Version   string `json:"version"`
 	Repo      string `json:"repo"` // owner/name on GitHub, where its releases are
+	License   string `json:"license,omitempty"`
 	Delivery  string `json:"delivery"`
 	Entry     string `json:"entry,omitempty"` // the helper program, without .exe
 	API       int    `json:"api"`

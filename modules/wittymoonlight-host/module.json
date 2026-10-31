@@ -1,8 +1,9 @@
 {
-  "id": "wittymoonlight-host",
+  "id": "wittymoonlighthost",
   "name": "WittyMoonlight Host",
   "version": "0.1.0",
   "repo": "wittywilla/WittyMoonlightHost",
+  "license": "GPL-3.0",
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",

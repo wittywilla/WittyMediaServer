@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, getPrefs, mediaUrl } from '../api'
 import { useCd } from '../audio/player'
@@ -128,6 +128,8 @@ export default function CdPlayer() {
   const [viz, setViz] = useState<'off' | 'panel' | 'full'>('off')
   const [Viz, setVizComponent] = useState<React.ComponentType<VizProps> | null>(null)
   const [vizAllowed, setVizAllowed] = useState(true)
+  // One function for good: the plugin starts over whenever it is handed a new one.
+  const vizMedia = useCallback(() => audioEl, [audioEl])
   const playKey = useRef<HTMLButtonElement>(null)
   const meterL = useRef<HTMLElement>(null)
   const meterR = useRef<HTMLElement>(null)
@@ -159,7 +161,7 @@ export default function CdPlayer() {
   }, [discId])
 
   useEffect(() => { if (phase === 'ready') playKey.current?.focus({ preventScroll: true }) }, [phase])
-  useLevels(audioEl, phase === 'ready' && visible && playing && !!mine, meterL, meterR)
+  useLevels(audioEl, phase === 'ready' && visible && playing && !!mine && viz === 'off', meterL, meterR)
 
   // The owner can remove the plugin in the module store, which hides its button.
   useEffect(() => { if (findViz) getPrefs().then((p) => setVizAllowed((p as { visualizer?: boolean }).visualizer !== false)).catch(() => {}) }, [])
@@ -244,7 +246,7 @@ export default function CdPlayer() {
             <div className="cdw-stage">
               {vizOn ? (
                 <div className="cdw-viz">
-                  {Viz && audioEl && <Viz media={() => audioEl} place={viz === 'full' ? 'full' : 'panel'} onPlace={(p) => setViz(p === 'full' ? 'full' : 'panel')} onClose={() => setViz('off')} />}
+                  {Viz && audioEl && <Viz media={vizMedia} place={viz === 'full' ? 'full' : 'panel'} onPlace={(p) => setViz(p === 'full' ? 'full' : 'panel')} onClose={() => setViz('off')} />}
                 </div>
               ) : (
                 <div className="cdp-lid">

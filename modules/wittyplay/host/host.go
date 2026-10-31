@@ -159,7 +159,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 	if err := json.Unmarshal(first.p, &load); err != nil {
 		return err
 	}
-	eng, err := open(load, r.handlers())
+	h := r.handlers()
+	if load.Trace {
+		h.Trace = func(text string) { r.event(ipc.Event{Type: "trace", Text: text}) }
+	}
+	eng, err := open(load, h)
 	if err != nil {
 		return err
 	}
@@ -189,7 +193,9 @@ func (r *runner) run(in io.Reader, open Open) error {
 				lastSave = append(lastSave[:0], ram...)
 			}
 		case ipc.CmdState:
-			eng.LoadState(c.p)
+			if !eng.LoadState(c.p) {
+				r.event(ipc.Event{Type: "statefail"})
+			}
 		case ipc.CmdSaveState:
 			r.write(ipc.MsgState, c.p, eng.SaveState())
 		case ipc.CmdReset:

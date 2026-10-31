@@ -150,6 +150,7 @@ type Load struct {
 	System  string            `json:"system"`
 	Save    string            `json:"save"`
 	Options map[string]string `json:"options,omitempty"`
+	Trace   bool              `json:"trace,omitempty"` // send everything the core says as log events; for wittyplay-check
 }
 
 // TestCore is the Load.Core value for the built-in test core.
@@ -168,7 +169,7 @@ type Ready struct {
 
 // Event is something a player should be told about.
 type Event struct {
-	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo
+	Type     string  `json:"type"` // rumble | message | geometry | rotation | log | shutdown | avinfo | statefail | trace
 	Port     int     `json:"port,omitempty"`
 	Effect   int     `json:"effect,omitempty"`
 	Strength int     `json:"strength,omitempty"`

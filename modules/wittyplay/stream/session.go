@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -292,28 +291,12 @@ func (s *Session) start() error {
 	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
 		return err
 	}
-	args := append(append([]string(nil), s.cfg.RunnerArgs...), "-save", s.opt.SaveDir, "-memory-mb", strconv.FormatInt(s.cfg.MemoryMB, 10))
-	cmd := exec.Command(s.cfg.Runner, args...)
-	cmd.Dir = s.opt.SaveDir
-	cmd.Env = runnerEnv()
-	stdin, err := cmd.StdinPipe()
+	rn, err := StartRunner(s.cfg.Runner, s.cfg.RunnerArgs, s.opt.SaveDir, s.cfg.MemoryMB, s.log)
 	if err != nil {
 		return err
 	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	prepareSandbox(cmd, s.opt.SaveDir, s.log)
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting the game runner: %w", err)
-	}
-	s.cmd, s.stdin = cmd, stdin
-	s.box = lockDown(cmd, s.cfg.MemoryMB, s.log) // before any core is loaded
+	cmd, stdout, stderr := rn.Cmd, rn.Stdout, rn.Stderr
+	s.cmd, s.stdin, s.box = cmd, rn.Stdin, rn.Release // boxed in before any core is loaded
 	s.wrote.Add(2)
 	go s.logStderr(stderr)
 
@@ -381,12 +364,14 @@ func (s *Session) command(t byte, parts ...[]byte) error {
 	return ipc.Write(s.stdin, t, parts...)
 }
 
+// logStderr keeps the end of what the runner says: cores can be chatty, and the
+// last thing said before a crash is the part worth reading.
 func (s *Session) logStderr(r io.Reader) {
 	defer s.wrote.Done()
-	b, _ := io.ReadAll(io.LimitReader(r, 1<<16))
-	_, _ = io.Copy(io.Discard, r)
-	if len(b) > 0 {
-		s.log.Info("runner says", "output", string(b))
+	tail := &tailWriter{max: 1 << 16}
+	_, _ = io.Copy(tail, r)
+	if text := tail.String(); text != "" {
+		s.log.Info("runner says", "output", text)
 	}
 }
 

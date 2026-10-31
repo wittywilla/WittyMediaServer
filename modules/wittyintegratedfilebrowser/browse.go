@@ -163,6 +163,13 @@ func IsHidden(name string) bool {
 // user's usual folders, then extra in the order given. Only places that
 // exist are returned.
 func Places(extra ...Place) []Place {
+	h, _ := os.UserHomeDir()
+	return PlacesFor(h, extra...)
+}
+
+// PlacesFor is Places for a given home folder, for a process that is not told
+// its own. An empty home leaves out the usual folders.
+func PlacesFor(home string, extra ...Place) []Place {
 	out := []Place{}
 	add := func(pl Place) {
 		if st, err := os.Stat(pl.Path); err == nil && st.IsDir() {
@@ -193,10 +200,10 @@ func Places(extra ...Place) []Place {
 			}
 		}
 	}
-	if h, err := os.UserHomeDir(); err == nil {
-		add(Place{Name: "Home", Path: h, Group: "folders"})
+	if home != "" {
+		add(Place{Name: "Home", Path: home, Group: "folders"})
 		for _, d := range []string{"Desktop", "Videos", "Movies", "Music", "Pictures", "Documents", "Downloads"} {
-			add(Place{Name: d, Path: filepath.Join(h, d), Group: "folders"})
+			add(Place{Name: d, Path: filepath.Join(home, d), Group: "folders"})
 		}
 	}
 	for _, pl := range extra {

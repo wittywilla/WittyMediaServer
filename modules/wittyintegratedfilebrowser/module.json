@@ -3,11 +3,14 @@
   "name": "WittyIntegratedFileBrowser",
   "version": "0.1.0",
   "repo": "wittywilla/WittyIntegratedFileBrowser",
-  "delivery": "builtin",
-  "api": 1,
+  "delivery": "helper",
+  "entry": "wittyintegratedfilebrowser-module",
+  "api": 2,
   "minServer": "0.4.0-alpha",
   "maxServer": "0.5.x",
   "group": "system",
   "summary": "Choosing a server's folders from any device. Read-only.",
+  "updates": "Finding drives and usual folders, and listing what is in a folder.",
+  "stays": "The folder window in the app, naming what kind of media each file is, and the folders already in your libraries. If a version can't read a folder, the server tries it itself.",
   "core": true
 }

@@ -47,14 +47,15 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
   const pct = item.progress && item.progress.durationSec > 0 && !item.progress.watched
     ? Math.min(100, (item.progress.positionSec / item.progress.durationSec) * 100) : 0
   const gen = isGeneratedArt(item)
-  const audio = item.kind === 'audio'
+  const cd = item.kind === 'cd-image'
+  const audio = item.kind === 'audio' || cd
   // Books count pages or chapters in runtimeSec, so their length isn't a time.
   const length = item.kind === 'book' || audio ? '' : fmtRuntime(item.runtimeSec)
   return (
     <Link to={`/item/${item.id}`} className={'card' + (wide ? ' wide' : '') + (audio ? ' square' : '')} title={item.title}>
       <div className={'poster' + (gen && !wide ? ' generated' : '')} style={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}>
         {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
-        {isDisc(item) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
+        {(isDisc(item) || cd) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <SeenBadge />}
         <div className="play"><span><IconPlay /></span></div>
         {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}

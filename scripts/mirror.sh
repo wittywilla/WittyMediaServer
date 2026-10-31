@@ -31,6 +31,7 @@ MIRRORS=(
   "modules/wittydisc           WittyDisc"
   "modules/wittydvd            WittyDVD"
   "modules/wittybluray         WittyBluray"
+  "modules/wittycd             WittyCD"
   "modules/wittyintegratedfilebrowser WittyIntegratedFileBrowser"
   "modules/wittyphotos         WittyPhotos"
   "modules/wittytuner          WittyTuner"

@@ -92,6 +92,18 @@ follows you. See [GAMING.md](docs/GAMING.md).
 - **Which core works best:** a game's page shows administrators how each core has really gone on it.
 - **Honest licensing:** a custom core shows its licence if known, or "Unknown license", with non-commercial ones labelled. They're
   marked third-party and unverified, and this project never offers them.
+### WittyCD: audio CD images
+
+- **CD images play in a CD player,** a window in the spirit of the desktop players of the early 2000s, with the disc going in as DVDs do, a lit display, a list of
+  tracks, and room on its stage for WittyVisualizer: `.cue` with `.bin`, `.wav` or a single `.flac`, `.toc`, `.ccd`, `.nrg`, `.chd`, and a bare
+  `.iso` or `.img` that is really audio. In a Music library a disc is an album with its tracks; in a Discs library it sits on the shelf.
+- **Gapless by design:** the whole disc is sent as one stream, as lossless FLAC or WAV, with AAC for slow connections. Repeats,
+  shuffle, your own program, index points, hidden tracks, pre-emphasis correction, and your place on the disc for each person.
+- **Identified by table of contents** through MusicBrainz and the Cover Art Archive, sending nothing else, with a dialog when
+  several albums match. It can be turned off in Settings, Metadata agents.
+- **Native apps** get it through `GET /cd/{id}`, `GET /cd/{id}/audio` and the ordinary playback door: see *Audio CDs* in
+  `docs/CLIENT-API.md`.
+- **Tools:** `wms cd info`, `wms cd check` and a standalone `wittycd` command. The module's reader is a public library: track map, samples, disc ID and the lookup (`wittycd/lookup`), for WittyMediaPlayer and anyone else.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

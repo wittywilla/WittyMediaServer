@@ -91,6 +91,14 @@ belong to their stations.
 **The Movie Database (TMDB)** — optional. "This product uses the TMDB API but
 is not endorsed or certified by TMDB." <https://www.themoviedb.org>
 
+Audio CDs are identified with [MusicBrainz](https://musicbrainz.org), whose core data is CC0, and their covers come from the
+[Cover Art Archive](https://coverartarchive.org); the pictures belong to their owners. Only a disc's table of contents is sent.
+
+## Audio CDs
+
+WittyCD is an original implementation with no third-party code. It contains no code from libcdio, cdparanoia,
+cdrdao or any other GPL library, and its FLAC and LZMA code is its own, written from the published formats.
+
 ## DVD-Video
 
 The DVD navigator, IFO parser, command VM and sub-picture decoder are original

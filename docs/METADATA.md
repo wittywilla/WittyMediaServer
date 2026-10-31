@@ -26,6 +26,8 @@ Sources are applied in this order; later ones only fill gaps:
 | 8 | **Wikidata** + Wikipedia (movies) until you add a TMDB API key — built in, no API key needed | year, genres, US rating, runtime, plot summary (no posters) |
 | 9 | Generated thumbnail | a frame 20 % into the video |
 
+Audio CDs have an order of their own: see [Audio CDs](#audio-cds).
+
 **Works out of the box.** TV shows and movies get information without any account or key.
 TVmaze data is shared under CC BY-SA 4.0, Wikidata is public domain, Wikipedia text is CC BY-SA
 4.0; each title page links to its source. Turn either off in *Settings → Metadata agents*. Adding a TMDB or
@@ -34,6 +36,28 @@ TheTVDB key later upgrades titles the next time they are scanned or refreshed.
 TVmaze and Wikidata do not always have a **content rating**, which Kids and Guest profiles rely
 on. Set one under **Edit → Content rating** on any movie or show (a show's rating covers its
 episodes).
+
+## Audio CDs
+
+CD images have their own order: **the file beside the image** (`<name>.wittycd.json`, saved earlier), then **CD-TEXT and the
+cue sheet**, then **folder and file names**, then **MusicBrainz**, which fills in album and track names and a cover from the
+**Cover Art Archive** when it has one clear answer. Pictures beside the image always win.
+
+**What is sent.** To look a disc up, the server sends MusicBrainz the disc's ID and its table of contents, which is the
+track count and each track's start in sectors. It says nothing about what the music is, what your files are called or who
+you are. No audio, names or folders leave the server. Covers are fetched by the server, so nothing else learns your
+address. The lookup happens once for each new disc, at most one request a second as their rules ask, and it can be turned off
+in *Settings → Metadata agents*. With it off, nothing is sent.
+
+**Several matches.** Pressings of one album share an answer, so any will do. If the matches disagree, or only the track lengths
+are close, nothing is guessed: the disc keeps its own names, and an admin sees **Choose from N matches** on the CD player page.
+Pick the right one, change it later, or go back to the disc's own names.
+
+**Saved beside your files?** Only with *Save metadata beside media* on: a `<name>.wittycd.json` with the names and release, and
+a `<name>-poster.jpg`. With it off nothing is written there, and the names stay in the server's database.
+
+Album data comes from [MusicBrainz](https://musicbrainz.org) (CC0), and covers from the
+[Cover Art Archive](https://coverartarchive.org); cover pictures belong to their owners. Both are credited on the player page.
 
 ## Custom agents
 

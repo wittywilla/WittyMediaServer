@@ -374,6 +374,9 @@ var migrations = []string{
 	 CREATE TABLE IF NOT EXISTS game_core_audit (
 	   id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, user_name TEXT NOT NULL DEFAULT '', action TEXT NOT NULL,
 	   core TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '');`,
+	// 17: CD images: a track item says which disc item it belongs to.
+	`ALTER TABLE items ADD COLUMN cd_disc INTEGER;
+	 CREATE INDEX IF NOT EXISTS items_cd_disc ON items(cd_disc) WHERE cd_disc IS NOT NULL;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

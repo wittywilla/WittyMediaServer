@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittydisc/isofs"
+	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
@@ -39,6 +40,10 @@ type Scanner struct {
 	TVMazeOn func() bool
 	// WikidataOn: Wikidata may fill in movies when there is no TMDB key.
 	WikidataOn func() bool
+	// MusicBrainzOn: audio CDs may be looked up by their table of contents.
+	MusicBrainzOn func() bool
+	// MusicBrainzBase and CoverArtBase replace the services' addresses in tests.
+	MusicBrainzBase, CoverArtBase string
 	// AnimeTitles: english | romaji | native titles for anime libraries.
 	AnimeTitles func() string
 	// Agents returns the custom metadata agents, in the order they run.
@@ -248,7 +253,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			s.Log.Warn("discover", "root", root, "err", err)
 		}
 		if lib.Type == "discs" {
-			c = onlyDiscs(c)
+			images := discoverDiscCDs(root)
+			c = append(dropClaimed(onlyDiscs(c), nil, images), images...)
 		}
 		all = append(all, c...)
 	}
@@ -273,6 +279,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				return s.index(ctx, lib, c) // a series on DVD or Blu-ray: a disc, with its menus
 			case lib.Type == "shows" || lib.Type == "anime":
 				return s.indexEpisode(ctx, lib, c, tv)
+			case c.kind == CDKind:
+				return s.indexCD(ctx, lib, c)
 			case IsAudioLibrary(lib.Type):
 				return s.indexAudio(ctx, lib, c, covers)
 			case lib.Type == "books":
@@ -307,6 +315,14 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 }
 
 func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
+	// An .iso or .img that holds only audio is a CD, however it is named.
+	if c.kind == "dvd-iso" && c.size%wittycd.SectorBytes == 0 {
+		if d, err := wittycd.Open(c.path); err == nil {
+			d.Close()
+			c.kind = CDKind
+			return s.indexCD(ctx, lib, c)
+		}
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
 		// The file is what it was. Its details and anyone's edits stay; only a

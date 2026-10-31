@@ -36,6 +36,9 @@ export default function MetadataSettings() {
         <Row label="Check radio stations in the background" desc="Tries each station about once a week, so ones that have gone quiet are marked even if nobody has listened lately. This contacts stations while nobody is listening. Without it, a station is checked when someone plays it, when you ask, and through the directory for stations from there.">
           <Switch label="Check radio stations in the background" checked={s.radioChecks === '1'} onChange={(v) => set('radioChecks', v ? '1' : '0')} />
         </Row>
+        <Row label="MusicBrainz and the Cover Art Archive" badge={NO_KEY} desc="Audio CD images: album and track names and covers. A disc is looked up by its table of contents, the track lengths and nothing else: no names, no audio. Album data is CC0.">
+          <Switch label="Use MusicBrainz" checked={on('musicbrainz')} onChange={(v) => set('musicbrainz', v ? '1' : '0')} />
+        </Row>
         <Row label="AniList" badge={NO_KEY} desc="Anime libraries: titles in your chosen language, plots, posters and episode numbering.">
           <span className="set-pill">Always on</span>
         </Row>

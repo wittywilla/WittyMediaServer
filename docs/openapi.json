@@ -331,6 +331,302 @@
         ],
         "type": "object"
       },
+      "CDMatch": {
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "barcode": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "disc": {
+            "type": "integer"
+          },
+          "discs": {
+            "type": "integer"
+          },
+          "exact": {
+            "type": "boolean"
+          },
+          "group": {
+            "type": "string"
+          },
+          "hasCover": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "releaseId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "tracks": {
+            "items": {
+              "properties": {
+                "artist": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "number",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "artist",
+          "disc",
+          "discs",
+          "exact",
+          "hasCover",
+          "releaseId",
+          "title",
+          "tracks",
+          "url"
+        ],
+        "type": "object"
+      },
+      "CDView": {
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "cddbId": {
+            "type": "string"
+          },
+          "discId": {
+            "type": "string"
+          },
+          "durationSec": {
+            "type": "number"
+          },
+          "format": {
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "hasGraphics": {
+            "type": "boolean"
+          },
+          "hiddenTrack": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "insertEffect": {
+            "type": "boolean"
+          },
+          "insertSound": {
+            "type": "boolean"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "lookup": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "integer"
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "poster": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "releaseId": {
+            "type": "string"
+          },
+          "samples": {
+            "type": "integer"
+          },
+          "sessions": {
+            "type": "integer"
+          },
+          "sizeBytes": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "suggested": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "toc": {
+            "type": "string"
+          },
+          "tracks": {
+            "items": {
+              "properties": {
+                "artist": {
+                  "type": "string"
+                },
+                "audio": {
+                  "type": "boolean"
+                },
+                "end": {
+                  "type": "integer"
+                },
+                "indexes": {
+                  "items": {
+                    "properties": {
+                      "lba": {
+                        "type": "integer"
+                      },
+                      "number": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "lba",
+                      "number"
+                    ],
+                    "type": "object"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "isrc": {
+                  "type": "string"
+                },
+                "itemId": {
+                  "type": "integer"
+                },
+                "number": {
+                  "type": "integer"
+                },
+                "preEmphasis": {
+                  "type": "boolean"
+                },
+                "pregap": {
+                  "type": "integer"
+                },
+                "start": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "audio",
+                "end",
+                "indexes",
+                "itemId",
+                "number",
+                "preEmphasis",
+                "pregap",
+                "start",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "warnings": {
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "artist",
+          "discId",
+          "durationSec",
+          "format",
+          "formats",
+          "hasGraphics",
+          "hiddenTrack",
+          "id",
+          "insertEffect",
+          "insertSound",
+          "libraryId",
+          "positionSec",
+          "poster",
+          "samples",
+          "sessions",
+          "sizeBytes",
+          "suggested",
+          "title",
+          "toc",
+          "tracks",
+          "warnings",
+          "year"
+        ],
+        "type": "object"
+      },
       "ControllerData": {
         "properties": {
           "layouts": {
@@ -1297,6 +1593,71 @@
       },
       "DiscInfo": {
         "properties": {
+          "cd": {
+            "anyOf": [
+              {
+                "properties": {
+                  "cddbId": {
+                    "type": "string"
+                  },
+                  "disc": {
+                    "type": "integer"
+                  },
+                  "discId": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "lookup": {
+                    "type": "string"
+                  },
+                  "matches": {
+                    "type": "integer"
+                  },
+                  "releaseId": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "tracks": {
+                    "items": {
+                      "properties": {
+                        "artist": {
+                          "type": "string"
+                        },
+                        "number": {
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "title"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "discId",
+                  "format",
+                  "tracks"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "content": {
             "type": "string"
           },
@@ -2373,6 +2734,16 @@
           },
           "backdrop": {
             "type": "string"
+          },
+          "cdDisc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "console": {
             "type": "string"
@@ -3670,6 +4041,9 @@
           },
           "audioIndex": {
             "type": "integer"
+          },
+          "cdUrl": {
+            "type": "string"
           },
           "container": {
             "type": "string"
@@ -5232,6 +5606,245 @@
           "Server"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/cd-covers/{release}": {
+      "get": {
+        "operationId": "getCdCover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "release",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A release's cover, small, for choosing between matches.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/cd/{id}": {
+      "get": {
+        "operationId": "getCd",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A disc's tracks and layout: the map of its stream, and this person's place on it.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/cd/{id}/audio": {
+      "get": {
+        "operationId": "getCdAudio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "flac (the default), wav (with byte ranges) or aac",
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "track numbers in the order to play them, separated by commas; left out, the whole disc as it is laid out. 0 is the hidden track.",
+            "in": "query",
+            "name": "tracks",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "how many times round, at most 64",
+            "in": "query",
+            "name": "loops",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "the sample of this program to start from; a new request is how flac and aac seek",
+            "in": "query",
+            "name": "start",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "0 to leave pre-emphasised tracks as they are",
+            "in": "query",
+            "name": "deemphasis",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The disc as one continuous stream.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/cd/{id}/graphics": {
+      "get": {
+        "operationId": "getCdGraphics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "the first sector",
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "how many, at most 45000",
+            "in": "query",
+            "name": "sectors",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CD+G packets for a run of sectors.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/cd/{id}/identify": {
+      "post": {
+        "operationId": "postCdIdentify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use a release's names and cover. An empty releaseId goes back to the disc's own.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/cd/{id}/matches": {
+      "get": {
+        "operationId": "getCdMatches",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this disc could be, asked of MusicBrainz using only its table of contents.",
+        "tags": [
+          "Audio CDs"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/channels": {

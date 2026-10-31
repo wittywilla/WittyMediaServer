@@ -1,0 +1,223 @@
+/* The CD player: a desktop media player of the early 2000s, as we'd draw one. It is an
+   object, so it stays dark in every theme, with the theme's accent running through its
+   frame and its lit display. The disc loading screen's lid and disc sit inside it. */
+
+.cdp-page { position: relative; padding-bottom: var(--sp-6); }
+.cdp-insert { position: fixed; inset: 0; z-index: 60; background: #000; }
+
+/* ---------------------------------------------------------------- the window */
+.cdw {
+  --cd-led: #39ff88;
+  --cd-screen: #05090f;
+  --cdw-hi: #2c3a52;
+  --cdw-lo: #121823;
+  --cdw-line: rgba(255, 255, 255, .13);
+  /* Everything inside reads as part of the object, whatever the page's theme is. */
+  --fg: #e9eef7; --fg-2: #bcc6d6; --fg-3: #9daabf;
+  --bg-2: #141b26; --bg-3: #1d2635; --bg-4: #28334a;
+  --accent-text: #9fc2ff; --focus: #fff;
+  color: var(--fg);
+  margin: var(--sp-3) auto 0; max-width: 1180px; border-radius: 14px; padding: 4px;
+  background: linear-gradient(180deg, var(--cdw-hi), var(--cdw-lo) 62%, #0a0e15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 0 1px rgba(255, 255, 255, .06);
+  font-family: 'Segoe UI', Tahoma, Verdana, system-ui, sans-serif;
+}
+@supports (color: color-mix(in oklab, red, blue)) {
+  .cdw {
+    --cd-led: color-mix(in oklab, var(--accent-text) 42%, #dcffe9);
+    --cdw-hi: color-mix(in srgb, var(--accent) 42%, #26334a);
+    --cdw-lo: color-mix(in srgb, var(--accent) 14%, #10151f);
+    --accent-text: color-mix(in oklab, var(--accent) 45%, #eaf1ff);
+  }
+}
+
+/* The title strip, with its sheen across the top half. */
+.cdw-title { position: relative; display: flex; align-items: center; gap: 9px; min-height: 30px; padding: 3px 12px; font-size: var(--text-sm); }
+.cdw-title::before { content: ""; position: absolute; left: 2px; right: 2px; top: 1px; height: 46%; border-radius: 11px 11px 40% 40% / 11px 11px 6px 6px; background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.03)); pointer-events: none; }
+.cdw-brand { font-weight: 700; letter-spacing: .02em; color: #fff; white-space: nowrap; }
+.cdw-brand b { font-weight: 800; color: var(--accent-text); }
+.cdw-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2); }
+.cdp-led { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #2c3324; box-shadow: inset 0 1px 1px rgba(0,0,0,.6); }
+.cdp-led.on { background: var(--cd-led); box-shadow: 0 0 8px var(--cd-led); }
+
+.cdw-body { display: grid; gap: 4px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .cdw-body { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); } }
+
+/* --------------------------------------------------------- now playing and display */
+.cdw-main { display: grid; gap: 4px; align-content: start; container-type: inline-size; min-width: 0; }
+.cdw-stage { position: relative; aspect-ratio: 16 / 9; min-height: 190px; max-height: 60vh; width: 100%; overflow: hidden; border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 60%, #1b2230, #05070b 74%); box-shadow: inset 0 1px 6px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.06); }
+.cdw-viz { position: absolute; inset: 0; }
+.cdw-viz .wv-stage { padding: 0; margin: 0; border: 0; box-shadow: none; }
+
+/* The drive's lid and its window, as on the loading screen. */
+.cdp-lid { position: absolute; left: 7%; right: 7%; top: 12%; bottom: 9%;
+  background: linear-gradient(180deg, #2b2f38, #3a3e48 70%, #464b57); clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%); box-shadow: inset 0 -3px 0 #555b68; }
+.cdp-shine { position: absolute; left: 12%; right: 12%; top: 8%; height: 22%; background: linear-gradient(180deg, rgba(255,255,255,.07), transparent); border-radius: 50%; pointer-events: none; }
+.cdp-well { position: absolute; left: 50%; top: 50%; height: 88%; aspect-ratio: 1 / .62; transform: translate(-50%, -50%); border-radius: 50%; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #0d0e12 0 18%, #1a1c22 19% 62%, #121318 63% 70%, #2d3039 71%); box-shadow: inset 0 6px 12px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.05); }
+.cdp-well::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(160deg, rgba(255,255,255,.1), transparent 34%, rgba(0,0,0,.22)); pointer-events: none; }
+/* A circle squashed to the same perspective as the tray in the loading screen. */
+.cdp-plane { position: absolute; left: 6%; right: 6%; top: 50%; aspect-ratio: 1; transform: translateY(-50%) scaleY(.62); }
+.cdp-disc { position: relative; width: 100%; height: 100%; border-radius: 50%; will-change: transform;
+  background: conic-gradient(from 30deg, #ddd, #9be, #fdf, #cfc, #ffd, #ddd, #bde, #fcf, #ddd);
+  box-shadow: 0 8px 16px rgba(0,0,0,.55); transition: transform .4s var(--ease-out, ease-out), opacity .4s; }
+.cdp-disc.spin { animation: cdp-spin 2.2s linear infinite; }
+.cdw.ejecting .cdp-disc { transform: translateY(-120%); opacity: 0; animation: none; }
+@keyframes cdp-spin { to { transform: rotate(360deg); } }
+.cdp-label { position: absolute; inset: 20%; border-radius: 50%; background: #222 center/cover no-repeat; display: grid; place-items: start center; color: #fff; font: 700 clamp(9px, 1.9cqw, 16px)/1.15 system-ui, sans-serif;
+  text-align: center; padding: 9% 16% 0; overflow: hidden; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.cdp-label span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cdp-hole { position: absolute; left: 50%; top: 50%; width: 13%; height: 13%; transform: translate(-50%, -50%); border-radius: 50%; background: #0c0d10; box-shadow: 0 0 0 clamp(4px, .9cqw, 8px) rgba(255,255,255,.35); }
+.cdp-cdg { position: absolute; left: 50%; top: 50%; height: 92%; aspect-ratio: 300 / 216; transform: translate(-50%, -50%); border-radius: 4px; opacity: 0; background: #000; image-rendering: pixelated; box-shadow: 0 0 0 1px rgba(255,255,255,.1); transition: opacity .3s; }
+.cdp-cdg.on { opacity: 1; }
+
+/* The lit display. */
+.cdp-display { min-width: 0; }
+.cdp-lcd { display: grid; grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "track index time" "title title title" "cal cal cal" "flags flags flags" "meter meter meter";
+  gap: clamp(4px, .7cqw, 7px) clamp(12px, 2.2cqw, 24px); padding: clamp(9px, 1.4cqw, 14px); border-radius: 8px; background: var(--cd-screen); color: var(--cd-led);
+  box-shadow: inset 0 2px 10px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.08); font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.d-cell { display: grid; gap: 2px; background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; }
+.d-cell small { font-size: clamp(9px, 1.2cqw, 12px); letter-spacing: .12em; opacity: .85; font-weight: 600; }
+.d-cell b { font-size: clamp(24px, 4.8cqw, 44px); line-height: 1; font-weight: 700; text-shadow: 0 0 10px color-mix(in srgb, var(--cd-led) 40%, transparent); }
+.d-cell:nth-child(1) { grid-area: track; } .d-cell:nth-child(2) { grid-area: index; }
+.d-time { grid-area: time; justify-items: end; text-align: right; cursor: pointer; border-radius: 4px; }
+.d-title { grid-area: title; overflow: hidden; white-space: nowrap; font-size: clamp(13px, 1.9cqw, 17px); padding-top: 2px; }
+.d-title span { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.d-cal { grid-area: cal; display: flex; flex-wrap: wrap; gap: 2px 7px; font-size: clamp(10px, 1.3cqw, 12px); line-height: 1.2; min-height: 1.2em; }
+.d-cal i { font-style: normal; opacity: .78; min-width: 1.35em; text-align: center; }
+.d-cal i.off { opacity: .28; }
+.d-cal i.cur { opacity: 1; background: var(--cd-led); color: var(--cd-screen); border-radius: 2px; font-weight: 700; }
+.d-flags { grid-area: flags; display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: clamp(9px, 1.2cqw, 11px); letter-spacing: .08em; font-weight: 600; min-height: 1.2em; }
+.d-flags span { opacity: .2; }
+.d-flags span.on { opacity: 1; }
+.d-meter { grid-area: meter; display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; font-size: clamp(9px, 1.2cqw, 11px); }
+.d-meter span { opacity: .8; }
+/* Segments: a stripe that only shows where the bar has grown to. */
+.d-meter div { height: 6px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.1) 0 5px, transparent 5px 7px); overflow: hidden; border-radius: 1px; }
+.d-meter i { display: block; height: 100%; width: 100%; will-change: transform; transform: scaleX(0); transform-origin: left; background: repeating-linear-gradient(90deg, var(--cd-led) 0 5px, transparent 5px 7px); }
+
+/* -------------------------------------------------------------------- the side */
+.cdw-side { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: linear-gradient(180deg, #151c29, #0e131c); box-shadow: inset 0 0 0 1px var(--cdw-line); }
+.cdp-head { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.cdw-cover { flex: none; width: 76px; height: 76px; border-radius: 6px; overflow: hidden; display: grid; place-items: center; color: rgba(255,255,255,.75); background: var(--bg-3) center/cover no-repeat; box-shadow: 0 1px 4px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.12); }
+.cdw-cover img { width: 100%; height: 100%; object-fit: cover; }
+.cdw-head-text { min-width: 0; }
+.cdp-head h1 { font-size: var(--text-xl, 20px); line-height: 1.2; margin: 0; overflow-wrap: anywhere; color: #fff; }
+.cdp-artist { margin: 2px 0 0; font-size: var(--text-sm); color: var(--fg-2); }
+.cdp-sum { margin: 1px 0 0; font-size: var(--text-xs); color: var(--fg-3); }
+.cdp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.cdw .btn.ghost { color: var(--fg); border-color: var(--cdw-line); }
+.cdp-note { padding: var(--sp-2) var(--sp-3); border-radius: 6px; background: var(--bg-3); border-left: 3px solid var(--accent-text); font-size: var(--text-sm); }
+.cdp-details { padding: var(--sp-3); border-radius: 6px; background: var(--bg-3); font-size: var(--text-sm); }
+.cdp-details dl { display: grid; gap: 6px; margin: 0 0 var(--sp-3); }
+.cdp-details dl div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--sp-2); }
+.cdp-details dt { color: var(--fg-3); }
+.cdp-details dd { margin: 0; overflow-wrap: anywhere; }
+.cdp-q { display: grid; gap: 6px; }
+.cdp-q .select { max-width: 100%; }
+
+/* The list: a table of tracks in a sunken pane. */
+.cdw-list { flex: 1; min-height: 0; border-radius: 6px; background: #080c13; box-shadow: inset 0 1px 4px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.07); overflow: hidden; }
+.cdw-list-head { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: var(--sp-2); padding: 4px 10px; font-size: var(--text-2xs); font-weight: 600; letter-spacing: .03em; color: var(--fg-2); background: linear-gradient(180deg, #2a3446, #1a2230); border-bottom: 1px solid #000; }
+.cdp-tracks { list-style: none; margin: 0; padding: 0; display: grid; }
+.cdp-tracks li { display: flex; align-items: center; min-width: 0; }
+.cdp-tracks li:nth-child(even) { background: rgba(255,255,255,.03); }
+.cdp-tracks li.on { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, #1a2230), color-mix(in srgb, var(--accent) 22%, #101620)); }
+.cdp-row { flex: 1; min-width: 0; min-height: 44px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center; padding: 4px 10px; background: none; border: 0; color: var(--fg); text-align: left; cursor: pointer; font: inherit; }
+.cdp-row:hover:not(:disabled) { background: rgba(255,255,255,.07); }
+.cdp-row:disabled { cursor: default; color: var(--fg-3); }
+.cdp-row .n { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.cdp-row .t { min-width: 0; display: grid; }
+.cdp-row .t b { font-weight: 500; font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdp-row .t small { color: var(--fg-2); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdp-row .p { font-size: var(--text-2xs); color: var(--fg-2); border: 1px solid rgba(255,255,255,.28); padding: 1px 5px; border-radius: 3px; }
+.cdp-row .d { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.cdp-tracks li.on .cdp-row .t b, .cdp-tracks li.on .cdp-row .n, .cdp-tracks li.on .cdp-row .d, .cdp-tracks li.on .cdp-row .t small { color: #fff; }
+.cdp-tracks li.on .cdp-row .t b { font-weight: 600; }
+.cdp-add { flex: none; color: var(--fg); }
+/* The bars beside the playing track stay still: the disc and the meter are already
+   moving, and on a small box each moving thing has a price. */
+.cdp-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.cdp-eq b { display: block; width: 3px; background: #fff; height: 60%; }
+.cdp-eq b:nth-child(2) { height: 100%; }
+.cdp-eq b:nth-child(3) { height: 40%; }
+.cdp-program { padding: var(--sp-3); border-radius: 6px; background: var(--bg-3); font-size: var(--text-sm); display: grid; gap: var(--sp-2); }
+.cdp-program p { margin: 0; color: var(--fg-2); }
+.cdp-program ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.cdp-program li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.cdp-program li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --------------------------------------------------------- the control bar */
+.cdw-bar { display: grid; gap: 6px; margin-top: 4px; padding: 8px 12px 10px; border-radius: 8px 8px 11px 11px; background: linear-gradient(180deg, #2b3546 0, #1a212e 45%, #10151e 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(255,255,255,.05); }
+.cdp-seek { width: 100%; margin: 2px 0; }
+.cdp-seek-empty { height: 18px; }
+.cdw-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.cdw-side-keys { display: flex; gap: 6px; }
+.cdp-keys { display: flex; align-items: center; gap: 6px; margin-inline: auto; }
+/* Glossy round keys that sink as they are pressed. */
+.cdp-key { flex: none; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: #eef2f9;
+  background: radial-gradient(circle at 50% 22%, rgba(255,255,255,.34), rgba(255,255,255,.04) 46%, rgba(0,0,0,.2)), linear-gradient(180deg, #55617a, #27303f);
+  box-shadow: 0 2px 4px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.2), inset 0 -2px 3px rgba(0,0,0,.4); transition: transform 80ms ease-out, filter var(--dur-2, 150ms); }
+.cdp-key svg { width: 22px; height: 22px; }
+.cdp-key.small { width: 44px; height: 44px; }
+.cdp-key.small svg { width: 19px; height: 19px; }
+/* Its icon is the theme's own colour for things on the accent, so a bright accent still shows it. */
+.cdp-key.play { width: 66px; height: 66px; color: var(--accent-fg, #fff); margin-inline: 4px;
+  background: radial-gradient(ellipse 70% 42% at 50% 16%, rgba(255,255,255,.42), rgba(255,255,255,0) 100%), linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 88%, #000));
+  box-shadow: 0 2px 7px rgba(0,0,0,.7), 0 0 0 3px rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.3), inset 0 -3px 5px rgba(0,0,0,.35); }
+.cdp-key.play svg { width: 32px; height: 32px; }
+.cdp-key:hover:not(:disabled) { filter: brightness(1.14); }
+.cdp-key:active:not(:disabled) { transform: translateY(1px) scale(.97); }
+.cdp-key:disabled { opacity: .45; cursor: default; }
+.cdw :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.cdw .cdp-row:focus-visible { outline-offset: -2px; }
+.cdp-modes { display: flex; flex-wrap: wrap; gap: 5px; }
+.cdp-mode { min-height: 32px; padding: 0 11px; border: 1px solid rgba(255,255,255,.18); border-radius: 15px; color: var(--fg); font-family: inherit; font-weight: 600; font-size: var(--text-xs, 12px); line-height: 1; cursor: pointer;
+  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.02) 55%, rgba(0,0,0,.14)); }
+.cdp-mode:hover:not(:disabled) { filter: brightness(1.2); }
+.cdp-mode:disabled { opacity: .5; cursor: default; }
+.cdp-mode.on { color: var(--accent-fg, #fff); border-color: rgba(255,255,255,.4); background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 88%, #000)); }
+@media (pointer: coarse), (max-width: 720px) { .cdp-mode { min-height: 44px; border-radius: 22px; } .d-time { min-height: 44px; } .cdw-brand { display: none; } .cdw .btn.sm { min-height: 44px; } }
+/* On a phone: the picture, the display, then the controls, with the tracks below. The
+   transport has a row to itself, and the rest share the next. */
+@media (max-width: 899px) {
+  .cdw { display: flex; flex-direction: column; }
+  .cdw-body { display: contents; }
+  .cdw-title { order: 0; } .cdw-main { order: 1; } .cdw-bar { order: 2; margin-top: 0; border-radius: 8px; } .cdw-side { order: 3; }
+  .cdw { gap: 4px; }
+}
+@media (max-width: 620px) {
+  .cdw-controls { justify-content: center; }
+  .cdp-keys { order: -1; flex-basis: 100%; justify-content: center; gap: 2px; }
+  .cdp-key { width: 46px; height: 46px; }
+  .cdp-key.play { width: 62px; height: 62px; margin-inline: 2px; }
+  .cdw-stage { aspect-ratio: 16 / 10; }
+}
+@media (max-width: 340px) { .cdp-keys .cdp-key:not(.play) { width: 44px; height: 44px; } .cdp-key.play { width: 56px; height: 56px; margin-inline: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cdp-disc.spin { animation: none; }
+  .cdp-disc, .cdp-key, .cdp-cdg { transition: none; }
+}
+
+/* ---------------------------------------------------------------- outside it */
+.cdp-credit, .cdp-keyhelp { font-size: var(--text-xs); margin: var(--sp-2) auto 0; max-width: 1180px; }
+.cdp-keyhelp kbd { font: inherit; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); border-radius: 3px; }
+@media (pointer: coarse), (max-width: 720px) { .cdp-keyhelp { display: none; } }
+
+/* Choosing which album it is. */
+.cdp-identify { width: min(640px, calc(100vw - 32px)); max-height: min(84vh, 760px); overflow-y: auto; display: grid; gap: var(--sp-3); }
+.cdp-identify p { margin: 0; }
+.cdp-id-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.cdp-id-head h2 { margin: 0; }
+.cdp-matches { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.cdp-match { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: start; padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg-3); }
+.cdp-thumb { width: 56px; height: 56px; border-radius: var(--r-sm); background: var(--bg-4); display: grid; place-items: center; overflow: hidden; color: var(--fg-3); }
+.cdp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cdp-mt { min-width: 0; display: grid; gap: 2px; font-size: var(--text-sm); justify-items: start; }
+.cdp-mt > b { font-size: var(--text-md); overflow-wrap: anywhere; }
+.cdp-fuzzy { color: var(--fg-2); }
+.cdp-link { background: none; border: 0; padding: 4px 0; color: var(--accent-text); font: inherit; font-size: var(--text-xs); cursor: pointer; text-decoration: underline; }
+.cdp-mtracks { margin: 4px 0 0; padding-left: 20px; font-size: var(--text-xs); color: var(--fg-2); }
+@media (max-width: 560px) { .cdp-match { grid-template-columns: 44px minmax(0, 1fr); } .cdp-match .btn { grid-column: 2; justify-self: start; } .cdp-thumb { width: 44px; height: 44px; } }

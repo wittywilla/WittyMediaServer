@@ -109,7 +109,7 @@ export default function SettingsPage() {
 const TYPES: { v: string; label: string; hint: string }[] = [
   { v: 'movies', label: 'Movies', hint: 'Movie files; disc images of movies can go here too' },
   { v: 'shows', label: 'TV shows', hint: 'Series in season folders; disc images of a series too' },
-  { v: 'discs', label: 'DVDs & Blu-rays', hint: 'Disc images of movies and series, with their menus' },
+  { v: 'discs', label: 'DVDs, Blu-rays & CDs', hint: 'Disc images: movies and series with their menus, audio CDs in a CD player' },
   { v: 'anime', label: 'Anime', hint: 'Series with AniList information' },
   { v: 'music', label: 'Music', hint: 'Albums and songs' },
   { v: 'audiobooks', label: 'Audiobooks', hint: 'Books to listen to, by chapter' },

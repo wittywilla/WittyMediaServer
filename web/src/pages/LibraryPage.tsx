@@ -141,7 +141,7 @@ function VideoLibrary() {
       {!isShows && discCount.all > 0 && (lib.type === 'discs' ? discCount.tv > 0 && discCount.tv < discCount.all : true) && (
         <div className="seg shelf-seg" role="tablist" aria-label="Show">
           {(lib.type === 'discs'
-            ? [['', 'All discs'], ['movie', 'Movies'], ['tv', 'TV series']]
+            ? [['', 'All discs'], ['movie', 'Movies'], ['tv', 'TV series'], ['music', 'Music']]
             : [['', 'Everything'], ['discs', 'DVDs & Blu-rays'], ...(discCount.tv ? [['tv', 'TV series on disc']] : [])]
           ).map(([k, l]) => <button key={k} role="tab" aria-selected={shelf === k} className={shelf === k ? 'active' : ''} onClick={() => set('shelf', k)}>{l}</button>)}
         </div>

@@ -139,7 +139,7 @@ func (s *Server) streamRoutes(pattern string) func(*http.Request, *streamGrant) 
 	}
 	switch pattern {
 	case "GET /api/items/{id}/file", "GET /api/items/{id}/stream", "GET /api/items/{id}/poster", "GET /api/items/{id}/backdrop",
-		"GET /api/items/{id}/subtitles/{file}", "GET /api/items/{id}/disc/thumb/{ttn}/{n}",
+		"GET /api/items/{id}/subtitles/{file}", "GET /api/items/{id}/disc/thumb/{ttn}/{n}", "GET /api/cd/{id}", "GET /api/cd/{id}/audio", "GET /api/cd/{id}/graphics",
 		"GET /api/radio/{id}/stream", "GET /api/radio/{id}/hls":
 		return item
 	case "GET /api/hls/{id}/playlist.m3u8", "GET /api/hls/{id}/master.m3u8", "GET /api/hls/{id}/seg/{n}", "GET /api/hls/{id}/subs/{file}":

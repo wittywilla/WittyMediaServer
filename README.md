@@ -180,6 +180,7 @@ repository:
 |---|---|
 | [**WittyDVD**](https://github.com/wittywilla/WittyDVD) | DVD-Video engine: the disc's virtual machine, menus, highlights and subtitles |
 | [**WittyBluray**](https://github.com/wittywilla/WittyBluray) | Blu-ray engine: HDMV navigation, interactive menus, pop-ups, subtitles, 4K/HDR |
+| [**WittyCD**](https://github.com/wittywilla/WittyCD) | Audio CD images played gaplessly as one continuous stream, with their tracks, indexes and CD-TEXT |
 | [**WittyDisc**](https://github.com/wittywilla/WittyDisc) | Reads ISO 9660 and UDF disc images without mounting them |
 | [**WittyTuner**](https://github.com/wittywilla/WittyTuner) | TV tuners and IPTV behind one interface; encrypted channels are refused |
 | [**WittyInk**](https://github.com/wittywilla/WittyInk) | What the readers share: highlights, notes, pen with pressure, panels |
@@ -206,7 +207,7 @@ starts in about half a second. Details: [Reference → Architecture](docs/REFERE
 ## Privacy & security
 
 - **Nothing leaves your home** except the titles of your media, and only for the metadata agents you
-  keep switched on.
+  keep switched on. Audio CDs are looked up by their table of contents alone: no names, no audio.
 - **No telemetry, no accounts with anyone, no cloud.** Logs stay on your computer and never contain
   passwords or session tokens.
 - **Hardened by default:** cross-site requests are refused, artwork and books can't run scripts, feeds

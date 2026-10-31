@@ -5,6 +5,7 @@ import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, 
 import { Placeholder } from '../components/common'
 import { setSpeed, SPEEDS } from '../player/Controls'
 import { toast } from '../state'
+import { useCdEngine, type CdActions, type CdNow } from './cdEngine'
 
 // The audio player: music, audiobooks and podcasts. One <audio> element for
 // the whole app, a queue, and a bar along the bottom that keeps playing
@@ -40,6 +41,12 @@ type AudioCtx = {
 const Ctx = createContext<AudioCtx | null>(null)
 export const useAudio = () => useContext(Ctx)!
 
+// The CD player's view of things. A context of its own, as it changes several
+// times a second and only the CD page and the bar care.
+export type CdCtxValue = { now: CdNow | null; actions: CdActions; audioEl: HTMLAudioElement | null; playing: boolean; toggle: () => void }
+const CdCtx = createContext<CdCtxValue | null>(null)
+export const useCd = () => useContext(CdCtx)!
+
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const audio = useRef<HTMLAudioElement | null>(null)
   const [queue, setQueue] = useState<Item[]>([])
@@ -70,6 +77,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const books = mode === 'audiobooks' || mode === 'podcasts'
   const live = mode === 'radio' // a station: no seeking, no speed
   const listened = useRef(0) // seconds of this track, for Your year
+  // A disc in the player: one stream, and tracks are places in it, so the queue
+  // only mirrors it for the bar and the lock screen.
+  const cdOn = useRef(false)
+  const cd = useCdEngine(audio, {
+    onDisc: (items) => {
+      cdOn.current = !!items
+      setFull(false)
+      setMode('music')
+      setQueue(items || [])
+      setIndex(0)
+    },
+    onTrack: (i) => { if (i >= 0) setIndex(i) },
+    onTime: (t) => setTime(t),
+  })
   const lastAt = useRef(0)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
   // Each kind of listening keeps its own speed: 1.5× for audiobooks needn't
@@ -92,7 +113,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // is a panel beside the library, which stays usable, so browsing doesn't
   // close it.
   const docked = () => window.matchMedia('(min-width: 1000px)').matches
-  const openFull = () => { setFull(true); if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '') }
+  const openFull = () => { if (cdOn.current && cd.now) { nav(`/cd/${cd.now.disc.id}`); return } setFull(true); if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '') }
   const closeFull = () => { if (history.state?.wmsAudioFull) history.back(); else setFull(false) }
   useEffect(() => {
     if (!full) return
@@ -106,7 +127,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // Start (or switch) the track.
   useEffect(() => {
     const a = audio.current
-    if (!a || !current) return
+    if (!a || !current || cdOn.current) return
     const resume = books && current.progress && !current.progress.watched ? current.progress.positionSec : 0
     load(current, resume)
     a.play().catch(() => setPlaying(false))
@@ -164,6 +185,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const seek = (t: number) => {
     const a = audio.current
     if (!a || !current) return
+    if (cdOn.current) { cd.actions.seekInTrack(t); return }
     if (direct(current)) a.currentTime = t
     else { load(current, t); a.play().catch(() => {}) }
   }
@@ -279,6 +301,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, [sleepAt])
 
   const next = useCallback(() => {
+    if (cdOn.current) { cd.actions.next(); return }
     if (!queue.length) return
     if (shuffle && queue.length > 1) { let n = index; while (n === index) n = Math.floor(Math.random() * queue.length); setIndex(n); return }
     if (index + 1 < queue.length) setIndex(index + 1)
@@ -286,11 +309,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     else { audio.current?.pause() }
   }, [queue.length, index, shuffle, repeat])
   const prev = useCallback(() => {
+    if (cdOn.current) { cd.actions.prev(); return }
     if (position() > 4 || index === 0) { seek(0); return }
     setIndex(index - 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, current])
   const onEnded = () => {
+    if (cdOn.current) { cd.onEnded(); return }
     if (live) { setPlaying(false); return }
     if (current && books) api.post(`/items/${current.id}/progress`, { positionSec: current.runtimeSec, durationSec: current.runtimeSec }).catch(() => {})
     if (sleepAt === 'chapter') { setSleepAt(null); return }
@@ -332,13 +357,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const ctx = useMemo<AudioCtx>(() => ({
     queue, index, current, mode, playing, nowPlaying: nowPlaying?.id === current?.id ? nowPlaying?.title || '' : '',
-    play: (items, start = 0, m = 'music') => { setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) resume() },
-    enqueue: (items) => setQueue((q) => [...q, ...items]),
+    play: (items, start = 0, m = 'music') => { if (cdOn.current) cd.actions.eject(); setMode(m); setQueue(items); setIndex(start); if (items[start]?.id === current?.id) resume() },
+    enqueue: (items) => { if (cdOn.current) { cd.actions.eject(); setQueue(items); setIndex(0); return } setQueue((q) => [...q, ...items]) },
     toggle: () => { const a = audio.current; if (a) a.paused ? resume() : a.pause() },
     next, prev,
-    stop: () => { audio.current?.pause(); hangUp(); setQueue([]); if (history.state?.wmsAudioFull) history.back(); setFull(false) },
+    stop: () => { if (cdOn.current) cd.actions.eject(); audio.current?.pause(); hangUp(); setQueue([]); if (history.state?.wmsAudioFull) history.back(); setFull(false) },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [queue, index, current, mode, playing, next, prev, nowPlaying])
+
+  const cdValue = useMemo<CdCtxValue>(() => ({ now: cd.now, actions: cd.actions, audioEl: audio.current, playing, toggle: ctx.toggle }), [cd.now, cd.actions, playing, ctx.toggle])
+  const cdActive = cdOn.current && !!cd.now
 
   const dur = current?.runtimeSec || 0
   // The album (or audiobook, or podcast) the track belongs to.
@@ -351,16 +379,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }
   return (
     <Ctx.Provider value={ctx}>
-      {children}
-      <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPlaying={() => { if (live) wasPlaying.current = true }}
+      <CdCtx.Provider value={cdValue}>{children}</CdCtx.Provider>
+      <audio ref={audio} preload="auto" onPlay={() => { setPlaying(true); if (cdOn.current) cd.onPlay() }} onPlaying={() => { if (live) wasPlaying.current = true }}
         onPause={() => {
           setPlaying(false)
+          if (cdOn.current) cd.onPause()
           if (!live) return
           // At the end of a stream the browser pauses too: that's a dropped connection.
           if (audio.current?.ended && wasPlaying.current) reconnect()
           else hangUp()
         }} onEnded={onEnded}
+        onWaiting={() => { if (cdOn.current) cd.onWaiting() }}
+        onEmptied={() => { if (cdOn.current) setPlaying(!audio.current?.paused) }}
         onError={() => {
+          if (cdOn.current) { cd.onError(); return }
           if (!live || !current || !audio.current?.getAttribute('src')) return
           if (wasPlaying.current) { reconnect(); return }
           const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`) }
@@ -374,6 +406,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           }).catch(fail)
         }}
         onTimeUpdate={() => {
+          if (cdOn.current) {
+            const p = position(), d = p - lastAt.current
+            if (d > 0 && d < 5) listened.current += d
+            lastAt.current = p
+            cd.onTimeUpdate()
+            return
+          }
           const p = position(), d = p - lastAt.current
           if (d > 0 && d < 5) listened.current += d
           if (d > 0) progressAt.current = Date.now()
@@ -381,7 +420,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           lastAt.current = p
           setTime(p)
         }} />
-      {current && !loc.pathname.startsWith('/play/') && (
+      {current && !loc.pathname.startsWith('/play/') && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (
         <div className={'audio-bar' + (full ? ' full' : '')} role="region" aria-label="Now playing">
           {full && (
             <div className="ab-top">
@@ -391,7 +430,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             </div>
           )}
           {full && <div className="ab-art-big" style={{ backgroundImage: current.poster ? `url(${posterUrl(current)})` : undefined, backgroundSize: live ? 'contain' : undefined, backgroundRepeat: 'no-repeat' }}>{live && !current.poster && <Placeholder title={current.title} />}</div>}
-          <button className="ab-art" onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
+          <button className={'ab-art' + (cdActive ? ' cd' + (playing ? ' spin' : '') : '')} onClick={full ? closeFull : openFull} aria-label={full ? 'Back' : 'Show the full player'} title="Show the full player">
             {current.poster ? <img src={posterUrl(current)} alt="" style={live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : live ? <Placeholder title={current.title} /> : <IconAudio />}
           </button>
           {full ? (
@@ -418,9 +457,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             <span>{fmtTime(dur)}</span>
           </div>}
           <div className="ab-extra">
-            {!books && !live && <button className={'btn sm ' + (shuffle ? 'primary' : 'ghost')} onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>Shuffle</button>}
-            {!books && !live && <button className={'btn sm ' + (repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => setRepeat(repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off')}>Repeat{repeat === 'one' ? ' 1' : ''}</button>}
-            {!live && <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
+            {cdActive
+              ? <button className={'btn sm ' + (cd.now!.shuffle ? 'primary' : 'ghost')} onClick={() => cd.actions.setShuffle(!cd.now!.shuffle)} aria-pressed={cd.now!.shuffle}>Shuffle</button>
+              : !books && !live && <button className={'btn sm ' + (shuffle ? 'primary' : 'ghost')} onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>Shuffle</button>}
+            {cdActive
+              ? <button className={'btn sm ' + (cd.now!.repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => cd.actions.setRepeat(cd.now!.repeat === 'off' ? 'all' : cd.now!.repeat === 'all' ? 'one' : 'off')}>Repeat{cd.now!.repeat === 'one' ? ' 1' : ''}</button>
+              : !books && !live && <button className={'btn sm ' + (repeat !== 'off' ? 'primary' : 'ghost')} onClick={() => setRepeat(repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off')}>Repeat{repeat === 'one' ? ' 1' : ''}</button>}
+            {!live && !cdActive && <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
               {SPEEDS.filter((r) => r <= maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
             </select>}
             {(books || live) && (

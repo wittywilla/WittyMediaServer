@@ -121,6 +121,7 @@ func cmdServe(args []string) int {
 	scanner.TVMazeOn = func() bool { return database.GetSetting(context.Background(), "tvmaze", "1") == "1" }
 	scanner.AnimeTitles = func() string { return database.GetSetting(context.Background(), "animeTitles", "english") }
 	scanner.WikidataOn = func() bool { return database.GetSetting(context.Background(), "wikidata", "1") == "1" }
+	scanner.MusicBrainzOn = func() bool { return database.GetSetting(context.Background(), "musicbrainz", "1") == "1" }
 	scanner.Agents = func() []library.Agent {
 		return library.ParseAgents(database.GetSetting(context.Background(), "agents", ""))
 	}

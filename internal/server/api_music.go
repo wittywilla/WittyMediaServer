@@ -103,6 +103,10 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		s.proxyEpisode(w, r, it) // a podcast episode that was not downloaded
 		return
 	}
+	if it.IsCDTrack() {
+		s.streamCDTrack(w, r, it)
+		return
+	}
 	if !s.Store.LibraryFile(r.Context(), it.Path) {
 		writeErr(w, 404, "not found")
 		return

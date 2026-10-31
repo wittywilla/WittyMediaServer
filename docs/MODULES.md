@@ -32,6 +32,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyDisc** | Reads DVD and Blu-ray disc images (UDF 1.02 and 2.50, ISO 9660) without mounting them | WittyDVD, WittyBluray |
 | **WittyDVD** | DVD-Video engine: menus, navigation, angles, subtitles. Go library + CLI + diagnostics | WittyMediaServer, WittyMediaPlayer |
 | **WittyBluray** | The same for Blu-ray, including 3D discs | WittyMediaServer, WittyMediaPlayer |
+| **WittyCD** | Audio CD images: cue, toc, ccd, nrg and chd, played as one continuous stream, with its own FLAC encoder. Go library + CLI + diagnostics, no dependencies | WittyMediaServer |
 | **WittyPlay** | Console games streamed to a browser or an app: a libretro game runner in its own sandboxed process, WebRTC with fallbacks, every controller, a touch layout editor | WittyMediaServer |
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
 | **WittyModule** | What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool. Go, no dependencies | Every plugin, WittyMediaServer |
@@ -45,7 +46,7 @@ The server's libraries carry the name where it reads naturally:
 | Library | Plugin |
 |---|---|
 | Films, shows and anime | **WittyVideo** |
-| Discs | **WittyDVD**, **WittyBluray** |
+| Discs | **WittyDVD**, **WittyBluray**, **WittyCD** |
 | Music and audiobooks | **WittyAudio** |
 | Podcasts | **WittyPodcasts** |
 | Books, PDFs and comics | **WittyEbook**, **WittyPDF**, **WittyComics** |
@@ -75,6 +76,7 @@ modules/                    Go plugins
   wittydisc/                → github.com/wittywilla/WittyDisc
   wittydvd/                 → github.com/wittywilla/WittyDVD
   wittybluray/              → github.com/wittywilla/WittyBluray
+  wittycd/                  → github.com/wittywilla/WittyCD
   wittyintegratedfilebrowser/ → github.com/wittywilla/WittyIntegratedFileBrowser (Go, with its React half in web/)
   wittymodule/              → github.com/wittywilla/WittyModule
   wittyphotos/              → github.com/wittywilla/WittyPhotos
@@ -230,6 +232,7 @@ project.
 | **WittyPhotos** | Helper: **converted** | Stateless parsers of untrusted files, and scanning already does file I/O per call |
 | WittyDVD, WittyBluray | Helper, one per open disc, **later** | Performance turns out not to be the obstacle: FFmpeg already reads the disc image directly from the extents the engine gives it, so video never passes through the engine, only menus and button presses. The work is the size of the API the session code uses (`internal/dvdsession`, `internal/bdsession`) |
 | WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
+| WittyCD | Helper, **later**, for reading images only | Reading an image is a stateless parse of untrusted files, which suits a helper. Samples would then go directly to the listener from the image's extents, as FFmpeg already reads DVD extents, so there is no cost to playback |
 | WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
 | WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
 | WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |

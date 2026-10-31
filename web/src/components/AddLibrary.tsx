@@ -11,7 +11,7 @@ import { BiosHint, ConsolePicker } from '../pages/Games'
 export const LIB_TYPES = [
   { type: 'movies', name: 'Movies', hint: 'Movie files. DVD and Blu-ray images of movies can go here too, and play with their menus' },
   { type: 'shows', name: 'TV shows', hint: 'One folder per show, with season folders inside. Disc images of a series are welcome too' },
-  { type: 'discs', name: 'DVDs & Blu-rays', hint: 'A shelf just for disc images and folders, movies and TV series together, played with their real menus' },
+  { type: 'discs', name: 'DVDs, Blu-rays & CDs', hint: 'A shelf just for disc images and folders: movies and TV series with their real menus, and audio CDs in a CD player' },
   { type: 'anime', name: 'Anime', hint: 'Series with AniList information; also collects anime found in your TV shows' },
   { type: 'music', name: 'Music', hint: 'Albums by artist; tags and covers are read from the files' },
   { type: 'audiobooks', name: 'Audiobooks', hint: 'One folder per book; picks up where you stopped' },

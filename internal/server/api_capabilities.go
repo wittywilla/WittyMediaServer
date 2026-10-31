@@ -62,7 +62,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 var serverFeatures = []string{
 	"profiles", "pairing", "pair-invite", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
-	"dvd", "dvd-menus", "bluray", "bluray-menus",
+	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata",
@@ -115,7 +115,7 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 			"directPlay": s.DB.GetSetting(ctx, "directPlay", "1") == "1",
 		},
 		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "radio"},
-		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "audio", "book", "radio"},
+		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "cd-image", "audio", "book", "radio"},
 	})
 }
 

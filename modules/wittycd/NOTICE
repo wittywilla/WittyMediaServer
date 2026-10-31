@@ -1,0 +1,17 @@
+WittyCD
+Copyright 2026 WittyWilla and contributors
+https://github.com/wittywilla/WittyCD
+
+This product includes software developed by WittyWilla as part of the
+WittyMediaServer project ("WittyCD, developed by WittyWilla").
+https://github.com/wittywilla/WittyMediaServer
+
+Under the Apache License, Version 2.0 (Section 4(d)), any redistribution of
+this software or derivative works must reproduce the attribution notices in
+this NOTICE file - in a NOTICE file, in documentation, or in an "About"
+display of the derivative work.
+
+WittyCD is an original implementation of CD image reading, written from the
+publicly documented formats. It contains no code from libcdio, cdparanoia,
+cdrdao or any other GPL library, and it does not decrypt or bypass any form of
+copy protection.

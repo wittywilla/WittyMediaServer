@@ -34,7 +34,7 @@ func smokeCheck(c *config, j job) (r Result) {
 		return r
 	}
 	saveDir := filepath.Join(work, "save")
-	p, err := start(c, saveDir)
+	p, err := start(c, saveDir, j.core.id)
 	if err != nil {
 		r.Outcome, r.Reason = OutcomeToolError, err.Error()
 		return r

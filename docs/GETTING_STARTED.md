@@ -116,6 +116,17 @@ the film or drive a disc's menu; `OK` brings up the player's own buttons, and mo
 or bottom edge hands the arrows back to the picture. A signed-in TV app is approved with a code at
 *your name → Sign in a TV*.
 
+
+## Adding games
+
+Add a Games library in Settings and choose your games folder, one per console or one holding a folder per console.
+Your own files only: nothing is bundled or downloaded. Install a core for each console in Settings, Gaming, and
+consoles that draw with a graphics card (Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS) need one in the server.
+
+**BIOS files:** PlayStation 2 needs one from a console you own, and some other consoles use one. Put them in a
+folder named `BIOS` inside that console's games folder, such as `PS2/BIOS`. Folders inside it are fine. It isn't
+listed as games, and the server picks up what it needs when you press Play.
+
 ## 8. Watch on other devices
 
 Any phone, tablet, laptop or smart-TV browser on the **same home network** (the same Wi-Fi or

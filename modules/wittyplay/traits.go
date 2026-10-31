@@ -89,8 +89,6 @@ var traits = map[string]CoreTraits{
 	"desmume": {Options: map[string]string{"desmume_pointer_type": "touch", "desmume_pointer_mouse": "enabled", "desmume_screens_layout": "top/bottom", "desmume_opengl_mode": "disabled"}},
 	"azahar": {GPU: true, Options: map[string]string{"citra_enable_touch_touchscreen": "enabled", "citra_enable_mouse_touchscreen": "disabled", "citra_enable_touch_pointer_timeout": "disabled", "citra_layout_option": "default"},
 		Resolution: pick("citra_resolution_factor", "1", "2", "3", "4")},
-	"citra": {GPU: true, Options: map[string]string{"citra_touch_touchscreen": "enabled", "citra_mouse_touchscreen": "disabled", "citra_layout_option": "Default Top-Bottom Screen"},
-		Resolution: pick("citra_resolution_factor", "1x (Native)", "2x", "3x", "4x")},
 	"panda3ds": {GPU: true},
 }
 

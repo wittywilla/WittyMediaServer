@@ -45,7 +45,7 @@ const FOLDER_HINT: Record<string, string> = {
   musicvideos: 'Name files Artist - Title, or keep one folder per artist. An .nfo or sidecar beside a file adds more. Recordings of 20 minutes or more appear under Concerts, with their chapters as the setlist.',
   channels: 'One folder per channel, with subfolders as playlists. Sidecar files beside a video add its title, date, description and saved comments, and a picture with its name becomes its thumbnail. Nothing is downloaded or looked up.',
   photos: 'Every picture and clip in here and in folders below it. Thumbnails are made when first looked at, so even a large collection scans quickly. Your files are never changed; uploads are saved in an Uploads folder inside it.',
-  games: 'Bring your own game files: nothing is bundled or downloaded. Zipped games work, and a .cue or .m3u keeps a multi-file game together.',
+  games: 'Bring your own game files: nothing is bundled or downloaded. Zipped games work, and a .cue or .m3u keeps a multi-file game together. BIOS files go in a folder named BIOS beside the games.',
 }
 
 export type Grouping = 'combine' | 'separate'

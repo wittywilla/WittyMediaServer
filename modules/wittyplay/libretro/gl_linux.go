@@ -3,6 +3,7 @@ package libretro
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"unsafe"
 
@@ -55,6 +56,7 @@ func newGLPlatform(req glRequest) (glPlatform, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: no OpenGL library (libEGL) is installed", ErrNoGPU)
 	}
+	useVirtualGPU()
 	var f eglFuncs
 	for name, slot := range map[string]*uintptr{
 		"eglGetProcAddress": &f.getProc, "eglInitialize": &f.initialize, "eglTerminate": &f.terminate, "eglBindAPI": &f.bindAPI, "eglChooseConfig": &f.chooseConfig,
@@ -130,6 +132,27 @@ func newGLPlatform(req glRequest) (glPlatform, error) {
 		return fallback, nil
 	}
 	return nil, fmt.Errorf("%w (tried: %s)", ErrNoGPU, strings.Join(tried, "; "))
+}
+
+// useVirtualGPU points the graphics library at the host's card under WSL, where the
+// only way to it is /dev/dxg and nothing else says so. The library reads these
+// through C, so that's how they're set, for this process only.
+func useVirtualGPU() {
+	if _, err := os.Stat("/dev/dxg"); err != nil {
+		return
+	}
+	libc, err := purego.Dlopen("libc.so.6", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		return
+	}
+	setenv, err := purego.Dlsym(libc, "setenv")
+	if err != nil {
+		return
+	}
+	for _, kv := range [][2]string{{"GALLIUM_DRIVER", "d3d12"}, {"MESA_D3D12_DEFAULT_ADAPTER_NAME", "NVIDIA"}} {
+		k, v := append([]byte(kv[0]), 0), append([]byte(kv[1]), 0)
+		call(setenv, uintptr(unsafe.Pointer(&k[0])), uintptr(unsafe.Pointer(&v[0])), 0) // an existing value stays
+	}
 }
 
 // integratedGPU spots a card that shares the machine's memory, to prefer any

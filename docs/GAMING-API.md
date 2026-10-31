@@ -53,11 +53,11 @@ Starting a game can answer:
 |---|---|
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
-| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core; otherwise `error` says why |
+| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. Otherwise `error` says why, such as this server having no graphics card for this game |
 | 422 | The file can't be used |
-| 503 | The server is running as many games as it allows, or its game runner is missing |
+| 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
 
-**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes}`.
+**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, renderer, modes}`. `renderer` names the graphics card, for a game drawn on one.
 Show the picture at `aspect` (width over height), not at the video's own shape: the video is often
 doubled, and consoles' pixels often aren't square.
 
@@ -135,6 +135,21 @@ An 11-byte binary message, little-endian, on the `input` data channel or the Web
 Send the whole state when anything changes, and again every 250 ms or so. A lost packet then corrects itself,
 which is why the channel doesn't retransmit. Repeats don't count as playing. Release everything when your
 app goes to the background or a menu opens.
+
+## Touch screens
+
+A console whose `pad` has `"pointer": true` has a touch screen. Send its state as a 6-byte binary message, on the same
+channel as controller states:
+
+| Bytes | Field | Meaning |
+|---|---|---|
+| 0 | mark | Always 255, which a controller state never starts with |
+| 1 | flags | Bit 0: pressed |
+| 2-3 | X | i16, -32767 at the picture's left edge to 32767 at its right |
+| 4-5 | Y | i16, -32767 at the top to 32767 at the bottom |
+
+Positions are across the whole picture, whatever the screens' layout. Send it at once when anything changes, and
+every 250 ms or so while pressed. Send a release a few times, because a lost one would hold the stylus down.
 
 ## Events
 

@@ -109,7 +109,8 @@ review, and playback speed on everything.
 
 ### 🎮 Games
 Your own game files, by console, played in the browser with a gamepad, keyboard or touch controls you
-can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency.
+can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency. Consoles that
+draw with a graphics card use the one in your server, and touch screens work with a mouse or a finger.
 Saves follow your profile. [How it works](docs/GAMING.md).
 
 </td>

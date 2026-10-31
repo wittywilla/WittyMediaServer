@@ -908,8 +908,8 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 	} else {
 		var vf []string
-		if f := holeFilter(sp.Holes, read, "select", "setpts"); f != "" {
-			vf = append(vf, f)
+		if keep, shift := holeExprs(sp.Holes, read); keep != "" {
+			vf = append(vf, fmt.Sprintf("select='%s',setpts='%s'", keep, shift))
 		}
 		if sp.VideoFilter != "" {
 			vf = append(vf, sp.VideoFilter)
@@ -961,8 +961,11 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.AudioFilter != "" {
 			af = sp.AudioFilter + "," + af
 		}
-		if f := holeFilter(sp.Holes, read, "aselect", "asetpts"); f != "" && sp.AudioInput == 0 {
-			af = f + "," + af
+		if keep, shift := holeExprs(sp.Holes, read); keep != "" && sp.AudioInput == 0 {
+			// Not aselect: in FFmpeg 8.0 it lets every frame through, so what was read
+			// past an item's end would play over the start of the next one. Marking
+			// the frames to keep and selecting those works in every version.
+			af = fmt.Sprintf("ametadata=mode=add:key=wms.keep:value=1:enable='%s',ametadata=mode=select:key=wms.keep,asetpts='%s',%s", keep, shift, af)
 		}
 		if sp.HoldLastFrame {
 			af += ",apad"
@@ -1073,10 +1076,10 @@ func holesPassed(holes []Hole, read float64) float64 {
 	return d
 }
 
-// holeFilter takes the holes still ahead out of a run of FFmpeg that started
-// reading at read, with its clock counting from there. sel and pts are the
-// filters that do it for this kind of stream; "" when there is nothing to do.
-func holeFilter(holes []Hole, read float64, sel, pts string) string {
+// holeExprs takes the holes still ahead out of a run of FFmpeg that started reading
+// at read, with its clock counting from there: which frames to keep, and their
+// times once the holes are closed. Both are "" when there is nothing to do.
+func holeExprs(holes []Hole, read float64) (keep, shift string) {
 	var inside, after []string
 	var passed float64
 	for _, h := range holes {
@@ -1089,9 +1092,9 @@ func holeFilter(holes []Hole, read float64, sel, pts string) string {
 		after = append(after, fmt.Sprintf("gte(T,%.6f)*%.6f", from+h.Length, h.Length))
 	}
 	if len(inside) == 0 {
-		return ""
+		return "", ""
 	}
-	return fmt.Sprintf("%s='not(%s)',%s='PTS-(%s)/TB'", sel, strings.Join(inside, "+"), pts, strings.Join(after, "+"))
+	return "not(" + strings.Join(inside, "+") + ")", "PTS-(" + strings.Join(after, "+") + ")/TB"
 }
 
 // textSubtitleFilter draws text subtitles from the file itself. The filter

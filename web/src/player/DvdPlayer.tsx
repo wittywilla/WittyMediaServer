@@ -160,7 +160,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       if (v && Math.abs(v.currentTime - p.title.startSec) > 1.5) v.currentTime = p.title.startSec
     }
     if (p.kind === 'title') {
-      if (!resumeUsed.current && startAt == null && item.progress?.resumeSec && item.progress.discTitle === p.title?.ttn) {
+      if (!resumeUsed.current && startAt == null && chapter == null && item.progress?.resumeSec && item.progress.discTitle === p.title?.ttn) {
         pendingSeek.current = item.progress.resumeSec
       } else if (resumeUsed.current || pendingSeek.current == null) {
         pendingSeek.current = p.title?.startSec || 0

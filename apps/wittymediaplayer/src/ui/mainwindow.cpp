@@ -1,5 +1,8 @@
 #include "mainwindow.h"
 
+#include "wvengine.h"
+#include "wvwidget.h"
+
 #include "../disc/disccontroller.h"
 #include "../engine/engineclient.h"
 #include "../media/audiooutput.h"
@@ -195,6 +198,7 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
     connect(bar_, &ControlBar::rootMenu, disc_, &DiscController::rootMenu);
     connect(bar_, &ControlBar::titleMenu, disc_, &DiscController::titleMenu);
     connect(bar_, &ControlBar::fullscreen, this, [this] { setFullscreen(!fullscreen_); });
+    connect(bar_, &ControlBar::visualizer, this, [this] { setVisualizer(!visualizerShowing()); });
 
     connect(player_, &Player::failed, this, [this](const QString &m) { showMessage(m, !disc_->active()); });
     connect(player_, &Player::discTrouble, this, [this](const QString &m) { setStatus(m); });
@@ -216,8 +220,14 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
             audioCaption_->setText(t.isEmpty() ? QFileInfo(currentPath_).completeBaseName() : t);
             audioCaption_->setVisible(art.isNull());
             layoutOverlays();
+            // Opening music is a choice someone just made, so their saved one can start now.
+            wv::Settings wanted;
+            wanted.load(settings_);
+            if (wanted.on && wanted.notice)
+                setVisualizer(true);
         } else {
             audioCaption_->hide();
+            setVisualizer(false);
         }
     });
     connect(player_, &Player::ended, this, [this] {
@@ -280,6 +290,8 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
     connect(&hideControls_, &QTimer::timeout, this, [this] {
         if (fullscreen_ && !bar_->underMouse() && !bar_->isAncestorOf(QApplication::focusWidget())) {
             bar_->hide();
+            if (viz_)
+                viz_->setControlsVisible(false);
             setCursor(Qt::BlankCursor);
         }
     });
@@ -299,6 +311,7 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
 MainWindow::~MainWindow()
 {
     qApp->removeEventFilter(this);
+    delete viz_; // it saves to settings_, which goes before the window's children do
 }
 
 void MainWindow::closeEvent(QCloseEvent *e)
@@ -372,6 +385,8 @@ void MainWindow::buildMenus()
 
     QMenu *view = menuBar()->addMenu(QStringLiteral("&View"));
     actFull_ = view->addAction(QStringLiteral("Full screen\tF"), this, [this] { setFullscreen(!fullscreen_); });
+    actViz_ = view->addAction(QStringLiteral("Visualizer\tV"), this, [this] { setVisualizer(!visualizerShowing()); });
+    actViz_->setCheckable(true);
     QMenu *themes = view->addMenu(QStringLiteral("Theme"));
     auto *group = new QActionGroup(this);
     const QString currentTheme = Themes::current().id;
@@ -393,7 +408,7 @@ void MainWindow::buildMenus()
         QMessageBox::information(this, QStringLiteral("Keyboard shortcuts"),
             QStringLiteral("Space or K: play or pause\nLeft and Right: back and forward 10 seconds\nUp and Down: volume\n"
                            "F: full screen, Esc: leave it\nA: next audio track\nS: next subtitle track\nN and P: next and previous chapter\n"
-                           "Number keys: go to a chapter\n\nOn a disc:\nArrow keys and Enter: choose in the disc's menu\nM: disc menu\nT: title menu"));
+                           "Number keys: go to a chapter\nV: visualizer, for music. While it's full screen: Left and Right change the effect, R random, S favourite, + and - strength\n\nOn a disc:\nArrow keys and Enter: choose in the disc's menu\nM: disc menu\nT: title menu"));
     });
     help->addAction(QStringLiteral("About WittyMediaPlayer"), this, [this] {
         QMessageBox::about(this, QStringLiteral("About WittyMediaPlayer"),
@@ -758,6 +773,7 @@ void MainWindow::stopPlayback(bool showStart)
     view_->clearPicture();
     view_->setOverlays({});
     audioCaption_->hide();
+    setVisualizer(false);
     currentPath_.clear();
     isFile_ = false;
     bar_->setHasMedia(false);
@@ -925,7 +941,13 @@ bool MainWindow::handleKey(int key, Qt::KeyboardModifiers)
     const bool discOn = disc_->active();
     const bool menuOn = discOn && disc_->inMenu();
     const bool has = player_->hasMedia();
+    // On the picture, or on the whole screen, its own keys come first: the arrows change effect.
+    if (visualizerShowing() && (fullscreen_ || viz_->view()->hasFocus()) && viz_->handleKey(key))
+        return true;
     switch (key) {
+    case Qt::Key_V:
+        setVisualizer(!visualizerShowing());
+        return true;
     case Qt::Key_Up:
     case Qt::Key_Down:
     case Qt::Key_Left:
@@ -1074,8 +1096,43 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e)
     QMainWindow::mouseMoveEvent(e);
 }
 
+bool MainWindow::visualizerShowing() const
+{
+    return viz_ && viz_->isVisible();
+}
+
+void MainWindow::setVisualizer(bool on)
+{
+    if (on && (!player_->hasMedia() || !player_->isAudioOnly())) {
+        if (bar_->visualizerButton()->isChecked())
+            bar_->visualizerButton()->setChecked(false);
+        setStatus(QStringLiteral("The visualizer is for music: open an audio file first."));
+        return;
+    }
+    if (on && !viz_) {
+        viz_ = new wv::VisualizerWidget(player_->audio()->tap(), &settings_, central_);
+        viz_->hide();
+        connect(viz_, &wv::VisualizerWidget::closeRequested, this, [this] { setVisualizer(false); });
+        connect(viz_, &wv::VisualizerWidget::fullscreenRequested, this, [this] { setFullscreen(!fullscreen_); });
+    }
+    if (on && !viz_->confirmFirstUse())
+        on = false;
+    if (viz_)
+        viz_->setVisible(on);
+    bar_->visualizerButton()->setChecked(on);
+    if (actViz_)
+        actViz_->setChecked(on);
+    layoutOverlays();
+    if (on)
+        viz_->view()->setFocus();
+    else if (view_->isVisible())
+        view_->setFocus();
+}
+
 void MainWindow::showControls()
 {
+    if (viz_)
+        viz_->setControlsVisible(true);
     if (!bar_->isVisible())
         bar_->show();
     unsetCursor();
@@ -1161,6 +1218,13 @@ void MainWindow::layoutOverlays()
     if (message_->isVisible())
         message_->raise();
     audioCaption_->setGeometry(view_->rect());
+    if (viz_ && viz_->isVisible()) {
+        viz_->setGeometry(view_->geometry());
+        viz_->raise();
+        bar_->raise();
+        if (message_->isVisible())
+            message_->raise();
+    }
     updateHitButtons();
 }
 

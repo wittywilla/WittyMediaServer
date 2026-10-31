@@ -5,6 +5,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### WittyVisualizer
+
+- **Light shows that follow your music,** in the audio player and in WittyMediaPlayer, from one set of shader files:
+  spectrum bars, scopes, plasma, a tunnel, a starfield, feedback, a kaleidoscope, particles, fire, a wireframe landscape, a
+  fractal and more. Seventeen effects written for this project, with beat-reactive colours, smooth transitions, random order,
+  favourites and an automatic change of effect.
+- **Press V or the bars button,** on the whole screen, in place of the artwork in the full player, or small in the bar. Keyboard,
+  remote and controller all work. Choices are saved per person on a server.
+- **Safe by design:** off until you turn it on, a notice before the first use, a calm mode that's the default when the system
+  asks for reduced motion, and a flash guard no effect can get around. It's in the last step of drawing. A black and white
+  strobe comes out as a dim steady glow.
+- **Leaves playback alone:** it listens to a copy of the sound where the browser allows, and on the desktop reads a lock-free
+  copy. It runs only on your device, loads nothing until opened, adapts its resolution, and stops fully when hidden or off.
+- **You can write your own,** as a small text file, in the web app. It's checked as untrusted and tried in a throwaway graphics context first.
+
 ### WittyMediaPlayer
 
 - **A new desktop app**, under `apps/wittymediaplayer`, that needs no server. It's a first release for Windows amd64,

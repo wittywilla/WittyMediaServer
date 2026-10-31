@@ -3,6 +3,7 @@
 // discs only when told where (WITTY_TEST_DVD, WITTY_TEST_BD).
 #include "disc/disccontroller.h"
 #include "engine/engineclient.h"
+#include "media/audiooutput.h"
 #include "media/extentreader.h"
 #include "media/player.h"
 #include "media/vlcplayback.h"
@@ -12,8 +13,13 @@
 #include "ui/settingsdialog.h"
 #include "ui/theme.h"
 #include "video/videoview.h"
+#include "wvanalysis.h"
+#include "wvtap.h"
+#include "wvwidget.h"
 
+#include <cmath>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -77,6 +83,7 @@ private slots:
     void extentReaderStops();
 
     void playsAClip();
+    void visualizerHearsTheMusicAndLeavesItAlone();
     void pausesAndResumes();
     void seeksInAClip();
     void listsAndSwitchesTracks();
@@ -749,6 +756,78 @@ void Tests::realBluray()
     w.disc()->seekTo(600);
     QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() >= 600 && w.player()->position() < 615, 30000);
     w.close();
+}
+
+// Checked here for what only the app can show: the real audio path feeds the visualizer, it
+// costs playback nothing, and it goes away for a video. The drawing is tested by its own
+// tests (wvtests), as this platform has no graphics for a widget.
+void Tests::visualizerHearsTheMusicAndLeavesItAlone()
+{
+    QTemporaryDir dir;
+    const QString wav = dir.filePath(QStringLiteral("tone.wav"));
+    {
+        // Half a minute of a low pulse, written by hand: no copy of FFmpeg needed.
+        QFile f(wav);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        const int rate = 48000, frames = rate * 30;
+        QByteArray pcm(frames * 4, Qt::Uninitialized);
+        for (int i = 0; i < frames; i++) {
+            const double t = double(i) / rate, since = std::fmod(t, 0.5);
+            const qint16 v = qint16(std::sin(2 * M_PI * 70 * t) * std::exp(-since * 9) * 26000);
+            memcpy(pcm.data() + i * 4, &v, 2);
+            memcpy(pcm.data() + i * 4 + 2, &v, 2);
+        }
+        const auto u32 = [](quint32 v) { return QByteArray(reinterpret_cast<const char *>(&v), 4); };
+        const auto u16 = [](quint16 v) { return QByteArray(reinterpret_cast<const char *>(&v), 2); };
+        f.write("RIFF" + u32(36 + quint32(pcm.size())) + "WAVEfmt " + u32(16) + u16(1) + u16(2) + u32(rate) + u32(rate * 4) + u16(4) + u16(16) + "data" + u32(quint32(pcm.size())) + pcm);
+    }
+    QSettings s(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("WittyMediaPlayer"), QStringLiteral("WittyMediaPlayer"));
+    s.remove(QStringLiteral("visualizer"));
+    s.setValue(QStringLiteral("visualizer/notice"), true); // a test mustn't stop at the notice, which is a dialog
+    s.sync();
+    {
+        MainWindow w(true);
+        // It costs nothing until it's opened.
+        QVERIFY(w.visualizer() == nullptr);
+        QVERIFY(!w.player()->audio()->tap()->enabled());
+        w.handleKey(Qt::Key_V);
+        QVERIFY2(w.visualizer() == nullptr, "there's no music yet, so it doesn't start");
+        w.openPath(wav);
+        QTRY_VERIFY_WITH_TIMEOUT(w.player()->isAudioOnly() && w.player()->hasMedia(), 8000);
+        QTRY_VERIFY_WITH_TIMEOUT(w.player()->audio()->framesWritten() > 0, 8000);
+        QVERIFY(!w.player()->audio()->tap()->enabled());
+        w.show();
+        w.handleKey(Qt::Key_V);
+        QVERIFY(w.visualizerShowing());
+        QTRY_VERIFY_WITH_TIMEOUT(w.player()->audio()->tap()->enabled(), 3000);
+
+        // The samples the device is getting arrive, and the analysis hears the pulses in them.
+        wv::Analyzer analyzer;
+        std::vector<float> left(wv::kFftSize), right(wv::kFftSize);
+        QElapsedTimer t;
+        t.start();
+        const auto under = w.player()->audio()->underruns();
+        double loudest = 0;
+        while (t.elapsed() < 3000) {
+            QTest::qWait(16);
+            w.player()->audio()->tap()->read(left.data(), right.data());
+            analyzer.process(left.data(), right.data(), w.player()->audio()->tap()->rate(), 0.016);
+            loudest = std::max(loudest, analyzer.frame().bass);
+        }
+        QVERIFY2(loudest > 0.5, "the bass comes through");
+        QVERIFY2(analyzer.frame().beatCount >= 3, qPrintable(QStringLiteral("%1 beats in 3 seconds").arg(analyzer.frame().beatCount)));
+        QCOMPARE(w.player()->audio()->underruns(), under);
+
+        // Turned off, nothing runs and the audio thread stops copying.
+        w.handleKey(Qt::Key_V);
+        QVERIFY(!w.visualizerShowing());
+        QVERIFY(!w.player()->audio()->tap()->enabled());
+        w.handleKey(Qt::Key_V);
+        QVERIFY(w.visualizerShowing());
+        w.handleKey(Qt::Key_MediaStop);
+        QVERIFY(!w.visualizerShowing());
+    }
+    s.remove(QStringLiteral("visualizer"));
 }
 
 QTEST_MAIN(Tests)

@@ -15,6 +15,10 @@ class QLabel;
 class QMenu;
 class QVBoxLayout;
 
+namespace wv {
+class VisualizerWidget;
+}
+
 namespace wmp {
 
 class ControlBar;
@@ -36,6 +40,8 @@ public:
     Player *player() const { return player_; }
     DiscController *disc() const { return disc_; }
     VideoView *view() const { return view_; }
+    wv::VisualizerWidget *visualizer() const { return viz_; }
+    bool visualizerShowing() const;
     EngineClient *engine() const { return engine_; }
 
     // What's on show, for tests and the window's own status line.
@@ -85,11 +91,15 @@ private:
     void setStatus(const QString &text);
     void setVolumePercent(int percent);
     void cycleAudio();
+    // Music only: on a video it would hide the picture. Made the first time it's wanted.
+    void setVisualizer(bool on);
     void cycleSubtitle();
     void updateFileSubtitles();
 
     Player *player_ = nullptr;
     VideoView *view_ = nullptr;
+    wv::VisualizerWidget *viz_ = nullptr;
+    QAction *actViz_ = nullptr;
     EngineClient *engine_ = nullptr;
     DiscController *disc_ = nullptr;
     ControlBar *bar_ = nullptr;

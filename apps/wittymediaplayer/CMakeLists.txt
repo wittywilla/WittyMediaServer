@@ -20,6 +20,12 @@ target_include_directories(ffmpeg INTERFACE "${FFMPEG_DIR}/include")
 target_link_directories(ffmpeg INTERFACE "${FFMPEG_DIR}/lib" "${FFMPEG_DIR}/bin")
 target_link_libraries(ffmpeg INTERFACE avformat avcodec avfilter swresample swscale avutil)
 
+# WittyVisualizer: its effects and its Qt host live in the plugin, shared with the server's
+# web app. In this repository it's beside the server's other web plugins; a checkout of the
+# app on its own names where a checkout of WittyVisualizer is.
+set(WITTYVISUALIZER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../web/src/modules/wittyvisualizer" CACHE PATH "Folder with WittyVisualizer")
+add_subdirectory("${WITTYVISUALIZER_DIR}/qt" wittyvisualizer)
+
 qt_add_library(wmpcore STATIC
     src/media/mediaspec.h
     src/media/ffmpeg.h
@@ -39,7 +45,7 @@ qt_add_library(wmpcore STATIC
     src/testscript.h src/testscript.cpp
 )
 target_compile_definitions(wmpcore PUBLIC WMP_VERSION="${PROJECT_VERSION}" QT_NO_CAST_FROM_BYTEARRAY)
-target_link_libraries(wmpcore PUBLIC Qt6::Core Qt6::Gui Qt6::GuiPrivate Qt6::Widgets Qt6::Multimedia ffmpeg)
+target_link_libraries(wmpcore PUBLIC Qt6::Core Qt6::Gui Qt6::GuiPrivate Qt6::Widgets Qt6::Multimedia wittyvisualizer ffmpeg)
 target_include_directories(wmpcore PUBLIC src)
 
 qt_add_shaders(wmpcore "wmp_shaders"

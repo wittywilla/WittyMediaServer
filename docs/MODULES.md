@@ -36,6 +36,7 @@ Each plugin has its own repository, separate from the apps that use it.
 | **WittyIntegratedFileBrowser** | Choosing a server's folders from any device: a Go listing of drives, folders and files, and the React window that shows it (in `web/`). Read-only | WittyMediaServer |
 | **WittyModule** | What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool. Go, no dependencies | Every plugin, WittyMediaServer |
 | **WittyPhotos** | What a photo says about itself, without decoding it: EXIF, dimensions and the preview in a RAW file. Go, fuzz-tested, and can update without a new server | WittyMediaServer |
+| **WittyVisualizer** | Light shows that follow the music: seventeen effects written as shaders, with audio analysis, a flash limiter and a calm mode. The same effect files run on WebGL 2 and on Qt's QRhi. Off until someone turns it on, and costs nothing until then | WittyMediaServer, WittyMediaPlayer |
 | **WittyTuner** | TV tuners and IPTV behind one interface: network tuners, M3U playlists and streams, Linux DVB, V4L2 and other capture cards, SAT>IP, external backends, a custom command. Also reads XMLTV and the guide data in broadcasts. Refuses encrypted channels | WittyMediaServer |
 
 ### Server libraries
@@ -71,6 +72,7 @@ web/src/modules/            web plugins (React)
   wittyebook/               → github.com/wittywilla/WittyEbook
   wittypdf/                 → github.com/wittywilla/WittyPDF
   wittycomics/              → github.com/wittywilla/WittyComics
+  wittyvisualizer/          → github.com/wittywilla/WittyVisualizer (with its Qt host in qt/)
 modules/                    Go plugins
   wittydisc/                → github.com/wittywilla/WittyDisc
   wittydvd/                 → github.com/wittywilla/WittyDVD
@@ -233,6 +235,7 @@ project.
 | WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
 | WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
 | WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |
+| WittyVisualizer | Web bundle: **converted** | It's all client code, and the app asks for a bundle only when someone opens it. The desktop app builds in its copy, with shaders baked at build time |
 | WittyInk, WittyEbook, WittyPDF, WittyComics | Web bundle, **later** | Designed below; not built yet |
 
 **Web bundles (design, not built).** A release holds ES modules built with `react` and

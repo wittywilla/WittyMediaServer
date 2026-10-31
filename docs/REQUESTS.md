@@ -16,6 +16,17 @@ close some of these.
 - **Settings, About can say no hardware video was found when it was.** Opening the page starts the
   test, and the answer only shows the next time the page opens.
 
+## WittyVisualizer
+
+Built for the web app and WittyMediaPlayer. Still open:
+
+- **Trying it by eye and on real devices:** it's been run in headless Edge on one PC, with generated music. Real music, real TVs,
+  phones, Firefox and Safari haven't been tried.
+- **A clinical or professional check of the flash limit:** it's measured against the WCAG figures with our own counter, not a
+  certified analyser such as PEAT or Harding.
+- **In the native client apps:** not started. [Embedding](../web/src/modules/wittyvisualizer/wiki/Embedding.md) says what each would need.
+- **Effects written by people in the desktop app:** only the web app can add them, as the desktop bakes its shaders at build time.
+
 ## Client apps
 
 - **Finding a server and entering a security code:** being finished for desktop; Android and Apple are

@@ -62,8 +62,12 @@ try {
   }
   results.playbackWhileOn = await stillPlays()
 
-  // Is it really hearing the music? Compare the picture with the sound's beats.
+  // Is it really hearing the music? Count beats, in the real sound, on a 120 BPM track.
   results.tap = await p.eval(stage + '.tap')
+  const beats0 = Number(await p.eval(stage + '.beats'))
+  await new Promise((d) => setTimeout(d, 8000))
+  const beats1 = Number(await p.eval(stage + '.beats'))
+  results.beatsPerSecondAt120Bpm = (beats1 - beats0) / 8
 
   // Screen readers: the canvas is hidden from them, and every control has a name.
   results.a11y = await p.eval(`({
@@ -133,8 +137,11 @@ try {
       requestAnimationFrame(loop)
     })()`)
     const worst = {}
-    // The third track is the hostile one.
-    await p.eval(`document.querySelector('audio').currentTime = 0`)
+    // The third track is the hostile one: full-range bursts ten times a second.
+    await p.eval(`document.querySelector('[aria-label="Next"]').click()`)
+    await new Promise((d) => setTimeout(d, 300))
+    await p.eval(`document.querySelector('[aria-label="Next"]').click()`)
+    await p.until(`document.querySelector('audio').currentTime > 0.1 && /03|Hostile/.test(document.querySelector('.ab-title')?.textContent || '')`, 8000, 'the hostile track')
     for (const id of ids) {
       await setEffect(id)
       await new Promise((d) => setTimeout(d, 400))

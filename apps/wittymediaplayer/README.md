@@ -15,6 +15,8 @@
 - **Plays from a disc drive directly,** as well as from `.iso` and `.img` images and `VIDEO_TS` or `BDMV` folders.
 - **Makes disc images:** copies a disc to one `.iso` or `.img` file to keep, play later, or add to a
   WittyMediaServer library.
+- **Shows music as light:** [WittyVisualizer](../../web/src/modules/wittyvisualizer) brings seventeen effects to audio files, full
+  screen, with a flash limiter and a calm mode. It's off until you turn it on (V), and it costs nothing until then.
 - **Says no plainly:** a copy-protected disc gets a clear message. Nothing here unlocks copy protection.
 - **Runs well on small machines:** the picture is drawn by the graphics card, and hardware decoding is used where
   the card has it.

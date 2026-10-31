@@ -70,6 +70,7 @@ public:
     SeekBar *seekBar() const { return seek_; }
     QToolButton *audioButton() const { return audio_; }
     QToolButton *subtitleButton() const { return subs_; }
+    QToolButton *visualizerButton() const { return viz_; }
 
     static QString formatTime(double seconds);
 
@@ -80,6 +81,7 @@ signals:
     void seekTo(double seconds);
     void volumeChanged(int percent);
     void muteToggled();
+    void visualizer();
     void rootMenu();
     void titleMenu();
     void fullscreen();
@@ -87,7 +89,7 @@ signals:
 private:
     QToolButton *tool(const QString &icon, const QString &name, const QString &tip);
 
-    QToolButton *play_, *prev_, *next_, *mute_, *audio_, *subs_, *menu_, *title_, *full_;
+    QToolButton *play_, *prev_, *next_, *mute_, *audio_, *subs_, *menu_, *title_, *full_, *viz_;
     SeekBar *seek_;
     QSlider *volume_;
     QLabel *time_, *total_;

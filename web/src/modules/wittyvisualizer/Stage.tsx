@@ -64,7 +64,8 @@ export function VisualizerStage({ host, media, place, onPlace, onClose }: StageP
   if (!s.loaded) return null
   if (!accepted) {
     if (place === 'mini') return null
-    return <FlashNotice session={s} onDecline={onClose} />
+    // On the page itself: where it was asked for may be a moving or clipped part of the player.
+    return createPortal(<FlashNotice session={s} onDecline={onClose} />, document.body)
   }
   return place === 'mini'
     ? <Mini session={s} />
@@ -191,7 +192,7 @@ function Full({ session: s, place, onPlace, onClose }: { session: Session; place
   const favourite = !!st.effect && set.favourites.includes(st.effect)
   const stage = (
     <div ref={root} className={'wv-stage ' + (whole ? 'whole' : 'panel') + (idle && whole ? ' idle' : '')} tabIndex={-1} role="region" aria-label="Visualizer"
-      data-effect={st.effect} data-fps={st.fps} data-width={st.width} data-height={st.height} data-scale={st.scale} data-renderer={st.renderer} data-gpu={st.rendererDetail} data-tap={st.tap} data-frame-ms={st.frameMs}
+      data-effect={st.effect} data-fps={st.fps} data-width={st.width} data-height={st.height} data-scale={st.scale} data-renderer={st.renderer} data-gpu={st.rendererDetail} data-tap={st.tap} data-frame-ms={st.frameMs} data-beats={st.beats}
       onPointerMove={wake} onFocusCapture={wake}>
       <div className="wv-picture" ref={box} onClick={() => { if (whole) setIdle(!idle); else onPlace?.('full') }} />
       <div className="wv-sr" aria-live="polite">{said && `Now showing ${said}`}</div>
@@ -215,7 +216,8 @@ function Full({ session: s, place, onPlace, onClose }: { session: Session; place
         <IconButton icon={ICON.close} label="Turn the visualizer off" onClick={onClose} />
       </div>
 
-      {settingsOpen && <SettingsDialog session={s} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && whole && <SettingsDialog session={s} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && !whole && createPortal(<SettingsDialog session={s} onClose={() => setSettingsOpen(false)} />, document.body)}
     </div>
   )
   return whole ? createPortal(stage, document.body) : stage
@@ -260,7 +262,8 @@ function SettingsDialog({ session: s, onClose }: { session: Session; onClose: ()
     setAddMsg(why || 'Added. You\'ll find it in the list of effects.')
   }
   return (
-    <div className="wv-dialog-back" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="wv-dialog-back" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') { e.preventDefault(); e.stopPropagation(); onClose() } }}>
       <div className="wv-dialog wide" role="dialog" aria-modal="true" aria-labelledby="wv-settings-title">
         <div className="wv-dialog-head">
           <h2 id="wv-settings-title">Visualizer</h2>

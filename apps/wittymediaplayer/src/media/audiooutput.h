@@ -2,6 +2,8 @@
 // a thread of its own. It is also the clock the picture follows.
 #pragma once
 
+#include "wvtap.h"
+
 #include <QByteArray>
 #include <QObject>
 #include <QThread>
@@ -51,6 +53,9 @@ public:
     int64_t framesWritten() const { return framesWritten_.load(); }
     int64_t underruns() const { return underruns_.load(); }
 
+    // What the visualizer reads. Off, and all but free, until it's turned on.
+    wv::SampleTap *tap() { return &tap_; }
+
     // Called by the device side.
     qint64 pull(char *out, qint64 max);
 
@@ -74,6 +79,7 @@ private:
     };
 
     QThread thread_;
+    wv::SampleTap tap_;
     std::atomic<bool> device_{false};
     std::atomic<int> rate_{48000};
     std::atomic<bool> stopped_{false};

@@ -51,6 +51,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [full, setFull] = useState(false)
   // The visualizer: off until someone turns it on, and off again with each new page.
   const [viz, setViz] = useState<'off' | 'panel' | 'full'>('off')
+  const [vizHere, setVizHere] = useState(true) // the owner can take the plugin off the server
+  useEffect(() => { getPrefs().then((p) => setVizHere(p.visualizer !== false)).catch(() => {}) }, [])
   const mediaEl = useCallback(() => audio.current, [])
   const vizPlace = useCallback((p: 'panel' | 'mini' | 'full') => setViz(p === 'full' ? 'full' : 'panel'), [])
   const vizOff = useCallback(() => setViz('off'), [])
@@ -210,13 +212,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!current) return
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
-      if (e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || loc.pathname.startsWith('/play/')) return
+      if (!vizHere || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || loc.pathname.startsWith('/play/')) return
       e.preventDefault()
       setViz(viz === 'off' ? 'full' : 'off')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [current?.id, viz, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current?.id, viz, vizHere, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   // A video takes over: nothing should be drawing behind it.
   useEffect(() => { if (loc.pathname.startsWith('/play/')) setViz('off') }, [loc.pathname])
 
@@ -321,7 +323,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
               </select>
             )}
             <span className="muted ab-count">{index + 1} / {queue.length}</span>
-            <button className={'ibtn ab-viz-btn' + (viz !== 'off' ? ' on' : '')} aria-pressed={viz !== 'off'} aria-label="Visualizer" title="Visualizer (V)" onClick={() => setViz(viz !== 'off' ? 'off' : full ? 'panel' : 'full')}><IconVisualizer /></button>
+            {vizHere && <button className={'ibtn ab-viz-btn' + (viz !== 'off' ? ' on' : '')} aria-pressed={viz !== 'off'} aria-label="Visualizer" title="Visualizer (V)" onClick={() => setViz(viz !== 'off' ? 'off' : full ? 'panel' : 'full')}><IconVisualizer /></button>}
             {!full && <button className="ibtn" onClick={openFull} aria-label="Full player" title="Full player"><IconExpand /></button>}
             {full
               ? <button className="btn sm ghost" onClick={ctx.stop} title="Stop playing and close the player"><IconStop /> Stop</button>

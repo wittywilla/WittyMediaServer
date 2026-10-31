@@ -55,6 +55,9 @@ void AudioOutput::start(bool noDevice)
         }
     }
     ring_.assign(size_t(rate_.load() * kRingSeconds) * kBytesPerFrame, 0);
+    tap_.setRate(rate_.load());
+    // The device holds up to a fifth of a second: the picture waits for what's being heard.
+    tap_.setDelayFrames(noDevice ? 0 : rate_.load() / 6);
     moveToThread(&thread_);
     thread_.setObjectName(QStringLiteral("audio"));
     thread_.start(QThread::TimeCriticalPriority);
@@ -237,6 +240,7 @@ qint64 AudioOutput::pull(char *out, qint64 max)
             underruns_.fetch_add(1);
     }
     served_ += uint64_t(want);
+    tap_.write(reinterpret_cast<const int16_t *>(out), int(want / kBytesPerFrame));
     return want;
 }
 
@@ -269,6 +273,11 @@ void AudioOutput::onTick()
             take -= take % kBytesPerFrame;
             nullLast_ = now;
             take = std::min(take, count_);
+            if (take > 0 && tap_.enabled()) {
+                const size_t first = std::min(take, ring_.size() - head_);
+                tap_.write(reinterpret_cast<const int16_t *>(ring_.data() + head_), int(first / kBytesPerFrame));
+                tap_.write(reinterpret_cast<const int16_t *>(ring_.data()), int((take - first) / kBytesPerFrame));
+            }
             head_ = ring_.empty() ? 0 : (head_ + take) % ring_.size();
             count_ -= take;
             read_ += take;

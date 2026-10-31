@@ -20,7 +20,7 @@ export const visualizerHost: VisualizerHost = {
   },
 }
 
-// True once someone asked for the saved choice "show it with the full player".
+// Whether this person's saved choice is to show it with the full player.
 export const visualizerWantedWithPlayer = () => visualizerHost.loadSettings().then((v) => {
   const s = v as { on?: boolean; notice?: boolean }
   return s.on === true && s.notice === true

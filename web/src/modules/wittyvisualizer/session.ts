@@ -31,6 +31,7 @@ export type Status = {
   height: number
   scale: number
   frameMs: number
+  beats: number
   problem: string
 }
 
@@ -39,7 +40,7 @@ const calmBySystem = () => { try { return matchMedia('(prefers-reduced-motion: r
 export class Session {
   settings: Settings = DEFAULT_SETTINGS
   loaded = false
-  status: Status = { running: false, effect: '', tap: 'closed', tapWhy: '', renderer: '', rendererDetail: '', fps: 0, width: 0, height: 0, scale: 1, frameMs: 0, problem: '' }
+  status: Status = { running: false, effect: '', tap: 'closed', tapWhy: '', renderer: '', rendererDetail: '', fps: 0, width: 0, height: 0, scale: 1, frameMs: 0, beats: 0, problem: '' }
   effects: EffectFile[] = BUILTIN_EFFECTS
   canvas = document.createElement('canvas')
 
@@ -408,7 +409,7 @@ export class Session {
       this.frames = 0
       this.frameCost = 0
       const tapState = tap.state()
-      this.status = { ...was, fps: Math.round(fps), width: canvas.width, height: canvas.height, scale: this.budget.scale, frameMs: Math.round(ms * 10) / 10, tap: tapState, tapWhy: tap.why() }
+      this.status = { ...was, fps: Math.round(fps), width: canvas.width, height: canvas.height, scale: this.budget.scale, frameMs: Math.round(ms * 10) / 10, beats: a.beatCount, tap: tapState, tapWhy: tap.why() }
       this.emit()
     }
   }

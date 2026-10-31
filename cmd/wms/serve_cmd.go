@@ -30,6 +30,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -169,6 +170,7 @@ func cmdServe(args []string) int {
 	})
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
+	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
 
 	webFS := web.Dist()

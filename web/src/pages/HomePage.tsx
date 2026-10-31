@@ -78,7 +78,8 @@ export default function HomePage() {
   const save = (next: Layout) => {
     const l = { ...next, v: LAYOUT_V }
     setLayout(l)
-    api.put('/me/ui', { home: l }).catch(() => toast('Could not save the layout'))
+    // The server keeps these choices whole, and other parts of the app have some there too.
+    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, home: l })).catch(() => toast('Could not save the layout'))
   }
   const move = (id: string, to: number) => {
     const ids = ordered.map((w) => w.id).filter((x) => x !== id)

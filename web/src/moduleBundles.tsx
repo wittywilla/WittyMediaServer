@@ -131,6 +131,19 @@ export function useBundledReader(format: ReaderFormat | undefined) {
   return answer && answer.format === format ? answer.reader : undefined
 }
 
+// Any other plugin's bundle, for when it's opened: its script, or null for the copy in the app.
+export async function bundledModule<T>(id: string, shape: (m: T) => boolean): Promise<T | null> {
+  try {
+    const list = await askServer()
+    const b = list.find((x) => x.id === id)
+    if (!b || b.api > HOST_API || failed.has(keyOf(b))) return null
+    await import('./moduleHost')
+    return await within(LOAD_MS, importBundle(b, (m) => shape(m as T)) as Promise<T | null>, null)
+  } catch {
+    return null
+  }
+}
+
 // A crash names the file it came from, so WittyInk answers for its own.
 function blamed(err: unknown, r: BundledReader) {
   const stack = String((err as Error)?.stack)

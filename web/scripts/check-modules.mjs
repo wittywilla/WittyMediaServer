@@ -5,7 +5,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 
-const LIBS = { wittypdf: ['react', 'pdfjs-dist'] }
+const LIBS = { wittypdf: ['react', 'pdfjs-dist'], wittyvisualizer: ['react', 'react-dom'] }
 const USES = { wittyebook: ['wittyink'], wittypdf: ['wittyink'], wittycomics: ['wittyink'] }
 const root = resolve(import.meta.dirname, '../src/modules')
 const files = (dir) => readdirSync(dir).flatMap((f) => {

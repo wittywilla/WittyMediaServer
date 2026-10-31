@@ -8,6 +8,7 @@ export const IconFilm = (p: P) => <S {...p} d="M4 4h16v16H4zM6 6v2h2V6zm0 4v2h2v
 export const IconDisc = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 13a3 3 0 110-6 3 3 0 010 6zm0-4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
 export const IconSettings = (p: P) => <S {...p} d="M19.4 13a7.9 7.9 0 000-2l2.1-1.6-2-3.5-2.5 1a8 8 0 00-1.7-1L15 3H9l-.3 2.9a8 8 0 00-1.7 1l-2.5-1-2 3.5L4.6 11a7.9 7.9 0 000 2l-2.1 1.6 2 3.5 2.5-1a8 8 0 001.7 1L9 21h6l.3-2.9a8 8 0 001.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" />
 export const IconSearch = (p: P) => <S {...p} d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 10-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" />
+export const IconVisualizer = (p: P) => <S {...p} d="M4 13h2.5v8H4zm4.5-8H11v16H8.5zm4.5 5h2.5v11H13zm4.5-7H20v18h-2.5z" />
 export const IconPlay = (p: P) => <S {...p} d="M8 5v14l11-7z" />
 export const IconPause = (p: P) => <S {...p} d="M6 19h4V5H6zm8-14v14h4V5z" />
 export const IconBack = (p: P) => <S {...p} d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" />

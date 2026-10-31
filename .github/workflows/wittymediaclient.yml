@@ -99,6 +99,13 @@ jobs:
             scheme=${pair%|*}
             destination=${pair#*|}
             echo "== $scheme"
-            xcodebuild -project WittyMedia.xcodeproj -scheme "$scheme" -destination "$destination" \
-              -configuration Debug CODE_SIGNING_ALLOWED=NO build -quiet || exit 1
+            if ! xcodebuild -project WittyMedia.xcodeproj -scheme "$scheme" -destination "$destination" \
+              -configuration Debug CODE_SIGNING_ALLOWED=NO build -quiet > "$RUNNER_TEMP/$scheme.log" 2>&1; then
+              tail -60 "$RUNNER_TEMP/$scheme.log"
+              # Annotations can be read without signing in; the log can't.
+              grep -E 'error:' "$RUNNER_TEMP/$scheme.log" | sort -u | head -10 | while IFS= read -r line; do
+                echo "::error title=$scheme::${line##*/}"
+              done
+              exit 1
+            fi
           done

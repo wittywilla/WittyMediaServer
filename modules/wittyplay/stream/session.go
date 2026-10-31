@@ -54,10 +54,11 @@ type Options struct {
 	Core           string // a shared library path, or ipc.TestCore
 	ROM            string
 	SystemDir      string
-	SaveDir        string // this account's folder for this game
-	Resume         bool   // continue from auto.state
-	Quality        string // "" (auto) | low | high
-	GPU            bool   // the core draws with a graphics card
+	SaveDir        string   // this account's folder for this game
+	Resume         bool     // continue from auto.state
+	Quality        string   // "" (auto) | low | high
+	GPU            bool     // the core draws with a graphics card
+	RunnerArgs     []string // extra arguments for this game's runner: wittyplay.RunnerArgs
 	CoreOptions    map[string]string
 	Cleanup        func() // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
@@ -98,7 +99,7 @@ type Info struct {
 // Errors a caller shows to people.
 var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
-	ErrGPUBusy = errors.New("the graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
+	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
 	ErrNoSlot  = errors.New("there is no such save slot")
 )
@@ -360,8 +361,11 @@ type Session struct {
 	exitErr   atomic.Value
 
 	frameMu    sync.Mutex
-	frame      []byte // the newest frame
+	frame      []byte // the newest frame from the runner, when frameFresh
 	frameHdr   ipc.VideoHeader
+	frameFresh bool
+	shown      []byte // the frame last given to the encoders; videoLoop swaps these
+	shownHdr   ipc.VideoHeader
 	frameReady chan struct{}
 
 	viewMu        sync.Mutex
@@ -411,10 +415,10 @@ func (s *Session) start() error {
 	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
 		return err
 	}
-	args, memory := s.cfg.RunnerArgs, s.cfg.MemoryMB
+	args, memory := append(append([]string(nil), s.cfg.RunnerArgs...), s.opt.RunnerArgs...), s.cfg.MemoryMB
 	if s.opt.GPU {
 		// A graphics driver needs what a software-rendered game never should.
-		args, memory = append(append([]string(nil), args...), "-gpu"), s.cfg.GPUMemoryMB
+		memory = s.cfg.GPUMemoryMB
 	}
 	rn, err := StartRunner(s.cfg.Runner, args, s.opt.SaveDir, memory, s.log)
 	if err != nil {
@@ -447,8 +451,10 @@ func (s *Session) start() error {
 		s.kill()
 		return err
 	}
+	began := time.Now()
 	// The larger consoles build caches and start whole operating systems.
-	loadLimit := 30 * time.Second
+	// A security scanner may also hold a program's first start for half a minute.
+	loadLimit := time.Minute
 	if s.opt.GPU {
 		loadLimit = 2 * time.Minute
 	}
@@ -469,6 +475,7 @@ func (s *Session) start() error {
 		return errors.New("the game took too long to load")
 	}
 
+	s.log.Info("game loaded", "seconds", time.Since(began).Seconds())
 	// Everything is restored before the first frame: the runner waits, paused.
 	if b, err := os.ReadFile(filepath.Join(s.opt.SaveDir, "save.srm")); err == nil && len(b) > 0 {
 		_ = s.command(ipc.CmdSaveRAM, b)
@@ -567,12 +574,14 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 			}
 			s.frameMu.Lock()
 			s.frame = append(s.frame[:0], data...)
-			s.frameHdr = hdr
+			s.frameHdr, s.frameFresh = hdr, true
 			s.frameMu.Unlock()
 			s.lastFrame.Store(time.Now().UnixNano())
+			s.stats.made.Add(1)
 			s.signalFrame()
 		case ipc.MsgDupe:
 			s.lastFrame.Store(time.Now().UnixNano())
+			s.stats.made.Add(1)
 			s.signalFrame()
 		case ipc.MsgAudio:
 			if len(p)%4 == 0 {
@@ -831,9 +840,14 @@ func (s *Session) Stop() {
 		if err := s.command(ipc.CmdQuit, []byte{1}); err != nil {
 			s.kill()
 		}
+		// The larger consoles have more to save, and a save is worth waiting for.
+		limit := 15 * time.Second
+		if s.opt.GPU {
+			limit = 45 * time.Second
+		}
 		select {
 		case <-s.done:
-		case <-time.After(15 * time.Second):
+		case <-time.After(limit):
 			s.log.Warn("the runner did not stop in time; ending it")
 			s.kill()
 		}

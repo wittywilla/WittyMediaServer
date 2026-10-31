@@ -18,8 +18,10 @@ const NoGPUText = "no usable graphics card"
 
 // GPUProbe is what a runner found when asked which graphics card it would use.
 type GPUProbe struct {
-	Name  string `json:"name,omitempty"`
-	Error string `json:"error,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Error    string `json:"error,omitempty"`
+	Checking bool   `json:"checking,omitempty"` // the answer isn't in yet
+	Again    bool   `json:"-"`                  // says nothing about the card, so ask again later
 }
 
 // ProbeGPU asks the runner which graphics card games would draw with, in the same
@@ -30,7 +32,8 @@ func ProbeGPU(runner, dir string, log *slog.Logger) GPUProbe {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return GPUProbe{Error: err.Error()}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Long enough for a security scanner to hold the program's first start.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, runner, "-probe-gpu", "-save", dir)
 	cmd.Dir = dir
@@ -40,7 +43,7 @@ func ProbeGPU(runner, dir string, log *slog.Logger) GPUProbe {
 	prepareSandbox(cmd, dir, log)
 	if err := cmd.Run(); err != nil {
 		log.Warn("checking for a graphics card", "err", err, "stderr", truncate(errOut.String(), 500))
-		return GPUProbe{Error: "the runner could not check: " + err.Error()}
+		return GPUProbe{Error: "the runner could not check: " + err.Error(), Again: true}
 	}
 	line := strings.TrimSpace(out.String())
 	if name, ok := strings.CutPrefix(line, "gpu: "); ok {
@@ -84,6 +87,7 @@ func (e *videoEncoder) mark() { e.sent.push(time.Now()) }
 
 // EncodeStats counts frames through the encoder.
 type EncodeStats struct {
+	made    atomic.Int64 // frames the game made, repeats included
 	frames  atomic.Int64
 	totalUS atomic.Int64
 	maxUS   atomic.Int64
@@ -132,8 +136,10 @@ func (s *Session) logStats() {
 			return
 		case <-t.C:
 			frames, mean, worst := s.stats.Take()
+			made := s.stats.made.Swap(0)
 			if frames > 0 {
-				s.log.Info("streaming", "encoder", s.Info().Encoder, "fps", float64(frames)/time.Since(last).Seconds(), "encodeMs", mean, "worstMs", worst, "renderer", s.info.Renderer)
+				el := time.Since(last).Seconds()
+				s.log.Info("streaming", "encoder", s.Info().Encoder, "gameFps", float64(made)/el, "fps", float64(frames)/el, "encodeMs", mean, "worstMs", worst, "renderer", s.info.Renderer)
 			}
 			last = time.Now()
 		}

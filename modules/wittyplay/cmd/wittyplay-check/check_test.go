@@ -51,10 +51,15 @@ func TestAnEncryptedGameIsRefusedNotFailed(t *testing.T) {
 	rom := filepath.Join(dir, "game.cia")
 	// A CIA whose metadata says its content is encrypted.
 	b := make([]byte, 0x8000)
-	b[0], b[1] = 0x20, 0x20 // header size 0x2020
+	const contentLen = 0x100
+	b[0], b[1] = 0x20, 0x20                       // header size 0x2020
+	b[16], b[17] = 0x64, 0x0B                     // table of contents size 0xB64
+	b[24], b[25] = contentLen&0xFF, contentLen>>8 // content size
 	tmd := 0x2040
 	b[tmd+1], b[tmd+2], b[tmd+3] = 1, 0, 4 // RSA-2048 signature
-	b[tmd+0x140+0xC4+0x900+7] = 1
+	rec := tmd + 0x140 + 0xC4 + 0x900
+	b[rec+7] = 1 // encrypted
+	b[rec+14], b[rec+15] = contentLen>>8, contentLen&0xFF
 	if err := os.WriteFile(rom, b, 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"image/jpeg"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,16 +28,30 @@ import (
 // These tests run the real thing: the wittyplay-host program with its built-in
 // test core, a real FFmpeg, and a real WebRTC peer on the other end.
 
-func buildRunner(t *testing.T) string {
-	t.Helper()
-	out := filepath.Join(t.TempDir(), "wittyplay-host")
+// One build for the whole run. A new program can be held for half a minute the first
+// time it starts, by a security scanner on Windows, and that's nothing these test.
+var runnerOnce = sync.OnceValues(func() (string, error) {
+	dir, err := os.MkdirTemp("", "wittyplay-runner-")
+	if err != nil {
+		return "", err
+	}
+	out := filepath.Join(dir, "wittyplay-host")
 	if runtime.GOOS == "windows" {
 		out += ".exe"
 	}
 	cmd := exec.Command("go", "build", "-o", out, "../cmd/wittyplay-host")
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if b, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("building the host: %v\n%s", err, b)
+		return "", fmt.Errorf("%w\n%s", err, b)
+	}
+	return out, nil
+})
+
+func buildRunner(t *testing.T) string {
+	t.Helper()
+	out, err := runnerOnce()
+	if err != nil {
+		t.Fatalf("building the host: %v", err)
 	}
 	return out
 }
@@ -61,7 +77,8 @@ func haveEncoder(ffmpeg string) func(string) bool {
 func newManager(t *testing.T) *Manager {
 	t.Helper()
 	ff := findFFmpeg(t)
-	return NewManager(Config{Runner: buildRunner(t), FFmpeg: ff, HaveEncoder: haveEncoder(ff), Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))})
+	// Normal priority, so a busy machine can't starve a test into a false failure.
+	return NewManager(Config{Runner: buildRunner(t), RunnerArgs: []string{"-normal-priority"}, FFmpeg: ff, HaveEncoder: haveEncoder(ff), Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))})
 }
 
 func startGame(t *testing.T, m *Manager, save string, resume bool) *Session {

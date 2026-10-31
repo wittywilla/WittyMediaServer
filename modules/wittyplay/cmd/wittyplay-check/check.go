@@ -162,10 +162,9 @@ func start(c *config, saveDir, coreID string) (*proc, error) {
 		return nil, err
 	}
 	// As a session does: a graphics driver needs more than a software-rendered game.
-	var args []string
+	args := wittyplay.RunnerArgs(coreID)
 	memory := int64(c.memoryMB)
 	if wittyplay.Traits(coreID).GPU {
-		args = []string{"-gpu"}
 		memory = max(memory, 8192)
 	}
 	rn, err := stream.StartRunner(c.runner, args, saveDir, memory, c.log)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittyplay/engine"
 	"github.com/wittywilla/wittyplay/ipc"
@@ -84,5 +85,50 @@ func TestShortTapReachesTheGame(t *testing.T) {
 	p.set(1, engine.PadState{})
 	if got := p.poll()[1].Buttons; got != 0 {
 		t.Fatal("a released button should read released")
+	}
+}
+
+// A server that has stopped reading can't hold the game up on a frame from a
+// graphics card, and what it gets when it comes back is the newest one.
+func TestLargeFramesNeverWaitOnTheServer(t *testing.T) {
+	pr, pw := io.Pipe()
+	r := &runner{out: pw}
+	h := r.handlers()
+	frame := func(v byte) []byte { return bytes.Repeat([]byte{v, v, v, v}, 4) }
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for v := byte(1); v <= 5; v++ {
+			h.VideoFlipped(frame(v), 2, 2, 8, engine.FormatXRGB8888)
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the game waited for a server that wasn't reading")
+	}
+	// Whatever was already on its way, then the newest, which always arrives.
+	rd := ipc.NewReader(pr)
+	for seen := 0; ; seen++ {
+		if seen > 2 {
+			t.Fatal("frames queued up instead of replacing each other")
+		}
+		typ, p, err := rd.Next()
+		if err != nil || typ != ipc.MsgVideo {
+			t.Fatalf("%d %v", typ, err)
+		}
+		_, data, err := ipc.ParseVideo(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if data[0] == 5 {
+			break
+		}
+	}
+	r.frames.stop()
+	// Other messages still go through, in one piece.
+	go r.write(ipc.MsgDupe)
+	if typ, _, err := rd.Next(); err != nil || typ != ipc.MsgDupe {
+		t.Errorf("%d %v", typ, err)
 	}
 }

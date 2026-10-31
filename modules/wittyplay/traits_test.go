@@ -3,6 +3,7 @@ package wittyplay
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -33,6 +34,14 @@ func TestEveryConsolePlayable(t *testing.T) {
 		}
 		if len(c.Cores) == 0 {
 			t.Errorf("%s has no cores", c.ID)
+		}
+	}
+}
+
+func TestRunnerArgs(t *testing.T) {
+	for id, want := range map[string]string{"fceumm": "", "melonds": "-normal-priority", "mupen64plus_next": "-gpu -normal-priority", "someone_elses_core": "-gpu -normal-priority"} {
+		if got := strings.Join(RunnerArgs(id), " "); got != want {
+			t.Errorf("RunnerArgs(%q) = %q, want %q", id, got, want)
 		}
 	}
 }

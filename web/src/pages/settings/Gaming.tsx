@@ -11,7 +11,7 @@ import { PageHead, Section } from './ui'
 
 type Status = {
   runner: string; encoders: string[]; consoles: GameConsole[]; cores: GameCore[]; canDownload: boolean
-  coresDir: string; systemDir: string; running: number; unpackedBytes?: number; biosFolder: string; gpu?: { name?: string; error?: string }
+  coresDir: string; systemDir: string; running: number; unpackedBytes?: number; biosFolder: string; gpu?: { name?: string; error?: string; checking?: boolean }
 }
 
 export default function GamingSettings() {
@@ -29,6 +29,13 @@ export default function GamingSettings() {
       toast(r.unpackedBytes ? 'Emptied, apart from the games being played' : 'Emptied. Games unpack again when next played')
     } catch (e: any) { toast(e.message) } finally { setBusy('') }
   }
+  // The graphics card is checked in the background, and the answer comes in by itself.
+  const checking = !!st?.gpu?.checking
+  useEffect(() => {
+    if (!checking) return
+    const t = setTimeout(load, 2000)
+    return () => clearTimeout(t)
+  }, [checking, st])
   const install = async () => {
     if (!confirm) return
     const c = confirm
@@ -59,7 +66,7 @@ export default function GamingSettings() {
         <dl className="gaming-facts">
           <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see the gaming guide).</span></>}</dd>
           <dt>Encoders</dt><dd>{st.encoders.join(', ') || 'None found'}</dd>
-          <dt>Graphics card</dt><dd>{st.gpu?.name || <><b>None this server can use</b><br /><span className="muted">{st.gpu?.error ? `${st.gpu.error}. ` : ''}Consoles that draw with a graphics card won’t start. Older consoles still play.</span></>}</dd>
+          <dt>Graphics card</dt><dd>{st.gpu?.name || (checking && !st.gpu?.error ? 'Checking…' : <><b>None this server can use</b><br /><span className="muted">{st.gpu?.error ? `${st.gpu.error}. ` : ''}Consoles that draw with a graphics card won’t start. Older consoles still play.</span></>)}</dd>
           <dt>Games running</dt><dd>{st.running}</dd>
           <dt>Cores folder</dt><dd><code>{st.coresDir}</code></dd>
           <dt>BIOS folder</dt><dd><code>{st.systemDir}</code></dd>

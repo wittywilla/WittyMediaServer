@@ -281,14 +281,19 @@ func (s *Session) videoLoop() {
 				continue
 			}
 		}
+		// A new frame swaps with the old one rather than being copied. A repeat sends
+		// what was shown last. Nothing changes a shown frame until the next swap, which
+		// only happens here, so it can be read after unlocking.
 		s.frameMu.Lock()
-		if len(s.frame) == 0 {
-			s.frameMu.Unlock()
+		if s.frameFresh {
+			s.shown, s.frame = s.frame, s.shown
+			s.shownHdr, s.frameFresh = s.frameHdr, false
+		}
+		feed, hdr = s.shown, s.shownHdr
+		s.frameMu.Unlock()
+		if len(feed) == 0 {
 			continue
 		}
-		feed = append(feed[:0], s.frame...)
-		hdr = s.frameHdr
-		s.frameMu.Unlock()
 
 		s.viewMu.Lock()
 		h264, vp8, jp := s.syncEncodersLocked(hdr)
@@ -682,12 +687,15 @@ func toRGBA(hdr ipc.VideoHeader, data []byte) *image.RGBA {
 // writeThumb saves the current picture beside a save state.
 func (s *Session) writeThumb(name string) {
 	s.frameMu.Lock()
-	if len(s.frame) == 0 {
-		s.frameMu.Unlock()
+	hdr, data := s.shownHdr, s.shown
+	if s.frameFresh {
+		hdr, data = s.frameHdr, s.frame
+	}
+	data = append([]byte(nil), data...)
+	s.frameMu.Unlock()
+	if len(data) == 0 {
 		return
 	}
-	hdr, data := s.frameHdr, append([]byte(nil), s.frame...)
-	s.frameMu.Unlock()
 	var out bytes.Buffer
 	if err := png.Encode(&out, toRGBA(hdr, data)); err == nil {
 		_ = writeAtomic(filepath.Join(s.opt.SaveDir, name+".png"), out.Bytes())

@@ -58,7 +58,7 @@ func TestWindowsSandbox(t *testing.T) {
 // own to claim from, and stays out of every other folder.
 func TestProbeGPUInSandbox(t *testing.T) {
 	got := ProbeGPU(buildRunner(t), filepath.Join(t.TempDir(), "probe"), slog.New(slog.NewTextHandler(io.Discard, nil)))
-	if strings.Contains(got.Error, "could not check") {
+	if got.Again || strings.Contains(got.Error, "could not check") {
 		t.Fatalf("the check itself failed: %+v", got)
 	}
 	t.Logf("%+v", got)

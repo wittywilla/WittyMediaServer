@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -69,8 +70,31 @@ type gameService struct {
 	archives *gamearchive.Cache
 	dir      string
 
-	gpuOnce sync.Once
-	gpu     stream.GPUProbe
+	gpuMu       sync.Mutex
+	gpu         stream.GPUProbe
+	gpuChecking bool
+}
+
+// gpuStatus is what's known about the graphics card. Finding out takes a second or
+// two, or half a minute if a security scanner holds the runner's first start, so it
+// happens in the background and nothing waits for it. An answer about the card is
+// final; a failure to ask gets asked again next time.
+func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe {
+	g.gpuMu.Lock()
+	defer g.gpuMu.Unlock()
+	if runner == "" || g.gpuChecking || (g.gpu.Name != "" || (g.gpu.Error != "" && !g.gpu.Again)) {
+		out := g.gpu
+		out.Checking = g.gpuChecking
+		return out
+	}
+	g.gpuChecking = true
+	go func() {
+		got := stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
+		g.gpuMu.Lock()
+		defer g.gpuMu.Unlock()
+		g.gpu, g.gpuChecking = got, false
+	}()
+	return stream.GPUProbe{Checking: true}
 }
 
 // defaultUnpackGB is the space for unpacked games: room for a good many discs, or the
@@ -88,6 +112,9 @@ func (s *Server) testingGames() bool {
 func (s *Server) games() *gameService {
 	s.gameOnce.Do(func() {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
+		// Games unpacked for a session that a crash or a power cut ended. No session
+		// can be running yet, and these can be gigabytes.
+		_ = os.RemoveAll(filepath.Join(dir, "tmp"))
 		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), System: filepath.Join(dir, "system"), Client: library.SafeClient},
 			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
 		s.gameSvc.archives = &gamearchive.Cache{Dir: filepath.Join(dir, "unpacked"), Limit: s.unpackLimit}
@@ -452,6 +479,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	began := time.Now()
 	g := s.games()
 	systemDir := g.systemDir()
 	if err := os.MkdirAll(systemDir, 0o755); err != nil {
@@ -461,6 +489,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	corePath := ipc.TestCore
 	var coreOptions map[string]string
 	var fallbacks []stream.CoreChoice
+	var runnerArgs []string
 	gpu := false
 	if console.ID != wittyplay.TestConsole {
 		preferred := s.preferredCores(ctx)[console.ID]
@@ -483,6 +512,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath = core.Path
 		gpu = wittyplay.Traits(core.ID).GPU
+		runnerArgs = wittyplay.RunnerArgs(core.ID)
 		resolution := s.DB.GetSetting(ctx, "gamingResolution", "")
 		coreOptions = wittyplay.StartOptions(console.ID, core.ID, resolution, systemDir)
 		// If the game won't load on this core, the others get their turn.
@@ -507,6 +537,15 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if ctx.Err() != nil {
 			return // whoever asked has gone; the unpack carries on for next time
+		}
+		writeErr(w, 422, err.Error())
+		return
+	}
+	rom, cleanup, err = g.prepare3DS(rom, cleanup, console)
+	if err != nil {
+		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
+			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
+			return
 		}
 		writeErr(w, 422, err.Error())
 		return
@@ -537,11 +576,12 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		corePath, fallbacks = core[0].Path, nil
 		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
+	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
-			GPU: gpu, CoreOptions: coreOptions, Fallbacks: fallbacks,
+		GPU: gpu, RunnerArgs: runnerArgs, CoreOptions: coreOptions, Fallbacks: fallbacks,
 	})
 	if err != nil {
 		if cleanup != nil {
@@ -587,6 +627,52 @@ func (g *gameService) prepareROM(ctx context.Context, path string, console *witt
 		return path, nil, nil
 	}
 	return g.archives.Acquire(ctx, path, console)
+}
+
+// prepare3DS checks a 3DS file before a core sees it. An encrypted one is refused:
+// nothing here decrypts or looks for keys. An unencrypted install package holds the
+// game as a plain program, which is copied out because the cores can't open a package.
+// On failure the earlier cleanup has already run.
+func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.Console) (string, func(), error) {
+	if console.ID != "3ds" {
+		return rom, cleanup, nil
+	}
+	fail := func(err error) (string, func(), error) {
+		if cleanup != nil {
+			cleanup()
+		}
+		return "", nil, err
+	}
+	info, err := wittyplay.Inspect3DS(rom)
+	if err != nil {
+		return fail(err)
+	}
+	if info.Encrypted {
+		return fail(wittyplay.ErrEncrypted3DS)
+	}
+	if !info.Package {
+		return rom, cleanup, nil
+	}
+	tmpRoot := filepath.Join(g.dir, "tmp")
+	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
+		return fail(err)
+	}
+	dir, err := os.MkdirTemp(tmpRoot, "rom-")
+	if err != nil {
+		return fail(err)
+	}
+	both := func() {
+		_ = os.RemoveAll(dir)
+		if cleanup != nil {
+			cleanup()
+		}
+	}
+	out := filepath.Join(dir, "game.cxi")
+	if err := info.CopyProgram(rom, out); err != nil {
+		both()
+		return "", nil, err
+	}
+	return out, both, nil
 }
 
 // handleGamePrepare gets a game ready without waiting for it, and says how that's
@@ -829,14 +915,9 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 			enc = append(enc, e.Name)
 		}
 	}
-	g.gpuOnce.Do(func() {
-		if runner != "" {
-			g.gpu = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), s.Log)
-		}
-	})
 	writeJSON(w, 200, map[string]any{
 		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
-		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpu, "biosFolder": wittyplay.BIOSFolderName,
+		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpuStatus(runner, s.Log), "biosFolder": wittyplay.BIOSFolderName,
 	})
 }
 

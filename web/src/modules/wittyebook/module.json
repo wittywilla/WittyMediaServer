@@ -6,5 +6,13 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "read",
+  "summary": "Reflowable books (EPUB) with book view, typography and study tools.",
+  "libraries": [
+    "books"
+  ],
+  "requires": [
+    "wittyink"
+  ]
 }

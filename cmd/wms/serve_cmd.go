@@ -154,7 +154,7 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
-		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(modules.GoManifests(), web.ModuleManifests()...),
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
 		Transport: library.SafeClient.Transport, Log: log,
 		CheckEnabled: func() bool {
 			ctx := context.Background()

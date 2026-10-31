@@ -6,5 +6,13 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "read",
+  "summary": "PDFs with selectable text, zoom, outline, thumbnails and search.",
+  "libraries": [
+    "books"
+  ],
+  "requires": [
+    "wittyink"
+  ]
 }

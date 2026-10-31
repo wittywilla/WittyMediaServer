@@ -6,5 +6,14 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "games",
+  "summary": "Console games streamed to a browser or an app, with every controller and a touch layout editor.",
+  "libraries": [
+    "games"
+  ],
+  "needs": [
+    "FFmpeg, which comes with the server",
+    "Game cores, which you add in Settings, Gaming"
+  ]
 }

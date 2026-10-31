@@ -18,7 +18,7 @@ func hideWindow(cmd *exec.Cmd) {
 // prepareSandbox gives a helper a low-integrity token: it can read what the
 // account can read, and can't write to anything of the account's. If that fails
 // (older Windows, unusual accounts) the job in lockDown still applies.
-func prepareSandbox(cmd *exec.Cmd, log *slog.Logger) bool {
+func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool {
 	hideWindow(cmd)
 	tok, err := lowIntegrityToken()
 	if err != nil {

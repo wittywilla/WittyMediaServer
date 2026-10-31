@@ -5,6 +5,7 @@ import (
 	"github.com/wittywilla/wittydisc"
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittyintegratedfilebrowser"
+	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittyphotos"
 	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittytuner"
@@ -15,5 +16,5 @@ import (
 // else has nowhere to go.
 func GoManifests() [][]byte {
 	return [][]byte{wittybluray.ManifestJSON, wittydisc.ManifestJSON, wittydvd.ManifestJSON, wittyintegratedfilebrowser.ManifestJSON,
-		wittyphotos.ManifestJSON, wittyplay.ManifestJSON, wittytuner.ManifestJSON}
+		wittymodule.ManifestJSON, wittyphotos.ManifestJSON, wittyplay.ManifestJSON, wittytuner.ManifestJSON}
 }

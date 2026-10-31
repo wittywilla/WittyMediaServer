@@ -6,5 +6,8 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "system",
+  "summary": "Choosing a server's folders from any device. Read-only.",
+  "core": true
 }

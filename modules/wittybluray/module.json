@@ -6,5 +6,17 @@
   "delivery": "builtin",
   "api": 1,
   "minServer": "0.4.0-alpha",
-  "maxServer": "0.5.x"
+  "maxServer": "0.5.x",
+  "group": "discs",
+  "summary": "Blu-ray images with their menus, including 4K, HDR and 3D discs.",
+  "libraries": [
+    "discs"
+  ],
+  "requires": [
+    "wittydisc"
+  ],
+  "needs": [
+    "FFmpeg, which comes with the server",
+    "Java, only for discs with Java menus, and only if you turn that on"
+  ]
 }

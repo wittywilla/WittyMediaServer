@@ -179,7 +179,7 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 ## What has been tested
 
-**Ran for real, end to end:** Sunshine v2026.914.233613 in Docker under WSL, with a virtual screen and software x264; this server beside it, on Linux; the real host program built on moonlight-common-c; and **real Microsoft Edge on Windows**, driven by a test script:
+**Ran for real, end to end:** Sunshine v2026.914.233613 in Docker under WSL, with a virtual screen and software x264; this server beside it, on Linux; the real host program built on moonlight-common-c; and **real Microsoft Edge on Windows**, headless, driven by a test script:
 
 - From a clean install: adding the PC by address on the page, its PIN shown and typed into the real Sunshine, its games and art appearing, with desktop apps set apart.
 - Pressing Play: **the first picture in about a second, 30 frames a second with none or almost none dropped**, on the encrypted channel, with test colour bars recognisable pixel by pixel and moving.

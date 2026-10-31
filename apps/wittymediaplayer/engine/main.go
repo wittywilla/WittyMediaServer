@@ -6,6 +6,7 @@
 //	wittymediaplayer-engine --helper                 the window's helper
 //	wittymediaplayer-engine --drives                 lists optical drives as JSON
 //	wittymediaplayer-engine --image <source> <out>   copies a disc to an .iso or .img
+//	wittymediaplayer-engine --cd-image <source> <out.cue> [secure|burst] [offset]
 //
 // Ctrl+C stops a copy. With --watch-stdin before --image, so does closing stdin, which
 // is how the window does it. Either way the partial file is removed.
@@ -20,9 +21,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittydisc/session"
+	"github.com/wittywilla/wittymediaplayer/engine/internal/cdrip"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/disc"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/drives"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/imaging"
@@ -67,6 +70,27 @@ func main() {
 			stdin = os.Stdin
 		}
 		os.Exit(runImage(args[1], args[2], stdin, os.Stdout))
+	case len(args) >= 3 && args[0] == "--cd-image":
+		var stdin io.Reader
+		if watch {
+			stdin = os.Stdin
+		}
+		secure, offset := true, 0
+		if len(args) > 3 {
+			secure = args[3] != "burst"
+		}
+		if len(args) > 4 {
+			offset, _ = strconv.Atoi(args[4])
+		}
+		os.Exit(runCDImage(args[1], args[2], secure, offset, stdin, os.Stdout))
+	case len(args) >= 1 && args[0] == "--cd-rip":
+		var stdin io.Reader
+		if watch {
+			stdin = os.Stdin
+		}
+		os.Exit(runCDRip(args[1:], stdin, os.Stdout))
+	case len(args) == 2 && args[0] == "--cd-stream":
+		os.Exit(runCDStream(args[1], os.Stdin, os.Stdout))
 	case len(args) == 1 && args[0] == "--version":
 		fmt.Println("wittymediaplayer-engine", Version)
 	default:
@@ -194,6 +218,7 @@ type openReply struct {
 	Kind         string             `json:"kind"`
 	Info         *disc.Info         `json:"info,omitempty"`
 	Presentation *disc.Presentation `json:"presentation,omitempty"`
+	CD           *cdrip.Info        `json:"cd,omitempty"`
 }
 
 func refusal(err error) error {
@@ -225,7 +250,7 @@ func resolve(path string) (string, string, bool, error) {
 	}
 	if kind == disc.KindData {
 		if drive && audioCD(path) {
-			return "", "", true, &disc.RefusalError{Code: disc.CodeAudioCD, Message: disc.MsgAudioCD}
+			return "", "", true, &disc.RefusalError{Code: disc.CodeAudioCD, Message: cdrip.ErrNoRead.Error()}
 		}
 		return "", "", drive, &disc.RefusalError{Code: disc.CodeNotVideo, Message: disc.MsgNotVideo}
 	}
@@ -233,6 +258,45 @@ func resolve(path string) (string, string, bool, error) {
 		return "", "", true, &disc.RefusalError{Code: disc.CodeProtected, Message: disc.MsgDVDProtected}
 	}
 	return path, kind, drive, nil
+}
+
+// openAudioCD says what an audio CD holds, from a drive or an image. Anything else, even a
+// disc image of another kind, is for the rest of open to look at: it returns nothing for
+// those, and an error only for what's clearly an audio CD and won't read.
+func openAudioCD(path string) (*cdrip.Info, error) {
+	isDrive := drives.IsDriveRoot(path)
+	sure := isDrive
+	switch {
+	case isDrive:
+		path = drives.NormalizeRoot(path)
+		if !audioCD(path) {
+			return nil, nil
+		}
+	case cdrip.IsImage(path):
+		sure = true
+	case !cdrip.MayBeImage(path):
+		return nil, nil
+	default:
+		// .iso, .img and .bin may be a video disc or data; those go the usual way.
+		if k, err := disc.Classify(path); err == nil && k != disc.KindData && k != disc.KindFile {
+			return nil, nil
+		}
+	}
+	src, err := cdrip.Open(path)
+	if err != nil {
+		if !sure {
+			return nil, nil
+		}
+		msg := capitalize(err.Error())
+		if !strings.HasSuffix(msg, ".") {
+			msg += "."
+		}
+		return nil, &disc.RefusalError{Code: disc.CodeUnreadable, Message: msg}
+	}
+	defer src.Close()
+	info := *src.Info()
+	info.Path = path
+	return &info, nil
 }
 
 func audioCD(path string) bool {
@@ -256,6 +320,13 @@ func (h *helper) handle(method string, raw json.RawMessage) (any, []byte, error)
 			return nil, nil, err
 		}
 		h.closeSession()
+		cd, err := openAudioCD(in.Path)
+		if err != nil {
+			return nil, nil, refusal(err)
+		}
+		if cd != nil {
+			return openReply{Kind: "audiocd", CD: cd}, nil, nil
+		}
 		path, kind, drive, err := resolve(in.Path)
 		if err != nil {
 			return nil, nil, refusal(err)

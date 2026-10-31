@@ -66,7 +66,7 @@ type Options struct {
 	CoreAssets     string   // support files of its own, if it has any
 	// LoadLimit is how long it may take to load, when it's more than a game usually gets.
 	LoadLimit time.Duration
-	Cleanup        func()   // runs when the session has ended
+	Cleanup   func() // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
 	// that one core refuses often play on another, and nobody should have to know.
 	Fallbacks []CoreChoice
@@ -125,7 +125,7 @@ var (
 	ErrStopped = errors.New("the game has stopped")
 	// ErrRunnerDied is behind the plain words for a runner that ended by itself.
 	ErrRunnerDied = errors.New("the game runner ended by itself")
-	ErrNoSlot  = errors.New("there is no such save slot")
+	ErrNoSlot     = errors.New("there is no such save slot")
 	// ErrNoDevice: the core didn't offer that kind of controller for that port.
 	ErrNoDevice = errors.New("this game has no such kind of controller")
 )

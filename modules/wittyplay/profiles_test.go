@@ -44,10 +44,10 @@ func TestResolveOrder(t *testing.T) {
 func TestEffectiveMap(t *testing.T) {
 	five, one := 5, 1
 	p := &Profile{Kind: ProfileGamepad, Map: map[int]*Binding{
-		RetroB:     {Button: &five},
+		RetroB:      {Button: &five},
 		RetroSelect: nil, // nothing presses it
-		StickUpL:   {Axis: &one, Dir: -1},
-		StickUpR:   {Button: &five}, // not on this console
+		StickUpL:    {Axis: &one, Dir: -1},
+		StickUpR:    {Button: &five}, // not on this console
 	}}
 	m := EffectiveMap("snes", p)
 	if b := m[RetroB]; b.Button == nil || *b.Button != 5 {

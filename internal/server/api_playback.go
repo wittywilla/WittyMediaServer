@@ -129,8 +129,8 @@ type playbackResponse struct {
 	NowPlayingURL string `json:"nowPlayingUrl,omitempty"`
 	// CDURL: for a CD (decision cd), its tracks and layout: GET it for the map of
 	// the stream in URL.
-	CDURL string `json:"cdUrl,omitempty"`
-	ProgressURL      string         `json:"progressUrl"`
+	CDURL       string `json:"cdUrl,omitempty"`
+	ProgressURL string `json:"progressUrl"`
 }
 
 // probeSource turns a probe into what the decision needs.

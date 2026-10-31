@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // mintFor asks the API for a stream token.

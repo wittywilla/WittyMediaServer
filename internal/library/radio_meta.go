@@ -275,7 +275,6 @@ func (s *Store) saveDirectoryMeta(ctx context.Context, itemID int64, st Director
 	return err
 }
 
-
 // LookUpRadio finds a station added by address in the directory, on an
 // administrator's request, and fills in what it knows. The address is sent only when
 // it can't be someone's private one: a query string or sign-in in it may be a key.

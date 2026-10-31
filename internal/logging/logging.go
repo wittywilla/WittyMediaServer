@@ -184,7 +184,7 @@ type Logger struct {
 		until time.Time
 		timer *time.Timer
 	}
-	dir   atomic.Pointer[string]
+	dir atomic.Pointer[string]
 
 	ring  ring
 	flood flood

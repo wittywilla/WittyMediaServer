@@ -329,8 +329,8 @@ const (
 
 // clientEvent is one thing that went wrong on a client.
 type clientEvent struct {
-	Level   string `json:"level"`   // error, warn or info
-	Kind    string `json:"kind"`    // js, request, player, game, crash...
+	Level   string `json:"level"` // error, warn or info
+	Kind    string `json:"kind"`  // js, request, player, game, crash...
 	Message string `json:"message"`
 	Stack   string `json:"stack"`
 	Page    string `json:"page"`

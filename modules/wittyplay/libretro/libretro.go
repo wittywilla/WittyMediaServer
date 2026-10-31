@@ -114,8 +114,8 @@ type Core struct {
 	gameData []byte
 	loaded   bool
 
-	hw         *hwState
-	hwRefused  bool
+	hw           *hwState
+	hwRefused    bool
 	traceOptions []string
 
 	lastProblem string // the last thing the core complained about, for a failed load
@@ -127,8 +127,8 @@ type Core struct {
 	lastRun     time.Time
 	refused     map[uint32]bool
 	dirs        map[string]*byte
-	noGame       bool
-	hwAsked      bool
+	noGame      bool
+	hwAsked     bool
 }
 
 var _ engine.Engine = (*Core)(nil)

@@ -20,14 +20,14 @@ import (
 
 // Messages from the host.
 const (
-	MsgReady   byte = 1 // JSON: Ready
-	MsgVideo   byte = 2 // VideoHeader + tightly packed rows
-	MsgDupe    byte = 3 // the previous frame again
-	MsgAudio   byte = 4 // s16le stereo
-	MsgState   byte = 5 // u32 request id + save state (empty: the core has none)
-	MsgSaveRAM byte = 6 // battery save
-	MsgEvent   byte = 7 // JSON: Event
-	MsgError   byte = 8 // text, then the host exits
+	MsgReady   byte = 1  // JSON: Ready
+	MsgVideo   byte = 2  // VideoHeader + tightly packed rows
+	MsgDupe    byte = 3  // the previous frame again
+	MsgAudio   byte = 4  // s16le stereo
+	MsgState   byte = 5  // u32 request id + save state (empty: the core has none)
+	MsgSaveRAM byte = 6  // battery save
+	MsgEvent   byte = 7  // JSON: Event
+	MsgError   byte = 8  // text, then the host exits
 	MsgProbe   byte = 20 // JSON: Probe, the answer to CmdProbe
 )
 
@@ -163,8 +163,8 @@ type Load struct {
 	PreferDevices []string `json:"preferDevices,omitempty"`
 	// Probe asks only which options the core offers: the runner sends them and exits
 	// without a game. ROM is empty then.
-	Probe bool `json:"probe,omitempty"`
-	Assets  string            `json:"assets,omitempty"` // support files of its own, if it has any
+	Probe  bool   `json:"probe,omitempty"`
+	Assets string `json:"assets,omitempty"` // support files of its own, if it has any
 }
 
 // TestCore is the Load.Core value for the built-in test core.

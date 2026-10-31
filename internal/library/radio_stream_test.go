@@ -250,7 +250,7 @@ func TestCleanRadioText(t *testing.T) {
 		"<script>alert(1)</script>Name": "alert(1)Name",
 		"two\nlines\t here":             "two lines here",
 		"bell\x07\x1b[31m":              "bell[31m",
-		"right‮left​":         "rightleft",
+		"right‮left​":                   "rightleft",
 		"bad\xff\xfe":                   "bad",
 		"&lt;img src=x onerror=y&gt;":   "<img src=x onerror=y>", // shown as text by the interface
 	} {

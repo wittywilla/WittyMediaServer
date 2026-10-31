@@ -30,9 +30,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittyplay"
 	"github.com/wittywilla/wittyplay/cores"
-	"github.com/wittywilla/wittymodule"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and

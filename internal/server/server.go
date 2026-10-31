@@ -37,7 +37,7 @@ import (
 )
 
 type Server struct {
-	cds cdDiscs
+	cds     cdDiscs
 	Cfg     *config.Config
 	DB      *db.DB
 	Log     *slog.Logger
@@ -46,20 +46,20 @@ type Server struct {
 	Scanner *library.Scanner
 	// GameMeta finds out about games, in the background.
 	GameMeta *library.GameMeta
-	Auth    *auth.Service
-	HLS     *hls.Manager
-	DVD     *dvdsession.Manager
-	BD      *bdsession.Manager
-	Themes  *themes.Manager
-	Web     fs.FS
-	Version string
-	Logs    *logging.Logger
-	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
-	logMods logModules          // how each module is logged
+	Auth     *auth.Service
+	HLS      *hls.Manager
+	DVD      *dvdsession.Manager
+	BD       *bdsession.Manager
+	Themes   *themes.Manager
+	Web      fs.FS
+	Version  string
+	Logs     *logging.Logger
+	Crashes  *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods  logModules          // how each module is logged
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
-	Update  *update.Updater // nil: this build can't update itself
-	Modules *modmgr.Manager // nil: modules can't be updated here
+	Update       *update.Updater // nil: this build can't update itself
+	Modules      *modmgr.Manager // nil: modules can't be updated here
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }

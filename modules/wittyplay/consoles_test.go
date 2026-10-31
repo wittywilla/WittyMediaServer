@@ -20,7 +20,7 @@ func TestDetect(t *testing.T) {
 		{"SNES/game.7z.001", "snes"},
 		{"SNES/game.tar.xz", "snes"},
 		{"SNES/game.sfc.zst", "snes"},
-		{"game.7z", ""}, // says nothing until it's looked inside
+		{"game.7z", ""},  // says nothing until it's looked inside
 		{"game.bin", ""}, // used by several consoles
 		{"game.cue", ""}, // likewise
 		{"Movies/game.iso", ""},

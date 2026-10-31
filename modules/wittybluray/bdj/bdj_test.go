@@ -12,8 +12,8 @@ import (
 	"github.com/wittywilla/wittybluray"
 )
 
-// bdjo builds a BD-J object with one application: the test disc's.
-func bdjo() []byte {
+// bdjo builds a BD-J object with one application.
+func bdjo(class string, params ...string) []byte {
 	var b []byte
 	u32 := func(v uint32) { b = binary.BigEndian.AppendUint32(b, v) }
 	u16 := func(v int) { b = binary.BigEndian.AppendUint16(b, uint16(v)) }
@@ -46,12 +46,17 @@ func bdjo() []byte {
 	u16(0)
 	str("00000")
 	str("")
-	str("t.TestXlet")
-	// One parameter: its length byte and text; the block is padded to even.
-	param := "hello world"
-	b = append(b, byte(len(param)+1), byte(len(param)))
-	b = append(b, param...)
-	if (len(param)+2)&1 != 0 {
+	str(class)
+	// The parameters: the block's length, then each one's length byte and text;
+	// the block is padded to even.
+	var block []byte
+	for _, p := range params {
+		block = append(block, byte(len(p)))
+		block = append(block, p...)
+	}
+	b = append(b, byte(len(block)))
+	b = append(b, block...)
+	if (len(block)+1)&1 != 0 {
 		b = append(b, 0)
 	}
 	u32(0)
@@ -60,7 +65,7 @@ func bdjo() []byte {
 }
 
 func TestParseOwnObject(t *testing.T) {
-	o, err := wittybluray.ParseBDJObject("00000", bdjo())
+	o, err := wittybluray.ParseBDJObject("00000", bdjo("t.TestXlet", "hello world"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +77,14 @@ func TestParseOwnObject(t *testing.T) {
 func javaForTest(t *testing.T) *Java {
 	t.Helper()
 	j, err := Find(os.Getenv("WMS_TEST_JAVA"))
+	if err == nil {
+		_, err = j.Probe(context.Background(), t.TempDir())
+	}
 	if err != nil {
-		t.Skip("no Java on this machine: ", err)
+		if os.Getenv("WMS_REQUIRE_JAVA") != "" {
+			t.Fatal("these tests must run here: ", err)
+		}
+		t.Skip("no usable Java on this machine: ", err)
 	}
 	return j
 }
@@ -90,8 +101,14 @@ func TestProbe(t *testing.T) {
 // testDisc is a folder holding a disc whose first play is the test application.
 func testDisc(t *testing.T) *wittybluray.Disc {
 	t.Helper()
+	return discWith(t, "testdata/00000.jar", bdjo("t.TestXlet", "hello world"))
+}
+
+// discWith is a disc whose first play is the given BD-J object and JAR.
+func discWith(t *testing.T, jarPath string, object []byte) *wittybluray.Disc {
+	t.Helper()
 	dir := t.TempDir()
-	jar, err := os.ReadFile("testdata/00000.jar")
+	jar, err := os.ReadFile(jarPath)
 	if err != nil {
 		t.Skip("test application not built: ", err)
 	}
@@ -120,7 +137,7 @@ func testDisc(t *testing.T) *wittybluray.Disc {
 		"BDMV/PLAYLIST/00001.mpls": mpls,
 		"BDMV/CLIPINF/00001.clpi":  clpi,
 		"BDMV/STREAM/00001.m2ts":   make([]byte, 192),
-		"BDMV/BDJO/00000.bdjo":     bdjo(),
+		"BDMV/BDJO/00000.bdjo":     object,
 		"BDMV/JAR/00000.jar":       jar,
 		"BDMV/AUXDATA/sound.bdmv":  []byte("BCLK"),
 	}

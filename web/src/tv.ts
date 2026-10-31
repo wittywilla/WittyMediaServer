@@ -148,8 +148,9 @@ function onKey(e: KeyboardEvent) {
   const target = e.target as Element | null
   if (e.key === 'Enter' && target) {
     // OK on the picture brings up the controls. Disc menus keep it for their
-    // buttons: the player uses it first if one is selected.
-    if (target.matches('.player:not(.mini)') && !target.querySelector('.dvd-layer .hit')) {
+    // buttons: the player uses it first if one is selected. A disc's Java menu draws
+    // its own buttons and has the remote, so its keys must stay with it.
+    if (target.matches('.player:not(.mini)') && !target.querySelector('.dvd-layer .hit, .bdj-layer')) {
       if (focusPlayerControls()) e.preventDefault()
       return
     }

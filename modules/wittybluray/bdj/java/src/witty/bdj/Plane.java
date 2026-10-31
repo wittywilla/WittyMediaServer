@@ -39,7 +39,23 @@ public final class Plane {
         invalidate();
     }
 
+    /** Under every scene, for what a player keeps behind them. */
+    public static void addBottom(Layer l) {
+        layers.add(0, l);
+        invalidate();
+    }
+
     public static void invalidate() { dirty = true; }
+
+    private static int shown;
+    /** A layer can go away with no one asking for a repaint: an application that ends takes its scenes with it. */
+    private static boolean shownChanged() {
+        int h = 1;
+        for (Layer l : layers) if (l.visibleLayer()) h = 31 * h + java.lang.System.identityHashCode(l);
+        if (h == shown) return false;
+        shown = h;
+        return true;
+    }
 
     /** A drawing surface as big as the plane, for scenes that draw directly. */
     public static BufferedImage makeImage(int w, int h) {
@@ -57,12 +73,13 @@ public final class Plane {
                 for (;;) {
                     try {
                         Thread.sleep(gap);
+                        if (shownChanged()) dirty = true;
                         if (dirty) {
                             dirty = false;
                             paint();
                         }
                     } catch (InterruptedException e) {
-                        return;
+                        // Disc code can reach this thread; stopping it would blank the picture for good.
                     } catch (Throwable e) {
                         Host.log("paint: " + e); // a disc's paint method can throw anything
                     }

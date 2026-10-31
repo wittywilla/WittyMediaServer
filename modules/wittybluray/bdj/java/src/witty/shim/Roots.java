@@ -13,12 +13,25 @@ final class Roots {
 
     static java.io.File resolve(String path, boolean write) throws IOException {
         if (path == null) throw new NullPointerException();
+        if (!plain(path)) throw new java.io.FileNotFoundException(path + " is not available to disc applications");
         java.io.File f = new java.io.File(path);
         if (!f.isAbsolute()) f = new java.io.File(Host.vfsRoot, path);
         String c = f.getCanonicalPath();
         if (under(c, Host.persistRoot) || under(c, Host.tempRoot)) return f;
         if (!write && under(c, Host.vfsRoot)) return f;
         throw new java.io.FileNotFoundException(path + " is not available to disc applications");
+    }
+
+    /**
+     * Windows gives some names a meaning of their own, and only asking about a share
+     * name already reaches over the network: \\host\share, \\.\device and a file's
+     * alternate streams never name anything a disc owns.
+     */
+    static boolean plain(String path) {
+        if (java.io.File.separatorChar != '\\') return path.indexOf('\0') < 0;
+        if (path.indexOf('\0') >= 0 || path.startsWith("\\\\") || path.startsWith("//") || path.startsWith("\\/") || path.startsWith("/\\")) return false;
+        int colon = path.indexOf(':');
+        return colon < 0 || (colon == 1 && path.indexOf(':', 2) < 0);
     }
 
     private static boolean under(String path, String root) {

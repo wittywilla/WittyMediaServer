@@ -21,7 +21,10 @@ public final class Apps {
         public String[] params = new String[0];
         public Object xlet;
         public Object context;
-        public int state; // 0 not loaded, 1 loaded, 2 paused, 3 started, 4 destroyed
+        public volatile int state; // 0 not loaded, 1 loaded, 2 paused, 3 started, 4 destroyed
+        private volatile boolean stopped;
+        /** Over for good: its own threads can still set the state back while they run on. */
+        public boolean ended() { return stopped || state == 4; }
         public ThreadGroup group;
     }
 
@@ -91,7 +94,11 @@ public final class Apps {
 
     /** Starts one application; also the way AppProxy.start comes in. */
     public static void start(final App a) {
-        a.group = new ThreadGroup("app-" + a.id);
+        // An application's home in the disc's storage: dvb.persistent.root/<org>/<app>, in hex.
+        new File(Host.persistRoot, Integer.toHexString(a.org) + File.separator + Integer.toHexString(a.id)).mkdirs();
+        new File(Host.persistRoot, "buda").mkdirs();
+        a.stopped = false;
+        a.group = new AppGroup(a);
         a.state = 1;
         Thread t = new Thread(a.group, new Runnable() {
             public void run() {
@@ -99,7 +106,9 @@ public final class Apps {
                     Class<?> c = loader.loadClass(a.clazz);
                     Object x = c.newInstance();
                     a.xlet = x;
+                    if (a.ended()) return;
                     XletHost.run(a, x);
+                    if (a.ended()) return;
                     a.state = 3;
                     Host.send("appstarted " + a.id);
                 } catch (Throwable e) {
@@ -110,6 +119,20 @@ public final class Apps {
             }
         }, "xlet-" + a.id);
         t.start();
+    }
+
+    private static final class AppGroup extends ThreadGroup {
+        final App app;
+        AppGroup(App a) { super("app-" + a.id); app = a; }
+    }
+
+    /** The application a thread belongs to, even after it ended; on a shared thread such as the event queue, the first one running. */
+    public static App owner() {
+        for (ThreadGroup g = Thread.currentThread().getThreadGroup(); g != null; g = g.getParent()) if (g instanceof AppGroup) return ((AppGroup) g).app;
+        synchronized (table) {
+            for (App a : table) if (!a.ended()) return a;
+        }
+        return null;
     }
 
     /** Ends the applications of a title. */
@@ -123,12 +146,14 @@ public final class Apps {
     }
 
     public static void stop(final App a) {
-        if (a.xlet == null || a.state == 4) return;
+        final boolean running = a.xlet != null && a.state != 4;
+        a.stopped = true;
         a.state = 4;
-        final Thread t = new Thread(new Runnable() {
+        Plane.invalidate();
+        Thread t = new Thread(new Runnable() {
             public void run() {
                 try {
-                    XletHost.destroy(a);
+                    if (running) XletHost.destroy(a);
                 } catch (Throwable e) {
                     Host.log("destroy: " + e);
                 }

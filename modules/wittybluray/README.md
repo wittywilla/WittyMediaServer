@@ -65,7 +65,7 @@ program: `go get github.com/wittywilla/wittybluray@latest`.
 | `wittybluray menu <disc> <playlist>` | a playlist's menu: pages, buttons, every command |
 | `wittybluray walk <disc> [button…]` | simulates inserting the disc, then pressing menu buttons by id |
 | `wittybluray render <disc> <dir>` | the first menu's pages as PNG files |
-| `wittybluray bdj <disc> [seconds [picture.png]]` | BD-J titles and what their code needs; with Java, runs them |
+| `wittybluray bdj <disc> [seconds [picture.png [key...]]]` | BD-J titles and what their code needs; with Java, runs them, pressing the keys named |
 
 The output holds no video or artwork, so it's safe to attach to a bug report. The same commands are
 built into WittyMediaServer as `wms bluray …`.

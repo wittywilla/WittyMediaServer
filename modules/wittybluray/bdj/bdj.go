@@ -121,7 +121,8 @@ func writeRuntime(dir string) (string, error) {
 // jvmArgs keep the runtime small: BD-J was designed for players with very
 // little memory, and a media server has other work to do.
 func jvmArgs(jar string) []string {
-	return []string{"-Xmx192m", "-Xss512k", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:+ExitOnOutOfMemoryError", "-Xshare:auto",
+	return []string{"-XX:+IgnoreUnrecognizedVMOptions", "-Xmx192m", "-Xss512k", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:+ExitOnOutOfMemoryError", "-Xshare:auto",
+		"-XX:MaxDirectMemorySize=32m", "-XX:MaxMetaspaceSize=96m", "-XX:CompressedClassSpaceSize=64m", "-XX:ReservedCodeCacheSize=32m", "-XX:-UsePerfData",
 		"-Djava.awt.headless=true", "-Dfile.encoding=UTF-8", "-Djavax.xml.accessExternalDTD=", "-Djavax.xml.accessExternalSchema=", "-cp", jar}
 }
 
@@ -172,6 +173,8 @@ type Options struct {
 	CacheDir, WorkDir, PersistDir string
 	OnEvent                       func(Event)
 	Log                           func(string)
+	// Limits ends the process when it uses too much; zero means DefaultLimits.
+	Limits Limits
 }
 
 // Host is one running Java process with one disc's applications.
@@ -213,8 +216,8 @@ func Start(ctx context.Context, d *wittybluray.Disc, o Options) (*Host, error) {
 	if err := d.ExportProgram(vfs, 1<<30); err != nil {
 		return nil, fmt.Errorf("reading the disc's program: %w", err)
 	}
-	args := append(jvmArgs(jar), "witty.bdj.Main", vfs, o.PersistDir, tmp)
-	cmd := exec.Command(o.Java.Path, args...)
+	args := append(jvmArgs(jar), "-Djava.io.tmpdir="+tmp, "witty.bdj.Main", vfs, o.PersistDir, tmp)
+	cmd := javaCommand(o.Java.Path, args...)
 	hide(cmd)
 	cmd.Dir = tmp
 	cmd.Env = minimalEnv()
@@ -236,6 +239,10 @@ func Start(ctx context.Context, d *wittybluray.Disc, o Options) (*Host, error) {
 	h := &Host{o: o, cmd: cmd, done: make(chan struct{}), out: make(chan string, 8192), stop: make(chan struct{}), frame: image.NewNRGBA(image.Rect(0, 0, Width, Height))}
 	go h.drainLog(stderr)
 	go h.write(stdin)
+	if o.Limits == (Limits{}) {
+		o.Limits = DefaultLimits()
+	}
+	go h.watch(o.Limits)
 	ready := make(chan struct{})
 	go h.read(stdout, ready)
 	select {
@@ -285,11 +292,36 @@ func (h *Host) logf(s string) {
 	}
 }
 
+// Log limits: a disc's own printing costs it, not the server. Past the rate the
+// pipe is read slowly, which holds the disc's next print back.
+const (
+	logLinesPerSecond = 100
+	logLineMax        = 4 << 10
+)
+
 func (h *Host) drainLog(r io.Reader) {
-	sc := bufio.NewScanner(r)
-	sc.Buffer(make([]byte, 4096), 64<<10)
-	for sc.Scan() {
-		h.logf(sc.Text())
+	br := bufio.NewReaderSize(r, 16<<10)
+	window := time.Now()
+	lines := 0
+	for {
+		b, err := br.ReadSlice('\n')
+		if len(b) > 0 {
+			if time.Since(window) >= time.Second {
+				window, lines = time.Now(), 0
+			}
+			lines++
+			if lines <= logLinesPerSecond {
+				if len(b) > logLineMax {
+					b = b[:logLineMax]
+				}
+				h.logf(strings.TrimRight(string(b), "\r\n"))
+			} else {
+				time.Sleep(20 * time.Millisecond)
+			}
+		}
+		if err != nil && err != bufio.ErrBufferFull {
+			return
+		}
 	}
 }
 
@@ -308,10 +340,20 @@ func (h *Host) read(r io.Reader, ready chan struct{}) {
 	br := bufio.NewReaderSize(r, 1<<16)
 	var row []byte
 	readyDone := false
+	window := time.Now()
+	lines := 0
 	for {
 		line, err := readLine(br)
 		if err != nil {
 			return
+		}
+		// Nothing real sends more than a few messages a second. Reading a flood slowly
+		// holds back the disc that sends it, and the server's other work goes on.
+		if lines++; lines > linesPerWindow {
+			if wait := linkWindow - time.Since(window); wait > 0 {
+				time.Sleep(wait)
+			}
+			window, lines = time.Now(), 0
 		}
 		w := strings.Split(line, " ")
 		switch w[0] {
@@ -364,6 +406,11 @@ func (h *Host) read(r io.Reader, ready chan struct{}) {
 		}
 	}
 }
+
+const (
+	linkWindow     = 100 * time.Millisecond
+	linesPerWindow = 500
+)
 
 // readLine reads one line of at most 64 KB.
 func readLine(br *bufio.Reader) (string, error) {

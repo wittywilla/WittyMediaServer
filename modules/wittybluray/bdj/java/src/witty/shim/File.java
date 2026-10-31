@@ -23,8 +23,8 @@ public class File implements java.io.Serializable, Comparable<File> {
     public boolean isAbsolute() { return f.isAbsolute(); }
     public String getAbsolutePath() { return f.getAbsolutePath(); }
     public File getAbsoluteFile() { return new File(f.getAbsoluteFile()); }
-    public String getCanonicalPath() throws IOException { return f.getCanonicalPath(); }
-    public File getCanonicalFile() throws IOException { return new File(f.getCanonicalFile()); }
+    public String getCanonicalPath() throws IOException { return Roots.plain(f.getPath()) ? f.getCanonicalPath() : f.getPath(); }
+    public File getCanonicalFile() throws IOException { return new File(getCanonicalPath()); }
     public boolean exists() { return ok() && f.exists(); }
     public boolean canRead() { return ok() && f.canRead(); }
     public boolean canWrite() { try { Roots.resolve(f.getPath(), true); return f.canWrite(); } catch (IOException e) { return false; } }
@@ -89,6 +89,7 @@ public class File implements java.io.Serializable, Comparable<File> {
     public boolean setLastModified(long t) { try { Roots.resolve(f.getPath(), true); return f.setLastModified(t); } catch (IOException e) { return false; } }
     public boolean setReadOnly() { try { Roots.resolve(f.getPath(), true); return f.setReadOnly(); } catch (IOException e) { return false; } }
     public URL toURL() throws java.net.MalformedURLException { return new URL("file:" + f.getAbsolutePath().replace('\\', '/')); }
+    public java.net.URI toURI() { return f.toURI(); }
     public int compareTo(File o) { return f.compareTo(o.f); }
     public boolean equals(Object o) { return o instanceof File && f.equals(((File) o).f); }
     public int hashCode() { return f.hashCode(); }

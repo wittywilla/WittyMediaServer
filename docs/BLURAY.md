@@ -100,13 +100,16 @@ Each viewer's disc starts its own small Java process (192 MB at most), which end
 The disc's graphics are sent to the player as pictures at up to 12 a second, so fast animation looks
 less smooth than on a hardware player.
 
-If an application can't run, the disc plays its main feature instead. This is new, and it has been
-tested with a test application, not yet on retail discs. Please report discs that fail, with the
-output of `wms bluray bdj <disc> 20`.
+If an application can't run, the disc plays its main feature instead. This has been tested on Java 8,
+21 and 25 with our own test discs and with open-source sample applications, **not yet on a retail
+disc**: none of the discs tried so far has Java menus. Please report discs that fail, with the output
+of `wms bluray bdj <disc> 20`.
 
 **Safety.** A BD-J disc contains code. It runs in a sandbox with no network and no access to files
-outside the disc's own areas, but that is not an absolute guarantee, so this stays off until you
-turn it on. [The sandbox in detail](BLURAY-QUIRKS.md#bd-j).
+outside the disc's own areas, and a hostile test disc tries to break out every time the tests run.
+If a disc uses too much memory, threads or processor time, its Java process is ended and the feature
+plays. That is still not an absolute guarantee, so this stays off until you turn it on. [The sandbox
+in detail](BLURAY-QUIRKS.md#bd-j).
 
 ## Java and licensing
 
@@ -173,7 +176,7 @@ wms bluray info   THE_LORAX.iso          # titles, program, playlists, clips, st
 wms bluray walk   THE_LORAX.iso          # simulate inserting the disc; the menu's buttons and commands
 wms bluray walk   THE_LORAX.iso 2 5      # ...then press buttons 2 and 5
 wms bluray render THE_LORAX.iso out/     # the menu's pages as PNG files
-wms bluray bdj    THE_LORAX.iso 20 a.png # BD-J titles; with Java, run them for 20 seconds
+wms bluray bdj    THE_LORAX.iso 20 a.png down enter # BD-J titles; with Java, run them for 20 seconds, pressing those keys
 ```
 
 The same commands exist as a standalone tool, `wittybluray`, from the

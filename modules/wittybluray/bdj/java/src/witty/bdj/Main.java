@@ -29,6 +29,15 @@ public final class Main {
             Host.send("ok " + java.lang.System.getProperty("java.version"));
             java.lang.System.exit(0);
         }
+        if (args.length >= 4 && args[3].equals("refused")) {
+            // For the diagnostic: which of the JDK classes named on standard input a disc may not link.
+            BufferedReader names = new BufferedReader(new InputStreamReader(java.lang.System.in, StandardCharsets.UTF_8));
+            for (String n; (n = names.readLine()) != null; ) {
+                if (!Sandbox.RENAME.containsKey(n) && !Sandbox.allowedJdk(n.replace('/', '.'))) Host.send("refused " + n);
+            }
+            java.lang.System.exit(0);
+        }
+        NoNetwork.install();
         Host.vfsRoot = new File(args[0]).getCanonicalPath();
         Host.persistRoot = new File(args[1]).getCanonicalPath();
         Host.tempRoot = new File(args[2]).getCanonicalPath();

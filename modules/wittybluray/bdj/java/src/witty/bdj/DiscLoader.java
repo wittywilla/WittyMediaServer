@@ -20,6 +20,13 @@ public final class DiscLoader extends ClassLoader {
         if (f.isDirectory()) dirs.add(f); else jars.add(new ZipFile(f));
     }
 
+    /** One more JAR or folder a disc's application asked for; the caller has checked it is the disc's own. */
+    public synchronized void addDiscFile(File f) throws IOException {
+        for (File d : dirs) if (d.equals(f)) return;
+        for (ZipFile z : jars) if (new File(z.getName()).equals(f)) return;
+        addJar(f);
+    }
+
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         Class<?> c = findLoadedClass(name);
         if (c == null) {

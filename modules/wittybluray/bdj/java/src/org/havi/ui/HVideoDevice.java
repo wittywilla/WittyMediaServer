@@ -6,7 +6,7 @@ public class HVideoDevice extends HScreenDevice {
     public HVideoConfiguration[] getConfigurations() { return new HVideoConfiguration[] {c}; }
     public HVideoConfiguration getDefaultConfiguration() { return c; }
     public HVideoConfiguration getCurrentConfiguration() { return c; }
-    public boolean setVideoConfiguration(HVideoConfiguration n) { return true; }
+    public boolean setVideoConfiguration(HVideoConfiguration n) throws SecurityException, HPermissionDeniedException, HConfigurationException { return n != null; }
     public HVideoConfiguration getBestConfiguration(HVideoConfigTemplate t) { return c; }
     public HVideoConfiguration getBestConfiguration(HVideoConfigTemplate[] t) { return c; }
     public Object getVideoSource() { return null; }

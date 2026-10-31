@@ -260,8 +260,9 @@ picture on screen, so they can't move. `docs/CLIENT-API.md` describes that loop.
 ## Merging
 
 This branch merges into `master` without conflicts, and the merged code builds and passes its tests
-(checked at `3876761`). **BD-J (`48250ea`) arrived after this audit and has not been audited**: it
-runs Java code from disc images on the server, so it deserves its own review. The other sessions will likely touch `internal/db/db.go`
+(checked at `3876761`). BD-J (`48250ea`) arrived after this audit. It runs Java code from disc images
+on the server, and has since had its own hostile testing, which found and closed real sandbox holes
+(see [BLURAY-QUIRKS.md](BLURAY-QUIRKS.md#bd-j)). The other sessions will likely touch `internal/db/db.go`
 too: if two branches add a migration, both go at the end of the list, each with its own number.
 `TestEveryRouteChecksWhoIsAsking` will fail for a new public route until it is added to
 `publicRoutes`, which is on purpose.

@@ -56,7 +56,11 @@ close some of these.
 - **A small Windows and macOS app** that makes that file: not started.
 - **Clearer program names:** nothing in the package explains what each program does.
 - **Blu-ray:** secondary audio, picture-in-picture and MVC 3D decoding. Testing on retail discs, including
-  Java menus, 4K and HDR, waits for discs from the owner.
+  Java menus, 4K and HDR, waits for discs from the owner. Neither Blu-ray image on hand has Java menus.
+- **BD-J on a real disc:** the blu-disc.net examples are project files for an authoring tool, with no built
+  disc or Java code to run, so BD-J was tested with open-source sample applications instead. To try real
+  authored output, the owner could build `DEMO_menu` with the free Blu-Disc Studio Lite. What needs
+  a disc: real menus' timing with video, and how far the API classes written from the published specs match.
 - **Confirm by watching:** the Shrek 2 warning screen, the interactive games and the Idol credits have
   fixes, but the owner hasn't confirmed them. The same goes for the DVD chapter-change fix: on Shrek 2, play
   straight through 2:20 to 2:35 and 33:55 to 36:45. Only PAL discs could be measured, so an NTSC disc is

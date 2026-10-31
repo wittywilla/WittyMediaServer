@@ -14,4 +14,13 @@ find src -name '*.java' > "$T/files"
 cp testxlet/t/hello.txt "$T/test/t/"
 mkdir -p ../testdata
 "${B}jar" --create --no-manifest --file ../testdata/00000.jar -C "$T/test" .
+# The hostile disc. Its probes name what disc code must not link, so it builds against the full JDK.
+"${B}javac" -nowarn --release 8 -Xlint:-options -encoding UTF-8 -cp "$T/classes" -d "$T/attack" testxlet/a/*.java
+"${B}jar" --create --no-manifest --file ../testdata/attack.jar -C "$T/attack" .
+# The disc that calls what real discs call.
+find testxlet/stubs -name '*.java' > "$T/stubs.files"
+"${B}javac" -nowarn --release 8 -Xlint:-options -encoding UTF-8 -cp "$T/classes" -d "$T/stubs" @"$T/stubs.files"
+"${B}javac" -nowarn --release 8 -Xlint:-options -encoding UTF-8 -cp "$T/stubs:$T/classes" -d "$T/platform" testxlet/p/*.java
+cp testxlet/p/doc.xml testxlet/p/dot.png "$T/platform/p/"
+"${B}jar" --create --no-manifest --file ../testdata/platform.jar -C "$T/platform" .
 rm -rf "$T"

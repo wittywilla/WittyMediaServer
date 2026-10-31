@@ -16,6 +16,7 @@ import (
 	"image/png"
 	"log/slog"
 	"maps"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -57,6 +58,8 @@ type Manager struct {
 // NewManager makes a manager; idle sessions are closed after 30 minutes.
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
 	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
+	// A server that was stopped hard leaves its sessions' copies of the discs' programs.
+	_ = os.RemoveAll(filepath.Join(cacheDir, "bdj", "sessions"))
 	go m.sweep()
 	return m
 }
@@ -64,7 +67,7 @@ func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, l
 func (m *Manager) sweep() {
 	for range time.Tick(time.Minute) {
 		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
-			if time.Since(s.lastUsed()) > 30*time.Minute {
+			if s.idleTooLong() {
 				m.CloseSession(id)
 			}
 		}

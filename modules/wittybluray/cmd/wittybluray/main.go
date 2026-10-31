@@ -29,7 +29,7 @@ func main() {
   wittybluray menu      <disc> <playlist>   a playlist's menu: pages, buttons and every command
   wittybluray walk      <disc> [button...] simulate inserting the disc, then pressing menu buttons by id
   wittybluray render    <disc> <out-dir>  save the first menu's pages as PNG files
-  wittybluray bdj       <disc> [seconds [picture.png]]  BD-J titles and what their code needs; with Java, run them
+  wittybluray bdj       <disc> [seconds [picture.png [key...]]]  BD-J titles and what their code needs; with Java, run them
 
 <disc> is an .iso/.img image, or a folder that contains BDMV. Encrypted (AACS) discs are refused.
 `)

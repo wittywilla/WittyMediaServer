@@ -3,6 +3,7 @@ package org.havi.ui;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
+import witty.bdj.Apps;
 
 public class HSceneFactory {
     private static final HSceneFactory it = new HSceneFactory();
@@ -10,18 +11,29 @@ public class HSceneFactory {
     private static final class Scene extends HScene {}
     protected HSceneFactory() {}
     public static HSceneFactory getInstance() { witty.bdj.Keys.init(); return it; }
-    static synchronized void forget(HScene s) { scenes.remove(s); }
-    public synchronized HScene getBestScene(HSceneTemplate t) { return make(); }
-    public synchronized HScene getDefaultHScene() { return scenes.isEmpty() ? make() : scenes.get(0); }
-    public synchronized HScene getDefaultHScene(HScreen s) { return getDefaultHScene(); }
-    public synchronized HScene getFullScreenScene(HGraphicsDevice d) { return make(); }
-    public synchronized HScene getFullScreenScene(HGraphicsDevice d, Dimension res) { return make(); }
-    public HSceneTemplate getBestSceneTemplate(HSceneTemplate t) { return t; }
-    public HSceneTemplate resizeScene(HScene s, HSceneTemplate t) { return t; }
-    public void dispose(HScene s) { s.dispose(); }
-    private HScene make() {
+    static void remember(HScene s) { synchronized (scenes) { scenes.add(s); } }
+    static void forget(HScene s) { synchronized (scenes) { scenes.remove(s); } }
+    public HScene getBestScene(HSceneTemplate t) {
         HScene s = new Scene();
-        scenes.add(s);
+        if (t != null) s.setBounds(t.bounds());
         return s;
     }
+    /** The calling application's own scene; every application has its own. */
+    public HScene getDefaultHScene() {
+        Apps.App a = Apps.owner();
+        synchronized (scenes) {
+            for (HScene s : scenes) if (s.owner() == a && !s.gone()) return s;
+            return new Scene();
+        }
+    }
+    public HScene getDefaultHScene(HScreen s) { return getDefaultHScene(); }
+    public HScene getFullScreenScene(HGraphicsDevice d) { return new Scene(); }
+    public HScene getFullScreenScene(HGraphicsDevice d, Dimension res) { return new Scene(); }
+    public HSceneTemplate getBestSceneTemplate(HSceneTemplate t) { return t != null ? t : new HSceneTemplate(); }
+    public HSceneTemplate resizeScene(HScene s, HSceneTemplate t) {
+        if (s == null) throw new IllegalStateException();
+        if (t != null) s.setBounds(t.bounds());
+        return s.getSceneTemplate();
+    }
+    public void dispose(HScene s) { if (s != null) s.dispose(); }
 }

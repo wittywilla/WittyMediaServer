@@ -21,8 +21,18 @@ final class ClassPatch {
     static {
         CALLS.put("java/lang/Class.getResource(Ljava/lang/String;)Lwitty/shim/URL;", "getResource(Ljava/lang/Class;Ljava/lang/String;)Lwitty/shim/URL;");
         CALLS.put("java/lang/Class.getClassLoader()Lwitty/shim/Loader;", "getClassLoader(Ljava/lang/Class;)Lwitty/shim/Loader;");
-        CALLS.put("java/lang/Thread.getContextClassLoader()Lwitty/shim/Loader;", "getContextClassLoader(Ljava/lang/Thread;)Lwitty/shim/Loader;");
+        CALLS.put("*.getContextClassLoader()Lwitty/shim/Loader;", "getContextClassLoader(Ljava/lang/Thread;)Lwitty/shim/Loader;");
         CALLS.put("*.getToolkit()Lwitty/shim/Toolkit;", "getToolkit(Ljava/awt/Component;)Lwitty/shim/Toolkit;");
+        // AWT would answer "ready" and never call back; see Toolkit.prepareImage.
+        CALLS.put("*.prepareImage(Ljava/awt/Image;Ljava/awt/image/ImageObserver;)Z", "prepareImage(Ljava/lang/Object;Ljava/awt/Image;Ljava/awt/image/ImageObserver;)Z");
+        CALLS.put("*.prepareImage(Ljava/awt/Image;IILjava/awt/image/ImageObserver;)Z", "prepareImage(Ljava/lang/Object;Ljava/awt/Image;IILjava/awt/image/ImageObserver;)Z");
+        // These JDK methods take a type renamed here, so as named by a disc they would not link.
+        CALLS.put("*.printStackTrace(Lwitty/shim/PrintStream;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintStream;)V");
+        CALLS.put("*.printStackTrace(Lwitty/shim/PrintWriter;)V", "printStackTrace(Ljava/lang/Object;Lwitty/shim/PrintWriter;)V");
+        for (String owner : new String[] {"java/util/Properties", "java/awt/Component", "java/awt/Container"}) {
+            CALLS.put(owner + ".list(Lwitty/shim/PrintStream;)V", "list(Ljava/lang/Object;Lwitty/shim/PrintStream;)V");
+            CALLS.put(owner + ".list(Lwitty/shim/PrintWriter;)V", "list(Ljava/lang/Object;Lwitty/shim/PrintWriter;)V");
+        }
     }
 
     static byte[] patch(byte[] c) {
@@ -248,9 +258,8 @@ final class ClassPatch {
         try {
             return new java.io.DataInputStream(new java.io.ByteArrayInputStream(b, p - 2, l + 2)).readUTF();
         } catch (IOException e) {
-            StringBuilder s = new StringBuilder(l);
-            for (int i = 0; i < l; i++) s.append((char) (b[p + i] & 255));
-            return s.toString();
+            // A name this check cannot read must not reach the JVM, which may read it differently.
+            throw new IllegalArgumentException("bad text in a class file");
         }
     }
 }

@@ -43,15 +43,20 @@ func Bluray(args []string) int {
 		}
 		return walk(d, presses)
 	case "bdj":
-		// bluray bdj <disc> [seconds] [picture.png]: without seconds, nothing runs.
+		// bluray bdj <disc> [seconds] [picture.png] [key...]: without seconds, nothing
+		// runs. "-" names no picture, for pressing keys without saving one.
 		secs, out := 0, ""
+		var keys []string
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d", &secs)
 		}
-		if len(args) > 3 {
+		if len(args) > 3 && args[3] != "-" {
 			out = args[3]
 		}
-		return bdjInfo(d, secs, out)
+		if len(args) > 4 {
+			keys = args[4:]
+		}
+		return bdjInfo(d, secs, out, keys)
 	case "render":
 		if len(args) < 3 {
 			fmt.Fprintln(os.Stderr, "usage: bluray render <image-or-folder> <out-dir>")

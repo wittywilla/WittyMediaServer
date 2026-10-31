@@ -3,10 +3,13 @@ package bdj
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"io"
+	"os/exec"
 	"strings"
+	"time"
 )
 
 // MissingClasses reads a disc's JAR file and lists the platform classes its
@@ -60,6 +63,71 @@ func MissingClasses(jar []byte) (map[string][]string, int, error) {
 		}
 	}
 	return missing, n, nil
+}
+
+// JDKClasses lists the classes a disc's JAR names from the Java library itself:
+// what Refused then checks against the sandbox. No class is run.
+func JDKClasses(jar []byte) ([]string, error) {
+	z, err := zip.NewReader(bytes.NewReader(jar), int64(len(jar)))
+	if err != nil {
+		return nil, err
+	}
+	own := map[string]bool{}
+	for _, f := range z.File {
+		own[strings.TrimSuffix(f.Name, ".class")] = true
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, f := range z.File {
+		if !strings.HasSuffix(f.Name, ".class") || f.UncompressedSize64 > 16<<20 {
+			continue
+		}
+		r, err := f.Open()
+		if err != nil {
+			continue
+		}
+		b, err := io.ReadAll(io.LimitReader(r, 16<<20))
+		r.Close()
+		if err != nil {
+			continue
+		}
+		names, err := classRefs(b)
+		if err != nil {
+			continue
+		}
+		for _, c := range names {
+			if !own[c] && !seen[c] && !platformName(c) && (strings.HasPrefix(c, "java/") || strings.HasPrefix(c, "javax/") || strings.HasPrefix(c, "org/w3c/") || strings.HasPrefix(c, "org/xml/")) {
+				seen[c] = true
+				out = append(out, c)
+			}
+		}
+	}
+	return out, nil
+}
+
+// Refused says which of the named JDK classes the sandbox would not let a disc
+// link. The list lives in the runtime, so Java answers.
+func (j *Java) Refused(ctx context.Context, cacheDir string, names []string) ([]string, error) {
+	jar, err := writeRuntime(cacheDir)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, j.Path, append(jvmArgs(jar), "witty.bdj.Main", ".", ".", ".", "refused")...)
+	hide(cmd)
+	cmd.Stdin = strings.NewReader(strings.Join(names, "\n") + "\n")
+	b, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, l := range strings.Split(string(b), "\n") {
+		if n, ok := strings.CutPrefix(strings.TrimSpace(l), "refused "); ok {
+			out = append(out, n)
+		}
+	}
+	return out, nil
 }
 
 func platformName(c string) bool {

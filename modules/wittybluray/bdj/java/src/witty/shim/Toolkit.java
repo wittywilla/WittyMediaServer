@@ -57,9 +57,55 @@ public class Toolkit {
     public Dimension getScreenSize() { return new Dimension(Host.width, Host.height); }
     public int getScreenResolution() { return 96; }
     public ColorModel getColorModel() { return ColorModel.getRGBdefault(); }
-    public void sync() {}
+    /** An application that draws directly says here that its picture is ready. */
+    public void sync() { witty.bdj.Plane.invalidate(); }
+    public java.awt.EventQueue getSystemEventQueue() { return java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue(); }
     public void beep() {}
-    public boolean prepareImage(Image i, int w, int h, ImageObserver o) { return true; }
+    /**
+     * Pictures load at once here, but discs are written for players that fetch them in
+     * the background, and many wait for the call that says a picture is ready. So that
+     * call comes, a moment later, on a thread of its own: a disc's observer can hang it,
+     * and nothing but its other pictures would wait.
+     */
+    public boolean prepareImage(final Image i, int w, int h, final ImageObserver o) {
+        if (o == null || i == null) return true;
+        synchronized (fetching) {
+            fetching.add(new Runnable() {
+                public void run() { o.imageUpdate(i, ImageObserver.ALLBITS | ImageObserver.WIDTH | ImageObserver.HEIGHT, 0, 0, i.getWidth(null), i.getHeight(null)); }
+            });
+            fetching.notifyAll();
+            if (fetcher == null) {
+                fetcher = new Thread(new Runnable() {
+                    public void run() { fetch(); }
+                }, "bdj-image-fetcher");
+                fetcher.setDaemon(true);
+                fetcher.start();
+            }
+        }
+        return false;
+    }
+    private static final java.util.LinkedList<Runnable> fetching = new java.util.LinkedList<Runnable>();
+    private static Thread fetcher;
+    private static void fetch() {
+        for (;;) {
+            Runnable r;
+            synchronized (fetching) {
+                while (fetching.isEmpty()) {
+                    try {
+                        fetching.wait();
+                    } catch (InterruptedException e) {
+                        // Disc code can reach this thread.
+                    }
+                }
+                r = fetching.removeFirst();
+            }
+            try {
+                r.run();
+            } catch (Throwable t) {
+                Host.log("image observer: " + t);
+            }
+        }
+    }
     public int checkImage(Image i, int w, int h, ImageObserver o) { return ImageObserver.ALLBITS | ImageObserver.WIDTH | ImageObserver.HEIGHT; }
     public String[] getFontList() { return new String[] {"SansSerif", "Serif", "Monospaced", "Dialog"}; }
 }

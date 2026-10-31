@@ -28,16 +28,36 @@ final class Sandbox {
             {"java/lang/System", "System"}, {"java/lang/Runtime", "Runtime"}, {"java/lang/ClassLoader", "Loader"},
             {"java/net/URL", "URL"}, {"java/net/Socket", "Socket"}, {"java/net/InetAddress", "InetAddress"},
             {"java/awt/Toolkit", "Toolkit"},
+            {"javax/xml/parsers/DocumentBuilderFactory", "DocumentBuilderFactory"}, {"javax/xml/parsers/DocumentBuilder", "DocumentBuilder"},
+            {"javax/xml/parsers/SAXParserFactory", "SAXParserFactory"}, {"javax/xml/parsers/SAXParser", "SAXParser"},
+            {"org/xml/sax/XMLReader", "XMLReader"},
         };
         for (int i = 0; i < r.length; i++) RENAME.put(r[i][0], "witty/shim/" + r[i][1]);
     }
 
     private static final Set<String> EXACT = new HashSet<String>();
+    /**
+     * Whole packages, only where every class in them is harmless. Before adding one,
+     * read all its classes: java.rmi opens sockets, the XML packages fetch what a
+     * document names, and java.awt.color.ICC_Profile reads and writes any file.
+     */
     private static final String[] PACKAGES = {
         "java.lang.ref.", "java.math.", "java.text.", "java.util.concurrent.", "java.awt.event.", "java.awt.image.", "java.awt.geom.",
-        "java.awt.font.", "java.awt.color.", "org.w3c.dom.", "org.xml.sax.", "javax.xml.parsers.", "java.rmi.",
+        "java.awt.font.", "java.util.regex.", "org.w3c.dom.traversal.", "org.w3c.dom.events.", "org.w3c.dom.ranges.",
     };
     static {
+        String[] xml = {"java.awt.color.ColorSpace", "java.awt.color.CMMException", "java.awt.color.ProfileDataException",
+            "javax.xml.parsers.ParserConfigurationException", "javax.xml.parsers.FactoryConfigurationError",
+            "org.w3c.dom.Attr", "org.w3c.dom.CDATASection", "org.w3c.dom.CharacterData", "org.w3c.dom.Comment", "org.w3c.dom.DOMConfiguration", "org.w3c.dom.DOMError", "org.w3c.dom.DOMErrorHandler", "org.w3c.dom.DOMException",
+            "org.w3c.dom.DOMImplementation", "org.w3c.dom.DOMLocator", "org.w3c.dom.DOMStringList", "org.w3c.dom.Document", "org.w3c.dom.DocumentFragment", "org.w3c.dom.DocumentType", "org.w3c.dom.Element", "org.w3c.dom.Entity",
+            "org.w3c.dom.EntityReference", "org.w3c.dom.NameList", "org.w3c.dom.NamedNodeMap", "org.w3c.dom.Node", "org.w3c.dom.NodeList", "org.w3c.dom.Notation", "org.w3c.dom.ProcessingInstruction", "org.w3c.dom.Text", "org.w3c.dom.TypeInfo", "org.w3c.dom.UserDataHandler",
+            "org.xml.sax.AttributeList", "org.xml.sax.Attributes", "org.xml.sax.ContentHandler", "org.xml.sax.DTDHandler", "org.xml.sax.DocumentHandler", "org.xml.sax.EntityResolver", "org.xml.sax.ErrorHandler", "org.xml.sax.HandlerBase",
+            "org.xml.sax.InputSource", "org.xml.sax.Locator", "org.xml.sax.SAXException", "org.xml.sax.SAXNotRecognizedException", "org.xml.sax.SAXNotSupportedException", "org.xml.sax.SAXParseException",
+            "org.xml.sax.helpers.AttributeListImpl", "org.xml.sax.helpers.AttributesImpl", "org.xml.sax.helpers.DefaultHandler", "org.xml.sax.helpers.LocatorImpl", "org.xml.sax.helpers.NamespaceSupport",
+            "org.xml.sax.ext.Attributes2", "org.xml.sax.ext.Attributes2Impl", "org.xml.sax.ext.DeclHandler", "org.xml.sax.ext.DefaultHandler2", "org.xml.sax.ext.EntityResolver2", "org.xml.sax.ext.LexicalHandler", "org.xml.sax.ext.Locator2", "org.xml.sax.ext.Locator2Impl",
+            // Inter-application communication names these and needs no more of RMI.
+            "java.rmi.Remote", "java.rmi.RemoteException", "java.rmi.NotBoundException", "java.rmi.AlreadyBoundException", "java.rmi.AccessException", "java.rmi.ServerException", "java.rmi.ServerError", "java.rmi.NoSuchObjectException", "java.rmi.MarshalException", "java.rmi.UnmarshalException", "java.rmi.UnexpectedException"};
+        for (int i = 0; i < xml.length; i++) EXACT.add(xml[i]);
         String[] lang = {"Object", "String", "StringBuffer", "StringBuilder", "CharSequence", "Comparable", "Runnable", "Cloneable", "Iterable", "AutoCloseable",
             "Math", "StrictMath", "Number", "Integer", "Long", "Short", "Byte", "Character", "Boolean", "Float", "Double", "Void", "Enum",
             "Thread", "Thread$State", "Thread$UncaughtExceptionHandler", "ThreadGroup", "ThreadLocal", "InheritableThreadLocal", "Throwable", "Class", "StackTraceElement",
@@ -68,7 +88,7 @@ final class Sandbox {
         String[] awt = {"Adjustable", "AlphaComposite", "AWTError", "AWTEvent", "AWTEventMulticaster", "AWTException", "BasicStroke", "BorderLayout", "CardLayout", "Color", "Component", "Component$BaselineResizeBehavior", "Composite", "CompositeContext",
             "Container", "Cursor", "Dimension", "EventQueue", "FlowLayout", "Font", "FontFormatException", "FontMetrics", "GradientPaint", "Graphics", "Graphics2D", "GraphicsConfiguration", "GraphicsDevice", "GraphicsEnvironment",
             "GridBagConstraints", "GridBagLayout", "GridLayout", "HeadlessException", "IllegalComponentStateException", "Image", "Insets", "ItemSelectable", "KeyboardFocusManager", "KeyEventDispatcher", "KeyEventPostProcessor", "LayoutManager", "LayoutManager2",
-            "LinearGradientPaint", "MediaTracker", "MultipleGradientPaint", "Paint", "PaintContext", "Point", "Polygon", "RadialGradientPaint", "Rectangle", "RenderingHints", "RenderingHints$Key", "Shape", "Stroke", "TexturePaint", "Transparency", "Frame", "Window"};
+            "LinearGradientPaint", "MediaTracker", "MultipleGradientPaint", "Paint", "PaintContext", "Point", "Polygon", "RadialGradientPaint", "Rectangle", "RenderingHints", "RenderingHints$Key", "Shape", "Stroke", "TexturePaint", "Transparency", "Frame", "Window", "Panel", "Canvas", "AWTPermission", "GraphicsConfigTemplate"};
         for (int i = 0; i < awt.length; i++) EXACT.add("java.awt." + awt[i]);
     }
 

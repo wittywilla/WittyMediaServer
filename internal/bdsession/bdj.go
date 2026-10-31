@@ -2,11 +2,15 @@ package bdsession
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittybluray"
@@ -46,6 +50,67 @@ type bdjState struct {
 	seek   *float64
 	video  []int
 	active bool // the current presentation belongs to BD-J
+	// A disc can ask for playlists and titles far faster than they can start, so
+	// only the newest request of each kind is carried out, at a steady pace.
+	pending map[string]*atomic.Int32
+	lastGo  time.Time
+	limit   string // why the process was ended, if it passed a limit
+	// How many of the title's applications have ended themselves, and when the
+	// disc last went back to its menu because of that.
+	ended     int
+	menuExits []time.Time
+}
+
+const (
+	bdjMenuExits      = 3
+	bdjMenuExitWindow = time.Minute
+)
+
+// newPending counts the waiting requests of the kinds that start something expensive.
+func newPending() map[string]*atomic.Int32 {
+	return map[string]*atomic.Int32{"play": {}, "title": {}}
+}
+
+// bdjPace is how often a disc's requests may start something expensive.
+const bdjPace = 150 * time.Millisecond
+
+// bdjIdle is how long a session with Java running may go unasked. A player showing
+// the applications polls every few seconds, so this means the viewer has gone, and
+// a Java process is too much to leave running for the usual half hour.
+const bdjIdle = 3 * time.Minute
+
+func (s *Session) idleTooLong() bool {
+	s.mu.Lock()
+	running := s.bd != nil
+	s.mu.Unlock()
+	idle := time.Since(s.lastUsed())
+	return idle > 30*time.Minute || (running && idle > bdjIdle)
+}
+
+// storageKey names a disc's storage: the same however the disc is reached and from
+// one server start to the next, and different for a different disc. Scores and
+// bookmarks belong to the disc's program, so that is what it is worked out from.
+func storageKey(d *wittybluray.Disc) string {
+	h := sha256.New()
+	_, _ = io.WriteString(h, d.Label)
+	for _, f := range []string{"index.bdmv", "MovieObject.bdmv"} {
+		if b, err := d.ReadProgramFile(f, 4<<20); err == nil {
+			_, _ = h.Write(b)
+		}
+	}
+	add := func(o wittybluray.IndexObject) {
+		if o.Kind == wittybluray.ObjectBDJ {
+			if b, err := d.BDJObject(o.BDJName); err == nil {
+				_, _ = fmt.Fprintf(h, "%s %v %+v;", b.Name, b.Playlists, b.Apps)
+			}
+		}
+	}
+	add(d.Index.FirstPlay)
+	add(d.Index.TopMenu)
+	for _, t := range d.Index.Titles {
+		add(t.Object)
+	}
+	return hex.EncodeToString(h.Sum(nil)[:12])
 }
 
 // ensureHost starts Java for this session, once. nil means BD-J is off or
@@ -66,21 +131,32 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 		s.warn("BD-J", err)
 		return nil
 	}
-	st := &bdjState{events: make(chan bdj.Event, 4096)}
+	st := &bdjState{events: make(chan bdj.Event, 4096), pending: newPending()}
 	host, err := bdj.Start(ctx, s.disc, bdj.Options{
 		Java:       java,
 		CacheDir:   filepath.Join(s.m.CacheDir, "bdj"),
 		WorkDir:    filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID),
-		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", s.key),
+		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", storageKey(s.disc)),
 		Log: func(l string) {
 			if s.m.Log != nil {
 				s.m.Log.Debug("bd-j", "cat", "dvd", "session", s.ID, "msg", l)
 			}
 		},
 		OnEvent: func(e bdj.Event) {
+			if e.Kind == "exit" {
+				st.events <- e // never lost: the loop below is waiting for it to end
+				return
+			}
+			p := st.pending[e.Kind]
+			if p != nil {
+				p.Add(1)
+			}
 			select {
 			case st.events <- e:
 			default: // a disc flooding the link loses its own messages
+				if p != nil {
+					p.Add(-1)
+				}
 			}
 		},
 	})
@@ -102,6 +178,15 @@ func (s *Session) warn(what string, err error) {
 
 func (s *Session) bdjLoop(st *bdjState) {
 	for e := range st.events {
+		if p := st.pending[e.Kind]; p != nil {
+			if p.Add(-1) > 0 {
+				continue // a newer one is on its way
+			}
+			if wait := bdjPace - time.Since(st.lastGo); wait > 0 {
+				time.Sleep(wait)
+			}
+			st.lastGo = time.Now()
+		}
 		s.mu.Lock()
 		if s.bd == st {
 			s.bdjEvent(st, e)
@@ -199,13 +284,56 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 		if st.obj != nil && st.failed >= len(st.obj.Autostart()) && st.host.Version() == 0 {
 			s.bdjFallback(ctx, st, "This disc's menu could not run ("+shortReason(e.Args)+"). Playing the main feature.")
 		}
+	case "appdestroyed":
+		st.ended++
+		if st.obj != nil && st.active && st.ended >= len(st.obj.Autostart()) {
+			s.bdjAppsEnded(ctx, st)
+		}
+	case "limit":
+		st.limit = strings.Join(e.Args, " ")
+		s.warn("BD-J application", fmt.Errorf("stopped: %s", st.limit))
 	case "exit":
 		st.active = false
 		s.bd = nil
 		if s.current != nil && s.current.BDJ != nil {
-			s.bdjFallbackStep(ctx, "This disc's menu stopped unexpectedly. Playing the main feature.")
+			why := "This disc's menu stopped unexpectedly. Playing the main feature."
+			if st.limit != "" {
+				why = "This disc's menu was stopped because " + st.limit + ". Playing the main feature."
+			}
+			s.bdjFallbackStep(ctx, why)
 		}
 	}
+}
+
+// bdjAppsEnded is a title whose applications have all finished by themselves. A
+// film they started goes on; with nothing playing the disc goes back to its menu.
+// A menu that ends itself each time it starts would loop for ever, so after a few
+// goes the disc plays its feature instead.
+func (s *Session) bdjAppsEnded(ctx context.Context, st *bdjState) {
+	st.active = false
+	if s.current != nil && s.current.Kind == "title" {
+		p := *s.current
+		p.BDJ = nil
+		s.serial++
+		p.Serial = s.serial
+		s.current = &p
+		st.host.Kick()
+		return
+	}
+	now := time.Now()
+	kept := st.menuExits[:0]
+	for _, t := range st.menuExits {
+		if now.Sub(t) < bdjMenuExitWindow {
+			kept = append(kept, t)
+		}
+	}
+	st.menuExits = append(kept, now)
+	if len(st.menuExits) > bdjMenuExits {
+		s.bdjFallback(ctx, st, "This disc's menu keeps closing. Playing the main feature.")
+		return
+	}
+	s.show(ctx, s.nav.MenuCall())
+	st.host.Kick()
 }
 
 func shortReason(a []string) string {
@@ -275,7 +403,7 @@ func (s *Session) startBDJTitle(ctx context.Context, st *wittybluray.Step) (*Pre
 		}
 		return nil, false
 	}
-	s.bd.obj, s.bd.failed, s.bd.active, s.bd.video = obj, 0, true, nil
+	s.bd.obj, s.bd.failed, s.bd.ended, s.bd.active, s.bd.video = obj, 0, 0, true, nil
 	host.Sync(s.nav.Registers())
 	host.StartTitle(st.Title, obj)
 	s.menu, s.playlist = nil, nil

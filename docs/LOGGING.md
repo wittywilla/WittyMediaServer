@@ -254,8 +254,17 @@ Handled in one place, nothing to add at call sites:
   warnings and errors are written and old logs are removed.
 - **A flood can't bury it.** One message repeating is written 40 times in 10 seconds, then counted.
 
-Measured with `go test -bench . ./internal/logging` on a low-end basis; see the numbers in the
-[changelog](../CHANGELOG.md).
+What it costs, measured with `go test -bench` on a 14-core laptop that was busy with other builds (a small box
+will be several times slower, but the proportions hold):
+
+| | Time | Memory |
+|---|---|---|
+| A `Debug` line in a quiet category | about 40 ns | none |
+| The same, while some other module has settings of its own | about 60 ns | none |
+| A line that is written | about 3.3 µs | 350 bytes |
+| A web request, for its ID, status and panic catching | about 0.8 µs | 512 bytes |
+
+Direct play still sends files with the system's own copy: `statusWriter` passes `ReadFrom` through.
 
 ## Plain-language explanations
 

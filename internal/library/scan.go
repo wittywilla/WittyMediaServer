@@ -212,6 +212,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	var archives *archiveIndex
 	if lib.Type == "games" {
 		archives = newArchiveIndex(s.Store, libraryID)
+		archives.reading = func(path string) {
+			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
+		}
 		defer archives.close()
 	}
 	for _, root := range lib.Paths {

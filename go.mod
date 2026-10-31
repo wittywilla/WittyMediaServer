@@ -11,6 +11,7 @@ require (
 	github.com/klauspost/compress v1.19.0
 	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/pion/webrtc/v4 v4.2.26
+	github.com/ulikunitz/xz v0.5.15
 	github.com/wittywilla/wittybluray v0.1.0
 	github.com/wittywilla/wittydisc v0.1.0
 	github.com/wittywilla/wittydvd v0.1.0
@@ -54,7 +55,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
-	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/text v0.43.0 // indirect

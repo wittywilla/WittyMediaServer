@@ -56,6 +56,7 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
+	m.Handle("DELETE /api/gaming/unpacked", s.requireAdmin(s.handleUnpackedClear))
 }
 
 // gameService is built the first time anything needs it, so a server nobody
@@ -730,6 +731,13 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
 		"coresDir": g.cores.Dir, "systemDir": filepath.Join(g.dir, "system"), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(),
 	})
+}
+
+// handleUnpackedClear empties the unpacked games cache, apart from what's being played.
+func (s *Server) handleUnpackedClear(w http.ResponseWriter, r *http.Request) {
+	g := s.games()
+	g.archives.Clear()
+	writeJSON(w, 200, map[string]any{"unpackedBytes": g.archives.Used()})
 }
 
 var coreIDRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)

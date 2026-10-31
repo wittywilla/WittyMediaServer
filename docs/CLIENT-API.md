@@ -1044,6 +1044,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /gaming` | admin | Gaming. |
 | `POST /gaming/cores/{id}/install` | admin | Core install. |
 | `DELETE /gaming/cores/{id}` | admin | Core remove. |
+| `DELETE /gaming/unpacked` | admin | Empty the unpacked games cache. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | Recording rules. |

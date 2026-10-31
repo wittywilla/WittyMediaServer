@@ -86,7 +86,8 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 // gameLikeExts are files that are probably games. One that gameConsole turns down
 // is worth telling the owner about; anything else in the folder (a text file, a
 // picture) isn't.
-var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".gz": true, ".tgz": true, ".tar": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
+var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".gz": true, ".tgz": true, ".tar": true, ".bz2": true, ".tbz": true, ".tbz2": true,
+	".xz": true, ".txz": true, ".zst": true, ".tzst": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
 	".gcm": true, ".gcz": true, ".wbfs": true, ".rvz": true, ".nsp": true, ".xci": true, ".3ds": true, ".cia": true, ".xiso": true}
 
 // skippedGameFiles counts, by extension, game-like files a library can't use. An
@@ -191,10 +192,11 @@ func (ix *archiveIndex) gameConsole(path, rel, console string) string {
 	}
 	if console == wittyplay.Auto {
 		if c := wittyplay.Detect(rel); c != "" {
-			if !archive || gamearchive.HoldsGame(ix.exts(path), wittyplay.ByID(c)) {
+			con := wittyplay.ByID(c)
+			if (!archive && con.Accepts(ext)) || (archive && gamearchive.HoldsGame(ix.exts(path), con)) {
 				return c
 			}
-			return ""
+			return "" // .001 only means an archive after .7z, for one
 		}
 		if archive {
 			return gamearchive.ConsoleOf(ix.exts(path))

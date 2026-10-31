@@ -21,6 +21,14 @@ export default function GamingSettings() {
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
   const load = () => api.get<Status>('/gaming').then(setSt).catch((e) => toast(e.message))
   useEffect(() => { load(); api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {}) }, [])
+  const emptyUnpacked = async () => {
+    setBusy('unpacked')
+    try {
+      const r = await api.del<{ unpackedBytes: number }>('/gaming/unpacked')
+      setSt((cur) => (cur ? { ...cur, unpackedBytes: r.unpackedBytes } : cur))
+      toast(r.unpackedBytes ? 'Emptied, apart from the games being played' : 'Emptied. Games unpack again when next played')
+    } catch (e: any) { toast(e.message) } finally { setBusy('') }
+  }
   const install = async () => {
     if (!confirm) return
     const c = confirm
@@ -119,6 +127,7 @@ export default function GamingSettings() {
             <label>Space for unpacked games (GB)
               <input className="input" type="number" min={1} max={100000} defaultValue={settings.gamingUnpackGB || '16'} onBlur={(e) => put({ gamingUnpackGB: e.target.value })} />
               <small className="muted">Games in archives are unpacked here when played, and kept for next time. The longest unplayed go first when it fills up.{st?.unpackedBytes ? ` In use now: ${(st.unpackedBytes / 1073741824).toFixed(1)} GB.` : ''}</small>
+              {!!st?.unpackedBytes && <button type="button" className="btn sm" disabled={busy === 'unpacked'} onClick={emptyUnpacked}>Empty it now</button>}
             </label>
             <label>UDP port for WebRTC
               <input className="input" type="number" min={0} max={65535} defaultValue={settings.gamingUdpPort || ''} placeholder="Any free port" onBlur={(e) => put({ gamingUdpPort: e.target.value })} />

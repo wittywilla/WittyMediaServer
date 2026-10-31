@@ -23,4 +23,7 @@ rar a -hpsecret locked-names.rar .
 rar a -v100k -m0 split.rar .                 # split.part1.rar and on
 7z a -snl link.7z .                          # holds a symbolic link
 rar a -ol link.rar .
+7z a -v100k -mx=0 split7.7z .                # split7.7z.001 and on
+tar -cjf cart.tar.bz2 Game.sfc
+bzip2 -c Game.sfc > single.sfc.bz2
 ```

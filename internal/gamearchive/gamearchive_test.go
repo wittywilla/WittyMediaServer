@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
+	"github.com/ulikunitz/xz"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -143,6 +145,113 @@ func TestListsEveryFormat(t *testing.T) {
 		if got := join(entryNames(l)); got != c.want {
 			t.Errorf("%s: got %q, want %q", c.path, got, c.want)
 		}
+	}
+}
+
+func xzBytes(t *testing.T, data []byte) []byte {
+	t.Helper()
+	var b bytes.Buffer
+	w, err := xz.NewWriter(&b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = w.Write(data)
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
+}
+
+func zstBytes(t *testing.T, data []byte) []byte {
+	t.Helper()
+	w, err := zstd.NewWriter(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	return w.EncodeAll(data, nil)
+}
+
+func TestEveryCompressionPlays(t *testing.T) {
+	dir := t.TempDir()
+	rom := []byte("the game")
+	tarData := tarBytes(t, tarFile{name: "Game.sfc", data: rom})
+	bz2Rom, err := os.ReadFile("testdata/single.sfc.bz2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bz2Tar, err := os.ReadFile("testdata/cart.tar.bz2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, data := range map[string][]byte{
+		"a.sfc.xz": xzBytes(t, rom), "a.tar.xz": xzBytes(t, tarData), "a.txz": xzBytes(t, tarData),
+		"b.sfc.zst": zstBytes(t, rom), "b.tar.zst": zstBytes(t, tarData), "b.tzst": zstBytes(t, tarData),
+		"c.sfc.bz2": bz2Rom, "c.tar.bz2": bz2Tar, "c.tbz2": bz2Tar, "c.tbz": bz2Tar,
+	} {
+		p := write(t, filepath.Join(dir, name), data)
+		c := newCache(t, 1<<30)
+		got, release, err := c.Acquire(context.Background(), p, wittyplay.ByID("snes"))
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		if filepath.Base(got) != "game.sfc" {
+			t.Errorf("%s: %s", name, got)
+		}
+		if b, _ := os.ReadFile(got); strings.HasPrefix(name, "c.") == bytes.Equal(b, rom) {
+			t.Errorf("%s: %d bytes", name, len(b)) // the bzip2 files were made elsewhere, of random bytes
+		}
+		release()
+	}
+	// Named one way, made another.
+	wrong := write(t, filepath.Join(dir, "wrong.sfc.gz"), xzBytes(t, rom))
+	if l, err := List(wrong); err != nil || join(entryNames(l)) != "wrong.sfc" {
+		t.Errorf("mislabelled: %v %v", l, err)
+	}
+	for _, name := range []string{"rubbish.sfc.xz", "rubbish.tar.xz", "rubbish.sfc.zst", "rubbish.sfc.bz2"} {
+		p := write(t, filepath.Join(dir, name), []byte("not compressed at all"))
+		if _, err := List(p); !errors.Is(err, ErrDamaged) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	// A bomb stops at the limit however it was packed.
+	bomb := write(t, filepath.Join(dir, "bomb.sfc.zst"), zstBytes(t, make([]byte, 8<<20)))
+	_, err = unpackIn(context.Background(), unpackRequest{Path: bomb, Dst: t.TempDir(), Want: []Want{{Name: "bomb.sfc", Out: "game.sfc"}}, Limit: 1 << 20}, nil)
+	if !errors.Is(err, ErrTooBig) {
+		t.Errorf("bomb: %v", err)
+	}
+}
+
+func TestSplit7zSetsOpenThroughTheFirstPart(t *testing.T) {
+	src := t.TempDir()
+	first := copyFixture(t, src, "split7.7z.001")
+	copyFixture(t, src, "split7.7z.002")
+	copyFixture(t, src, "split7.7z.003")
+	l, err := List(first)
+	if err != nil || join(entryNames(l)) != "Game.sfc" {
+		t.Fatalf("%v %v", l, err)
+	}
+	c := newCache(t, 1<<30)
+	rom, release, err := c.Acquire(context.Background(), first, wittyplay.ByID("snes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	if st, err := os.Stat(rom); err != nil || st.Size() != 300000 {
+		t.Fatalf("%v %v", st, err)
+	}
+	// Without all its parts it says so, rather than playing part of a game.
+	if err := os.Remove(filepath.Join(src, "split7.7z.003")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := List(first); err == nil {
+		t.Log("a missing last part only shows once it's read")
+	}
+	future := time.Now().Add(time.Hour)
+	_ = os.Chtimes(first, future, future)
+	if _, _, err := c.Acquire(context.Background(), first, wittyplay.ByID("snes")); err == nil {
+		t.Fatal("played a set with a part missing")
 	}
 }
 
@@ -392,6 +501,7 @@ func TestBaseName(t *testing.T) {
 	for in, want := range map[string]string{
 		"Game (USA).7z": "Game (USA)", "Game (USA) [!].zip": "Game (USA) [!]", "Game (USA).tar.gz": "Game (USA)", "Game.TGZ": "Game",
 		"Game.part1.rar": "Game", "Game.part01.rar": "Game", "Game.sfc.gz": "Game.sfc", "Dr. Who.7z": "Dr. Who",
+		"Game (USA).7z.001": "Game (USA)", "Game.tar.xz": "Game", "Game.tbz2": "Game", "Game.sfc.zst": "Game.sfc", "Game.tar.ZST": "Game",
 	} {
 		if got := BaseName(in); got != want {
 			t.Errorf("%s: %s", in, got)
@@ -821,6 +931,49 @@ func TestOldestGoFirstAndPlayingStays(t *testing.T) {
 	}
 	if _, err := os.Stat(romB); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestClearGivesTheSpaceBack(t *testing.T) {
+	dir := t.TempDir()
+	snes := wittyplay.ByID("snes")
+	mk := func(name string) string {
+		p := filepath.Join(dir, name+".zip")
+		writeZip(t, p, zipFile{name: name + ".sfc", data: []byte(name)})
+		return p
+	}
+	played, idle := mk("played"), mk("idle")
+	c := newCache(t, 1<<30)
+	rom, release, err := c.Acquire(context.Background(), played, snes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	_, r2, err := c.Acquire(context.Background(), idle, snes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2()
+	before := c.Used()
+	c.Clear()
+	if c.Used() >= before || c.Used() == 0 {
+		t.Fatalf("%d, then %d", before, c.Used())
+	}
+	if _, err := os.Stat(rom); err != nil {
+		t.Fatalf("emptied a game being played: %v", err)
+	}
+	if st := c.Prepare(played, snes); st.State != stateReady {
+		t.Fatalf("got %+v", st)
+	}
+	// It comes back when played.
+	builds := c.builds.Load()
+	_, r3, err := c.Acquire(context.Background(), idle, snes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r3()
+	if c.builds.Load() != builds+1 {
+		t.Fatal("wasn't unpacked again")
 	}
 }
 

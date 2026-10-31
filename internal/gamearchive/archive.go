@@ -18,6 +18,7 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,6 +30,7 @@ import (
 	"github.com/bodgit/sevenzip"
 	"github.com/klauspost/compress/zstd"
 	"github.com/nwaples/rardecode/v2"
+	"github.com/ulikunitz/xz"
 )
 
 const (
@@ -82,30 +84,42 @@ const (
 	formatZip = "zip"
 	formatRar = "rar"
 	formatTar = "tar"
-	formatTgz = "tgz"
+	// A file compressed by itself is named for how; a compressed tar is tarPrefix and that.
 	formatGz  = "gz"
+	formatBz2 = "bz2"
+	formatXz  = "xz"
+	formatZst = "zst"
+	tarPrefix = "tar+"
 )
+
+// archiveSuffixes are in the order to try them, longest first where one ends another.
+var archiveSuffixes = []struct{ suffix, format string }{
+	{".7z", format7z}, {".7z.001", format7z}, {".zip", formatZip}, {".rar", formatRar}, {".tar", formatTar},
+	{".tar.gz", tarPrefix + formatGz}, {".tgz", tarPrefix + formatGz}, {".gz", formatGz},
+	{".tar.bz2", tarPrefix + formatBz2}, {".tbz2", tarPrefix + formatBz2}, {".tbz", tarPrefix + formatBz2}, {".bz2", formatBz2},
+	{".tar.xz", tarPrefix + formatXz}, {".txz", tarPrefix + formatXz}, {".xz", formatXz},
+	{".tar.zst", tarPrefix + formatZst}, {".tzst", tarPrefix + formatZst}, {".zst", formatZst},
+}
 
 // IsArchive says whether a file's name is one of the kinds of archive a game library
 // can read.
 func IsArchive(name string) bool { return nameFormat(name) != "" }
 
 func nameFormat(name string) string {
-	switch n := strings.ToLower(name); {
-	case strings.HasSuffix(n, ".7z"):
-		return format7z
-	case strings.HasSuffix(n, ".zip"):
-		return formatZip
-	case strings.HasSuffix(n, ".rar"):
-		return formatRar
-	case strings.HasSuffix(n, ".tar"):
-		return formatTar
-	case strings.HasSuffix(n, ".tgz"), strings.HasSuffix(n, ".tar.gz"):
-		return formatTgz
-	case strings.HasSuffix(n, ".gz"):
-		return formatGz
+	f, _ := matchSuffix(name)
+	return f
+}
+
+// matchSuffix finds what makes a name an archive's: the format, and how long that part is.
+func matchSuffix(name string) (string, int) {
+	n := strings.ToLower(name)
+	format, length := "", 0
+	for _, a := range archiveSuffixes {
+		if strings.HasSuffix(n, a.suffix) && len(a.suffix) > length {
+			format, length = a.format, len(a.suffix)
+		}
 	}
-	return ""
+	return format, length
 }
 
 var (
@@ -117,18 +131,19 @@ var (
 // the first part, and aren't games by themselves.
 func IsLaterVolume(name string) bool { return laterVolumeRe.MatchString(name) }
 
-// BaseName is an archive's name without what makes it an archive: "Game (USA).tar.gz"
-// and "Game (USA).part1.rar" are both "Game (USA)". Region and dump tags stay.
+// BaseName is an archive's name without what makes it an archive: "Game (USA).tar.gz",
+// "Game (USA).part1.rar" and "Game (USA).7z.001" are all "Game (USA)". Region and dump
+// tags stay.
 func BaseName(name string) string {
-	switch nameFormat(name) {
-	case formatTgz:
-		if s := strings.ToLower(name); strings.HasSuffix(s, ".tar.gz") {
-			return name[:len(name)-len(".tar.gz")]
-		}
-	case formatRar:
-		return firstVolumeRe.ReplaceAllString(strings.TrimSuffix(name, filepath.Ext(name)), "")
+	format, n := matchSuffix(name)
+	if format == "" {
+		return strings.TrimSuffix(name, filepath.Ext(name))
 	}
-	return strings.TrimSuffix(name, filepath.Ext(name))
+	base := name[:len(name)-n]
+	if format == formatRar {
+		return firstVolumeRe.ReplaceAllString(base, "")
+	}
+	return base
 }
 
 // sniff looks at the first bytes, since files get renamed: a .zip that is really a
@@ -151,12 +166,48 @@ func sniff(p string) (string, error) {
 	case bytes.HasPrefix(head, []byte("Rar!\x1a\x07")):
 		return formatRar, nil
 	case bytes.HasPrefix(head, []byte{0x1f, 0x8b}):
-		if byName == formatTgz {
-			return formatTgz, nil
-		}
-		return formatGz, nil
+		return compressed(formatGz, byName), nil
+	case bytes.HasPrefix(head, []byte("BZh")):
+		return compressed(formatBz2, byName), nil
+	case bytes.HasPrefix(head, []byte{0xfd, '7', 'z', 'X', 'Z', 0}):
+		return compressed(formatXz, byName), nil
+	case bytes.HasPrefix(head, []byte{0x28, 0xb5, 0x2f, 0xfd}):
+		return compressed(formatZst, byName), nil
 	}
 	return byName, nil
+}
+
+// compressed: the signature says how it's compressed, and the name says if it's a tar.
+func compressed(how, byName string) string {
+	if strings.HasPrefix(byName, tarPrefix) {
+		return tarPrefix + how
+	}
+	return how
+}
+
+// decompress reads a stream compressed in one of the ways above.
+func decompress(how string, r io.Reader) (io.Reader, func(), error) {
+	none := func() {}
+	switch how {
+	case formatGz:
+		z, err := gzip.NewReader(r)
+		if err != nil {
+			return nil, none, err
+		}
+		return z, func() { _ = z.Close() }, nil
+	case formatBz2:
+		return bzip2.NewReader(r), none, nil
+	case formatXz:
+		x, err := xz.ReaderConfig{DictCap: int(min(maxDictionary, math.MaxInt32))}.NewReader(r)
+		return x, none, err
+	case formatZst:
+		z, err := zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderLowmem(true), zstd.WithDecoderMaxWindow(uint64(maxDictionary)))
+		if err != nil {
+			return nil, none, err
+		}
+		return z, z.Close, nil
+	}
+	return nil, none, ErrDamaged
 }
 
 // cleanName checks a name from inside an archive and makes it a plain relative
@@ -299,13 +350,15 @@ func listFile(p string, budget int64) (_ *Listing, err error) {
 	case formatRar:
 		err = listRar(p, l)
 	case formatTar:
-		err = listTar(p, false, budget, l)
-	case formatTgz:
-		err = listTar(p, true, budget, l)
-	case formatGz:
-		err = listGz(p, l)
+		err = listTar(p, "", budget, l)
+	case formatGz, formatBz2, formatXz, formatZst:
+		err = listSingle(p, format, l)
 	default:
-		return nil, ErrDamaged
+		how, isTar := strings.CutPrefix(format, tarPrefix)
+		if !isTar {
+			return nil, ErrDamaged
+		}
+		err = listTar(p, how, budget, l)
 	}
 	if err != nil {
 		return nil, plainError(err)
@@ -471,23 +524,23 @@ func (c *countingReader) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func listTar(p string, gz bool, budget int64, l *lister) error {
+func listTar(p, how string, budget int64, l *lister) error {
 	f, err := os.Open(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if !gz {
+	if how == "" {
 		// A plain tar seeks from header to header without reading what's between.
 		tr := tar.NewReader(f)
 		return walkTar(tr, l, nil, 0)
 	}
-	zr, err := gzip.NewReader(f)
+	src, done, err := decompress(how, f)
+	defer done()
 	if err != nil {
 		return err
 	}
-	defer zr.Close()
-	c := &countingReader{r: zr}
+	c := &countingReader{r: src}
 	return walkTar(tar.NewReader(c), l, c, budget)
 }
 
@@ -514,29 +567,45 @@ func walkTar(tr *tar.Reader, l *lister, c *countingReader, budget int64) error {
 	}
 }
 
-// listGz: a gzip holds one file. Its name is this file's name without .gz, or else
-// the name in its header. Its size is in the trailer, modulo 4 GB, so it's a hint.
-func listGz(p string, l *lister) error {
+// listSingle: a compressed file holds one file. Its name is this file's name without
+// the last extension, or else the name in a gzip's header. Only a gzip says how big it
+// is: in its trailer, modulo 4 GB, so that's a hint.
+func listSingle(p, how string, l *lister) error {
 	f, err := os.Open(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	zr, err := gzip.NewReader(f)
-	if err != nil {
-		return err
-	}
-	defer zr.Close()
-	st, err := f.Stat()
-	if err != nil {
-		return err
-	}
+	inHeader := ""
 	size := int64(-1)
-	var tail [4]byte
-	if _, err := f.ReadAt(tail[:], st.Size()-4); err == nil {
-		size = int64(binary.LittleEndian.Uint32(tail[:]))
+	if how == formatGz {
+		zr, err := gzip.NewReader(f)
+		if err != nil {
+			return err
+		}
+		defer zr.Close()
+		inHeader = zr.Name
+		st, err := f.Stat()
+		if err != nil {
+			return err
+		}
+		var tail [4]byte
+		if _, err := f.ReadAt(tail[:], st.Size()-4); err == nil {
+			size = int64(binary.LittleEndian.Uint32(tail[:]))
+		}
+	} else {
+		// Reading the start is enough to find out if it's what it claims to be.
+		src, done, err := decompress(how, f)
+		defer done()
+		if err != nil {
+			return err
+		}
+		var one [1]byte
+		if _, err := src.Read(one[:]); err != nil && !errors.Is(err, io.EOF) {
+			return err
+		}
 	}
-	return l.add(gzName(p, zr.Name), size)
+	return l.add(gzName(p, inHeader), size)
 }
 
 func gzName(p, inHeader string) string {
@@ -693,13 +762,15 @@ func unpackFile(p, dst string, want []Want, limit int64, progress func(int64)) (
 	case formatRar:
 		err = unpackRar(p, u)
 	case formatTar:
-		err = unpackTar(p, false, u)
-	case formatTgz:
-		err = unpackTar(p, true, u)
-	case formatGz:
-		err = unpackGz(p, u)
+		err = unpackTar(p, "", u)
+	case formatGz, formatBz2, formatXz, formatZst:
+		err = unpackSingle(p, format, u)
 	default:
-		err = ErrDamaged
+		how, isTar := strings.CutPrefix(format, tarPrefix)
+		if !isTar {
+			return nil, ErrDamaged
+		}
+		err = unpackTar(p, how, u)
 	}
 	if err != nil {
 		return nil, plainError(err)
@@ -844,20 +915,20 @@ func unpackRar(p string, u *unpacker) error {
 	return nil
 }
 
-func unpackTar(p string, gz bool, u *unpacker) error {
+func unpackTar(p, how string, u *unpacker) error {
 	f, err := os.Open(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	var src io.Reader = f
-	if gz {
-		zr, err := gzip.NewReader(f)
+	if how != "" {
+		z, done, err := decompress(how, f)
+		defer done()
 		if err != nil {
 			return err
 		}
-		defer zr.Close()
-		src = zr
+		src = z
 	}
 	tr := tar.NewReader(src)
 	for len(u.want) > 0 {
@@ -885,23 +956,27 @@ func unpackTar(p string, gz bool, u *unpacker) error {
 	return nil
 }
 
-func unpackGz(p string, u *unpacker) error {
+func unpackSingle(p, how string, u *unpacker) error {
 	f, err := os.Open(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	zr, err := gzip.NewReader(f)
+	src, done, err := decompress(how, f)
+	defer done()
 	if err != nil {
 		return err
 	}
-	defer zr.Close()
-	n, out, ok, err := u.wanted(gzName(p, zr.Name))
+	inHeader := ""
+	if z, ok := src.(*gzip.Reader); ok {
+		inHeader = z.Name
+	}
+	n, out, ok, err := u.wanted(gzName(p, inHeader))
 	if err != nil {
 		return err
 	}
 	if !ok {
 		return ErrDamaged
 	}
-	return u.copyEntry(n, out, zr, -1, 0)
+	return u.copyEntry(n, out, src, -1, 0)
 }

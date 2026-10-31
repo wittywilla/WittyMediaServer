@@ -155,12 +155,13 @@ The player has been kept independent of the transport so that this can be added 
 
 ### Games in archives
 
-`.7z`, `.zip`, `.rar`, `.gz`, `.tar`, `.tar.gz` and `.tgz` work wherever a console accepts a game file. That includes
-split RARs, named `.part1.rar` and so on, and files whose extension is wrong for what they really are. An archive inside
-an archive doesn't count. Code: `internal/gamearchive`.
+`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2,
+xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short
+forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose
+extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `internal/gamearchive`.
 
 **Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in
-the database. A collection of about 2,000 archives takes about a second the first time. A `.tar.gz` has no index,
+the database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index,
 so a scan reads through the first 64 MB of one at most, which is usually far enough to see what it is. The title comes
 from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
 
@@ -191,6 +192,7 @@ ever written beside the original.
 - Everyone asking for the same game shares one unpack. At most two run at a time, and the rest wait. One that nobody has
   asked about for two minutes is stopped.
 - Disk space comes first: a game that won't fit, leaving 512 MB free, gets a clear error.
+- Settings, Gaming shows how much it's using and can empty it. A game being played stays.
 
 **Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the
 archive's path in the library. A one-file game is always opened as `game.<ext>`, the name `.zip` games have always had, in

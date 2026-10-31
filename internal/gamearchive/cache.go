@@ -499,6 +499,30 @@ func (c *Cache) makeRoom(need int64, keep string) {
 	}
 }
 
+// Clear removes every unpacked game that isn't being played, to give the disk space
+// back. It's only a cache: they unpack again when next played.
+func (c *Cache) Clear() {
+	c.init()
+	entries, err := os.ReadDir(c.Dir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), tmpPrefix) {
+			continue // being unpacked now
+		}
+		c.mu.Lock()
+		busy := c.leases[e.Name()] > 0 || c.jobs[e.Name()] != nil
+		if !busy {
+			_ = os.Remove(filepath.Join(c.Dir, e.Name(), manifestName))
+		}
+		c.mu.Unlock()
+		if !busy {
+			_ = os.RemoveAll(filepath.Join(c.Dir, e.Name()))
+		}
+	}
+}
+
 // Used is how much the unpacked games hold, for the settings page.
 func (c *Cache) Used() int64 {
 	c.init()

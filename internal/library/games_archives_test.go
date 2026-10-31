@@ -8,10 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittyplay"
 )
 
 func copyArchive(t *testing.T, name, to string) {
@@ -39,12 +42,16 @@ func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
 	copyArchive(t, "split.part1.rar", filepath.Join(root, "SNES", "G Split.part1.rar"))
 	copyArchive(t, "split.part2.rar", filepath.Join(root, "SNES", "G Split.part2.rar"))
 	copyArchive(t, "split.part3.rar", filepath.Join(root, "SNES", "G Split.part3.rar"))
+	copyArchive(t, "split7.7z.001", filepath.Join(root, "SNES", "H Split.7z.001"))
+	copyArchive(t, "split7.7z.002", filepath.Join(root, "SNES", "H Split.7z.002"))
+	copyArchive(t, "split7.7z.003", filepath.Join(root, "SNES", "H Split.7z.003"))
+	writeFiles(t, root, "SNES/backup.001") // not an archive, whatever folder it's in
 	got, err := discoverGames(root, "auto")
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := []string{
-		"Playstation (PSX)/C Game.7z=ps1", "SNES/B Game (Europe).rar=snes", "SNES/G Split.part1.rar=snes",
+		"Playstation (PSX)/C Game.7z=ps1", "SNES/B Game (Europe).rar=snes", "SNES/G Split.part1.rar=snes", "SNES/H Split.7z.001=snes",
 		"Super Nintendo (SNES)/A Game (USA).7z=snes", "Unsorted/D Game.7z=snes",
 	}
 	if !equal(names(got, root), want) {
@@ -73,6 +80,8 @@ func TestArchiveTitlesKeepTheirTags(t *testing.T) {
 		"Game (USA).tar.gz":                   "Game (USA)",
 		"Game (USA).sfc.7z":                   "Game (USA)",
 		"Game (Japan).part1.rar":              "Game (Japan)",
+		"Game (Japan).7z.001":                 "Game (Japan)",
+		"Game (Japan).sfc.xz":                 "Game (Japan)",
 		"Game.sfc.gz":                         "Game",
 		"Game.sfc":                            "Game",
 		"Dr. Game.zip":                        "Dr. Game",
@@ -123,6 +132,22 @@ func TestScanRemembersWhatArchivesHold(t *testing.T) {
 	}
 	if n, read := scan(); n != 2 || !read {
 		t.Fatalf("first scan: %d, %v", n, read)
+	}
+	// The scan's progress hears about each archive it really opens, and only those.
+	ix := newArchiveIndex(store, lib.ID)
+	var told []string
+	ix.reading = func(path string) { told = append(told, filepath.Base(path)) }
+	fresh := filepath.Join(root, "Fresh.7z")
+	copyArchive(t, "cart.7z", fresh)
+	if _, err := ix.discover(root, "snes"); err != nil {
+		t.Fatal(err)
+	}
+	ix.close()
+	if len(told) != 1 || told[0] != "Fresh.7z" {
+		t.Fatalf("told about %v", told)
+	}
+	if err := os.Remove(fresh); err != nil {
+		t.Fatal(err)
 	}
 	if n, read := scan(); n != 2 || read {
 		t.Fatalf("second scan: %d, %v", n, read)
@@ -224,6 +249,30 @@ func TestRealGamesFolder(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("reading every archive's headers, nothing remembered: %d games in %v", len(c), time.Since(start).Round(time.Millisecond))
+
+	// How often there's a choice of which file to play.
+	lister := gamearchive.NewLister()
+	several := map[string]int{}
+	for _, g := range c {
+		if !gamearchive.IsArchive(g.path) {
+			continue
+		}
+		l, err := lister.List(g.path, gamearchive.ScanBudget)
+		if err != nil {
+			continue
+		}
+		n := 0
+		for _, e := range l.Entries {
+			if wittyplay.ByID(g.console).Accepts(strings.ToLower(filepath.Ext(e.Name))) {
+				n++
+			}
+		}
+		if n > 1 {
+			several[g.console]++
+		}
+	}
+	lister.Close()
+	t.Logf("archives with more than one candidate file, by console: %v", several)
 
 	start = time.Now()
 	if err := sc.scan(ctx, lib.ID); err != nil {

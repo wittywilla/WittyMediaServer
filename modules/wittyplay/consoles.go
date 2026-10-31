@@ -191,7 +191,8 @@ func Detect(relPath string) string {
 }
 
 // archiveExts can hold any console's games, so an extension says nothing about them.
-var archiveExts = map[string]bool{".zip": true, ".7z": true, ".rar": true, ".gz": true, ".tgz": true, ".tar": true}
+var archiveExts = map[string]bool{".zip": true, ".7z": true, ".rar": true, ".tar": true, ".gz": true, ".tgz": true, ".bz2": true, ".tbz": true, ".tbz2": true,
+	".xz": true, ".txz": true, ".zst": true, ".tzst": true, ".001": true}
 
 // folderNames is what a folder's name might mean, most exact first: "Super Nintendo
 // (SNES)" is the whole of that, and also "Super Nintendo", and also "SNES".

@@ -28,6 +28,9 @@ type archiveIndex struct {
 	seen      map[string]archiveInfo
 	fresh     map[string]bool
 	lister    *gamearchive.Lister
+	// reading, when set, is told about each archive that really has to be opened: on a
+	// slow network folder the first scan can take a while, and this shows it's moving.
+	reading func(path string)
 }
 
 func newArchiveIndex(store *Store, libraryID int64) *archiveIndex {
@@ -76,6 +79,9 @@ func (ix *archiveIndex) info(path string) archiveInfo {
 	}
 	if ix.lister == nil {
 		ix.lister = gamearchive.NewLister()
+	}
+	if ix.reading != nil {
+		ix.reading(path)
 	}
 	a := archiveInfo{size: size, mtime: mtime}
 	l, err := ix.lister.List(path, gamearchive.ScanBudget)

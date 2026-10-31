@@ -12,8 +12,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ### Games in archives
 
-- **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.gz`, `.tar`, `.tar.gz` and `.tgz`, for every
-  console. That includes disc games: an archive holding a `.cue` and its tracks, a `.gdi`, or several discs, unpacks everything the
+- **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.tar`, gzip, bzip2, xz and Zstandard, and split
+  `.7z.001` and `.part1.rar` sets, for every console. That includes disc games: an archive holding a `.cue` and its tracks, a `.gdi`, or several discs, unpacks everything the
   game needs and opens the right file.
 - **Scans stay quick.** Only an archive's headers are read, once, until the file changes. About 2,000 archives take about a second.
 - **Starting a game** shows how far unpacking has got. It's kept for next time in a space you set in Settings, Gaming (16 GB

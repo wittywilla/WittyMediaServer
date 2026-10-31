@@ -17,6 +17,9 @@ func TestDetect(t *testing.T) {
 		{"Nintendo Entertainment System (NES)/game.nes", "nes"},
 		{"Atari 2600/game.tar.gz", "a2600"},
 		{"SNES/game.rar", "snes"},
+		{"SNES/game.7z.001", "snes"},
+		{"SNES/game.tar.xz", "snes"},
+		{"SNES/game.sfc.zst", "snes"},
 		{"game.7z", ""}, // says nothing until it's looked inside
 		{"game.bin", ""}, // used by several consoles
 		{"game.cue", ""}, // likewise

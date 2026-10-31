@@ -6293,6 +6293,41 @@
         "x-wms-auth": "admin"
       }
     },
+    "/gaming/unpacked": {
+      "delete": {
+        "operationId": "deleteGamingUnpacked",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "unpackedBytes": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Empty the unpacked games cache.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/genres": {
       "get": {
         "operationId": "getGenres",

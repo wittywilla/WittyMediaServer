@@ -193,3 +193,13 @@ Qt and FFmpeg ship as separate libraries under the LGPL, so you can replace them
 - **[Qt](https://www.qt.io)**, by The Qt Company and contributors, for the window.
 - **[FFmpeg](https://ffmpeg.org)**, by the FFmpeg developers, for built-in decoding.
 - **WittyDVD**, **WittyBluray**, **WittyDisc** and **WittyModule**, by WittyWilla, for discs.
+
+## Legal
+
+WittyMediaPlayer is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by the owners of the DVD, Blu-ray or Compact Disc formats, any studio or label, or any other
+player project. Your files and what you open are yours: no media comes with it, encrypted discs are
+refused, nothing is decrypted, and you're responsible for having the rights to what you open or rip. Any
+third-party names here only describe what it works with, and belong to their owners. It's provided
+“as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal
+advice.

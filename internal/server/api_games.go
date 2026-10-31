@@ -98,6 +98,7 @@ func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe
 	}
 	g.gpuChecking = true
 	go func() {
+		defer logging.Recover("graphics card check", "cat", "games")
 		got := stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
 		g.gpuMu.Lock()
 		defer g.gpuMu.Unlock()

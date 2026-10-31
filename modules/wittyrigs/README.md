@@ -20,3 +20,12 @@ become a library. It's off until an admin turns it on. People play through Witty
 ## Licence
 
 Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE). Sunshine is GPL-3.0 and stays a separate program, which this only looks for and talks to over the network.
+
+## Legal
+
+WittyRigs is an independent open-source project. It isn't associated with, sponsored by or endorsed by
+the Sunshine or Moonlight projects, or any game publisher. Sunshine is a separate program you install
+yourself, under its own license, and no games come with this. You're responsible for what you host and
+who you let play it. Any third-party names here only describe what it works with, and belong to their
+owners. It's provided “as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use
+it. This isn't legal advice.

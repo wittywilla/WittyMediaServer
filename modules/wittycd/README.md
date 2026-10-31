@@ -137,3 +137,13 @@ The client keeps a whole program to one request a second, as the service asks. S
 Developed by WittyWilla as part of [WittyMediaServer](https://github.com/wittywilla/WittyMediaServer).
 Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE). Disc IDs follow the method published by
 [MusicBrainz](https://musicbrainz.org/doc/Disc_ID_Calculation); this project isn't connected with them.
+
+## Legal
+
+WittyCD is an independent open-source project. It isn't associated with, sponsored by or endorsed by
+the owners of the Compact Disc format, any record label or artist, or MusicBrainz. It isn't a licensed
+Compact Disc product and uses no disc logo. It reads CD images you already have: no music comes with it,
+and you're responsible for having the rights to what you open. Album details come from the MusicBrainz
+and Cover Art Archive services, which are asked only by a disc's table of contents. Any third-party names
+here only describe what it works with, and belong to their owners. It's provided “as is”, with no
+warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.

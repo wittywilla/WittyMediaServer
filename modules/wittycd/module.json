@@ -2,6 +2,7 @@
   "id": "wittycd",
   "name": "WittyCD",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "repo": "wittywilla/WittyCD",
   "delivery": "builtin",
   "api": 1,

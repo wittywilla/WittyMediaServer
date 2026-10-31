@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // The station directory: Radio Browser (radio-browser.info), a free community
@@ -232,7 +234,7 @@ func radioDirectoryServers(ctx context.Context) []string {
 			}
 		}
 		if len(found) == 0 {
-			found = []string{"https://all.api" + directoryDomain}
+			found = []string{"https://all.api.radio-browser.info"}
 		}
 		directoryCache.Lock()
 		directoryCache.servers, directoryCache.serversAt = found, time.Now()
@@ -416,6 +418,7 @@ func directoryByURL(ctx context.Context, addr string) ([]DirectoryStation, error
 // added; what anyone listens to afterwards isn't reported.
 func directoryClick(id string) {
 	go func() {
+		defer logging.Recover("radio directory click", "cat", "library")
 		ctx, cancel := context.WithTimeout(context.Background(), directoryTimeout)
 		defer cancel()
 		var ignored struct{}

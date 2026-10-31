@@ -87,7 +87,7 @@ function DiscChoice({ onStarted }: { onStarted: (j: Job) => void }) {
   }
   const known = targets?.discs || []
   return (
-    <Section title="Check a disc" desc="A disc image (.iso), or a folder holding VIDEO_TS or BDMV, from your libraries or the data folder.">
+    <Section title="Check a disc" desc="A disc image (.iso, or a CD's .cue), or a folder holding VIDEO_TS or BDMV, from your libraries or the data folder.">
       <Row label="Which disc" stack desc={path ? undefined : 'Nothing chosen yet.'}>
         <div className="dgn-pick">
           {path && <div className="dgn-picked"><IconDisc size={18} /><span><b>{baseName(path)}</b><small className="mono">{path}</small></span></div>}

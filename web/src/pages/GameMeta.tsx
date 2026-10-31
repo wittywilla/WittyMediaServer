@@ -4,6 +4,7 @@ import { api, artPreviewUrl, mediaUrl, type GameCandidate, type GameDetailsInfo,
 import { IconCheck, IconClose, IconDown, IconLock, IconRefresh, IconSearch, IconUp } from '../icons'
 import { toast } from '../state'
 import { Row, Section, Switch } from './settings/ui'
+import LegalNote from '../components/LegalNote'
 
 // What's known about a game, and where it comes from: its ratings and pictures, fixing
 // a wrong match, and choosing sources and keys. Shared by the game's page, the library
@@ -169,6 +170,7 @@ function GameMatchDialog({ it, onClose, onDone }: { it: Item; onClose: () => voi
               ))}
             </ul>
           )}
+        <LegalNote kind="webResults" />
         <div className="actions">
           <button className="btn ghost" onClick={none}>It has no match</button>
           <button className="btn" onClick={onClose}>Cancel</button>

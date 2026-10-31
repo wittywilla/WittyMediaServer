@@ -2,6 +2,7 @@
   "id": "wittymodule",
   "name": "WittyModule",
   "version": "0.2.0",
+  "license": "Apache-2.0",
   "repo": "wittywilla/WittyModule",
   "delivery": "library",
   "api": 2,

@@ -72,3 +72,11 @@ A stream comes from someone else's computer, and this program parses it in C, so
 - On Linux, it can't gain privileges, it's limited to no files (Landlock where the kernel has it), and it dies with its parent.
 - On Windows, WittyMediaServer runs it at low integrity, and it loads DLLs only from Windows' own folder.
 - Everything is built with stack protection and for address randomisation. Mbed TLS is cut down to the AES it needs, with no certificates, parsers or file access.
+
+## Legal
+
+WittyCouch Host is an independent open-source project built on Moonlight's code under the GPL-3.0. It
+isn't associated with, sponsored by or endorsed by the Moonlight or Sunshine projects, NVIDIA, or any
+game publisher. No games come with it. Any third-party names here only describe what it works with, and
+belong to their owners. It's provided “as is”, with no warranty; see [LICENSE](LICENSE). Local law
+applies to how you use it. This isn't legal advice.

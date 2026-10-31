@@ -26,6 +26,7 @@ import (
 	"github.com/wittywilla/wittycouch/relay"
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
@@ -458,6 +459,7 @@ func (s *Server) handleCouchFind(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer logging.Recover("couch: asking a PC", "cat", "games")
 			info, err := (&gamestream.Rig{Address: f.Address, Port: f.Port, Policy: policy}).Hello(ctx)
 			if err != nil {
 				return
@@ -504,7 +506,11 @@ func (s *Server) handleCouchHosts(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	for i, h := range hosts {
 		wg.Add(1)
-		go func() { defer wg.Done(); out[i] = s.couchViewOf(ctx, u, h) }()
+		go func() {
+			defer wg.Done()
+			defer logging.Recover("couch: status", "cat", "games")
+			out[i] = s.couchViewOf(ctx, u, h)
+		}()
 	}
 	wg.Wait()
 	writeJSON(w, 200, out)
@@ -715,6 +721,7 @@ func (s *Server) handleCouchPair(w http.ResponseWriter, r *http.Request) {
 	g.pairs[h.ID] = p
 	g.mu.Unlock()
 	go func() {
+		defer logging.Recover("couch: pairing", "cat", "games")
 		defer cancel()
 		finish := func(state, msg string) {
 			g.mu.Lock()
@@ -850,6 +857,7 @@ func (s *Server) handleCouchApps(w http.ResponseWriter, r *http.Request) {
 		sem <- struct{}{}
 		go func() {
 			defer wg.Done()
+			defer logging.Recover("couch: game picture", "cat", "games")
 			defer func() { <-sem }()
 			data, _, err := client.AppImage(ctx, a.ID)
 			if err != nil {

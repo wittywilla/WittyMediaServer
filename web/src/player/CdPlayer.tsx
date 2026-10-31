@@ -4,6 +4,7 @@ import { api, fmtRuntime, getPrefs, mediaUrl } from '../api'
 import { useCd } from '../audio/player'
 import { type CdDisc, type CdNow, type CdRepeat } from '../audio/cdEngine'
 import { BackLink, EmptyState, Spinner } from '../components/common'
+import LegalNote from '../components/LegalNote'
 import { IconClose, IconDisc, IconEject, IconFf, IconInfo, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconRew, IconSearch, IconStop, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import { CdGraphics } from './CdGraphics'
@@ -325,6 +326,7 @@ export default function CdPlayer() {
       </section>
       {disc.attribution && <p className="muted cdp-credit">{disc.attribution}{disc.releaseId && <> <a href={`https://musicbrainz.org/release/${disc.releaseId}`} target="_blank" rel="noreferrer">See this release</a>.</>}</p>}
       <p className="muted cdp-keyhelp"><kbd>Space</kbd> play or pause, <kbd>N</kbd>/<kbd>P</kbd> next or previous, <kbd>J</kbd>/<kbd>L</kbd> back or forward 10 seconds, <kbd>S</kbd> stop, <kbd>R</kbd> repeat, <kbd>H</kbd> shuffle, {vizAvailable && <><kbd>V</kbd> visualizer, </>}<kbd>E</kbd> eject.</p>
+      <LegalNote kind="metadata" />
       {identify && <IdentifyDialog disc={disc} onClose={() => setIdentify(false)} onApplied={(d) => { setDisc(d); actions.refresh(d); setIdentify(false) }} />}
     </div>
   )
@@ -499,6 +501,7 @@ function IdentifyDialog({ disc, onClose, onApplied }: { disc: CdDisc; onClose: (
             ))}
           </ul>
         )}
+        <LegalNote kind="webResults" />
         <div className="cdp-actions">
           {disc.lookup === 'matched' && <button className="btn ghost sm" disabled={!!busy} onClick={() => choose('')}>Use the disc’s own names</button>}
           <span className="muted cdp-credit">Album data from <a href="https://musicbrainz.org" target="_blank" rel="noreferrer">MusicBrainz</a> (CC0). Covers from the <a href="https://coverartarchive.org" target="_blank" rel="noreferrer">Cover Art Archive</a>.</span>

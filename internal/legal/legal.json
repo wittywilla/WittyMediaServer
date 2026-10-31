@@ -99,7 +99,7 @@
       "id": "cryptography",
       "title": "Encryption in this software",
       "body": [
-        "This software uses standard encryption and signing to protect connections, passwords and updates: TLS, WebRTC's DTLS and SRTP, bcrypt, SHA-256, HMAC and Ed25519, from Go's standard library and other widely used open-source packages. It has no encryption algorithm of its own, and it doesn't decrypt media. Rules on exporting, importing or using encryption software differ between countries, and following them where you are is up to you."
+        "This software uses standard encryption and signing to protect connections, passwords and updates: TLS, WebRTC's DTLS and SRTP, bcrypt, SHA-256, HMAC and Ed25519, plus RSA, ECDSA and AES for connections to gaming PCs, from Go's standard library and other widely used open-source packages. It has no encryption algorithm of its own, and it doesn't decrypt media. Rules on exporting, importing or using encryption software differ between countries, and following them where you are is up to you."
       ]
     },
     {
@@ -108,7 +108,7 @@
       "body": [
         "**No telemetry.** No usage data, error reports or analytics go to the project or to anyone else, and there's no account with the project. App errors, if an administrator turns that logging on, go only to this server.",
         "**Your files, watch history, passwords and logs aren't sent anywhere.** What leaves this server is what's listed here, each with what controls it. Names sent to look something up come from your file and folder names, so choose them with that in mind. Each service also sees the internet address of whichever computer contacts it, usually this server's, and its own privacy policy applies.",
-        "**On by default:** the update checks, TVmaze and Wikidata, plus AniList once there's an Anime library, and answering apps that look for servers on your home network. Everything else is off until someone turns it on or uses it.",
+        "**On by default:** the update checks, TVmaze and Wikidata, the libretro database and thumbnails for games, MusicBrainz and the Cover Art Archive for audio CD images, Radio Browser, plus AniList once there's an Anime library, and answering apps that look for servers on your home network. Everything else is off until someone turns it on or uses it.",
         "Whoever runs this server can see what its accounts do on it, including what's played and from which address, and its logs keep warnings such as repeated wrong passwords, with the address they came from, for 14 days. If you use a server someone else runs, ask them what they keep."
       ]
     },
@@ -179,7 +179,8 @@
       "name": "Wikidata and Wikipedia",
       "hosts": [
         "www.wikidata.org",
-        "en.wikipedia.org"
+        "en.wikipedia.org",
+        "query.wikidata.org"
       ],
       "gets": "Movie and game titles, taken from your folder and file names.",
       "when": "On by default, at each scan and refresh. For movies, until a TMDB key is added.",
@@ -216,6 +217,89 @@
       ],
       "gets": "Show names and years, with your API key and PIN.",
       "when": "Only after a key is added: at each scan and refresh.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "libretro database",
+      "hosts": [
+        "raw.githubusercontent.com"
+      ],
+      "gets": "Nothing about your games: a list for each console you have is downloaded, and matched on this server.",
+      "when": "On by default for Games libraries: each console's list once, then checked monthly.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "libretro thumbnails",
+      "hosts": [
+        "thumbnails.libretro.com"
+      ],
+      "gets": "The names of your games, as the database lists them.",
+      "when": "On by default for Games libraries: once for each picture, which is then kept on this server.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "IGDB",
+      "hosts": [
+        "api.igdb.com",
+        "images.igdb.com",
+        "id.twitch.tv"
+      ],
+      "gets": "Game and console names, with your Client ID and secret.",
+      "when": "Only after a key is added: while looking up games.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "RAWG",
+      "hosts": [
+        "api.rawg.io"
+      ],
+      "gets": "Game and console names, with your API key.",
+      "when": "Only after a key is added: while looking up games.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "ScreenScraper",
+      "hosts": [
+        "api.screenscraper.fr"
+      ],
+      "gets": "Game and console names and file checksums, with your account name and password.",
+      "when": "Only after an account is added: while looking up games.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "TheGamesDB",
+      "hosts": [
+        "api.thegamesdb.net"
+      ],
+      "gets": "Game and console names and file checksums, with your API key.",
+      "when": "Only after a key is added: while looking up games.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "MusicBrainz and the Cover Art Archive",
+      "hosts": [
+        "musicbrainz.org",
+        "coverartarchive.org"
+      ],
+      "gets": "An audio CD image's table of contents, the track lengths and nothing else: no names and no audio.",
+      "when": "On by default, when a CD image is added or looked up.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Radio Browser",
+      "hosts": [
+        "all.api.radio-browser.info"
+      ],
+      "gets": "What someone searches for, and which stations were added from it.",
+      "when": "On by default: when someone searches for stations, and once a day for stations added from it.",
       "control": "Settings, Metadata agents",
       "setting": "/settings/metadata"
     },
@@ -270,6 +354,14 @@
       "when": "Only while someone listens.",
       "control": "The stations an administrator adds",
       "setting": ""
+    },
+    {
+      "name": "Gaming PCs",
+      "hosts": [],
+      "gets": "The PC's pairing and what someone plays: controller presses go to it, and its picture and sound come back, encrypted.",
+      "when": "Only for a PC someone adds, and only while it's being used or checked.",
+      "control": "Settings, Game PCs",
+      "setting": "/settings/couch"
     },
     {
       "name": "IPTV and TV guides",

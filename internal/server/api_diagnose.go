@@ -199,7 +199,7 @@ type diagnoseListing struct {
 
 // diagnoseImageExt: what might be a disc image. .bin and .mdf may turn out to be
 // formats the engines don't read, and the check says so.
-var diagnoseImageExt = map[string]bool{".iso": true, ".img": true, ".bin": true, ".udf": true, ".mdf": true, ".nrg": true}
+var diagnoseImageExt = map[string]bool{".iso": true, ".img": true, ".bin": true, ".udf": true, ".mdf": true, ".nrg": true, ".cue": true, ".toc": true, ".ccd": true, ".chd": true}
 
 // GET /api/diagnose/browse?path=: folders, disc folders and disc images inside
 // the allowed places. With no path, the places themselves.

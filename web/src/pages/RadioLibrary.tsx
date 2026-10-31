@@ -286,6 +286,7 @@ function DirectoryFinder({ lib, onChanged }: { lib: Library; onChanged: () => vo
         </>
       )}
       <p className="muted rd-note">Stations come from <a href="https://www.radio-browser.info/" target="_blank" rel="noreferrer noopener">Radio Browser</a>, a free community directory. What you search for is sent to it from your server. Stations themselves are contacted only when someone listens.</p>
+      <LegalNote kind="webResults" />
     </div>
   )
 }
@@ -308,6 +309,7 @@ function AddressForm({ lib, onDone }: { lib: Library; onDone: () => void }) {
         <label className="oobe-field">Genre<input className="input" maxLength={80} placeholder="Optional" value={genre} onChange={(e) => setGenre(e.target.value)} /></label>
       </div>
       <p className="muted rd-note">Only addresses on the internet work: the server won't reach into your own network on a station's behalf. A station's name and details are filled in the first time it plays, if it gives them.</p>
+      <LegalNote kind="webMedia" />
       {err && <div className="error" role="alert">{err}</div>}
       <button className="btn primary" disabled={!url.trim() || busy}>{busy ? 'Adding…' : 'Add station'}</button>
     </form>
@@ -421,6 +423,7 @@ export function RadioStationPage() {
         </section>
       )}
       {row.length > 0 && <section className="rd-row" aria-label="Similar stations"><h2>More like this</h2><CardRow>{row.map((o) => <StationCard key={o.id} s={o} play={playOthers} />)}</CardRow></section>}
+      <LegalNote kind="webMedia" />
     </div>
   )
 }

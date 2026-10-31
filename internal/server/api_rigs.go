@@ -20,6 +20,7 @@ import (
 	"github.com/wittywilla/wittycouch/gamestream"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
@@ -357,6 +358,7 @@ func (s *Server) handleRigs(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer logging.Recover("rigs: status", "cat", "games")
 			out[i] = s.rigViewFor(ctx, r, rig)
 			if out[i].Paired && (out[i].State == "online" || out[i].State == "busy") {
 				s.syncSoon(rig)
@@ -402,6 +404,7 @@ func (s *Server) handleRigFind(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer logging.Recover("rigs: asking a PC", "cat", "games")
 			// mDNS can say anything, so it only counts if the PC itself answers.
 			info, err := (&gamestream.Rig{Address: f.Address, Port: f.Port}).Hello(ctx)
 			if err != nil {
@@ -954,6 +957,7 @@ func (s *Server) enrichRigGames(items []int64) {
 		return
 	}
 	go func() {
+		defer logging.Recover("rigs: game details", "cat", "games")
 		for _, id := range items {
 			if err := s.Store.EnrichRigGame(context.Background(), id); err != nil {
 				s.Log.Debug("rig game details", "item", id, "err", err)
@@ -977,6 +981,7 @@ func (s *Server) syncSoon(rig *rigRow) {
 	}
 	copyOf := *rig
 	go func() {
+		defer logging.Recover("rigs: sync", "cat", "games")
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 		if _, err := s.syncRig(ctx, &copyOf); err != nil {

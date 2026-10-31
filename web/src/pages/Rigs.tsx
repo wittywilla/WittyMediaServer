@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, posterUrl, type Item, type Library } from '../api'
 import { BackLink, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
+import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 import './rigs.css'
@@ -114,6 +115,7 @@ export default function RigLibrary({ lib }: { lib: Library }) {
       {!items ? <SkeletonGrid /> : items.length === 0
         ? <EmptyState icon={<IconGamepad />} title="No games to show here" text={rig?.paired === false ? 'This PC’s games appear here once it’s paired.' : 'Games appear here from the list in Sunshine on that PC.'} />
         : <div className="grid">{items.map((it) => <RigCard key={it.id} item={it} rig={lib.name} />)}</div>}
+      <LegalNote kind="thirdPartyServer" />
     </>
   )
 }

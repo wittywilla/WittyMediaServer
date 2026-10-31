@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -1097,6 +1098,7 @@ func (g *GameMeta) Search(ctx context.Context, console, title string) ([]gamemet
 		wg.Add(1)
 		go func(id string) {
 			defer wg.Done()
+			defer logging.Recover("game search", "cat", "library")
 			c, err := set.all[id].Search(ctx, console, title)
 			mu.Lock()
 			defer mu.Unlock()

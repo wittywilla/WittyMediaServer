@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
+import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay } from '../icons'
 import { toast, useApp } from '../state'
 import type { CouchHost } from '@wittywilla/wittycouch'
@@ -62,6 +63,7 @@ export default function CouchPage() {
     <>
       <div className="toolbar"><h1>Game PCs</h1></div>
       <p className="muted">Play the games on any PC running Sunshine, here in your browser. It might be yours, or a friend’s. Each PC pairs once, with a PIN typed on that PC, and your pairings are yours alone.</p>
+      <LegalNote kind="thirdPartyServer" />
       {st && <NotReady st={st} />}
       {!hosts ? <Spinner /> : hosts.length > 0 && (
         <ul className="ml-hosts">
@@ -148,6 +150,7 @@ export function CouchHostPage() {
   return (
     <div className="game-page">
       <BackLink to="/couch" label="Game PCs" />
+      <LegalNote kind="thirdPartyServer" />
       <div className="toolbar"><h1>{host.name}</h1><div className="grow" />{!sure && <button className="btn sm ghost" onClick={() => setSure(true)}>Remove</button>}</div>
       {sure && (
         <div className="rig-warn" role="alert">

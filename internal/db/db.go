@@ -280,7 +280,7 @@ var migrations = []string{
 	   path TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER NOT NULL,
 	   exts TEXT NOT NULL, problem TEXT NOT NULL,
 	   PRIMARY KEY(library_id, path));`,
-	// 18: what's known about games. game_meta is the result, and the queue: a row with
+	// 17: what's known about games. game_meta is the result, and the queue: a row with
 	// status pending is still to be looked up, so a restart carries on where it stopped.
 	// game_meta_sources keeps each source's answer, so changing the order of sources
 	// asks nobody anything, and adding one only asks that one.
@@ -304,7 +304,7 @@ var migrations = []string{
 	   source TEXT NOT NULL, source_id TEXT NOT NULL DEFAULT '', method TEXT NOT NULL DEFAULT '', confidence INTEGER NOT NULL DEFAULT 0,
 	   data TEXT NOT NULL DEFAULT '', fetched_at INTEGER NOT NULL,
 	   PRIMARY KEY(item_id, source));`,
-	// 17: internet radio: what is known about a station beyond its item, where it
+	// 18: internet radio: what is known about a station beyond its item, where it
 	// came from, and whether it is still on the air.
 	`CREATE TABLE IF NOT EXISTS radio_meta (
 	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
@@ -314,7 +314,7 @@ var migrations = []string{
 	   dir_ok INTEGER NOT NULL DEFAULT -1, dir_gone INTEGER NOT NULL DEFAULT 0, dir_checked INTEGER NOT NULL DEFAULT 0,
 	   fail_count INTEGER NOT NULL DEFAULT 0, last_ok INTEGER NOT NULL DEFAULT 0, last_check INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '');
 	 CREATE INDEX IF NOT EXISTS radio_meta_source ON radio_meta(source, dir_checked);`,
-	// 17: games: named controller profiles, and the picture behind the controller screen.
+	// 19: games: named controller profiles, and the picture behind the controller screen.
 	`CREATE TABLE wittyplay_profiles (
 	   id INTEGER PRIMARY KEY AUTOINCREMENT,
 	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -325,7 +325,7 @@ var migrations = []string{
 	 CREATE TABLE wittyplay_backgrounds (
 	   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 	   version INTEGER NOT NULL, fit TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, dim INTEGER NOT NULL);`,
-	// 17: games: each person's settings, what they keep about each game, and their own files.
+	// 20: games: each person's settings, what they keep about each game, and their own files.
 	`CREATE TABLE wittyplay_settings (
 	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	   console TEXT NOT NULL, item_id INTEGER NOT NULL,
@@ -352,7 +352,7 @@ var migrations = []string{
 	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
 	   name TEXT NOT NULL, kind TEXT NOT NULL, size INTEGER NOT NULL, enabled INTEGER NOT NULL, created_at INTEGER NOT NULL);
 	 CREATE INDEX idx_wittyplay_patches_game ON wittyplay_patches(user_id, item_id);`,
-	// 17: custom game cores and consoles: what was approved, the versions kept, which
+	// 21: custom game cores and consoles: what was approved, the versions kept, which
 	// core a game uses, how play went, and an audit log.
 	`CREATE TABLE IF NOT EXISTS custom_cores (
 	   id TEXT PRIMARY KEY, name TEXT NOT NULL, version TEXT NOT NULL DEFAULT '', sha256 TEXT NOT NULL, size INTEGER NOT NULL DEFAULT 0,
@@ -374,10 +374,10 @@ var migrations = []string{
 	 CREATE TABLE IF NOT EXISTS game_core_audit (
 	   id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, user_name TEXT NOT NULL DEFAULT '', action TEXT NOT NULL,
 	   core TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '');`,
-	// 17: CD images: a track item says which disc item it belongs to.
+	// 22: CD images: a track item says which disc item it belongs to.
 	`ALTER TABLE items ADD COLUMN cd_disc INTEGER;
 	 CREATE INDEX IF NOT EXISTS items_cd_disc ON items(cd_disc) WHERE cd_disc IS NOT NULL;`,
-	// 17: game rigs: gaming PCs running Sunshine, each with a library of its games. The
+	// 23: game rigs: gaming PCs running Sunshine, each with a library of its games. The
 	// certificate here is the rig's own, which isn't secret: this server's key is in a file.
 	`CREATE TABLE IF NOT EXISTS wittyrigs_rigs (
 	   id INTEGER PRIMARY KEY,
@@ -392,7 +392,7 @@ var migrations = []string{
 	   item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
 	   PRIMARY KEY(rig_id, app_id));
 	 CREATE INDEX IF NOT EXISTS wittyrigs_apps_item ON wittyrigs_apps(item_id);`,
-	// 18: WittyCouch: each person's own list of PCs running Sunshine. The certificate here is the
+	// 24: WittyCouch: each person's own list of PCs running Sunshine. The certificate here is the
 	// PC's own, which isn't secret: each person's key is in a file.
 	`CREATE TABLE IF NOT EXISTS wittycouch_hosts (
 	   id INTEGER PRIMARY KEY,

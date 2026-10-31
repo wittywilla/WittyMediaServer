@@ -101,7 +101,15 @@ var screens = map[string][]string{
 	"pages/ShowPage.tsx":                 {"metadata"},
 	"components/ArtworkPicker.tsx":       {"webResults"},
 	"pages/Podcasts.tsx":                 {"webResults"},
-	"pages/RadioLibrary.tsx":             {"webMedia"},
+	"pages/RadioLibrary.tsx":             {"webMedia", "webResults"},
+	"pages/Couch.tsx":                    {"thirdPartyServer"},
+	"pages/Rigs.tsx":                     {"thirdPartyServer"},
+	"pages/GameMeta.tsx":                 {"webResults"},
+	"player/CdPlayer.tsx":                {"metadata", "webResults"},
+	"pages/settings/Couch.tsx":           {"thirdPartyServer"},
+	"pages/settings/GameRigs.tsx":        {"thirdPartyServer"},
+	"pages/settings/WittyRigs.tsx":       {"games"},
+	"pages/settings/GamingCustom.tsx":    {"cores", "modules"},
 	"pages/AudioLibrary.tsx":             {"webMedia"},
 	"pages/tv/GuidePage.tsx":             {"tv"},
 	"pages/tv/TvSettings.tsx":            {"tv"},
@@ -239,7 +247,7 @@ func TestNothingTellsPeopleToDecrypt(t *testing.T) {
 // Addresses that are never contacted by themselves: links for people to click, the
 // identifiers of file formats, examples, and things people type in. A new one here
 // should be a decision: anything the server calls goes on the privacy list instead.
-var notContacted = regexp.MustCompile(`(?i)(^|\.)(example\.(com|org|net)|example|localhost|127\.0\.0\.1|w3\.org|purl\.org|itunes\.com|www\.apple\.com|creativecommons\.org|schemas\.\S+|xmlsoap\.org|schema\.org|www\.w3\.org|video\.google\.com|shop\.silicondust\.com|info\.hdhomerun\.com|zapperbox\.com|support\.adth\.com|a3sa\.com|wikipedia\.org|fandom\.com|ffmpeg\.org|apache\.org)$`)
+var notContacted = regexp.MustCompile(`(?i)(^|\.)(example\.(com|org|net)|example|localhost|127\.0\.0\.1|w3\.org|purl\.org|itunes\.com|www\.apple\.com|creativecommons\.org|schemas\.\S+|xmlsoap\.org|schema\.org|www\.w3\.org|video\.google\.com|shop\.silicondust\.com|info\.hdhomerun\.com|zapperbox\.com|support\.adth\.com|a3sa\.com|wikipedia\.org|fandom\.com|ffmpeg\.org|apache\.org|anilist\.co|tvmaze\.com|themoviedb\.org|dictionaryapi\.dev|naturalearthdata\.com|go\.dev|npmjs\.com|dev\.twitch\.tv|igdb\.com|rawg\.io|screenscraper\.fr|thegamesdb\.net|apps\.apple\.com|play\.google\.com|amazon\.com|radio-browser\.info)$`)
 
 // "Nothing leaves except what's listed" has to stay true: a host written into the
 // server's code that isn't on the privacy list fails here.

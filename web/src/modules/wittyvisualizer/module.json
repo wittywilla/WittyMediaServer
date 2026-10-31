@@ -2,6 +2,7 @@
   "id": "wittyvisualizer",
   "name": "WittyVisualizer",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "repo": "wittywilla/WittyVisualizer",
   "delivery": "web",
   "entry": "index.js",

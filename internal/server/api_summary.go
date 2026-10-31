@@ -19,7 +19,7 @@ import (
 // holds no secrets. A setting is only here if it's on this list, so a new secret
 // can't slip in; secrets only ever appear as whether they are set.
 var summarySettings = []string{"hwAccel", "hwEncoders", "maxHeight", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "saveMetadata", "directPlay", "qualityMode", "qualityProfile",
-	"x264Preset", "crf", "maxBitrate", "audioBitrate", "maxSpeed", "tvmaze", "wikidata", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "shareLinks", "lanDiscovery", "remoteAccess", "remoteMode", "httpsEnabled"}
+	"x264Preset", "crf", "maxBitrate", "audioBitrate", "maxSpeed", "tvmaze", "wikidata", "musicbrainz", "radioDirectory", "radioChecks", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "shareLinks", "lanDiscovery", "remoteAccess", "remoteMode", "httpsEnabled"}
 
 // FolderSpace is one folder the server uses.
 type FolderSpace struct {

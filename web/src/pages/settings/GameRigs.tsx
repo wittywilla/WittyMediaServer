@@ -4,6 +4,7 @@ import { api } from '../../api'
 import { toast } from '../../state'
 import type { RigView } from '../Rigs'
 import { Section } from './ui'
+import LegalNote from '../../components/LegalNote'
 import '../rigs.css'
 
 // What Settings, Game PCs and Settings, WittyRigs share: adding a PC, pairing it, and choosing
@@ -54,6 +55,7 @@ export function AddRig({ onAdded, title, desc }: { onAdded: () => void; title: s
   }
   return (
     <Section title={title} desc={desc}>
+      <LegalNote kind="thirdPartyServer" />
       <SetupHelp />
       <div className="rig-row-actions">
         <button className="btn" disabled={finding} onClick={find}>{finding ? 'Looking on your network…' : 'Find PCs on my network'}</button>

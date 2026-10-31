@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Spinner } from '../../components/common'
+import LegalNote from '../../components/LegalNote'
 import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { RigCard, SetupHelp } from './GameRigs'
@@ -28,6 +29,7 @@ export default function WittyRigsSettings() {
   return (
     <>
       <PageHead title="WittyRigs" desc="Advanced, and most servers don’t need it. It’s for playing demanding PC games installed on this server itself, using this machine’s graphics card. To play on other PCs, use Game PCs." />
+      <LegalNote kind="games" className="set-legal" />
       <Section title="Hosting games on this server">
         {!st.enabled && !sure && (
           <>

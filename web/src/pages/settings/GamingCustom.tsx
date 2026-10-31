@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { api, ApiError, getToken, serverBase, type GameConsole } from '../../api'
 import { Spinner } from '../../components/common'
+import LegalNote from '../../components/LegalNote'
 import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import { Row, Section, Switch } from './ui'
@@ -673,6 +674,8 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
   return (
     <>
       <Section id="custom-cores" title="Custom cores" desc="Your own libretro cores, for consoles or versions this server doesn’t offer. They’re third-party software, and this project hasn’t checked them.">
+        <LegalNote kind="cores" />
+        <LegalNote kind="modules" />
         <Row label="Allow custom cores" desc={<>Off by default on every server. {st.locked ? 'Whoever runs this machine has kept this off, and it can’t be changed from here.' : !st.canEnable ? `This system can’t box a core in properly (${st.sandbox}), so they can’t be used here.` : `A core runs as a program on this server, boxed in by ${st.sandbox}. Off stops them from running; nothing is deleted.`}</>}>
           <Switch checked={st.enabled} disabled={!st.canEnable && !st.enabled} label="Allow custom cores" onChange={(v) => { if (v) setEnabling(true); else turnOff() }} />
         </Row>

@@ -29,3 +29,12 @@ To stream, it starts **WittyCouch Host**, a separate program under the **GPL-3.0
 ## How it has been tested
 
 Automated tests run `gamestream` against `fake`, and `relay` over real WebRTC with a stand-in for the host program. `gamestream/real_test.go` and `relay/real_test.go` run against a real Sunshine, and a real browser has played a real stream end to end. Real games on real gaming PCs haven't been tried yet: see `docs/GAME-RIGS.md` in WittyMediaServer.
+
+## Legal
+
+WittyCouch is an independent open-source project. It isn't associated with, sponsored by or endorsed by
+the Moonlight or Sunshine projects, NVIDIA, or any game publisher. It connects to a PC someone else may
+run, and what that PC offers isn't provided or checked by this project. No games come with it. Any
+third-party names here only describe what it works with, and belong to their owners. It's provided
+“as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal
+advice.

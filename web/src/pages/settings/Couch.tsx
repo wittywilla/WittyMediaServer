@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Spinner } from '../../components/common'
+import LegalNote from '../../components/LegalNote'
 import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { AddRig, RigCard } from './GameRigs'
@@ -44,6 +45,7 @@ export default function CouchSettings() {
   return (
     <>
       <PageHead title="Game PCs" desc="WittyCouch is a Moonlight client in the page: people play the games on any PC running Sunshine, in their browser, through this server." />
+      <LegalNote kind="thirdPartyServer" className="set-legal" />
       <Section title="This server" desc="Playing in the page needs a separate program, WittyCouch Host, built on Moonlight’s own code.">
         {st.ready
           ? <p>WittyCouch Host is installed and working.</p>

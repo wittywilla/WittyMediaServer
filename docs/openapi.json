@@ -6269,7 +6269,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.4.0"
+    "version": "1.5.0"
   },
   "openapi": "3.1.0",
   "paths": {

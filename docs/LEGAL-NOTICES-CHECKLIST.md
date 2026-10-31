@@ -108,5 +108,4 @@ legal advice.
   lookups come from.
 - **WittyVisualizer:** add the `flashing` notice.
 - **WittyMediaPlayer:** add `local`, and credit any optional playback libraries it uses.
-- **WittyMoonlight, WittySunshine:** add that it isn't associated with the projects it connects to, once
-  their names are settled.
+- **WittyCouch, WittyCouch Host, WittyRigs:** say that it isn't associated with the projects it connects to.

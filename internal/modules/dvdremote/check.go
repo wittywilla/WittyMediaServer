@@ -27,7 +27,7 @@ const (
 	maxButtons   = 256
 	maxFrameSide = 1024    // a DVD's picture is at most 720x576
 	maxSeconds   = 400000  // what a DVD's time field can hold
-	maxSerial    = 1 << 40 // no viewer gets this far, and adding to it stays safe
+	maxSerial    = 1 << 30 // no viewer gets this far, adding to it stays safe, and it fits every platform
 	maxReason    = 500     // a reason is shown to the viewer
 	maxPosition  = 1 << 16 // of a picture, on or off the frame
 	maxExtents   = 100000  // an interleaved feature has a few thousand

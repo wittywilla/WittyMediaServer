@@ -565,9 +565,9 @@ that falls outside a plugin's range fails until its `maxServer` is raised.
 **The recommendation is one module key, separate from the server's release key, not one per module.**
 
 - A release key can sign a server, which runs with no limits at all. A key that signs modules has to sit in
-  thirteen repositories' secrets, where it is far more exposed, so it shouldn't be able to. `moduleKey` in
+  the secrets of ten repositories, where it is far more exposed, so it shouldn't be able to. `moduleKey` in
   `internal/update/keys.go` is trusted for modules and never for a server.
-- One key per module would mean thirteen keys to look after, and a new server for every rotation. What it would buy
+- One key per module would mean ten keys to look after, and a new server for every rotation. What it would buy
   is real but limited: a leak from one repository couldn't sign another module's helper. A bundle signed with a leaked
   key can already act as an admin in that admin's browser, though, which reaches everything the same way.
 - Because one key is shared, a compromised build in any repository could ask for any module to be signed. So the

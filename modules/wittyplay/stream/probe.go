@@ -72,6 +72,9 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	if opt.Runner == "" {
 		return nil, &ProbeError{ProbeRunner, "the game runner (wittyplay-host) is missing from this install, so nothing can be tested"}
 	}
+	if why := pathTooLong(opt.WorkDir, opt.Core); why != "" {
+		return nil, &ProbeError{ProbeRunner, why}
+	}
 	if err := os.MkdirAll(opt.WorkDir, 0o700); err != nil {
 		return nil, &ProbeError{ProbeRunner, "a folder to test the core in couldn't be made: " + err.Error()}
 	}

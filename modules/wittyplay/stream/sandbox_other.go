@@ -25,3 +25,6 @@ func SandboxStrength() (string, bool) { return "resource limits only", false }
 
 // probePriority does nothing here: the host's own priority is only a little lowered.
 func probePriority(cmd *exec.Cmd) {}
+
+// pathTooLong has nothing to say here: only Windows limits these paths.
+func pathTooLong(folder, file string) string { return "" }

@@ -38,6 +38,7 @@ const (
 	envGetRumble         = 23
 	envGetInputCaps      = 24
 	envGetLog            = 27
+	envGetPerf           = 28
 	envGetCoreAssetsDir  = 30
 	envGetSaveDir        = 31
 	envSetSystemAVInfo   = 32
@@ -103,6 +104,7 @@ var (
 	cur                                                                 *Core
 	callbacks                                                           sync.Once
 	cbEnv, cbVideo, cbSample, cbBatch, cbPoll, cbState, cbLog, cbRumble uintptr
+	perfCallbacks                                                       [7]uintptr
 )
 
 func makeCallbacks() {
@@ -114,6 +116,8 @@ func makeCallbacks() {
 	cbState = purego.NewCallback(onInputState)
 	cbLog = purego.NewCallback(onLog)
 	cbRumble = purego.NewCallback(onRumble)
+	perfCallbacks = [7]uintptr{purego.NewCallback(perfTimeUsec), purego.NewCallback(perfCPUFeatures), purego.NewCallback(perfCounter),
+		purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing)}
 }
 
 // Load opens a core and starts it. Call this, and everything else on Core,
@@ -437,6 +441,9 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		*(*uintptr)(data) = cbLog
 	case envGetRumble:
 		*(*uintptr)(data) = cbRumble
+	case envGetPerf:
+		// Some cores call these without checking the answer, so they all work.
+		*(*[7]uintptr)(data) = perfCallbacks
 	case envGetInputBitmasks:
 	case envGetInputCaps:
 		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog

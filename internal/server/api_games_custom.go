@@ -629,6 +629,10 @@ func (s *Server) handleCustomGet(w http.ResponseWriter, r *http.Request) {
 		Platform: cores.Binary{OS: runtime.GOOS, Arch: runtime.GOARCH}.Describe(), LibraryExt: cores.LibraryExt(), MaxUploadMB: cores.DefaultLimits.Package >> 20,
 		CoresDir: g.cores.Dir, SystemDir: g.systemDir(), Cores: []*CustomCore{}, Consoles: []CustomConsoleView{}, Placed: []cores.PlacedFile{}, Audit: s.coreAudit(ctx, 100),
 	}
+	if out.Enabled {
+		// The page says to put files here, so it has to exist on a new server.
+		_ = os.MkdirAll(g.cores.Dir, 0o755)
+	}
 	totals := s.corePlayTotals(ctx)
 	prefs := s.preferredCores(ctx)
 	for _, c := range s.customCoreRows(ctx) {

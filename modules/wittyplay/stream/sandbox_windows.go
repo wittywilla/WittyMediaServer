@@ -120,3 +120,13 @@ func probePriority(cmd *exec.Cmd) {
 		cmd.SysProcAttr.CreationFlags &^= windows.BELOW_NORMAL_PRIORITY_CLASS
 	}
 }
+
+// pathTooLong says when Windows can't do this. A new process can't start in a folder
+// with a path of 248 characters or more, and a library can't load from a path of 260
+// or more. Without this, what people see is "the directory name is invalid".
+func pathTooLong(folder, file string) string {
+	if len(folder) < 248 && len(file) < 260 {
+		return ""
+	}
+	return "The server's data folder is in too deep a folder for Windows to run a core from it. Move it somewhere with a shorter path."
+}

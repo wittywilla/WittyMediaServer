@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -216,4 +217,25 @@ func libraryExtForTest() string {
 		return ".dll"
 	}
 	return ".so"
+}
+
+func TestAskingForPerfInterfaceGivesWorkingCalls(t *testing.T) {
+	newTestCore(t, engine.Handlers{})
+	var perf [7]uintptr
+	if !env(envGetPerf, unsafe.Pointer(&perf)) {
+		t.Fatal("perf interface refused")
+	}
+	for i, f := range perf {
+		if f == 0 {
+			t.Fatalf("call %d is empty; some cores call them without checking", i)
+		}
+	}
+	a, _, _ := purego.SyscallN(perf[0])
+	time.Sleep(2 * time.Millisecond)
+	b, _, _ := purego.SyscallN(perf[0])
+	if b <= a {
+		t.Errorf("the clock didn't advance: %d, %d", a, b)
+	}
+	var counter [5]uintptr
+	purego.SyscallN(perf[3], uintptr(unsafe.Pointer(&counter)))
 }

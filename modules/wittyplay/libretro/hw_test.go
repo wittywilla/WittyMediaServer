@@ -153,10 +153,13 @@ func playRealGPUCore(t *testing.T, core, rom string) {
 	frames, lit := 0, 0
 	video := func(d []byte, w, h, stride, format int) {
 		frames++
-		for i := 0; i < len(d); i += stride*(h/8) + 4 {
-			if d[i] > 16 {
-				lit++
-				break
+	rows:
+		for y := 0; y < h; y += max(h/32, 1) {
+			for x := 0; x < w; x += max(w/32, 1) {
+				if p := d[y*stride+x*4:]; p[0] > 16 || p[1] > 16 || p[2] > 16 {
+					lit++
+					break rows
+				}
 			}
 		}
 	}
@@ -176,7 +179,7 @@ func playRealGPUCore(t *testing.T, core, rom string) {
 		}
 		return
 	}
-	for i := 0; i < 600; i++ {
+	for i := 0; i < 3000 && lit == 0; i++ { // consoles start on a black screen
 		c.Run()
 	}
 	t.Logf("%d frames, %d with something on them, drawn by %q", frames, lit, c.Renderer())

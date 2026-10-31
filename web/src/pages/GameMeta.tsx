@@ -185,7 +185,7 @@ const hintDismissed = () => { try { return localStorage.getItem(dismissKey) === 
 
 // For administrators: how the lookup is going, and a nudge toward a key. Tells the page
 // when there's more to show.
-export function GameMetaNotice({ onProgress }: { onProgress: () => void }) {
+export function GameMetaNotice({ onProgress, unmatched, onUnmatched }: { onProgress: () => void; unmatched: boolean; onUnmatched: (on: boolean) => void }) {
   const [st, setSt] = useState<GameMetaStatus | null>(null)
   const [hidden, setHidden] = useState(hintDismissed)
   useEffect(() => {
@@ -206,9 +206,15 @@ export function GameMetaNotice({ onProgress }: { onProgress: () => void }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (!st || st.total === 0) return null
   const busy = st.pending > 0
-  const unmatched = st.total - st.matched
+  const missing = st.total - st.matched
   return (
     <>
+      {!busy && (missing > 0 || unmatched) && (
+        <p className="gm-progress muted">
+          {unmatched ? 'Showing games with no match. Open one to find its match.' : `${missing.toLocaleString()} ${missing === 1 ? 'game has' : 'games have'} no match.`}{' '}
+          <button type="button" className="btn sm ghost" aria-pressed={unmatched} onClick={() => onUnmatched(!unmatched)}>{unmatched ? 'Show all games' : 'Show them'}</button>
+        </p>
+      )}
       {(busy || st.pictures > 0) && (
         <p className="gm-progress muted" role="status">
           {busy ? `Finding details: ${(st.total - st.pending).toLocaleString()} of ${st.total.toLocaleString()} games` : `Fetching pictures: ${st.pictures.toLocaleString()} games to go`}
@@ -217,7 +223,7 @@ export function GameMetaNotice({ onProgress }: { onProgress: () => void }) {
       )}
       {!st.keysSet && !hidden && !busy && (
         <div className="warn-box gm-hint" role="status">
-          <span><strong>Add a key for better matches.</strong> {unmatched > 0 ? `${unmatched.toLocaleString()} of your games have no match yet. ` : ''}A free key adds scores, age ratings and art for more games.{' '}
+          <span><strong>Add a key for better matches.</strong> {missing > 0 ? `${missing.toLocaleString()} of your games have no match yet. ` : ''}A free key adds scores, age ratings and art for more games.{' '}
             <Link to="/settings/metadata#games">Choose a source</Link></span>
           <button className="btn sm ghost square" aria-label="Don't show this again" title="Don't show this again" onClick={() => { try { localStorage.setItem(dismissKey, '1') } catch { /* it just comes back */ } setHidden(true) }}><IconClose /></button>
         </div>

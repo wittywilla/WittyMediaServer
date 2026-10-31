@@ -741,6 +741,71 @@ func TestSavingBesideTheGame(t *testing.T) {
 	}
 }
 
+func writePNG(t *testing.T, p string, w, h int) {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for i := range img.Pix {
+		img.Pix[i] = uint8(i)
+	}
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := png.Encode(f, img); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPosterThumb(t *testing.T) {
+	f := newMetaFixture(t)
+	dir := f.g.ImagesDir
+	os.MkdirAll(dir, 0o755)
+	writePNG(t, filepath.Join(dir, "game-big.png"), 800, 1000)
+	writePNG(t, filepath.Join(dir, "game-small.png"), 100, 120)
+	got := f.g.PosterThumb(f.ctx, "cache:game-big.png", 300)
+	if !strings.HasPrefix(got, "cache:gamethumb-") || !strings.HasSuffix(got, "-320.jpg") {
+		t.Fatalf("%q", got)
+	}
+	p := filepath.Join(dir, strings.TrimPrefix(got, "cache:"))
+	r, err := os.Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, kind, err := image.DecodeConfig(r)
+	r.Close()
+	if err != nil || kind != "jpeg" || cfg.Width != 320 || cfg.Height != 400 {
+		t.Errorf("%v, %s, %+v", err, kind, cfg)
+	}
+	// Made once.
+	first, _ := os.Stat(p)
+	if again := f.g.PosterThumb(f.ctx, "cache:game-big.png", 320); again != got {
+		t.Errorf("%q", again)
+	}
+	if st, _ := os.Stat(p); !st.ModTime().Equal(first.ModTime()) {
+		t.Error("made twice")
+	}
+	// What's already small, not a picture, huge, or asked for oddly stays as it is.
+	for _, c := range []struct {
+		src   string
+		width int
+	}{{"cache:game-small.png", 320}, {"cache:game-big.png", 0}, {"cache:game-big.png", 5000}, {"cache:missing.png", 320}, {"cache:../secret.png", 320}, {"https://example.test/a.png", 320}, {"", 320}} {
+		if got := f.g.PosterThumb(f.ctx, c.src, c.width); got != c.src {
+			t.Errorf("%q at %d: %q", c.src, c.width, got)
+		}
+	}
+	os.WriteFile(filepath.Join(dir, "game-text.png"), []byte("not a picture"), 0o644)
+	if got := f.g.PosterThumb(f.ctx, "cache:game-text.png", 320); got != "cache:game-text.png" {
+		t.Errorf("%q", got)
+	}
+	// A header claiming an enormous picture isn't believed far enough to decode it.
+	huge := append([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 'I', 'H', 'D', 'R', 0, 1, 0, 0, 0, 1, 0, 0, 8, 6, 0, 0, 0}, make([]byte, 64)...)
+	os.WriteFile(filepath.Join(dir, "game-huge.png"), huge, 0o644)
+	if got := f.g.PosterThumb(f.ctx, "cache:game-huge.png", 320); got != "cache:game-huge.png" {
+		t.Errorf("%q", got)
+	}
+}
+
 func TestArtPathsForGames(t *testing.T) {
 	poster, back, nfo := ArtPaths(&Item{Kind: "game", Path: filepath.Join("g", "Mega Game (USA).7z")})
 	if filepath.Base(poster) != "Mega Game (USA)-poster.jpg" || filepath.Base(back) != "Mega Game (USA)-fanart.jpg" || filepath.Base(nfo) != "Mega Game (USA).nfo" {
@@ -822,6 +887,27 @@ func TestFiltersAndFacets(t *testing.T) {
 		if g.Value == "Action" {
 			t.Errorf("a blocked genre listed: %+v", fc.Genres)
 		}
+	}
+}
+
+func TestUnmatchedFilter(t *testing.T) {
+	src := &fakeSource{id: "a", answer: func(q gamemeta.Query) (*gamemeta.Info, error) {
+		if q.Title == "Known Game" {
+			return &gamemeta.Info{ID: "1", Method: gamemeta.MethodName, Confidence: 92}, nil
+		}
+		return nil, gamemeta.ErrNotFound
+	}}
+	f := newMetaFixture(t, src)
+	f.scanFile(t, "Known Game.sfc")
+	f.scanFile(t, "Stranger.sfc")
+	items, total, err := f.store.Items(f.ctx, ItemQuery{LibraryID: f.lib.ID, Unmatched: true})
+	if err != nil || total != 0 || len(items) != 0 {
+		t.Errorf("before it's been looked up: %d, %v", total, err)
+	}
+	f.work(t)
+	items, total, err = f.store.Items(f.ctx, ItemQuery{LibraryID: f.lib.ID, Unmatched: true})
+	if err != nil || total != 1 || items[0].Title != "Stranger" {
+		t.Errorf("%d, %v, %+v", total, err, items)
 	}
 }
 

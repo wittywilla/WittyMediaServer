@@ -482,6 +482,8 @@ type ItemQuery struct {
 	MinRating float64
 	Decade    int
 	Players   int
+	// Unmatched: games the lookup has finished with and found nothing for.
+	Unmatched bool
 	// HasArt: only items with a backdrop or a frame from the video, for the home
 	// page's hero, which would otherwise be an empty dark box.
 	HasArt bool
@@ -585,6 +587,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Players > 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE players >= ?)")
 		args = append(args, q.Players)
+	}
+	if q.Unmatched {
+		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE match_source = '' AND status = 'done')")
 	}
 	if q.PlayedBy != 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")

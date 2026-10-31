@@ -27,11 +27,14 @@ export function useConsoles() {
   return list
 }
 
+// Covers in lists are smaller copies, as big as a card is likely to be on this screen.
+const cardWidth = window.innerWidth * (window.devicePixelRatio || 1) > 2000 ? 480 : 320
+
 function GameCard({ item, console: c }: { item: Item; console?: GameConsole }) {
   return (
     <Link to={`/item/${item.id}`} className="card gm-card" title={item.title}>
       <div className="poster">
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} label={c?.short} />}
+        {item.poster ? <img src={`${posterUrl(item)}&w=${cardWidth}`} alt="" loading="lazy" decoding="async" /> : <Placeholder title={item.title} label={c?.short} />}
         <div className="play"><span><IconPlay /></span></div>
       </div>
       <div className="title">{item.title}</div>
@@ -72,15 +75,16 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const desc = params.has('desc') ? params.get('desc') === '1' : sort === 'rating' || sort === 'year' || sort === 'added'
   const [facets, setFacets] = useState<GameFacets | null>(null)
   const [typed, setTyped] = useState(search)
-  const url = (limit: number, offset = 0) => `/items?library=${lib.id}&kind=game&sort=${sort}&desc=${desc ? 1 : 0}&console=${encodeURIComponent(filter)}&search=${encodeURIComponent(search)}&genre=${encodeURIComponent(genre)}&decade=${decade}&players=${players}&minRating=${score}&limit=${limit}&offset=${offset}`
-  const narrowed = !!(search || filter || genre || decade || players || score)
+  const url = (limit: number, offset = 0) => `/items?library=${lib.id}&kind=game&sort=${sort}&desc=${desc ? 1 : 0}&console=${encodeURIComponent(filter)}&search=${encodeURIComponent(search)}&genre=${encodeURIComponent(genre)}&decade=${decade}&players=${players}&minRating=${score}${unmatched ? '&unmatched=1' : ''}&limit=${limit}&offset=${offset}`
+  const unmatched = params.get('unmatched') === '1'
+  const narrowed = !!(search || filter || genre || decade || players || score || unmatched)
   const loadedRef = useRef(0)
   loadedRef.current = items?.length ?? 0
   const load = () => api.get<{ items: Item[]; total: number }>(url(Math.max(PAGE, loadedRef.current)))
     .then((r) => { setItems(r.items); setTotal(r.total) }).catch(() => setItems([]))
   const loadConsoles = () => api.get<GameConsole[]>(`/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {})
   const [watch, setWatch] = useState(0) // bumped to follow a scan just started
-  useEffect(() => { setItems(null); loadedRef.current = 0; load() }, [lib.id, filter, search, sort, desc, genre, decade, players, score]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setItems(null); loadedRef.current = 0; load() }, [lib.id, filter, search, sort, desc, genre, decade, players, score, unmatched]) // eslint-disable-line react-hooks/exhaustive-deps
   const loadFacets = () => api.get<GameFacets>(`/games/facets?library=${lib.id}&console=${encodeURIComponent(filter)}`).then(setFacets).catch(() => {})
   useEffect(() => { loadFacets() }, [lib.id, filter]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&played=1&limit=50`).then((r) => setPlaying(r.items)).catch(() => {}) }, [lib.id])
@@ -116,7 +120,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
     }, { rootMargin: '800px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [hasMore, loaded, filter, search, sort, desc, genre, decade, players, score]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasMore, loaded, filter, search, sort, desc, genre, decade, players, score, unmatched]) // eslint-disable-line react-hooks/exhaustive-deps
   const setParam = (k: string, v: string) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
   // Search follows typing, once it pauses.
   useEffect(() => {
@@ -141,7 +145,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
         <input className="input gm-search" type="search" placeholder="Search these games…" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
         <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />
       </div>
-      {user?.isAdmin && <GameMetaNotice onProgress={() => { load(); loadFacets() }} />}
+      {user?.isAdmin && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => setParam('unmatched', on ? '1' : '')} onProgress={() => { load(); loadFacets() }} />}
       {leftCount > 0 && (
         <div className="warn-box gm-skipped" role="status">
           <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>

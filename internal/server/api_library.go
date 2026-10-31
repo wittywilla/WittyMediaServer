@@ -231,6 +231,8 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		// Games: minRating out of 10, decade=1990, players=2 (at least this many)
 		Decade:  qInt(r, "decade", 0),
 		Players: qInt(r, "players", 0),
+		// unmatched=1: games the lookup has finished with and found nothing for
+		Unmatched: qBool(r, "unmatched"),
 	}
 	if v, err := strconv.ParseFloat(r.URL.Query().Get("minRating"), 64); err == nil {
 		q.MinRating = v
@@ -636,6 +638,10 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		if src == "" {
 			src = it.Poster
 		}
+	}
+	// Games: ?w= asks for a smaller cover, for lists.
+	if it.Kind == "game" && !backdrop && qInt(r, "w", 0) > 0 && !strings.HasPrefix(src, "http") && (strings.HasPrefix(src, "cache:") || s.Store.LibraryFile(r.Context(), src)) {
+		src = s.GameMeta.PosterThumb(r.Context(), src, qInt(r, "w", 0))
 	}
 	if src == library.LazyPoster {
 		width := qInt(r, "w", 480)

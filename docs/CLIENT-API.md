@@ -687,7 +687,8 @@ in the owner's chosen order of sources, and they're what lists can sort and filt
 - `credits`: `{name, text, site, url, license}`. **Show these wherever the game's details are.** Some sources'
   terms require it, RAWG's on every page using its data, and Wikipedia's text needs its link and licence.
 
-A game with no `poster` should use art made from its title and console, as the web client does.
+A game with no `poster` should use art made from its title and console, as the web client does. In lists, ask for
+`/items/{id}/poster?w=320`: full-size box art is several times larger than a grid needs.
 
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
 rules allow. `GET /gamemeta/status` says how it's going, for administrators.
@@ -795,10 +796,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /libraries/{id}/scan` | admin | Scan now. |
 | `GET /libraries/{id}/scan` | user | Scan progress. For an administrator, a games library also has `skipped`: files the last scan couldn't use, by extension. |
 | `GET /genres` | user | Genres among movies and other items. |
-| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played, `genre=`, `decade=1990`, `players=2` (at least this many), `minRating=8` (out of 10), and `sort=title`, `rating`, `year` or `added`. |
+| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played, `genre=`, `decade=1990`, `players=2` (at least this many), `minRating=8` (out of 10), `unmatched=1` (no match found), and `sort=title`, `rating`, `year` or `added`. |
 | `GET /items/{id}` | user | One item, with its progress, next episode, intro range and (discs) how it starts. |
 | `PUT /items/{id}` | admin | Edit an item's details or refresh them; any field may be left out. |
-| `GET /items/{id}/poster` | user, `st` | Poster image. |
+| `GET /items/{id}/poster` | user, `st` | Poster image. For games, `w=320` (up to 640) asks for a smaller copy, for lists. |
 | `GET /items/{id}/backdrop` | user, `st` | Backdrop image (the poster if it has none). |
 | `GET /items/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /artwork/preview` | admin | One artwork candidate as an image. |

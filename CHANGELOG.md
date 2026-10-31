@@ -18,6 +18,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   and how sure that is, and can be fixed with a search, locked, or looked up again.
 - **The Games page** sorts by title, rating, year or date added, and filters by genre, decade, players, rating and console.
   A game's page looks like a film's, with a backdrop, scores, screenshots and credits.
+- **Light on phones and TVs.** Lists use smaller copies of covers, made the first time they're asked for.
+- **Find what's missing.** The Games page says how many games have no match, and shows them with one click, to fix.
 - **Kind to free services.** Requests are batched and paced to each source's rules, nothing is asked twice, and a restart carries on
   where it stopped. Nothing is written next to your games unless saving next to your media is on.
 

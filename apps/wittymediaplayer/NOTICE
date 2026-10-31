@@ -11,7 +11,7 @@ this software or derivative works must reproduce the attribution notices in
 this NOTICE file - in a NOTICE file, in documentation, or in an "About"
 display of the derivative work.
 
-WittyMediaPlayer is built from the WittyDVD, WittyBluray, WittyDisc and
+WittyMediaPlayer is built from the WittyCD, WittyDVD, WittyBluray, WittyDisc and
 WittyModule plugins (Copyright 2026 WittyWilla and contributors, Apache
 License 2.0).
 
@@ -20,6 +20,9 @@ licenses/THIRD-PARTY.txt:
 - Qt, The Qt Company Ltd. and other contributors - LGPL 3.0 (shared libraries)
 - FFmpeg, the FFmpeg developers - LGPL 3.0 or later (shared libraries)
 - zlib, Jean-loup Gailly and Mark Adler - zlib licence
+- LAME, the LAME developers - LGPL 2.0 or later (inside FFmpeg's libraries)
+- Opus, Xiph.Org and others - BSD licence (inside FFmpeg's libraries)
+- Vorbis and Ogg, Xiph.Org - BSD licence (inside FFmpeg's libraries)
 - GCC runtime libraries, Free Software Foundation - GPL 3.0 with the GCC
   Runtime Library Exception
 - mingw-w64 winpthreads - MIT and BSD licences
@@ -27,3 +30,6 @@ licenses/THIRD-PARTY.txt:
 If the viewer chooses them in Settings, it can play through the VLC libraries
 (libVLC, Copyright VideoLAN and the VLC contributors, LGPL 2.1 or later) from a
 VLC already installed on the computer. They are not included.
+
+If the viewer asks, CD names come from MusicBrainz (https://musicbrainz.org) and
+covers from the Cover Art Archive (https://coverartarchive.org).

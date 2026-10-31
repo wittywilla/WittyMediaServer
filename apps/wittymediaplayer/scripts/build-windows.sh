@@ -56,6 +56,7 @@ cp "$HERE/licenses/"* "$PKG/licenses/"
 # LGPL: FFmpeg's source travels beside the binaries.
 mkdir -p "$OUT/source"
 cp "$T/downloads/ffmpeg-$FFMPEG_VERSION.tar.xz" "$OUT/source/"
+cp "$T/downloads"/lame-*.tar.gz "$OUT/source/"
 sed -n '/DEC="/,/--extra-ldflags/p' "$HERE/scripts/setup-toolchain.sh" > "$OUT/source/how-ffmpeg-was-configured.txt"
 
 bash "$HERE/scripts/check-package.sh" "$PKG"

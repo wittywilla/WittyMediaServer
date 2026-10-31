@@ -15,6 +15,10 @@ FFMPEG_SHA256=b072aed6871998cce9b36e7774033105ca29e33632be5b6347f3206898e0756a
 ZLIB_VERSION=1.3.1
 ZLIB_SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
 NASM_VERSION=2.16.03
+OGG_SHA256=0eb4b4b9420a0f51db142ba3f9c64b333f826532dc0f48c6410ae51f4799b664
+VORBIS_SHA256=0e982409a9c3fc82ee06e08205b1355e5c6aa4c36bca58146ef399621b0ce5ab
+OPUS_SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1
+LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
 NASM_SHA256=3ee4782247bcb874378d02f7eab4e294a84d3d15f3f6ee2de2f47a46aa7226e6
 
 T="${WMP_TOOLCHAIN:-$HOME/.wittymediaplayer-toolchain}"
@@ -59,6 +63,66 @@ if [ ! -f "$P/lib/libz.a" ]; then
   (cd "$T/src/zlib-$ZLIB_VERSION" && mingw32-make -s -f win32/Makefile.gcc libz.a CFLAGS="-O2 -w" && cp libz.a "$P/lib/" && cp zlib.h zconf.h "$P/include/")
 fi
 
+# What ripping CDs encodes with, all under licences that fit the LGPL route: LAME for MP3
+# (LGPL), Opus and Vorbis (BSD). Built as static libraries inside FFmpeg's own, which stay
+# replaceable as a whole. FLAC, ALAC, AAC and WAV are FFmpeg's own.
+OGG_VERSION=1.3.5
+VORBIS_VERSION=1.3.7
+OPUS_VERSION=1.5.2
+LAME_VERSION=3.100
+if [ ! -f "$P/lib/libmp3lame.a" ] || [ ! -f "$P/lib/libopus.a" ] || [ ! -f "$P/lib/libvorbisenc.a" ]; then
+  export PATH="$T/qt/Tools/CMake_64/bin:$T/qt/Tools/Ninja:$PATH"
+  fetch "https://downloads.xiph.org/releases/ogg/libogg-$OGG_VERSION.tar.gz" "libogg-$OGG_VERSION.tar.gz" "$OGG_SHA256"
+  fetch "https://downloads.xiph.org/releases/vorbis/libvorbis-$VORBIS_VERSION.tar.gz" "libvorbis-$VORBIS_VERSION.tar.gz" "$VORBIS_SHA256"
+  fetch "https://github.com/xiph/opus/releases/download/v$OPUS_VERSION/opus-$OPUS_VERSION.tar.gz" "opus-$OPUS_VERSION.tar.gz" "$OPUS_SHA256"
+  fetch "https://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz" "lame-$LAME_VERSION.tar.gz" "$LAME_SHA256"
+  PM="$(cygpath -m "$P")"
+  build_cmake() { # <folder> <extra args>
+    local src="$T/src/$1"; shift
+    cmake -S "$(cygpath -m "$src")" -B "$(cygpath -m "$src/b")" -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
+      -DCMAKE_INSTALL_PREFIX="$PM" -DCMAKE_PREFIX_PATH="$PM" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "$@" >"$T/deps-build.log" 2>&1 || { tail -20 "$T/deps-build.log"; exit 1; }
+    cmake --build "$(cygpath -m "$src/b")" --target install >>"$T/deps-build.log" 2>&1 || { tail -20 "$T/deps-build.log"; exit 1; }
+  }
+  for a in "libogg-$OGG_VERSION" "libvorbis-$VORBIS_VERSION" "opus-$OPUS_VERSION" "lame-$LAME_VERSION"; do
+    rm -rf "$T/src/$a"
+    tar -xzf "$T/downloads/$a.tar.gz" -C "$T/src"
+  done
+  build_cmake "libogg-$OGG_VERSION" -DINSTALL_DOCS=OFF
+  build_cmake "libvorbis-$VORBIS_VERSION" -DOGG_ROOT="$PM"
+  build_cmake "opus-$OPUS_VERSION" -DOPUS_BUILD_PROGRAMS=OFF -DOPUS_BUILD_TESTING=OFF
+  # LAME has no CMake build: only the library is needed, from its plain sources.
+  (
+    cd "$T/src/lame-$LAME_VERSION"
+    # Its Windows config spells out the integer types, which clash with this compiler's own.
+    sed -E '/^#define (__int8_t_defined|u?int(8|16|32|64)_t)/d' configMS.h > config.h
+    mkdir -p o "$P/include/lame"
+    for f in libmp3lame/*.c libmp3lame/vector/xmm_quantize_sub.c mpglib/*.c; do
+      gcc -O2 -w -msse2 -DHAVE_CONFIG_H -DHAVE_XMMINTRIN_H -DHAVE_STDINT_H -DTAKEHIRO_IEEE754_HACK -I. -Iinclude -Ilibmp3lame -Impglib -c "$f" -o "o/$(echo "$f" | tr / _).o" || exit 1
+    done
+    ar rcs "$P/lib/libmp3lame.a" o/*.o
+    cp include/lame.h "$P/include/lame/"
+  ) >>"$T/deps-build.log" 2>&1 || { tail -20 "$T/deps-build.log"; exit 1; }
+fi
+PM="$(cygpath -m "$P")"
+# FFmpeg asks pkg-config about Opus and Vorbis; this answers for what was just built, and
+# there's no need to install the real one.
+mkdir -p "$T/pkgconfig-shim"
+cat >"$T/pkgconfig-shim/pkg-config" <<SHIM
+#!/bin/sh
+case "\$*" in
+  *--exists*|*--atleast-version*|*--print-errors*) exit 0 ;;
+  *--version*|*--modversion*) echo 9.9.9; exit 0 ;;
+  *--cflags*opus*) echo "-I$PM/include/opus"; exit 0 ;;
+  *--cflags*) echo "-I$PM/include"; exit 0 ;;
+  *--libs*opus*) echo "-L$PM/lib -lopus"; exit 0 ;;
+  *--libs*vorbisenc*) echo "-L$PM/lib -lvorbisenc -lvorbis -logg"; exit 0 ;;
+  *--libs*vorbis*) echo "-L$PM/lib -lvorbis -logg"; exit 0 ;;
+  *--libs*ogg*) echo "-L$PM/lib -logg"; exit 0 ;;
+esac
+exit 1
+SHIM
+chmod +x "$T/pkgconfig-shim/pkg-config"
+
 # FFmpeg, built with only what a player needs. It is much smaller than a general
 # build, has no network code at all, and leaves out every library that could load
 # a disc-decryption library: there is no libbluray and no libdvdread here, and none
@@ -66,7 +130,7 @@ fi
 #
 # LGPL: no --enable-gpl and no --enable-nonfree. Shared libraries, so anyone can
 # replace them.
-if [ ! -f "$P/bin/avcodec-62.dll" ]; then
+if [ ! -f "$P/bin/avcodec-62.dll" ] || [ ! -f "$P/.with-encoders" ]; then
   fetch "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz" "ffmpeg-$FFMPEG_VERSION.tar.xz" "$FFMPEG_SHA256"
   rm -rf "$T/src/ffmpeg-$FFMPEG_VERSION"
   tar -xJf "$T/downloads/ffmpeg-$FFMPEG_VERSION.tar.xz" -C "$T/src"
@@ -85,6 +149,8 @@ if [ ! -f "$P/bin/avcodec-62.dll" ]; then
       --enable-shared --disable-static --enable-version3 --enable-w32threads --disable-pthreads \
       --disable-autodetect --disable-network --disable-programs --disable-doc --disable-debug --disable-avdevice \
       --disable-everything --enable-zlib --enable-d3d11va --enable-dxva2 \
+      --pkg-config="$T/pkgconfig-shim/pkg-config" --enable-libmp3lame --enable-libopus --enable-libvorbis \
+      --enable-encoder=flac,alac,aac,pcm_s16le,libmp3lame,libopus,libvorbis --enable-muxer=flac,wav,ipod,mp4,mp3,ogg,opus \
       --enable-decoder="$(list "$DEC")" --enable-demuxer="$(list "$DMX")" --enable-parser="$(list "$PAR")" \
       --enable-bsf="$(list "$BSF")" --enable-protocol=file \
       --enable-hwaccel=h264_d3d11va,h264_d3d11va2,hevc_d3d11va,hevc_d3d11va2,vc1_d3d11va,vc1_d3d11va2,wmv3_d3d11va,wmv3_d3d11va2,mpeg2_d3d11va,mpeg2_d3d11va2,vp9_d3d11va,vp9_d3d11va2,av1_d3d11va,av1_d3d11va2 \
@@ -99,6 +165,7 @@ if [ ! -f "$P/bin/avcodec-62.dll" ]; then
     sed -i -e 's|^shift$|shift\ncase "$1" in @*) list=${1#@}; set -- $(cat "$list");; esac|' compat/windows/makedef
     mingw32-make SHELL=sh RESPONSE_FILES=yes -s -j"$(nproc)" >"$T/ffmpeg-build.log" 2>&1 || { tail -30 "$T/ffmpeg-build.log"; exit 1; }
     mingw32-make SHELL=sh RESPONSE_FILES=yes -s install >>"$T/ffmpeg-build.log" 2>&1
+    touch "$P/.with-encoders"
   )
   grep -i "^License" "$T/ffmpeg-configure.log" || true
 fi

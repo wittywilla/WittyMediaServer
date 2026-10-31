@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -29,14 +30,18 @@ const (
 	envGetSystemDir      = 9
 	envSetPixelFormat    = 10
 	envSetInputDescs     = 11
+	envSetDiskControl    = 13
 	envSetHWRender       = 14
 	envGetVariable       = 15
 	envSetVariables      = 16
 	envGetVariableUpdate = 17
+	envSetSupportNoGame  = 18
 	envGetLibretroPath   = 19
+	envSetFrameTime      = 21
 	envGetRumble         = 23
 	envGetInputCaps      = 24
 	envGetLog            = 27
+	envGetPerf           = 28
 	envGetCoreAssetsDir  = 30
 	envGetSaveDir        = 31
 	envSetSystemAVInfo   = 32
@@ -45,11 +50,17 @@ const (
 	envSetGeometry       = 37
 	envGetUsername       = 38
 	envGetLanguage       = 39
+	envSetQuirks         = 44
 	envGetCoreOptVersion = 52
+	envGetDiskVersion    = 57
+	envSetDiskControlExt = 58
 	envGetMaxUsers       = 61
 	envSetVariable       = 70
+	envGetJITCapable     = 74
 
 	envExperimental      = 0x10000
+	envSetMemoryMaps     = 36 | envExperimental
+	envSetAchievements   = 42 | envExperimental
 	envGetFastForwarding = 49 | envExperimental
 	envGetTargetRefresh  = 50 | envExperimental
 	envGetAudioVideoEn   = 47 | envExperimental
@@ -61,6 +72,7 @@ const (
 	deviceJoypad = 1
 	deviceAnalog = 5
 	idBitmask    = 256 // the whole pad as one value
+	maxPadPorts  = 4
 )
 
 // Paths are the folders a core is told about.
@@ -90,6 +102,14 @@ type Core struct {
 	input    *[engine.MaxPorts]engine.PadState
 	gameData []byte
 	loaded   bool
+
+	ports       int     // how many controller ports the core described
+	quirks      uint64  // what the core said about its save states
+	fnFrameTime uintptr // called before each frame with the time since the last
+	frameRef    int64
+	lastRun     time.Time
+	refused     map[uint32]bool
+	dirs        map[string]*byte
 }
 
 var _ engine.Engine = (*Core)(nil)
@@ -99,6 +119,7 @@ var (
 	cur                                                                 *Core
 	callbacks                                                           sync.Once
 	cbEnv, cbVideo, cbSample, cbBatch, cbPoll, cbState, cbLog, cbRumble uintptr
+	perfCallbacks                                                       [7]uintptr
 )
 
 func makeCallbacks() {
@@ -110,6 +131,8 @@ func makeCallbacks() {
 	cbState = purego.NewCallback(onInputState)
 	cbLog = purego.NewCallback(onLog)
 	cbRumble = purego.NewCallback(onRumble)
+	perfCallbacks = [7]uintptr{purego.NewCallback(perfTimeUsec), purego.NewCallback(perfCPUFeatures), purego.NewCallback(perfCounter),
+		purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing), purego.NewCallback(perfNothing)}
 }
 
 // Load opens a core and starts it. Call this, and everything else on Core,
@@ -144,23 +167,31 @@ func Load(path string, paths Paths, options map[string]string, h engine.Handlers
 	}
 	callbacks.Do(makeCallbacks)
 	cur = c
-	// The environment goes first: cores read it as soon as they are told.
-	for _, set := range []struct {
+	// The environment goes before retro_init, as cores read it as soon as they are
+	// told. Everything else goes after: some cores keep these callbacks in objects
+	// that retro_init creates.
+	sets := []struct {
 		name string
 		cb   uintptr
+		f    uintptr
 	}{
-		{"retro_set_environment", cbEnv}, {"retro_set_video_refresh", cbVideo}, {"retro_set_audio_sample", cbSample},
-		{"retro_set_audio_sample_batch", cbBatch}, {"retro_set_input_poll", cbPoll}, {"retro_set_input_state", cbState},
-	} {
-		f, err := symbol(lib, set.name)
+		{name: "retro_set_environment", cb: cbEnv}, {name: "retro_set_video_refresh", cb: cbVideo}, {name: "retro_set_audio_sample", cb: cbSample},
+		{name: "retro_set_audio_sample_batch", cb: cbBatch}, {name: "retro_set_input_poll", cb: cbPoll}, {name: "retro_set_input_state", cb: cbState},
+	}
+	for i := range sets {
+		f, err := symbol(lib, sets[i].name)
 		if err != nil {
 			cur = nil
 			closeLibrary(lib)
-			return nil, fmt.Errorf("%s is not a libretro core: missing %s", filepath.Base(path), set.name)
+			return nil, fmt.Errorf("%s is not a libretro core: missing %s", filepath.Base(path), sets[i].name)
 		}
-		purego.SyscallN(f, set.cb)
+		sets[i].f = f
 	}
+	purego.SyscallN(sets[0].f, sets[0].cb)
 	purego.SyscallN(c.fnInit)
+	for _, set := range sets[1:] {
+		purego.SyscallN(set.f, set.cb)
+	}
 	return c, nil
 }
 
@@ -204,7 +235,12 @@ func (c *Core) LoadGame(path string) (engine.AVInfo, error) {
 		return engine.AVInfo{}, errors.New("the core could not load this game")
 	}
 	c.loaded = true
-	for p := 0; p < 2; p++ {
+	// Every port the core described gets a pad, up to what a player can drive.
+	ports := min(c.ports, maxPadPorts)
+	if ports == 0 {
+		ports = 2
+	}
+	for p := 0; p < ports; p++ {
 		purego.SyscallN(c.fnSetCtrl, uintptr(p), deviceJoypad)
 	}
 	var av avInfoC
@@ -226,7 +262,18 @@ func (av *avInfoC) convert() engine.AVInfo {
 }
 
 // Run advances the game one frame.
-func (c *Core) Run() { purego.SyscallN(c.fnRun) }
+func (c *Core) Run() {
+	if c.fnFrameTime != 0 {
+		now := time.Now()
+		usec := c.frameRef
+		if !c.lastRun.IsZero() {
+			usec = now.Sub(c.lastRun).Microseconds()
+		}
+		c.lastRun = now
+		purego.SyscallN(c.fnFrameTime, uintptr(usec))
+	}
+	purego.SyscallN(c.fnRun)
+}
 
 // Reset is the console's reset button.
 func (c *Core) Reset() { purego.SyscallN(c.fnReset) }
@@ -265,13 +312,25 @@ func (c *Core) SaveRAM() []byte {
 
 // Close unloads the game and the core.
 func (c *Core) Close() {
+	t := time.Now()
 	if c.loaded {
 		purego.SyscallN(c.fnUnloadGame)
 		c.loaded = false
 	}
+	c.tracef("retro_unload_game took %s", time.Since(t))
+	t = time.Now()
 	purego.SyscallN(c.fnDeinit)
+	c.tracef("retro_deinit took %s", time.Since(t))
+	t = time.Now()
 	closeLibrary(c.lib)
+	c.tracef("closing the library took %s", time.Since(t))
 	cur = nil
+}
+
+func (c *Core) tracef(format string, args ...any) {
+	if c.h.Trace != nil {
+		c.h.Trace(fmt.Sprintf(format, args...))
+	}
 }
 
 // pin makes a NUL-terminated copy the core may point at for as long as the
@@ -369,11 +428,23 @@ func onInputState(port, device, index, id uintptr) uintptr {
 	return uintptr(uint16(v))
 }
 
-func onLog(level, format uintptr) uintptr {
-	if c := cur; c != nil && c.h.Log != nil {
-		// This C function is variadic. Its other arguments stay unread: the
-		// format string is enough to say what happened.
-		c.h.Log(int(uint32(level)), strings.TrimRight(cString((*byte)(ptr(format))), "\r\n"))
+// onLog receives a variadic C call. Its arguments are read as machine words,
+// which is what they are on the platforms canReadVarargs allows.
+func onLog(level, format, a0, a1, a2, a3, a4, a5 uintptr) uintptr {
+	c := cur
+	if c == nil {
+		return 0
+	}
+	lvl := int(uint32(level))
+	if c.h.Trace == nil && (c.h.Log == nil || lvl < 2) {
+		return 0
+	}
+	text := strings.TrimRight(formatLog(cString((*byte)(ptr(format))), [6]uintptr{a0, a1, a2, a3, a4, a5}), "\r\n")
+	if c.h.Trace != nil {
+		c.h.Trace(fmt.Sprintf("log %d: %s", lvl, text))
+	}
+	if c.h.Log != nil {
+		c.h.Log(lvl, text)
 	}
 	return 0
 }
@@ -390,10 +461,32 @@ func onEnvironment(cmd, data uintptr) uintptr {
 	if c == nil {
 		return 0
 	}
-	if c.environment(uint32(cmd)&^envPrivate, ptr(data)) {
+	n := uint32(cmd) &^ envPrivate
+	if c.environment(n, ptr(data)) {
 		return 1
 	}
+	if c.h.Trace != nil && !c.refused[n] {
+		if c.refused == nil {
+			c.refused = map[uint32]bool{}
+		}
+		c.refused[n] = true
+		c.h.Trace(fmt.Sprintf("refused environment call %d", n&^envExperimental))
+	}
 	return 0
+}
+
+// dir is a folder name a core may keep pointing at. Cores may ask every frame, so
+// it is pinned once.
+func (c *Core) dir(s string) *byte {
+	if p, ok := c.dirs[s]; ok {
+		return p
+	}
+	p := c.pin(s)
+	if c.dirs == nil {
+		c.dirs = map[string]*byte{}
+	}
+	c.dirs[s] = p
+	return p
 }
 
 func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
@@ -407,19 +500,32 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		}
 		c.format = int(f)
 	case envGetSystemDir:
-		*(**byte)(data) = c.pin(c.paths.System)
+		*(**byte)(data) = c.dir(c.paths.System)
 	case envGetSaveDir, envGetCoreAssetsDir:
-		*(**byte)(data) = c.pin(c.paths.Save)
+		*(**byte)(data) = c.dir(c.paths.Save)
 	case envGetLibretroPath:
-		*(**byte)(data) = c.pin(c.corePath)
+		*(**byte)(data) = c.dir(c.corePath)
 	case envGetUsername:
-		*(**byte)(data) = c.pin("Player")
+		*(**byte)(data) = c.dir("Player")
 	case envGetLanguage:
 		*(*uint32)(data) = 0 // English
 	case envGetLog:
 		*(*uintptr)(data) = cbLog
 	case envGetRumble:
 		*(*uintptr)(data) = cbRumble
+	case envGetPerf:
+		// Some cores call these without checking the answer, so they all work.
+		*(*[7]uintptr)(data) = perfCallbacks
+	case envSetFrameTime:
+		ft := (*struct {
+			callback  uintptr
+			reference int64
+		})(data)
+		c.fnFrameTime, c.frameRef = ft.callback, ft.reference
+	case envSetQuirks:
+		c.quirks = *(*uint64)(data)
+	case envSetControllerInfo:
+		c.ports = countControllerPorts(data)
 	case envGetInputBitmasks:
 	case envGetInputCaps:
 		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog
@@ -459,8 +565,10 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Shutdown != nil {
 			c.h.Shutdown()
 		}
-	case envSetPerformance, envSetInputDescs, envSetControllerInfo, envSetSubsystemInfo:
+	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo, envSetSupportNoGame, envSetMemoryMaps, envSetAchievements:
 		// Noted, and needed by nothing here.
+	case envGetJITCapable:
+		*(*bool)(data) = true
 	case envGetAudioVideoEn:
 		*(*int32)(data) = 3 // both on
 	case envGetFastForwarding:
@@ -473,6 +581,20 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		return false
 	}
 	return true
+}
+
+// countControllerPorts reads retro_controller_info: one {types, count} per port,
+// ending with a null entry.
+func countControllerPorts(data unsafe.Pointer) int {
+	type entry struct {
+		types uintptr
+		count uint32
+	}
+	n := 0
+	for n < 16 && (*entry)(unsafe.Add(data, uintptr(n)*unsafe.Sizeof(entry{}))).types != 0 {
+		n++
+	}
+	return n
 }
 
 // setVariables reads the core's option list. The first choice is the default,
@@ -496,6 +618,7 @@ func (c *Core) setVariables(data unsafe.Pointer) {
 			}
 		}
 		c.vars[key] = c.pin(val)
+		c.tracef("option %s = %s (%s)", key, val, list)
 	}
 }
 
@@ -503,6 +626,9 @@ func (c *Core) getVariable(data unsafe.Pointer) bool {
 	v := (*struct{ key, value *byte })(data)
 	val, ok := c.vars[cString(v.key)]
 	v.value = val
+	if !ok {
+		c.tracef("asked for an option it never declared: %s", cString(v.key))
+	}
 	return ok
 }
 

@@ -25,12 +25,18 @@ func main() {
 		fmt.Fprintln(os.Stderr, "wittyplay-host is started by WittyMediaServer")
 		os.Exit(2)
 	}
+	// Cores print to stdout, so the protocol goes elsewhere before one is loaded.
+	out, err := hostsandbox.ClaimStdout()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
+		os.Exit(1)
+	}
 	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory}); err != nil {
 		// Each layer is best effort, because kernels and containers differ. The
 		// server's log shows which ones this machine lacks.
 		fmt.Fprintln(os.Stderr, "sandbox:", err)
 	}
-	err := host.Run(os.Stdin, os.Stdout, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
+	err = host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
 		if l.Core == ipc.TestCore {
 			return testcore.New(h), nil
 		}

@@ -61,6 +61,7 @@ type Handlers struct {
 	Rotation func(quarterTurns int)
 	AVInfo   func(info AVInfo)
 	Shutdown func()
+	Trace    func(text string) // everything a core says and is refused; only set when testing
 }
 
 // AVInfo is what an engine says about its output.

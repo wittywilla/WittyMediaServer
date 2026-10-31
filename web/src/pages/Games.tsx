@@ -68,6 +68,8 @@ export function GameSettingsPage() {
   const say = useCallback((m: string) => toast(m), [])
   return <Suspense fallback={<Spinner />}><SettingsScreen host={host} consoles={consoles} onError={say} /></Suspense>
 }
+// Only administrators ever see this, so nobody else downloads the settings code for it.
+const GameCorePicker = lazy(() => import('./settings/GamingCustom').then((m) => ({ default: m.GameCorePicker })))
 
 let consolesCache: Promise<GameConsole[]> | null = null
 export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
@@ -371,6 +373,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
               <textarea className="input" rows={2} maxLength={8000} value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== mine.note) void putMeta({ note }) }} placeholder="Passwords, where you got to, anything. Only you can see these." />
             </label>
           )}
+          {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} /></Suspense>}
           {c && !ready && (
             <div className="game-note" role="status">
               {c.unavailable || <>This server has no core for the {c.name} yet.{' '}

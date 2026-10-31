@@ -93,6 +93,7 @@ func TestShortTapReachesTheGame(t *testing.T) {
 func TestLargeFramesNeverWaitOnTheServer(t *testing.T) {
 	pr, pw := io.Pipe()
 	r := &runner{out: pw}
+	r.ctl = newControl(r)
 	h := r.handlers()
 	frame := func(v byte) []byte { return bytes.Repeat([]byte{v, v, v, v}, 4) }
 	done := make(chan struct{})

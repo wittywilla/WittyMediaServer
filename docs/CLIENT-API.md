@@ -1138,6 +1138,24 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /gaming/cores/{id}/install` | admin | Core install. |
 | `DELETE /gaming/cores/{id}` | admin | Core remove. |
 | `DELETE /gaming/unpacked` | admin | Empty the unpacked games cache. |
+| `GET /gaming/custom` | admin | Custom cores and consoles: whether they're on, what's here, the cores folder and the audit log. |
+| `PUT /gaming/custom/enabled` | admin | Turn custom cores on (password) or off. |
+| `POST /gaming/custom/staged/upload` | admin | Upload a core and test-load it. Multipart, password field first. |
+| `POST /gaming/custom/staged/url` | admin | Fetch a core from a public https address and test-load it. |
+| `POST /gaming/custom/staged/placed` | admin | Test-load a file from the cores folder. |
+| `POST /gaming/custom/staged/{token}/approve` | admin | Approve a core that passed its test-load. |
+| `DELETE /gaming/custom/staged/{token}` | admin | Throw away a core waiting for approval. |
+| `PUT /gaming/custom/cores/{id}` | admin | Change a custom core's name, licence, note and consoles. |
+| `DELETE /gaming/custom/cores/{id}` | admin | Remove a custom core. Saves are never touched. |
+| `POST /gaming/custom/cores/{id}/reapprove` | admin | Approve a changed core file again, after testing it. |
+| `POST /gaming/custom/cores/{id}/rollback` | admin | Go back to a kept version. |
+| `POST /gaming/custom/cores/{id}/files` | admin | Add an info file, or a zip of assets or BIOS-folder files. |
+| `POST /gaming/custom/consoles` | admin | Add a custom console. |
+| `PUT /gaming/custom/consoles/{id}` | admin | Change a custom console. |
+| `DELETE /gaming/custom/consoles/{id}` | admin | Remove a custom console. |
+| `PUT /gaming/consoles/{console}/core` | admin | Choose a console's core. |
+| `GET /gaming/games/{id}/core` | admin | What plays a game, and how each core has gone on it. |
+| `PUT /gaming/games/{id}/core` | admin | Choose a core for one game. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | Recording rules. |

@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittyplay"
+	"github.com/wittywilla/wittyplay/cores"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and
@@ -391,6 +392,9 @@ func schemaTypes() map[string]reflect.Type {
 		"GameFacets": ty(library.GameFacets{}), "GameFacet": ty(library.GameFacet{}), "GameMetaStatus": ty(library.GameMetaStatus{}), "GameConsoleTally": ty(library.GameConsoleTally{}), "GameSourcePause": ty(library.GameSourcePause{}),
 		"GameCandidate": ty(gamemeta.Candidate{}), "GameSourceSetting": ty(library.GameSourceSetting{}),
 		"RadioMeta": ty(library.RadioMeta{}), "NowPlaying": ty(library.NowPlaying{}), "DirectoryStation": ty(library.DirectoryStation{}), "DirectoryFacets": ty(library.DirectoryFacets{}), "DirectoryCount": ty(library.DirectoryCount{}),
+		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
+		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),
+		"CoreBinary": ty(cores.Binary{}), "CoreFirmware": ty(cores.Firmware{}), "CoreFileState": ty(cores.CoreFileState{}), "PlacedCoreFile": ty(cores.PlacedFile{}),
 	}
 }
 

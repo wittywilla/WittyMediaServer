@@ -110,3 +110,18 @@ func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() {
 	}
 	return func() { _ = windows.CloseHandle(job) }
 }
+
+// SandboxStrength says what boxes a core in on this platform, for people deciding
+// whether to allow custom cores.
+func SandboxStrength() (string, bool) {
+	return "a job object and a low-integrity token: no child processes, a memory limit, and writing only to its save folder", true
+}
+
+// probePriority takes a test-load out of the background. A game runs below normal so
+// it never starves a film, but someone is waiting on this for a few seconds, and on a
+// busy machine a low-priority process can take longer than the time limit to load.
+func probePriority(cmd *exec.Cmd) {
+	if cmd.SysProcAttr != nil {
+		cmd.SysProcAttr.CreationFlags &^= windows.BELOW_NORMAL_PRIORITY_CLASS
+	}
+}

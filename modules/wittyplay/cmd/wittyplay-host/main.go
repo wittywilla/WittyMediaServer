@@ -68,7 +68,7 @@ func main() {
 				c.ApplyOptions(l.Options)
 				return c, nil
 			}
-			c, err := libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+			c, err := libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save, Assets: l.Assets}, l.Options, h)
 			if err != nil {
 				return nil, err
 			}

@@ -27,3 +27,15 @@ func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
 }
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
+
+// SandboxStrength says what boxes a core in on this platform, for people deciding
+// whether to allow custom cores.
+func SandboxStrength() (string, bool) {
+	if _, err := exec.LookPath("/usr/bin/sandbox-exec"); err != nil {
+		return "resource limits only, because sandbox-exec is missing", false
+	}
+	return "a sandbox-exec profile: no network, no new programs, and writing only to its save folder", true
+}
+
+// probePriority does nothing here: the host's own priority is only a little lowered.
+func probePriority(cmd *exec.Cmd) {}

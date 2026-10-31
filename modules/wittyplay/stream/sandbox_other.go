@@ -18,3 +18,10 @@ func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
 }
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
+
+// SandboxStrength says what boxes a core in on this platform, for people deciding
+// whether to allow custom cores. Resource limits do not stop a program doing harm.
+func SandboxStrength() (string, bool) { return "resource limits only", false }
+
+// probePriority does nothing here: the host's own priority is only a little lowered.
+func probePriority(cmd *exec.Cmd) {}

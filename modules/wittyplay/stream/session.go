@@ -61,6 +61,9 @@ type Options struct {
 	CoreID         string   // the core's name, for working out its starting options again
 	CoreOptions    map[string]string
 	PreferDevices  []string // the kind of controller to plug in, by words in its name
+	CoreAssets     string   // support files of its own, if it has any
+	// LoadLimit is how long it may take to load, when it's more than a game usually gets.
+	LoadLimit time.Duration
 	Cleanup        func()   // runs when the session has ended
 	// Fallbacks are cores to try, in order, if this game won't load on Core. Dumps
 	// that one core refuses often play on another, and nobody should have to know.
@@ -490,7 +493,7 @@ func (s *Session) start() error {
 		close(s.done)
 	}()
 
-	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions, PreferDevices: s.opt.PreferDevices})
+	load, _ := json.Marshal(ipc.Load{Core: s.opt.Core, ROM: s.opt.ROM, System: s.opt.SystemDir, Save: s.opt.SaveDir, Options: s.opt.CoreOptions, Assets: s.opt.CoreAssets, PreferDevices: s.opt.PreferDevices})
 	if err := s.command(ipc.CmdLoad, load); err != nil {
 		s.kill()
 		return err
@@ -501,6 +504,9 @@ func (s *Session) start() error {
 	loadLimit := time.Minute
 	if s.opt.GPU {
 		loadLimit = 2 * time.Minute
+	}
+	if s.opt.LoadLimit > 0 {
+		loadLimit = s.opt.LoadLimit
 	}
 	select {
 	case err := <-readyCh:

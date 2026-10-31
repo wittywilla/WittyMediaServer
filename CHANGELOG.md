@@ -78,6 +78,20 @@ follows you. See [GAMING.md](docs/GAMING.md).
 
 - API 1.4: game settings, cheats, patches, images, saved-file transfer and session numbers, listed in
   [GAMING-API.md](docs/GAMING-API.md). Nothing about them lives only in the browser.
+### Add your own game cores
+
+- **Custom cores for WittyPlay.** An administrator can add a libretro core by uploading it, from a web address, or from the cores folder,
+  and use it for a console, for one game, or as a console's default, with other cores still available. See
+  [Adding your own core](docs/GAMING.md#adding-your-own-core).
+- **Tested before anyone can use it.** Each file first loads in the same sandbox a game runs in, and what the core reports is shown: its name,
+  version, file types, BIOS, graphics card and whether it's built for this server. A crash or a hang only stops the test.
+- **Safe by default.** Off until an administrator turns it on, with the password each time. The SHA-256 is recorded, and a file that
+  changes won't run until someone looks at it. Web addresses are https and public only. Everything is in a history on the page.
+- **Custom consoles,** by form or JSON, for a core for a system our list doesn't have. They appear when adding a library.
+- **Going back:** earlier versions of a custom core are kept, and replacing or removing one never touches saves.
+- **Which core works best:** a game's page shows administrators how each core has really gone on it.
+- **Honest licensing:** a custom core shows its licence if known, or "Unknown license", with non-commercial ones labelled. They're
+  marked third-party and unverified, and this project never offers them.
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

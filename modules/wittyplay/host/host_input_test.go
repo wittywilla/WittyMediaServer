@@ -37,6 +37,7 @@ type fakeNoDevices struct{ engine.Engine }
 func TestRumbleOnlySaysWhatChanged(t *testing.T) {
 	var sent int
 	r := &runner{out: writerFunc(func(b []byte) (int, error) { sent++; return len(b), nil })}
+	r.ctl = newControl(r)
 	h := r.handlers()
 	for i := 0; i < 5; i++ {
 		h.Rumble(0, 0, 0xffff)

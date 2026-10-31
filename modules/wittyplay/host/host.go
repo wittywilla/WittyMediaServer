@@ -290,6 +290,9 @@ func (r *runner) run(in io.Reader, open Open) error {
 	if !ok {
 		return <-readErr
 	}
+	if first.t == ipc.CmdProbe {
+		return r.probe(first.p, open)
+	}
 	if first.t != ipc.CmdLoad {
 		return fmt.Errorf("expected a load command, got %d", first.t)
 	}
@@ -526,4 +529,31 @@ func (p *pads) frameDone() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.active = [engine.MaxPorts]uint16{}
+}
+
+// probe test-loads a core and says what it reports, for a server deciding whether
+// to accept it. No game is involved. The answer goes out before the core is closed,
+// so one that can't shut down cleanly has still answered.
+func (r *runner) probe(p []byte, open Open) error {
+	var load ipc.Load
+	if err := json.Unmarshal(p, &load); err != nil {
+		return err
+	}
+	eng, err := open(load, engine.Handlers{})
+	if err != nil {
+		return err
+	}
+	defer eng.Close()
+	info := eng.SystemInfo()
+	out := ipc.Probe{Name: info.Name, Version: info.Version, Extensions: info.Extensions, NeedFullPath: info.NeedFullPath, BlockExtract: info.BlockExtract}
+	if d, ok := eng.(engine.Prober); ok {
+		more := d.ProbeDetails()
+		out.NoGame, out.HWRender, out.Options = more.NoGame, more.HWRender, more.Options
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return err
+	}
+	r.write(ipc.MsgProbe, b)
+	return r.writeE
 }

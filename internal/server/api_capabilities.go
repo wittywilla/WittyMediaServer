@@ -66,7 +66,7 @@ var serverFeatures = []string{
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata",
-	"game-controller-profiles", "game-settings",
+	"game-controller-profiles", "game-settings", "custom-game-cores",
 }
 
 // GET /api/capabilities (public): what this server is and can do, the first

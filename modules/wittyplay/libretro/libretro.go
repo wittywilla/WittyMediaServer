@@ -85,6 +85,7 @@ const (
 type Paths struct {
 	System string // BIOS files
 	Save   string // the core's own save files
+	Assets string // its own support files; its save folder when empty
 }
 
 // Core is a loaded libretro core. A process holds at most one, because the
@@ -126,6 +127,8 @@ type Core struct {
 	lastRun     time.Time
 	refused     map[uint32]bool
 	dirs        map[string]*byte
+	noGame       bool
+	hwAsked      bool
 }
 
 var _ engine.Engine = (*Core)(nil)
@@ -297,6 +300,11 @@ type avInfoC struct {
 
 func (av *avInfoC) convert() engine.AVInfo {
 	return engine.AVInfo{BaseWidth: int(av.baseW), BaseHeight: int(av.baseH), MaxWidth: int(av.maxW), MaxHeight: int(av.maxH), Aspect: float64(av.aspect), FPS: av.fps, SampleRate: av.rate}
+}
+
+// ProbeDetails says what the core did while it was loading.
+func (c *Core) ProbeDetails() engine.ProbeDetails {
+	return engine.ProbeDetails{NoGame: c.noGame, HWRender: c.hwAsked, Options: len(c.vars)}
 }
 
 // Run advances the game one frame. A frame drawn on the graphics card arrives
@@ -584,8 +592,16 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		c.format = int(f)
 	case envGetSystemDir:
 		*(**byte)(data) = c.dir(c.paths.System)
-	case envGetSaveDir, envGetCoreAssetsDir:
+	case envGetSaveDir:
 		*(**byte)(data) = c.dir(c.paths.Save)
+	case envGetCoreAssetsDir:
+		if c.paths.Assets != "" {
+			*(**byte)(data) = c.dir(c.paths.Assets)
+		} else {
+			*(**byte)(data) = c.dir(c.paths.Save)
+		}
+	case envSetSupportNoGame:
+		c.noGame = data != nil && *(*bool)(data)
 	case envGetLibretroPath:
 		*(**byte)(data) = c.dir(c.corePath)
 	case envGetUsername:
@@ -659,7 +675,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		if c.h.Shutdown != nil {
 			c.h.Shutdown()
 		}
-	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo, envSetSupportNoGame, envSetMemoryMaps, envSetAchievements, envSetQuirks:
+	case envSetPerformance, envSetInputDescs, envSetSubsystemInfo, envSetMemoryMaps, envSetAchievements, envSetQuirks:
 		// Noted, and needed by nothing here.
 	case envGetJITCapable:
 		*(*bool)(data) = true
@@ -670,6 +686,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 	case envGetTargetRefresh:
 		*(*float32)(data) = 60
 	case envSetHWRender:
+		c.hwAsked = true
 		return c.setHWRender(data)
 	case envSetHWShared:
 	case envGetPreferredHW:

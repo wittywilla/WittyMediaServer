@@ -285,7 +285,12 @@ func TestControllerPorts(t *testing.T) {
 		types uintptr
 		count uint32
 	}
-	ports := []entry{{1, 2}, {1, 2}, {1, 2}, {0, 0}}
+	kinds := []struct {
+		desc *byte
+		id   uint32
+	}{{nil, deviceJoypad}, {nil, deviceAnalog}}
+	types := uintptr(unsafe.Pointer(&kinds[0]))
+	ports := []entry{{types, 2}, {types, 2}, {types, 2}, {0, 0}}
 	if !env(envSetControllerInfo, unsafe.Pointer(&ports[0])) || c.ports != 3 {
 		t.Fatalf("ports %d", c.ports)
 	}

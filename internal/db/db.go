@@ -352,6 +352,28 @@ var migrations = []string{
 	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
 	   name TEXT NOT NULL, kind TEXT NOT NULL, size INTEGER NOT NULL, enabled INTEGER NOT NULL, created_at INTEGER NOT NULL);
 	 CREATE INDEX idx_wittyplay_patches_game ON wittyplay_patches(user_id, item_id);`,
+	// 17: custom game cores and consoles: what was approved, the versions kept, which
+	// core a game uses, how play went, and an audit log.
+	`CREATE TABLE IF NOT EXISTS custom_cores (
+	   id TEXT PRIMARY KEY, name TEXT NOT NULL, version TEXT NOT NULL DEFAULT '', sha256 TEXT NOT NULL, size INTEGER NOT NULL DEFAULT 0,
+	   license TEXT NOT NULL DEFAULT '', license_source TEXT NOT NULL DEFAULT '', non_commercial INTEGER NOT NULL DEFAULT 0,
+	   consoles TEXT NOT NULL DEFAULT '[]', note TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT '', source_url TEXT NOT NULL DEFAULT '',
+	   added_by TEXT NOT NULL DEFAULT '', added_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, report TEXT NOT NULL DEFAULT '{}', system_files TEXT NOT NULL DEFAULT '[]');
+	 CREATE TABLE IF NOT EXISTS custom_core_versions (
+	   core_id TEXT NOT NULL, sha256 TEXT NOT NULL, version TEXT NOT NULL DEFAULT '', added_at INTEGER NOT NULL,
+	   PRIMARY KEY(core_id, sha256));
+	 CREATE TABLE IF NOT EXISTS custom_consoles (
+	   id TEXT PRIMARY KEY, data TEXT NOT NULL, aliases TEXT NOT NULL DEFAULT '[]', cores TEXT NOT NULL DEFAULT '[]',
+	   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE TABLE IF NOT EXISTS game_core_choice (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE, core_id TEXT NOT NULL);
+	 CREATE TABLE IF NOT EXISTS game_core_plays (
+	   core_id TEXT NOT NULL, item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   starts INTEGER NOT NULL DEFAULT 0, failures INTEGER NOT NULL DEFAULT 0, seconds REAL NOT NULL DEFAULT 0,
+	   last_error TEXT NOT NULL DEFAULT '', last_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(core_id, item_id));
+	 CREATE TABLE IF NOT EXISTS game_core_audit (
+	   id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, user_name TEXT NOT NULL DEFAULT '', action TEXT NOT NULL,
+	   core TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '');`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

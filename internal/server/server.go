@@ -368,7 +368,9 @@ const (
 func (s *Server) limits(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+			if !bigUploadPath(r.URL.Path) {
+				r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+			}
 			_ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(requestBodyTime))
 		}
 		next.ServeHTTP(w, r)

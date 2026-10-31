@@ -45,3 +45,12 @@ func userNamespacesAllowed() bool {
 }
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
+
+// SandboxStrength says what boxes a core in on this platform, for people deciding
+// whether to allow custom cores.
+func SandboxStrength() (string, bool) {
+	return "namespaces where allowed, a seccomp filter and Landlock: no network, no new programs, and writing only to its save folder", true
+}
+
+// probePriority does nothing here: the host's own priority is only a little lowered.
+func probePriority(cmd *exec.Cmd) {}

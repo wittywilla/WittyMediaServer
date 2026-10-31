@@ -49,6 +49,8 @@ type Console struct {
 	Unavailable string `json:"unavailable,omitempty"`
 	// Hidden consoles are for testing and never shown to people.
 	Hidden bool `json:"-"`
+	// PadLike, on a custom console, is a console whose controller to copy.
+	PadLike string `json:"padLike,omitempty"`
 }
 
 // TestConsole is the console of the built-in test core, shown only when testing.
@@ -135,9 +137,10 @@ var Consoles = []Console{
 
 // ByID finds a console.
 func ByID(id string) *Console {
-	for i := range Consoles {
-		if Consoles[i].ID == id {
-			return &Consoles[i]
+	all := All()
+	for i := range all {
+		if all[i].ID == id {
+			return &all[i]
 		}
 	}
 	return nil
@@ -208,9 +211,10 @@ func Detect(relPath string) string {
 	ext := strings.ToLower(filepath.Ext(relPath))
 	dir := filepath.Dir(filepath.ToSlash(relPath))
 	for dir != "." && dir != "/" && dir != "" {
+		all := All()
 		for _, name := range folderNames(filepath.Base(dir)) {
-			for i := range Consoles {
-				c := &Consoles[i]
+			for i := range all {
+				c := &all[i]
 				if !c.Hidden && contains(c.Aliases, name) && (c.Accepts(ext) || archiveExts[ext]) {
 					return c.ID
 				}
@@ -238,8 +242,9 @@ func folderNames(folder string) []string {
 
 // KnownExtension says whether any console uses an extension.
 func KnownExtension(ext string) bool {
-	for i := range Consoles {
-		if Consoles[i].Accepts(ext) {
+	all := All()
+	for i := range all {
+		if all[i].Accepts(ext) {
 			return true
 		}
 	}
@@ -248,9 +253,10 @@ func KnownExtension(ext string) bool {
 
 // ByExtension is the one console that uses an extension, or "" for none or several.
 func ByExtension(ext string) string {
-	for i := range Consoles {
-		if contains(Consoles[i].Extensions, ext) {
-			return Consoles[i].ID
+	all := All()
+	for i := range all {
+		if contains(all[i].Extensions, ext) {
+			return all[i].ID
 		}
 	}
 	return ""

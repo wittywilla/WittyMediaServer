@@ -95,7 +95,7 @@ func writeSummary(c *config, all []Result) error {
 			t.cpu = append(t.cpu, r.CPUPercent)
 		}
 		t.peak = math.Max(t.peak, r.PeakMB)
-		if r.Outcome != OutcomeOK {
+		if r.Outcome != OutcomeOK && r.Outcome != OutcomeRefused {
 			t.failed = append(t.failed, r)
 			t.reasons[r.Outcome+": "+firstLine(r.Reason)]++
 		}

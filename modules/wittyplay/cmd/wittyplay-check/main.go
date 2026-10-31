@@ -352,7 +352,9 @@ func findGames(args []string, cn *wittyplay.Console) ([]string, error) {
 				return nil
 			}
 			ext := strings.ToLower(filepath.Ext(path))
-			if !cn.Accepts(ext) && !isArchive(ext) {
+			// An installer is no use to a core, but people have them, and the report
+			// should say so rather than pass over them.
+			if !cn.Accepts(ext) && !isArchive(ext) && (cn.ID != "3ds" || ext != ".cia") {
 				return nil
 			}
 			if ext == ".cue" || ext == ".m3u" {

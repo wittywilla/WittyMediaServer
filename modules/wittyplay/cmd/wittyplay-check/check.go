@@ -34,6 +34,7 @@ const (
 	OutcomeSkipped    = "skipped"
 	OutcomeToolError  = "tool-error"
 	OutcomeTooSlow    = "too-slow-to-judge" // try again on a quieter machine
+	OutcomeRefused    = "refused"           // an encrypted game, say: nothing is wrong, and nothing will try
 )
 
 // Result is one game on one core.
@@ -62,6 +63,9 @@ type Result struct {
 	Changes      int     `json:"changes"` // frames that differed from the one before
 	BlankPercent float64 `json:"blankPercent"`
 	MaxColors    int     `json:"maxColors"`
+	// On a console with two screens, the most colours seen on each.
+	Screens     *[2]int `json:"screens,omitempty"`
+	TouchReacts bool    `json:"touchReacts,omitempty"` // a press on the touch screen changed the picture
 
 	SampleRate float64 `json:"sampleRate"`
 	AudioRatio float64 `json:"audioRatio"` // samples received against the rate promised
@@ -115,6 +119,8 @@ type proc struct {
 	blank      int
 	sampled    int
 	maxColors  int
+	dual       bool // two screens in one picture, stacked or side by side
+	screens    [2]int
 	lastHash   uint64
 	lastFrame  time.Time
 	maxGap     time.Duration
@@ -326,6 +332,10 @@ func (p *proc) video(hdr ipc.VideoHeader, data []byte) {
 		if colors > p.maxColors {
 			p.maxColors = colors
 		}
+		if p.dual {
+			top, bottom := screenColors(hdr, data)
+			p.screens[0], p.screens[1] = max(p.screens[0], top), max(p.screens[1], bottom)
+		}
 		if colors > p.bestColors {
 			p.bestColors, p.bestHdr = colors, hdr
 			p.best = append(p.best[:0], data...)
@@ -353,6 +363,26 @@ func (p *proc) tickLocked(h uint64) {
 			close(p.capCh)
 		}
 	}
+}
+
+// screenColors counts the colours on each screen of a two-screen picture. Consoles
+// stack them unless the core lays them out side by side, which makes a picture at
+// least twice as wide as it is high.
+func screenColors(hdr ipc.VideoHeader, data []byte) (first, second int) {
+	bpp := engine.BytesPerPixel(hdr.Format)
+	if hdr.Width >= 2*hdr.Height {
+		left := make([]byte, 0, len(data)/2)
+		right := make([]byte, 0, len(data)/2)
+		half := hdr.Width / 2 * bpp
+		for y := 0; y < hdr.Height; y++ {
+			row := data[y*hdr.Width*bpp : (y+1)*hdr.Width*bpp]
+			left = append(left, row[:half]...)
+			right = append(right, row[half:]...)
+		}
+		return countColors(left, bpp), countColors(right, bpp)
+	}
+	mid := hdr.Height / 2 * hdr.Width * bpp
+	return countColors(data[:mid], bpp), countColors(data[mid:], bpp)
 }
 
 func countColors(data []byte, bpp int) int {
@@ -445,6 +475,23 @@ func (p *proc) requestState() ([]byte, error) {
 	}
 }
 
+// touch presses or lifts the stylus. Positions run from -32767 to 32767 across the
+// picture, and on two stacked screens the touch screen is the lower half.
+func (p *proc) touch(x, y int16, pressed bool) error {
+	var m [ipc.PointerSize]byte
+	m[0] = ipc.PointerMark
+	if pressed {
+		m[1] = 1
+	}
+	binary.LittleEndian.PutUint16(m[2:], uint16(x))
+	binary.LittleEndian.PutUint16(m[4:], uint16(y))
+	return p.send(ipc.CmdPointer, m[:])
+}
+
+// Where to tap on a touch-screen game, for menus as much as anything: the middle,
+// then either side, then lower down, all on the lower screen.
+var taps = [][2]int16{{0, 16000}, {-16000, 16000}, {16000, 16000}, {0, 26000}, {0, 6000}}
+
 func (p *proc) press(buttons uint16) error {
 	var m [ipc.InputSize]byte
 	binary.LittleEndian.PutUint16(m[1:], buttons)
@@ -494,9 +541,17 @@ func (p *proc) play(frames int, limit time.Duration, step *int) (hung bool) {
 		if now >= nextPress {
 			if pressed {
 				_ = p.press(0)
+				if p.dual {
+					t := taps[*step%len(taps)]
+					_ = p.touch(t[0], t[1], false)
+				}
 				nextPress = now + gap
 			} else {
 				_ = p.press(script[*step%len(script)])
+				if p.dual && *step%2 == 1 {
+					t := taps[*step%len(taps)]
+					_ = p.touch(t[0], t[1], true)
+				}
 				*step++
 				nextPress = now + hold
 			}
@@ -508,6 +563,9 @@ func (p *proc) play(frames int, limit time.Duration, step *int) (hung bool) {
 	}
 	if pressed {
 		_ = p.press(0)
+		if p.dual {
+			_ = p.touch(0, 0, false)
+		}
 	}
 	return false
 }
@@ -599,6 +657,21 @@ func (p *proc) stateCheck(r *Result, frameTime time.Duration) (state []byte, aft
 			r.InputReacts = try.name
 			break
 		}
+	}
+	if p.dual && r.StateReplay >= 0.9 {
+		// And a press on the touch screen.
+		if _, err := p.quiesce(); err != nil {
+			return state, after, err
+		}
+		_ = p.press(0)
+		_ = p.touch(taps[0][0], taps[0][1], true)
+		if err := p.send(ipc.CmdState, state); err != nil {
+			return state, after, err
+		}
+		_ = p.pause(false)
+		held := p.capture(replayFrames, timeout)
+		r.TouchReacts = len(held) > 0 && match(after, held) < 0.97
+		_ = p.touch(taps[0][0], taps[0][1], false)
 	}
 	if _, err := p.quiesce(); err != nil {
 		return state, after, err
@@ -703,6 +776,10 @@ func checkGame(c *config, j job) (r Result) {
 		return r
 	}
 	defer cleanup()
+	if why := wittyplay.Refusal(rom, j.console.ID); why != "" {
+		r.Outcome, r.Reason = OutcomeRefused, why
+		return r
+	}
 
 	saveDir := filepath.Join(work, "save")
 	p, err := start(c, saveDir, j.core.id)
@@ -710,6 +787,7 @@ func checkGame(c *config, j job) (r Result) {
 		r.Outcome, r.Reason = OutcomeToolError, err.Error()
 		return r
 	}
+	p.dual = wittyplay.Pad(j.console.ID).Pointer
 	if c.trace {
 		p.trace, _ = os.Create(filepath.Join(c.out, fmt.Sprintf("trace-%s-%d.log", j.core.id, j.index)))
 		defer p.trace.Close()
@@ -727,6 +805,9 @@ func checkGame(c *config, j job) (r Result) {
 			p.waitExit(5 * time.Second)
 			r.Outcome = OutcomeLoadFailed
 			r.Reason = p.crashReason()
+			if strings.Contains(strings.ToLower(r.Reason), "encrypted") {
+				r.Outcome = OutcomeRefused
+			}
 			if strings.HasPrefix(r.Reason, "the core crashed") {
 				r.Outcome = OutcomeCrash
 				r.Reason = "while loading: " + r.Reason
@@ -871,6 +952,9 @@ func (p *proc) fill(r *Result) {
 	defer p.mu.Unlock()
 	r.Frames, r.Dupes, r.Changes = p.frames, p.dupes, p.changes
 	r.MaxColors = p.maxColors
+	if p.dual {
+		r.Screens = &[2]int{p.screens[0], p.screens[1]}
+	}
 	r.MaxGapMS = p.maxGap.Milliseconds()
 	r.Width, r.Height, r.Format = p.hdr.Width, p.hdr.Height, p.hdr.Format
 	r.Sizes = len(p.sizes)
@@ -908,6 +992,9 @@ func (p *proc) fill(r *Result) {
 func classify(r *Result, state []byte, after []uint64, p *proc) {
 	if r.Frames > 0 && r.TargetFPS > 0 && r.FPS < r.TargetFPS*0.9 {
 		r.warn("slow")
+	}
+	if r.Screens != nil && (r.Screens[0] <= 1 || r.Screens[1] <= 1) {
+		r.warn("one-screen-blank")
 	}
 	switch {
 	case r.AudioRatio == 0:

@@ -489,6 +489,13 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	if why := wittyplay.Refusal(rom, console.ID); why != "" {
+		if cleanup != nil {
+			cleanup()
+		}
+		writeErr(w, 422, why)
+		return
+	}
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,

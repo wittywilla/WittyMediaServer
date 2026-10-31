@@ -528,6 +528,10 @@ the helper, so nothing in a helper can skip them. Containers often refuse unpriv
 helper then runs without them, and a fork doesn't run. Reading is left alone on every system, since a helper reads
 media wherever it is: that is the one limit no system here gives, and why the warning above says so.
 
+On Windows a helper goes into its job just after it starts, so for a moment it is outside: a fork could in principle
+start a program in that moment, which would still have the low integrity. Starting it suspended closes that gap, and made
+helpers hang at random for half a minute in testing, so it isn't done.
+
 **What these don't protect against.** Someone who can write to the data folder can change the accounts in the
 database, so that folder has to be protected whatever is done here. `verifyInstalled` catches a changed file, and a fork
 named in the state file that couldn't have been chosen is ignored, but such a person can still name a fork of a module

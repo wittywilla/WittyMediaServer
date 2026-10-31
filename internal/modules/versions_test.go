@@ -27,7 +27,7 @@ import (
 // wait follows a background install to its end.
 func wait(t *testing.T, m *Manager) Status {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		s := one(t, m)
 		if s.Phase == PhaseIdle || s.Phase == PhaseFailed {

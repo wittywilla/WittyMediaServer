@@ -276,7 +276,7 @@ func installWait(t *testing.T, m *Manager) Status {
 	if err := m.Install("wittyphotos"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		s := one(t, m)
 		if s.Phase == PhaseIdle || s.Phase == PhaseFailed {

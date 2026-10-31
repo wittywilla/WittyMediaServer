@@ -18,7 +18,7 @@ import (
 // Limits on a helper. The call limit is generous because a call may read a large
 // file from a slow network share.
 const (
-	helloTimeout = 20 * time.Second
+	helloTimeout = 45 * time.Second // the first run of a new program can be held up by a virus scanner
 	idleTimeout  = time.Minute
 	softMemory   = "256MiB"
 	hardMemoryMB = 512

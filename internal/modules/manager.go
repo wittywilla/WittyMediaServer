@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -378,6 +379,9 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if !updatable(man) {
 		return nil, "", fmt.Errorf("this server can't run a module delivered as %q", man.Delivery)
 	}
+	if r := protocolRefusal(e, man); r != "" {
+		return nil, "", errors.New(r)
+	}
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return nil, "", errors.New(r)
 	}
@@ -597,7 +601,7 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	}
 	e.failedAt = now
 	e.fails++
-	e.note("failed", ver, err.Error())
+	e.note("failed", ver, plainFailure(err))
 	if e.fails < failLimit && !errors.Is(err, errUntrusted) {
 		if serr := m.saveState(); serr != nil {
 			m.log.Warn("modules: saving the state", "err", serr)
@@ -607,7 +611,7 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	if e.state.Blocked == nil {
 		e.state.Blocked = map[string]string{}
 	}
-	e.state.Blocked[ver] = "it kept failing (" + firstLine(err.Error()) + ")"
+	e.state.Blocked[ver] = "it kept failing (" + plainFailure(err) + ")"
 	if errors.Is(err, errUntrusted) {
 		e.state.Blocked[ver] = sentence(err.Error())
 	}
@@ -617,6 +621,15 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	if err := m.saveState(); err != nil {
 		m.log.Warn("modules: saving the state", "err", err)
 	}
+}
+
+// plainFailure puts how a helper failed in words for the owner. A helper that dies
+// mid-call shows up as the end of its pipe, which says nothing to anyone.
+func plainFailure(err error) string {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return "it stopped without answering"
+	}
+	return firstLine(err.Error())
 }
 
 func firstLine(s string) string {

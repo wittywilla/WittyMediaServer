@@ -143,12 +143,12 @@ func (m *Manager) SetLibraryLabel(libType, label string, taken map[string]string
 	}
 	for t, name := range m.labels {
 		if t != libType && strings.EqualFold(name, label) && label != "" {
-			return fmt.Errorf("another kind of library is already called %q", label)
+			return fmt.Errorf("Another kind of library is already called %q.", label)
 		}
 	}
 	for t, name := range taken {
 		if t != libType && m.labels[t] == "" && strings.EqualFold(name, label) && label != "" {
-			return fmt.Errorf("another kind of library is already called %q", label)
+			return fmt.Errorf("Another kind of library is already called %q.", label)
 		}
 	}
 	next := map[string]string{}

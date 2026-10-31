@@ -14,7 +14,7 @@ import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
 import GamingSettings from './settings/Gaming'
 import { ConsolePicker } from './Games'
-import { libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
+import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
@@ -244,7 +244,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
                 <label key={t.v} className={'set-type' + (type === t.v ? ' on' : '') + (locked ? ' off' : '')}>
                   <input type="radio" name="libtype" checked={type === t.v} disabled={locked} onChange={() => { setType(t.v); if (!name || TYPES.some((x) => x.label === name)) setName(t.label) }} />
                   <span className="set-type-icon">{libIcon(t.v)}</span>
-                  <b>{t.label}</b>
+                  <b>{kindTitle(kinds, t.v, t.label)}</b>
                   {locked
                     ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules?add=${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
                     : <small>{t.hint}</small>}

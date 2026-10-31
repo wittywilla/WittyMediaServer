@@ -22,7 +22,10 @@ func Open(dataDir string) (*DB, error) {
 	// The path is escaped: "file:" names are URIs, so a folder with # or % in
 	// its name would otherwise open a different file.
 	name := strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23").Replace(filepath.ToSlash(filepath.Join(dataDir, "wms.db")))
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", name)
+	// Every transaction here writes, so each takes the write lock when it begins.
+	// One that reads first and writes later fails at once, without waiting, if
+	// another write lands in between: busy_timeout can't help it.
+	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", name)
 	sdb, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err

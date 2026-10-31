@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func indexExists(t *testing.T, d *DB, name string) bool {
@@ -103,5 +104,56 @@ func TestPathsWithSpecialCharacters(t *testing.T) {
 		if !fileExists(filepath.Join(dir, "wms.db")) {
 			t.Errorf("%q: the database went elsewhere", name)
 		}
+	}
+}
+
+// A transaction that reads before it writes must wait for other writers, not
+// fail: this is what a channel rescan does while a guide update is saving.
+func TestTransactionsWaitForEachOther(t *testing.T) {
+	d, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	if _, err := d.ExecContext(ctx, `CREATE TABLE tally(n INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.ExecContext(ctx, `INSERT INTO tally VALUES(0)`); err != nil {
+		t.Fatal(err)
+	}
+	const writers = 6
+	errs := make(chan error, writers)
+	for range writers {
+		go func() {
+			errs <- func() error {
+				tx, err := d.BeginTx(ctx, nil)
+				if err != nil {
+					return err
+				}
+				defer tx.Rollback()
+				var n int
+				if err := tx.QueryRowContext(ctx, `SELECT n FROM tally`).Scan(&n); err != nil {
+					return err
+				}
+				time.Sleep(5 * time.Millisecond) // long enough for another write to land
+				if _, err := tx.ExecContext(ctx, `UPDATE tally SET n = ?`, n+1); err != nil {
+					return err
+				}
+				return tx.Commit()
+			}()
+		}()
+	}
+	for range writers {
+		if err := <-errs; err != nil {
+			t.Error(err)
+		}
+	}
+	var n int
+	if err := d.QueryRowContext(ctx, `SELECT n FROM tally`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != writers {
+		t.Errorf("tally = %d, want %d: a write was lost", n, writers)
 	}
 }

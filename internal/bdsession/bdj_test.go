@@ -194,23 +194,32 @@ func TestBDJSession(t *testing.T) {
 	if !green() {
 		t.Fatal("Enter did not reach the application")
 	}
-	// The registers it set are the navigator's now.
-	for end := time.Now().Add(5 * time.Second); s.nav.Registers().GPR[110] != 1 && time.Now().Before(end); time.Sleep(20 * time.Millisecond) {
+	// The registers it set are the navigator's now. The application's events
+	// change them on their own goroutine, under the session's lock.
+	gpr := func(n int) uint32 {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return s.nav.Registers().GPR[n]
 	}
-	if s.nav.Registers().GPR[110] != 1 || s.nav.Registers().GPR[103] != 1 {
-		t.Fatalf("GPR110 %d GPR103 %d", s.nav.Registers().GPR[110], s.nav.Registers().GPR[103])
+	for end := time.Now().Add(5 * time.Second); gpr(110) != 1 && time.Now().Before(end); time.Sleep(20 * time.Millisecond) {
+	}
+	if gpr(110) != 1 || gpr(103) != 1 {
+		t.Fatalf("GPR110 %d GPR103 %d", gpr(110), gpr(103))
 	}
 	// The end of the clip goes to the application.
 	s.Do(ctx, Action{Type: "ended"})
-	for end := time.Now().Add(5 * time.Second); s.nav.Registers().GPR[111] != 1 && time.Now().Before(end); time.Sleep(20 * time.Millisecond) {
+	for end := time.Now().Add(5 * time.Second); gpr(111) != 1 && time.Now().Before(end); time.Sleep(20 * time.Millisecond) {
 	}
-	if s.nav.Registers().GPR[111] != 1 {
+	if gpr(111) != 1 {
 		t.Fatal("the application did not hear the end of its playlist")
 	}
 	// Leaving for a plain playlist ends the applications.
 	var _ = wittybluray.NoButton
 	p = s.Do(ctx, Action{Type: "title", TTN: 1})
-	if p.BDJ != nil || s.bd.active {
+	s.mu.Lock()
+	active := s.bd.active
+	s.mu.Unlock()
+	if p.BDJ != nil || active {
 		t.Fatalf("still in BD-J: %+v", p)
 	}
 }

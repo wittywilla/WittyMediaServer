@@ -120,8 +120,6 @@ export function RigCard({ rig, onChange }: { rig: RigView; onChange: () => void 
       onChange()
     } catch (e: any) { toast(e.message) }
   }
-    try { const r = await api.del<{ note?: string }>(`${url}/browser`); toast(r?.note || 'Done'); onChange() } catch (e: any) { toast(e.message) }
-  }
   return (
     <Section title={rig.name} desc={[rig.address && (rig.port ? `${rig.address}:${rig.port}` : rig.address), rig.version && `Sunshine host ${rig.version}`].filter(Boolean).join(' · ')}>
       <div className={'rig-status' + (rig.state === 'online' ? ' ok' : '')} role="status"><span className="rig-dot" aria-hidden="true" /><div className="grow">{rig.message}</div></div>

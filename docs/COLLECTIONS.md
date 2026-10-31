@@ -46,7 +46,8 @@ A library of the kind **Internet radio** needs no folder. Choose **Add stations*
   plays, if it gives them. **Find details in the directory**, on the station's page, looks it up there.
 - **Playlist:** an M3U or PLS file, or its text.
 
-Stations play from the bar along the bottom, which keeps going while you browse. The library has your
+Stations play from the bar along the bottom, which keeps going while you browse. A stream that drops is
+tried again a few times by itself, and a sleep timer stops the music when you want. The library has your
 favourites and what you played lately at the top, and can be browsed by genre and country. A station's page has
 its logo, genres, country, language, quality and website, and what's playing now, shown on the lock screen and
 headphone controls too. Stations with no logo get art made from their name.

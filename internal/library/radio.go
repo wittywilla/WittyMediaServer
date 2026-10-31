@@ -58,6 +58,12 @@ func (s *Store) AddRadioStation(ctx context.Context, libraryID int64, st RadioSt
 	if err := s.upsertItem(ctx, it); err != nil {
 		return nil, err
 	}
+	// So the first play already knows how; playing it corrects this if it's wrong.
+	if u, err := url.Parse(st.URL); err == nil && strings.HasSuffix(strings.ToLower(u.Path), ".m3u8") {
+		if _, err := s.DB.ExecContext(ctx, `INSERT INTO radio_meta(item_id, hls) VALUES(?, 1) ON CONFLICT(item_id) DO UPDATE SET hls = 1`, it.ID); err != nil {
+			return nil, err
+		}
+	}
 	return it, nil
 }
 

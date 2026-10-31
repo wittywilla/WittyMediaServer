@@ -18,7 +18,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Stations that go quiet are noticed** and marked off the air, from playing them, from the directory, and from a check
   you can run. Checking in the background is a setting, off unless you turn it on, because it contacts stations when nobody
   is listening.
-- **Pausing a station hangs up**, so the server isn't relaying it for nobody.
+- **Pausing a station hangs up**, so the server isn't relaying it for nobody. A stream that drops reconnects by itself,
+  and stations have a sleep timer.
 - For apps: `/items/{id}/playback` plays stations, and new routes under `/radio` (see
   [CLIENT-API.md](docs/CLIENT-API.md#internet-radio)).
 - **Fixed:** listeners who weren't administrators were sent each station's address, which can hold a private key.

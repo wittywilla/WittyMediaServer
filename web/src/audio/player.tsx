@@ -16,6 +16,9 @@ import { toast } from '../state'
 // seeked by restarting the stream at the new position.
 const DIRECT = new Set(['mp3', 'aac', 'flac', 'opus', 'vorbis', 'pcm_s16le', 'pcm_s24le', 'pcm_u8', 'pcm_f32le'])
 
+const RETRY_WAITS = [2000, 5000, 10000] // between tries to reconnect to a station, in milliseconds
+const STALL_MS = 15000 // a station that plays nothing for this long has gone
+
 export type AudioMode = 'music' | 'audiobooks' | 'podcasts' | 'radio'
 type Repeat = 'off' | 'all' | 'one'
 
@@ -52,6 +55,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [full, setFull] = useState(false)
   const [nowPlaying, setNowPlaying] = useState<{ id: number; title: string; artist: string; track: string } | null>(null)
   const hls = useRef<{ destroy: () => void } | null>(null) // an HLS station's player, loaded when one is played
+  // A stream that was playing and dropped is tried again a few times, as a radio would.
+  const [retrying, setRetrying] = useState(false)
+  const wasPlaying = useRef(false)
+  const retries = useRef(0)
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const progressAt = useRef(0)
   const offset = useRef(0) // where a converted stream started
   const current = queue[index] || null
   const currentId = useRef<number | undefined>(undefined)
@@ -207,14 +216,49 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // so hang up; playing again connects again.
   const hangUp = () => {
     const a = audio.current
+    clearTimeout(retryTimer.current)
+    setRetrying(false)
     if (!a) return
     hls.current?.destroy()
     hls.current = null
     a.removeAttribute('src')
     a.load()
   }
+  const reconnect = () => {
+    if (!current) return
+    const it = current
+    hangUp()
+    setPlaying(false)
+    if (retries.current >= RETRY_WAITS.length) {
+      wasPlaying.current = false
+      toast(`${it.title} stopped, and can't be reached`)
+      return
+    }
+    setRetrying(true)
+    retryTimer.current = setTimeout(() => {
+      setRetrying(false)
+      load(it, 0)
+      audio.current?.play().catch(() => {})
+    }, RETRY_WAITS[retries.current++])
+  }
+  useEffect(() => {
+    retries.current = 0
+    wasPlaying.current = false
+    return () => { clearTimeout(retryTimer.current); setRetrying(false) }
+  }, [current?.id])
+  // A browser reports a stream that goes silent as nothing at all: no error, no end,
+  // just still "playing". So watch for the sound not moving on.
+  useEffect(() => {
+    if (!live || !playing) return
+    progressAt.current = Date.now()
+    const t = setInterval(() => { if (wasPlaying.current && Date.now() - progressAt.current > STALL_MS) reconnect() }, 5000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, live, playing])
   const resume = () => {
     const a = audio.current
+    clearTimeout(retryTimer.current)
+    setRetrying(false)
     if (!a) return
     if (live && current && !a.getAttribute('src') && !hls.current) {
       load(current, 0)
@@ -308,9 +352,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={ctx}>
       {children}
-      <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); if (live) hangUp() }} onEnded={onEnded}
+      <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPlaying={() => { if (live) wasPlaying.current = true }}
+        onPause={() => {
+          setPlaying(false)
+          if (!live) return
+          // At the end of a stream the browser pauses too: that's a dropped connection.
+          if (audio.current?.ended && wasPlaying.current) reconnect()
+          else hangUp()
+        }} onEnded={onEnded}
         onError={() => {
           if (!live || !current || !audio.current?.getAttribute('src')) return
+          if (wasPlaying.current) { reconnect(); return }
           const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`) }
           if (current.radio?.hls) { fail(); return }
           // A station added by its address may have turned out to be HLS just now.
@@ -324,6 +376,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         onTimeUpdate={() => {
           const p = position(), d = p - lastAt.current
           if (d > 0 && d < 5) listened.current += d
+          if (d > 0) progressAt.current = Date.now()
+          if (live && p > 30) retries.current = 0 // it has been steady for a while
           lastAt.current = p
           setTime(p)
         }} />
@@ -343,12 +397,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           {full ? (
             <div className="ab-info">
               <div className="ab-title">{current.title}</div>
-              <div className="ab-sub">{live ? (ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+              <div className="ab-sub">{live ? (retrying ? 'Reconnecting…' : ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
             </div>
           ) : (
             <button className="ab-info" onClick={openFull} title="Show the full player">
               <div className="ab-title">{current.title}</div>
-              <div className="ab-sub">{live ? (ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
+              <div className="ab-sub">{live ? (retrying ? 'Reconnecting…' : ctx.nowPlaying || 'Live') : [current.artist || current.albumArtist, current.album].filter(Boolean).join(' · ')}</div>
             </button>
           )}
           <div className="ab-ctl">
@@ -369,13 +423,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             {!live && <select className="select sm" aria-label="Playback speed" title="Playback speed (< and >)" value={rate} onChange={(e) => changeRate(Number(e.target.value))}>
               {SPEEDS.filter((r) => r <= maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
             </select>}
-            {books && (
+            {(books || live) && (
               <select className="select sm" aria-label="Sleep timer" value={sleepAt === null ? '' : sleepAt === 'chapter' ? 'chapter' : 'set'}
                 onChange={(e) => { const v = e.target.value; setSleepAt(v === '' ? null : v === 'chapter' ? 'chapter' : v === 'set' ? sleepAt : Date.now() + Number(v) * 60000) }}>
                 <option value="">Sleep: off</option>
                 {sleepAt !== null && sleepAt !== 'chapter' && <option value="set">Sleep at {new Date(sleepAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</option>}
                 <option value="15">In 15 min</option><option value="30">In 30 min</option><option value="45">In 45 min</option><option value="60">In 1 hour</option>
-                <option value="chapter">End of chapter</option>
+                {books && <option value="chapter">End of chapter</option>}
               </select>
             )}
             <span className="muted ab-count">{index + 1} / {queue.length}</span>

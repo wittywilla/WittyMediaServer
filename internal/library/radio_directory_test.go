@@ -369,6 +369,27 @@ func TestStationStatus(t *testing.T) {
 	}
 }
 
+func TestTypedHLSAddressIsKnownAtOnce(t *testing.T) {
+	s, lib := openRadioStore(t)
+	ctx := context.Background()
+	it, err := s.AddRadioStation(ctx, lib.ID, RadioStation{Name: "H", URL: "https://x.example/live/Index.M3U8?a=1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m := radioMetaOf(t, s, it); !m.HLS {
+		t.Errorf("%+v", m)
+	}
+	// What the stream turns out to be wins.
+	s.ApplyStationFacts(ctx, it, StationFacts{HLS: false, Codec: "MP3"})
+	if m := radioMetaOf(t, s, it); m.HLS {
+		t.Errorf("not corrected: %+v", m)
+	}
+	plain, _ := s.AddRadioStation(ctx, lib.ID, RadioStation{Name: "P", URL: "https://x.example/stream.mp3"})
+	if m := radioMetaOf(t, s, plain); m.HLS {
+		t.Errorf("%+v", m)
+	}
+}
+
 func TestLookUpKeepsPrivateAddressesPrivate(t *testing.T) {
 	f := newFakeDirectory(t)
 	_ = f

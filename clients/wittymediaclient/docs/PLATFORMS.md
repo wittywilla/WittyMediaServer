@@ -11,9 +11,10 @@ stay honest: **written** does not mean **works**.
 | **Not started** | Nothing exists yet. |
 | **Blocked** | Needs something only the owner can get. |
 
-The whole Android app compiles, in debug and in the shrunk release form, with 9 unit tests passing,
-including all the shared address cases. Only the address rules and data handling have actually been
-executed: none of its screens, its player or its focus handling has ever run.
+The whole Android app compiles, in debug and in the shrunk release form, with 56 unit tests passing,
+including all the shared address cases, and one more against a real server when one is given. Only its
+rules, data handling and network calls have actually been executed: none of its screens, its player or
+its focus handling has ever run, and nothing has run on a device or emulator.
 
 ## Platforms
 
@@ -39,16 +40,57 @@ executed: none of its screens, its player or its focus handling has ever run.
 |---|---|---|---|
 | Type an address, with the shared rules | Ran | Compiled | Written |
 | Refuse plain HTTP to a public address | Ran | Compiled | Written |
-| **Find servers on the network** | **Not started** | **Not started** | **Not started** |
-| **Security code typed on the device** | **Not started** | **Not started** | **Not started** |
-| Check the server's identity before sending a sign-in | **Not started** | **Not started** | **Not started** |
+| **Find servers on the network** | Ran, with packets built in tests only | Compiled. Its rules ran; the search itself never has | Written |
+| **Security code typed on the device** | Ran | Compiled. The network side ran against a real server; the number pad has never been on a screen | Written |
+| Check the server's identity before sending a sign-in | Ran | Compiled. The check ran against a real server and a real signed answer | Written |
+| The warning when a different key answers | Ran | Compiled. The decision ran; the screen never has | Written |
+| Look for a saved server by its ID when its address stops answering | Not built: it lists what it finds | Compiled, never run | Written |
 | TV shows a code, approved on a phone | Not needed | Compiled | Written |
 | Password and profiles | Ran, through the web interface | Compiled | Written |
 | Remember the server | Ran | Compiled | Written |
 
-Finding servers and the security code are the owner's main requirement, and **neither works yet on
-any client**. The server side is being built on the `client-contract` branch. Client work starts when
-that lands, because it can't be tested until then.
+Finding servers and the security code are the owner's main requirement. **They have only been run on
+the desktop, and finding servers has not yet been tried on a real network anywhere.** The API for them
+is on the `client-contract` branch, so the native apps need that merged before they can connect.
+
+**Checked for Android,** on this machine and without a device:
+
+- The real signed answer in `shared/fixtures/identity.json` verifies, and tampering with its signature,
+  key, server ID or nonce makes it fail.
+- Over real connections to a stand-in server that really signs: a fresh nonce each time, no token sent
+  with the question, a look-alike noticed, a replayed answer refused, redirects not followed, and an
+  oversized answer refused.
+- Against a real server built from `test/all-merged`: it is recognised, its key is proved and pinned, a
+  different pin is noticed, a wrong code is refused, a right code signs in and the token works, and a used
+  code is refused.
+- The number pad's rules, including that every key can be reached with arrows alone, and what each
+  identity result leads to.
+- That the Ed25519 code survives shrinking into the release build. Whether it then loads and runs on
+  old Android versions hasn't been seen.
+
+**Not checked for Android:** every screen, focus on a real remote, `NsdManager` finding anything, which
+differs between devices and has known problems on some, and whether API 23 devices behave like newer ones.
+
+**Apple has never been compiled,** since nothing here has Swift or a Mac. This code was reviewed by reading,
+with a script confirming that its brackets balance and its wording keys exist, which proves little. Expect
+compile errors. `NWBrowser` and the focus code are the most likely places, and how tvOS moves focus around
+the pad can only be seen on one. On Linux WittyKit should build, but can't verify signatures: every answer
+is refused there, and the signature tests only run on Apple platforms.
+
+**Known limits of the identity check,** on every client: the very first connection trusts whatever key it
+is shown, so someone already impersonating the server at that moment gets pinned, and would see a code
+typed for them. Comparing the fingerprint with the one on the server's `/pair` page catches that, and HTTPS
+prevents it.
+
+**Differences from the desktop app.** The native apps work out the fingerprint from the key instead of
+trusting the server's word, refuse a 404 from `/identity` when a key is already remembered, and re-check when
+brought back to the front as well as at a cold start, since TV apps are rarely closed.
+
+**Left out of the native apps:** the UDP question, because mDNS is the way the API guide gives and Apple
+can't use it without a special permission. If a device or network turns out to block mDNS, adding it on
+Android is the next step. An `http://` address that redirects to `https://` is reported as not being a
+server, and needs the `https://` address typed. Apple doesn't limit the size of an answer from an untrusted
+address, only how long it takes.
 
 ## Features
 

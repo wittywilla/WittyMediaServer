@@ -41,6 +41,9 @@ targetTemplates:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSLocalNetworkUsageDescription: WittyMedia looks for your WittyMediaServer on your home network.
+        # Without this the system refuses the search for servers.
+        NSBonjourServices:
+          - _wittymedia._tcp
         # Plain HTTP only to local addresses. Everything else needs HTTPS.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

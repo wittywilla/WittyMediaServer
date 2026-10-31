@@ -31,15 +31,20 @@ public final class WittyClient: @unchecked Sendable {
     private let session: URLSession
     private let decoder = JSONDecoder()
 
-    public init(base: String, token: String = "") {
+    /// Quick is for questions to an address not yet trusted, which get short waits.
+    public init(base: String, token: String = "", quick: Bool = false) {
         self.base = base
         self.token = token
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 60 // the first play request probes the file
+        config.timeoutIntervalForRequest = quick ? 5 : 60 // the first play request probes the file
+        if quick { config.timeoutIntervalForResource = 5 }
         config.httpCookieStorage = nil
         config.urlCache = nil
         session = URLSession(configuration: config, delegate: RedirectGuard(), delegateQueue: nil)
     }
+
+    // A session keeps itself and its delegate alive until it's told it can go.
+    deinit { session.finishTasksAndInvalidate() }
 
     /// The headers an API or artwork request to this server needs. Video doesn't
     /// use these: its addresses carry a short-lived stream token instead.
@@ -116,6 +121,17 @@ public final class WittyClient: @unchecked Sendable {
         return try decoder.decode(LoginResult.self, from: try await call("POST", "/login", body: body))
     }
 
+    /// Errors carry the server's own plain words: a wrong, expired or used code, or too many tries.
+    public func pairRedeem(code: String, device: String, platform: String) async throws -> LoginResult {
+        let body = try JSONEncoder().encode(["code": code, "device": device, "platform": platform])
+        return try decoder.decode(LoginResult.self, from: try await call("POST", "/pair/redeem", body: body))
+    }
+
+    public func identity(nonce: String) async throws -> IdentityAnswer {
+        let body = try JSONEncoder().encode(["nonce": nonce])
+        return try decoder.decode(IdentityAnswer.self, from: try await call("POST", "/identity", body: body))
+    }
+
     public func saveProgress(_ id: Int64, positionSec: Double, durationSec: Double) async throws {
         let body = try JSONEncoder().encode(["positionSec": positionSec, "durationSec": durationSec])
         _ = try await call("POST", "/items/\(id)/progress", body: body)
@@ -147,20 +163,46 @@ public final class WittyClient: @unchecked Sendable {
 
     /// Asks an address whether it is a WittyMediaServer this app can use.
     public static func probe(_ url: String) async -> Probe {
-        let client = WittyClient(base: url)
+        let client = WittyClient(base: url, quick: true)
         do {
             let caps = try await client.capabilities()
             guard caps.server == "WittyMediaServer" else { return .failed("not-server") }
+            guard caps.apiVersions?.contains(1) == true else { return .failed("app-old") }
             if caps.setupRequired == true { return .failed("not-set-up") }
             return .found(try await client.status())
-        } catch is URLError {
-            return .failed("unreachable")
+        } catch let error as URLError {
+            switch error.code {
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot,
+                 .serverCertificateNotYetValid, .secureConnectionFailed:
+                return .failed("certificate")
+            default:
+                return .failed("unreachable")
+            }
         } catch let error as APIError where error.status == 404 {
             // No /capabilities: an older server, if it says it is one at all.
             let old = (try? await client.status())?.name == "WittyMediaServer"
             return .failed(old ? "server-old" : "not-server")
         } catch {
             return .failed("not-server")
+        }
+    }
+
+    /// Has the server at this address proved it holds its key, and is that a key we
+    /// remember? A new nonce every time, and no token goes with the question.
+    public static func identify(_ url: String, saved: [SavedServer]) async -> ServerProof {
+        let nonce = Identity.newNonce()
+        let client = WittyClient(base: url, quick: true)
+        do {
+            let answer = try await client.identity(nonce: nonce)
+            let state = Identity.judge(answer, nonce: nonce, url: url, saved: saved)
+            if state == .bad { return ServerProof(state: .bad) }
+            return ServerProof(state: state, serverId: answer.serverId, publicKey: answer.publicKey, fingerprint: Identity.fingerprint(answer.publicKey))
+        } catch is URLError {
+            return ServerProof(state: .unreachable)
+        } catch let error as APIError where error.status == 404 {
+            return ServerProof(state: Identity.unanswered(url: url, saved: saved))
+        } catch {
+            return ServerProof(state: .bad)
         }
     }
 }

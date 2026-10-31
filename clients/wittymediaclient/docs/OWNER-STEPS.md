@@ -57,6 +57,17 @@ without uninstalling first.
 **Please check on a real device and report back:** does it start, connect, sign in, and play? Are the
 remote and focus usable? Is it smooth? A cheap TV stick is the most useful test there is.
 
+Connecting is the owner's main requirement and nothing has yet tried it on a device, so these matter most:
+
+1. With a server running on the same network, does it appear by itself under "On your network"?
+2. On a TV, is it already highlighted, so one press of OK chooses it? Does it stay put once you've moved?
+3. On the server's web page, open your name, choose **Sign in a TV**, press **Get a number**. Can you
+   type the six digits with only the arrows and OK, and does it sign you straight in?
+4. Type a wrong code. Does it say so in plain words and let you try again?
+5. Close and reopen the app. Does it go straight to the home screen?
+6. Change the server's address (restart it on another port, or let the router give it a new one), then
+   reopen the app. Does it find the server again?
+
 ## Step 3: Try Apple (needs a Mac)
 
 Apple only allows building and installing from a Mac. If you don't have one, you can't run these apps

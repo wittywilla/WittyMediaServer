@@ -13,8 +13,23 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+// A server this device has used, with the identity key it proved.
 @Serializable
-data class SavedServer(val url: String, val name: String)
+data class SavedServer(
+    val url: String,
+    val name: String,
+    val serverId: String = "",
+    val publicKey: String = "",
+    val fingerprint: String = "",
+)
+
+private const val MAX_RECENT = 8
+
+// The most recent first, once per address and once per server.
+fun rememberServer(recent: List<SavedServer>, server: SavedServer): List<SavedServer> {
+    val others = recent.filter { it.url != server.url && (server.serverId.isEmpty() || it.serverId != server.serverId) }
+    return (listOf(server) + others).take(MAX_RECENT)
+}
 
 // Which server this device uses and its sign-in. The token is encrypted with a
 // key held by Android's Keystore, and app backups are off (see the manifest).
@@ -34,7 +49,18 @@ class SessionStore(context: Context) {
         set(v) = prefs.edit().putString(KEY_RECENT, json.encodeToString(v)).apply()
 
     fun remember(server: SavedServer) {
-        recent = (listOf(server) + recent.filter { it.url != server.url }).take(MAX_RECENT)
+        recent = rememberServer(recent, server)
+    }
+
+    fun find(url: String): SavedServer? = recent.find { it.url == url }
+
+    // The address, the key it proved and the token are kept together, in one write.
+    fun signedIn(server: SavedServer, token: String) {
+        prefs.edit()
+            .putString(KEY_SERVER, server.url)
+            .putString(KEY_RECENT, json.encodeToString(rememberServer(recent, server)))
+            .putString(KEY_TOKEN, encrypt(token))
+            .apply()
     }
 
     private fun key(): SecretKey {
@@ -75,6 +101,5 @@ class SessionStore(context: Context) {
         const val ALIAS = "wittymediaclient-session"
         const val TRANSFORM = "AES/GCM/NoPadding"
         const val IV_BYTES = 12
-        const val MAX_RECENT = 8
     }
 }

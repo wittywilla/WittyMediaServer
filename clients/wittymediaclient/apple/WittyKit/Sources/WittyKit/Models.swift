@@ -233,6 +233,7 @@ public struct Capabilities: Decodable, Equatable {
     public let server: String?
     public let version: String?
     public let apiVersion: Int?
+    public let apiVersions: [Int]?
     public let setupRequired: Bool?
     public let features: [String]?
 }

@@ -65,6 +65,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.5.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
+    // Ed25519 for the server's identity: Android only has its own from API 33.
+    implementation("org.bouncycastle:bcprov-jdk18on:1.86")
 
     testImplementation("junit:junit:4.13.2")
 }

@@ -42,7 +42,7 @@ trip through the app switcher loses nothing.
 | `GET /play/{sid}` | owner | The session |
 | `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
-| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}` |
+| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1 |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
 
@@ -54,9 +54,9 @@ Starting a game can answer:
 |---|---|
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
-| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core; otherwise `error` says why |
+| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. Otherwise `error` says why, such as this server having no graphics card for this game |
 | 422 | The file can't be used |
-| 503 | The server is running as many games as it allows, or its game runner is missing |
+| 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
 
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
 `POST /games/{id}/play` simply takes that long, which is fine as long as your HTTP client's timeout allows it. To show
@@ -72,6 +72,7 @@ It can answer 404, 409 and 422 the way play does. An unpack nobody has asked abo
 the screen needs nothing else.
 
 **The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes}`.
+**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, renderer, modes}`. `renderer` names the graphics card, for a game drawn on one.
 Show the picture at `aspect` (width over height), not at the video's own shape: the video is often
 doubled, and consoles' pixels often aren't square.
 
@@ -150,6 +151,21 @@ Send the whole state when anything changes, and again every 250 ms or so. A lost
 which is why the channel doesn't retransmit. Repeats don't count as playing. Release everything when your
 app goes to the background or a menu opens.
 
+## Touch screens
+
+A console whose `pad` has `"pointer": true` has a touch screen. Send its state as a 6-byte binary message, on the same
+channel as controller states:
+
+| Bytes | Field | Meaning |
+|---|---|---|
+| 0 | mark | Always 255, which a controller state never starts with |
+| 1 | flags | Bit 0: pressed |
+| 2-3 | X | i16, -32767 at the picture's left edge to 32767 at its right |
+| 4-5 | Y | i16, -32767 at the top to 32767 at the bottom |
+
+Positions are across the whole picture, whatever the screens' layout. Send it at once when anything changes, and
+every 250 ms or so while pressed. Send a release a few times, because a lost one would hold the stylus down.
+
 ## Events
 
 JSON text on the `events` data channel or the WebSocket. Ignore types you don't know.
@@ -162,6 +178,8 @@ JSON text on the `events` data channel or the WebSocket. Ignore types you don't 
 | `rotation` | `turns` | Rotate the picture by this many quarter turns |
 | `avinfo` | `width`, `height`, `aspect`, `fps`, `rate` | The game's timing changed |
 | `shutdown` | | The game ended itself: leave the player |
+| `ended` | `text` | The game stopped: it crashed, stopped responding, or was stopped from elsewhere. `text` says which, for showing to a person |
+| `disc` | `index`, `count` | The disc in the drive changed |
 
 ## The controller as data
 

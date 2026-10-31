@@ -417,3 +417,20 @@ export function ConsolePicker({ value, onChange }: { value: string; onChange: (i
     </label>
   )
 }
+
+// Where BIOS files go, shown wherever someone is choosing a games folder. Nothing
+// downloads one, so this is the only way people find out.
+export function BiosHint({ console: id }: { console: string }) {
+  const consoles = useConsoles()
+  const c = consoles.find((x) => x.id === id)
+  const required = c?.bios?.find((b) => b.required)
+  return (
+    <p className="muted game-bios-hint">
+      {required
+        ? <><b>{c!.name} games need a BIOS</b>: a file such as <code>{required.file}</code>, from a console you own.{' '}</>
+        : <>Some consoles need a BIOS file from a console you own.{' '}</>}
+      Put BIOS files in a folder named <code>BIOS</code> inside {c ? <>your {c.short} games folder</> : <>each console’s games folder</>}, such as <code>{c ? c.short : 'PS2'}/BIOS</code>.
+      Folders inside it are fine. It’s never listed as a game, and the server picks up what it needs when you press Play.
+    </p>
+  )
+}

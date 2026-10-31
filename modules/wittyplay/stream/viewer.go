@@ -86,6 +86,8 @@ func (s *Session) applyPauseLocked() {
 	b := byte(0)
 	if paused {
 		b = 1
+	} else if s.lastFrame.Load() != 0 {
+		s.lastFrame.Store(time.Now().UnixNano())
 	}
 	_ = s.command(ipc.CmdPause, []byte{b})
 }

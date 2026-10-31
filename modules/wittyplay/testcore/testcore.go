@@ -117,6 +117,15 @@ func (c *Core) draw(pad engine.PadState) {
 		c.rect(4+b*15, 4, 12, 8, on, 0x40)
 	}
 	c.rect(int(c.x), int(c.y), 16, 16, true, 0xff)
+	// A cross where the pointer is pressed, so a test can see that a touch arrived
+	// and at which place.
+	if c.h.Pointer != nil {
+		if p := c.h.Pointer(); p.Pressed {
+			x, y := (int(p.X)+32767)*Width/65535, (int(p.Y)+32767)*Height/65535
+			c.rect(max(x-6, 0), max(y-1, 0), 12, 3, true, 0xff)
+			c.rect(max(x-1, 0), max(y-6, 0), 3, 12, true, 0xff)
+		}
+	}
 }
 
 func (c *Core) rect(x, y, w, h int, on bool, off byte) {

@@ -59,7 +59,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 			return nil
 		}
 		c := ix.gameConsole(p, rel, console)
-		if c == "" {
+		if c == "" || wittyplay.IsBIOSFile(c, name) {
 			return nil
 		}
 		st, err := d.Info()

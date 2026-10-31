@@ -10,7 +10,7 @@ import './play.css'
 // and passes controllers along. Everything it needs from the app comes through
 // PlayHost, so the module works in any app that can provide one.
 
-export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; modes: { id: string }[] }
+export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; renderer?: string; turns?: number; disc?: number; discs?: number; modes: { id: string }[] }
 export type SaveSlot = { slot: number; updatedAt: number; size: number; hasThumb: boolean }
 export type PrepareStatus = { state: 'ready' | 'waiting' | 'reading' | 'unpacking'; done: number; total: number }
 
@@ -33,7 +33,7 @@ export interface PlayHost {
   close(): void // leave the player
 }
 
-type Panel = null | 'menu' | 'save' | 'load' | 'controllers' | 'connection' | 'touch'
+type Panel = null | 'menu' | 'save' | 'load' | 'controllers' | 'connection' | 'touch' | 'discs'
 
 const MODE_KEY = 'wittyplay.mode'
 const TOUCH_KEY = 'wittyplay.touch'
@@ -109,6 +109,15 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
     if (e.type === 'rumble') input.rumble(e.port || 0, e.strength || 0)
     else if (e.type === 'message' && e.text) say(e.text)
     else if (e.type === 'shutdown') { say('The game has ended'); leave() }
+    else if (e.type === 'ended') {
+      // The server said why, so a closing connection is no reason to try another.
+      closing.current = true
+      setStatus('')
+      setError(e.text || 'The game has stopped.')
+    } else if (e.type === 'geometry' || e.type === 'avinfo') {
+      if (e.width && e.height) setInfo((i) => i && ({ ...i, width: e.width!, height: e.height!, aspect: e.aspect || 0 }))
+    } else if (e.type === 'rotation') setInfo((i) => i && ({ ...i, turns: (e.turns || 0) & 3 }))
+    else if (e.type === 'disc') setInfo((i) => i && ({ ...i, disc: e.index, discs: e.count }))
   }, [input])
 
   // Tries each way of connecting in turn until one shows a picture. A later failure
@@ -271,13 +280,35 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
     else void (el?.requestFullscreen?.() || el?.webkitRequestFullscreen?.())
   }
   const tap = () => { transport?.unmute(); setNeedsTap(false) }
-  const aspect = info?.aspect && info.aspect > 0 ? info.aspect : info ? info.width / info.height : 4 / 3
+  const turned = ((info?.turns || 0) & 1) === 1
+  const shape = info?.aspect && info.aspect > 0 ? info.aspect : info ? info.width / info.height : 4 / 3
+  const aspect = turned ? 1 / shape : shape
   const onMask = useCallback((m: number) => input.setTouch(m), [input])
+
+  // A console's touch screen: a press on the picture is the stylus, wherever it
+  // came from. Positions are fractions of the picture, which is all the server wants.
+  const hasPointer = !!controls.pad?.pointer
+  const onPoint = useCallback((clientX: number, clientY: number, phase: 'down' | 'move' | 'up') => {
+    const r = stage.current?.getBoundingClientRect()
+    if (!r || r.width === 0 || r.height === 0) return
+    input.setPointer((clientX - r.left) / r.width, (clientY - r.top) / r.height, phase !== 'up')
+  }, [input])
+  const stylusDown = useRef(false)
+  const stageDown = (e: React.PointerEvent) => {
+    if (!hasPointer || paused) return
+    e.preventDefault()
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* fine */ }
+    stylusDown.current = true
+    onPoint(e.clientX, e.clientY, 'down')
+  }
+  const stageMove = (e: React.PointerEvent) => { if (stylusDown.current) onPoint(e.clientX, e.clientY, 'move') }
+  const stageUp = (e: React.PointerEvent) => { if (stylusDown.current) { stylusDown.current = false; onPoint(e.clientX, e.clientY, 'up') } }
 
   return (
     <div ref={root} className={`wp-root wp-${orientation}${touchOn ? ' wp-with-touch' : ''}${paused ? '' : ' wp-playing'}`}>
       <div className="wp-video-area">
-        <div ref={stage} className="wp-stage" style={{ aspectRatio: String(aspect) }} />
+        <div ref={stage} className={`wp-stage wp-turn-${(info?.turns || 0) & 3}` + (hasPointer ? ' wp-has-pointer' : '')} style={{ aspectRatio: String(aspect) }}
+          onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} />
         {status && !error && <div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />{status}</div>}
         {error && (
           <div className="wp-error" role="alert">
@@ -287,7 +318,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         )}
       </div>
 
-      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} />}
+      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} onPoint={hasPointer ? onPoint : undefined} />}
 
       {needsTap && !paused && <button type="button" className="wp-tap" onClick={tap}>Tap for sound</button>}
 
@@ -295,7 +326,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
 
       {showStats && (
         <div className="wp-stats" aria-hidden="true">
-          {transport && <b>{transport.kind}</b>} {info?.encoder && <span>{info.encoder}</span>}
+          {transport && <b>{transport.kind}</b>} {info?.encoder && <span>{info.encoder}</span>} {info?.renderer && <span>{info.renderer}</span>}
           {stats.codec && <span>{stats.codec}</span>}
           {stats.fps != null && <span>{stats.fps} fps</span>}
           {stats.kbps != null && <span>{stats.kbps} kbps</span>}
@@ -323,6 +354,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
                   <button type="button" className="wp-btn" onClick={() => press(SELECT)}>Press Select</button>
                   <button type="button" className="wp-btn" onClick={() => setPanel('save')}>Save state…</button>
                   <button type="button" className="wp-btn" onClick={() => setPanel('load')}>Load state…</button>
+                  {(info?.discs || 0) > 1 && <button type="button" className="wp-btn" onClick={() => setPanel('discs')}>Change disc…</button>}
                   <button type="button" className="wp-btn" onClick={() => setPanel('controllers')}>Controllers…</button>
                   {!tv && <button type="button" className="wp-btn" onClick={() => setPanel('touch')}>Edit touch controls…</button>}
                   {!tv && <label className="wp-check"><input type="checkbox" checked={touchOn} onChange={toggleTouch} /> Show touch controls</label>}
@@ -335,6 +367,20 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
               </>
             )}
             {(panel === 'save' || panel === 'load') && <SlotsPanel host={host} kind={panel} session={sessionRef.current} say={say} onDone={(closed) => setPanel(closed ? null : 'menu')} />}
+            {panel === 'discs' && (
+              <>
+                <h2>Change disc</h2>
+                <nav className="wp-menu-list" aria-label="Discs">
+                  {Array.from({ length: info?.discs || 0 }, (_, n) => (
+                    <button key={n} type="button" className={`wp-btn${n === (info?.disc || 0) ? ' primary' : ''}`} onClick={() => {
+                      const s = sessionRef.current
+                      if (s) void host.action(s.id, 'disc', n).then(() => { say(`Disc ${n + 1}`); setPanel(null) }, (e: any) => say(e?.message || 'That didn’t work'))
+                    }}>Disc {n + 1}{n === (info?.disc || 0) ? ' (in the drive)' : ''}</button>
+                  ))}
+                </nav>
+                <div className="wp-row"><span className="wp-grow" /><button type="button" className="wp-btn" onClick={() => setPanel('menu')}>Back</button></div>
+              </>
+            )}
             {panel === 'controllers' && (
               <>
                 <h2>Controllers</h2>
@@ -363,7 +409,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   )
 }
 
-const panelTitle = (p: Panel, title: string) => ({ menu: title, save: 'Save state', load: 'Load state', controllers: 'Controllers', connection: 'Connection', touch: 'Touch controls' } as Record<string, string>)[p as string]
+const panelTitle = (p: Panel, title: string) => ({ menu: title, save: 'Save state', load: 'Load state', controllers: 'Controllers', connection: 'Connection', touch: 'Touch controls', discs: 'Change disc' } as Record<string, string>)[p as string]
 
 function SlotsPanel({ host, kind, session, say, onDone }: { host: PlayHost; kind: 'save' | 'load'; session: SessionInfo | null; say: (t: string) => void; onDone: (closed: boolean) => void }) {
   const [slots, setSlots] = useState<SaveSlot[] | null>(null)

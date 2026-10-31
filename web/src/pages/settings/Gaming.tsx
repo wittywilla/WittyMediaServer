@@ -11,7 +11,7 @@ import { PageHead, Section } from './ui'
 
 type Status = {
   runner: string; encoders: string[]; consoles: GameConsole[]; cores: GameCore[]; canDownload: boolean
-  coresDir: string; systemDir: string; running: number; unpackedBytes?: number
+  coresDir: string; systemDir: string; running: number; unpackedBytes?: number; biosFolder: string; gpu?: { name?: string; error?: string }
 }
 
 export default function GamingSettings() {
@@ -59,10 +59,12 @@ export default function GamingSettings() {
         <dl className="gaming-facts">
           <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see the gaming guide).</span></>}</dd>
           <dt>Encoders</dt><dd>{st.encoders.join(', ') || 'None found'}</dd>
+          <dt>Graphics card</dt><dd>{st.gpu?.name || <><b>None this server can use</b><br /><span className="muted">{st.gpu?.error ? `${st.gpu.error}. ` : ''}Consoles that draw with a graphics card won’t start. Older consoles still play.</span></>}</dd>
           <dt>Games running</dt><dd>{st.running}</dd>
           <dt>Cores folder</dt><dd><code>{st.coresDir}</code></dd>
           <dt>BIOS folder</dt><dd><code>{st.systemDir}</code></dd>
         </dl>
+        <p className="muted gaming-bios">Where BIOS files go: the easy way is a folder named <code>{st.biosFolder}</code> inside a console’s games folder, such as <code>PS2/{st.biosFolder}</code>. Folders inside it are fine, it’s never listed as a game, and the server copies what it needs to the BIOS folder above when you press Play. You can also put files straight into that folder: a PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it. BIOS files are never downloaded for you.</p>
       </Section>
       <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own.">
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
@@ -71,6 +73,7 @@ export default function GamingSettings() {
             <article key={c.id} className="gaming-console">
               <h3>{c.name}</h3>
               {c.unavailable && <p className="muted">{c.unavailable}</p>}
+              {c.needsGpu && <p className="muted">Needs a graphics card on this server.</p>}
               {!c.unavailable && c.cores.length > 0 && (
                 <ul>
                   {c.cores.map((core, i) => {
@@ -89,7 +92,7 @@ export default function GamingSettings() {
                 </ul>
               )}
               {c.bios && c.bios.length > 0 && (
-                <p className="muted gaming-bios">BIOS files some games use, which you supply: {c.bios.map((b) => <span key={b.file}><code>{b.file}</code> ({b.for}) </span>)}</p>
+                <p className="muted gaming-bios">{c.bios.some((b) => b.required) ? 'BIOS files this console needs, which you supply: ' : 'BIOS files some games use, which you supply: '}{c.bios.map((b) => <span key={b.file}><code>{b.file}</code> ({b.for}) </span>)}Put them in a <code>{st.biosFolder}</code> folder beside the games.</p>
               )}
             </article>
           ))}
@@ -109,6 +112,20 @@ export default function GamingSettings() {
             <label>Games at once
               <input className="input" type="number" min={1} max={16} defaultValue={settings.gamingMaxSessions || '2'} onBlur={(e) => put({ gamingMaxSessions: e.target.value })} />
               <small className="muted">Each game takes one CPU core or more. Two is a safe start.</small>
+            </label>
+            <label>Games on the graphics card at once
+              <input className="input" type="number" min={1} max={16} defaultValue={settings.gamingMaxGpuSessions || '2'} onBlur={(e) => put({ gamingMaxGpuSessions: e.target.value })} />
+              <small className="muted">For consoles that draw with a graphics card. More games share it, so each one has less.</small>
+            </label>
+            <label>Internal resolution
+              <select className="select" value={settings.gamingResolution || ''} onChange={(e) => put({ gamingResolution: e.target.value })}>
+                <option value="">Automatic (twice native on most consoles)</option>
+                <option value="1">Native: fastest, works on any graphics card</option>
+                <option value="2">2×</option>
+                <option value="3">3×</option>
+                <option value="4">4×: sharpest, needs a fast card</option>
+              </select>
+              <small className="muted">How sharply hardware-rendered games are drawn. Applies the next time a game starts.</small>
             </label>
             <label>Picture quality
               <select className="select" value={settings.gamingQuality || ''} onChange={(e) => put({ gamingQuality: e.target.value })}>

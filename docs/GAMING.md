@@ -43,7 +43,8 @@ Three kinds of process, each doing one job:
 1. **`wittyplay-host`**: our own small libretro frontend, written in Go with no cgo. It loads a
    core, runs it one frame at a time and writes raw frames and audio to its stdout. It reads
    input and commands on stdin. It holds no network connection and no database. A crash or an
-   exploited core takes down one game, not the server.
+   exploited core takes down one game, not the server. Cores print to stdout too, so the runner
+   moves the pipe to a handle of its own before it loads one.
 2. **FFmpeg**: already part of every install. Video and audio each get their own process, so the
    hardware encoder detection the transcoder uses works here too.
 3. **`wms`**: holds the WebRTC connections and writes save files. It never loads a core.
@@ -58,16 +59,17 @@ program: length-prefixed messages over a pipe (`modules/wittyplay/ipc`). Two pro
 | What it is | Our own small libretro frontend | RetroArch with a mode that speaks the protocol |
 | Licence | Apache-2.0 | GPLv3, a separate program |
 | Software-rendered cores | Yes | Yes |
-| Hardware-rendered cores (N64, PSP, Dreamcast) | No | Yes: this is why it would exist |
-| Server with no GPU | Yes | For software-rendered cores |
-| Size and upkeep | About a thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
+| Hardware-rendered cores (N64, PS2, PSP, Dreamcast, 3DS) | Yes, with OpenGL | Yes |
+| Server with no GPU | Yes, for software-rendered cores | For software-rendered cores |
+| Size and upkeep | A few thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
 
 The server uses WittyRetroArch when it finds one, and the built-in runner otherwise. An admin can choose
 in Settings, Gaming.
 
 Unmodified RetroArch can't fill this role: its only way to hand frames to another program is its
 recording feature, which muxes and adds several frames of delay, and it needs a display or careful
-configuration on a headless server. So a fork is what makes it usable here.
+configuration on a headless server. So a fork is what makes it usable here. The built-in runner now does
+what the fork was going to be for, so the fork is no longer needed for any console.
 
 Pipes are also what makes the licences work. **[WITTYRETROARCH.md](WITTYRETROARCH.md) explains how GPL
 code and the Apache binaries stay compatible**, what the fork has to do, and what the protocol is.
@@ -81,6 +83,112 @@ A cgo frontend would need a C toolchain for every platform in the release matrix
 callbacks. It is linked **only** into `wittyplay-host`, because on Linux it changes how the
 runtime starts threads and makes the binary depend on the system's libc. The server stays the
 static binary it has always been.
+
+## Consoles that draw with a graphics card
+
+Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the
+server's graphics card renders the game and the result is streamed like any other frame.
+
+**The choice: OpenGL in the built-in runner, using the system's own libraries through purego.** It needs no
+C compiler, no second program, no GPL code, and stays one small binary per platform. Every core we offer
+for these consoles can use OpenGL. A runner built on RetroArch would give nothing more for any of them and
+would cost a C codebase to build for every platform. Vulkan isn't built: no core we offer needs it, and the
+one thing it would add, choosing a card directly on a two-GPU machine, is already solved for NVIDIA below.
+Cores are told OpenGL is what's preferred, and those that can also draw with Vulkan or Direct3D use it.
+
+```
+ core ── draws into ──► framebuffer we made ── glReadPixels ──► pixel buffer ── fence ──► frame
+                        (colour + depth/stencil)                (no stall)                to the server
+```
+
+- **The context** is a hidden window with WGL on Windows, which nothing ever shows, and EGL with no display on
+  Linux. On Linux every card is an EGL device, so the runner takes the first that isn't drawn by the CPU,
+  preferring anything to integrated Intel. Under WSL it goes through `/dev/dxg` and Mesa's D3D12 driver.
+- **Reading frames back** doesn't stall the game. The copy is queued behind the frame's own drawing, and the
+  runner only waits for that drawing to finish, after the core has returned. OpenGL's rows are bottom-up, so
+  they are flipped once, on the copy that goes down the pipe.
+- **Encoding:** a game on the graphics card uses whichever hardware encoder works here, whatever the
+  transcoder's setting says, because its frames are large and its card is awake. NVENC takes the frame as it
+  is and converts its colours on the card, and it's told not to keep a queue of finished frames (`-delay 0`).
+  Only a frame that needs doubling goes through FFmpeg's scaler.
+- **Internal resolution** is a setting in Settings, Gaming: Automatic, or 1x to 4x. Automatic is 2x on
+  Nintendo 64, PlayStation, PlayStation 2, PSP and Dreamcast, and native on 3DS. The per-core options are in
+  `modules/wittyplay/traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+- **How many at once:** two by default, set in Settings, Gaming. Past that, starting another says the card is
+  full. Software-rendered games don't count.
+- **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU
+  (`llvmpipe`, Microsoft's GDI renderer) doesn't count: it works, far too slowly to play. Settings, Gaming names
+  the card in use, or says why there is none.
+
+### What it costs
+
+Measured on one laptop with an RTX 3070 and an 8-core CPU, through the whole path (sandboxed runner, NVENC, WebRTC to
+a browser) while other work was keeping the CPU busy, so these are on the cautious side:
+
+| Game | Picture | Frames a second | Encoder delay | Graphics card | CPU |
+|---|---|---|---|---|---|
+| Nintendo 64, Mupen64Plus-Next | 1280x960 | 59 | 28 ms | 24%, encoder 11% | 0.3 of a thread, and 0.25 for the server |
+| PlayStation 2, LRPS2 | 1024x832 to 1280x896 | 42, with the CPU fully taken by other work | 34 ms | 23%, encoder 5% | 1.1 threads |
+
+On its own, NVENC's part is 22 ms at 1280x960, of which FFmpeg's command line holds one frame (17 ms at 60 frames a
+second). It was 53 ms before `-delay 0`. The runner runs at below-normal priority so a game never starves a film, which
+means a server with its CPU fully taken by other work will slow a game right down: to 4 frames a second, in one test.
+
+Five minutes each of Nintendo 64 and PlayStation 2, running at once, gave no crash and no fault.
+
+### Two graphics cards
+
+On a laptop with Intel and NVIDIA, Windows hands OpenGL to the card driving the display, usually the slow one.
+The runner sets `SHIM_MCCOMPAT=0x800000001` in its own process before OpenGL loads, which NVIDIA's driver reads
+as "use the discrete card". No system setting changes and nothing needs clicking. Settings, Gaming shows
+which card was chosen.
+
+That variable is NVIDIA's. On a laptop with an AMD discrete card and integrated graphics, Windows may pick the
+integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-host.exe`,
+choose Options, then High performance.
+
+### What the sandbox opens for a graphics driver
+
+Only games on a core marked as drawing with a graphics card get these (the `-gpu` flag), and a software-rendered
+game's sandbox is as it was. A core the table doesn't know gets them too, since nothing says it doesn't need them.
+
+| Platform | What changes | Why |
+|---|---|---|
+| Linux | Landlock also allows writing to `/dev/dri`, `/dev/dxg`, `/dev/kfd` and `/dev/nvidia*`, and nothing else | Opening these read-write is how every driver talks to its card |
+| Linux | The address-space limit is dropped; the limit on memory actually written to stays, at 8 GB | Drivers map far more addresses than a machine has memory |
+| Windows | The job's memory limit is 8 GB, not 2 GB | Graphics drivers and the larger emulators commit a lot |
+
+Everything else stays: Linux's namespaces, `no_new_privs` and the seccomp filter, and Windows's job object, which
+kills the runner with the server and forbids child processes, and its low-integrity token. The low-integrity
+token needed no change: drivers are read from where they're installed, and graphics devices aren't blocked by it.
+
+What a sandbox can't cover: a graphics driver is a large body of code running inside the process, talking to
+the kernel through interfaces built for speed. A core taken over by a bad ROM can reach the same driver and kernel
+surface a game can. That's unavoidable for hardware rendering and is why these games have the limit above and
+stay opt-in by core. Treat a server with a GPU as a machine where a hostile ROM has more to work with.
+
+**Running as a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there.
+Settings, Gaming will say there's no usable card. Run the server in a signed-in session to play these consoles.
+
+**Containers:** pass the card in, with `--device /dev/dri` for Intel and AMD, or `--gpus all` for NVIDIA.
+
+### Cores that keep their own stacks
+
+Several cores run the game on stacks they allocate themselves, and call back from there. The Go runtime refuses a
+callback on a foreign stack on a thread it created, so on Linux the runner hosts the core on a thread it
+didn't: `libretro.OnCoreThread`.
+
+## Touch screens
+
+Nintendo DS and 3DS games are played on a touch screen. A press on the picture is the stylus, with a mouse or a
+finger, and sends a position as fractions of the picture (`docs/GAMING-API.md`). The cores get it as libretro's
+pointer device, and work out which screen it fell on. With on-screen controls showing, a finger on a button
+presses the button and a finger anywhere else is the stylus.
+
+DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one.
+
+**3DS games must be decrypted.** These cores can't read encrypted game files, and nothing here will decrypt them.
+A dump made with your own console's tools in decrypted form is what they want.
 
 ## Why WebRTC, and what happens when it can't connect
 
@@ -216,6 +324,9 @@ this through `GET /games/{id}/metadata`: see [CLIENT-API.md](CLIENT-API.md#game-
 
 ## Saves, states and resume
 
+A state that arrives before the first frame waits for two frames that nobody sees. Some cores accept one
+earlier and then start the game from the beginning anyway.
+
 Everything is stored per account under the data folder:
 
 ```
@@ -279,10 +390,13 @@ Treat a ROM as hostile and a core as buggy:
   from the server's own list.
 - **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter
   refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder; memory and
-  file-size rlimits; lower priority; killed when the server dies.
+  file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve
+  far more than they use (one holding 30 MB had reserved 1.9 GB); lower priority; killed when the server dies.
 - **Windows:** a job object that kills it with the server, limits memory and forbids child
   processes, plus a low-integrity token so it can only write to its save folder; below-normal
   priority.
+- **Games on a graphics card** open a little more: see
+  [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
 - **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits.
 - **FreeBSD and others:** rlimits and priority only. Docs say so plainly.
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
@@ -346,6 +460,34 @@ shown, as that's their own copy and their own decision.
 **ROMs and BIOS files are never bundled, downloaded or linked.** The console page lists the BIOS
 file names a core expects, so you can supply your own.
 
+### Where BIOS files go
+
+Put them in a folder named `BIOS` inside a console's games folder. Any capitalisation works, and so do folders
+inside it:
+
+```
+Games/
+  Playstation 2 (PS2)/
+    Some Game.iso
+    BIOS/
+      SCPH-39001/
+        SCPH-39001_BIOS_V7_USA_160.BIN
+        SCPH-39001_BIOS_V7_USA_160.NVM
+```
+
+The folder is never listed as games. When someone presses Play, the server looks in a `BIOS` folder beside the
+game and one level up, and copies what the core wants to its own system folder (shown in Settings, Gaming),
+leaving your copies alone. You can also put files straight in the system folder: a PlayStation 2 BIOS goes in
+`pcsx2/bios` inside it.
+
+**Satellaview games in `.bs` files** need the receiver's cartridge, named `BS-X.bin`, and only play on Mesen-S, which
+opens on the receiver's own screens. Satellaview games dumped like cartridges need nothing.
+
+**PlayStation 2 needs one** on LRPS2, the recommended core, and any region runs any game. With a whole set, the
+server picks a late first-generation US model, then any US model, then European. Without one, the game falls
+back to Play!, which needs no BIOS and runs fewer games. If only LRPS2 is installed the player says what's missing
+and where to put it.
+
 ### Which cores are offered
 
 Licences are from the [libretro core-info](https://github.com/libretro/libretro-core-info) files
@@ -359,13 +501,123 @@ Licences are from the [libretro core-info](https://github.com/libretro/libretro-
 | Game Boy Advance | mgba, vba_next | MPL-2.0, GPLv2 |
 | Mega Drive / Genesis | blastem, clownmdemu | GPLv3, AGPLv3 |
 | Master System, Game Gear | gearsystem, smsplus | GPLv3, GPLv2 |
-| PlayStation | pcsx_rearmed, mednafen_psx | GPLv2 |
+| PlayStation | pcsx_rearmed, mednafen_psx, swanstation\*, mednafen_psx_hw\* | GPLv2, GPLv2, GPLv3, GPLv2 |
+| Nintendo 64 | mupen64plus_next\*, parallel_n64\* | GPLv2 |
+| PlayStation 2 | pcsx2 (LRPS2)\*, play\* | GPLv3, MIT |
+| PSP | ppsspp\* | GPLv2 |
+| Dreamcast | flycast\* | GPLv2 |
+| Nintendo DS | melonds, desmume | GPLv3, GPLv2 |
+| Nintendo 3DS | azahar\*, panda3ds\* | GPLv2+, GPLv3 |
 | PC Engine / TurboGrafx-16 | mednafen_pce_fast | GPLv2 |
 | Atari 2600, 7800, Lynx | stella2014, prosystem, handy | GPLv2, GPLv2, zlib |
 | WonderSwan, Neo Geo Pocket, Virtual Boy | mednafen_wswan, mednafen_ngp, mednafen_vb | GPLv2 |
 
-**Listed but not playable yet** because they need hardware rendering: Nintendo 64, PSP, Dreamcast.
-Nintendo DS needs a pointer input for its touch screen, which comes after the first release.
+If a game won't load on the chosen core, the other installed cores for that console are tried in turn. Some cores
+start with settings other than their own defaults, where those don't suit streaming (`coreoptions.go`).
+
+\* Draws with a graphics card. Every one of these exists on the build server for Windows and Linux amd64, checked
+on 2026-10-31. LRPS2 and PPSSPP also need support files, which the install fetches from the same host.
+
+## Testing with real games
+
+`cmd/wittyplay-check` in `modules/wittyplay` plays real games with no browser. It starts the real runner
+with its sandbox on, exactly as a game session does (`stream.StartRunner`), loads each game on a real core,
+and records what happened.
+
+```
+cd modules/wittyplay
+go build -o /some/folder/ ./cmd/wittyplay-check ./cmd/wittyplay-host
+/some/folder/wittyplay-check -console nes -cores-dir /some/cores -install -out /some/report -jobs 8 /path/to/nes/games
+```
+
+For each game on each core it:
+
+1. Loads it, and records how long that took and anything the core complained about.
+2. Plays a set number of frames, pressing buttons to get past title screens, and on a console with a touch screen,
+   tapping it too.
+3. Saves a state, records what follows, goes back and checks the same pictures come again. Then it replays
+   with buttons held, and a different picture proves input reached the game.
+4. Quits the way the server does, with a save, and checks the process ended cleanly.
+5. Starts a new process and restores the battery save and state the way a session does. The pictures must
+   match, which is what proves a resume really resumes.
+6. On a game with several discs, changes disc and back.
+
+`-quick` stops after step 2, for sweeping a large collection.
+
+A crash, hang or failure in one game only ends that game's check. The result is `ok`, `load-failed`, `crash`,
+`hang`, `blank` (only ever one colour), `frozen` (never changes), `shut-itself-down`, `skipped`, `refused` (an
+encrypted game, which nothing will try to open) or `too-slow-to-judge` (a busy machine couldn't run enough frames;
+`-continue` tries those again). Warnings say what else looked wrong: `slow`, `silent`, `no-audio`, `audio-rate`,
+`no-states`, `state-inexact`, `state-load-failed`, `no-input-effect`, `one-screen-blank`, `resume-*`, `quit-*`,
+`disc-change-failed`.
+
+The report folder has `summary.txt`, `results.jsonl` with every number per game, each game's last picture, and
+`sheets/`, pages of pictures to look over, because wrong colours and garbled pictures are things only eyes catch. The
+tool refuses a report folder inside a git checkout, as the report names your games, and its terminal output uses
+numbers only.
+
+| Flag | What it does |
+|---|---|
+| `-console` | A console id such as `nes`, or `all` with `-install` or `-smoke` |
+| `-core` | One core id, a path to a core file, or `all` (the default) for every core offered |
+| `-cores-dir` | The folder of cores. `-install` fills it with the app's own installer |
+| `-smoke` | With no games: every core must open in the sandboxed runner and cope with a file of junk |
+| `-jobs` | Games at once. Each one's sandbox is its own |
+| `-seconds` | How much of each game to play, in game time. A busy machine takes longer, up to four times this |
+| `-limit`, `-every` | Test only some of the games |
+| `-quick` | Only load and play |
+| `-shots` | Whether to keep pictures and make the sheets |
+| `-trace` | Writes everything each core says, every option, and every environment call it was refused, to `trace-*.log`, plus pictures around each restore |
+| `-system`, `-options`, `-memory-mb`, `-7z` | The BIOS folder, core options, the memory limit, and a 7-Zip program for `.7z` games |
+| `-load-timeout`, `-hang` | How long a load may take, and how long with no new frame counts as a hang |
+| `-continue` | Carries on a stopped run |
+
+`.zip` games are unpacked by the tool, and `.7z` needs a 7-Zip program. Point it at unpacked copies otherwise.
+
+Read speed and hangs only on a quiet machine: the runner has low priority on purpose, and the first time a new build
+of it starts it can stall for many seconds. CPU numbers from Windows are too low for games that do little per frame, as
+Windows counts a process's time in ticks. Linux's are the ones to believe.
+
+### What has been tried
+
+Run on 2026-10-31 on Windows, with the same cores checked on Linux where the table says so. "OK" means it loaded, drew
+a changing picture and quit cleanly. NES, SNES and PlayStation had full-speed runs on a quiet machine, and the speeds
+below come from those.
+
+| Console | What was played | Result |
+|---|---|---|
+| NES | 318 real games on all 3 cores | fceumm 311 OK, Nestopia 314, Mesen 318. Every game plays on some core. fceumm runs at 100% speed, peak 25 MB |
+| SNES | 1,861 real games, one dump of each, on Supafaust | 1,818 OK at 100% speed, peak 49 MB, no crashes or hangs. A sample of 187 with the full checks: 182 OK, and every state and resume in them good |
+| SNES, others | The same 187 on Mesen-S; all 1,861 on bsnes | Mesen-S 180 OK. bsnes 1,642 OK on a busy machine. It wouldn't load 32, mostly games with chips whose firmware it wants, and 28 of those play on Supafaust |
+| PlayStation | 1 loose game and 1 three-disc game | OK on PCSX ReARMed and Beetle PSX, with disc changes, resume and battery saves. PCSX ReARMed at 95% speed |
+| Nintendo DS | 1 real game | OK on melonDS and DeSmuME, both screens counted, with states and resume. Speed not measured on a quiet machine |
+| PSP | 1 real game | OK on PPSSPP, though a resumed picture doesn't quite match. Speed not measured on a quiet machine |
+| 3DS | 1 real game, encrypted | Refused with a plain message, as it should be. No 3DS game has been played |
+| Game Boy, GBA | 6 and 3 homebrew or test ROMs | OK on all cores. The GBA ROMs have no sound, so GBA audio is unproven |
+| Mega Drive, Master System, Game Gear | 3, 3 and 1 homebrew ROMs | OK on all cores. ClownMDEmu's resume doesn't match on any of the 3; BlastEm, the default, is fine |
+| PC Engine, Atari 2600, Virtual Boy, WonderSwan, Neo Geo Pocket | 3, 3, 3, 2 and 1 homebrew ROMs | OK on all cores |
+| Lynx | 20 homebrew or test ROMs | 16 OK. The other 4 are test ROMs that draw one colour. All are silent |
+| Atari 7800 | No game with a clear licence was found | Only that the core installs and opens |
+
+Every core offered installs and opens in the sandbox, on Windows, on Linux and in the container image: 27 of 27 at the
+time of that run. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter.
+
+In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264
+and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting,
+and clean exits when the server or the runner is killed.
+
+**The SNES games that stay blank on Supafaust**, 43 of them:
+
+- 7 play on another core.
+- 13 are Satellaview dumps. 31 of the 45 in the set play on Supafaust as they are; 2 of those that don't play on Mesen-S
+  with `BS-X.bin`.
+- 7 are Sufami Turbo cartridges and 2 are data packs, which all need a base cartridge plugged in.
+- 6 aren't games: start-up programs of copiers and cheat devices.
+- 8 others. Some use chips whose firmware the cores want, and none was available to test with.
+
+These ran for 25 seconds on all three cores, so they aren't merely slow starters. About one in five games made no sound
+in the first few seconds, with Supafaust and Mesen-S agreeing on 40 of the sample's 45, and that is usually a quiet title screen.
+Most games ignore the buttons in those seconds too, which is why `no-input-effect` is so common.
 
 ## Limits today
 
@@ -374,6 +626,15 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 - **Software-rendered cores only** with the built-in runner.
 - **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has
   not been tested end to end yet.
+- **A blank picture isn't noticed.** If a core won't load a game, the next is tried. If it loads and draws one colour, it
+  stays there. 4 NES games on fceumm and 7 SNES games on Supafaust do this and play on another core, which an admin can
+  pick in Settings, Gaming.
+- **Few games on some consoles.** Only NES, SNES, PlayStation, DS and PSP have been tried with real games, and only NES
+  and SNES with many. See "What has been tried".
+- **Container image:** about 800 MB, up from about 150 MB, as cores from the build server need Debian's C library rather
+  than Alpine's. Most of the size is Debian's FFmpeg, and the release's static FFmpeg could replace it.
+- **OpenGL only** with the built-in runner: see above for why. melonDS's own OpenGL mode produces no frames here,
+  so DS games draw in software at native resolution.
 - **No bandwidth adaptation yet:** the bitrate is a setting (Auto, Data saver, High), not a live
   response to the network.
 - **No netplay yet.** Several players means several controllers on one device.

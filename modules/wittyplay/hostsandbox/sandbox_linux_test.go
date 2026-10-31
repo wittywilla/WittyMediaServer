@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -48,3 +49,71 @@ func landlockAvailable() bool {
 	v, _, e := unix.Syscall(sysLandlockCreateRuleset, 0, 0, 1)
 	return e == 0 && v > 0
 }
+
+// Real cores hold little and reserve a lot. Reservations must fit, and memory
+// actually used must hit the limit.
+func TestMemoryLimitCountsUseNotReservations(t *testing.T) {
+	if os.Getenv("WITTYPLAY_MEMORY_CHILD") == "1" {
+		const limitMB = 256
+		if err := Apply(Limits{MemoryMB: limitMB}); err != nil {
+			t.Logf("some layers are unavailable: %v", err)
+		}
+		reserve, err := unix.Mmap(-1, 0, 1<<30, unix.PROT_NONE, unix.MAP_ANON|unix.MAP_PRIVATE)
+		if err != nil {
+			t.Fatalf("reserving 1 GB of nothing under a %d MB limit: %v", limitMB, err)
+		}
+		_ = unix.Munmap(reserve)
+		if b, err := unix.Mmap(-1, 0, (limitMB+64)<<20, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE); err == nil {
+			_ = unix.Munmap(b)
+			t.Fatal("writable memory over the limit should be refused")
+		}
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestMemoryLimitCountsUseNotReservations", "-test.v")
+	cmd.Env = append(os.Environ(), "WITTYPLAY_MEMORY_CHILD=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+}
+
+// The filter must hold on threads that were already running when it went on, as a
+// core might end up on any of them.
+func TestFilterCoversThreadsAlreadyRunning(t *testing.T) {
+	if os.Getenv("WITTYPLAY_THREADS_CHILD") == "1" {
+		probe := make(chan func() error)
+		go func() {
+			runtime.LockOSThread() // this thread is running before the sandbox goes on
+			for f := range probe {
+				res <- f()
+			}
+		}()
+		check := func() error {
+			fd, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, 0)
+			if err == nil {
+				_ = unix.Close(fd)
+			}
+			return err
+		}
+		probe <- check
+		if err := <-res; err != nil {
+			t.Skipf("sockets don't work here even before the sandbox: %v", err)
+		}
+		if err := Apply(Limits{}); err != nil {
+			t.Logf("some layers are unavailable: %v", err)
+		}
+		probe <- check
+		if err := <-res; !errors.Is(err, unix.EPERM) {
+			t.Fatalf("on a thread started earlier, socket: got %v, want EPERM", err)
+		}
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestFilterCoversThreadsAlreadyRunning", "-test.v")
+	cmd.Env = append(os.Environ(), "WITTYPLAY_THREADS_CHILD=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+}
+
+var res = make(chan error)

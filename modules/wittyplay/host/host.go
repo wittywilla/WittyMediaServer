@@ -40,13 +40,16 @@ type runner struct {
 	out    io.Writer
 	writeE error
 
-	mu    sync.Mutex
-	input [engine.MaxPorts]engine.PadState
-	snap  [engine.MaxPorts]engine.PadState
+	pads pads
+
+	pointMu sync.Mutex
+	point   engine.PointerState
 
 	audio []byte
 	video []byte
 	stop  bool
+	fps   float64 // a new frame rate the game has asked for
+	muted bool    // these frames are only to get a core ready, and nobody should see them
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
@@ -64,7 +67,7 @@ func (r *runner) handlers() engine.Handlers {
 	return engine.Handlers{
 		Video: func(data []byte, w, h, stride, format int) {
 			row := w * engine.BytesPerPixel(format)
-			if w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
 				return
 			}
 			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
@@ -73,17 +76,32 @@ func (r *runner) handlers() engine.Handlers {
 			}
 			r.write(ipc.MsgVideo, r.video)
 		},
-		Dupe: func() { r.write(ipc.MsgDupe) },
+		VideoFlipped: func(data []byte, w, h, stride, format int) {
+			row := w * engine.BytesPerPixel(format)
+			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+				return
+			}
+			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
+			for y := h - 1; y >= 0; y-- {
+				r.video = append(r.video, data[y*stride:y*stride+row]...)
+			}
+			r.write(ipc.MsgVideo, r.video)
+		},
+		Dupe: func() {
+			if !r.muted {
+				r.write(ipc.MsgDupe)
+			}
+		},
 		Audio: func(s []int16) {
 			for _, v := range s {
 				r.audio = binary.LittleEndian.AppendUint16(r.audio, uint16(v))
 			}
 		},
-		Input: func() *[engine.MaxPorts]engine.PadState {
-			r.mu.Lock()
-			r.snap = r.input
-			r.mu.Unlock()
-			return &r.snap
+		Input: r.pads.poll,
+		Pointer: func() engine.PointerState {
+			r.pointMu.Lock()
+			defer r.pointMu.Unlock()
+			return r.point
 		},
 		Rumble: func(port, effect, strength int) {
 			r.event(ipc.Event{Type: "rumble", Port: port, Effect: effect, Strength: strength})
@@ -99,6 +117,7 @@ func (r *runner) handlers() engine.Handlers {
 		},
 		Rotation: func(n int) { r.event(ipc.Event{Type: "rotation", Turns: n}) },
 		AVInfo: func(a engine.AVInfo) {
+			r.fps = a.FPS
 			r.event(ipc.Event{Type: "avinfo", Width: a.BaseWidth, Height: a.BaseHeight, Aspect: a.Aspect, FPS: a.FPS, Rate: a.SampleRate})
 		},
 		Shutdown: func() { r.event(ipc.Event{Type: "shutdown"}); r.stop = true },
@@ -125,9 +144,15 @@ func (r *runner) run(in io.Reader, open Open) error {
 			if t == ipc.CmdInput {
 				// Input skips the queue: the newest state is all that matters.
 				if port, b, lx, ly, rx, ry, ok := ipc.ParseInput(p); ok && port < engine.MaxPorts {
-					r.mu.Lock()
-					r.input[port] = engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry}
-					r.mu.Unlock()
+					r.pads.set(port, engine.PadState{Buttons: b, LX: lx, LY: ly, RX: rx, RY: ry})
+				}
+				continue
+			}
+			if t == ipc.CmdPointer {
+				if x, y, pressed, ok := ipc.ParsePointer(p); ok {
+					r.pointMu.Lock()
+					r.point = engine.PointerState{X: x, Y: y, Pressed: pressed}
+					r.pointMu.Unlock()
 				}
 				continue
 			}
@@ -148,7 +173,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 	if err := json.Unmarshal(first.p, &load); err != nil {
 		return err
 	}
-	eng, err := open(load, r.handlers())
+	h := r.handlers()
+	if load.Trace {
+		h.Trace = func(text string) { r.event(ipc.Event{Type: "trace", Text: text}) }
+	}
+	eng, err := open(load, h)
 	if err != nil {
 		return err
 	}
@@ -161,14 +190,41 @@ func (r *runner) run(in io.Reader, open Open) error {
 		av.FPS = 60
 	}
 	info := eng.SystemInfo()
-	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate})
+	renderer := ""
+	if hw, ok := eng.(interface{ Renderer() string }); ok {
+		renderer = hw.Renderer()
+	}
+	discs, _ := eng.(engine.Discs)
+	disc, discCount := 0, 0
+	if discs != nil {
+		disc, discCount = discs.Disc()
+	}
+	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Disc: disc, Discs: discCount, Renderer: renderer})
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
 	next := time.Now()
+	// A state can't always be restored before a core has run. Some cores say so, some
+	// refuse, and some accept it and then start the game from the beginning on the
+	// first frame anyway. So a state that arrives before the first frame waits for a
+	// couple of frames, which nobody sees.
+	const earlyStateFrames = 2
+	var settle int
+	var heldState []byte
+	framesRun := 0
 	paused := true // until the server has a viewer
 	var lastSave []byte
 	lastSaveAt := time.Now()
+
+	// A state still waiting to be restored is where the game really is. Saving the
+	// freshly started machine instead would overwrite someone's progress when they
+	// leave before the first frame.
+	snapshot := func() []byte {
+		if heldState != nil {
+			return heldState
+		}
+		return eng.SaveState()
+	}
 
 	handle := func(c command) (quit bool) {
 		switch c.t {
@@ -178,18 +234,32 @@ func (r *runner) run(in io.Reader, open Open) error {
 				lastSave = append(lastSave[:0], ram...)
 			}
 		case ipc.CmdState:
-			eng.LoadState(c.p)
+			switch {
+			case framesRun < earlyStateFrames:
+				heldState, settle = c.p, earlyStateFrames-framesRun
+				r.muted = true
+			case !eng.LoadState(c.p):
+				r.event(ipc.Event{Type: "statefail"})
+			}
 		case ipc.CmdSaveState:
-			r.write(ipc.MsgState, c.p, eng.SaveState())
+			r.write(ipc.MsgState, c.p, snapshot())
 		case ipc.CmdReset:
 			eng.Reset()
+		case ipc.CmdDisc:
+			if discs != nil && len(c.p) > 0 {
+				if !discs.ChangeDisc(int(c.p[0])) {
+					r.event(ipc.Event{Type: "message", Text: "That disc could not be loaded."})
+				}
+				i, n := discs.Disc()
+				r.event(ipc.Event{Type: "disc", Index: i, Count: n})
+			}
 		case ipc.CmdPause:
 			paused = len(c.p) > 0 && c.p[0] != 0
 			next = time.Now()
 		case ipc.CmdQuit:
 			if len(c.p) > 0 && c.p[0] != 0 {
 				var id [4]byte
-				r.write(ipc.MsgState, id[:], eng.SaveState())
+				r.write(ipc.MsgState, id[:], snapshot())
 			}
 			if ram := eng.SaveRAM(); ram != nil {
 				r.write(ipc.MsgSaveRAM, ram)
@@ -231,6 +301,22 @@ func (r *runner) run(in io.Reader, open Open) error {
 			continue
 		}
 		eng.Run()
+		framesRun++
+		r.pads.frameDone()
+		if settle > 0 {
+			if settle--; settle == 0 {
+				if !eng.LoadState(heldState) {
+					r.event(ipc.Event{Type: "statefail"})
+				}
+				heldState = nil
+				r.muted = false
+				r.audio = r.audio[:0]
+			}
+		}
+		if r.fps > 0 && r.fps <= 240 {
+			frame = time.Duration(float64(time.Second) / r.fps)
+			r.fps = 0
+		}
 		if len(r.audio) > 0 {
 			r.write(ipc.MsgAudio, r.audio)
 			r.audio = r.audio[:0]
@@ -255,4 +341,42 @@ func (r *runner) run(in io.Reader, open Open) error {
 		r.write(ipc.MsgSaveRAM, ram)
 	}
 	return r.writeE
+}
+
+// pads holds the players' input. A press and its release can arrive together, in a
+// short tap or a bunched-up packet, and a game only looks once a frame. So a button
+// pressed since the last frame reads as held for one frame, however briefly it was.
+type pads struct {
+	mu      sync.Mutex
+	state   [engine.MaxPorts]engine.PadState
+	pending [engine.MaxPorts]uint16 // pressed since the last frame looked
+	active  [engine.MaxPorts]uint16 // what this frame is keeping pressed
+	snap    [engine.MaxPorts]engine.PadState
+}
+
+func (p *pads) set(port int, st engine.PadState) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.pending[port] |= st.Buttons &^ p.state[port].Buttons
+	p.state[port] = st
+}
+
+// poll is what a core sees. It may look several times in one frame and sees the
+// same presses each time.
+func (p *pads) poll() *[engine.MaxPorts]engine.PadState {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i := range p.state {
+		p.active[i] |= p.pending[i]
+		p.pending[i] = 0
+		p.snap[i] = p.state[i]
+		p.snap[i].Buttons |= p.active[i]
+	}
+	return &p.snap
+}
+
+func (p *pads) frameDone() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.active = [engine.MaxPorts]uint16{}
 }

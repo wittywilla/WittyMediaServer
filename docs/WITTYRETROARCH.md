@@ -96,8 +96,8 @@ In that mode it has no window and no menus, and it speaks the protocol on stdin 
 | Main loop | Handling `CmdLoad`, `CmdSaveRAM`, `CmdState`, `CmdSaveState`, `CmdReset`, `CmdPause` and `CmdQuit` |
 | Network | Built without netplay, the updater, cloud sync and the HTTP stack, so that a sandboxed process has nothing to reach for |
 
-**What this buys:** the consoles the built-in runner can't play yet, meaning Nintendo 64, PSP and
-Dreamcast, which draw with a graphics card.
+**What this buys:** little, now that the built-in runner plays consoles that draw with a graphics card
+([GAMING.md](GAMING.md)). It would add Vulkan and RetroArch's own shaders, if something comes to need them.
 
 **What it costs:** a C codebase of its own to build for every platform, and frequent merges from
 upstream. The built-in runner stays as the small default that works everywhere, including servers with

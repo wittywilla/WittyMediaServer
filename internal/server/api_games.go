@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
@@ -30,8 +31,9 @@ import (
 // docs/GAMING.md.
 
 func init() {
-	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB")
+	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB", "gamingMaxGpuSessions", "gamingResolution")
 	settingDefaults["gamingMaxSessions"] = "2"
+	settingDefaults["gamingMaxGpuSessions"] = "2"
 	settingDefaults["gamingRunner"] = "auto"
 	settingDefaults["gamingUnpackGB"] = strconv.Itoa(defaultUnpackGB)
 }
@@ -66,11 +68,17 @@ type gameService struct {
 	cores    *cores.Manager
 	archives *gamearchive.Cache
 	dir      string
+
+	gpuOnce sync.Once
+	gpu     stream.GPUProbe
 }
 
 // defaultUnpackGB is the space for unpacked games: room for a good many discs, or the
 // largest single disc. An admin can change it, and free disk space always comes first.
 const defaultUnpackGB = 16
+
+// systemDir is the folder cores read BIOS files and their support files from.
+func (g *gameService) systemDir() string { return filepath.Join(g.dir, "system") }
 
 // testingGames: the built-in test console is only offered to developers.
 func (s *Server) testingGames() bool {
@@ -80,7 +88,7 @@ func (s *Server) testingGames() bool {
 func (s *Server) games() *gameService {
 	s.gameOnce.Do(func() {
 		dir := filepath.Join(s.Cfg.DataDir, "gaming")
-		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), Client: library.SafeClient},
+		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: filepath.Join(dir, "cores"), System: filepath.Join(dir, "system"), Client: library.SafeClient},
 			mgr: stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log})}
 		s.gameSvc.archives = &gamearchive.Cache{Dir: filepath.Join(dir, "unpacked"), Limit: s.unpackLimit}
 		_ = os.RemoveAll(filepath.Join(dir, "tmp")) // where older versions unpacked; a crash could leave some
@@ -142,6 +150,28 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string) {
 	return findProgram("wittyplay-host"), nil
 }
 
+// awaitHardwareProbe finds out which hardware encoders work, the first time a game
+// needs one. It waits long enough for a working encoder to answer, and no longer:
+// the game can start without it, and the result is there for the next.
+func (s *Server) awaitHardwareProbe(ctx context.Context) {
+	s.Tools.StartHardwareProbe()
+	deadline := time.After(8 * time.Second)
+	tick := time.NewTicker(100 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if _, done := s.Tools.HardwareStatus(); done {
+			return
+		}
+		select {
+		case <-tick.C:
+		case <-deadline:
+			return
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func (s *Server) configureGames(ctx context.Context) error {
 	g := s.games()
 	runner, args := s.gameRunner(ctx)
@@ -154,18 +184,23 @@ func (s *Server) configureGames(ctx context.Context) error {
 	for _, n := range strings.Split(s.DB.GetSetting(ctx, "hwEncoders", ""), ",") {
 		enabled[strings.TrimSpace(n)] = true
 	}
+	var gpuEnc []string
 	for _, e := range list {
 		if e.Working && enabled[e.Name] {
 			hw = append(hw, e.Name)
 		}
+		if e.Working {
+			gpuEnc = append(gpuEnc, e.Name)
+		}
 	}
 	maxSessions, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingMaxSessions", "2"))
+	maxGPU, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingMaxGpuSessions", "2"))
 	port, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingUdpPort", "0"))
 	if port < 0 || port > 65535 {
 		port = 0
 	}
 	g.mgr.Configure(func(c *stream.Config) {
-		c.Runner, c.RunnerArgs, c.HWEncoders, c.MaxSessions, c.UDPPort = runner, args, hw, maxSessions, port
+		c.Runner, c.RunnerArgs, c.HWEncoders, c.GPUEncoders, c.MaxSessions, c.MaxGPU, c.UDPPort = runner, args, hw, gpuEnc, maxSessions, maxGPU, port
 		c.PublicIPs = splitNonEmpty(s.DB.GetSetting(ctx, "gamingPublicIp", ""))
 		c.STUN = splitNonEmpty(s.DB.GetSetting(ctx, "gamingStun", ""))
 	})
@@ -192,6 +227,8 @@ func (s *Server) preferredCores(ctx context.Context) map[string]string {
 type consoleView struct {
 	wittyplay.Console
 	Installed []cores.Core        `json:"installed"`
+	NeedsGPU  bool                `json:"needsGpu,omitempty"` // every core on offer draws with a graphics card
+	GPUCores  []string            `json:"gpuCores,omitempty"`
 	Ready     bool                `json:"ready"`
 	Pad       wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
@@ -218,7 +255,11 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			if got, ok := byID[want.ID]; ok {
 				v.Installed = append(v.Installed, got)
 			}
+			if wittyplay.Traits(want.ID).GPU {
+				v.GPUCores = append(v.GPUCores, want.ID)
+			}
 		}
+		v.NeedsGPU = len(c.Cores) > 0 && len(v.GPUCores) == len(c.Cores)
 		// A core someone placed themselves shows up under every console it could
 		// serve only when we know it; anything else is chosen by name in Settings.
 		v.Ready = c.Unavailable == "" && (len(v.Installed) > 0 || c.ID == wittyplay.TestConsole)
@@ -411,27 +452,55 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	if err := s.configureGames(ctx); err != nil {
-		writeErr(w, 503, err.Error())
+	g := s.games()
+	systemDir := g.systemDir()
+	if err := os.MkdirAll(systemDir, 0o755); err != nil {
+		writeErr(w, 500, err.Error())
 		return
 	}
-	g := s.games()
 	corePath := ipc.TestCore
+	var coreOptions map[string]string
+	var fallbacks []stream.CoreChoice
+	gpu := false
 	if console.ID != wittyplay.TestConsole {
-		core := g.cores.ForConsole(console, s.preferredCores(ctx)[console.ID])
+		preferred := s.preferredCores(ctx)[console.ID]
+		// BIOS files left in a folder beside the games are fetched first, for
+		// every core that might use one.
+		for _, want := range console.Cores {
+			if err := wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir); err != nil {
+				s.Log.Warn("copying a BIOS", "console", console.ID, "err", err)
+			}
+		}
+		core, blocked := g.cores.Playable(console, preferred, systemDir)
+		if core == nil && blocked != nil {
+			writeJSON(w, 409, map[string]any{"error": wittyplay.BIOSHelp(blocked.ID, console.Name), "needBios": true, "console": console.ID,
+				"file": wittyplay.MissingBIOS(blocked.ID, systemDir)})
+			return
+		}
 		if core == nil {
 			writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 			return
 		}
 		corePath = core.Path
+		gpu = wittyplay.Traits(core.ID).GPU
+		resolution := s.DB.GetSetting(ctx, "gamingResolution", "")
+		coreOptions = wittyplay.StartOptions(console.ID, core.ID, resolution, systemDir)
+		// If the game won't load on this core, the others get their turn.
+		for _, other := range g.cores.AllForConsole(console, core.ID)[1:] {
+			if wittyplay.MissingBIOS(other.ID, systemDir) == "" {
+				fallbacks = append(fallbacks, stream.CoreChoice{Core: other.Path, GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)})
+			}
+		}
+	}
+	if gpu {
+		s.awaitHardwareProbe(ctx)
+	}
+	if err := s.configureGames(ctx); err != nil {
+		writeErr(w, 503, err.Error())
+		return
 	}
 	if _, err := os.Stat(it.Path); err != nil {
 		writeErr(w, 404, "the game file is missing")
-		return
-	}
-	systemDir := filepath.Join(g.dir, "system")
-	if err := os.MkdirAll(systemDir, 0o755); err != nil {
-		writeErr(w, 500, err.Error())
 		return
 	}
 	rom, cleanup, err := g.prepareROM(ctx, it.Path, console)
@@ -442,21 +511,52 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	if why := wittyplay.Refusal(rom, console.ID); why != "" {
+		if cleanup != nil {
+			cleanup()
+		}
+		writeErr(w, 422, why)
+		return
+	}
+	if console.ID == "snes" && wittyplay.IsSatellaview(rom) {
+		// No other core will load one, so nothing else is tried.
+		core := g.cores.AllForConsole(console, wittyplay.SatellaviewCore)
+		problem := ""
+		if _, err := os.Stat(filepath.Join(systemDir, wittyplay.SatellaviewBIOS)); err != nil {
+			problem = "This is a Satellaview broadcast game, which needs the receiver's cartridge. Put a copy of yours named " + wittyplay.SatellaviewBIOS + " in a folder named " + wittyplay.BIOSFolderName + " beside your " + console.Name + " games, and it will be found when you play. BIOS files are never downloaded for you."
+		} else if len(core) == 0 || core[0].ID != wittyplay.SatellaviewCore {
+			problem = "This is a Satellaview broadcast game, which only plays on Mesen-S. An admin can install that core in Settings, Gaming."
+		}
+		if problem != "" {
+			if cleanup != nil {
+				cleanup()
+			}
+			writeJSON(w, 409, map[string]any{"error": problem, "console": console.ID, "file": wittyplay.SatellaviewBIOS})
+			return
+		}
+		corePath, fallbacks = core[0].Path, nil
+		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
+	}
 	userID := userFrom(r).ID
 	sess, err := g.mgr.Start(stream.Options{
 		UserID: userID, ItemID: it.ID, Title: it.Title, Console: console.ID, Core: corePath, ROM: rom, SystemDir: systemDir,
 		SaveDir: g.saveDir(userID, it.ID), Resume: b.Resume, Quality: s.DB.GetSetting(ctx, "gamingQuality", ""), Cleanup: cleanup,
+			GPU: gpu, CoreOptions: coreOptions, Fallbacks: fallbacks,
 	})
 	if err != nil {
 		if cleanup != nil {
 			cleanup() // it may never have got as far as a session that would
 		}
-		if errors.Is(err, stream.ErrBusy) {
+		if errors.Is(err, stream.ErrBusy) || errors.Is(err, stream.ErrGPUBusy) {
 			writeErr(w, 503, err.Error())
 			return
 		}
+		if strings.Contains(err.Error(), stream.NoGPUText) {
+			writeErr(w, 409, "This game draws with a graphics card, and this server doesn't have one it can use. Games for older consoles still play.")
+			return
+		}
 		s.Log.Warn("starting a game", "item", it.ID, "err", err)
-		writeErr(w, 500, "This game could not start: "+err.Error())
+		writeErr(w, 500, "This game could not start. "+err.Error())
 		return
 	}
 	go s.recordPlayTime(sess, userID, it.ID)
@@ -622,6 +722,8 @@ func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {
 		err = sess.Reset()
 	case "pause":
 		err = sess.Pause(b.On)
+	case "disc":
+		err = sess.ChangeDisc(b.Slot)
 	default:
 		writeErr(w, 400, "unknown action")
 		return
@@ -727,9 +829,14 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 			enc = append(enc, e.Name)
 		}
 	}
+	g.gpuOnce.Do(func() {
+		if runner != "" {
+			g.gpu = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), s.Log)
+		}
+	})
 	writeJSON(w, 200, map[string]any{
 		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
-		"coresDir": g.cores.Dir, "systemDir": filepath.Join(g.dir, "system"), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(),
+		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpu, "biosFolder": wittyplay.BIOSFolderName,
 	})
 }
 

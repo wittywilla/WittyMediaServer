@@ -204,3 +204,19 @@ func TestStreamTokenScope(t *testing.T) {
 		t.Error("a stream token outlived its session")
 	}
 }
+
+// A game's WebSocket and its save pictures can't carry a header in a browser.
+func TestTokenInAddressForGameRoutes(t *testing.T) {
+	for path, want := range map[string]string{
+		"/api/play/0123abcd/ws?token=t":      "t",
+		"/api/games/7/saves/1/thumb?token=t": "t",
+		"/api/play/0123abcd/action?token=t":  "",
+		"/api/games/7/saves?token=t":         "",
+		"/api/play/0123abcd/ws/more?token=t": "",
+	} {
+		r := httptest.NewRequest("GET", path, nil)
+		if got := TokenFrom(r); got != want {
+			t.Errorf("%s: %q, want %q", path, got, want)
+		}
+	}
+}

@@ -19,6 +19,7 @@
 .wp-portrait .wp-stage { width: 100%; height: auto; }
 /* In portrait the picture sits at the top, with the controls under it. */
 .wp-portrait.wp-with-touch .wp-video-area { align-items: flex-start; flex: 0 0 auto; height: 52%; }
+.wp-has-pointer { touch-action: none; cursor: crosshair; }
 .wp-media { display: block; width: 100%; height: 100%; object-fit: fill; image-rendering: pixelated; background: #000; }
 
 .wp-status, .wp-error { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(10, 12, 18, .82); padding: 14px 20px; border-radius: 10px; max-width: min(90vw, 460px); }
@@ -100,3 +101,11 @@
 .wp-slot:hover { background: rgba(127, 127, 127, .16); }
 .wp-slot img, .wp-slot-empty { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; image-rendering: pixelated; display: block; }
 .wp-slot small { font-size: 11.5px; overflow-wrap: anywhere; }
+
+/* A game that plays on its side, such as a WonderSwan held upright. The box already
+   has the turned shape, so the picture is sized by the box's other side. */
+.wp-turn-1, .wp-turn-3 { container-type: size; position: relative; }
+.wp-turn-1 .wp-media, .wp-turn-3 .wp-media { position: absolute; top: 50%; left: 50%; width: 100cqh; height: 100cqw; max-width: none; max-height: none; }
+.wp-turn-1 .wp-media { transform: translate(-50%, -50%) rotate(-90deg); }
+.wp-turn-3 .wp-media { transform: translate(-50%, -50%) rotate(90deg); }
+.wp-turn-2 .wp-media { transform: rotate(180deg); }

@@ -56,5 +56,16 @@ func seccomp() error {
 	}
 	f = append(f, unix.SockFilter{Code: bpfRET | bpfK, K: retAllow})
 	prog := unix.SockFprog{Len: uint16(len(f)), Filter: &f[0]}
+	// Every thread in the process, the ones Go has already started included. A
+	// filter set the older way covers only the calling thread and its children,
+	// which might not be the thread a core ends up on.
+	if r, _, e := unix.Syscall(unix.SYS_SECCOMP, seccompSetModeFilter, seccompFilterFlagTsync, uintptr(unsafe.Pointer(&prog))); e == 0 && r == 0 {
+		return nil
+	}
 	return unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, uintptr(unsafe.Pointer(&prog)), 0, 0)
 }
+
+const (
+	seccompSetModeFilter   = 1
+	seccompFilterFlagTsync = 1
+)

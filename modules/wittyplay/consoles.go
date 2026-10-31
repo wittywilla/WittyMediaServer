@@ -51,8 +51,6 @@ type Console struct {
 	Hidden bool `json:"-"`
 }
 
-const needsGPU = "This console's cores draw with a graphics card, which server-side play doesn't support yet."
-
 // TestConsole is the console of the built-in test core, shown only when testing.
 const TestConsole = "wittytest"
 
@@ -64,7 +62,8 @@ var Consoles = []Console{
 		BIOS:    []BIOS{{"disksys.rom", "Famicom Disk System games", false}}},
 	{ID: "snes", Name: "Super Nintendo", Short: "SNES", Extensions: []string{".sfc", ".smc", ".fig", ".swc", ".bs", ".gd3", ".gd7", ".dx2", ".bsx"},
 		Aliases: []string{"snes", "sfc", "supernintendo", "superfamicom", "supernes", "nintendosupernintendoentertainmentsystem", "supernintendoentertainmentsystem"},
-		Cores:   []Core{{"mednafen_supafaust", "Beetle Supafaust", "GPL-2.0-or-later"}, {"bsnes2014_performance", "bsnes 2014 Performance", "GPL-3.0"}, {"mesen-s", "Mesen-S", "GPL-3.0"}}},
+		Cores:   []Core{{"mednafen_supafaust", "Beetle Supafaust", "GPL-2.0-or-later"}, {"bsnes2014_performance", "bsnes 2014 Performance", "GPL-3.0"}, {"mesen-s", "Mesen-S", "GPL-3.0"}},
+		BIOS:    []BIOS{{SatellaviewBIOS, "Satellaview games in .bs files, on Mesen-S; nothing else needs it", false}}},
 	{ID: "gb", Name: "Game Boy and Game Boy Color", Short: "Game Boy", Extensions: []string{".gb", ".gbc", ".dmg", ".cgb", ".sgb"},
 		Aliases: []string{"gb", "gbc", "gameboy", "gameboycolor", "gameboycolour", "nintendogameboy", "nintendogameboycolor"},
 		Cores:   []Core{{"gambatte", "Gambatte", "GPL-2.0"}, {"sameboy", "SameBoy", "MIT"}, {"mgba", "mGBA", "MPL-2.0"}}},
@@ -83,7 +82,7 @@ var Consoles = []Console{
 		Cores:   []Core{{"gearsystem", "Gearsystem", "GPL-3.0"}, {"smsplus", "SMS Plus GX", "GPL-2.0"}}},
 	{ID: "ps1", Name: "Sony PlayStation", Short: "PlayStation", Extensions: []string{".pbp"}, Shared: []string{".cue", ".chd", ".m3u", ".iso", ".img", ".toc", ".ccd", ".bin"},
 		Aliases: []string{"ps1", "psx", "psone", "playstation", "playstation1", "sonyplaystation"},
-		Cores:   []Core{{"pcsx_rearmed", "PCSX ReARMed", "GPL-2.0"}, {"mednafen_psx", "Beetle PSX", "GPL-2.0"}},
+		Cores:   []Core{{"pcsx_rearmed", "PCSX ReARMed", "GPL-2.0"}, {"mednafen_psx", "Beetle PSX", "GPL-2.0"}, {"swanstation", "SwanStation (graphics card)", "GPL-3.0"}, {"mednafen_psx_hw", "Beetle PSX HW (graphics card)", "GPL-2.0"}},
 		BIOS:    []BIOS{{"scph5501.bin", "US consoles; PCSX ReARMed runs most games without one", false}, {"scph5500.bin", "Japanese consoles", false}, {"scph5502.bin", "European consoles", false}}},
 	{ID: "pce", Name: "PC Engine / TurboGrafx-16", Short: "PC Engine", Extensions: []string{".pce"}, Shared: []string{".cue", ".chd", ".ccd", ".toc", ".m3u"},
 		Aliases: []string{"pce", "pcengine", "turbografx16", "turbografx", "tg16", "necpcenginetg16", "pcenginecd"},
@@ -110,13 +109,26 @@ var Consoles = []Console{
 		Aliases: []string{"vb", "virtualboy", "nintendovirtualboy"},
 		Cores:   []Core{{"mednafen_vb", "Beetle VB", "GPL-2.0"}}},
 	{ID: "n64", Name: "Nintendo 64", Short: "N64", Extensions: []string{".n64", ".z64", ".v64"},
-		Aliases: []string{"n64", "nintendo64"}, Unavailable: needsGPU},
+		Aliases: []string{"n64", "nintendo64"},
+		Cores:   []Core{{"mupen64plus_next", "Mupen64Plus-Next", "GPL-2.0"}, {"parallel_n64", "ParaLLEl N64", "GPL-2.0"}}},
 	{ID: "nds", Name: "Nintendo DS", Short: "DS", Extensions: []string{".nds"},
-		Aliases: []string{"nds", "ds", "nintendods"}, Unavailable: "Nintendo DS games need a touch screen, which isn't passed through yet."},
+		Aliases: []string{"nds", "ds", "nintendods"},
+		Cores:   []Core{{"melonds", "melonDS", "GPL-3.0"}, {"desmume", "DeSmuME", "GPL-2.0"}},
+		BIOS:    []BIOS{{"bios7.bin", "melonDS: better accuracy; games run without it", false}, {"bios9.bin", "melonDS: better accuracy; games run without it", false}, {"firmware.bin", "melonDS: the DS's own start-up menu", false}}},
+	{ID: "3ds", Name: "Nintendo 3DS", Short: "3DS", Extensions: []string{".3ds", ".3dsx", ".cci", ".cxi", ".zcci", ".zcxi", ".z3dsx"}, Shared: []string{".app", ".elf", ".axf"},
+		Aliases: []string{"3ds", "n3ds", "nintendo3ds"},
+		Cores:   []Core{{"azahar", "Azahar", "GPL-2.0-or-later"}, {"panda3ds", "Panda3DS", "GPL-3.0"}}},
+	{ID: "ps2", Name: "Sony PlayStation 2", Short: "PS2", Shared: []string{".iso", ".bin", ".cue", ".chd", ".cso", ".zso", ".ciso", ".gz", ".img", ".mdf", ".nrg", ".m3u"},
+		Aliases: []string{"ps2", "playstation2", "sonyplaystation2", "pstwo"},
+		Cores:   []Core{{"pcsx2", "LRPS2 (PCSX2)", "GPL-3.0"}, {"play", "Play!", "MIT"}},
+		BIOS:    []BIOS{{"scph39001.bin", "LRPS2 needs one BIOS from a PlayStation 2 you own, and any region will do; Play! runs without one", true}}},
 	{ID: "psp", Name: "PlayStation Portable", Short: "PSP", Extensions: []string{".cso"}, Shared: []string{".iso", ".pbp", ".chd"},
-		Aliases: []string{"psp", "playstationportable", "sonyplaystationportable"}, Unavailable: needsGPU},
+		Aliases: []string{"psp", "playstationportable", "sonyplaystationportable"},
+		Cores:   []Core{{"ppsspp", "PPSSPP", "GPL-2.0"}}},
 	{ID: "dc", Name: "Sega Dreamcast", Short: "Dreamcast", Extensions: []string{".gdi", ".cdi"}, Shared: []string{".chd", ".cue", ".m3u"},
-		Aliases: []string{"dc", "dreamcast", "segadreamcast"}, Unavailable: needsGPU},
+		Aliases: []string{"dc", "dreamcast", "segadreamcast"},
+		Cores:   []Core{{"flycast", "Flycast", "GPL-2.0"}},
+		BIOS:    []BIOS{{"dc/dc_boot.bin", "better compatibility; most games run without it", false}, {"dc/dc_flash.bin", "the console's settings", false}}},
 	{ID: TestConsole, Name: "WittyPlay test console", Short: "Test", Extensions: []string{".wittytest"},
 		Aliases: []string{"wittytest"}, Hidden: true},
 }
@@ -163,6 +175,25 @@ func normalise(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// withoutBrackets drops anything in round brackets from a folder name.
+func withoutBrackets(s string) string {
+	var b strings.Builder
+	depth := 0
+	for _, r := range s {
+		switch {
+		case r == '(':
+			depth++
+		case r == ')':
+			if depth > 0 {
+				depth--
+			}
+		case depth == 0:
 			b.WriteRune(r)
 		}
 	}

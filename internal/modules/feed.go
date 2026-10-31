@@ -362,6 +362,13 @@ func (m *Manager) computeOffers(e *entry) {
 			}
 			continue
 		}
+		if r := protocolRefusal(e, k.man); r != "" {
+			if tooNew == nil {
+				o.Reason = r
+				tooNew = o
+			}
+			continue
+		}
 		if r := dataRefusal(e.builtin.Name, k.man, e.state.DataHigh); r != "" {
 			continue
 		}
@@ -471,6 +478,9 @@ func (m *Manager) judge(e *entry, man *wittymodule.Manifest) (refused, warning s
 	}
 	if man.Delivery != e.builtin.Delivery {
 		return fmt.Sprintf("It is delivered as %q, and this server expects %q.", man.Delivery, e.builtin.Delivery), ""
+	}
+	if r := protocolRefusal(e, man); r != "" {
+		return r, ""
 	}
 	w := e.state.Withdrawn.Find(ver)
 	if w != nil && w.Severity == wittymodule.SeveritySecurity {

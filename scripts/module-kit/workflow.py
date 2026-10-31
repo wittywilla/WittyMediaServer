@@ -4,7 +4,8 @@
   workflow.py lint <main repository's workflows folder> <workflow.yml>...
       The rules a workflow here must keep: see lint().
   workflow.py run <workflow.yml> <job> --state DIR [--checkout DIR] [--ref vX.Y.Z]
-                  [--repo owner/name] [--set name=value]... [--only "step name"]...
+                  [--repo owner/name] [--set name=value]... [--set-file name=path]...
+                  [--only "step name"]...
       Runs one job's steps here, as a runner would. A job without a checkout gets an
       empty folder, so one that needs this repository's files fails. Artifacts go
       through DIR/artifacts, and what a release would publish lands in DIR/release.
@@ -132,6 +133,10 @@ def run(args):
         if flag == "--set":
             k, v = args.pop(0).split("=", 1)
             values[k] = v
+        elif flag == "--set-file":
+            k, v = args.pop(0).split("=", 1)
+            with open(v, encoding="utf-8") as f:
+                values[k] = f.read().strip()
         elif flag == "--only":
             only.append(args.pop(0))
         else:

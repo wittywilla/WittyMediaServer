@@ -408,6 +408,11 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
   local repo=$1 tag=$2 delivery=$3 url=$4 flow sums clone state
   clone="$work/standalone/$repo"
   state="$work/state/$repo"
+  # A dry run picked up again with --work needn't repeat what passed.
+  if [ -f "$state/release.json" ] && grep -q "\"tag\": \"$tag\"" "$state/release.json"; then
+    echo "   rehearsed already in this folder"
+    return 0
+  fi
   rm -rf "$clone" "$state"
   mkdir -p "$state"
   run git clone -q --branch "$tag" "$url" "$clone" 2>/dev/null
@@ -428,7 +433,7 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
       die "$repo's release signed with no key"
     fi
     echo "   with the secret missing it stops, as it should"
-    run python3 "$kit_dir/workflow.py" run "$flow/release.yml" sign --state "$state" --ref "$tag" --set "secrets.WMS_SIGNING_KEY=$(cat "$work/module.key")"
+    run python3 "$kit_dir/workflow.py" run "$flow/release.yml" sign --state "$state" --ref "$tag" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key"
   fi
   run python3 "$kit_dir/workflow.py" run "$flow/release.yml" publish --state "$state" --ref "$tag" --repo "$OWNER/$repo"
   if signs "$delivery"; then
@@ -445,7 +450,7 @@ wait_release_dry() { # <repository> <tag> <delivery> <url>
         export FAKE_GH_DIR="$wd" PATH="$work/bin:$PATH"
         python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" list --state "$state/w" --repo "$OWNER/$repo" --set "inputs.version=$v" --set inputs.severity=broken \
           --set "inputs.reason=Broke \"things\"; \$(touch $work/pwned) \`touch $work/pwned\`"
-        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" sign --state "$state/w" --set "secrets.WMS_SIGNING_KEY=$(cat "$work/module.key")"
+        python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" sign --state "$state/w" --set-file "secrets.WMS_SIGNING_KEY=$work/module.key"
         python3 "$kit_dir/workflow.py" run "$flow/withdraw.yml" publish --state "$state/w" --repo "$OWNER/$repo"
       )
     done

@@ -12,17 +12,17 @@ require (
 	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/ulikunitz/xz v0.5.15
-	github.com/wittywilla/wittybluray v0.1.0
-	github.com/wittywilla/wittycouch v0.1.0
-	github.com/wittywilla/wittydisc v0.1.0
+	github.com/wittywilla/wittybluray v0.1.1
 	github.com/wittywilla/wittycd v0.1.0
-	github.com/wittywilla/wittydvd v0.1.0
-	github.com/wittywilla/wittyintegratedfilebrowser v0.1.0
-	github.com/wittywilla/wittymodule v0.1.0
-	github.com/wittywilla/wittyphotos v0.2.0
-	github.com/wittywilla/wittyplay v0.1.0
+	github.com/wittywilla/wittycouch v0.1.0
+	github.com/wittywilla/wittydisc v0.1.1
+	github.com/wittywilla/wittydvd v0.2.1
+	github.com/wittywilla/wittyintegratedfilebrowser v0.1.1
+	github.com/wittywilla/wittymodule v0.2.1
+	github.com/wittywilla/wittyphotos v0.2.1
+	github.com/wittywilla/wittyplay v0.2.0
 	github.com/wittywilla/wittyrigs v0.1.0
-	github.com/wittywilla/wittytuner v0.1.0
+	github.com/wittywilla/wittytuner v0.1.2
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.60.0

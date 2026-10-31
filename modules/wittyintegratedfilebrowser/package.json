@@ -1,6 +1,6 @@
 {
   "name": "@wittywilla/wittyintegratedfilebrowser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A folder browser in a window, for choosing folders on another computer from any device: drives, places, path bar, filtering, several folders at once. Read-only.",
   "license": "Apache-2.0",
   "author": "WittyWilla (https://github.com/wittywilla)",

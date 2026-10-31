@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Server 0.5.1-alpha:** Everything from this round's work together: games on every console, modules with repositories of their own, WittyCD, WittyCouch, WittyRigs, the visualizer, radio search, WittyLog, WittyDiagnoser and the Legal page.
+
 ### Internet radio
 
 - **Search a directory of stations**: by name, genre, country or language, with logos and details, and add with one

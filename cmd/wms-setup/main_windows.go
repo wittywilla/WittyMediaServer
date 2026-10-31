@@ -40,7 +40,7 @@ import (
 )
 
 // version is stamped by the release scripts (-X main.version=...).
-var version = "0.5.0-alpha"
+var version = "0.5.1-alpha"
 
 const (
 	appName   = "WittyMediaServer"

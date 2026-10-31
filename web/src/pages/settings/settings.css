@@ -255,3 +255,7 @@ a.mod-row:hover { background: var(--hover); }
 .lic-tag { font-size: var(--text-xs); background: var(--bg-3); padding: 2px 8px; border-radius: var(--r-sm); }
 .lic-note { margin: var(--sp-1) 0 0; font-size: var(--text-sm); line-height: 1.5; }
 .lic-text { margin: var(--sp-2) 0 0; padding: var(--sp-3); max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-xs); line-height: 1.5; background: var(--bg-2); border-radius: var(--r-sm); }
+
+/* Reset */
+.set-fieldset { border: 0; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
+.set-fieldset legend { font-weight: 600; margin-bottom: 8px; padding: 0; }

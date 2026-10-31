@@ -59,6 +59,7 @@ type Server struct {
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
+	Restart      func()          // stops the server and starts it again; nil when it can't
 	Modules      *modmgr.Manager // nil: modules can't be updated here
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
@@ -276,6 +277,11 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/logs/crashes/{id}", s.requireAdmin(s.handleCrashDelete))
 	m.Handle("GET /api/logs/bundle", s.requireAdmin(s.handleBundle))
 	m.Handle("GET /api/logs/bundle/preview", s.requireAdmin(s.handleBundlePreview))
+	m.Handle("GET /api/reset", s.requireAdmin(s.handleResetView))
+	m.Handle("POST /api/reset", s.requireAdmin(s.handleReset))
+	m.Handle("POST /api/reset/restore", s.requireAdmin(s.handleResetRestore))
+	m.Handle("DELETE /api/reset/request", s.requireAdmin(s.handleResetCancel))
+	m.Handle("POST /api/reset/copies/delete", s.requireAdmin(s.handleResetCopyDelete))
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))

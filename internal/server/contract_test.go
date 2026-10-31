@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
+	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
@@ -402,7 +403,7 @@ func schemaTypes() map[string]reflect.Type {
 		"ModuleEvent": ty(modmgr.Event{}), "ModuleVersionList": ty(modmgr.VersionList{}), "ModuleVersion": ty(modmgr.VersionInfo{}), "ModuleWithdrawn": ty(wittymodule.Withdrawn{}),
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),
-		"LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
+		"ResetView": ty(resetView{}), "ResetCopy": ty(reset.Copy{}), "ResetRequest": ty(reset.Request{}), "ResetResult": ty(reset.Result{}), "LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
 	}
 }
 

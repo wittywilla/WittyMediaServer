@@ -5,6 +5,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
+  password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
+  everything. Media files are never touched. `wms reset` does the same when you can't sign in.
 - **Server 0.5.1-alpha:** Everything from this round's work together: games on every console, modules with repositories of their own, WittyCD, WittyCouch, WittyRigs, the visualizer, radio search, WittyLog, WittyDiagnoser and the Legal page.
 
 ### Internet radio

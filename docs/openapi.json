@@ -5466,6 +5466,154 @@
         ],
         "type": "object"
       },
+      "ResetCopy": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "bytes",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ResetRequest": {
+        "properties": {
+          "at": {
+            "properties": {},
+            "type": "object"
+          },
+          "copy": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "outside": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "save": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "copy",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "ResetResult": {
+        "properties": {
+          "at": {
+            "properties": {},
+            "type": "object"
+          },
+          "copy": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "at",
+          "mode",
+          "ok"
+        ],
+        "type": "object"
+      },
+      "ResetView": {
+        "properties": {
+          "blocked": {
+            "type": "string"
+          },
+          "canRestart": {
+            "type": "boolean"
+          },
+          "copies": {
+            "items": {
+              "$ref": "#/components/schemas/ResetCopy"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "dataDir": {
+            "type": "string"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResetResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outside": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResetRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "twoFactor": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "canRestart",
+          "copies",
+          "dataDir",
+          "outside",
+          "twoFactor"
+        ],
+        "type": "object"
+      },
       "SearchHit": {
         "properties": {
           "chapter": {
@@ -21199,6 +21347,159 @@
         "summary": "Start test.",
         "tags": [
           "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/reset": {
+      "get": {
+        "operationId": "getReset",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetView"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a reset would do here, copies kept, and how the last went.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Back to a new install, the next time the server starts, which it does now.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/reset/copies/delete": {
+      "post": {
+        "operationId": "postResetCopiesDelete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a kept copy for good.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/reset/request": {
+      "delete": {
+        "operationId": "deleteResetRequest",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take back a reset that's waiting.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/reset/restore": {
+      "post": {
+        "operationId": "postResetRestore",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bring a kept copy back; the server restarts.",
+        "tags": [
+          "Server"
         ],
         "x-wms-auth": "admin"
       }

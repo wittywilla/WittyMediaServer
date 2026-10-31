@@ -32,6 +32,8 @@ func main() {
 			os.Exit(cmdServe(os.Args[2:]))
 		case "reset-2fa":
 			os.Exit(cmdReset2FA(os.Args[2:]))
+		case "reset":
+			os.Exit(cmdReset(os.Args[2:]))
 		case "version", "--version", "-v":
 			fmt.Println("wms", version)
 			return
@@ -61,6 +63,10 @@ usage:
                              write a starter wms.json (next to the program with --portable)
   wms reset-2fa [-data <dir>] <name>
                              turn off an account's two-factor sign-in (lost phone and recovery codes)
+  wms reset [-data <dir>] [-delete] [-yes]
+                             back to a new install, the next time the server starts; keeps a copy unless -delete
+  wms reset -list | -restore <copy> | -cancel
+                             see the copies kept, bring one back, or take back a reset that's waiting
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

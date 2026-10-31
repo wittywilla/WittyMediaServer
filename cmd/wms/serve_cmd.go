@@ -34,6 +34,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
+	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -58,6 +59,9 @@ func cmdServe(args []string) int {
 		level = slog.LevelError
 	}
 	logging.FreeSpace = sysinfo.FreeBytes
+
+	// A reset waiting from last time happens first, before anything opens these files.
+	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
@@ -220,7 +224,14 @@ func cmdServe(args []string) int {
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
-		Update: updater, Modules: modMgr, Crashes: guard,
+		Update: updater, Modules: modMgr, Crashes: guard, Restart: updater.Restart,
+	}
+	if resetDone != nil {
+		if resetDone.OK {
+			log.Warn("this server was reset", "cat", "server", "mode", resetDone.Mode, "copy", resetDone.Copy, "notes", resetDone.Notes)
+		} else {
+			log.Error("a reset couldn't be carried out, and nothing was changed", "cat", "server", "err", resetDone.Error)
+		}
 	}
 	handler := srv.Handler()
 	httpServer := &http.Server{
@@ -370,13 +381,14 @@ func cmdServe(args []string) int {
 	return 0
 }
 
-// relaunch starts the newly installed version after an update. The tray
-// app and systemd start the server again themselves when it exits with
-// update.ExitRestart; otherwise the new program is started here, with the
-// same arguments, before this one exits.
+// relaunch starts the server again, after an update or for a reset. The tray app,
+// systemd and a container's restart policy do that themselves when it exits with
+// update.ExitRestart; otherwise the program is started here, with the same
+// arguments, before this one exits.
 func relaunch(cfg *config.Config, log *slog.Logger) int {
-	if cfg.WatchStdin || os.Getenv("INVOCATION_ID") != "" {
-		log.Info("restarting for the update")
+	_, dockerErr := os.Stat("/.dockerenv")
+	if cfg.WatchStdin || os.Getenv("INVOCATION_ID") != "" || dockerErr == nil || os.Getenv("WMS_DOCKER") == "1" {
+		log.Info("restarting")
 		return update.ExitRestart
 	}
 	cmd := exec.Command(startExe, os.Args[1:]...)
@@ -384,10 +396,10 @@ func relaunch(cfg *config.Config, log *slog.Logger) int {
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	detach(cmd)
 	if err := cmd.Start(); err != nil {
-		log.Error("could not start the updated server; start it again by hand", "err", err)
+		log.Error("could not start the server again; start it by hand", "err", err)
 		return update.ExitRestart
 	}
-	log.Info("started the updated server", "pid", cmd.Process.Pid)
+	log.Info("started the server again", "pid", cmd.Process.Pid)
 	_ = cmd.Process.Release()
 	return 0
 }

@@ -847,6 +847,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /diagnose/jobs/{id}` | admin | One check, with progress and findings. |
 | `DELETE /diagnose/jobs/{id}` | admin | Cancel a check. |
 | `GET /diagnose/jobs/{id}/report` | admin | The report as a file: `format=json` or `txt`, `redact=1` hides the disc name and file names. Nothing copyrighted is in it. |
+| `GET /reset` | admin | What a reset would do here: the data folder, folders set elsewhere, why it can't be done, copies kept, one waiting, how the last went. |
+| `POST /reset` | admin | Back to a new install: `{password, code, confirm: "RESET", delete}`. 202, then the server restarts and does it. Keeps a copy unless `delete`. |
+| `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
+| `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
+| `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |

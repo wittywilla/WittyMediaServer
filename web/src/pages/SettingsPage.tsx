@@ -25,6 +25,7 @@ const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
+const ResetSettings = lazy(() => import('./settings/Reset'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
@@ -61,6 +62,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'logs', label: 'WittyLog', icon: <IconShield />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconDrive />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
+    { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
     { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
   ] },
@@ -121,6 +123,7 @@ export default function SettingsPage() {
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
+          <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />

@@ -49,6 +49,9 @@ public:
 
     void showMessage(const QString &text, bool stopsPlayback = false);
 
+    // Which libraries play the next thing opened: the viewer's choice, from Settings.
+    void setUseVlc(bool on);
+
 protected:
     void closeEvent(QCloseEvent *e) override;
     void dragEnterEvent(QDragEnterEvent *e) override;
@@ -75,6 +78,9 @@ private:
     void openDialog();
     void openFolderDialog();
     void makeImage(const QString &driveOrImage = QString());
+    void openSettings();
+    void applyEngine();
+    void lookForModuleUpdates();
     void stopPlayback(bool showStart = true);
     void setStatus(const QString &text);
     void setVolumePercent(int percent);
@@ -93,6 +99,7 @@ private:
     QLabel *announcer_ = nullptr;
     MessageOverlay *message_ = nullptr;
     QLabel *audioCaption_ = nullptr;
+    QLabel *engineCredit_ = nullptr;
     QVector<QAbstractButton *> hits_;
     QMenu *menuAudio_ = nullptr, *menuSubs_ = nullptr, *menuDisc_ = nullptr, *menuTitles_ = nullptr, *menuChapters_ = nullptr, *menuAngles_ = nullptr, *menuRecent_ = nullptr, *menuDrives_ = nullptr;
     QAction *actStop_ = nullptr, *actImage_ = nullptr, *actLocks_ = nullptr, *actForced_ = nullptr, *actFull_ = nullptr;

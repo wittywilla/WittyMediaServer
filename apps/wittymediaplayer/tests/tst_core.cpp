@@ -5,9 +5,11 @@
 #include "engine/engineclient.h"
 #include "media/extentreader.h"
 #include "media/player.h"
+#include "media/vlcplayback.h"
 #include "ui/controlbar.h"
 #include "ui/imagedialog.h"
 #include "ui/mainwindow.h"
+#include "ui/settingsdialog.h"
 #include "ui/theme.h"
 #include "video/videoview.h"
 
@@ -15,11 +17,18 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLabel>
+#include <QRadioButton>
 #include <QProcess>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+
+#ifdef Q_OS_WIN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 using namespace wmp;
 
@@ -81,6 +90,11 @@ private slots:
     void engineClientHelperGone();
     void windowOpensAndRefuses();
     void windowKeyboard();
+
+    void settingsWindow();
+    void vlcIdsAndTimes();
+    void vlcPlaysAClip();
+    void vlcCantReadADiscModule();
 
     void realDvdMenusAndPlayback();
     void realBluray();
@@ -572,13 +586,120 @@ void Tests::windowKeyboard()
     QVERIFY(w.handleKey(Qt::Key_Right));
     Q_UNUSED(before);
     QVERIFY(w.handleKey(Qt::Key_S));
-    QTRY_VERIFY_WITH_TIMEOUT(w.player()->currentSubtitleTrack() >= 0, 3000);
+    QTRY_VERIFY2_WITH_TIMEOUT(w.player()->currentSubtitleTrack() >= 0, qPrintable(QStringLiteral("subs %1, pos %2, paused %3").arg(w.player()->subtitleTracks().size()).arg(w.player()->position()).arg(w.player()->paused())), 3000);
     const int audio = w.player()->currentAudioTrack();
     QVERIFY(w.handleKey(Qt::Key_A));
     QTRY_VERIFY_WITH_TIMEOUT(w.player()->currentAudioTrack() != audio, 3000);
     // Keys it doesn't use are left for the rest of the program.
     QVERIFY(!w.handleKey(Qt::Key_Q));
     w.close();
+}
+
+// The choice of libraries, with VLC credited where it's chosen.
+void Tests::settingsWindow()
+{
+    Player p;
+    p.initAudio(true);
+    SettingsDialog d(&p, nullptr, false, VlcPlayback::detectFolder(), false);
+    d.show();
+    QVERIFY(!d.useVlc());
+    QVERIFY(SettingsDialog::vlcCredit().contains(QLatin1String("VideoLAN")));
+    auto *radio = d.findChildren<QRadioButton *>().value(1);
+    QVERIFY(radio);
+    radio->setChecked(true);
+    QVERIFY(d.useVlc());
+    bool credited = false;
+    for (QLabel *l : d.findChildren<QLabel *>())
+        credited = credited || l->text() == SettingsDialog::vlcCredit();
+    QVERIFY(credited);
+    const QString grab = qEnvironmentVariable("WMP_TEST_GRAB");
+    if (!grab.isEmpty())
+        d.grab().save(QDir(grab).filePath(QStringLiteral("settings.png")));
+    // A wrong folder says so, and nothing loads.
+    QString why;
+    Player other;
+    other.initAudio(true);
+    QVERIFY(!other.enableVlc(dir_.path(), &why));
+    QVERIFY(why.contains(QLatin1String("aren't in that folder")));
+}
+
+void Tests::vlcIdsAndTimes()
+{
+    QCOMPARE(VlcPlayback::discStreamId(QStringLiteral("mpeg"), 0x1e0), 0xe0);
+    QCOMPARE(VlcPlayback::discStreamId(QStringLiteral("mpeg"), 0x1c0), 0xc0);
+    QCOMPARE(VlcPlayback::discStreamId(QStringLiteral("mpeg"), 0x80), 0xbd80);
+    QCOMPARE(VlcPlayback::discStreamId(QStringLiteral("mpeg"), 0x21), 0xbd21);
+    QCOMPARE(VlcPlayback::discStreamId(QStringLiteral("mpegts"), 0x1100), 0x1100);
+    const QVector<Segment> segs{{100, 0, 10, -1}, {300, 10, 20, -1}};
+    QCOMPARE(VlcPlayback::timeAt(segs, 0), 0.0);
+    QCOMPARE(VlcPlayback::timeAt(segs, 0.125), 5.0);
+    QCOMPARE(VlcPlayback::timeAt(segs, 0.25), 10.0);
+    QCOMPARE(VlcPlayback::timeAt(segs, 1.0), 30.0);
+}
+
+void Tests::vlcPlaysAClip()
+{
+    const QString folder = VlcPlayback::detectFolder();
+    if (folder.isEmpty() || clip_.isEmpty())
+        QSKIP("needs a VLC on this computer and a test clip");
+    Player p;
+    p.initAudio(true);
+    CountingSink sink;
+    p.setVideoSink(&sink);
+    QString why;
+    QVERIFY2(p.enableVlc(folder, &why), qPrintable(why));
+    QVERIFY(p.vlcVersion().startsWith(QLatin1String("3.")));
+    p.useVlc(true);
+    p.setVolume(0);
+    QSignalSpy ended(&p, &Player::ended);
+    MediaSpec s;
+    s.filePath = clip_;
+    p.open(s);
+    QVERIFY(p.playingThroughVlc());
+    QTRY_VERIFY_WITH_TIMEOUT(sink.count > 10, 8000);
+    QCOMPARE(sink.last->width, 320);
+    QTRY_VERIFY_WITH_TIMEOUT(p.position() > 0.5, 5000);
+    QVERIFY(qAbs(p.duration() - 5.0) < 0.5);
+    QTRY_VERIFY_WITH_TIMEOUT(p.audioTracks().size() == 2, 3000);
+    p.seek(4.0);
+    QTRY_VERIFY_WITH_TIMEOUT(ended.count() == 1, 8000);
+    // Back to the built-in playback for the next thing opened.
+    p.useVlc(false);
+    p.open(s);
+    QVERIFY(!p.playingThroughVlc());
+}
+
+// A disc image with an innocent name can't reach VLC's disc modules.
+void Tests::vlcCantReadADiscModule()
+{
+    const QString folder = VlcPlayback::detectFolder();
+    const QString iso = qEnvironmentVariable("WITTY_TEST_DVD");
+    if (folder.isEmpty() || iso.isEmpty())
+        QSKIP("needs a VLC on this computer and WITTY_TEST_DVD");
+    // The start of a disc image under another name, in a folder of its own.
+    QTemporaryDir d;
+    const QString disguised = d.filePath("film.mkv");
+    QFile out(disguised);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    QFile in(iso);
+    QVERIFY(in.open(QIODevice::ReadOnly));
+    out.write(in.read(8 * 1024 * 1024));
+    out.close();
+    Player p;
+    p.initAudio(true);
+    CountingSink sink;
+    p.setVideoSink(&sink);
+    QVERIFY(p.enableVlc(folder, nullptr));
+    p.useVlc(true);
+    p.setVolume(0);
+    MediaSpec s;
+    s.filePath = disguised;
+    p.open(s);
+    QTest::qWait(3000);
+#ifdef Q_OS_WIN
+    for (const char *m : {"libdvdnav_plugin.dll", "libdvdread_plugin.dll", "liblibbluray_plugin.dll"})
+        QVERIFY2(!GetModuleHandleA(m), m);
+#endif
 }
 
 void Tests::realDvdMenusAndPlayback()
@@ -594,7 +715,13 @@ void Tests::realDvdMenusAndPlayback()
     QCOMPARE(w.disc()->kind(), QStringLiteral("dvd"));
     // The feature plays with its video, sound and tracks.
     w.disc()->playMain();
-    QTRY_VERIFY_WITH_TIMEOUT(w.disc()->inTitle() && w.disc()->ttn() == w.disc()->mainTitle(), 20000);
+    // A disc's own program may insist on its warning first: Next goes past it, as on a player.
+    for (int i = 0; i < 60 && !(w.disc()->inTitle() && w.disc()->ttn() == w.disc()->mainTitle()); i++) {
+        QTest::qWait(500);
+        if (i % 4 == 3)
+            w.disc()->skip();
+    }
+    QVERIFY2(w.disc()->inTitle() && w.disc()->ttn() == w.disc()->mainTitle(), qPrintable(QStringLiteral("kind %1, title %2, main %3").arg(w.disc()->presentationKind()).arg(w.disc()->ttn()).arg(w.disc()->mainTitle())));
     QTRY_VERIFY_WITH_TIMEOUT(w.player()->position() > 1.0, 20000);
     const PlayerStats st = w.player()->stats();
     QCOMPARE(st.videoCodec, QStringLiteral("mpeg2video"));

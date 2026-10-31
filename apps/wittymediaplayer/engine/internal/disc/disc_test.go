@@ -62,37 +62,6 @@ func TestClassifyPlainFiles(t *testing.T) {
 	}
 }
 
-func TestNewMediaLaysOutSegments(t *testing.T) {
-	m := newMedia("mpeg", "tok", [][]wittydvd.FileExtent{
-		{{File: "a", Offset: 0, Length: 100}, {File: "b", Offset: 5, Length: 50}},
-		{{File: "a", Offset: 200, Length: 10}},
-	}, []float64{3, 4})
-	if len(m.Files) != 2 || len(m.Extents) != 3 {
-		t.Fatalf("files %v extents %v", m.Files, m.Extents)
-	}
-	if m.Extents[2] != [3]int64{0, 200, 10} {
-		t.Errorf("the second use of a file makes a new entry: %v", m.Extents[2])
-	}
-	if m.Segments[0].Bytes != 150 || m.Segments[1].StartSec != 3 || m.Segments[1].BasePTS != -1 {
-		t.Errorf("segments %+v", m.Segments)
-	}
-}
-
-func TestUOPLocks(t *testing.T) {
-	if got := strings.Join(uopLocks(1<<0|1<<1|1<<19), ","); got != "seek,chapter,pause" {
-		t.Errorf("locks: %s", got)
-	}
-	if uopLocks(0) != nil {
-		t.Error("nothing forbidden, nothing locked")
-	}
-}
-
-func TestLang3(t *testing.T) {
-	if lang3("EN") != "eng" || lang3("fra") != "fra" || lang3("xx") != "" {
-		t.Error("language codes")
-	}
-}
-
 // presentations walks a disc from insertion, pressing the selected button of each
 // menu and ending each clip, and checks each screen is one a player can use.
 func checkPresentation(t *testing.T, s Session, p *Presentation) {

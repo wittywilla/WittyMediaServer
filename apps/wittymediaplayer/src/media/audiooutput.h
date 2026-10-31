@@ -34,8 +34,10 @@ public:
     void start(bool noDevice);
     bool hasDevice() const { return device_.load(); }
 
-    // Waits for room, unless stop() or clear() comes first. Returns false then.
-    bool write(const char *data, qsizetype bytes, double pts, uint64_t generation);
+    // Waits for room, unless stop(), clear() or the caller's own stop flag comes first,
+    // and returns false then. wake() makes a waiting write look at that flag.
+    bool write(const char *data, qsizetype bytes, double pts, uint64_t generation, const std::atomic<bool> *abort);
+    void wake();
     // Drops everything queued, for a seek. Writes from older generations are refused.
     void clear(uint64_t generation);
     void setPaused(bool paused);

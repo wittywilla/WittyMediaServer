@@ -82,15 +82,26 @@ Licensed under the MIT licence and BSD licences:
 
 
 WITTYDVD, WITTYBLURAY, WITTYDISC, WITTYMODULE
-Built into wittymediaplayer-engine.exe.
+Built into wittymediaplayer-engine.exe and wittymediaplayer-updater.exe. Newer versions of
+WittyDVD and WittyBluray can be installed from Settings, under the same licence.
 Developed by WittyWilla. Licensed under the Apache License 2.0.
 https://github.com/wittywilla
 
 
+
 THE GO STANDARD LIBRARY
-Built into wittymediaplayer-engine.exe.
+Built into wittymediaplayer-engine.exe and wittymediaplayer-updater.exe.
 Copyright (c) 2009 The Go Authors. Licensed under a BSD-style licence:
 https://go.dev/LICENSE
+
+
+VLC AND LIBVLC (optional, not included)
+Copyright (C) VideoLAN and the VLC contributors. https://www.videolan.org
+libVLC is licensed under the GNU Lesser General Public License version 2.1 or later.
+
+If you choose "VLC libraries" in Settings, WittyMediaPlayer loads libVLC at run time from
+a VLC already installed on your computer. No part of VLC ships with WittyMediaPlayer, and
+WittyMediaPlayer isn't part of VLC or made by VideoLAN. Thank you to them for their work.
 
 
 WHAT ISN'T HERE

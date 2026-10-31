@@ -108,6 +108,63 @@ is byte-for-byte what the drive hands over, which is what the server's engines r
 The player doesn't talk to the server, since nothing leaves the computer: the viewer puts the file in a
 folder the library watches.
 
+## The VLC libraries, as an option
+
+The owner asked for the VLC libraries as a choice in Settings, with clear credit. They're credited in Settings, the
+About window, on the start page while they're in use, in the README, the NOTICE and the licences.
+
+**Not shipped.** `src/media/vlcplayback.cpp` loads libVLC 3 from a VLC the viewer has installed, or a folder they name,
+the same arrangement as Java for BD-J menus. A VLC install carries `libdvdcss` inside its disc modules, and bundling
+those would ship a decryption library, so they stay out of this package.
+
+**The no-bypass rule still holds, because VLC never reads a disc itself:**
+
+- Protected discs are refused by the helper before any playback starts, whichever library plays.
+- Everything reaches VLC through this player's own reader, as a plain stream of bytes, so it never opens a drive, a path
+  or a web address. Its demuxer is named for every stream (`ps`, `ts`, or a fixed list for files, ending in `none`), so
+  its disc modules are never chosen, even for a disc image with an innocent file name. A test checks they aren't loaded.
+- On a computer whose VLC has no plugin cache, VLC scans its plugins once by loading them, including the disc modules. Their
+  code isn't run. An installed VLC comes with the cache.
+
+**What differs through VLC:** disc menus still come from WittyDVD and WittyBluray. VLC draws subtitles into the picture, so
+there's no choice of only forced captions, and DVD subtitles may not have the disc's colours. It finds subtitle files only as
+ordinary tracks, not beside a video. The seek bar on a disc follows VLC's place in the stream, so it's approximate. It does
+play surround sound.
+
+## Disc modules update on their own
+
+The disc modules follow the same rules as WittyMediaServer's modules. See `docs/MODULES.md` in that repository.
+
+| Module | What it is | Lives in |
+|---|---|---|
+| `wittydvdplayer` | WittyDVD and its session, as a helper program | `modules/wittydvd/wittydvdplayer` |
+| `wittyblurayplayer` | WittyBluray and its session, as a helper program | `modules/wittybluray/wittyblurayplayer` |
+| WittyDisc | The shared reader, and the `session` contract | A library: it arrives inside those two |
+
+- **A built-in copy always works.** The same packages are linked into `wittymediaplayer-engine`. With nothing downloaded, nothing
+  else runs and no helper starts.
+- **A newer signed release runs as a process of its own,** started for an open disc. It uses the same manifest (`module.json`), the same
+  version rules, the same release files and the same signing key as a server's module. In a player's module, `minServer` and `maxServer` are
+  the versions of WittyMediaPlayer it works with.
+- **Installing:** check the signature, the manifest and whether it fits this player; download and match it to the signed list; unpack with no
+  links and nothing climbing out; check every file, with nothing extra or missing; start it once and hear it say the right name and version;
+  move it into place. Each step leaves what's in use untouched if it fails. Modules live in the viewer's own data folder, not the program's.
+- **Every start checks again,** so a file changed afterwards is refused, and the built-in copy carries on, with the reason in Settings.
+- **Going back:** three process-level failures in a row take a version out by itself. A viewer can also go back by hand, and only the current and
+  previous versions are kept. A disc a parser refuses doesn't count as a failure.
+- **Limits on a helper,** on Windows: a low-integrity token (it can read discs and can't write to the viewer's files), a job with a memory cap
+  that can't start other programs and ends with the player, and a call time limit.
+- **Copy protection is checked by the built-in copy** before a downloaded version sees a disc, and imaging always uses the built-in copy, so
+  what a download says about protection is never taken on trust.
+- **The network:** only `wittymediaplayer-updater` has network code, and it runs only when the viewer asks, or at start if they've turned that on.
+  It talks only to GitHub over HTTPS. A test checks that `wittymediaplayer-engine` has none.
+
+**Releasing one:** in the module's own repository, tag `wittydvdplayer-vX.Y.Z` on a release, with these files from
+`wittymodule pack` and `wittymodule sign`, run in that folder. Those tags are separate from the engine's own `vX.Y.Z`, which a server reads.
+
+**Not yet here, on the server's branch:** the signed list of withdrawn versions, choosing an older version, pinning, and forks. They can follow once that
+branch is merged, since they build on `wittymodule` 0.2.
+
 ## Other platforms
 
 Nothing here closes a door. The window is Qt, the helper is pure Go, and these are the places a port needs work:
@@ -123,7 +180,7 @@ Nothing here closes a door. The window is Qt, the helper is pure Go, and these a
 - **Blu-ray Java menus** don't run. Such a disc plays its titles instead, and the window says so. The server's
   BD-J runner needs an installed Java and is a separate step.
 - **Sound outside the main stream** (a browsable slideshow's music) isn't played.
-- **Sound is stereo.** Surround tracks are mixed down.
+- **Built-in sound is stereo.** Surround tracks are mixed down.
 - **DVD subtitles** use FFmpeg's decoder. Colour changes within a subtitle (CHG_COLCON) that the engine's own
   decoder handles aren't shown.
 - **Audio CDs** aren't supported.

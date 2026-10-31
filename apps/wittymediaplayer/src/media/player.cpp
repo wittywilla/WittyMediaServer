@@ -2,6 +2,7 @@
 
 #include "audiooutput.h"
 #include "extentreader.h"
+#include "vlcplayback.h"
 
 #include <QDir>
 #include <QFile>
@@ -1458,7 +1459,7 @@ struct Session {
                 if (got <= 0)
                     continue;
                 audioStarted.store(true);
-                if (!audio->write(reinterpret_cast<const char *>(dst), qsizetype(got) * AudioOutput::kBytesPerFrame, t < 0 ? 0 : t, gen))
+                if (!audio->write(reinterpret_cast<const char *>(dst), qsizetype(got) * AudioOutput::kBytesPerFrame, t < 0 ? 0 : t, gen, &stop))
                     break;
             }
         }
@@ -1485,6 +1486,7 @@ struct Session {
             std::lock_guard<std::mutex> l(pauseMu);
             pauseCv.notify_all();
         }
+        audio->wake();
         std::lock_guard<std::mutex> l(reqMu);
         reqCv.notify_all();
     }
@@ -1536,6 +1538,13 @@ Player::Player(QObject *parent) : QObject(parent)
     audio_ = new AudioOutput();
     watch_.setInterval(500);
     connect(&watch_, &QTimer::timeout, this, [this] {
+        if (vlcActive_) {
+            if (const int64_t bad = vlc_->stats().badBlocks; bad > reportedBad_) {
+                reportedBad_ = bad;
+                emit discTrouble(QStringLiteral("Part of this disc couldn't be read, so it was skipped. The disc may be dirty or scratched."));
+            }
+            return;
+        }
         if (!session_ || !session_->reader)
             return;
         const int64_t bad = session_->reader->badBlocks();
@@ -1586,6 +1595,19 @@ void Player::retire(std::shared_ptr<Session> s)
 
 void Player::open(const MediaSpec &spec)
 {
+    if (vlc_)
+        vlc_->stop();
+    vlcActive_ = useVlc_ && vlc_ && vlc_->loaded();
+    if (vlcActive_) {
+        auto previous = session_;
+        session_.reset();
+        retire(previous);
+        audio_->clear(generation_ += uint64_t(1) << 32);
+        vlc_->setVolume(volume_);
+        vlc_->open(spec, sink_);
+        vlc_->setPaused(paused_);
+        return;
+    }
     auto previous = session_;
     session_.reset();
     retire(previous);
@@ -1610,6 +1632,9 @@ void Player::open(const MediaSpec &spec)
 
 void Player::stop()
 {
+    if (vlc_)
+        vlc_->stop();
+    vlcActive_ = false;
     auto s = session_;
     session_.reset();
     if (s) {
@@ -1619,11 +1644,30 @@ void Player::stop()
     }
 }
 
-bool Player::hasMedia() const { return session_ != nullptr; }
+bool Player::hasMedia() const
+{
+    return vlcActive_ ? vlc_->hasMedia() : session_ != nullptr;
+}
+
+bool Player::enableVlc(const QString &folder, QString *why)
+{
+    if (!vlc_)
+        vlc_ = new VlcPlayback(this);
+    return vlc_->load(folder, why);
+}
+
+QString Player::vlcVersion() const
+{
+    return vlc_ ? vlc_->version() : QString();
+}
 
 void Player::setPaused(bool paused)
 {
     paused_ = paused;
+    if (vlcActive_) {
+        vlc_->setPaused(paused);
+        return;
+    }
     audio_->setPaused(paused);
     if (auto s = session_) {
         {
@@ -1637,6 +1681,10 @@ void Player::setPaused(bool paused)
 
 void Player::seek(double sec)
 {
+    if (vlcActive_) {
+        vlc_->seek(sec);
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1652,6 +1700,10 @@ void Player::seek(double sec)
 
 void Player::seekDisc(int64_t offset, double at, int64_t pts, double target)
 {
+    if (vlcActive_) {
+        vlc_->seekDisc(offset, target);
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1667,6 +1719,10 @@ void Player::seekDisc(int64_t offset, double at, int64_t pts, double target)
 
 void Player::restart()
 {
+    if (vlcActive_) {
+        vlc_->restart();
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1679,10 +1735,16 @@ void Player::setVolume(double v)
 {
     volume_ = v;
     audio_->setVolume(v);
+    if (vlc_)
+        vlc_->setVolume(v);
 }
 
 void Player::setAudioTrack(int index)
 {
+    if (vlcActive_) {
+        vlc_->setAudioTrack(index);
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1693,6 +1755,10 @@ void Player::setAudioTrack(int index)
 
 void Player::setSubtitleTrack(int index, bool external)
 {
+    if (vlcActive_) {
+        vlc_->setSubtitleTrack(index);
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1704,6 +1770,10 @@ void Player::setSubtitleTrack(int index, bool external)
 
 void Player::setDiscSubtitle(int id, bool forcedOnly)
 {
+    if (vlcActive_) {
+        vlc_->setDiscSubtitle(id, forcedOnly);
+        return;
+    }
     auto s = session_;
     if (!s)
         return;
@@ -1715,6 +1785,8 @@ void Player::setDiscSubtitle(int id, bool forcedOnly)
 
 QVector<TrackInfo> Player::audioTracks() const
 {
+    if (vlcActive_)
+        return vlc_->audioTracks();
     auto s = session_;
     if (!s)
         return {};
@@ -1724,6 +1796,8 @@ QVector<TrackInfo> Player::audioTracks() const
 
 QVector<TrackInfo> Player::subtitleTracks() const
 {
+    if (vlcActive_)
+        return vlc_->subtitleTracks();
     auto s = session_;
     if (!s)
         return {};
@@ -1733,6 +1807,8 @@ QVector<TrackInfo> Player::subtitleTracks() const
 
 int Player::currentAudioTrack() const
 {
+    if (vlcActive_)
+        return vlc_->currentAudioTrack();
     auto s = session_;
     if (!s)
         return -1;
@@ -1742,6 +1818,8 @@ int Player::currentAudioTrack() const
 
 int Player::currentSubtitleTrack() const
 {
+    if (vlcActive_)
+        return vlc_->currentSubtitleTrack();
     auto s = session_;
     if (!s)
         return -1;
@@ -1751,6 +1829,8 @@ int Player::currentSubtitleTrack() const
 
 bool Player::currentSubtitleExternal() const
 {
+    if (vlcActive_)
+        return false;
     auto s = session_;
     if (!s)
         return false;
@@ -1760,6 +1840,8 @@ bool Player::currentSubtitleExternal() const
 
 double Player::position() const
 {
+    if (vlcActive_)
+        return vlc_->position();
     auto s = session_;
     if (!s)
         return 0;
@@ -1773,12 +1855,16 @@ double Player::position() const
 
 double Player::duration() const
 {
+    if (vlcActive_)
+        return vlc_->duration();
     auto s = session_;
     return s ? s->durationSec.load() : 0;
 }
 
 bool Player::isAudioOnly() const
 {
+    if (vlcActive_)
+        return vlc_->isAudioOnly();
     auto s = session_;
     if (!s)
         return false;
@@ -1788,6 +1874,8 @@ bool Player::isAudioOnly() const
 
 QString Player::title() const
 {
+    if (vlcActive_)
+        return {};
     auto s = session_;
     if (!s)
         return {};
@@ -1797,6 +1885,8 @@ QString Player::title() const
 
 QImage Player::coverArt() const
 {
+    if (vlcActive_)
+        return {};
     auto s = session_;
     if (!s)
         return {};
@@ -1806,6 +1896,8 @@ QImage Player::coverArt() const
 
 PlayerStats Player::stats() const
 {
+    if (vlcActive_)
+        return vlc_->stats();
     PlayerStats out;
     if (auto s = session_) {
         std::lock_guard<std::mutex> l(s->infoMu);
@@ -1823,6 +1915,8 @@ PlayerStats Player::stats() const
 
 QVector<SubtitleCue> Player::activeCues() const
 {
+    if (vlcActive_)
+        return {}; // VLC draws them into the picture
     QVector<SubtitleCue> out;
     auto s = session_;
     if (!s)

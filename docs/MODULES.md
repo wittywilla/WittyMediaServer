@@ -413,7 +413,8 @@ requires it:
   and can also be installed from the browser. No server needed.
 - **WittyMediaPlayer** is a Qt 6 window that decodes with FFmpeg's libraries, and runs the WittyDVD
   and WittyBluray engines in a small helper program beside it, reached over a pipe with the WittyModule
-  helper protocol. There's no web view and no loopback server, and it never uses the network. See
+  helper protocol. Its disc modules update on their own, under the rules below. There's no web view and no loopback server, and only
+  looking for module updates uses the network. See
   [its design note](../apps/wittymediaplayer/DESIGN.md).
 - **Other native windows** use the system's own web view (WebView2 on Windows 10+, WebKit on macOS and
   Linux), which is far lighter than bundling a browser. The one exception is the Windows 7

@@ -27,6 +27,7 @@ const (
 	semFailCriticalErrs = 0x0001
 	ioctlDiskLengthInfo = 0x0007405c // IOCTL_DISK_GET_LENGTH_INFO
 	ioctlDVDReadStruct  = 0x00335140 // IOCTL_DVD_READ_STRUCTURE
+	fsctlExtendedDASD   = 0x00090083 // FSCTL_ALLOW_EXTENDED_DASD_IO
 )
 
 // quietly stops Windows asking "there is no disk in the drive" in a dialog.
@@ -168,6 +169,9 @@ func OpenRaw(root string) (*RawDisc, error) {
 	}
 	var size int64
 	var got uint32
+	// Without this, Windows stops reads at the end of the file system, and a disc's
+	// last sectors, which hold a copy of its file system's anchor, go missing.
+	procDeviceIoControl.Call(uintptr(h), fsctlExtendedDASD, 0, 0, 0, 0, uintptr(unsafe.Pointer(&got)), 0)
 	r, _, callErr := procDeviceIoControl.Call(uintptr(h), ioctlDiskLengthInfo, 0, 0, uintptr(unsafe.Pointer(&size)), 8, uintptr(unsafe.Pointer(&got)), 0)
 	if r == 0 || size <= 0 {
 		syscall.CloseHandle(h)

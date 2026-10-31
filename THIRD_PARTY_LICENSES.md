@@ -77,5 +77,8 @@ archives or Docker image.
 | mingw-w64 winpthreads | MIT and BSD | |
 | Go standard library (in the helper) | BSD-3-Clause | |
 
+**VLC and libVLC** (VideoLAN and the VLC contributors, LGPL-2.1-or-later, <https://www.videolan.org>) are an option in its
+Settings. It loads them at run time from a VLC already on the computer, and no part of VLC ships with it.
+
 Not shipped, used only for building or testing it: MinGW GCC, CMake, Ninja and NASM, and a general LGPL FFmpeg
 that makes the tests' short clips.

@@ -15,8 +15,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   from a disc drive. It uses WittyDVD and WittyBluray with the same rules as the server's player, without transcoding.
 - **Makes `.iso` and `.img` images of discs** for a server's library. The copy is checked by opening it with the same
   engines the server uses, and it never overwrites anything.
+- **Can play through the VLC libraries,** by VideoLAN and the VLC contributors, chosen in Settings and loaded from a VLC
+  already on the computer. They aren't included. Disc menus still come from WittyDVD and WittyBluray.
+- **WittyDVD and WittyBluray update on their own,** without a new player, under the same rules as a server's modules: a built-in copy
+  that always works, signed releases only, version ranges, and going back by itself if a version keeps failing. Looking for updates is
+  the only time the player uses the internet, and only when asked.
 - **Refuses copy-protected discs,** for playing and for copying, in plain words. It carries no decryption library, no key
-  database and nothing that could load one, and it never uses the network. See
+  database and nothing that could load one, VLC's disc modules aren't used, and it never uses the network. See
   [its design note](apps/wittymediaplayer/DESIGN.md).
 
 ### Interface audit

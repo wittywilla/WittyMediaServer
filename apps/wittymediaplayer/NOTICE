@@ -23,3 +23,7 @@ licenses/THIRD-PARTY.txt:
 - GCC runtime libraries, Free Software Foundation - GPL 3.0 with the GCC
   Runtime Library Exception
 - mingw-w64 winpthreads - MIT and BSD licences
+
+If the viewer chooses them in Settings, it can play through the VLC libraries
+(libVLC, Copyright VideoLAN and the VLC contributors, LGPL 2.1 or later) from a
+VLC already installed on the computer. They are not included.

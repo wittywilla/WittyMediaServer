@@ -160,13 +160,20 @@ void AudioOutput::setVolume(double v)
     emit volumeRequested(v);
 }
 
-bool AudioOutput::write(const char *data, qsizetype bytes, double pts, uint64_t generation)
+void AudioOutput::wake()
+{
+    std::lock_guard<std::mutex> l(mu_);
+    room_.notify_all();
+}
+
+bool AudioOutput::write(const char *data, qsizetype bytes, double pts, uint64_t generation, const std::atomic<bool> *abort)
 {
     std::unique_lock<std::mutex> l(mu_);
     bool first = true;
     while (bytes > 0) {
-        room_.wait(l, [&] { return stopped_.load() || generation != generation_ || count_ < ring_.size(); });
-        if (stopped_.load() || generation != generation_)
+        // Paused, nothing drains the ring: a session ending has to be able to get out.
+        room_.wait(l, [&] { return stopped_.load() || abort->load() || generation != generation_ || count_ < ring_.size(); });
+        if (stopped_.load() || abort->load() || generation != generation_)
             return false;
         if (first) {
             marks_.push_back({written_, pts});

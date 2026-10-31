@@ -26,6 +26,7 @@ qt_add_library(wmpcore STATIC
     src/media/extentreader.h src/media/extentreader.cpp
     src/media/audiooutput.h src/media/audiooutput.cpp
     src/media/player.h src/media/player.cpp
+    src/media/vlcplayback.h src/media/vlcplayback.cpp
     src/video/videoview.h src/video/videoview.cpp
     src/engine/engineclient.h src/engine/engineclient.cpp
     src/disc/disccontroller.h src/disc/disccontroller.cpp
@@ -33,6 +34,7 @@ qt_add_library(wmpcore STATIC
     src/ui/controlbar.h src/ui/controlbar.cpp
     src/ui/subtitlepaint.h src/ui/subtitlepaint.cpp
     src/ui/imagedialog.h src/ui/imagedialog.cpp
+    src/ui/settingsdialog.h src/ui/settingsdialog.cpp
     src/ui/mainwindow.h src/ui/mainwindow.cpp
     src/testscript.h src/testscript.cpp
 )

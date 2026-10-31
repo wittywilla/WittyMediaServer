@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaplayer/engine/internal/disc"
 	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaplayer/engine/internal/disc"
 )
 
 const (

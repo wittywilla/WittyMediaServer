@@ -1,4 +1,7 @@
-package disc
+// Package wittydvdplayer is WittyDVD for a player: it turns the navigator's steps into
+// what a window shows. It builds into a helper of its own, so WittyDVD can be updated
+// without a new player, and a player links it as the built-in copy that always works.
+package wittydvdplayer
 
 import (
 	"bytes"
@@ -11,7 +14,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittydisc/session"
 	"github.com/wittywilla/wittydvd"
+)
+
+// The contract these sessions keep, from WittyDisc.
+type (
+	Presentation = session.Presentation
+	Media        = session.Media
+	Segment      = session.Segment
+	Menu         = session.Menu
+	ButtonView   = session.ButtonView
+	TitleView    = session.TitleView
+	Track        = session.Track
+	SubEvent     = session.SubEvent
+	Location     = session.Location
+	Prefs        = session.Prefs
+	Action       = session.Action
+	TitleInfo    = session.TitleInfo
+	Info         = session.Info
+	RefusalError = session.RefusalError
 )
 
 // dvdSession is one opened DVD.
@@ -51,12 +73,12 @@ const karaokeOff = 0x100
 // stillMaxSec: a cell this short is a still picture with no sound.
 const stillMaxSec = 1.5
 
-// openDVD opens a disc and refuses it if it is protected.
-func openDVD(path string, drive bool, prefs Prefs) (*dvdSession, error) {
+// Open opens a disc and refuses it if it is protected.
+func Open(path string, drive bool, prefs Prefs) (session.Session, error) {
 	o, err := wittydvd.Open(path)
 	if err != nil {
 		if drive {
-			return nil, &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
+			return nil, &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
 		}
 		return nil, err
 	}
@@ -281,10 +303,6 @@ func (s *dvdSession) ended() *Presentation {
 
 func (s *dvdSession) show(st *wittydvd.Step) *Presentation { return s.present(st, false) }
 
-func stopPresentation(serial int, reason string) *Presentation {
-	return &Presentation{Kind: "stop", Serial: serial, Reason: reason, Media: &Media{Type: "none"}}
-}
-
 // present turns a step into a presentation. A step with the same serial as the
 // current presentation is the same screen with a moved highlight (or a message),
 // so it reuses everything unless rebuild is set (stream changes).
@@ -311,9 +329,9 @@ func (s *dvdSession) present(st *wittydvd.Step, rebuild bool) *Presentation {
 	prev := s.playing
 	s.playing = nil
 	fail := func(err error) {
-		p.Kind, p.Reason = "stop", plainReason(err)
+		p.Kind, p.Reason = "stop", session.PlainReason(err)
 		p.Media = &Media{Type: "none"}
-		p.Protected = IsProtected(err)
+		p.Protected = session.IsProtected(err)
 	}
 	switch st.Kind {
 	case wittydvd.StepStop:
@@ -351,15 +369,6 @@ func (s *dvdSession) present(st *wittydvd.Step, rebuild bool) *Presentation {
 	}
 	s.current = p
 	return p
-}
-
-// plainReason words a read failure for the viewer; refusals are already worded.
-func plainReason(err error) string {
-	var r *RefusalError
-	if errors.As(err, &r) {
-		return r.Message
-	}
-	return "This part of the disc could not be read: " + err.Error()
 }
 
 // title returns the flattened title (cached per session).
@@ -518,12 +527,12 @@ func (s *dvdSession) buildMenu(st *wittydvd.Step, p *Presentation) error {
 	}
 	if err != nil {
 		if s.drive {
-			return &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
+			return &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
 		}
 		return err
 	}
 	if pic.Scrambled {
-		return &RefusalError{Code: CodeProtected, Message: MsgDVDProtected}
+		return &RefusalError{Code: session.CodeProtected, Message: session.MsgDVDProtected}
 	}
 	s.menus[st.Serial] = &dvdArt{pic: pic, highlights: map[int][]byte{}}
 	for k := range s.menus {
@@ -605,31 +614,15 @@ func (s *dvdSession) stepExtents(sp wittydvd.Space, st *wittydvd.Step) ([][]witt
 	return [][]wittydvd.FileExtent{ext}, nil
 }
 
-// newMedia lays stretches of bytes out as a stream, each with its duration.
+// newMedia lays stretches of the disc's files out as a stream.
 func newMedia(container, token string, parts [][]wittydvd.FileExtent, durations []float64) *Media {
-	m := &Media{Type: "clip", Container: container, Token: token, StartPTS: -1}
-	files := map[string]int{}
-	var at float64
+	conv := make([][]session.Extent, len(parts))
 	for i, part := range parts {
-		var n int64
 		for _, e := range part {
-			k, ok := files[e.File]
-			if !ok {
-				k = len(m.Files)
-				files[e.File] = k
-				m.Files = append(m.Files, e.File)
-			}
-			m.Extents = append(m.Extents, [3]int64{int64(k), e.Offset, e.Length})
-			n += e.Length
+			conv[i] = append(conv[i], session.Extent{File: e.File, Offset: e.Offset, Length: e.Length})
 		}
-		d := 0.0
-		if i < len(durations) {
-			d = durations[i]
-		}
-		m.Segments = append(m.Segments, Segment{Bytes: n, StartSec: at, Duration: d, BasePTS: -1})
-		at += d
 	}
-	return m
+	return session.NewMedia(container, token, conv, durations)
 }
 
 // titleAudio returns the MPEG-PS stream id of the audio the viewer hears in a
@@ -1022,4 +1015,79 @@ func uopLocks(m uint32) []string {
 	add("subtitle", 21)
 	add("angle", 22)
 	return out
+}
+
+// How much of a DVD is looked at to decide whether it is protected: a little from
+// several places, because menus are often clear when the film isn't.
+const (
+	sampleSectors = 32
+	samplePlaces  = 5
+)
+
+// Check refuses a protected disc without starting a session.
+func Check(path string, drive bool) error {
+	o, err := wittydvd.Open(path)
+	if err != nil {
+		if drive {
+			return &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
+		}
+		return err
+	}
+	defer o.Close()
+	return checkDVDProtection(o, drive)
+}
+
+// checkDVDProtection samples the menus and the feature for CSS. Scrambled packs say so
+// outright. On a drive, the film failing to read does too: drives refuse protected
+// sectors to a player that hasn't unlocked them, and this one never does.
+func checkDVDProtection(o *wittydvd.Opened, drive bool) error {
+	scrambled := func(sp wittydvd.Space, first uint32) (bool, error) {
+		rd, err := o.Reader(sp)
+		if err != nil {
+			return false, err
+		}
+		buf, err := rd.ReadSectors(first, sampleSectors)
+		for s := 0; (s+1)*wittydvd.Sector <= len(buf); s++ {
+			if wittydvd.PackScrambled(buf[s*wittydvd.Sector : (s+1)*wittydvd.Sector]) {
+				return true, nil
+			}
+		}
+		return false, err
+	}
+	if bad, _ := scrambled(wittydvd.Space{Domain: wittydvd.DomainVMGM}, 0); bad {
+		return &RefusalError{Code: session.CodeProtected, Message: session.MsgDVDProtected}
+	}
+	main := o.Disc.MainTitle()
+	if main == nil || len(main.Cells) == 0 {
+		return nil
+	}
+	sp := wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: main.VTS}
+	if rd, err := o.Reader(sp); err != nil || rd == nil {
+		if drive {
+			return &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
+		}
+		return nil
+	}
+	failed, tried := 0, 0
+	step := len(main.Cells)/samplePlaces + 1
+	for i := 0; i < len(main.Cells); i += step {
+		c := main.Cells[i].Cell
+		if c.LastSector < c.FirstSector {
+			continue
+		}
+		// Past the first VOBU, which can be clear on an otherwise scrambled disc.
+		at := c.FirstSector + (c.LastSector-c.FirstSector)/2
+		bad, err := scrambled(sp, at)
+		if bad {
+			return &RefusalError{Code: session.CodeProtected, Message: session.MsgDVDProtected}
+		}
+		tried++
+		if err != nil {
+			failed++
+		}
+	}
+	if drive && tried > 0 && failed == tried {
+		return &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
+	}
+	return nil
 }

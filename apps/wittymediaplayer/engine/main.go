@@ -6,6 +6,9 @@
 //	wittymediaplayer-engine --helper                 the window's helper
 //	wittymediaplayer-engine --drives                 lists optical drives as JSON
 //	wittymediaplayer-engine --image <source> <out>   copies a disc to an .iso or .img
+//
+// Ctrl+C stops a copy. With --watch-stdin before --image, so does closing stdin, which
+// is how the window does it. Either way the partial file is removed.
 package main
 
 import (
@@ -15,12 +18,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
+	"github.com/wittywilla/wittydisc/session"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/disc"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/drives"
 	"github.com/wittywilla/wittymediaplayer/engine/internal/imaging"
+	"github.com/wittywilla/wittymediaplayer/engine/internal/modhost"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -32,9 +38,16 @@ const HelperFlag = "--helper"
 
 func main() {
 	args := os.Args[1:]
+	watch := false
+	if len(args) > 0 && args[0] == "--watch-stdin" {
+		watch, args = true, args[1:]
+	}
+	if len(args) == 0 || args[0] != HelperFlag {
+		attachConsole() // started by hand: answer in the terminal it came from
+	}
 	switch {
 	case len(args) == 1 && args[0] == HelperFlag:
-		h := &helper{}
+		h := &helper{mgr: disc.NewManager(Version)}
 		err := wittymodule.Serve(os.Stdin, os.Stdout, wittymodule.Hello{Module: "wittymediaplayer-engine", Version: Version, API: 1}, h.handle)
 		h.closeSession()
 		if err != nil {
@@ -49,7 +62,11 @@ func main() {
 		}
 		_ = json.NewEncoder(os.Stdout).Encode(list)
 	case len(args) == 3 && args[0] == "--image":
-		os.Exit(runImage(args[1], args[2], os.Stdin, os.Stdout))
+		var stdin io.Reader
+		if watch {
+			stdin = os.Stdin
+		}
+		os.Exit(runImage(args[1], args[2], stdin, os.Stdout))
 	case len(args) == 1 && args[0] == "--version":
 		fmt.Println("wittymediaplayer-engine", Version)
 	default:
@@ -60,15 +77,116 @@ func main() {
 
 // ------------------------------------------------------------------ helper
 
+// helper answers the window. Calls about a disc go to its module: a downloaded version's
+// own process when one is in use, or the built-in copy.
 type helper struct {
-	session disc.Session
+	mgr     *modhost.Manager
+	builtin *session.Host
+	remote  *modhost.Remote
+	mod     modhost.Module
+	shaky   bool // a call has failed since the last that worked
 }
 
 func (h *helper) closeSession() {
-	if h.session != nil {
-		_ = h.session.Close()
-		h.session = nil
+	if h.builtin != nil {
+		h.builtin.Close()
+		h.builtin = nil
 	}
+	if h.remote != nil {
+		h.remote.Stop()
+		h.remote = nil
+	}
+}
+
+// failed counts a failure at the process level against the version in use.
+func (h *helper) failed(err error) {
+	h.remote.Stop()
+	h.mgr.CallFailed(h.mod, h.remote.Version, err.Error())
+	h.remote = nil
+	h.shaky = true
+}
+
+// call passes a call to the module in use.
+func (h *helper) call(method string, raw json.RawMessage) (any, []byte, error) {
+	if h.remote != nil {
+		res, err := h.remote.Call(method, raw)
+		var ce *wittymodule.CallError
+		switch {
+		case err == nil:
+			if h.shaky {
+				h.mgr.CallOK(h.mod)
+				h.shaky = false
+			}
+		case errors.As(err, &ce):
+			return nil, nil, err
+		default:
+			h.failed(err)
+			return nil, nil, errors.New("this disc's module stopped unexpectedly. Open the disc again to carry on")
+		}
+		if len(res.JSON) == 0 {
+			return struct{}{}, res.Blob, nil
+		}
+		return res.JSON, res.Blob, nil
+	}
+	if h.builtin == nil {
+		return nil, nil, errors.New("no disc is open")
+	}
+	res, blob, err := h.builtin.Handle(method, raw)
+	return res, blob, refusal(err)
+}
+
+// openDisc starts a disc with its module. A downloaded version gets the same refusal
+// check as anything else first, by the built-in copy, so what it says about copy
+// protection is never simply taken on trust. If it can't start or fails on the way in,
+// the built-in copy carries on.
+func (h *helper) openDisc(path, kind string, drive bool, prefs json.RawMessage) (any, []byte, error) {
+	h.mod, _ = h.mgr.Module(disc.ModuleFor(kind))
+	params, err := json.Marshal(map[string]any{"path": path, "drive": drive, "prefs": prefs})
+	if err != nil {
+		return nil, nil, err
+	}
+	if c := h.mgr.Choose(h.mod); c.Entry != "" {
+		if err := disc.CheckProtected(path, kind, drive); err != nil {
+			return nil, nil, refusal(err)
+		}
+		rem, err := modhost.Start(c.Entry, h.mod.ID, c.Version)
+		if err != nil {
+			h.mgr.CallFailed(h.mod, c.Version, err.Error())
+		} else {
+			h.remote = rem
+			res, _, err := h.call("open", params)
+			if err == nil {
+				return withKind(res, kind)
+			}
+			var ce *wittymodule.CallError
+			if errors.As(err, &ce) {
+				h.closeSession()
+				return nil, nil, err
+			}
+		}
+	}
+	h.builtin = disc.BuiltinHost(kind)
+	res, _, err := h.call("open", params)
+	if err != nil {
+		h.closeSession()
+		return nil, nil, err
+	}
+	return withKind(res, kind)
+}
+
+// withKind adds what kind of disc it is to a module's answer.
+func withKind(res any, kind string) (any, []byte, error) {
+	b, err := json.Marshal(res)
+	if err != nil {
+		return nil, nil, err
+	}
+	var out map[string]json.RawMessage
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, nil, err
+	}
+	k, _ := json.Marshal(kind)
+	out["kind"] = k
+	return out, nil, nil
 }
 
 // openReply answers an "open" call.
@@ -99,6 +217,9 @@ func resolve(path string) (string, string, bool, error) {
 		}
 	}
 	kind, err := disc.Classify(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", "", drive, &disc.RefusalError{Code: disc.CodeUnreadable, Message: "This can't be found. It may have been moved, or the disc taken out."}
+	}
 	if err != nil {
 		return "", "", drive, err
 	}
@@ -128,8 +249,8 @@ func (h *helper) handle(method string, raw json.RawMessage) (any, []byte, error)
 	switch method {
 	case "open":
 		var in struct {
-			Path  string     `json:"path"`
-			Prefs disc.Prefs `json:"prefs"`
+			Path  string          `json:"path"`
+			Prefs json.RawMessage `json:"prefs"`
 		}
 		if err := json.Unmarshal(raw, &in); err != nil {
 			return nil, nil, err
@@ -142,108 +263,40 @@ func (h *helper) handle(method string, raw json.RawMessage) (any, []byte, error)
 		if kind == disc.KindFile {
 			return openReply{Kind: kind}, nil, nil
 		}
-		s, err := disc.Open(path, kind, drive, in.Prefs)
-		if err != nil {
-			return nil, nil, refusal(err)
-		}
-		h.session = s
-		info := s.Info()
-		return openReply{Kind: kind, Info: &info, Presentation: s.Start()}, nil, nil
+		return h.openDisc(path, kind, drive, in.Prefs)
 	case "drives":
 		list, err := drives.List()
 		return list, nil, err
-	}
-	if h.session == nil {
-		return nil, nil, errors.New("no disc is open")
-	}
-	switch method {
-	case "action":
-		var a disc.Action
-		if err := json.Unmarshal(raw, &a); err != nil {
-			return nil, nil, err
-		}
-		return h.session.Do(a), nil, nil
-	case "title":
+	case "modules":
+		return h.mgr.Statuses(), nil, nil
+	case "module-rollback":
 		var in struct {
-			TTN     int `json:"ttn"`
-			Chapter int `json:"chapter"`
+			ID string `json:"id"`
 		}
 		if err := json.Unmarshal(raw, &in); err != nil {
 			return nil, nil, err
 		}
-		return h.session.PlayTitle(in.TTN, in.Chapter), nil, nil
-	case "locate":
-		var in struct {
-			Sec float64 `json:"sec"`
-		}
-		if err := json.Unmarshal(raw, &in); err != nil {
-			return nil, nil, err
-		}
-		loc, err := h.session.Locate(in.Sec)
-		return loc, nil, err
-	case "art":
-		var in struct {
-			Art   int    `json:"art"`
-			Kind  string `json:"kind"`
-			N     int    `json:"n"`
-			Frame int    `json:"frame"`
-		}
-		if err := json.Unmarshal(raw, &in); err != nil {
-			return nil, nil, err
-		}
-		b, ok := h.session.Art(in.Art, in.Kind, in.N, in.Frame)
+		mod, ok := h.mgr.Module(in.ID)
 		if !ok {
-			return nil, nil, &wittymodule.CallError{Code: "missing", Message: "no such picture"}
+			return nil, nil, fmt.Errorf("%q isn't one of this player's modules", in.ID)
 		}
-		return struct{}{}, b, nil
-	case "sound":
-		var in struct {
-			ID int `json:"id"`
+		v, err := h.mgr.Rollback(mod)
+		if err != nil {
+			return nil, nil, &wittymodule.CallError{Code: "nothing-to-do", Message: capitalize(err.Error()) + "."}
 		}
-		if err := json.Unmarshal(raw, &in); err != nil {
-			return nil, nil, err
-		}
-		b, ok := h.session.Sound(in.ID)
-		if !ok {
-			return nil, nil, &wittymodule.CallError{Code: "missing", Message: "no such sound"}
-		}
-		return struct{}{}, b, nil
-	case "subs":
-		var in struct {
-			TTN    int     `json:"ttn"`
-			Stream int     `json:"stream"`
-			From   float64 `json:"from"`
-			To     float64 `json:"to"`
-		}
-		if err := json.Unmarshal(raw, &in); err != nil {
-			return nil, nil, err
-		}
-		ev, err := h.session.Subtitles(in.TTN, in.Stream, in.From, in.To)
-		return ev, nil, err
-	case "subpic":
-		var in struct {
-			Key string `json:"key"`
-		}
-		if err := json.Unmarshal(raw, &in); err != nil {
-			return nil, nil, err
-		}
-		b, ok := h.session.SubPic(in.Key)
-		if !ok {
-			return nil, nil, &wittymodule.CallError{Code: "missing", Message: "no such picture"}
-		}
-		return struct{}{}, b, nil
+		return map[string]string{"inUse": v}, nil, nil
 	case "close":
 		h.closeSession()
 		return struct{}{}, nil, nil
 	}
-	return nil, nil, fmt.Errorf("unknown call %q", method)
+	return h.call(method, raw)
 }
 
 // ------------------------------------------------------------------ imaging
 
-// runImage copies a disc, printing one JSON line per report. Closing stdin stops
-// it, and the partial file goes with it.
-func runImage(source, out string, stdin io.Reader, stdout io.Writer) int {
+// runImage copies a disc, printing one JSON line per report. Ctrl+C stops it, as
+// does stdin closing when stop is given, and the partial file goes with it.
+func runImage(source, out string, stop io.Reader, stdout io.Writer) int {
 	enc := json.NewEncoder(stdout)
 	fail := func(code, msg string) int {
 		_ = enc.Encode(imaging.Progress{Event: "error", Code: code, Message: msg})
@@ -290,12 +343,14 @@ func runImage(source, out string, stdin io.Reader, stdout io.Writer) int {
 	if err := imaging.CheckOut(out, src.Size()); err != nil {
 		return fail("destination", capitalize(err.Error())+".")
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	go func() {
-		_, _ = io.Copy(io.Discard, stdin)
-		cancel()
-	}()
+	if stop != nil {
+		go func() {
+			_, _ = io.Copy(io.Discard, stop)
+			cancel()
+		}()
+	}
 	res, err := imaging.Copy(ctx, src, imaging.Options{Out: out, Kind: kind, Progress: func(p imaging.Progress) { _ = enc.Encode(p) }})
 	if err != nil {
 		var r *disc.RefusalError

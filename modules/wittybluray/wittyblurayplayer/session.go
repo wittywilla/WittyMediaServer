@@ -1,4 +1,7 @@
-package disc
+// Package wittyblurayplayer is WittyBluray for a player: it turns the navigator's steps into
+// what a window shows. It builds into a helper of its own, so WittyBluray can be updated
+// without a new player, and a player links it as the built-in copy that always works.
+package wittyblurayplayer
 
 import (
 	"bytes"
@@ -6,12 +9,31 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittydisc/session"
+)
+
+// The contract these sessions keep, from WittyDisc.
+type (
+	Presentation = session.Presentation
+	Media        = session.Media
+	Segment      = session.Segment
+	Menu         = session.Menu
+	ButtonView   = session.ButtonView
+	TitleView    = session.TitleView
+	Track        = session.Track
+	SubEvent     = session.SubEvent
+	Location     = session.Location
+	Prefs        = session.Prefs
+	Action       = session.Action
+	TitleInfo    = session.TitleInfo
+	Info         = session.Info
+	RefusalError = session.RefusalError
 )
 
 // bluraySession is one opened Blu-ray.
@@ -83,20 +105,20 @@ func (p *laidOut) find(item int) *playedItem {
 	return nil
 }
 
-// openBluray opens a disc and refuses it if it is protected. The engine samples
+// Open opens a disc and refuses it if it is protected. The engine samples
 // the streams; on a drive, a stream it can't read at all counts against the disc
 // when it has an AACS folder.
-func openBluray(path string, drive bool, prefs Prefs) (*bluraySession, error) {
+func Open(path string, drive bool, prefs Prefs) (session.Session, error) {
 	d, err := wittybluray.Open(path)
 	if err != nil {
 		if drive {
-			return nil, &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
+			return nil, &RefusalError{Code: session.CodeUnreadable, Message: session.MsgDriveUnreadable}
 		}
 		return nil, err
 	}
 	if d.Encrypted {
 		_ = d.Close()
-		return nil, &RefusalError{Code: CodeProtected, Message: MsgBlurayProtected}
+		return nil, &RefusalError{Code: session.CodeProtected, Message: session.MsgBlurayProtected}
 	}
 	s := &bluraySession{prefs: prefs, disc: d, menus: map[int]*bdArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*image.NRGBA{}}
 	s.nav = wittybluray.NewNav(d, wittybluray.NavOptions{Registers: wittybluray.RegisterOptions{
@@ -433,7 +455,7 @@ func (s *bluraySession) keyPress(key string) *Presentation {
 
 func (s *bluraySession) stop(reason string) *Presentation {
 	s.serial++
-	p := stopPresentation(s.serial, reason)
+	p := session.StopPresentation(s.serial, reason)
 	s.current, s.menu, s.playlist = p, nil, nil
 	return p
 }
@@ -491,7 +513,7 @@ func (s *bluraySession) present(st *wittybluray.Step, rebuild bool) *Presentatio
 		}
 	}
 	if err != nil {
-		s.current = stopPresentation(s.serial, plainReason(err))
+		s.current = session.StopPresentation(s.serial, session.PlainReason(err))
 		return s.current
 	}
 	s.syncTimer()
@@ -584,13 +606,13 @@ func chapterMarks(pl *wittybluray.Playlist) []wittybluray.Mark {
 }
 
 // clipExtents is a stretch of a clip's stream file.
-func (s *bluraySession) clipExtents(clip string, fromSPN, toSPN uint32) ([]wittydvd.FileExtent, error) {
+func (s *bluraySession) clipExtents(clip string, fromSPN, toSPN uint32) ([]session.Extent, error) {
 	ext, err := s.disc.ClipExtents(clip)
 	if err != nil {
 		return nil, err
 	}
 	from, to := int64(fromSPN)*192, int64(toSPN)*192
-	var cut []wittydvd.FileExtent
+	var cut []session.Extent
 	var off int64
 	for _, e := range ext {
 		a, b := off, off+e.Length
@@ -599,7 +621,7 @@ func (s *bluraySession) clipExtents(clip string, fromSPN, toSPN uint32) ([]witty
 		if hi <= lo {
 			continue
 		}
-		cut = append(cut, wittydvd.FileExtent{File: e.Path, Offset: e.Offset + (lo - a), Length: hi - lo})
+		cut = append(cut, session.Extent{File: e.Path, Offset: e.Offset + (lo - a), Length: hi - lo})
 	}
 	if len(cut) == 0 {
 		return nil, fmt.Errorf("clip %s is missing from the disc", clip)
@@ -651,7 +673,7 @@ func (s *bluraySession) buildMedia(laid *laidOut, it *wittybluray.PlayItem, audi
 	if len(it.Video) == 0 && audio == nil {
 		return nil, errors.New("this playlist has neither picture nor sound")
 	}
-	var parts [][]wittydvd.FileExtent
+	var parts [][]session.Extent
 	var durations []float64
 	var bases []int64
 	for _, pi := range laid.items {
@@ -666,7 +688,7 @@ func (s *bluraySession) buildMedia(laid *laidOut, it *wittybluray.PlayItem, audi
 	if len(parts) == 0 {
 		return nil, errors.New("this playlist has no clips")
 	}
-	m := newMedia("mpegts", "", parts, durations)
+	m := session.NewMedia("mpegts", "", parts, durations)
 	for i := range m.Segments {
 		m.Segments[i].BasePTS = bases[i]
 	}
@@ -1061,6 +1083,8 @@ func (s *bluraySession) locateLaid(laid *laidOut, sec float64) (Location, error)
 	return loc, nil
 }
 
+var pngEnc = png.Encoder{CompressionLevel: png.BestSpeed}
+
 func encodeImage(img image.Image) []byte {
 	var buf bytes.Buffer
 	_ = pngEnc.Encode(&buf, img)
@@ -1248,4 +1272,13 @@ func (s *bluraySession) SubPic(key string) ([]byte, bool) {
 		return nil, false
 	}
 	return encodeImage(img), true
+}
+
+// Check refuses a protected disc without starting a session.
+func Check(path string, drive bool) error {
+	s, err := Open(path, drive, Prefs{})
+	if err != nil {
+		return err
+	}
+	return s.Close()
 }

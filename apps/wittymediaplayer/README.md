@@ -18,9 +18,15 @@
 - **Says no plainly:** a copy-protected disc gets a clear message. Nothing here unlocks copy protection.
 - **Runs well on small machines:** the picture is drawn by the graphics card, and hardware decoding is used where
   the card has it.
-- **Keeps to itself:** no telemetry, no update checks, and nothing leaves your computer. Its FFmpeg and its disc helper
-  are built with no network code. (`Qt6Network.dll` is in the folder only because Qt's sound library won't load without
-  it. Nothing calls it.)
+- **Can use the VLC libraries:** if you have [VLC](https://www.videolan.org/vlc/) installed, **File, Settings** can play
+  through its libraries instead of the built-in FFmpeg, for formats the built-in choice can't play, and for surround
+  sound. Thank you to VideoLAN and the VLC contributors, who make them. They aren't included here and aren't needed.
+- **Updates its disc modules one at a time:** WittyDVD and WittyBluray can each take a newer signed version without a new
+  player, from **File, Settings**. A version that keeps failing is taken back out by itself, and the built-in copy always works.
+- **Keeps to itself:** no telemetry, and nothing leaves your computer. Pressing **Look for updates** in Settings is the one
+  time it uses the internet, and it talks only to GitHub. Its FFmpeg and its disc helper are built with no network code, and only a
+  small updater program has any. (`Qt6Network.dll` is in the folder only because Qt's sound library won't load without it.
+  Nothing calls it.)
 
 ## Use it
 
@@ -80,7 +86,7 @@ Discs protected with CSS or AACS are refused before anything is written. Audio C
 ## What doesn't work yet
 
 - Blu-ray menus written in Java don't run. The disc plays its titles instead, and the window says so.
-- Sound is stereo. Surround tracks are mixed down.
+- Sound is stereo with the built-in playback. Surround tracks are mixed down.
 - Windows only for now. Nothing in the design stops other systems: see [DESIGN.md](DESIGN.md).
 
 ## Build it
@@ -114,3 +120,12 @@ on it, keep the [NOTICE](NOTICE) attribution, *"WittyMediaPlayer, developed by W
 
 Qt and FFmpeg ship as separate libraries under the LGPL, so you can replace them. See
 [licenses/THIRD-PARTY.txt](licenses/THIRD-PARTY.txt).
+
+### Credits
+
+- **[VLC and libVLC](https://www.videolan.org/vlc/libvlc.html)**, by VideoLAN and the VLC contributors, under the LGPL 2.1
+  or later, when you choose them in Settings. WittyMediaPlayer loads them from your own VLC and doesn't ship them.
+  It isn't part of VLC or made by VideoLAN.
+- **[Qt](https://www.qt.io)**, by The Qt Company and contributors, for the window.
+- **[FFmpeg](https://ffmpeg.org)**, by the FFmpeg developers, for built-in decoding.
+- **WittyDVD**, **WittyBluray**, **WittyDisc** and **WittyModule**, by WittyWilla, for discs.

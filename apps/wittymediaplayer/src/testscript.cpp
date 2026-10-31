@@ -3,6 +3,8 @@
 #include "disc/disccontroller.h"
 #include "media/audiooutput.h"
 #include "media/player.h"
+#include "media/vlcplayback.h"
+#include "ui/settingsdialog.h"
 #include "ui/mainwindow.h"
 #include "video/videoview.h"
 
@@ -12,6 +14,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStringList>
+#include <QThread>
 #include <QTimer>
 #include <memory>
 
@@ -43,6 +46,7 @@ void writeReport(MainWindow *w, const QString &file)
         {"audioFrames", qint64(st.audioFrames)},
         {"underruns", qint64(st.underruns)},
         {"audioDevice", w->player()->audio()->hasDevice()},
+        {"throughVlc", w->player()->playingThroughVlc()},
         {"badBlocks", qint64(st.badBlocks)},
         {"width", st.width},
         {"height", st.height},
@@ -100,6 +104,19 @@ struct Runner {
                 window->disc()->seekTo(arg.toDouble());
             else
                 window->player()->seek(arg.toDouble());
+        } else if (cmd == QLatin1String("settingsgrab")) {
+            SettingsDialog d(window->player(), window->engine(), true, VlcPlayback::detectFolder(), false, window);
+            d.setWindowFlag(Qt::Tool);
+            d.setAttribute(Qt::WA_ShowWithoutActivating);
+            d.move(-20000, -20000);
+            d.show();
+            for (int i = 0; i < 40; i++) { // the module list comes from the helper
+                qApp->processEvents(QEventLoop::AllEvents, 50);
+                QThread::msleep(25);
+            }
+            d.grab().save(arg);
+        } else if (cmd == QLatin1String("engine")) {
+            window->setUseVlc(arg == QLatin1String("vlc"));
         } else if (cmd == QLatin1String("volume")) {
             window->player()->setVolume(arg.toDouble());
         } else if (cmd == QLatin1String("press")) {

@@ -106,6 +106,13 @@ QMenu::item:selected { background: @bg3; }
 QMenu::item:disabled { color: @fg3; }
 QMenu::separator { height: 1px; background: @bg4; margin: 6px 8px; }
 QMenu::indicator { width: 14px; height: 14px; left: 6px; }
+QRadioButton, QCheckBox { color: @fg; spacing: 8px; }
+QCheckBox:focus { color: @accentText; }
+QFrame[frameShape="4"] { color: @bg4; }
+QRadioButton:focus { color: @accentText; }
+QLineEdit { background: @bg3; color: @fg; border: 1px solid @line; border-radius: 6px; padding: 6px 8px; }
+QLineEdit:focus { border: 2px solid @focus; padding: 5px 7px; }
+QLineEdit:disabled { color: @fg3; border-color: @bg4; }
 QPushButton { background: @bg3; color: @fg; border: 1px solid @bg4; border-radius: @radiuspx; padding: 8px 16px; }
 QPushButton:hover { background: @bg4; }
 QPushButton:pressed { background: @bg4; border-color: @line; }
@@ -129,7 +136,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
     const QVector<QPair<QString, QColor>> colors = {
         {QStringLiteral("@bg4"), t.bg4}, {QStringLiteral("@bg3"), t.bg3}, {QStringLiteral("@bg2"), t.bg2}, {QStringLiteral("@bg"), t.bg},
         {QStringLiteral("@fg3"), t.fg3}, {QStringLiteral("@fg2"), t.fg2}, {QStringLiteral("@fg"), t.fg},
-        {QStringLiteral("@accentHover"), t.accentHover}, {QStringLiteral("@accentFg"), t.accentFg}, {QStringLiteral("@accent"), t.accent},
+        {QStringLiteral("@accentHover"), t.accentHover}, {QStringLiteral("@accentFg"), t.accentFg}, {QStringLiteral("@accentText"), t.accentText}, {QStringLiteral("@accent"), t.accent},
         {QStringLiteral("@line"), t.controlLine}, {QStringLiteral("@focus"), t.focus},
     };
     for (const auto &c : colors)

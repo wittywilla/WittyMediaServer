@@ -7,6 +7,8 @@
 #include "../video/videoview.h"
 #include "controlbar.h"
 #include "imagedialog.h"
+#include "settingsdialog.h"
+#include "../media/vlcplayback.h"
 #include "subtitlepaint.h"
 #include "theme.h"
 
@@ -31,6 +33,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPainter>
+#include <QProcess>
 #include <QPushButton>
 #include <QStyle>
 #include <QThread>
@@ -289,6 +292,8 @@ MainWindow::MainWindow(bool noAudioDevice, QWidget *parent)
     refreshDrives();
     start_->show();
     layoutOverlays();
+    applyEngine();
+    lookForModuleUpdates();
 }
 
 MainWindow::~MainWindow()
@@ -318,6 +323,7 @@ void MainWindow::buildMenus()
     menuRecent_ = file->addMenu(QStringLiteral("&Recent"));
     file->addSeparator();
     actImage_ = file->addAction(QStringLiteral("Make disc &image…"), QKeySequence(QStringLiteral("Ctrl+I")), this, [this] { makeImage(); });
+    file->addAction(QStringLiteral("&Settings…"), QKeySequence(QStringLiteral("Ctrl+,")), this, &MainWindow::openSettings);
     file->addSeparator();
     actStop_ = file->addAction(QStringLiteral("&Close"), QKeySequence(QStringLiteral("Ctrl+W")), this, [this] { stopPlayback(); });
     file->addAction(QStringLiteral("&Quit"), QKeySequence::Quit, this, &QWidget::close);
@@ -396,8 +402,9 @@ void MainWindow::buildMenus()
                            "WittyMediaPlayer, developed by WittyWilla. Apache License 2.0.<br>"
                            "Uses WittyDVD, WittyBluray and WittyDisc, developed by WittyWilla.<br>"
                            "Uses Qt and FFmpeg under the LGPL: they're separate libraries in its folder, which you can replace. "
-                           "See the licenses folder.")
-                .arg(QCoreApplication::applicationVersion()));
+                           "See the licenses folder.<br><br>"
+                           "If you choose it in Settings, playback can use the <b>VLC libraries</b> from a VLC on your computer. %2")
+                .arg(QCoreApplication::applicationVersion(), SettingsDialog::vlcCredit()));
     });
     rebuildRecent();
     rebuildDiscMenus();
@@ -445,6 +452,11 @@ void MainWindow::buildStartPage()
     drives->setMaximumWidth(560);
     outer->addWidget(drives, 0, Qt::AlignHCenter);
     outer->addStretch(3);
+    engineCredit_ = new QLabel(start_);
+    engineCredit_->setProperty("role", QStringLiteral("hint"));
+    engineCredit_->setAlignment(Qt::AlignCenter);
+    engineCredit_->setWordWrap(true);
+    outer->addWidget(engineCredit_);
 }
 
 void MainWindow::refreshDrives()
@@ -723,7 +735,7 @@ void MainWindow::openPath(const QString &path)
             spec.filePath = path;
             player_->setPaused(false);
             player_->open(spec);
-            setStatus(QStringLiteral("Playing %1").arg(QFileInfo(path).fileName()));
+            setStatus(player_->playingThroughVlc() ? QStringLiteral("Playing %1 through the VLC libraries").arg(QFileInfo(path).fileName()) : QStringLiteral("Playing %1").arg(QFileInfo(path).fileName()));
         } else {
             isFile_ = false;
             bar_->setDiscMode(true);
@@ -761,6 +773,72 @@ void MainWindow::stopPlayback(bool showStart)
         refreshDrives();
     }
     updateHitButtons();
+}
+
+// Only if the viewer turned it on. Off, this player never touches the network.
+void MainWindow::lookForModuleUpdates()
+{
+    if (!settings_.value(QStringLiteral("checkModules"), false).toBool())
+        return;
+    auto *proc = new QProcess(this);
+    proc->setStandardErrorFile(QProcess::nullDevice());
+    connect(proc, &QProcess::finished, this, [this, proc] {
+        const QJsonObject o = QJsonDocument::fromJson(proc->readAllStandardOutput()).object();
+        proc->deleteLater();
+        QStringList found;
+        for (const auto &v : o.value("offers").toArray())
+            if (!v.toObject().value("version").toString().isEmpty())
+                found << v.toObject().value("id").toString();
+        if (!found.isEmpty() && !player_->hasMedia())
+            setStatus(QStringLiteral("There are updates for this player's disc modules. See File, Settings."));
+        if (!found.isEmpty() && !player_->hasMedia())
+            engineCredit_->setText(QStringLiteral("There are updates for this player's disc modules. See File, Settings.")), engineCredit_->show();
+    });
+    QString updater = QStringLiteral("wittymediaplayer-updater");
+#ifdef Q_OS_WIN
+    updater += QStringLiteral(".exe");
+#endif
+    proc->start(QDir(QCoreApplication::applicationDirPath()).filePath(updater), {QStringLiteral("--check")}, QIODevice::ReadOnly);
+}
+
+void MainWindow::applyEngine()
+{
+    const bool want = settings_.value(QStringLiteral("useVlc"), false).toBool();
+    QString folder = settings_.value(QStringLiteral("vlcFolder")).toString();
+    if (folder.isEmpty())
+        folder = VlcPlayback::detectFolder();
+    bool on = false;
+    QString why;
+    if (want) {
+        on = player_->enableVlc(folder, &why);
+        if (!on)
+            setStatus(QStringLiteral("Using the built-in playback, because the VLC libraries aren't available. %1").arg(why));
+    }
+    player_->useVlc(on);
+    engineCredit_->setText(on ? QStringLiteral("Playing through the VLC %1 libraries, by VideoLAN and the VLC contributors (videolan.org).").arg(player_->vlcVersion()) : QString());
+    engineCredit_->setVisible(on);
+}
+
+void MainWindow::setUseVlc(bool on)
+{
+    settings_.setValue(QStringLiteral("useVlc"), on);
+    applyEngine();
+}
+
+void MainWindow::openSettings()
+{
+    QString folder = settings_.value(QStringLiteral("vlcFolder")).toString();
+    if (folder.isEmpty())
+        folder = VlcPlayback::detectFolder();
+    auto *dlg = new SettingsDialog(player_, engine_, settings_.value(QStringLiteral("useVlc"), false).toBool(), folder, settings_.value(QStringLiteral("checkModules"), false).toBool(), this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dlg, &QDialog::accepted, this, [this, dlg] {
+        settings_.setValue(QStringLiteral("useVlc"), dlg->useVlc());
+        settings_.setValue(QStringLiteral("vlcFolder"), dlg->vlcFolder());
+        settings_.setValue(QStringLiteral("checkModules"), dlg->checkModulesAtStart());
+        applyEngine();
+    });
+    dlg->open();
 }
 
 void MainWindow::makeImage(const QString &source)
@@ -806,6 +884,7 @@ void MainWindow::setVolumePercent(int percent)
 
 void MainWindow::cycleAudio()
 {
+    rebuildTrackMenus(); // a key can come before the first list has been made
     if (audioIds_.size() < 2)
         return;
     const int cur = disc_->active() ? disc_->currentAudio() : player_->currentAudioTrack();
@@ -820,6 +899,7 @@ void MainWindow::cycleAudio()
 
 void MainWindow::cycleSubtitle()
 {
+    rebuildTrackMenus();
     if (subIds_.size() < 2)
         return;
     int at = 0;

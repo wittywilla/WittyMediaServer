@@ -35,7 +35,7 @@ close some of these.
 
 - **WittyMediaPlayer**, with WittyDVD and WittyBluray as plugins: a first Windows build exists under
   `apps/wittymediaplayer`, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
-  images for a server's library. Playing in a real window, sound, disc menus by eye and anything with a physical
+  images for a server's library, the VLC libraries as an option in Settings, and WittyDVD and WittyBluray updating on their own. Playing in a real window, sound, disc menus by eye and anything with a physical
   drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
   It has no published repository yet, which is the owner's step.
 - **A real plugin system:** the modules are separate code, but they're still compiled into the server.

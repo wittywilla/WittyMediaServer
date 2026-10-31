@@ -27,6 +27,8 @@ export PATH="$T/qt/Tools/mingw1310_64/bin:$T/qt/Tools/Ninja:$T/qt/Tools/CMake_64
 mkdir -p "$OUT/cmake"
 (cd "$HERE/engine" && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H=windowsgui -X main.Version=$VERSION" -o "$OUT/cmake/wittymediaplayer-engine.exe" .)
 
+(cd "$HERE/engine" && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H=windowsgui -X main.Version=$VERSION" -o "$OUT/cmake/wittymediaplayer-updater.exe" ./cmd/wittymediaplayer-updater)
+
 # The window.
 cmake -S "$HERE" -B "$OUT/cmake" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(cygpath -m "$QT")" -DFFMPEG_DIR="$(cygpath -m "$FF")" \
   -DCMAKE_EXE_LINKER_FLAGS="-s" >/dev/null
@@ -35,7 +37,7 @@ cmake --build "$OUT/cmake"
 # The package: nothing in it but what's needed to run and what its licences ask for.
 rm -rf "$PKG"
 mkdir -p "$PKG/licenses"
-cp "$OUT/cmake/wittymediaplayer.exe" "$OUT/cmake/wittymediaplayer-engine.exe" "$PKG/"
+cp "$OUT/cmake/wittymediaplayer.exe" "$OUT/cmake/wittymediaplayer-engine.exe" "$OUT/cmake/wittymediaplayer-updater.exe" "$PKG/"
 windeployqt6 --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-system-dxc-compiler --no-compiler-runtime \
   --skip-plugin-types generic,networkinformation,tls,qmltooling,iconengines --dir "$PKG" "$PKG/wittymediaplayer.exe" >"$OUT/windeployqt.log"
 # The compiler's runtime libraries.

@@ -19,6 +19,7 @@
 namespace wmp {
 
 class AudioOutput;
+class VlcPlayback;
 struct Session;
 
 // Where finished pictures go. presentFrame is called on the video thread.
@@ -89,6 +90,13 @@ public:
 
     void setVolume(double v);
 
+    // The VLC libraries, when the viewer chooses them (see vlcplayback.h). enableVlc only
+    // loads them; useVlc says whether the next thing opened plays through them.
+    bool enableVlc(const QString &folder, QString *why);
+    void useVlc(bool on) { useVlc_ = on; }
+    bool playingThroughVlc() const { return vlcActive_; }
+    QString vlcVersion() const;
+
     // Ordinary files: stream indices from the track lists; -1 = off.
     void setAudioTrack(int index);
     void setSubtitleTrack(int index, bool external);
@@ -126,6 +134,9 @@ private:
     void retire(std::shared_ptr<Session> s);
 
     std::shared_ptr<Session> session_;
+    VlcPlayback *vlc_ = nullptr;
+    bool useVlc_ = false;
+    bool vlcActive_ = false;
     AudioOutput *audio_ = nullptr;
     VideoSink *sink_ = nullptr;
     bool paused_ = false;

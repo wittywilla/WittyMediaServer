@@ -144,7 +144,7 @@ void ImageDialog::start(const QString &out)
     proc_->setStandardErrorFile(QProcess::nullDevice());
     connect(proc_, &QProcess::readyReadStandardOutput, this, &ImageDialog::onOutput);
     connect(proc_, &QProcess::finished, this, &ImageDialog::onFinished);
-    proc_->start(EngineClient::enginePath(), {QStringLiteral("--image"), d.value("path").toString(), QDir::toNativeSeparators(out)}, QIODevice::ReadWrite);
+    proc_->start(EngineClient::enginePath(), {QStringLiteral("--watch-stdin"), QStringLiteral("--image"), d.value("path").toString(), QDir::toNativeSeparators(out)}, QIODevice::ReadWrite);
 }
 
 void ImageDialog::onOutput()

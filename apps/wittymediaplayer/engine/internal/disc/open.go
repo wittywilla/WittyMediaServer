@@ -1,13 +1,16 @@
 package disc
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/wittywilla/wittybluray/wittyblurayplayer"
 	"github.com/wittywilla/wittydisc/isofs"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittydisc/session"
+	"github.com/wittywilla/wittydvd/wittydvdplayer"
+	"github.com/wittywilla/wittymediaplayer/engine/internal/modhost"
+	"github.com/wittywilla/wittymodule"
 )
 
 // Kinds of thing a path can be.
@@ -71,104 +74,89 @@ func exists(dir, name string) bool {
 	return err == nil
 }
 
-// Open opens a disc of a known kind. drive says it is read straight from a disc
-// drive, where a read failure means something different than in a file.
+// RefusalError and the rest of the contract come from WittyDisc.
+type (
+	RefusalError = session.RefusalError
+	Session      = session.Session
+	Prefs        = session.Prefs
+	Presentation = session.Presentation
+	Action       = session.Action
+	Info         = session.Info
+)
+
+// Error codes and plain messages, as the modules give them.
+const (
+	CodeProtected      = session.CodeProtected
+	CodeNoMedia        = session.CodeNoMedia
+	CodeNotVideo       = session.CodeNotVideo
+	CodeAudioCD        = session.CodeAudioCD
+	CodeUnreadable     = session.CodeUnreadable
+	MsgDVDProtected    = session.MsgDVDProtected
+	MsgBlurayProtected = session.MsgBlurayProtected
+	MsgDriveUnreadable = session.MsgDriveUnreadable
+	MsgNoMedia         = session.MsgNoMedia
+	MsgAudioCD         = session.MsgAudioCD
+	MsgNotVideo        = session.MsgNotVideo
+)
+
+// IsProtected says an error is the refusal of a protected disc.
+func IsProtected(err error) bool { return session.IsProtected(err) }
+
+// Open opens a disc of a known kind with the built-in copy of its module. drive says it
+// is read straight from a disc drive.
 func Open(path, kind string, drive bool, prefs Prefs) (Session, error) {
 	switch kind {
 	case KindDVD:
-		return openDVD(path, drive, prefs)
+		return wittydvdplayer.Open(path, drive, prefs)
 	case KindBluray:
-		return openBluray(path, drive, prefs)
+		return wittyblurayplayer.Open(path, drive, prefs)
 	}
 	return nil, &RefusalError{Code: CodeNotVideo, Message: MsgNotVideo}
 }
 
-// CheckProtected refuses a disc of a known kind that carries copy protection,
-// without starting a session. Imaging uses it.
+// CheckProtected refuses a disc of a known kind that carries copy protection, without
+// starting a session. It always uses the built-in copies, so what it says doesn't rest
+// on anything downloaded.
 func CheckProtected(path, kind string, drive bool) error {
 	switch kind {
 	case KindDVD:
-		o, err := wittydvd.Open(path)
-		if err != nil {
-			if drive {
-				return &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
-			}
-			return err
-		}
-		defer o.Close()
-		return checkDVDProtection(o, drive)
+		return wittydvdplayer.Check(path, drive)
 	case KindBluray:
-		s, err := openBluray(path, drive, Prefs{})
-		if err != nil {
-			return err
-		}
-		return s.Close()
+		return wittyblurayplayer.Check(path, drive)
 	}
 	return nil
 }
 
-// How much of a DVD is looked at to decide whether it is protected: a little
-// from several places, because menus are often clear when the film isn't.
+// Module ids, for the kinds of disc.
 const (
-	sampleSectors = 32
-	samplePlaces  = 5
+	ModuleDVD    = "wittydvdplayer"
+	ModuleBluray = "wittyblurayplayer"
 )
 
-// checkDVDProtection samples the menus and the feature for CSS. Scrambled packs
-// say so outright. On a drive, the film failing to read does too: drives refuse
-// protected sectors to a player that hasn't unlocked them, and this one never
-// does.
-func checkDVDProtection(o *wittydvd.Opened, drive bool) error {
-	scrambled := func(sp wittydvd.Space, first uint32) (bool, error) {
-		rd, err := o.Reader(sp)
-		if err != nil {
-			return false, err
-		}
-		buf, err := rd.ReadSectors(first, sampleSectors)
-		for s := 0; (s+1)*wittydvd.Sector <= len(buf); s++ {
-			if wittydvd.PackScrambled(buf[s*wittydvd.Sector : (s+1)*wittydvd.Sector]) {
-				return true, nil
-			}
-		}
-		return false, err
+// ModuleFor says which module plays a kind of disc.
+func ModuleFor(kind string) string {
+	if kind == KindBluray {
+		return ModuleBluray
 	}
-	if bad, _ := scrambled(wittydvd.Space{Domain: wittydvd.DomainVMGM}, 0); bad {
-		return &RefusalError{Code: CodeProtected, Message: MsgDVDProtected}
-	}
-	main := o.Disc.MainTitle()
-	if main == nil || len(main.Cells) == 0 {
-		return nil
-	}
-	sp := wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: main.VTS}
-	if rd, err := o.Reader(sp); err != nil || rd == nil {
-		if drive {
-			return &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
-		}
-		return nil
-	}
-	failed, tried := 0, 0
-	step := len(main.Cells)/samplePlaces + 1
-	for i := 0; i < len(main.Cells); i += step {
-		c := main.Cells[i].Cell
-		if c.LastSector < c.FirstSector {
-			continue
-		}
-		// Past the first VOBU, which can be clear on an otherwise scrambled disc.
-		at := c.FirstSector + (c.LastSector-c.FirstSector)/2
-		bad, err := scrambled(sp, at)
-		if bad {
-			return &RefusalError{Code: CodeProtected, Message: MsgDVDProtected}
-		}
-		tried++
-		if err != nil {
-			failed++
-		}
-	}
-	if drive && tried > 0 && failed == tried {
-		return &RefusalError{Code: CodeUnreadable, Message: MsgDriveUnreadable}
-	}
-	return nil
+	return ModuleDVD
 }
 
-// ErrNotDisc is returned for a path that is no disc at all.
-var ErrNotDisc = errors.New("not a disc")
+// NewManager knows this player's modules, each with its built-in copy.
+func NewManager(hostVersion string) *modhost.Manager {
+	mods := []modhost.Module{}
+	for _, raw := range [][]byte{wittydvdplayer.Manifest, wittyblurayplayer.Manifest} {
+		man, err := wittymodule.ParseManifest(raw)
+		if err != nil {
+			panic(err) // built in: a test catches this long before anyone sees it
+		}
+		mods = append(mods, modhost.Module{ID: man.ID, Name: man.Name, Repo: man.Repo, Builtin: man.Version})
+	}
+	return &modhost.Manager{Dir: modhost.DefaultDir(), Host: hostVersion, Keys: modhost.DefaultKeys(), Modules: mods}
+}
+
+// BuiltinHost answers calls with the built-in copies of the modules.
+func BuiltinHost(kind string) *session.Host {
+	return &session.Host{Open: func(path string, drive bool, prefs Prefs) (Session, error) {
+		return Open(path, kind, drive, prefs)
+	}}
+}

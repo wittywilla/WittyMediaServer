@@ -1,11 +1,12 @@
-// Package disc plays DVD and Blu-ray discs through the WittyDVD and WittyBluray
-// engines. It turns navigator steps into what the player's window shows: which
-// bytes to decode, what to draw over them, and where the buttons are.
+// Package session is the contract between a player and a disc engine's module: what
+// a player should show right now, which bytes to decode, what to draw over them and
+// where the buttons are. WittyDVD and WittyBluray each implement it in their own
+// player module, so either can be updated without the other or the player.
 //
-// It follows the same rules as the server's disc sessions, with one difference:
-// nothing is transcoded. Where the server starts an HLS stream, this package
-// hands the player a list of byte ranges to decode itself.
-package disc
+// It follows the same rules as WittyMediaServer's disc sessions, with one difference:
+// nothing is transcoded. Where the server starts an HLS stream, a session hands the
+// player a list of byte ranges to decode itself.
+package session
 
 import (
 	"errors"
@@ -246,6 +247,10 @@ type Session interface {
 	Close() error
 }
 
+// Opener opens a disc for a session. drive says it is read straight from a disc drive,
+// where a read failure means something different than in a file.
+type Opener func(path string, drive bool, prefs Prefs) (Session, error)
+
 // Error codes the window turns into plain messages.
 const (
 	CodeProtected  = "protected"
@@ -253,6 +258,7 @@ const (
 	CodeNotVideo   = "not-video"
 	CodeAudioCD    = "audio-cd"
 	CodeUnreadable = "unreadable"
+	CodeMissing    = "missing"
 )
 
 // RefusalError is a disc the player won't or can't play, in words for the viewer.
@@ -278,4 +284,52 @@ const (
 func IsProtected(err error) bool {
 	var r *RefusalError
 	return errors.As(err, &r) && r.Code == CodeProtected
+}
+
+// PlainReason words a read failure for the viewer; refusals are already worded.
+func PlainReason(err error) string {
+	var r *RefusalError
+	if errors.As(err, &r) {
+		return r.Message
+	}
+	return "This part of the disc could not be read: " + err.Error()
+}
+
+// StopPresentation is the end of the disc's program, or a screen that can't be shown.
+func StopPresentation(serial int, reason string) *Presentation {
+	return &Presentation{Kind: "stop", Serial: serial, Reason: reason, Media: &Media{Type: "none"}}
+}
+
+// Extent is a byte range of a file.
+type Extent struct {
+	File   string
+	Offset int64
+	Length int64
+}
+
+// NewMedia lays stretches of bytes out as a stream, each with its duration.
+func NewMedia(container, token string, parts [][]Extent, durations []float64) *Media {
+	m := &Media{Type: "clip", Container: container, Token: token, StartPTS: -1}
+	files := map[string]int{}
+	var at float64
+	for i, part := range parts {
+		var n int64
+		for _, e := range part {
+			k, ok := files[e.File]
+			if !ok {
+				k = len(m.Files)
+				files[e.File] = k
+				m.Files = append(m.Files, e.File)
+			}
+			m.Extents = append(m.Extents, [3]int64{int64(k), e.Offset, e.Length})
+			n += e.Length
+		}
+		d := 0.0
+		if i < len(durations) {
+			d = durations[i]
+		}
+		m.Segments = append(m.Segments, Segment{Bytes: n, StartSec: at, Duration: d, BasePTS: -1})
+		at += d
+	}
+	return m
 }

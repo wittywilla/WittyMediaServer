@@ -102,6 +102,7 @@ type Server struct {
 	rigSvc        *rigService
 	moonOnce      sync.Once
 	couchSvc      *couchService
+	radioChecks   sync.WaitGroup // "check every station" runs on its own
 	diagOnce      sync.Once
 	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
 }

@@ -543,6 +543,6 @@ func TestRadioChecksAndLookup(t *testing.T) {
 	if w := ts.do("POST", "/api/radio/check", ts.admin, map[string]any{"libraryId": lib.ID}); w.Code != 202 {
 		t.Errorf("%d %s", w.Code, w.Body)
 	}
-	// It runs on its own; give it a moment to finish, so the test's data can go.
-	time.Sleep(100 * time.Millisecond)
+	// It runs on its own; it finishes before the test's data goes.
+	ts.s.radioChecks.Wait()
 }

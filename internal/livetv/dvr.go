@@ -365,7 +365,13 @@ func (m *Manager) record(r *Recording) {
 		m.finish(r.ID, "failed", err.Error(), "")
 		return
 	}
-	defer opened.Release()
+	done := ""
+	defer func() {
+		if done != "" && m.AfterRecording != nil {
+			m.AfterRecording(done)
+		}
+	}()
+	defer opened.Release() // first: whoever is told may use the tuner
 	path, err := m.recordPath(r)
 	if err != nil {
 		m.finish(r.ID, "failed", err.Error(), "")
@@ -384,9 +390,7 @@ func (m *Manager) record(r *Recording) {
 		return
 	}
 	m.finish(r.ID, "done", "", path)
-	if m.AfterRecording != nil {
-		m.AfterRecording(path)
-	}
+	done = path
 }
 
 // openForRecording takes a tuner, stopping a live viewer if that is the only

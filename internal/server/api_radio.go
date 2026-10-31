@@ -19,6 +19,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // Internet radio. Anyone with the library listens; administrators add stations,
@@ -315,9 +316,13 @@ func (s *Server) handleRadioCheckAll(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	go s.Store.CheckStations(context.Background(), items, func(msg string, args ...any) {
-		s.Log.Info(msg, append([]any{"cat", "library"}, args...)...)
-	})
+	s.radioChecks.Add(1)
+	logging.Go("radio checks", func() {
+		defer s.radioChecks.Done()
+		s.Store.CheckStations(context.Background(), items, func(msg string, args ...any) {
+			s.Log.Info(msg, append([]any{"cat", "library"}, args...)...)
+		})
+	}, "cat", "library")
 	writeJSON(w, 202, map[string]any{"stations": len(items)})
 }
 

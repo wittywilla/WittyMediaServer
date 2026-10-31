@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Licenses you can read
+
+- **Settings, About & legal** now lists everything in the server that someone else made: every library with its version, license and
+  full license text, the separate programs, the game cores, and the online services and their terms. Before, it pointed to a file.
+
 ### Games in archives
 
 - **Nothing needs unpacking first.** Game libraries read `.7z`, `.zip`, `.rar`, `.gz`, `.tar`, `.tar.gz` and `.tgz`, for every

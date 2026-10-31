@@ -220,6 +220,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
 	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
 	m.Handle("GET /api/about", a(s.handleAbout))
+	m.Handle("GET /api/licenses", a(s.handleLicenses))
+	m.Handle("GET /api/licenses/{id}", a(s.handleLicenseText))
 	m.Handle("GET /api/branding/logo", http.HandlerFunc(s.handleLogo))
 	m.Handle("PUT /api/branding/logo", s.requireAdmin(s.handleSetLogo))
 	m.Handle("DELETE /api/branding/logo", s.requireAdmin(s.handleDeleteLogo))

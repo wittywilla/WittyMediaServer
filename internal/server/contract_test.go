@@ -21,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -382,7 +383,7 @@ func schemaTypes() map[string]reflect.Type {
 		"PlaybackAudio": ty(playbackAudio{}), "PlaybackSubtitle": ty(playbackSubtitle{}), "PlaybackIntro": ty(playbackIntro{}), "PlaybackDisc": ty(playbackDisc{}),
 		"ThemeMeta": ty(themes.Meta{}), "ThemeTokens": ty(themes.Tokens{}), "UpdateStatus": ty(update.Status{}), "UpdateInfo": ty(update.Info{}),
 		"ModuleReport": ty(modmgr.Report{}), "ModuleStatus": ty(modmgr.Status{}), "ModuleOffer": ty(modmgr.Offer{}),
-		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}),
+		"LogsView": ty(logsView{}), "ModuleInfo": ty(moduleInfo{}), "LicenseGroup": ty(licenses.Group{}), "LicenseComponent": ty(licenses.Component{}),
 	}
 }
 

@@ -1254,6 +1254,62 @@
         ],
         "type": "object"
       },
+      "LicenseComponent": {
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "hasText": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "license": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "hasText",
+          "id",
+          "license",
+          "name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "LicenseGroup": {
+        "properties": {
+          "about": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "about",
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
       "LogsView": {
         "properties": {
           "canOpen": {
@@ -8878,6 +8934,95 @@
         "summary": "Upload.",
         "tags": [
           "Photos"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/licenses": {
+      "get": {
+        "operationId": "getLicenses",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "components": {
+                      "items": {
+                        "$ref": "#/components/schemas/LicenseComponent"
+                      },
+                      "type": "array"
+                    },
+                    "groups": {
+                      "items": {
+                        "$ref": "#/components/schemas/LicenseGroup"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Third-party licenses.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/licenses/{id}": {
+      "get": {
+        "operationId": "getLicensesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One license text.",
+        "tags": [
+          "Server"
         ],
         "x-wms-auth": "user"
       }

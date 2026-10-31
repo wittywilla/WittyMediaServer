@@ -43,6 +43,7 @@ type runner struct {
 	mu    sync.Mutex
 	input [engine.MaxPorts]engine.PadState
 	snap  [engine.MaxPorts]engine.PadState
+	point engine.PointerState
 
 	audio []byte
 	video []byte
@@ -96,6 +97,11 @@ func (r *runner) handlers() engine.Handlers {
 			r.mu.Unlock()
 			return &r.snap
 		},
+		Pointer: func() engine.PointerState {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			return r.point
+		},
 		Rumble: func(port, effect, strength int) {
 			r.event(ipc.Event{Type: "rumble", Port: port, Effect: effect, Strength: strength})
 		},
@@ -142,6 +148,14 @@ func (r *runner) run(in io.Reader, open Open) error {
 				}
 				continue
 			}
+			if t == ipc.CmdPointer {
+				if x, y, pressed, ok := ipc.ParsePointer(p); ok {
+					r.mu.Lock()
+					r.point = engine.PointerState{X: x, Y: y, Pressed: pressed}
+					r.mu.Unlock()
+				}
+				continue
+			}
 			cmds <- command{t, append([]byte(nil), p...)}
 		}
 	}()
@@ -176,7 +190,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 		av.FPS = 60
 	}
 	info := eng.SystemInfo()
-	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate})
+	renderer := ""
+	if hw, ok := eng.(interface{ Renderer() string }); ok {
+		renderer = hw.Renderer()
+	}
+	ready, _ := json.Marshal(ipc.Ready{Name: info.Name, Version: info.Version, Width: av.BaseWidth, Height: av.BaseHeight, Aspect: av.Aspect, FPS: av.FPS, SampleRate: av.SampleRate, Renderer: renderer})
 	r.write(ipc.MsgReady, ready)
 
 	frame := time.Duration(float64(time.Second) / av.FPS)

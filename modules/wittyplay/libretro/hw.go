@@ -149,3 +149,18 @@ func onGetProc(name uintptr) uintptr {
 	}
 	return c.hw.gl.p.proc(cString((*byte)(ptr(name))))
 }
+
+// OptionList is the core's options as it described them, for working out which
+// settings to pass it.
+func (c *Core) OptionList() []string { return c.optionList }
+
+// ProbeGPU makes an OpenGL context the way a game would and names the graphics
+// card behind it, or says why there isn't one.
+func ProbeGPU() (string, error) {
+	o, err := newGLOut(glRequest{major: 3, minor: 3, core: true}, false, false, false)
+	if err != nil {
+		return "", err
+	}
+	defer o.destroy()
+	return o.renderer, nil
+}

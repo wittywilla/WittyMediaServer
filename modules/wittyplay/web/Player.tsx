@@ -10,7 +10,7 @@ import './play.css'
 // and passes controllers along. Everything it needs from the app comes through
 // PlayHost, so the module works in any app that can provide one.
 
-export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; modes: { id: string }[] }
+export type SessionInfo = { id: string; itemId: number; title: string; console: string; core: string; width: number; height: number; aspect: number; fps: number; sampleRate: number; resumed: boolean; encoder?: string; renderer?: string; modes: { id: string }[] }
 export type SaveSlot = { slot: number; updatedAt: number; size: number; hasThumb: boolean }
 
 export interface PlayHost {
@@ -254,10 +254,30 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
   const aspect = info?.aspect && info.aspect > 0 ? info.aspect : info ? info.width / info.height : 4 / 3
   const onMask = useCallback((m: number) => input.setTouch(m), [input])
 
+  // A console's touch screen: a press on the picture is the stylus, wherever it
+  // came from. Positions are fractions of the picture, which is all the server wants.
+  const hasPointer = !!controls.pad?.pointer
+  const onPoint = useCallback((clientX: number, clientY: number, phase: 'down' | 'move' | 'up') => {
+    const r = stage.current?.getBoundingClientRect()
+    if (!r || r.width === 0 || r.height === 0) return
+    input.setPointer((clientX - r.left) / r.width, (clientY - r.top) / r.height, phase !== 'up')
+  }, [input])
+  const stylusDown = useRef(false)
+  const stageDown = (e: React.PointerEvent) => {
+    if (!hasPointer || paused) return
+    e.preventDefault()
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* fine */ }
+    stylusDown.current = true
+    onPoint(e.clientX, e.clientY, 'down')
+  }
+  const stageMove = (e: React.PointerEvent) => { if (stylusDown.current) onPoint(e.clientX, e.clientY, 'move') }
+  const stageUp = (e: React.PointerEvent) => { if (stylusDown.current) { stylusDown.current = false; onPoint(e.clientX, e.clientY, 'up') } }
+
   return (
     <div ref={root} className={`wp-root wp-${orientation}${touchOn ? ' wp-with-touch' : ''}${paused ? '' : ' wp-playing'}`}>
       <div className="wp-video-area">
-        <div ref={stage} className="wp-stage" style={{ aspectRatio: String(aspect) }} />
+        <div ref={stage} className={'wp-stage' + (hasPointer ? ' wp-has-pointer' : '')} style={{ aspectRatio: String(aspect) }}
+          onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} />
         {status && !error && <div className="wp-status" role="status"><span className="wp-spinner" aria-hidden="true" />{status}</div>}
         {error && (
           <div className="wp-error" role="alert">
@@ -267,7 +287,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
         )}
       </div>
 
-      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} />}
+      {touchOn && transport && !paused && <TouchControls data={controls} orientation={orientation} onMask={onMask} onPoint={hasPointer ? onPoint : undefined} />}
 
       {needsTap && !paused && <button type="button" className="wp-tap" onClick={tap}>Tap for sound</button>}
 
@@ -275,7 +295,7 @@ function Playing({ host, initial }: { host: PlayHost; initial: ControlsData }) {
 
       {showStats && (
         <div className="wp-stats" aria-hidden="true">
-          {transport && <b>{transport.kind}</b>} {info?.encoder && <span>{info.encoder}</span>}
+          {transport && <b>{transport.kind}</b>} {info?.encoder && <span>{info.encoder}</span>} {info?.renderer && <span>{info.renderer}</span>}
           {stats.codec && <span>{stats.codec}</span>}
           {stats.fps != null && <span>{stats.fps} fps</span>}
           {stats.kbps != null && <span>{stats.kbps} kbps</span>}

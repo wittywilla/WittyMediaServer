@@ -51,7 +51,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 			return nil
 		}
 		c := gameConsole(p, rel, console)
-		if c == "" {
+		if c == "" || wittyplay.IsBIOSFile(c, name) {
 			return nil
 		}
 		st, err := d.Info()

@@ -7,4 +7,5 @@ package hostsandbox
 type Limits struct {
 	SaveDir  string // the only folder it may write to
 	MemoryMB int64  // address space limit; 0 for none
+	GPU      bool   // a graphics driver will load: see docs/GAMING.md for what that opens
 }

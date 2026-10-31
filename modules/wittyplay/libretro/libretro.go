@@ -71,10 +71,11 @@ const (
 )
 
 const (
-	deviceJoypad = 1
-	deviceAnalog = 5
-	idBitmask    = 256 // the whole pad as one value
-	maxPadPorts  = 4
+	deviceJoypad  = 1
+	deviceAnalog  = 5
+	devicePointer = 6
+	idBitmask     = 256 // the whole pad as one value
+	maxPadPorts   = 4
 )
 
 // Paths are the folders a core is told about.
@@ -102,6 +103,7 @@ type Core struct {
 	options  map[string]string
 	pinned   [][]byte
 	input    *[engine.MaxPorts]engine.PadState
+	pointer  engine.PointerState
 	gameData []byte
 	loaded   bool
 
@@ -420,6 +422,9 @@ func onInputPoll() uintptr {
 	if c := cur; c != nil && c.h.Input != nil {
 		c.input = c.h.Input()
 	}
+	if c := cur; c != nil && c.h.Pointer != nil {
+		c.pointer = c.h.Pointer()
+	}
 	return 0
 }
 
@@ -432,6 +437,24 @@ func onInputState(port, device, index, id uintptr) uintptr {
 	st := &c.input[port]
 	var v int16
 	switch device & 0xff {
+	case devicePointer:
+		if index != 0 || port != 0 {
+			return 0 // one finger, for one player
+		}
+		switch id {
+		case 0:
+			v = c.pointer.X
+		case 1:
+			v = c.pointer.Y
+		case 2:
+			if c.pointer.Pressed {
+				v = 1
+			}
+		case 3:
+			if c.pointer.Pressed {
+				v = 1
+			}
+		}
 	case deviceJoypad:
 		if id == idBitmask {
 			v = int16(st.Buttons)
@@ -553,7 +576,7 @@ func (c *Core) environment(cmd uint32, data unsafe.Pointer) bool {
 		c.ports = countControllerPorts(data)
 	case envGetInputBitmasks:
 	case envGetInputCaps:
-		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog
+		*(*uint64)(data) = 1<<deviceJoypad | 1<<deviceAnalog | 1<<devicePointer
 	case envGetMaxUsers:
 		*(*uint32)(data) = engine.MaxPorts
 	case envGetCoreOptVersion:

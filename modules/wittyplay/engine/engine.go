@@ -47,6 +47,13 @@ type PadState struct {
 	RX, RY  int16
 }
 
+// PointerState is a touch screen or mouse. X and Y run from -32767 to 32767 across
+// the picture, as libretro counts them.
+type PointerState struct {
+	X, Y    int16
+	Pressed bool
+}
+
 // Handlers receive what an engine produces. All are called on the thread
 // running Run, and slices are only valid during the call. Any may be nil.
 type Handlers struct {
@@ -57,6 +64,7 @@ type Handlers struct {
 	Dupe         func() // the previous frame again
 	Audio        func(stereo []int16)
 	Input        func() *[MaxPorts]PadState // once a frame
+	Pointer      func() PointerState        // once a frame
 	Rumble       func(port, effect, strength int)
 	Message      func(text string)
 	Log          func(level int, text string)

@@ -30,6 +30,8 @@ func (b boundedClose) Close() {
 func main() {
 	saveDir := flag.String("save", "", "the only folder this process may write to")
 	memory := flag.Int64("memory-mb", 0, "address space limit in MiB; 0 for none")
+	gpu := flag.Bool("gpu", false, "this game draws with a graphics card, so allow what a driver needs")
+	probe := flag.Bool("probe-gpu", false, "say which graphics card games would draw with, and stop")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Fprintln(os.Stderr, "wittyplay-host is started by WittyMediaServer")
@@ -41,10 +43,19 @@ func main() {
 		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
 		os.Exit(1)
 	}
-	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory}); err != nil {
+	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory, GPU: *gpu || *probe}); err != nil {
 		// Each layer is best effort, because kernels and containers differ. The
 		// server's log shows which ones this machine lacks.
 		fmt.Fprintln(os.Stderr, "sandbox:", err)
+	}
+	if *probe {
+		name, err := libretro.ProbeGPU()
+		if err != nil {
+			fmt.Fprintln(out, "none:", err)
+			return
+		}
+		fmt.Fprintln(out, "gpu:", name)
+		return
 	}
 	err = host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
 		if l.Core == ipc.TestCore {

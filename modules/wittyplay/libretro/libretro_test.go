@@ -56,8 +56,9 @@ func TestEnvironmentAnswers(t *testing.T) {
 	if !env(envGetSaveDir, unsafe.Pointer(&p)) || cString(p) != "save" {
 		t.Errorf("save dir = %q", cString(p))
 	}
-	if env(envSetHWRender, unsafe.Pointer(&yes)) {
-		t.Error("hardware rendering should be refused, so cores fall back to software")
+	unknownHW := hwRenderC{contextType: hwD3D11}
+	if env(envSetHWRender, unsafe.Pointer(&unknownHW)) {
+		t.Error("a kind of hardware rendering this runner can't offer should be refused, so cores fall back")
 	}
 	if env(9999, unsafe.Pointer(&yes)) {
 		t.Error("an unknown command should be refused")

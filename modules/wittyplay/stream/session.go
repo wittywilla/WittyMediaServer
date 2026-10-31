@@ -32,7 +32,9 @@ type Config struct {
 	HWEncoders  []string          // hardware encoders known to work here, best first
 	HaveEncoder func(string) bool // FFmpeg was built with this encoder
 	MaxSessions int               // 0 means 2
+	MaxGPU      int               // games drawn on the graphics card at once; 0 means 2
 	MemoryMB    int64             // 0 means 2048
+	GPUMemoryMB int64             // the same for a game with a graphics driver loaded; 0 means 8192
 	Log         *slog.Logger
 
 	// WebRTC networking; all optional. A fixed UDP port is what a firewall or
@@ -53,6 +55,7 @@ type Options struct {
 	SaveDir        string // this account's folder for this game
 	Resume         bool   // continue from auto.state
 	Quality        string // "" (auto) | low | high
+	GPU            bool   // the core draws with a graphics card
 	CoreOptions    map[string]string
 	Cleanup        func() // runs when the session has ended
 }
@@ -71,12 +74,14 @@ type Info struct {
 	SampleRate float64 `json:"sampleRate"`
 	Resumed    bool    `json:"resumed"`
 	Encoder    string  `json:"encoder,omitempty"`
-	Modes      []Mode  `json:"modes"` // what this client can connect with, best first
+	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
+	Modes      []Mode  `json:"modes"`              // what this client can connect with, best first
 }
 
 // Errors a caller shows to people.
 var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
+	ErrGPUBusy = errors.New("the graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
 	ErrNoSlot  = errors.New("there is no such save slot")
 )
@@ -100,6 +105,12 @@ func NewManager(cfg Config) *Manager {
 	}
 	if cfg.MemoryMB <= 0 {
 		cfg.MemoryMB = 2048
+	}
+	if cfg.MaxGPU <= 0 {
+		cfg.MaxGPU = 2
+	}
+	if cfg.GPUMemoryMB <= 0 {
+		cfg.GPUMemoryMB = 8192
 	}
 	if cfg.Log == nil {
 		cfg.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -174,6 +185,22 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	if len(m.sessions) >= cfg.MaxSessions {
 		m.mu.Unlock()
 		return nil, ErrBusy
+	}
+	if opt.GPU {
+		n := 0
+		for _, o := range m.sessions {
+			if o.opt.GPU {
+				n++
+			}
+		}
+		maxGPU := cfg.MaxGPU
+		if maxGPU <= 0 {
+			maxGPU = 2
+		}
+		if n >= maxGPU {
+			m.mu.Unlock()
+			return nil, ErrGPUBusy
+		}
 	}
 	id := newID()
 	s := &Session{id: id, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id[:8]), done: make(chan struct{}), paused: true,
@@ -263,6 +290,7 @@ type Session struct {
 	encName       string
 	audioCh       chan []byte
 	rate          float64
+	stats         EncodeStats
 
 	stateMu   sync.Mutex
 	stateWait map[uint32]chan []byte
@@ -284,14 +312,19 @@ func (s *Session) Info() Info {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
 	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: s.info.Width, Height: s.info.Height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName}
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Renderer: s.info.Renderer}
 }
 
 func (s *Session) start() error {
 	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
 		return err
 	}
-	rn, err := StartRunner(s.cfg.Runner, s.cfg.RunnerArgs, s.opt.SaveDir, s.cfg.MemoryMB, s.log)
+	args, memory := s.cfg.RunnerArgs, s.cfg.MemoryMB
+	if s.opt.GPU {
+		// A graphics driver needs what a software-rendered game never should.
+		args, memory = append(append([]string(nil), args...), "-gpu"), s.cfg.GPUMemoryMB
+	}
+	rn, err := StartRunner(s.cfg.Runner, args, s.opt.SaveDir, memory, s.log)
 	if err != nil {
 		return err
 	}
@@ -305,6 +338,7 @@ func (s *Session) start() error {
 	go s.readRunner(stdout, readyCh)
 	go s.audioLoop()
 	go s.videoLoop()
+	go s.logStats()
 	go func() {
 		// Wait closes the pipes, so it comes after the last save has been read.
 		s.wrote.Wait()
@@ -504,9 +538,18 @@ func truncate(s string, n int) string {
 	return s
 }
 
-// Input applies an 11-byte pad message from a viewer. Malformed ones and
-// players beyond what the player offers are ignored.
+// Input applies a message from a viewer: an 11-byte pad state or a pointer state.
+// Malformed ones and players beyond what the player offers are ignored.
 func (s *Session) Input(p []byte) {
+	if len(p) == ipc.PointerSize {
+		if _, _, _, ok := ipc.ParsePointer(p); ok {
+			s.viewMu.Lock()
+			s.lastInput = time.Now()
+			s.viewMu.Unlock()
+			_ = s.command(ipc.CmdPointer, p)
+		}
+		return
+	}
 	port, _, _, _, _, _, ok := ipc.ParseInput(p)
 	if !ok || port >= MaxPlayers {
 		return

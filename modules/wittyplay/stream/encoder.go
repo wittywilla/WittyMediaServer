@@ -140,6 +140,7 @@ type videoEncoder struct {
 	stdin   io.WriteCloser
 	cancel  context.CancelFunc
 	got     chan struct{} // closed at the first frame out
+	sent    timeRing      // when each frame still inside the encoder went in
 	gotOnce sync.Once
 	stopped chan struct{}
 }
@@ -157,11 +158,18 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 	if upload != "" {
 		vf += "," + upload
 	}
+	// NVENC converts colours on the graphics card, so a large frame that needs no
+	// resizing goes straight in and costs no CPU to convert.
+	direct := name == "h264_nvenc" && scale == 1 && hdr.Format == engine.FormatXRGB8888 && hdr.Width%2 == 0 && hdr.Height%2 == 0
 	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
 	args = append(args, inputArgs...)
 	args = append(args, "-fflags", "+nobuffer", "-flags", "+low_delay",
 		"-f", "rawvideo", "-pix_fmt", pixFmt(hdr.Format), "-video_size", fmt.Sprintf("%dx%d", hdr.Width, hdr.Height),
-		"-framerate", strconv.FormatFloat(fps, 'f', 4, 64), "-i", "pipe:0", "-an", "-vf", vf, "-c:v", name)
+		"-framerate", strconv.FormatFloat(fps, 'f', 4, 64), "-i", "pipe:0", "-an")
+	if !direct {
+		args = append(args, "-vf", vf)
+	}
+	args = append(args, "-c:v", name)
 	args = append(args, encArgs...)
 	args = append(args, "-fps_mode", "passthrough", "-flush_packets", "1")
 	if codec == "vp8" {
@@ -193,6 +201,7 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		defer close(e.stopped)
 		emit := func(au AU) {
 			e.gotOnce.Do(func() { close(e.got) })
+			s.stats.encoded(e)
 			s.deliverVideo(codec, au)
 		}
 		var err error
@@ -271,6 +280,7 @@ func (s *Session) videoLoop() {
 		s.viewMu.Unlock()
 		for _, e := range []*videoEncoder{h264, vp8} {
 			if e != nil {
+				e.mark()
 				if _, err := e.stdin.Write(feed); err != nil && !errors.Is(err, os.ErrClosed) {
 					s.log.Debug("writing to the encoder", "err", err)
 				}

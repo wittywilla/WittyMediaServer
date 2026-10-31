@@ -19,6 +19,7 @@
 .wp-portrait .wp-stage { width: 100%; height: auto; }
 /* In portrait the picture sits at the top, with the controls under it. */
 .wp-portrait.wp-with-touch .wp-video-area { align-items: flex-start; flex: 0 0 auto; height: 52%; }
+.wp-has-pointer { touch-action: none; cursor: crosshair; }
 .wp-media { display: block; width: 100%; height: 100%; object-fit: fill; image-rendering: pixelated; background: #000; }
 
 .wp-status, .wp-error { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(10, 12, 18, .82); padding: 14px 20px; border-radius: 10px; max-width: min(90vw, 460px); }

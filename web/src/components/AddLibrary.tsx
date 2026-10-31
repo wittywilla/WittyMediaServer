@@ -3,7 +3,7 @@ import { api, type Library } from '../api'
 import { IconFolder, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
 import { ChooseFolderButton } from './FolderPicker'
-import { ConsolePicker } from '../pages/Games'
+import { BiosHint, ConsolePicker } from '../pages/Games'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
 // folder it's in. Used by the setup wizard and the empty home page.
@@ -138,6 +138,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         const s = existing.filter((l) => l.type === 'games' && (l.console || 'auto') === id)
         setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
       }} />}
+      {type === 'games' && <BiosHint console={console_} />}
       {same.length > 0 && (
         <div className="lib-dest" role="radiogroup" aria-label="Where these folders go">
           <label className={'lib-dest-opt' + (joining ? ' on' : '')}>

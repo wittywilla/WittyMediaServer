@@ -40,6 +40,7 @@ const (
 	CmdReset     byte = 69
 	CmdPause     byte = 70 // one byte: 1 paused, 0 running
 	CmdQuit      byte = 71 // one byte: 1 sends a save state first; battery save is always sent
+	CmdPointer   byte = 72 // PointerSize bytes: a touch screen or mouse
 )
 
 // Size limits. MaxVideoFrame is far above what a console produces (4K at four
@@ -62,7 +63,7 @@ func limit(t byte) int {
 		return MaxJSON
 	case MsgState, MsgSaveRAM, CmdSaveRAM, CmdState:
 		return MaxBlob
-	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput:
+	case MsgDupe, CmdSaveState, CmdReset, CmdPause, CmdQuit, CmdInput, CmdPointer:
 		return 16
 	}
 	return 0
@@ -165,6 +166,7 @@ type Ready struct {
 	Aspect     float64 `json:"aspect"`
 	FPS        float64 `json:"fps"`
 	SampleRate float64 `json:"sampleRate"`
+	Renderer   string  `json:"renderer,omitempty"` // the graphics card, for a game drawn on one
 }
 
 // Event is something a player should be told about.
@@ -230,4 +232,21 @@ func ParseInput(p []byte) (port int, buttons uint16, lx, ly, rx, ry int16, ok bo
 	}
 	return int(p[0]), binary.LittleEndian.Uint16(p[1:]), int16(binary.LittleEndian.Uint16(p[3:])), int16(binary.LittleEndian.Uint16(p[5:])),
 		int16(binary.LittleEndian.Uint16(p[7:])), int16(binary.LittleEndian.Uint16(p[9:])), true
+}
+
+// PointerSize is the size of a pointer message. Its first byte, PointerMark, can't
+// begin a pad message, so a client sends both down the same channel. Then come
+// flags, X and Y. X and Y run from -32767 to 32767 across the picture, the way
+// libretro counts them.
+const (
+	PointerSize = 6
+	PointerMark = 0xFF
+)
+
+// ParsePointer reads a touch screen or mouse state.
+func ParsePointer(p []byte) (x, y int16, pressed, ok bool) {
+	if len(p) != PointerSize || p[0] != PointerMark {
+		return 0, 0, false, false
+	}
+	return int16(binary.LittleEndian.Uint16(p[2:])), int16(binary.LittleEndian.Uint16(p[4:])), p[1]&1 != 0, true
 }

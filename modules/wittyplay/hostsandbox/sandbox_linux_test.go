@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -75,3 +76,44 @@ func TestMemoryLimitCountsUseNotReservations(t *testing.T) {
 		t.Fatalf("%v\n%s", err, out)
 	}
 }
+
+// The filter must hold on threads that were already running when it went on, as a
+// core might end up on any of them.
+func TestFilterCoversThreadsAlreadyRunning(t *testing.T) {
+	if os.Getenv("WITTYPLAY_THREADS_CHILD") == "1" {
+		probe := make(chan func() error)
+		go func() {
+			runtime.LockOSThread() // this thread is running before the sandbox goes on
+			for f := range probe {
+				res <- f()
+			}
+		}()
+		check := func() error {
+			fd, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, 0)
+			if err == nil {
+				_ = unix.Close(fd)
+			}
+			return err
+		}
+		probe <- check
+		if err := <-res; err != nil {
+			t.Skipf("sockets don't work here even before the sandbox: %v", err)
+		}
+		if err := Apply(Limits{}); err != nil {
+			t.Logf("some layers are unavailable: %v", err)
+		}
+		probe <- check
+		if err := <-res; !errors.Is(err, unix.EPERM) {
+			t.Fatalf("on a thread started earlier, socket: got %v, want EPERM", err)
+		}
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestFilterCoversThreadsAlreadyRunning", "-test.v")
+	cmd.Env = append(os.Environ(), "WITTYPLAY_THREADS_CHILD=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+}
+
+var res = make(chan error)

@@ -31,19 +31,23 @@ func main() {
 		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
 		os.Exit(1)
 	}
-	if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory}); err != nil {
-		// Each layer is best effort, because kernels and containers differ. The
-		// server's log shows which ones this machine lacks.
-		fmt.Fprintln(os.Stderr, "sandbox:", err)
-	}
-	err = host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
-		if l.Core == ipc.TestCore {
-			return testcore.New(h), nil
+	// The sandbox goes on from the thread that will run the core, as some of its
+	// layers apply to one thread and whatever that thread starts.
+	libretro.RunOnCoreThread(func() {
+		if err := hostsandbox.Apply(hostsandbox.Limits{SaveDir: *saveDir, MemoryMB: *memory}); err != nil {
+			// Each layer is best effort, because kernels and containers differ. The
+			// server's log shows which ones this machine lacks.
+			fmt.Fprintln(os.Stderr, "sandbox:", err)
 		}
-		return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+		err := host.Run(os.Stdin, out, func(l ipc.Load, h engine.Handlers) (engine.Engine, error) {
+			if l.Core == ipc.TestCore {
+				return testcore.New(h), nil
+			}
+			return libretro.Load(l.Core, libretro.Paths{System: l.System, Save: l.Save}, l.Options, h)
+		})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
+			os.Exit(1)
+		}
 	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "wittyplay-host:", err)
-		os.Exit(1)
-	}
 }

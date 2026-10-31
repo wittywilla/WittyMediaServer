@@ -2,6 +2,7 @@ package hostsandbox
 
 import (
 	"errors"
+	"runtime"
 	"syscall"
 	"unsafe"
 
@@ -12,7 +13,12 @@ import (
 // filter that refuses networking and starting programs, and Landlock limiting
 // writes. Failures in the layers a kernel or container doesn't offer are returned
 // together, and the layers that worked stay on.
+//
+// Call it from the thread that will run the core and keep to that thread: on Linux
+// the priority and, on kernels before Landlock could synchronise, Landlock belong to
+// the calling thread and what it starts. The syscall filter covers every thread.
 func Apply(l Limits) error {
+	runtime.LockOSThread() // never undone: what is set here belongs to this thread
 	var errs []error
 	_ = unix.Setrlimit(unix.RLIMIT_CORE, &unix.Rlimit{})
 	_ = unix.Setrlimit(unix.RLIMIT_FSIZE, &unix.Rlimit{Cur: maxFileSize, Max: maxFileSize})
@@ -48,6 +54,7 @@ const (
 	sysLandlockRestrictSelf  = 446
 
 	landlockRulePathBeneath = 1
+	landlockRestrictSelfTsync = 1 << 3
 
 	accessFSWriteFile  = 1 << 1
 	accessFSRemoveDir  = 1 << 4
@@ -86,6 +93,10 @@ func landlock(saveDir string) error {
 		if _, _, e := syscall.Syscall6(sysLandlockAddRule, fd, landlockRulePathBeneath, uintptr(unsafe.Pointer(&rule[0])), 0, 0, 0); e != 0 {
 			return e
 		}
+	}
+	// Every thread, where the kernel can do that; otherwise this one and its children.
+	if _, _, e := syscall.Syscall(sysLandlockRestrictSelf, fd, landlockRestrictSelfTsync, 0); e == 0 {
+		return nil
 	}
 	if _, _, e := syscall.Syscall(sysLandlockRestrictSelf, fd, 0, 0); e != 0 {
 		return e

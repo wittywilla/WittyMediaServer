@@ -9,8 +9,9 @@ Nothing has to be created until the work it's for is ready to publish. Create ea
 
 | Repository | What it's for | Status of the work |
 |---|---|---|
-| WittyMoonlight | A Moonlight client in the UI, for connecting to any Sunshine server | Being built; wait, the name may change |
-| WittySunshine | An advanced option for streaming demanding games hosted on the server itself | Being built; wait, the name may change |
+| WittyMoonlight | The Moonlight client in the UI: relay, protocol code and player (Apache-2.0) | Built, not merged; the name is the owner's call |
+| WittyMoonlightHost | The separately installed program built on Moonlight's code (GPL-3.0) | Built, not merged; the name is the owner's call |
+| WittySunshine | An advanced option for streaming demanding games hosted on the server itself (Apache-2.0) | Built, not merged; the name is the owner's call |
 | WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |
 
 ## Exists

@@ -513,6 +513,20 @@ func match(a, b []uint64) float64 {
 	return float64(same) / float64(max(len(a), len(b)))
 }
 
+// bestMatch is match with one recording slid up to n frames against the other.
+func bestMatch(a, b []uint64, n int) float64 {
+	best := match(a, b)
+	for i := 1; i <= n; i++ {
+		if i < len(a) {
+			best = max(best, match(a[i:], b))
+		}
+		if i < len(b) {
+			best = max(best, match(a, b[i:]))
+		}
+	}
+	return best
+}
+
 const replayFrames = 30
 
 // stateCheck proves a state restores: it saves, records what follows, goes back
@@ -742,6 +756,7 @@ func checkGame(c *config, j job) (r Result) {
 	var stateErr error
 	if !hung && !p.ended() {
 		state, after, stateErr = p.stateCheck(&r, frameTime)
+		p.tracePicture(j, "after-state")
 		if stateErr != nil && !p.ended() {
 			r.warn("state-failed")
 			r.Log = append(r.Log, "state check: "+stateErr.Error())
@@ -785,7 +800,7 @@ func checkGame(c *config, j job) (r Result) {
 		}
 		quitAt := time.Now()
 		defer func() { r.QuitMS = time.Since(quitAt).Milliseconds() }()
-		if !p.waitExit(15 * time.Second) {
+		if !p.waitExit(p.c.hang) {
 			p.kill()
 			r.Quit = "timeout"
 			r.warn("quit-hung")
@@ -942,8 +957,11 @@ func resumeCheck(c *config, j job, rom, saveDir string, state []byte, after []ui
 	_ = p.send(ipc.CmdState, state)
 	_ = p.pause(false)
 	again := p.capture(replayFrames, 10*time.Second+frameTime*replayFrames*4)
-	r.ResumeMatch = match(after, again)
+	// A new process may start a frame or two either side of where the state was
+	// taken, so the best line-up of the two recordings is the fair one.
+	r.ResumeMatch = bestMatch(after, again, 5)
 	stateOK := p.failedLoads() == 0
+	p.tracePicture(j, "after-resume")
 	more := p.capture(60, 10*time.Second)
 	gone := p.ended()
 	if !gone {
@@ -1003,6 +1021,20 @@ func (p *proc) writeShot(c *config, j job) string {
 		return ""
 	}
 	return path
+}
+
+// tracePicture saves the current picture when tracing, so a state that restored
+// the wrong thing can be seen.
+func (p *proc) tracePicture(j job, name string) {
+	if !p.c.trace {
+		return
+	}
+	p.mu.Lock()
+	hdr, data := p.hdr, append([]byte(nil), p.last...)
+	p.mu.Unlock()
+	if len(data) > 0 {
+		_ = writePNG(filepath.Join(p.c.out, fmt.Sprintf("trace-%s-%d-%s.png", j.core.id, j.index, name)), hdr, data)
+	}
 }
 
 func toImage(hdr ipc.VideoHeader, data []byte) *image.RGBA {

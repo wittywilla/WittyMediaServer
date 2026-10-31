@@ -46,6 +46,7 @@ type runner struct {
 	video []byte
 	stop  bool
 	fps   float64 // a new frame rate the game has asked for
+	muted bool    // these frames are only to get a core ready, and nobody should see them
 }
 
 func (r *runner) write(t byte, parts ...[]byte) {
@@ -63,7 +64,7 @@ func (r *runner) handlers() engine.Handlers {
 	return engine.Handlers{
 		Video: func(data []byte, w, h, stride, format int) {
 			row := w * engine.BytesPerPixel(format)
-			if w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
+			if r.muted || w <= 0 || h <= 0 || row > stride || len(data) < stride*h {
 				return
 			}
 			r.video = ipc.VideoHeader{Width: w, Height: h, Format: format}.Append(r.video[:0])
@@ -72,7 +73,11 @@ func (r *runner) handlers() engine.Handlers {
 			}
 			r.write(ipc.MsgVideo, r.video)
 		},
-		Dupe: func() { r.write(ipc.MsgDupe) },
+		Dupe: func() {
+			if !r.muted {
+				r.write(ipc.MsgDupe)
+			}
+		},
 		Audio: func(s []int16) {
 			for _, v := range s {
 				r.audio = binary.LittleEndian.AppendUint16(r.audio, uint16(v))
@@ -168,13 +173,14 @@ func (r *runner) run(in io.Reader, open Open) error {
 
 	frame := time.Duration(float64(time.Second) / av.FPS)
 	next := time.Now()
-	// A core that can't restore a state until it has run says so. A state that
-	// arrives before then waits for those frames.
+	// A state can't always be restored before a core has run. Some cores say so, some
+	// refuse, and some accept it and then start the game from the beginning on the
+	// first frame anyway. So a state that arrives before the first frame waits for a
+	// couple of frames, which nobody sees.
+	const earlyStateFrames = 2
 	var settle int
 	var heldState []byte
-	if q, ok := eng.(interface{ NeedsFramesBeforeState() int }); ok {
-		settle = q.NeedsFramesBeforeState()
-	}
+	framesRun := 0
 	paused := true // until the server has a viewer
 	var lastSave []byte
 	lastSaveAt := time.Now()
@@ -187,9 +193,11 @@ func (r *runner) run(in io.Reader, open Open) error {
 				lastSave = append(lastSave[:0], ram...)
 			}
 		case ipc.CmdState:
-			if settle > 0 {
-				heldState = c.p
-			} else if !eng.LoadState(c.p) {
+			switch {
+			case framesRun < earlyStateFrames:
+				heldState, settle = c.p, earlyStateFrames-framesRun
+				r.muted = true
+			case !eng.LoadState(c.p):
 				r.event(ipc.Event{Type: "statefail"})
 			}
 		case ipc.CmdSaveState:
@@ -252,13 +260,16 @@ func (r *runner) run(in io.Reader, open Open) error {
 			continue
 		}
 		eng.Run()
+		framesRun++
 		r.pads.frameDone()
 		if settle > 0 {
-			if settle--; settle == 0 && heldState != nil {
+			if settle--; settle == 0 {
 				if !eng.LoadState(heldState) {
 					r.event(ipc.Event{Type: "statefail"})
 				}
 				heldState = nil
+				r.muted = false
+				r.audio = r.audio[:0]
 			}
 		}
 		if r.fps > 0 && r.fps <= 240 {

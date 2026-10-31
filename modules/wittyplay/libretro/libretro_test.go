@@ -278,7 +278,7 @@ func TestFrameTimeCallback(t *testing.T) {
 	}
 }
 
-func TestControllerPortsAndQuirks(t *testing.T) {
+func TestControllerPorts(t *testing.T) {
 	c := newTestCore(t, engine.Handlers{})
 	type entry struct {
 		types uintptr
@@ -288,9 +288,20 @@ func TestControllerPortsAndQuirks(t *testing.T) {
 	if !env(envSetControllerInfo, unsafe.Pointer(&ports[0])) || c.ports != 3 {
 		t.Fatalf("ports %d", c.ports)
 	}
-	q := uint64(quirkMustInitialize)
-	if !env(envSetQuirks, unsafe.Pointer(&q)) || c.NeedsFramesBeforeState() == 0 {
-		t.Fatal("a core that must run before restoring a state should get to")
+}
+
+func TestLoadingAStateAsksItsSizeFirst(t *testing.T) {
+	c := newTestCore(t, engine.Handlers{})
+	asked := false
+	c.fnSerializeSize = purego.NewCallback(func() uintptr { asked = true; return 4 })
+	c.fnUnserialize = purego.NewCallback(func(_, _ uintptr) uintptr {
+		if asked {
+			return 1
+		}
+		return 0
+	})
+	if !c.LoadState([]byte{1, 2, 3, 4}) {
+		t.Fatal("a core that needs asking first refused the state")
 	}
 }
 

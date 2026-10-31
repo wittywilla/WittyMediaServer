@@ -108,6 +108,11 @@ QMenu::separator { height: 1px; background: @bg4; margin: 6px 8px; }
 QMenu::indicator { width: 14px; height: 14px; left: 6px; }
 QRadioButton, QCheckBox { color: @fg; spacing: 8px; }
 QCheckBox:focus { color: @accentText; }
+QRadioButton::indicator, QCheckBox::indicator { width: 14px; height: 14px; background: @bg3; border: 2px solid @line; }
+QRadioButton::indicator { border-radius: 9px; }
+QCheckBox::indicator { border-radius: 4px; }
+QRadioButton::indicator:checked, QCheckBox::indicator:checked { background: @accent; border-color: @accent; }
+QRadioButton:focus::indicator, QCheckBox:focus::indicator { border-color: @focus; }
 QFrame[frameShape="4"] { color: @bg4; }
 QRadioButton:focus { color: @accentText; }
 QLineEdit { background: @bg3; color: @fg; border: 1px solid @line; border-radius: 6px; padding: 6px 8px; }

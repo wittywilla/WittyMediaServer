@@ -22,6 +22,10 @@
 
 namespace wmp {
 
+namespace {
+constexpr int kWidth = 560;
+} // namespace
+
 QString SettingsDialog::vlcCredit()
 {
     return QStringLiteral("VLC and libVLC are made by VideoLAN and the VLC contributors (videolan.org), and are free software "
@@ -32,8 +36,9 @@ SettingsDialog::SettingsDialog(Player *player, EngineClient *engine, bool useVlc
     : QDialog(parent), player_(player), engine_(engine)
 {
     setWindowTitle(QStringLiteral("Settings"));
-    setMinimumWidth(520);
     auto *col = new QVBoxLayout(this);
+    // The window takes the height its wrapped words need at this width.
+    col->setSizeConstraint(QLayout::SetFixedSize);
     col->setContentsMargins(20, 18, 20, 18);
     col->setSpacing(10);
 
@@ -49,12 +54,14 @@ SettingsDialog::SettingsDialog(Player *player, EngineClient *engine, bool useVlc
     auto *builtinNote = new QLabel(QStringLiteral("The lightest choice, and the one tested most. Subtitles and menus are at their best here."), this);
     builtinNote->setProperty("role", QStringLiteral("hint"));
     builtinNote->setWordWrap(true);
+    builtinNote->setMinimumWidth(kWidth);
     col->addWidget(builtinNote);
     col->addWidget(vlc_);
     auto *vlcNote = new QLabel(QStringLiteral("Useful for a format the built-in choice can't play, and it plays surround sound. Disc menus still come from "
                                               "WittyDVD and WittyBluray, and copy-protected discs are still refused: VLC's own disc modules aren't used."), this);
     vlcNote->setProperty("role", QStringLiteral("hint"));
     vlcNote->setWordWrap(true);
+    vlcNote->setMinimumWidth(kWidth);
     col->addWidget(vlcNote);
 
     auto *row = new QHBoxLayout;
@@ -69,11 +76,13 @@ SettingsDialog::SettingsDialog(Player *player, EngineClient *engine, bool useVlc
     status_ = new QLabel(this);
     status_->setProperty("role", QStringLiteral("muted"));
     status_->setWordWrap(true);
+    status_->setMinimumWidth(kWidth);
     status_->setAccessibleName(QStringLiteral("VLC status"));
     col->addWidget(status_);
     auto *credit = new QLabel(vlcCredit(), this);
     credit->setProperty("role", QStringLiteral("hint"));
     credit->setWordWrap(true);
+    credit->setMinimumWidth(kWidth);
     col->addWidget(credit);
 
     auto *line = new QFrame(this);
@@ -87,6 +96,7 @@ SettingsDialog::SettingsDialog(Player *player, EngineClient *engine, bool useVlc
                                                   "talks only to GitHub."), this);
     modulesNote->setProperty("role", QStringLiteral("hint"));
     modulesNote->setWordWrap(true);
+    modulesNote->setMinimumWidth(kWidth);
     col->addWidget(modulesNote);
     moduleRows_ = new QVBoxLayout;
     moduleRows_->setSpacing(6);
@@ -94,6 +104,7 @@ SettingsDialog::SettingsDialog(Player *player, EngineClient *engine, bool useVlc
     moduleStatus_ = new QLabel(this);
     moduleStatus_->setProperty("role", QStringLiteral("muted"));
     moduleStatus_->setWordWrap(true);
+    moduleStatus_->setMinimumWidth(kWidth);
     moduleStatus_->setAccessibleName(QStringLiteral("Module updates status"));
     col->addWidget(moduleStatus_);
     auto *moduleButtons = new QHBoxLayout;
@@ -154,6 +165,7 @@ void SettingsDialog::loadModules()
                 text += QLatin1Char('\n') + note;
             auto *label = new QLabel(text, row);
             label->setWordWrap(true);
+            label->setMinimumWidth(kWidth - 200);
             rowL->addWidget(label, 1);
             const QString offered = offers_.value(id);
             if (!offered.isEmpty()) {

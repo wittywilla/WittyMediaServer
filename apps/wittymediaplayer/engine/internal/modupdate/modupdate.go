@@ -328,10 +328,23 @@ func (c *Client) Install(ctx context.Context, mod modhost.Module, version string
 	// 6. Moved into place, then remembered.
 	dest := c.Mgr.VersionDir(mod.ID, version)
 	_ = os.RemoveAll(dest)
-	if err := os.Rename(stage, dest); err != nil {
+	if err := renameSoon(stage, dest); err != nil {
 		return err
 	}
 	return c.Mgr.Installed(mod, version)
+}
+
+// renameSoon allows for a program that has only just run: on Windows, the system or a
+// virus scanner can hold on to its folder for a moment after it ends.
+func renameSoon(from, to string) error {
+	var err error
+	for i := 0; i < 50; i++ {
+		if err = os.Rename(from, to); err == nil {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
 }
 
 // safeName takes a path in an archive to one under its top folder, or refuses it.

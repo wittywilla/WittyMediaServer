@@ -258,7 +258,7 @@ func TestRecordingRawStream(t *testing.T) {
 	m.AfterRecording = func(p string) { finished <- p }
 	ctx := context.Background()
 	now := time.Now().Unix()
-	r, err := m.Schedule(ctx, ch[0].ID, 1, `News: "Late" / Edition`, "Part 1", now, now+1)
+	r, err := m.Schedule(ctx, ch[0].ID, 1, `News: "Late" / Edition`, "Part 1", now, now+5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,6 +320,10 @@ func TestRecordingRefusesEncrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 	full, _ := m.recording(ctx, r.ID)
+	// This test runs it, not the scheduler.
+	if _, err := m.DB.Exec(`UPDATE recordings SET status = 'recording' WHERE id = ?`, r.ID); err != nil {
+		t.Fatal(err)
+	}
 	m.record(full)
 	got, _ := m.recording(ctx, r.ID)
 	if got.Status != "failed" || !strings.Contains(got.Error, "does not decrypt") {

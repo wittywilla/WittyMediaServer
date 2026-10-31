@@ -316,7 +316,14 @@ func (m *Manager) startDue(ctx context.Context) {
 			m.finish(r.ID, "failed", "the server was not running when this was due", "")
 			continue
 		}
-		_, _ = m.DB.ExecContext(ctx, `UPDATE recordings SET status = 'recording' WHERE id = ?`, r.ID)
+		// Whoever changes the status starts it, so a recording never runs twice.
+		res, err := m.DB.ExecContext(ctx, `UPDATE recordings SET status = 'recording' WHERE id = ? AND status = 'scheduled'`, r.ID)
+		if err != nil {
+			continue
+		}
+		if n, err := res.RowsAffected(); err != nil || n == 0 {
+			continue
+		}
 		logging.Go("recording", func() { m.record(r) }, "cat", "tv", "session", recSession(r.ID))
 	}
 }

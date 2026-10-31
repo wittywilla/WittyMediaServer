@@ -21,6 +21,9 @@ typedef CRITICAL_SECTION lock_t;
 #define lock_init(l) InitializeCriticalSection(l)
 #define lock_take(l) EnterCriticalSection(l)
 #define lock_give(l) LeaveCriticalSection(l)
+#ifdef WITTY_CRYPTO_THREADS
+void crypto_threads_init(void); // src/crypto/threads_windows.c
+#endif
 #else
 #include <pthread.h>
 typedef pthread_mutex_t lock_t;
@@ -407,8 +410,15 @@ int main(int argc, char **argv)
     give_things_up();
 #endif
 #ifdef _WIN32
+    // No dialog on a server nobody's looking at, and DLLs only from Windows' own folder, never
+    // the current one or this program's.
+    SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32);
     _setmode(_fileno(stdin), _O_BINARY);
     _setmode(_fileno(stdout), _O_BINARY);
+#ifdef WITTY_CRYPTO_THREADS
+    crypto_threads_init();
+#endif
 #endif
     lock_init(&out_lock);
     static uint8_t msg[MAX_MESSAGE];

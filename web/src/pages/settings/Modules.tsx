@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { IconRefresh } from '../../icons'
 import { toast } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
+import LegalNote from '../../components/LegalNote'
 
 type Offer = { version: string; minServer: string; maxServer: string; notes?: string; url?: string; published?: number; prerelease: boolean; size?: number; reason?: string; blocked?: string }
 type ModuleStatus = {
@@ -71,6 +72,7 @@ export default function ModulesSettings() {
   return (
     <div>
       <PageHead title="Modules" desc="The parts of WittyMediaServer that have versions of their own. Some can be updated without a new server. Each says which servers it works with, and every one has a built-in copy to fall back on." />
+      <LegalNote kind="modules" className="set-legal" />
 
       <Section title="Updates" desc="Each update is signed, and this server installs only what it can verify. It takes effect straight away, with no restart."
         actions={<button className="btn ghost sm" onClick={check} disabled={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>

@@ -109,7 +109,7 @@ own menu, or from the list of extras, avoids the guess.
 | Pop-up time-out | A pop-up closes when no key has come for the disc's time | None |
 | Button groups | Enabling a button replaces the others in its group | Disc |
 | Hidden neighbours | A disabled button cannot take the selection | Disc |
-| Self-linked buttons | Discs link keys to the button itself to disable them (The Lorax uses Left and Right only). Followed as written | Disc |
+| Self-linked buttons | Discs link keys to the button itself to disable them (one tested disc does this with Left and Right). Followed as written | Disc |
 | No default selection | Falls back on the disc's last selection, then the first button | Disc |
 | Numeric keys | A button's own number, not its id | None |
 | Button sounds | `sound.bdmv` clips play on selection and activation, as WAV in the browser | Unit |
@@ -191,8 +191,8 @@ unprivileged user, and only turn this on for discs you trust.
 | Feature | What WittyBluray does | Tested |
 |---|---|---|
 | AACS | Never decrypted. Encrypted discs are refused, detected by what the stream holds: an aligned unit with its copy-permission bits set and no sync bytes after its first packet. It samples the start and middle of several clips, so a clear intro cannot hide an encrypted film | Unit |
-| Old detection | A folder named AACS used to mean refusal, and a disc without one passed even if encrypted. Now a decrypted copy that kept the folder plays, and an encrypted disc without it is refused | Unit |
-| BD+ | Never run. Its folder is reported, since a copy that was not converted can have damaged picture by design | Unit |
+| Old detection | A folder named AACS used to mean refusal, and a disc without one passed even if encrypted. Now the folder's name decides nothing, and an encrypted disc without it is refused | Unit |
+| BD+ | Never run. Its folder is reported, since the picture can be damaged by design | Unit |
 
 ## Not handled
 

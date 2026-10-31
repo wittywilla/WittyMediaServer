@@ -110,6 +110,7 @@ struct ConnectView: View {
             if showForm {
                 Text(say("addressTitle")).font(.title2).bold()
                 Text(say("addressHint")).foregroundStyle(.secondary)
+                Text(say("legalConnect")).font(.footnote).foregroundStyle(.secondary)
                 TextField(say("addressLabel"), text: $address)
                     .plainEntry()
                     .onSubmit(submit)
@@ -119,6 +120,7 @@ struct ConnectView: View {
                 Button(say("back")) { showForm = false; error = "" }
             } else {
                 Text(say("findTitle")).font(.title2).bold()
+                Text(say("legalConnect")).font(.footnote).foregroundStyle(.secondary)
                 if !error.isEmpty { Text(error).foregroundStyle(.red) }
                 if busy { Text(say("connecting")).foregroundStyle(.secondary) }
                 Text(say("foundServers")).foregroundStyle(.secondary)

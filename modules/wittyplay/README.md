@@ -54,3 +54,13 @@ To build the runner for FreeBSD without cgo:
 ```bash
 GOOS=freebsd CGO_ENABLED=0 go build -gcflags="github.com/ebitengine/purego/internal/fakecgo=-std" ./cmd/wittyplay-host
 ```
+
+## Legal
+
+WittyPlay is an independent open-source project. It isn't associated with, sponsored by or endorsed
+by any console maker, game publisher, the libretro project, or the authors of any core. Console
+names only say which games a core can run. No games, ROMs, BIOS files or cores come with it: use
+only files you've obtained legally. Cores are separate programs under their own licenses. Games can
+contain flashing images. Any third-party names here only describe what it works with, and belong to
+their owners. It's provided “as is”, with no warranty; see [LICENSE](LICENSE). Local law applies to
+how you use it. This isn't legal advice.

@@ -2,6 +2,11 @@
 
 Every repository the project has or needs, kept up to date as work adds them.
 
+Every repository's README ends with a **Legal** section: no affiliation, no warranty, no media included,
+and what its names mean. Those in this repository's folders already have one. For one that isn't here
+(WittyCD, WittyVisualizer, WittyMediaPlayer and those still to create), copy the wording from
+[LEGAL-NOTICES-CHECKLIST.md](LEGAL-NOTICES-CHECKLIST.md#module-readmes).
+
 ## To create
 
 Nothing has to be created until the work it's for is ready to publish. Create each one on GitHub under
@@ -9,8 +14,8 @@ Nothing has to be created until the work it's for is ready to publish. Create ea
 
 | Repository | What it's for | Status of the work |
 |---|---|---|
-| WittyMoonlight | A Moonlight client in the UI, for connecting to any Sunshine server | Being built; wait, the name may change |
-| WittySunshine | An advanced option for streaming demanding games hosted on the server itself | Being built; wait, the name may change |
+| WittyMoonlight | A Moonlight client in the UI, for connecting to any Sunshine server | Being built; wait: the owner decides these two names first |
+| WittySunshine | An advanced option for streaming demanding games hosted on the server itself | As above |
 | WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app | Not started |
 
 ## Exists

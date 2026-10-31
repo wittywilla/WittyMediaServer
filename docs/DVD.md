@@ -85,7 +85,7 @@ it fades while you're not moving the mouse.
 ## Interactive extras and games
 
 Many discs put buttons *inside* titles: games, quizzes, "vote for your favourite", branching
-featurettes (Shrek 2's *Far Far Away Idol*, for example). WittyDVD detects these and plays them
+featurettes. WittyDVD detects these and plays them
 cell by cell with their buttons, timers and stills, exactly as authored. The top bar shows
 *Interactive feature* while one is running.
 
@@ -135,24 +135,23 @@ programs, decoy titles, broken IFOs with an intact backup, menus in only some la
 The `wms` command-line tool inspects a disc without the web interface:
 
 ```bash
-wms dvd info  SHREK_2.ISO               # titles, menus, languages, first-play program
-wms dvd walk  SHREK_2.ISO 1             # simulate inserting the disc and press button 1
-wms dvd crawl SHREK_2.ISO               # press every button of every menu; reports dead ends
-wms dvd pgc   SHREK_2.ISO vtsm 12 26    # show the commands of one program chain
-wms dvd render SHREK_2.ISO out/         # save the first menu's highlight images
+wms dvd info  MY_DISC.ISO               # titles, menus, languages, first-play program
+wms dvd walk  MY_DISC.ISO 1             # simulate inserting the disc and press button 1
+wms dvd crawl MY_DISC.ISO               # press every button of every menu; reports dead ends
+wms dvd pgc   MY_DISC.ISO vtsm 12 26    # show the commands of one program chain
+wms dvd render MY_DISC.ISO out/         # save the first menu's highlight images
 ```
 
 On Windows run these in a terminal in the WittyMediaServer folder (`.\wms.exe dvd info …`).
 The same commands exist as a standalone tool, `wittydvd`, from the
-[WittyDVD repository](https://github.com/wittywilla/WittyDVD) (`wittydvd info SHREK_2.ISO`).
+[WittyDVD repository](https://github.com/wittywilla/WittyDVD) (`wittydvd info MY_DISC.ISO`).
 When reporting a disc problem, attach the output of `info` and `crawl` — never the disc image.
 `walk` and `crawl` give the same output every run (the disc's random numbers come from a fixed
 seed), so two versions can be compared line by line.
 
 ## Limits
 
-- CSS-scrambled images are refused; make decrypted images of discs you own with a tool that is
-  legal where you live.
+- CSS-scrambled images are refused: encrypted media isn't supported.
 - Karaoke discs play all their channels mixed: guide vocals cannot be switched off.
 - The disc's prohibitions of skipping and seeking (on warning screens, for example) are not
   enforced.

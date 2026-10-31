@@ -5,6 +5,7 @@ import { EmptyState, Spinner } from '../components/common'
 import { IconPause, IconPlay, IconPlus, IconTrash, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
+import LegalNote from '../components/LegalNote'
 
 // Internet radio: stations the owner adds by address. The server contacts a
 // station only while someone is listening (docs/RADIO.md).
@@ -52,6 +53,7 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
           })}
         </ul>
       )}
+      <LegalNote kind="webMedia" />
       {adding && <AddStations lib={lib} onClose={() => setAdding(false)} onDone={() => { setAdding(false); load() }} />}
     </>
   )
@@ -85,6 +87,7 @@ function AddStations({ lib, onClose, onDone }: { lib: Library; onClose: () => vo
         <label className="oobe-field">…or an M3U or PLS playlist<input className="input" type="file" accept=".m3u,.m3u8,.pls,text/plain" onChange={(e) => readFile(e.target.files?.[0])} /></label>
         <textarea className="input" rows={3} aria-label="Playlist text" placeholder="…or paste the playlist here" value={playlist} onChange={(e) => setPlaylist(e.target.value)} />
         <p className="muted" style={{ fontSize: 13 }}>Only addresses on the internet work: the server won't reach into your own network on a station's behalf.</p>
+        <LegalNote kind="webMedia" />
         {err && <div className="error" role="alert">{err}</div>}
         <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!url.trim() && !playlist.trim()}>Add</button></div>
       </form>

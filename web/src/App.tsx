@@ -13,8 +13,10 @@ import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
+import LegalNote, { legalAckText } from './components/LegalNote'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
+const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
@@ -65,6 +67,8 @@ function Shell() {
   }, [])
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
+  // The Legal page, for anyone: a shared link, the setup wizard and the sign-in screen lead here.
+  if (loc.pathname === '/legal') return <Suspense fallback={<Spinner />}><LegalPublicPage /></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard resume={false} /></Suspense> : <AuthPage />
@@ -96,6 +100,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="main">
         <TopBar onMenu={() => setNavOpen((o) => !o)} showMenu={side} topNav={style !== 'side'} />
+        <LegalAckBar />
         <main className="content" id="main" tabIndex={-1}>
           <Suspense fallback={<Spinner />}>
           <Routes>
@@ -118,6 +123,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
       </div>
@@ -126,6 +132,20 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
   )
 }
 
+
+// LegalAckBar: the first-run notice, for an administrator who never went through
+// the setup wizard's tick-box. Once, and it doesn't stop anyone doing anything.
+function LegalAckBar() {
+  const { legalAck, setLegalAck } = useApp()
+  if (legalAck) return null
+  const understood = () => { setLegalAck(true); api.post('/legal/acknowledge').catch(() => {}) }
+  return (
+    <div className="legal-ack-bar" role="region" aria-label="Legal notice">
+      <p>{legalAckText()} <Link to="/settings/legal#your-content">Legal</Link></p>
+      <button className="btn sm primary" onClick={understood}>Understood</button>
+    </div>
+  )
+}
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { libraries, version, brandName } = useApp()

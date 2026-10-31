@@ -25,9 +25,8 @@ length, resolution (up to 2160p, with HDR10, HDR10+ or Dolby Vision noted), code
 chapters, and whether it has menus. 3D discs get a "3D" genre.
 
 Encrypted (AACS) discs are detected and shown as unplayable: WittyMediaServer never decrypts
-anything. Make decrypted images of discs you own with a tool that is legal where you live. A
-decrypted image that still has its AACS folder plays normally, because detection looks at the
-video itself.
+anything, and encrypted media isn't supported. Detection looks at the video itself, not at the names
+of folders on the disc.
 
 AVCHD discs and camcorder cards, and BDAV recordings, are read too.
 
@@ -169,11 +168,11 @@ and AACS discs are refused.
 ## Diagnosing a disc
 
 ```bash
-wms bluray info   THE_LORAX.iso          # titles, program, playlists, clips, streams, 3D/HDR flags
-wms bluray walk   THE_LORAX.iso          # simulate inserting the disc; the menu's buttons and commands
-wms bluray walk   THE_LORAX.iso 2 5      # ...then press buttons 2 and 5
-wms bluray render THE_LORAX.iso out/     # the menu's pages as PNG files
-wms bluray bdj    THE_LORAX.iso 20 a.png # BD-J titles; with Java, run them for 20 seconds
+wms bluray info   MY_DISC.iso          # titles, program, playlists, clips, streams, 3D/HDR flags
+wms bluray walk   MY_DISC.iso          # simulate inserting the disc; the menu's buttons and commands
+wms bluray walk   MY_DISC.iso 2 5      # ...then press buttons 2 and 5
+wms bluray render MY_DISC.iso out/     # the menu's pages as PNG files
+wms bluray bdj    MY_DISC.iso 20 a.png # BD-J titles; with Java, run them for 20 seconds
 ```
 
 The same commands exist as a standalone tool, `wittybluray`, from the

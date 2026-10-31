@@ -15,19 +15,20 @@ Sources are applied in this order; later ones only fill gaps:
 
 | # | Source | Example |
 |---|---|---|
-| 1 | `<file>.metadata.json` next to the file | `{"title":"Shrek","year":2001,"overview":"…","genres":["Animation"],"poster":"https://…"}` |
-| 2 | NFO file | `Shrek (2001).nfo`, `movie.nfo`, `tvshow.nfo`, episode `<name>.nfo` |
+| 1 | `<file>.metadata.json` next to the file | `{"title":"My Film","year":2001,"overview":"…","genres":["Animation"],"poster":"https://…"}` |
+| 2 | NFO file | `My Film (2001).nfo`, `movie.nfo`, `tvshow.nfo`, episode `<name>.nfo` |
 | 3 | Local artwork | `poster.jpg`, `<name>-poster.jpg`, `folder.jpg`, `fanart.jpg`, `season01-poster.jpg`, `<episode>-thumb.jpg` |
-| 4 | File and folder names | `Shrek (2001).mkv`, `Show - S01E02 - Title.mkv`, `SHREK.ISO` (disc label) |
+| 4 | File and folder names | `My Film (2001).mkv`, `Show - S01E02 - Title.mkv`, `MY_FILM.ISO` (disc label) |
 | 5 | **Custom agents** you added, in their order (movies, home videos, books) | anything your own service knows: see [Custom agents](#custom-agents) |
 | 6 | **TMDB** (movies) / **TheTVDB** (TV), if you added a key | overview, genres, rating, network, posters, backdrops, episode titles |
 | 7 | **TVmaze** (TV) until you add a TheTVDB API key — built in, no API key needed | overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
 | 8 | **Wikidata** + Wikipedia (movies) until you add a TMDB API key — built in, no API key needed | year, genres, US rating, runtime, plot summary (no posters) |
-| 9 | Generated thumbnail | a frame 20 % into the video |
+| 9 | **AniList** (Anime libraries) — built in, no API key needed, no switch of its own | titles in your chosen language, plots, posters, episode numbering |
+| 10 | Generated thumbnail | a frame 20 % into the video |
 
 **Works out of the box.** TV shows and movies get information without any account or key.
 TVmaze data is shared under CC BY-SA 4.0, Wikidata is public domain, Wikipedia text is CC BY-SA
-4.0; each title page links to its source. Turn either off in *Settings → Metadata agents*. Adding a TMDB or
+4.0; title pages credit their source. Turn either off in *Settings → Metadata agents*. Adding a TMDB or
 TheTVDB key later upgrades titles the next time they are scanned or refreshed.
 
 TVmaze and Wikidata do not always have a **content rating**, which Kids and Guest profiles rely
@@ -57,7 +58,7 @@ is used). Every field is optional:
 ```json
 {
   "id": "lx-2012",
-  "title": "The Lorax",
+  "title": "My Film",
   "year": 2012,
   "overview": "A boy searches for the one thing that will win the girl of his dreams…",
   "tagline": "Meet the original force of nature.",
@@ -66,8 +67,8 @@ is used). Every field is optional:
   "contentRating": "PG",
   "studio": "Illumination",
   "runtimeMinutes": 86,
-  "poster": "https://archive.local/art/lorax.jpg",
-  "backdrop": "https://archive.local/art/lorax-wide.jpg"
+  "poster": "https://archive.local/art/my-film.jpg",
+  "backdrop": "https://archive.local/art/my-film-wide.jpg"
 }
 ```
 

@@ -23,7 +23,8 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery"}
+	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery",
+	"legalOwnerNotice", "legalOwnerContact"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -147,6 +148,8 @@ func validMapTiles(v string) bool {
 // that can change settings must not get the machine's file system with them.
 func checkSetting(k, v string) error {
 	switch k {
+	case "legalOwnerNotice", "legalOwnerContact":
+		return checkLegalSetting(k, v)
 	case "mapTiles":
 		if !validMapTiles(v) {
 			return errors.New("the map address must start with https:// and contain {z}, {x} and {y}")

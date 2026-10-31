@@ -83,6 +83,7 @@
       children.push(el('h2', { textContent: S.recentServers }), el('div', { className: 'list' }, ...recent.map(serverButton)))
     }
     children.push(el('div', { className: 'row' }, button(S.enterAddress, () => addressScreen())))
+    children.push(el('p', { className: 'legal', textContent: S.legalConnect }))
     show(...children)
 
     // Servers come and go while this is on screen: keep focus on the same one,
@@ -122,6 +123,7 @@
       el('label', { htmlFor: 'address', textContent: S.addressLabel }),
       input, error,
       el('div', { className: 'row' }, go),
+      el('p', { className: 'legal', textContent: S.legalConnect }),
     )
     screenBack = () => listScreen()
   }

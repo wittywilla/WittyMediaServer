@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { UpdateDot, VersionTag } from '../components/common'
@@ -18,7 +18,9 @@ import { ConsolePicker } from './Games'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
+import LegalNote from '../components/LegalNote'
 
+const LegalSettings = lazy(() => import('./settings/Legal'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
@@ -47,7 +49,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
     { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'Versions, supported servers and updates' },
-    { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
+    { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
+    { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
   ] },
 ]
 
@@ -88,11 +91,12 @@ export default function SettingsPage() {
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />
-          <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Nothing is ever sent anywhere." /><LogSettings /></>} />
+          <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Logs are never sent anywhere." /><LogSettings /></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="modules" element={<ModulesSettings />} />
           <Route path="about" element={<About />} />
+          <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>
       </main>
@@ -158,6 +162,7 @@ function Libraries() {
     <>
       <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
+      <LegalNote kind="local" className="set-legal" />
       {libraries.length > 0 && (
         <div className="set-lib-summary">
           <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
@@ -336,12 +341,12 @@ function About() {
     return () => clearTimeout(t)
   }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
-  useEffect(() => { if (loc.hash === '#modules' && about) document.getElementById('modules')?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
+  useEffect(() => { if (loc.hash && about) document.getElementById(loc.hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
   const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About & legal" desc="This server's version, the modules inside it, its system, the license, and the services it relies on." />
+      <PageHead title="About" desc="This server's version, the modules inside it, its system, the license, and the services it relies on." />
       <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
@@ -384,12 +389,12 @@ function About() {
           <p><b>WittyMediaServer</b> is open-source software under the <b>Apache License 2.0</b>. You may use, change and share it, keeping the license and the <code>NOTICE</code> attribution (“This product includes WittyMediaServer, developed by WittyWilla”). Source: <a href="https://github.com/wittywilla/WittyMediaServer" target="_blank" rel="noreferrer">github.com/wittywilla/WittyMediaServer</a>.</p>
         </div>
       </Section>
-      <Section title="Your media, your responsibility">
+      <Section title="Legal">
         <div className="set-prose">
-          <p>WittyMediaServer organizes and streams media <b>you already own and have the right to use</b>. It does not supply, index or search for any content. Server operators and users are responsible for the files they add and for following the laws that apply where they and their viewers live. The authors accept no responsibility for media stored on, played from or shared through a server.</p>
-          <p><b>No circumvention.</b> Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused, and only unprotected content plays.</p>
+          <p>Terms of use, who’s responsible for what, trademarks, copy protection, privacy and more are on the <Link to="/settings/legal">Legal</Link> page.</p>
         </div>
       </Section>
+      <div id="licenses" />
       <Section title="Third-party components and services">
         <div className="set-prose">
           <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>

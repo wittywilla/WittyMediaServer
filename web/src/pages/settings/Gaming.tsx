@@ -4,6 +4,7 @@ import { Spinner } from '../../components/common'
 import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import { PageHead, Section } from './ui'
+import LegalNote from '../../components/LegalNote'
 
 // Settings, Gaming: which cores this server has, and how games reach players.
 // A core is someone else's program, so nothing is installed without being asked
@@ -56,7 +57,8 @@ export default function GamingSettings() {
           <dt>BIOS folder</dt><dd><code>{st.systemDir}</code></dd>
         </dl>
       </Section>
-      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own.">
+      <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own, legally obtained.">
+        <LegalNote kind="cores" />
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
         <div className="gaming-consoles">
           {st.consoles.map((c) => (
@@ -113,7 +115,7 @@ export default function GamingSettings() {
               <select className="select" value={settings.gamingRunner || 'auto'} onChange={(e) => put({ gamingRunner: e.target.value })}>
                 <option value="auto">Automatic</option>
                 <option value="builtin">Built in</option>
-                <option value="retroarch">WittyRetroArch, when installed</option>
+                <option value="retroarch">A separate RetroArch-based runner, when installed</option>
               </select>
             </label>
             <label>UDP port for WebRTC
@@ -134,6 +136,7 @@ export default function GamingSettings() {
             <h2>Install {confirm.name}?</h2>
             <p>This downloads a program from <b>buildbot.libretro.com</b>, the libretro project’s build server, and runs it on this server in a boxed-in process whenever someone plays.</p>
             <p>Its license is <b>{confirm.license}</b>. The core is its authors’ work and stays a separate program from this server.</p>
+            <LegalNote kind="cores" />
             <div className="actions">
               <button className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button>
               <button className="btn primary" onClick={install}>Install</button>

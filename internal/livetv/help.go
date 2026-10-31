@@ -66,7 +66,7 @@ func EncryptedHelp() Help {
 			},
 			{
 				Name:   "ZapperBox",
-				Facts:  "The maker says its tuner models work with encrypted channels and can record them, and that encrypted recordings play only on the device that made them. It documents APIs for finding a box on the network and for sending remote-control keys. Its plans for reaching other devices are through its own apps. Its free zApp tool converts recordings to standard HLS, and it says clear ATSC 3.0 recordings then play without sound in VLC, which lacks Dolby AC-4.",
+				Facts:  "The maker says its tuner models work with encrypted channels and can record them, and that encrypted recordings play only on the device that made them. It documents APIs for finding a box on the network and for sending remote-control keys. Its plans for reaching other devices are through its own apps. Its free zApp tool converts recordings to standard HLS, and it says clear ATSC 3.0 recordings then play without sound in players without Dolby AC-4.",
 				Source: "ZapperBox FAQ",
 				URL:    "https://zapperbox.com/pages/faqs",
 			},

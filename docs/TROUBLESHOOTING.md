@@ -13,7 +13,7 @@ or session tokens) to an issue.
 | **"This server is only available on its home network"** | Remote Access is off and the server sees you as outside. Turn it on from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [REMOTE.md](REMOTE.md#a-reverse-proxy-you-already-run). |
 | **“ffmpeg not found”** | Keep `bin/ffmpeg` next to the program, install FFmpeg on `PATH`, or set `WMS_FFMPEG`. *Settings → About* shows which one is used. |
 | **Video stalls or has no sound in one browser** | Some Chromium builds lack AAC. Set *Settings → Transcoding → Stream audio codec* to MP3. |
-| **“This disc is CSS-scrambled” / “encrypted (AACS)”** | The image is still protected. WittyMediaServer never decrypts anything; make a decrypted image of a disc you own with a tool that is legal where you live. |
+| **“This disc is CSS-scrambled” / “encrypted (AACS)”** | The image is copy protected. Encrypted media isn't supported, and WittyMediaServer never decrypts anything or bypasses copy protection. |
 | **A DVD or Blu-ray menu shows no buttons** | Run `wms dvd walk disc.iso` or `wms bluray walk disc.iso` and attach the output to an issue (never the disc image). |
 | **Seeking in a DVD title lands slightly off** | DVD video is seeked by estimated bit-rate, then FFmpeg decodes forward to the exact point; on very high-bitrate discs this can take a second. |
 | **A title is named strangely** | Rename the file (`Title (Year).ext`), or use **Edit** on its page. Titles named by an earlier faulty parse are corrected on the next scan. |

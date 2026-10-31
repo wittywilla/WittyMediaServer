@@ -255,7 +255,7 @@ func (s *Session) Start(ctx context.Context) *Presentation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.disc.Encrypted {
-		return s.stop("this disc is encrypted (AACS); make a decrypted copy of a disc you own with a tool that is legal where you live", true)
+		return s.stop("this disc is encrypted (AACS), so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection", true)
 	}
 	return s.show(ctx, s.nav.Start())
 }

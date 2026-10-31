@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, setToken, type Library, type User } from '../api'
 import { Brand, VersionTag } from '../components/common'
 import AddLibrary, { GroupingChoice, LibrarySummary, type Grouping } from '../components/AddLibrary'
+import LegalNote, { legalAckText } from '../components/LegalNote'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { IconAudio, IconBook, IconCheck, IconDisc, IconPalette, IconPlug, IconTv, IconUsers } from '../icons'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
@@ -26,7 +27,7 @@ const FEATURES = [
   { icon: <IconAudio />, title: 'Music & podcasts', text: 'Albums, audiobooks that remember your place, and shows you follow.' },
   { icon: <IconBook />, title: 'Books & comics', text: 'Read EPUB, PDF and manga with highlights, notes and a pen.' },
   { icon: <IconUsers />, title: 'Everyone at home', text: 'Profiles with their own progress, and Kids profiles by age.' },
-  { icon: <IconPalette />, title: 'Yours', text: 'Themes, your server’s name, and nothing leaves your home.' },
+  { icon: <IconPalette />, title: 'Yours', text: 'Themes, your server’s name, and no telemetry or accounts with anyone.' },
 ]
 
 export default function SetupWizard({ resume }: { resume: boolean }) {
@@ -172,6 +173,8 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
   const [busy, setBusy] = useState(false)
   const [code, setCode] = useState('')
   const [needCode, setNeedCode] = useState(false)
+  // One tick, once per server: a click is harder to miss than a line of text.
+  const [ack, setAck] = useState(false)
   useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
   const level = pw.length >= 12 ? 3 : pw.length >= 8 ? 2 : 0
   const submit = async (e: React.FormEvent) => {
@@ -180,7 +183,7 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
     if (pw !== pw2) { setErr('The two passwords are different.'); return }
     setBusy(true)
     try {
-      const r = await api.post<{ token: string; user: User }>('/setup', { name, password: pw, setupCode: code, device: navigator.userAgent.slice(0, 80) })
+      const r = await api.post<{ token: string; user: User }>('/setup', { name, password: pw, setupCode: code, acknowledgedLegal: ack, device: navigator.userAgent.slice(0, 80) })
       onDone(r.user, r.token)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
@@ -196,11 +199,15 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
         </label>
         <label className="oobe-field">Type it again<input className="input" type="password" required value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
         {needCode && <label className="oobe-field">Setup code<input className="input mono" required value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" /><span className="muted">You're setting this server up from another network, so it asks for the code it wrote to its log when it started.</span></label>}
+        <label className="oobe-ack">
+          <input type="checkbox" required checked={ack} onChange={(e) => setAck(e.target.checked)} />
+          <span>{legalAckText()} <a href="/legal#your-content" target="_blank" rel="noreferrer">Read the legal notes (opens in a new tab)</a></span>
+        </label>
       </div>
       {err && <div className="error" role="alert">{err}</div>}
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={onBack}>Back</button>
-        <button className="btn primary big" disabled={busy || !name || pw.length < 8}>{busy ? 'Creating…' : 'Create account'}</button>
+        <button className="btn primary big" disabled={busy || !name || pw.length < 8 || !ack}>{busy ? 'Creating…' : 'Create account'}</button>
       </div>
     </form>
   )
@@ -248,7 +255,7 @@ const PROVIDERS = [
       <>Open the <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">API information</a> page and create a key.</>,
       <>Paste the key below. If TheTVDB gave you a <b>subscriber PIN</b>, add it too.</>,
     ],
-    note: 'TV information and images are provided by TheTVDB.',
+    note: 'Metadata provided by TheTVDB (thetvdb.com).',
   },
 ] as const
 
@@ -276,10 +283,10 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: n
   return (
     <section>
       <h1>Media Indexers and Metadata Agents</h1>
-      <p className="lead">Agents find titles, posters, plots and ratings for your media. These work already, with no API key needed. Your files never leave this computer: only their names are looked up.</p>
+      <p className="lead">Agents find titles, posters, plots and ratings for your media. These work already, with no API key needed. Your files stay on this computer: names taken from your files and folders are sent to these services to look them up.</p>
       <div className="oobe-agents">
         <div className="oobe-agent ok"><IconCheck size={16} /><b>TVmaze</b><span>TV shows</span><em>No API key needed</em></div>
-        <div className="oobe-agent ok"><IconCheck size={16} /><b>Wikidata &amp; Wikipedia</b><span>Movies</span><em>No API key needed</em></div>
+        <div className="oobe-agent ok"><IconCheck size={16} /><b>Wikidata &amp; Wikipedia</b><span>Movies and games</span><em>No API key needed</em></div>
         <div className="oobe-agent ok"><IconCheck size={16} /><b>AniList</b><span>Anime</span><em>No API key needed</em></div>
       </div>
       <h2 className="oobe-sub">Optional: posters and the best matches</h2>
@@ -312,6 +319,7 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: n
         })}
       </div>
       <p className="muted oobe-hint">Have your own catalogue? Add <b>custom agents</b> later in Settings → Metadata agents.</p>
+      <LegalNote kind="webResults" newTab />
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={onBack}>Back</button>
         <button type="button" className="btn primary big" disabled={saving} onClick={save}>{any ? 'Save and continue' : 'Continue'}</button>

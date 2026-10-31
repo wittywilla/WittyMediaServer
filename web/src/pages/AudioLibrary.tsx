@@ -6,6 +6,7 @@ import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } 
 import { IconAudio, IconCheck, IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
+import LegalNote from '../components/LegalNote'
 
 // Music and audiobook libraries: albums (books), artists (authors) and all
 // songs, and the page of one album or book.
@@ -83,6 +84,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
       {tab === 'songs' && (!songs ? <Spinner /> : (
         <TrackList items={songs} showAlbum onPlay={(i) => audio.play(songs, i, 'music')} />
       ))}
+      {pods && !!albums?.length && <LegalNote kind="webMedia" />}
     </>
   )
 }
@@ -155,6 +157,7 @@ export function AlbumPage() {
       </div>
       <TrackList items={tracks} onPlay={(i) => audio.play(tracks, i, mode)} episodes={pods}
         extra={pods ? (t) => <DownloadButton item={t} onDone={(x) => setTracks((ts) => ts!.map((y) => (y.id === x.id ? { ...y, path: x.path } : y)))} /> : undefined} />
+      <LegalNote kind={pods ? 'webMedia' : 'metadata'} />
     </div>
   )
 }

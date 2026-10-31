@@ -11,6 +11,8 @@ COPY web/ ./
 # WittyIntegratedFileBrowser's web half lives beside its Go half.
 COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
 COPY modules/wittyplay/web/ /src/modules/wittyplay/web/
+# The legal notices' wording, shared with the server.
+COPY internal/legal/ /src/internal/legal/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS build

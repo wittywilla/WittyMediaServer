@@ -1,0 +1,327 @@
+{
+  "updated": "2026-10-31",
+  "sections": [
+    {
+      "id": "terms",
+      "title": "Terms of use",
+      "body": [
+        "WittyMediaServer is free, open-source software that people install and run themselves. The WittyMediaServer project publishes the software. It doesn't run this server or any other, and it can't see or control what's on one.",
+        "**The license comes first.** The software is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). You may use, change and share it under that license, keeping its notices. Nothing on this page takes away a right the license gives you. If this page and the license disagree about the software, the license wins.",
+        "**Using this software, you agree to:**",
+        "- use it only with media you have the right to use, and share only what you have the right to share;",
+        "- follow the laws that apply to you, and the terms of any outside service you connect it to;",
+        "- not use it to infringe anyone's rights, or to get around copy protection or access controls.",
+        "**Using a server someone else runs:** that person is responsible for it. Their own rules apply as well, and they may have written a notice on this page.",
+        "**Local law applies.** Whoever runs a server may live in a different country from this project's contributors, and from the people using that server. The law where you are applies to you, and it can differ a lot from one country to the next, especially on copying and sharing. This page can't tell you what your local law says, and it isn't legal advice.",
+        "Some rights can't be given up where you live, such as consumer rights in some countries. This page doesn't try to take those away."
+      ]
+    },
+    {
+      "id": "no-warranty",
+      "title": "No warranty",
+      "body": [
+        "This is alpha software and can fail or lose data, so keep backups.",
+        "As the Apache License 2.0 says in full, the software is provided on an **“AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND**, either express or implied. You alone decide whether it's right to use, and you take the risks of using it. Except where the law requires it or someone has agreed to it in writing, no contributor is liable for damages arising from using it or being unable to use it. Sections 7 and 8 of the license are the exact terms.",
+        "The same goes for every Witty module. Modules and other add-ons from anywhere else come from whoever published them."
+      ]
+    },
+    {
+      "id": "no-affiliation",
+      "title": "No affiliation",
+      "body": [
+        "The WittyMediaServer project, its contributors and affiliates aren't associated with, sponsored by or endorsed by any film, TV, music, game or book company, any console or disc-format owner, any metadata, podcast, radio, TV or streaming service, any other media software project, or any creator whose name appears in a library. If you see a third party's name, it describes where something came from or what the software works with, and nothing more.",
+        "A fork or a modified copy of this software may be run by someone else, under its own name. The project isn't responsible for it. The [NOTICE](https://github.com/wittywilla/WittyMediaServer/blob/master/NOTICE) file says what a redistributed copy has to keep."
+      ]
+    },
+    {
+      "id": "third-party",
+      "title": "Web results and third-party content",
+      "body": [
+        "Search results, details, plots, posters and other artwork, ratings, podcasts, radio stations, TV channels and guide listings, game details, and connections to other people's servers come from third parties. **They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.** They may be wrong, incomplete, out of date, unsuitable for some viewers, or unavailable, and the project can't correct or remove them.",
+        "Each service has its own terms, and those apply to its data. If you're the rights holder for something a service shows, or something a station or feed offers, the service or the person who publishes it can act on it. The project doesn't host it and can't take it down.",
+        "**The services' own credits:**",
+        "- **The Movie Database (TMDB):** this product uses the TMDB API but is not endorsed or certified by TMDB.",
+        "- **TheTVDB:** metadata provided by [TheTVDB](https://thetvdb.com). Please consider adding missing information or subscribing.",
+        "- **TVmaze:** TV information from [TVmaze](https://www.tvmaze.com), shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).",
+        "- **Wikidata and Wikipedia:** facts from [Wikidata](https://www.wikidata.org) (CC0) and plot summaries from [Wikipedia](https://www.wikipedia.org), shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).",
+        "- **AniList:** anime information from [AniList](https://anilist.co).",
+        "- **Definitions:** in the readers, from the [Free Dictionary API](https://dictionaryapi.dev), a third-party service with no published terms. Check a definition before relying on it.",
+        "- **Podcast search:** from the public Apple Podcasts directory. Apple isn't associated with this software."
+      ]
+    },
+    {
+      "id": "your-content",
+      "title": "Your files and what you host",
+      "body": [
+        "A person's own files and what they host are theirs. **The WittyMediaServer project doesn't provide, host, own, index or check them.** No media comes with this software, and nothing you add is sent to the project.",
+        "If you run a server, you're responsible for having the rights to what you add to it and what you share from it, and for who you let use it. Having a copy of something doesn't always mean you may copy it again, convert it, or show it to other people. That depends on the law where you and they are.",
+        "Files someone else added are their responsibility, not the project's. If something on this server concerns you, contact whoever runs it. They may have left a way to do that at the top of this page."
+      ]
+    },
+    {
+      "id": "sharing",
+      "title": "Sharing and remote access",
+      "body": [
+        "A share link lets anyone who has it see what it points to, without an account, until it ends. Remote access lets people reach this server from outside your home. Both are off until you turn them on.",
+        "A share link shows the profile name of whoever made it, the title, and for albums the dates the pictures were taken. Unless a link allows downloads, pictures are re-encoded, so camera details and locations stay on the server. If it does allow downloads, the original files keep whatever they contain.",
+        "When you make a link or let someone in, **you're the one sharing**. Showing or sending media to people outside your household can need a right that showing it at home doesn't. The project doesn't host, see or check what's shared, and it isn't a party to it.",
+        "If you run a server that's open to the public or to many people, you may have extra duties where you live, such as handling copyright complaints, age rules or privacy law. If you offer it as a public service, you're the one who needs to know what those are, and you should take advice for your country."
+      ]
+    },
+    {
+      "id": "trademarks",
+      "title": "Trademarks",
+      "body": [
+        "Names of consoles, disc formats, services, companies and other products appear only to describe what this software works with or where information came from. They belong to their owners. Using a name here doesn't mean the owner made, licensed, tested, sponsored or endorsed this software, and this software isn't certified by any of them.",
+        "“DVD” is a trademark of DVD Format/Logo Licensing Corporation. “Blu-ray” and “Blu-ray Disc” are trademarks of the Blu-ray Disc Association. This software isn't a licensed or certified DVD or Blu-ray product, and it uses neither organization's logos. FFmpeg is a trademark of Fabrice Bellard. The names of game consoles belong to the companies that make them.",
+        "Disc menus, posters and artwork shown while something plays come from the media itself or from the services above, and belong to their owners."
+      ]
+    },
+    {
+      "id": "games",
+      "title": "Games, ROMs and BIOS files",
+      "body": [
+        "**No games, ROMs or BIOS files come with this software, and the project doesn't download, link to or help anyone find them.** Use only files you've obtained legally. Whether you may make or keep a copy of a game or a BIOS, even of one you own, depends on where you live.",
+        "Emulator cores are programs written by other people, each under its own license. An administrator chooses whether to install each one, and sees its license first. Cores are separate programs that aren't part of this software, and the people who wrote them aren't associated with this project. Cores whose licenses forbid commercial use are labelled, and aren't offered for download.",
+        "Console names only say which games a core can run. Game details and artwork come from the sources listed under Privacy."
+      ]
+    },
+    {
+      "id": "copy-protection",
+      "title": "Copy protection",
+      "body": [
+        "**Encrypted media isn't supported, and nothing in this software decrypts, removes or bypasses encryption.** That includes CSS-scrambled DVDs, AACS-encrypted Blu-rays and encrypted TV channels. They're refused, or shown as encrypted and not played. BD+ programs aren't run. No setting, plugin or module changes any of that.",
+        "Some unencrypted discs contain deliberately damaged or decoy structures. The players follow a disc's navigation the way a hardware player does and don't stop on what they can't play. They remove nothing from the disc.",
+        "The project doesn't give instructions on getting around copy protection and doesn't recommend tools for it. In many countries that's against the law, even for discs you own."
+      ]
+    },
+    {
+      "id": "cryptography",
+      "title": "Encryption in this software",
+      "body": [
+        "This software uses standard encryption and signing to protect connections, passwords and updates: TLS, WebRTC's DTLS and SRTP, bcrypt, SHA-256, HMAC and Ed25519, from Go's standard library and other widely used open-source packages. It has no encryption algorithm of its own, and it doesn't decrypt media. Rules on exporting, importing or using encryption software differ between countries, and following them where you are is up to you."
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy: what leaves this server",
+      "body": [
+        "**No telemetry.** No usage data, error reports or analytics go to the project or to anyone else, and there's no account with the project. App errors, if an administrator turns that logging on, go only to this server.",
+        "**Your files, watch history, passwords and logs aren't sent anywhere.** What leaves this server is what's listed here, each with what controls it. Names sent to look something up come from your file and folder names, so choose them with that in mind. Each service also sees the internet address of whichever computer contacts it, usually this server's, and its own privacy policy applies.",
+        "**On by default:** the update checks, TVmaze and Wikidata, plus AniList once there's an Anime library, and answering apps that look for servers on your home network. Everything else is off until someone turns it on or uses it.",
+        "Whoever runs this server can see what its accounts do on it, including what's played and from which address, and its logs keep warnings such as repeated wrong passwords, with the address they came from, for 14 days. If you use a server someone else runs, ask them what they keep."
+      ]
+    },
+    {
+      "id": "licenses",
+      "title": "Third-party licenses",
+      "body": [
+        "This software is built with open-source components, each under its own license, which stays in force. They're listed under [Settings, About](/settings/about#licenses) and in [THIRD_PARTY_LICENSES.md](https://github.com/wittywilla/WittyMediaServer/blob/master/THIRD_PARTY_LICENSES.md). Release packages include FFmpeg, a separate program under the GPL, whose source is available from [ffmpeg.org](https://ffmpeg.org)."
+      ]
+    },
+    {
+      "id": "flashing",
+      "title": "Flashing images",
+      "body": [
+        "Films, shows, games, disc menus and visual effects can contain flashing lights and fast-changing patterns. These can trigger seizures in people with photosensitive epilepsy, and can affect other people too, sometimes with no history of it. The software can't detect this or warn about particular media. If you notice dizziness, altered vision, twitching or anything else unusual, stop and talk to a doctor."
+      ]
+    },
+    {
+      "id": "ratings",
+      "title": "Age ratings and Kids profiles",
+      "body": [
+        "Age ratings come from the media's own files and from third-party services, or are typed in by whoever runs the server. They can be missing or wrong, and they differ between countries. A Kids profile hides what its age limit rules out, using those ratings, and can't judge anything for itself. **It's a help, not a guarantee.** Live TV, podcasts, radio, games and web content in particular may have no rating at all. Please check what's suitable, and don't leave children alone with a server you haven't checked."
+      ]
+    },
+    {
+      "id": "server-owners",
+      "title": "If you run a server",
+      "body": [
+        "You can add your own notice and a way to contact you, for the people using your server, under [Settings, Legal](/settings/legal#owner-form). It appears at the top of this page, for everyone. It's a good place for house rules, who may use the server, and how to reach you about what's on it.",
+        "The law where you live decides what else you have to do, and that may change once other people use your server. For example, some countries expect a named contact or a way to report copyright complaints from anyone offering something to the public."
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "Contacting the project",
+      "body": [
+        "The project can only answer for the software. It holds none of this server's media or data, so for anything on this server, contact whoever runs it. Report security problems as [SECURITY.md](https://github.com/wittywilla/WittyMediaServer/blob/master/SECURITY.md) says, and anything else on the [issue tracker](https://github.com/wittywilla/WittyMediaServer/issues).",
+        "Legal questions about the project: [[FILL IN: a contact for legal questions about the project, such as an email address set up for this]]"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "GitHub (updates)",
+      "hosts": [
+        "api.github.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com"
+      ],
+      "gets": "The version this server runs and the name of the project. When installing, also which system the download is for.",
+      "when": "On by default: twice a day for server and module updates. Downloads only when an administrator installs one, or with automatic module install turned on.",
+      "control": "Settings, About (Updates) and Settings, Modules",
+      "setting": "/settings/about"
+    },
+    {
+      "name": "TVmaze",
+      "hosts": [
+        "api.tvmaze.com",
+        "static.tvmaze.com"
+      ],
+      "gets": "Show names, taken from your folder and file names.",
+      "when": "On by default, at each scan and refresh, until a TheTVDB key is added. Only for TV libraries.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Wikidata and Wikipedia",
+      "hosts": [
+        "www.wikidata.org",
+        "en.wikipedia.org"
+      ],
+      "gets": "Movie and game titles, taken from your folder and file names.",
+      "when": "On by default, at each scan and refresh. For movies, until a TMDB key is added.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "AniList",
+      "hosts": [
+        "graphql.anilist.co"
+      ],
+      "gets": "Anime titles, with the year if known.",
+      "when": "At each scan and refresh of an Anime library. It has no switch of its own: having no Anime library is what turns it off.",
+      "control": "Settings, Libraries",
+      "setting": "/settings/libraries"
+    },
+    {
+      "name": "The Movie Database (TMDB)",
+      "hosts": [
+        "api.themoviedb.org",
+        "image.tmdb.org"
+      ],
+      "gets": "Titles and years, with your API key.",
+      "when": "Only after a key is added: at each scan and refresh, and in the artwork picker.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "TheTVDB",
+      "hosts": [
+        "api4.thetvdb.com",
+        "thetvdb.com",
+        "artworks.thetvdb.com"
+      ],
+      "gets": "Show names and years, with your API key and PIN.",
+      "when": "Only after a key is added: at each scan and refresh.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Custom agents",
+      "hosts": [],
+      "gets": "Title, year and type, sent to the address an administrator set, with any key they set.",
+      "when": "Only once an agent is added: at each scan and refresh.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Pictures named elsewhere",
+      "hosts": [],
+      "gets": "The address of a picture, asked of whichever site an agent, catalogue, NFO file, metadata file or feed names.",
+      "when": "The first time the picture is needed. After that it comes from this server.",
+      "control": "Follows whatever named it",
+      "setting": ""
+    },
+    {
+      "name": "Free Dictionary API",
+      "hosts": [
+        "api.dictionaryapi.dev"
+      ],
+      "gets": "The word someone asked about.",
+      "when": "Only when someone presses Define in a reader.",
+      "control": "Not pressing Define",
+      "setting": ""
+    },
+    {
+      "name": "Apple Podcasts directory",
+      "hosts": [
+        "itunes.apple.com"
+      ],
+      "gets": "What an administrator types in podcast search. Cover pictures in the results load straight from Apple to that person’s browser, which shows Apple their address.",
+      "when": "Only while searching.",
+      "control": "Using the RSS address instead",
+      "setting": ""
+    },
+    {
+      "name": "Podcast feeds and episodes",
+      "hosts": [],
+      "gets": "The addresses of the feeds and episodes, asked of the sites that publish them.",
+      "when": "Every 2 hours for shows being followed. Episodes when someone plays them, or as automatic downloads if turned on.",
+      "control": "Each podcast’s page",
+      "setting": ""
+    },
+    {
+      "name": "Internet radio stations",
+      "hosts": [],
+      "gets": "The station’s address, asked of that station.",
+      "when": "Only while someone listens.",
+      "control": "The stations an administrator adds",
+      "setting": ""
+    },
+    {
+      "name": "IPTV and TV guides",
+      "hosts": [],
+      "gets": "Playlist, stream and guide addresses, which can include sign-in details, sent to the provider or source an administrator set. A channel logo named in a playlist loads straight from its site to each viewer’s browser, which shows that site the viewer’s address.",
+      "when": "Guides every 12 hours. Streams while someone watches or records. Logos when the guide or a channel is open.",
+      "control": "Settings, Channels & tuners; the guide’s Channel logos option",
+      "setting": "/settings/channels"
+    },
+    {
+      "name": "libretro build server",
+      "hosts": [
+        "buildbot.libretro.com"
+      ],
+      "gets": "Which core is wanted and for which system.",
+      "when": "Only when an administrator installs a core.",
+      "control": "Settings, Gaming",
+      "setting": "/settings/gaming"
+    },
+    {
+      "name": "Let’s Encrypt",
+      "hosts": [
+        "acme-v02.api.letsencrypt.org"
+      ],
+      "gets": "Your domain name, and an email address if you give one. Certificates are public, so the domain name becomes public too.",
+      "when": "Only if you choose it for HTTPS: to issue and renew the certificate.",
+      "control": "Settings, Remote Access",
+      "setting": "/settings/remote"
+    },
+    {
+      "name": "Online map",
+      "hosts": [],
+      "gets": "Which parts of the map are being looked at, sent from the viewer’s browser to the map provider an administrator set, which sees the viewer’s address.",
+      "when": "Off by default. While the photo map is open.",
+      "control": "Settings, Sharing & photos",
+      "setting": "/settings/sharing"
+    },
+    {
+      "name": "STUN servers",
+      "hosts": [],
+      "gets": "A standard connection request to the servers an administrator set, from this server.",
+      "when": "None by default. While a game streams, if set.",
+      "control": "Settings, Gaming",
+      "setting": "/settings/gaming"
+    },
+    {
+      "name": "Your own network",
+      "hosts": [],
+      "gets": "This server’s name, a random ID, its version, port and address, to devices on your home network that ask. If turned on, port-forwarding requests go to your router. Searching for tuners contacts tuners on your network.",
+      "when": "Answering devices is on by default. It never leaves your home network.",
+      "control": "Settings, Profiles (Let apps find this server); Settings, Remote Access",
+      "setting": "/settings/users"
+    }
+  ]
+}

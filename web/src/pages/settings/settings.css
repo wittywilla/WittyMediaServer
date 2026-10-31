@@ -209,7 +209,7 @@ a.mod-row:hover { background: var(--hover); }
 }
 @media (prefers-reduced-motion: reduce) { .set-savebar, .set-pill.live::before { animation: none; } }
 
-/* Updates (About & legal) */
+/* Updates (About) */
 .upd-new { display: grid; gap: 10px; margin: 6px 0 var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--accent-soft); border: 1px solid var(--accent-line); }
 .upd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .upd-head > div { display: grid; gap: 2px; min-width: 0; }

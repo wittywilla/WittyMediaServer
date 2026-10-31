@@ -53,15 +53,15 @@ artwork. Keep movies and TV shows in separate folders:
 
 ```
 Movies/
-  Shrek (2001)/Shrek (2001).mkv
-  Shrek 2 (2004).mp4
+  My Film (2001)/My Film (2001).mkv
+  My Film 2 (2004).mp4
 DVDs/
-  SHREK.ISO
-  SHREK_2.ISO
+  MY_FILM.ISO
+  MY_FILM_2.ISO
 TV Shows/
-  Codename Kids Next Door/
+  My Show/
     Season 02/
-      Codename - Kids Next Door - S02E01 - Operation C.A.T.S.mkv
+      My Show - S02E01 - Episode Title.mkv
 ```
 
 Tips:
@@ -121,7 +121,7 @@ or bottom edge hands the arrows back to the picture. A signed-in TV app is appro
 Any phone, tablet, laptop or smart-TV browser on the **same home network** (the same Wi-Fi or
 cable network) can open the server:
 
-1. Find the server computer's address. The last step of the setup wizard and *Settings → About & legal*
+1. Find the server computer's address. The last step of the setup wizard and *Settings → About*
    show it; or on Windows run `ipconfig` and look for *IPv4 Address* (e.g. `192.168.1.20`); on macOS:
    *System Settings → Network*.
 2. On the other device open `http://192.168.1.20:9797`.

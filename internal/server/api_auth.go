@@ -36,7 +36,11 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if u == nil && clientFrom(r).Where == remote.Internet {
 		version = ""
 	}
+	// An administrator who never saw the first-run notice sees it once (a server
+	// set up before it existed, or one set up from a script).
+	legalAck := u == nil || !u.IsAdmin || s.legalAcked(ctx)
 	writeJSON(w, 200, map[string]any{
+		"legalAck":      legalAck,
 		"update":        newer,
 		"onboarding":    onboarding,
 		"pickerLocal":   onThisMachine(r),
@@ -59,6 +63,8 @@ type credentials struct {
 	Code     string `json:"code"` // two-factor sign-in
 	// SetupCode: first-run setup from outside this network.
 	SetupCode string `json:"setupCode"`
+	// AcknowledgedLegal: the setup wizard's first-run notice was ticked.
+	AcknowledgedLegal bool `json:"acknowledgedLegal"`
 }
 
 // maxCredentialBytes caps sign-in and setup requests (no name or password
@@ -109,6 +115,11 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if c.AcknowledgedLegal {
+		if err := s.recordLegalAck(r.Context()); err != nil {
+			s.Log.Warn("couldn't record the first-run notice", "err", err)
+		}
 	}
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})

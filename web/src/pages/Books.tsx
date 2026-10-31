@@ -4,6 +4,7 @@ import { api, mediaUrl, posterUrl, type Album, type Item, type Library } from '.
 import { BackLink, EmptyState, ScanButton, SkeletonGrid } from '../components/common'
 import { IconBook } from '../icons'
 import { useApp } from '../state'
+import LegalNote from '../components/LegalNote'
 
 // Books, comics and manga: the library page and a book's details.
 
@@ -58,6 +59,7 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
         <div className="grow" />
         <ScanButton lib={lib} />
       </div>
+      <LegalNote kind="reader" className="legal-top" />
       {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>
       ))}
@@ -99,6 +101,7 @@ export function BookDetails({ it }: { it: Item }) {
             <a className="btn ghost" href={mediaUrl(`/api/items/${it.id}/file`)} download>Download</a>
           </div>
           {it.overview && <p className="album-desc">{it.overview}</p>}
+          <LegalNote kind="reader" />
         </div>
       </div>
     </div>

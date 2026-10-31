@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { type ShareLink } from '../../gallery'
 import { toast, useApp } from '../../state'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
+import LegalNote from '../../components/LegalNote'
 
 // Uploads, links for people without an account, the online map, and the place
 // kept for the local AI.
@@ -71,6 +72,7 @@ export default function SharingSettings() {
   return (
     <>
       <PageHead title="Sharing & photos" desc="Who can add to this server, and what can be seen from outside it." />
+      <LegalNote kind="sharing" className="set-legal" />
       {user?.isAdmin && <ServerSharing />}
       <Links />
     </>

@@ -107,7 +107,7 @@ Run either the service or the tray app on a port, not both.
 
 ## Updating
 
-Admins see a dot on **Settings** when a newer version is out. *Settings → About & legal → Updates*
+Admins see a dot on **Settings** when a newer version is out. *Settings → About → Updates*
 shows the installed and the newest version with its release notes; **Update now** installs it:
 
 1. **Downloading**: the release's checksum list and its signature come from GitHub (only from

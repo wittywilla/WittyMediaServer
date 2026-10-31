@@ -121,12 +121,12 @@ func TestPCIButtonLayout(t *testing.T) {
 	}
 }
 
-// TestRealDisc exercises the whole stack against a decrypted DVD image when
+// TestRealDisc exercises the whole stack against an unencrypted DVD image when
 // WMS_TEST_ISO points at one (skipped otherwise).
 func TestRealDisc(t *testing.T) {
 	p := os.Getenv("WMS_TEST_ISO")
 	if p == "" {
-		t.Skip("set WMS_TEST_ISO to a decrypted DVD image")
+		t.Skip("set WMS_TEST_ISO to an unencrypted DVD image")
 	}
 	o, err := Open(p)
 	if err != nil {

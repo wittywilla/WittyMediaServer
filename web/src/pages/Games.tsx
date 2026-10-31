@@ -6,6 +6,7 @@ import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 import type { PlayHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
 import './games.css'
+import LegalNote from '../components/LegalNote'
 
 // Games: the library page, a game's own page, and the page that holds the player.
 // The player itself is WittyPlay (modules/wittyplay/web), loaded only when a game
@@ -149,6 +150,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
             {hasMore && <div ref={more} className="gm-more"><Spinner /></div>}
           </>
         )}
+      <LegalNote kind="games" />
     </>
   )
 }
@@ -179,6 +181,12 @@ export function GameDetails({ it }: { it: Item }) {
           <h1>{it.title}</h1>
           <p className="muted">{[c?.name, it.tagline, it.year, played > 60 ? `Played for ${fmtPlay(played)}` : ''].filter(Boolean).join(' · ')}</p>
           {it.overview && <p>{it.overview}</p>}
+          {it.provider === 'wikidata' && (
+            <p className="fine-print">
+              Facts from <a href={`https://www.wikidata.org/wiki/${it.providerId}`} target="_blank" rel="noreferrer">Wikidata</a>; summary from Wikipedia,
+              shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
+            </p>
+          )}
           <div className="game-actions">
             {auto && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
             {ready && <button className={'btn' + (auto ? '' : ' primary')} onClick={() => nav(`/game/${it.id}`)}><IconPlay /> {auto ? 'Start over' : 'Play'}</button>}
@@ -191,6 +199,7 @@ export function GameDetails({ it }: { it: Item }) {
           )}
         </div>
       </div>
+      <LegalNote kind="games" />
       {saves.length > 0 && (
         <section aria-label="Saved states">
           <h2 className="shelf-head">Saved states</h2>

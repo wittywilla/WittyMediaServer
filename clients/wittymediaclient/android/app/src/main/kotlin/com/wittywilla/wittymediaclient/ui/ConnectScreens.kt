@@ -194,6 +194,7 @@ fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
             ErrorText(error)
             ActionButton(if (busy) s["connecting"].orEmpty() else s["connect"].orEmpty(), ::submit, Modifier.fillMaxWidth(), primary = true, enabled = !busy)
             ActionButton(s["back"].orEmpty(), { showForm = false; error = "" }, Modifier.fillMaxWidth())
+            Secondary(s["legalConnect"].orEmpty())
         } else {
             // The first server found takes focus, until the person has moved themselves.
             Column(
@@ -204,6 +205,7 @@ fun ConnectScreen(nav: Nav, s: Map<String, String>, message: String) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Heading(s["findTitle"].orEmpty())
+                Secondary(s["legalConnect"].orEmpty())
                 ErrorText(error)
                 if (busy) Secondary(s["connecting"].orEmpty())
                 Secondary(s["foundServers"].orEmpty())

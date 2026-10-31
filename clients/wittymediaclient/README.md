@@ -45,3 +45,12 @@ gradle testDebugUnitTest
 The sample server answers used by those tests are checked against a real server with
 `node shared/scripts/check-fixtures.mjs <server address> <token>`. After changing any theme, rerun
 `node shared/scripts/build-themes.mjs`; CI fails if `shared/data/themes.json` is out of date.
+
+## Legal
+
+WittyMediaClient is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by any device or platform maker, publisher, rights holder or service. It connects to a
+server its owner runs. What's on that server is theirs, not this project's: the project, its
+contributors and affiliates don't provide, host, endorse or check it. Any third-party names here
+only describe what it works with, and belong to their owners. It's provided “as is”, with no
+warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.

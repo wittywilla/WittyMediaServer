@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
 import { EmptyState, ItemCard, ShowCard, SkeletonGrid } from '../components/common'
 import { IconSearch } from '../icons'
+import LegalNote from '../components/LegalNote'
 
 export default function SearchPage() {
   const [params] = useSearchParams()
@@ -41,6 +42,7 @@ export default function SearchPage() {
         <>
           {shows.length > 0 && <><h2 className="shelf-head">Shows</h2><div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
           {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">Everything else</h2>}<div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
+          <LegalNote kind="searchResults" />
         </>
       )}
     </>

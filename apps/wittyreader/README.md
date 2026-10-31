@@ -84,3 +84,12 @@ Browsers only allow the offline service worker, which also shows EPUBs, on secur
 **Apache-2.0**, the same licence as WittyMediaServer. © 2026 WittyWilla and contributors.
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyReader, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
+
+## Legal
+
+WittyReader is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by any publisher, rights holder, service or other media software project. No books come
+with it, and it doesn't check the ones you open: you're responsible for having the rights to them.
+Definitions come from a third-party service. Any third-party names here only describe what it works
+with, and belong to their owners. It's provided “as is”, with no warranty; see [LICENSE](LICENSE).
+Local law applies to how you use it. This isn't legal advice.

@@ -20,7 +20,7 @@ function createWindow() {
   const state = loadState()
   win = new BrowserWindow({
     width: state.width || 1400, height: state.height || 900, backgroundColor: '#0f1115', title: 'WittyMedia',
-    autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true },
+    autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true, spellcheck: false }, // spelling dictionaries would be fetched from outside
   })
   win.on('resize', () => { const [width, height] = win.getSize(); saveState({ ...loadState(), width, height }) })
   win.webContents.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' } })

@@ -47,6 +47,10 @@ var publicRoutes = map[string]bool{
 	"GET /api/share/{token}/file/{id}":              true,
 	"GET /api/share/{token}/hls/{id}/playlist.m3u8": true,
 	"GET /api/share/{token}/hls/{id}/seg/{n}":       true,
+	// What the project and this server's owner say about the server: a shared
+	// link, the setup wizard and an app with no account need the same words.
+	"GET /api/legal":         true,
+	"GET /api/legal/notices": true,
 	// The outside reachability test; an unknown address looks like any other.
 	"GET /api/reach/{nonce}": true,
 }

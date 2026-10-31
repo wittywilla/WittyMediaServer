@@ -19,7 +19,7 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 - [x] **Versioned module releases:** WittyDisc, WittyDVD and WittyBluray are tagged on their
   repositories, so `go get` and `go install` work outside a WittyMediaServer checkout
   (MODULES.md, *Releasing the Go modules*).
-- [ ] **DVD playback sometimes stuck on the first warning screen** (Shrek 2): confirm fixed, or
+- [ ] **DVD playback sometimes stuck on the first warning screen**: confirm fixed, or
   fix.
 - [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.
 - [ ] **WittyMediaPlayer:** a desktop player for local files, folders, images and discs, built

@@ -156,7 +156,7 @@ func menuFor(o *wittydvd.Opened, nav *wittydvd.Nav, s *wittydvd.Step) (*wittydvd
 
 // dvdWalk runs first play, auto-advancing through cells until a menu with
 // buttons (or a title) appears, then optionally presses buttons given on the
-// command line, e.g. "walk SHREK.ISO 1 2".
+// command line, e.g. "walk MY_DISC.ISO 1 2".
 func dvdWalk(o *wittydvd.Opened, presses []string) int {
 	nav := newNav(o)
 	s := nav.Start()

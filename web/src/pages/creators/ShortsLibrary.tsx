@@ -10,6 +10,7 @@ import { useSource } from '../../player/hooks'
 import { toast, useApp } from '../../state'
 import { Avatar, Comments, EditVideoDialog, LoadMore, SubscribeButton, useVideoList, VideoTile, likesOf } from './parts'
 import '../../creators.css'
+import LegalNote from '../../components/LegalNote'
 
 // WittyShorts: vertical videos, one at a time, with the next a swipe (or the
 // Down button) away. The order of For You comes from the server, from what this
@@ -72,6 +73,7 @@ function CreatorsGrid({ lib, onOpen }: { lib: Library; onOpen: (id: number) => v
           </button>
         ))}
       </div>
+      <LegalNote kind="creators" />
     </div>
   )
 }
@@ -275,6 +277,7 @@ function About({ d, lib, onCreator }: { d: VideoDetail; lib: Library; onCreator:
         {d.views > 0 && <><dt>Plays here</dt><dd>{d.views.toLocaleString()}</dd></>}
         {custom.map(([k, x]) => <div key={k} style={{ display: 'contents' }}><dt>{k}</dt><dd>{String(x)}</dd></div>)}
       </dl>
+      <LegalNote kind="creators" />
     </div>
   )
 }

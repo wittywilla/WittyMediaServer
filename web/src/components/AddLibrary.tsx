@@ -18,7 +18,7 @@ export const LIB_TYPES = [
   { type: 'podcasts', name: 'Podcasts', hint: 'Follow shows by RSS feed or search a free directory; add episode files you already have' },
   { type: 'books', name: 'Books & comics', hint: 'EPUB, PDF, comics and manga, with highlights, notes and pen' },
   { type: 'videos', name: 'Home videos', hint: 'Your own recordings; nothing is looked up online' },
-  { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; nothing leaves this server' },
+  { type: 'photos', name: 'Photos', hint: 'A timeline, albums and a map of your pictures and clips, RAW files too; kept on this server' },
   { type: 'shorts', name: 'Vertical videos', hint: 'A feed of short videos with likes, comments and a For You page worked out on this server alone' },
   { type: 'musicvideos', name: 'Music videos & concerts', hint: 'Music videos and live recordings by artist, with setlists from their chapters' },
   { type: 'radio', name: 'Internet radio', hint: 'Stations you add by their stream address or an M3U or PLS playlist; no folder needed' },

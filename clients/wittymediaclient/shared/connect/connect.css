@@ -33,6 +33,7 @@ h2 { font-size: 0.9rem; margin: 1.25rem 0 0.5rem; font-weight: 600; color: var(-
 p { margin: 0 0 1rem; color: var(--text-2); line-height: 1.45; }
 label { display: block; margin-bottom: 0.4rem; color: var(--text-2); font-size: 0.9rem; }
 .error { color: var(--danger); min-height: 1.45em; margin: 0.75rem 0; }
+.legal { margin: 1rem 0 0; font-size: 0.8rem; }
 .list { display: flex; flex-direction: column; gap: 0.5rem; }
 .row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .row > * { flex: 1; }

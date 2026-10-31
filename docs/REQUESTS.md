@@ -57,7 +57,7 @@ close some of these.
 - **Clearer program names:** nothing in the package explains what each program does.
 - **Blu-ray:** secondary audio, picture-in-picture and MVC 3D decoding. Testing on retail discs, including
   Java menus, 4K and HDR, waits for discs from the owner.
-- **Confirm by watching:** the Shrek 2 warning screen, the interactive games and the Idol credits have
+- **Confirm by watching:** a disc's warning screen, the interactive games and the Idol credits have
   fixes, but the owner hasn't confirmed them.
 
 ## Live TV and recording

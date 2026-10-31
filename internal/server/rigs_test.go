@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittysunshine"
-	"github.com/wittywilla/wittysunshine/fake"
+	"github.com/wittywilla/wittymoonlight/gamestream"
+	"github.com/wittywilla/wittymoonlight/gamestream/fake"
 )
 
 func rigFake(t *testing.T) *fake.Sunshine {
@@ -634,56 +634,5 @@ func TestRigLibraryDeletedInLibrarySettings(t *testing.T) {
 	}
 }
 
-func TestRigBrowserChecksAtTheLastMoment(t *testing.T) {
-	ts := newTestServer(t)
-	f := rigFake(t)
-	_, admin := ts.user(t, "owner", "adult", true, "")
-	v := pairedRig(t, ts, f, admin)
-	game := gameNamed(t, rigGames(t, ts, admin, v.LibraryID), "Space Game")
-	u, _ := ts.user(t, "adult1", "adult", false, "")
-	sess := rigSession(u.ID, v.ID, 7)
-	ctx := context.Background()
-	if err := ts.rigMayStart(ctx, sess); err != nil {
-		t.Errorf("allowed: %v", err)
-	}
-	// Something else running means the bridge would join that instead.
-	f.SetRunning(1093255277)
-	if err := ts.rigMayStart(ctx, sess); err == nil {
-		t.Error("it would have joined someone else's game")
-	}
-	// The same game someone else started.
-	f.SetRunning(7)
-	if err := ts.rigMayStart(ctx, sess); err == nil {
-		t.Error("it would have joined someone else's session")
-	}
-	ts.rigStreamStarted(sess) // started by this person
-	if err := ts.rigMayStart(ctx, sess); err != nil {
-		t.Errorf("their own game: %v", err)
-	}
-	f.SetRunning(0)
-	// Access taken away after the ticket was made.
-	limits, _ := json.Marshal(library.Access{MaxAge: -1, BlockItems: []int64{game.ID}, AllowUnrated: true})
-	if _, err := ts.DB.ExecContext(ctx, `UPDATE users SET restrictions = ? WHERE id = ?`, string(limits), u.ID); err != nil {
-		t.Fatal(err)
-	}
-	if err := ts.rigMayStart(ctx, sess); err == nil {
-		t.Error("access was taken away, and it still started")
-	}
-	// A hidden app, or an account that's gone, isn't startable either.
-	admins, _ := ts.user(t, "adminb", "adult", true, "")
-	sess.User = admins.ID
-	if err := ts.rigMayStart(ctx, sess); err != nil {
-		t.Errorf("admin: %v", err)
-	}
-	sess.AppID = f.Apps[0].ID // Desktop
-	if err := ts.rigMayStart(ctx, sess); err == nil {
-		t.Error("an app not in the library started")
-	}
-	sess.AppID, sess.User = 7, 99999
-	if err := ts.rigMayStart(ctx, sess); err == nil {
-		t.Error("an account that doesn't exist started")
-	}
-}
-
-var _ = wittysunshine.DefaultPort
+var _ = gamestream.DefaultPort
 var _ = http.StatusOK

@@ -37,6 +37,7 @@ MIRRORS=(
   "modules/wittyplay           WittyPlay"
   "modules/wittysunshine       WittySunshine"
   "modules/wittymoonlight      WittyMoonlight"
+  "modules/wittymoonlight-host WittyMoonlightHost"
 )
 
 TAG=${2:-}

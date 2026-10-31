@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, posterUrl, type Item, type Library } from '../api'
 import { BackLink, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
@@ -11,11 +11,11 @@ import './rigs.css'
 
 export type RigView = {
   id: number; libraryId: number; name: string; paired: boolean; state: string; message: string; currentGame?: string
-  canWake: boolean; canQuit: boolean; browserPlay: boolean
+  canWake: boolean; canQuit: boolean
   address?: string; port?: number; remoteAddress?: string; version?: string; fingerprint?: string; hasMac?: boolean; public?: boolean; webUrl?: string
 }
 
-type Method = { kind: string; label: string; oneClick: boolean; note?: string; url?: string; args?: string[]; text?: string; steps?: string[] }
+type Method = { kind: string; label: string; oneClick: boolean; note?: string; args?: string[]; text?: string; steps?: string[] }
 type Plan = {
   rig: RigView; game: { id: number; title: string }; away: boolean; ready: boolean; message?: string; methods: Method[]
   install?: { name: string; url: string; note?: string; license: string; source: string }; setup?: string[]
@@ -128,27 +128,22 @@ export function RigGameDetails({ it }: { it: Item }) {
   const [appMissing, setAppMissing] = useState(false)
   const moonlight = moonlightApp()
   const planRef = useRef<HTMLDivElement | null>(null)
+  const nav = useNavigate()
   useEffect(() => { if (moonlight) moonlight.status().then((s) => setAppMissing(!s.installed)).catch(() => {}) }, [moonlight])
   const play = async () => {
     setBusy(true)
     setNote('')
-    // A window has to be opened during the press, or browsers block it. It's filled in below,
-    // and closed again if browser play turns out not to be on offer.
-    const tab = rig?.browserPlay && !moonlight ? window.open('', '_blank') : null
     try {
       const p = await api.post<Plan>(`/rigs/games/${it.id}/play`, device())
       setPlan(p)
       const first = p.ready ? p.methods[0] : undefined
-      if (first?.kind === 'bridge' && tab) {
-        tab.opener = null
-        tab.location.href = first.url!
+      if (first?.kind === 'client') {
+        nav(`/moonlight-rig/${it.id}`)
         return
       }
-      tab?.close()
       if (first?.kind === 'command' && first.oneClick && moonlight && !appMissing) await launch(first)
       else window.setTimeout(() => planRef.current?.focus(), 0)
     } catch (e: any) {
-      tab?.close()
       toast(e.message)
     } finally { setBusy(false) }
   }
@@ -193,7 +188,7 @@ export function RigGameDetails({ it }: { it: Item }) {
           {plan.message && <p className="game-note" role="status">{plan.message}</p>}
           {plan.methods.map((m, i) => (
             <section key={i} className="rig-method">
-              {m.kind === 'bridge' && <a className="btn" href={m.url} target="_blank" rel="noreferrer noopener"><IconPlay /> {m.label}</a>}
+              {m.kind === 'client' && <button className="btn" onClick={() => nav(`/moonlight-rig/${it.id}`)}><IconPlay /> {m.label}</button>}
               {m.kind === 'command' && moonlight && !appMissing && m.args && <button className="btn" onClick={() => launch(m)}><IconPlay /> {m.label}</button>}
               {m.kind === 'command' && !moonlight && m.text && <>
                 <h2>{m.label}</h2>

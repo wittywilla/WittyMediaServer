@@ -22,3 +22,6 @@
 .rig-warn { padding: 10px 12px; margin: 8px 0; border-left: 3px solid var(--danger, var(--accent)); background: var(--bg-2); }
 .rig-steps li { margin-bottom: 6px; }
 .rig-row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ml-hosts { display: grid; gap: 8px; margin: 12px 0 18px; padding: 0; list-style: none; }
+.ml-hosts .rig-status { margin: 0; text-decoration: none; }
+.ml-hosts .rig-dot.on { background: var(--ok, var(--accent)); }

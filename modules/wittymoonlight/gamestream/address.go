@@ -42,11 +42,19 @@ func Classify(ip netip.Addr) Reach {
 // connection is made, not only when an address is typed, so a name that later
 // resolves somewhere else is caught.
 type Policy struct {
-	AllowPublic bool // the owner confirmed that this rig is on the internet
+	AllowPublic  bool // the internet may be reached
+	DenyPrivate  bool // the home network and private overlays may not
+	DenyLoopback bool // this machine may not, which is for admins only
 }
 
 // Allow reports whether a connection may go to ip.
 func (p Policy) Allow(ip netip.Addr) error {
+	switch r := Classify(ip); {
+	case r == Loopback && p.DenyLoopback:
+		return fmt.Errorf("%w: %s is this machine", ErrBlocked, ip)
+	case r == Private && p.DenyPrivate:
+		return fmt.Errorf("%w: %s is on a private network", ErrBlocked, ip)
+	}
 	switch Classify(ip) {
 	case Loopback, Private:
 		return nil

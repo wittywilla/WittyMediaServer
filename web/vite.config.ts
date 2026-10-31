@@ -44,6 +44,7 @@ export default defineConfig({
     alias: [
       { find: /^@wittywilla\/wittyintegratedfilebrowser$/, replacement: fileURLToPath(new URL('../modules/wittyintegratedfilebrowser/web/index.ts', import.meta.url)) },
       { find: /^@wittywilla\/wittyplay$/, replacement: fileURLToPath(new URL('../modules/wittyplay/web/index.ts', import.meta.url)) },
+      { find: /^@wittywilla\/wittymoonlight$/, replacement: fileURLToPath(new URL('../modules/wittymoonlight/web/index.ts', import.meta.url)) },
       { find: /^@wittywilla\/(witty[a-z]+)(.*)$/, replacement: fileURLToPath(new URL('./src/modules/', import.meta.url)) + '$1$2' },
     ],
     dedupe: ['react', 'react-dom'],

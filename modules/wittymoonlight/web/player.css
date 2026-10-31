@@ -1,0 +1,35 @@
+/* The player fills its window. It reads the theme's colours where there is a theme. */
+.ml-root { position: fixed; inset: 0; z-index: 50; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font: 15px/1.45 system-ui, sans-serif; touch-action: none; }
+.ml-video { width: 100%; height: 100%; object-fit: contain; background: #000; outline: none; }
+.ml-panel { position: absolute; display: grid; gap: 12px; width: min(92vw, 420px); max-height: 90vh; overflow: auto; padding: 22px; border-radius: 14px; background: rgba(20, 20, 26, .94); box-shadow: 0 8px 40px rgba(0, 0, 0, .5); touch-action: auto; }
+.ml-panel h1 { font-size: 1.25rem; margin: 0; }
+.ml-panel label { display: grid; gap: 4px; }
+.ml-panel small { opacity: .75; }
+.ml-panel select { min-height: 40px; padding: 6px 8px; border-radius: 8px; background: #2a2a33; color: #fff; border: 1px solid #555; }
+.ml-note { margin: 0; opacity: .8; font-size: .9em; }
+.ml-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ml-btn { min-height: 42px; padding: 8px 16px; border: 0; border-radius: 9px; background: #33333d; color: #fff; font: inherit; cursor: pointer; }
+.ml-btn:hover, .ml-btn:focus-visible { background: #4a4a57; outline: 2px solid #fff; outline-offset: 1px; }
+.ml-btn.primary { background: var(--accent, #6d4aff); color: var(--accent-fg, #fff); font-weight: 600; }
+.ml-btn.danger { background: #7a2230; }
+.ml-hint, .ml-poor { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); max-width: 90vw; padding: 7px 14px; border-radius: 9px; background: rgba(0, 0, 0, .7); font-size: 14px; text-align: center; pointer-events: none; }
+.ml-poor { top: auto; bottom: 14px; }
+.ml-hint kbd, .ml-note kbd { padding: 0 5px; border: 1px solid #888; border-radius: 4px; font: inherit; font-size: .9em; }
+.ml-menu-btn { position: absolute; top: 12px; right: 12px; min-height: 36px; padding: 4px 12px; border: 0; border-radius: 8px; background: rgba(0, 0, 0, .6); color: #fff; font: inherit; cursor: pointer; }
+/* The on-screen controller: leaves the picture's middle clear, and the page behind it alone. */
+.ml-touch { position: absolute; inset: 0; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-end; padding: 10px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); user-select: none; -webkit-user-select: none; }
+.ml-t-left, .ml-t-right { display: grid; gap: 8px; justify-items: center; }
+.ml-t-mid { display: flex; gap: 8px; }
+.ml-t, .ml-stick { pointer-events: auto; touch-action: none; }
+.ml-t { width: 48px; height: 48px; border: 1px solid rgba(255, 255, 255, .4); border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff; font: 600 15px system-ui; padding: 0; }
+.ml-t:active { background: rgba(255, 255, 255, .42); }
+.ml-t.sh { width: 72px; height: 34px; border-radius: 12px; }
+.ml-t.sm { width: 60px; height: 30px; border-radius: 10px; font-size: 12px; }
+.ml-stick { width: 104px; height: 104px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .4); background: rgba(255, 255, 255, .1); }
+.ml-dpad, .ml-abxy { display: grid; grid-template: repeat(3, 44px) / repeat(3, 44px); }
+.ml-dpad .ml-t, .ml-abxy .ml-t { width: 44px; height: 44px; }
+.ml-dpad .u, .ml-abxy .u { grid-area: 1 / 2; }
+.ml-dpad .l, .ml-abxy .l { grid-area: 2 / 1; }
+.ml-dpad .r, .ml-abxy .r { grid-area: 2 / 3; }
+.ml-dpad .d, .ml-abxy .d { grid-area: 3 / 2; }
+@media (orientation: portrait) { .ml-touch { align-items: flex-end; } .ml-dpad { display: none; } }

@@ -27,8 +27,8 @@ var engines = []moduleInfo{
 	{Name: "WittyBluray", Module: "github.com/wittywilla/wittybluray", Role: "Blu-ray engine: menus, playlists, 4K and HDR"},
 	{Name: "WittyDisc", Module: "github.com/wittywilla/wittydisc", Role: "Disc image reader (UDF and ISO 9660)"},
 	{Name: "WittyPlay", Module: "github.com/wittywilla/wittyplay", Role: "Game streaming: runs games through libretro cores and streams them to the browser"},
-	{Name: "WittySunshine", Module: "github.com/wittywilla/wittysunshine", Role: "Game rigs: finds and pairs with your own gaming PC running Sunshine, and lists its games"},
-	{Name: "WittyMoonlight", Module: "github.com/wittywilla/wittymoonlight", Role: "Game rigs: hands off to the Moonlight app, or to browser play as a separate program"},
+	{Name: "WittySunshine", Module: "github.com/wittywilla/wittysunshine", Role: "Advanced: streaming demanding games hosted on this server, through Sunshine as a separate program"},
+	{Name: "WittyMoonlight", Module: "github.com/wittywilla/wittymoonlight", Role: "A Moonlight client in the page, for playing on any Sunshine server"},
 	{Name: "WittyIntegratedFileBrowser", Module: "github.com/wittywilla/wittyintegratedfilebrowser", Role: "The built-in folder browser: drives and folders, from any device"},
 	{Name: "WittyTuner", Module: "github.com/wittywilla/wittytuner", Role: "TV tuners and IPTV: network tuners, playlists, DVB, capture cards, SAT>IP and backends"},
 }

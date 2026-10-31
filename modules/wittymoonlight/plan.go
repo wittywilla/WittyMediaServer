@@ -29,11 +29,10 @@ type Target struct {
 
 // Method is one way to play, best first.
 type Method struct {
-	Kind     string   `json:"kind"`               // bridge, command, intent, steps
+	Kind     string   `json:"kind"`               // client, command, intent, steps
 	Label    string   `json:"label"`              // what a button says
-	OneClick bool     `json:"oneClick"`           // nothing more to do once Moonlight is installed and paired
+	OneClick bool     `json:"oneClick"`           // nothing more to do once it's set up
 	Note     string   `json:"note,omitempty"`     // anything worth saying first
-	URL      string   `json:"url,omitempty"`      // bridge
 	Args     []string `json:"args,omitempty"`     // command: arguments for the moonlight program
 	Text     string   `json:"text,omitempty"`     // command: the same, as a line to copy
 	Package  string   `json:"package,omitempty"`  // intent
@@ -144,13 +143,14 @@ func manualSteps(t Target) []string {
 	}
 }
 
-// Plan lists what really works on this device, best first. A bridge URL is passed in by
-// the caller only when the bridge is set up, this person may use it, and a ticket has been
-// made. What's listed here is checked against the table in docs/GAME-RIGS.md.
-func Plan(d Device, t Target, bridgeURL, bridgeNote string) []Method {
+// Plan lists what really works on this device, best first. Playing in the page, through this
+// server, comes first wherever a device can run it: clientNote is empty unless there's something
+// to say first. Handing off to the Moonlight app is the fallback. What's listed here is checked
+// against the table in docs/GAME-RIGS.md.
+func Plan(d Device, t Target, inPage bool, clientNote string) []Method {
 	var out []Method
-	if bridgeURL != "" {
-		out = append(out, Method{Kind: "bridge", Label: "Play in this browser", OneClick: true, URL: bridgeURL, Note: bridgeNote})
+	if inPage && d.OS != "tvos" {
+		out = append(out, Method{Kind: "client", Label: "Play here", OneClick: true, Note: clientNote})
 	}
 	if t.Address == "" {
 		// Away from home with no VPN address: Moonlight has nothing it could connect to.

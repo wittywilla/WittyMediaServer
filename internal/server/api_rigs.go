@@ -20,7 +20,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymoonlight"
-	"github.com/wittywilla/wittysunshine"
+	"github.com/wittywilla/wittymoonlight/gamestream"
 )
 
 // Game rigs: someone's own gaming PC running Sunshine, as a source of games. See
@@ -37,14 +37,7 @@ const (
 	rigSyncEvery   = 10 * time.Minute
 	rigWakeEvery   = 10 * time.Second
 	rigMaxApps     = 500
-	rigBrowserIdle = 30 * time.Minute
 )
-
-func init() {
-	settingKeys = append(settingKeys, "rigBrowserPort", "rigBrowserUdp", "rigBrowserPublicIp", "rigBrowserStun")
-	settingDefaults["rigBrowserPort"] = "47900"
-	settingDefaults["rigBrowserUdp"] = "47910-47920"
-}
 
 // rigRoutes registers the game rigs API.
 func (s *Server) rigRoutes(m *http.ServeMux) {
@@ -65,11 +58,6 @@ func (s *Server) rigRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/rigs/{id}/quit", a(s.handleRigQuit))
 	m.Handle("POST /api/rigs/games/{id}/play", a(s.handleRigPlay))
 	m.Handle("POST /api/rigs/games/{id}/start", a(s.handleRigStart))
-	m.Handle("GET /api/rigs/browser", s.requireAdmin(s.handleRigBrowser))
-	m.Handle("POST /api/rigs/browser/install", s.requireAdmin(s.handleRigBrowserInstall))
-	m.Handle("DELETE /api/rigs/browser", s.requireAdmin(s.handleRigBrowserRemove))
-	m.Handle("POST /api/rigs/{id}/browser", s.requireAdmin(s.handleRigBrowserPair))
-	m.Handle("DELETE /api/rigs/{id}/browser", s.requireAdmin(s.handleRigBrowserForget))
 }
 
 // rigService is built the first time anything needs it, so a server with no rigs spends
@@ -78,7 +66,7 @@ type rigService struct {
 	dir string
 
 	mu       sync.Mutex
-	identity *wittysunshine.Identity
+	identity *gamestream.Identity
 	statuses map[int64]rigCached
 	pairs    map[int64]*rigPairing
 	lastSync map[int64]time.Time
@@ -86,7 +74,6 @@ type rigService struct {
 	starter  map[int64]int64 // rig: who last started something on it through this server
 	syncing  map[int64]*sync.Mutex
 	finding  sync.Mutex
-	browser  *rigBrowser
 }
 
 type rigCached struct {
@@ -99,7 +86,7 @@ type rigPairing struct {
 	State   string    `json:"state"` // waiting, paired, failed
 	Message string    `json:"message,omitempty"`
 	Started time.Time `json:"-"`
-	Kind    string    `json:"kind"` // server, browser
+	Kind    string    `json:"kind"`
 	cancel  context.CancelFunc
 }
 
@@ -123,20 +110,16 @@ func (s *Server) StopRigs() {
 			p.cancel()
 		}
 	}
-	b := s.rigSvc.browser
 	s.rigSvc.mu.Unlock()
-	if b != nil {
-		b.stop()
-	}
 }
 
-func (g *rigService) ident() (*wittysunshine.Identity, error) {
+func (g *rigService) ident() (*gamestream.Identity, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.identity != nil {
 		return g.identity, nil
 	}
-	id, err := wittysunshine.LoadOrCreateIdentity(filepath.Join(g.dir, "identity"))
+	id, err := gamestream.LoadOrCreateIdentity(filepath.Join(g.dir, "identity"))
 	if err != nil {
 		return nil, fmt.Errorf("the rig identity can't be read or made: %w", err)
 	}
@@ -153,14 +136,13 @@ type rigRow struct {
 	AllowPublic     bool
 	UUID, MAC, Cert string
 	PairedAt        *int64
-	BridgeHost      string
 }
 
-const rigCols = `id, library_id, name, address, port, remote_address, allow_public, uuid, mac, cert, paired_at, bridge_host`
+const rigCols = `id, library_id, name, address, port, remote_address, allow_public, uuid, mac, cert, paired_at`
 
 func scanRig(row interface{ Scan(...any) error }) (*rigRow, error) {
 	var r rigRow
-	if err := row.Scan(&r.ID, &r.LibraryID, &r.Name, &r.Address, &r.Port, &r.RemoteAddress, &r.AllowPublic, &r.UUID, &r.MAC, &r.Cert, &r.PairedAt, &r.BridgeHost); err != nil {
+	if err := row.Scan(&r.ID, &r.LibraryID, &r.Name, &r.Address, &r.Port, &r.RemoteAddress, &r.AllowPublic, &r.UUID, &r.MAC, &r.Cert, &r.PairedAt); err != nil {
 		return nil, err
 	}
 	return &r, nil
@@ -217,12 +199,12 @@ func (s *Server) rigVisible(ctx context.Context, a *library.Access, rig *rigRow)
 
 // client makes the protocol client for a rig. The connection policy is applied to every
 // connection it makes, whoever's request caused it.
-func (s *Server) rigClient(rig *rigRow) (*wittysunshine.Rig, error) {
+func (s *Server) rigClient(rig *rigRow) (*gamestream.Rig, error) {
 	id, err := s.rigs().ident()
 	if err != nil {
 		return nil, err
 	}
-	return &wittysunshine.Rig{Address: rig.Address, Port: rig.Port, Identity: id, Cert: []byte(rig.Cert), Policy: wittysunshine.Policy{AllowPublic: rig.AllowPublic}}, nil
+	return &gamestream.Rig{Address: rig.Address, Port: rig.Port, Identity: id, Cert: []byte(rig.Cert), Policy: gamestream.Policy{AllowPublic: rig.AllowPublic}}, nil
 }
 
 // rigState is how a rig is doing, in words for people.
@@ -234,7 +216,7 @@ type rigState struct {
 	version     string
 }
 
-func statusFor(paired bool, info *wittysunshine.Info, err error) rigState {
+func statusFor(paired bool, info *gamestream.Info, err error) rigState {
 	switch {
 	case err == nil && !paired:
 		return rigState{State: "not-paired", Message: "This PC is on, and needs pairing.", version: info.Version}
@@ -242,15 +224,15 @@ func statusFor(paired bool, info *wittysunshine.Info, err error) rigState {
 		return rigState{State: "busy", Message: "A game is running on this PC.", currentApp: info.CurrentGame, version: info.Version}
 	case err == nil:
 		return rigState{State: "online", Message: "Ready to play.", version: info.Version}
-	case errors.Is(err, wittysunshine.ErrRefused):
+	case errors.Is(err, gamestream.ErrRefused):
 		return rigState{State: "no-sunshine", Message: "This PC is on, but Sunshine isn't running on it. Start Sunshine on that PC."}
-	case errors.Is(err, wittysunshine.ErrNoAnswer):
+	case errors.Is(err, gamestream.ErrNoAnswer):
 		return rigState{State: "asleep", Message: "This PC isn't answering. It's asleep, turned off, or not on this network."}
-	case errors.Is(err, wittysunshine.ErrNotPaired):
+	case errors.Is(err, gamestream.ErrNotPaired):
 		return rigState{State: "not-paired", Message: "This PC no longer trusts this server, so it has to be paired again."}
-	case errors.Is(err, wittysunshine.ErrCertChanged):
+	case errors.Is(err, gamestream.ErrCertChanged):
 		return rigState{State: "cert-changed", Message: "Something other than the PC you paired with answered at that address, so it wasn't trusted. If you reinstalled Sunshine, pair it again. If not, check what's at that address."}
-	case errors.Is(err, wittysunshine.ErrBlocked):
+	case errors.Is(err, gamestream.ErrBlocked):
 		return rigState{State: "error", Message: "This PC's address isn't allowed: " + err.Error()}
 	}
 	return rigState{State: "error", Message: "This PC answered with something that isn't from Sunshine."}
@@ -281,7 +263,7 @@ func (s *Server) rigStatusNow(ctx context.Context, rig *rigRow) rigState {
 		view = statusFor(true, info, err)
 		// The PC only says its MAC address to someone it trusts, and it's what wakes it.
 		if err == nil && info.MAC != rig.MAC {
-			if _, merr := wittysunshine.ParseMAC(info.MAC); merr == nil {
+			if _, merr := gamestream.ParseMAC(info.MAC); merr == nil {
 				_, _ = s.DB.ExecContext(ctx, `UPDATE wittysunshine_rigs SET mac = ? WHERE id = ?`, info.MAC, rig.ID)
 				rig.MAC = info.MAC
 			}
@@ -318,7 +300,6 @@ type rigView struct {
 	CurrentGame string `json:"currentGame,omitempty"`
 	CanWake     bool   `json:"canWake"`
 	CanQuit     bool   `json:"canQuit"`
-	BrowserPlay bool   `json:"browserPlay"`
 	// Admins only.
 	Address       string `json:"address,omitempty"`
 	Port          int    `json:"port,omitempty"`
@@ -338,7 +319,7 @@ func (s *Server) rigViewFor(ctx context.Context, r *http.Request, rig *rigRow) r
 	starter := g.starter[rig.ID]
 	g.mu.Unlock()
 	v := rigView{ID: rig.ID, LibraryID: rig.LibraryID, Name: rig.Name, Paired: rig.Cert != "", State: st.State, Message: st.Message, CurrentGame: st.CurrentGame,
-		CanWake: rig.MAC != "" && (st.State == "asleep"), CanQuit: st.State == "busy" && (u.IsAdmin || starter == u.ID), BrowserPlay: rig.BridgeHost != ""}
+		CanWake: rig.MAC != "" && (st.State == "asleep"), CanQuit: st.State == "busy" && (u.IsAdmin || starter == u.ID)}
 	if !u.IsAdmin {
 		if st.State == "cert-changed" || st.State == "not-paired" || st.State == "error" {
 			v.Message = "Something needs sorting out on this PC. Ask whoever runs this server."
@@ -347,7 +328,7 @@ func (s *Server) rigViewFor(ctx context.Context, r *http.Request, rig *rigRow) r
 	}
 	v.Address, v.Port, v.RemoteAddress, v.Version, v.HasMAC, v.Public = rig.Address, rig.Port, rig.RemoteAddress, st.version, rig.MAC != "", rig.AllowPublic
 	if rig.Cert != "" {
-		v.Fingerprint = wittysunshine.CertFingerprint([]byte(rig.Cert))
+		v.Fingerprint = gamestream.CertFingerprint([]byte(rig.Cert))
 	}
 	if c, err := s.rigClient(rig); err == nil {
 		v.WebURL = c.WebURL()
@@ -404,7 +385,7 @@ func (s *Server) handleRigFind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer g.finding.Unlock()
-	found, err := wittysunshine.Browse(ctx, 3*time.Second)
+	found, err := gamestream.Browse(ctx, 3*time.Second)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -422,7 +403,7 @@ func (s *Server) handleRigFind(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			defer wg.Done()
 			// mDNS can say anything, so it only counts if the PC itself answers.
-			info, err := (&wittysunshine.Rig{Address: f.Address, Port: f.Port}).Hello(ctx)
+			info, err := (&gamestream.Rig{Address: f.Address, Port: f.Port}).Hello(ctx)
 			if err != nil {
 				return
 			}
@@ -444,7 +425,7 @@ func (s *Server) handleRigFind(w http.ResponseWriter, r *http.Request) {
 
 // rigMoved follows a paired PC to a new address, when its router gave it another. A name on
 // the network proves nothing: only answering with the pinned certificate does.
-func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f wittysunshine.Found) {
+func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f gamestream.Found) {
 	if rig.Cert == "" || rig.Address == f.Address {
 		return
 	}
@@ -452,7 +433,7 @@ func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f wittysunshine.Foun
 	if err != nil {
 		return
 	}
-	moved := &wittysunshine.Rig{Address: f.Address, Port: f.Port, Identity: id, Cert: []byte(rig.Cert)}
+	moved := &gamestream.Rig{Address: f.Address, Port: f.Port, Identity: id, Cert: []byte(rig.Cert)}
 	if _, err := moved.Status(ctx); err != nil {
 		return
 	}
@@ -463,7 +444,7 @@ func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f wittysunshine.Foun
 }
 
 func rigPortOf(port int) int {
-	if port == wittysunshine.DefaultPort {
+	if port == gamestream.DefaultPort {
 		return 0
 	}
 	return port
@@ -481,31 +462,31 @@ func (s *Server) handleRigAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	host, port, err := wittysunshine.CleanAddress(b.Address)
+	host, port, err := gamestream.CleanAddress(b.Address)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	reach, err := wittysunshine.CheckAddress(ctx, host, nil)
+	reach, err := gamestream.CheckAddress(ctx, host, nil)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if reach == wittysunshine.Public && !b.ConfirmPublic {
+	if reach == gamestream.Public && !b.ConfirmPublic {
 		writeJSON(w, 409, map[string]any{"public": true, "error": "That address is on the internet, which means this PC's game streaming ports are open to everyone. A VPN is much safer: see the guide. Add it anyway only if you know that's what you want."})
 		return
 	}
-	rig := &wittysunshine.Rig{Address: host, Port: port, Policy: wittysunshine.Policy{AllowPublic: reach == wittysunshine.Public}}
+	rig := &gamestream.Rig{Address: host, Port: port, Policy: gamestream.Policy{AllowPublic: reach == gamestream.Public}}
 	info, err := rig.Hello(ctx)
 	if err != nil {
 		code := 502
 		msg := "That PC didn't answer. Check the address, that it's on, and that Sunshine is installed and running."
 		switch {
-		case errors.Is(err, wittysunshine.ErrRefused):
+		case errors.Is(err, gamestream.ErrRefused):
 			msg = "That PC is on, but Sunshine isn't running on it. Install or start Sunshine, then try again."
-		case errors.Is(err, wittysunshine.ErrBadAnswer):
+		case errors.Is(err, gamestream.ErrBadAnswer):
 			msg = "Something answered at that address, but it isn't Sunshine."
-		case errors.Is(err, wittysunshine.ErrBlocked):
+		case errors.Is(err, gamestream.ErrBlocked):
 			msg, code = err.Error(), 400
 		}
 		writeErr(w, code, msg)
@@ -538,7 +519,7 @@ func (s *Server) handleRigAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.DB.ExecContext(ctx, `INSERT INTO wittysunshine_rigs(library_id, name, address, port, allow_public, uuid, created_at) VALUES(?,?,?,?,?,?,?)`,
-		lib.ID, name, host, port, reach == wittysunshine.Public, info.UUID, db.Now())
+		lib.ID, name, host, port, reach == gamestream.Public, info.UUID, db.Now())
 	if err != nil {
 		_ = s.Store.DeleteLibrary(ctx, lib.ID)
 		writeErr(w, 500, err.Error())
@@ -586,26 +567,26 @@ func (s *Server) handleRigUpdate(w http.ResponseWriter, r *http.Request) {
 		rig.Name = name
 	}
 	if b.Address != nil {
-		host, port, err := wittysunshine.CleanAddress(*b.Address)
+		host, port, err := gamestream.CleanAddress(*b.Address)
 		if err != nil {
 			writeErr(w, 400, err.Error())
 			return
 		}
-		reach, err := wittysunshine.CheckAddress(ctx, host, nil)
+		reach, err := gamestream.CheckAddress(ctx, host, nil)
 		if err != nil {
 			writeErr(w, 400, err.Error())
 			return
 		}
-		if reach == wittysunshine.Public && !b.ConfirmPublic {
+		if reach == gamestream.Public && !b.ConfirmPublic {
 			writeJSON(w, 409, map[string]any{"public": true, "error": "That address is on the internet. A VPN is much safer: see the guide."})
 			return
 		}
-		rig.Address, rig.Port, rig.AllowPublic = host, port, reach == wittysunshine.Public
+		rig.Address, rig.Port, rig.AllowPublic = host, port, reach == gamestream.Public
 	}
 	if b.RemoteAddress != nil {
 		rig.RemoteAddress = ""
 		if v := strings.TrimSpace(*b.RemoteAddress); v != "" {
-			host, _, err := wittysunshine.CleanAddress(v)
+			host, _, err := gamestream.CleanAddress(v)
 			if err != nil {
 				writeErr(w, 400, err.Error())
 				return
@@ -616,7 +597,7 @@ func (s *Server) handleRigUpdate(w http.ResponseWriter, r *http.Request) {
 	if b.MAC != nil {
 		rig.MAC = ""
 		if v := strings.TrimSpace(*b.MAC); v != "" {
-			hw, err := wittysunshine.ParseMAC(v)
+			hw, err := gamestream.ParseMAC(v)
 			if err != nil {
 				writeErr(w, 400, err.Error())
 				return
@@ -645,14 +626,7 @@ func (s *Server) forgetRig(rig *rigRow) {
 	delete(g.lastSync, rig.ID)
 	delete(g.lastWake, rig.ID)
 	delete(g.starter, rig.ID)
-	b := g.browser
 	g.mu.Unlock()
-	if b != nil {
-		b.proxy.RevokeRig(rig.ID)
-	}
-	if rig.BridgeHost != "" {
-		s.rigBrowserForget(rig)
-	}
 	s.removeRigArt(rig.ID)
 }
 
@@ -678,7 +652,7 @@ func (s *Server) handleRigRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.Info("rig removed", "rig", rig.Name, "by", userFrom(r).Name)
-	writeJSON(w, 200, map[string]any{"ok": true, "note": "To finish, remove " + wittysunshine.DeviceName + " from the paired devices in Sunshine on that PC."})
+	writeJSON(w, 200, map[string]any{"ok": true, "note": "To finish, remove " + gamestream.DeviceName + " from the paired devices in Sunshine on that PC."})
 }
 
 // POST /api/rigs/{id}/pair: start pairing. The answer has the PIN to type into Sunshine, and
@@ -688,7 +662,7 @@ func (s *Server) handleRigPair(w http.ResponseWriter, r *http.Request) {
 	if rig == nil {
 		return
 	}
-	pin, err := wittysunshine.NewPIN()
+	pin, err := gamestream.NewPIN()
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -700,7 +674,7 @@ func (s *Server) handleRigPair(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, p)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), wittysunshine.PairTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), gamestream.PairTimeout)
 	p := &rigPairing{PIN: pin, State: "waiting", Started: time.Now(), Kind: "server", cancel: cancel}
 	g.pairs[rig.ID] = p
 	g.mu.Unlock()
@@ -740,7 +714,7 @@ func (s *Server) runRigPair(ctx context.Context, cancel context.CancelFunc, rig 
 	s.forgetRigStatus(rig.ID)
 	s.rigStatusNow(bg, rig)
 	finish("paired", "Paired. Its games are being added to your library.")
-	s.Log.Info("rig paired", "rig", rig.Name, "fingerprint", wittysunshine.CertFingerprint(cert))
+	s.Log.Info("rig paired", "rig", rig.Name, "fingerprint", gamestream.CertFingerprint(cert))
 	if _, err := s.syncRig(bg, rig); err != nil {
 		s.Log.Warn("rig sync", "rig", rig.Name, "err", err)
 	}
@@ -750,8 +724,8 @@ func pairMessage(err error) string {
 	switch {
 	case errors.Is(err, context.Canceled):
 		return "Pairing was cancelled."
-	case errors.Is(err, wittysunshine.ErrWrongPIN), errors.Is(err, wittysunshine.ErrPairTimedOut), errors.Is(err, wittysunshine.ErrAlreadyPairing),
-		errors.Is(err, wittysunshine.ErrImposter), errors.Is(err, wittysunshine.ErrTooOld):
+	case errors.Is(err, gamestream.ErrWrongPIN), errors.Is(err, gamestream.ErrPairTimedOut), errors.Is(err, gamestream.ErrAlreadyPairing),
+		errors.Is(err, gamestream.ErrImposter), errors.Is(err, gamestream.ErrTooOld):
 		return err.Error() + "."
 	}
 	return "Pairing didn't finish: " + err.Error() + "."
@@ -820,7 +794,7 @@ func (s *Server) handleRigDevicePIN(w http.ResponseWriter, r *http.Request) {
 	b.Password = ""
 	if err != nil {
 		code := 400
-		if errors.Is(err, wittysunshine.ErrNoAnswer) || errors.Is(err, wittysunshine.ErrRefused) {
+		if errors.Is(err, gamestream.ErrNoAnswer) || errors.Is(err, gamestream.ErrRefused) {
 			code = 502
 		}
 		writeErr(w, code, err.Error())
@@ -1115,7 +1089,7 @@ func (s *Server) handleRigWake(w http.ResponseWriter, r *http.Request) {
 	g.lastWake[rig.ID] = time.Now()
 	delete(g.statuses, rig.ID)
 	g.mu.Unlock()
-	if err := wittysunshine.Wake(rig.MAC, rig.Address); err != nil {
+	if err := gamestream.Wake(rig.MAC, rig.Address); err != nil {
 		writeErr(w, 500, "The wake-up signal couldn't be sent: "+err.Error())
 		return
 	}
@@ -1222,7 +1196,7 @@ func rigAddressFor(r *http.Request, rig *rigRow) (string, bool) {
 		if err != nil {
 			host = r.Host
 		}
-		if clean, _, err := wittysunshine.CleanAddress(host); err == nil {
+		if clean, _, err := gamestream.CleanAddress(host); err == nil {
 			return clean, false
 		}
 		return "", false
@@ -1239,8 +1213,8 @@ func isLoopbackHost(a string) bool {
 }
 
 // POST /api/rigs/games/{id}/play {client, os}: what this device can do to play this game. It
-// starts nothing on the PC. A browser ticket is made only if browser play is set up, the PC is
-// answering, and nobody else's game is running there.
+// starts nothing on the PC. Playing in the page is offered if this server has its Moonlight
+// program, and nobody else's game is running there.
 func (s *Server) handleRigPlay(w http.ResponseWriter, r *http.Request) {
 	it, rig, appID := s.rigGameFor(w, r)
 	if it == nil {
@@ -1280,11 +1254,8 @@ func (s *Server) handleRigPlay(w http.ResponseWriter, r *http.Request) {
 	if away && addr == "" {
 		view.Message = strings.TrimSpace(view.Message + " You're away from home, and Moonlight can't reach this PC from here unless you connect both to a private network first: see the guide.")
 	}
-	bridgeURL, bridgeNote := "", ""
-	if view.Ready && rig.BridgeHost != "" && b.OS != "tvos" && s.rigMayJoin(rig, st, appID, u.ID, u.IsAdmin) {
-		bridgeURL, bridgeNote = s.rigBrowserTicket(r, u.ID, rig, appID)
-	}
-	view.Methods = wittymoonlight.Plan(b, t, bridgeURL, bridgeNote)
+	inPage := view.Ready && s.moonlightProgram() != "" && s.rigMayJoin(rig, st, appID, u.ID, u.IsAdmin)
+	view.Methods = wittymoonlight.Plan(b, t, inPage, "")
 	if view.Methods == nil {
 		view.Methods = []wittymoonlight.Method{}
 	}
@@ -1323,12 +1294,12 @@ func (s *Server) handleRigStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := userFrom(r)
-	if err := c.Launch(ctx, appID); err != nil {
-		if errors.Is(err, wittysunshine.ErrBusy) {
+	if err := c.StartOnly(ctx, appID); err != nil {
+		if errors.Is(err, gamestream.ErrBusy) {
 			writeErr(w, 409, "Another game is running on this PC, so this one can't start until it's closed.")
 			return
 		}
-		var se *wittysunshine.StatusError
+		var se *gamestream.StatusError
 		if errors.As(err, &se) {
 			writeErr(w, 502, "The PC couldn't start it. "+se.Message)
 			return

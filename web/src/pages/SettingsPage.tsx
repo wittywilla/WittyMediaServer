@@ -20,7 +20,8 @@ import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
-const GameRigs = lazy(() => import('./settings/GameRigs'))
+const MoonlightSettings = lazy(() => import('./settings/Moonlight'))
+const SunshineSettings = lazy(() => import('./settings/Sunshine'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
 
@@ -36,7 +37,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'playback', label: 'Playback & discs', icon: <IconTv />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconTv />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
     { to: 'gaming', label: 'Gaming', icon: <IconGamepad />, admin: true, hint: 'Consoles, cores and game streaming' },
-    { to: 'rigs', label: 'Game rigs', icon: <IconGamepad />, admin: true, hint: 'Your own gaming PC, with Sunshine and Moonlight' },
+    { to: 'moonlight', label: 'Game PCs', icon: <IconGamepad />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Transcoding', icon: <IconTune />, admin: true, hint: 'Quality, hardware and formats' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
@@ -45,6 +46,9 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
+  ] },
+  { title: 'Advanced', pages: [
+    { to: 'sunshine', label: 'WittySunshine', icon: <IconGamepad />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
@@ -85,7 +89,8 @@ export default function SettingsPage() {
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="gaming" element={<GamingSettings />} />
-          <Route path="rigs" element={<Suspense fallback={null}><GameRigs /></Suspense>} />
+          <Route path="moonlight" element={<Suspense fallback={null}><MoonlightSettings /></Suspense>} />
+          <Route path="sunshine" element={<Suspense fallback={null}><SunshineSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
@@ -396,7 +401,7 @@ function About() {
       <Section title="Third-party components and services">
         <div className="set-prose">
           <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>
-          <p>Your own gaming PC plays through <b>Sunshine</b> and <b>Moonlight</b>, separate GPL-3.0 projects you install yourself. Browser play is <b>moonlight-web-stream</b> (GPL-3.0-or-later), downloaded only if an admin asks, from its own project. None of them is part of WittyMediaServer, or endorses it, and it contains none of their code.</p>
+          <p><b>WittyMoonlight</b> (Apache-2.0) is this server’s client for PCs running Sunshine. To speak to them it starts <b>WittyMoonlight Host</b>, a separate program under the <b>GPL-3.0</b> (<a href="https://github.com/wittywilla/WittyMoonlightHost" target="_blank" rel="noreferrer">source</a>), built on <a href="https://github.com/moonlight-stream/moonlight-common-c" target="_blank" rel="noreferrer">moonlight-common-c</a> by the Moonlight project (GPL-3.0). It’s installed separately, and nothing else here contains it. <b>WittySunshine</b> (Apache-2.0) is an advanced option that uses <a href="https://github.com/LizardByte/Sunshine" target="_blank" rel="noreferrer">Sunshine</a> by LizardByte (GPL-3.0), which you install yourself. Neither project made or endorses this one.</p>
           <p><b>No warranty.</b> The software is provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated with any other media software project, studio or rights holder; all trademarks belong to their owners.</p>
         </div>
       </Section>

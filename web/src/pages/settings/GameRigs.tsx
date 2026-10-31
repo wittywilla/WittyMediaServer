@@ -1,49 +1,20 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Spinner } from '../../components/common'
-import { toast, useApp } from '../../state'
+
+import { toast } from '../../state'
 import type { RigView } from '../Rigs'
-import { PageHead, Section } from './ui'
+import { Section } from './ui'
 import '../rigs.css'
 
-// Settings, Game rigs: adding your own gaming PC, pairing it, choosing which of its apps show
-// in the library, and browser play. Sunshine and Moonlight are separate projects, installed by
-// you, and this page only ever talks to them: see docs/GAME-RIGS.md.
+// What Settings, Game PCs and Settings, WittySunshine share: adding a PC, pairing it, and choosing
+// which of its apps show in its library. Sunshine and Moonlight are separate projects, and these
+// pages only ever talk to them: see docs/GAME-RIGS.md.
 
 type Found = { name: string; address: string; port: number; version: string; added: boolean }
 type Pairing = { state: string; pin?: string; message?: string; kind?: string }
 type App = { id: number; title: string; shown: boolean; itemId: number | null }
-type Browser = { available: boolean; installed: boolean; running: boolean; name: string; version: string; license: string; source: string }
 
-export default function GameRigsSettings() {
-  const [rigs, setRigs] = useState<RigView[] | null>(null)
-  const [browser, setBrowser] = useState<Browser | null>(null)
-  const { refreshLibraries } = useApp()
-  const load = () => api.get<RigView[]>('/rigs').then(setRigs).catch((e) => toast(e.message))
-  // A PC comes and goes with a library of its own, which the menu shows.
-  const changed = () => { load(); void refreshLibraries() }
-  const loadBrowser = () => api.get<Browser>('/rigs/browser').then(setBrowser).catch(() => {})
-  useEffect(() => { load(); loadBrowser() }, [])
-  if (!rigs) return <Spinner />
-  return (
-    <>
-      <PageHead title="Game rigs" desc="Play the games on your own gaming PC, from the couch or anywhere in the house. The PC runs Sunshine, and you play through Moonlight: both are free, separate projects you install yourself." />
-      <AddRig onAdded={changed} known={rigs} />
-      {rigs.map((r) => <RigCard key={r.id} rig={r} browser={browser} onChange={changed} />)}
-      <BrowserPlay st={browser} reload={loadBrowser} />
-      <Section title="Away from home" desc="The safest way is one that doesn't open your PC to the internet.">
-        <ul className="rig-steps">
-          <li><b>Browser play</b> reaches the PC through this server, so the PC itself isn’t exposed. You’d open this server’s browser play port and its UDP ports on your router, and it needs HTTPS.</li>
-          <li><b>The Moonlight app</b> connects straight to the PC. Put the PC and your device on the same private network (Tailscale or ZeroTier both work, and the PC’s address there goes in “Address away from home” in that PC’s section above).</li>
-          <li><b>Don’t</b> forward Sunshine’s ports on your router, or turn on its UPnP setting, unless you really mean to: that puts your PC on the internet. And <b>never</b> forward port 47990, its web interface, which can run commands on that PC.</li>
-          <li>The wake-up signal goes out from this server, so you can wake the PC while you’re away.</li>
-        </ul>
-      </Section>
-    </>
-  )
-}
-
-function SetupHelp() {
+export function SetupHelp() {
   return (
     <details>
       <summary>How to install Sunshine on that PC</summary>
@@ -59,7 +30,7 @@ function SetupHelp() {
   )
 }
 
-function AddRig({ onAdded, known }: { onAdded: () => void; known: RigView[] }) {
+export function AddRig({ onAdded, title, desc }: { onAdded: () => void; title: string; desc: string }) {
   const [address, setAddress] = useState('')
   const [finding, setFinding] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -82,7 +53,7 @@ function AddRig({ onAdded, known }: { onAdded: () => void; known: RigView[] }) {
     } finally { setAdding(false) }
   }
   return (
-    <Section title="Add a PC" desc={known.length ? undefined : 'Start with Sunshine installed and running on the PC.'}>
+    <Section title={title} desc={desc}>
       <SetupHelp />
       <div className="rig-row-actions">
         <button className="btn" disabled={finding} onClick={find}>{finding ? 'Looking on your network…' : 'Find PCs on my network'}</button>
@@ -110,7 +81,7 @@ function AddRig({ onAdded, known }: { onAdded: () => void; known: RigView[] }) {
   )
 }
 
-function RigCard({ rig, browser, onChange }: { rig: RigView; browser: Browser | null; onChange: () => void }) {
+export function RigCard({ rig, onChange }: { rig: RigView; onChange: () => void }) {
   const [pairing, setPairing] = useState<Pairing | null>(null)
   const [apps, setApps] = useState<App[] | null>(null)
   const [confirming, setConfirming] = useState(false)
@@ -129,8 +100,8 @@ function RigCard({ rig, browser, onChange }: { rig: RigView; browser: Browser | 
     }, 1500)
     return () => clearInterval(t)
   }, [pairing?.state]) // eslint-disable-line react-hooks/exhaustive-deps
-  const startPair = async (kind: 'pair' | 'browser') => {
-    try { setPairing(await api.post<Pairing>(`${url}/${kind}`)) } catch (e: any) { toast(e.message) }
+  const startPair = async () => {
+    try { setPairing(await api.post<Pairing>(`${url}/pair`)) } catch (e: any) { toast(e.message) }
   }
   const cancel = async () => { await api.del(`${url}/pair`).catch(() => {}); setPairing(null) }
   const sync = async () => {
@@ -149,7 +120,6 @@ function RigCard({ rig, browser, onChange }: { rig: RigView; browser: Browser | 
       onChange()
     } catch (e: any) { toast(e.message) }
   }
-  const forgetBrowser = async () => {
     try { const r = await api.del<{ note?: string }>(`${url}/browser`); toast(r?.note || 'Done'); onChange() } catch (e: any) { toast(e.message) }
   }
   return (
@@ -159,7 +129,7 @@ function RigCard({ rig, browser, onChange }: { rig: RigView; browser: Browser | 
 
       {pairing?.state === 'waiting' && (
         <div className="rig-warn" role="status">
-          <p>{pairing.kind === 'browser' ? 'Pairing browser play.' : 'Pairing this server.'} On that PC, open Sunshine{rig.webUrl ? <> at <code>{rig.webUrl}</code></> : ''}, go to <b>PIN</b>, and type:</p>
+          <p>On that PC, open Sunshine{rig.webUrl ? <> at <code>{rig.webUrl}</code></> : ''}, go to <b>PIN</b>, and type:</p>
           <div className="rig-pin" aria-label={`PIN ${pairing.pin?.split('').join(' ')}`}>{pairing.pin}</div>
           <p className="muted">Waiting for it to be typed. Do this on your home network.</p>
           <button className="btn sm ghost" onClick={cancel}>Cancel</button>
@@ -168,10 +138,8 @@ function RigCard({ rig, browser, onChange }: { rig: RigView; browser: Browser | 
       {pairing && pairing.state !== 'waiting' && pairing.message && <p className={pairing.state === 'failed' ? 'rig-warn' : ''} role="status">{pairing.message}</p>}
 
       <div className="rig-row-actions">
-        {(!rig.paired || rig.state === 'not-paired' || rig.state === 'cert-changed') && pairing?.state !== 'waiting' && <button className="btn primary" onClick={() => startPair('pair')}>{rig.paired ? 'Pair again' : 'Pair this PC'}</button>}
+        {(!rig.paired || rig.state === 'not-paired' || rig.state === 'cert-changed') && pairing?.state !== 'waiting' && <button className="btn primary" onClick={startPair}>{rig.paired ? 'Pair again' : 'Pair this PC'}</button>}
         {rig.paired && <button className="btn sm" onClick={sync}>Read its games again</button>}
-        {rig.paired && browser?.installed && !rig.browserPlay && pairing?.state !== 'waiting' && <button className="btn sm" onClick={() => startPair('browser')}>Set up browser play</button>}
-        {rig.browserPlay && <button className="btn sm ghost" onClick={forgetBrowser}>Stop browser play on this PC</button>}
         {!confirming && <button className="btn sm ghost" onClick={() => setConfirming(true)}>Remove</button>}
       </div>
       {confirming && (
@@ -243,37 +211,3 @@ function DevicePIN({ url }: { url: string }) {
   )
 }
 
-function BrowserPlay({ st, reload }: { st: Browser | null; reload: () => void }) {
-  const [busy, setBusy] = useState(false)
-  const [sure, setSure] = useState(false)
-  if (!st) return null
-  const install = async () => {
-    setBusy(true); setSure(false)
-    try { await api.post('/rigs/browser/install'); toast('Browser play installed'); reload() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
-  }
-  const remove = async () => {
-    setBusy(true)
-    try { const r = await api.del<{ note?: string }>('/rigs/browser'); toast(r?.note || 'Removed'); reload() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
-  }
-  return (
-    <Section title="Browser play (optional)" desc="Plays a PC’s games in any modern browser with nothing to install on the device. Moonlight apps are smoother where you can use them.">
-      {!st.available && <p className="muted">{st.name} doesn’t publish a build for this kind of server.</p>}
-      {st.available && !st.installed && !sure && <button className="btn" disabled={busy} onClick={() => setSure(true)}>{busy ? 'Installing…' : 'Install browser play'}</button>}
-      {sure && (
-        <div className="rig-warn" role="alert">
-          <p>This downloads <b>{st.name} {st.version}</b> from <a href={st.source} target="_blank" rel="noreferrer noopener">its own project</a> and runs it as a separate program on this server. It’s made by other people and licensed under the {st.license}. The download is checked against the exact version this server knows.</p>
-          <p className="muted">It’s new software, and has been tested less than the rest of this feature. Earlier versions have been flagged by Windows Defender, which would stop it from starting.</p>
-          <div className="rig-row-actions">
-            <button className="btn sm" onClick={install}>Download and install</button>
-            <button className="btn sm ghost" onClick={() => setSure(false)}>Not now</button>
-          </div>
-        </div>
-      )}
-      {st.installed && <>
-        <p>{st.name} {st.version} is installed, and {st.running ? 'running' : 'starts when someone presses Play'}. Set it up on each PC above. License: {st.license}, <a href={st.source} target="_blank" rel="noreferrer noopener">source</a>.</p>
-        <p className="muted">It listens on its own port (47900 unless you change it) and UDP 47910 to 47920. Game controllers in a browser need HTTPS: turn that on in Remote Access.</p>
-        <button className="btn sm ghost" disabled={busy} onClick={remove}>Remove browser play</button>
-      </>}
-    </Section>
-  )
-}

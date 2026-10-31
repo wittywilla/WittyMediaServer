@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os/exec"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/pion/ice/v4"
 	"github.com/pion/interceptor"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
@@ -33,6 +36,7 @@ type Options struct {
 	Log      *slog.Logger
 	STUN     []string
 	PublicIP []string
+	UDPPort  int // one port for every stream, when set, for routers and containers
 	// OnEnd is told once, when the stream has ended for any reason.
 	OnEnd func(reason string)
 }
@@ -218,7 +222,9 @@ func (s *Session) Event(e Event) {
 	case "started":
 		s.startOne.Do(func() { s.started <- nil })
 	case "failed":
-		s.startOne.Do(func() { s.started <- fmt.Errorf("the connection to the PC failed at its %s step (%d)", e.Stage, e.Code) })
+		s.startOne.Do(func() {
+			s.started <- fmt.Errorf("the connection to the PC failed at its %s step (%d)", e.Stage, e.Code)
+		})
 	case "terminated":
 		s.log.Info("moonlight stream terminated", "code", e.Code)
 		s.tell(e)
@@ -281,6 +287,13 @@ func (s *Session) Offer(ctx context.Context, offer string) (string, error) {
 		return "", err
 	}
 	var se webrtc.SettingEngine
+	if s.opts.UDPPort > 0 {
+		mux, err := sharedUDP(s.opts.UDPPort)
+		if err != nil {
+			return "", fmt.Errorf("UDP port %d can't be opened: %w", s.opts.UDPPort, err)
+		}
+		se.SetICEUDPMux(mux)
+	}
 	if len(s.opts.PublicIP) > 0 {
 		se.SetNAT1To1IPs(s.opts.PublicIP, webrtc.ICECandidateTypeHost)
 	}
@@ -399,4 +412,29 @@ func (s *Session) Offer(ctx context.Context, offer string) (string, error) {
 	}
 	s.requestIDR()
 	return pc.LocalDescription().SDP, nil
+}
+
+var (
+	udpMu   sync.Mutex
+	udpPort int
+	udpMux  ice.UDPMux
+)
+
+// sharedUDP keeps one port open for all streams, whichever is running.
+func sharedUDP(port int) (ice.UDPMux, error) {
+	udpMu.Lock()
+	defer udpMu.Unlock()
+	if udpMux != nil && udpPort == port {
+		return udpMux, nil
+	}
+	if udpMux != nil {
+		_ = udpMux.Close()
+		udpMux = nil
+	}
+	conn, err := net.ListenPacket("udp", net.JoinHostPort("", strconv.Itoa(port)))
+	if err != nil {
+		return nil, err
+	}
+	udpMux, udpPort = webrtc.NewICEUDPMux(nil, conn), port
+	return udpMux, nil
 }

@@ -18,6 +18,7 @@ WittyPlay is developed as part of [WittyMediaServer](https://github.com/wittywil
 | `libretro` | The libretro frontend inside the runner, with no cgo |
 | `hostsandbox` | What the runner does to box itself in before it loads a core |
 | `testcore` | A tiny game written in Go, so everything can be tested with no third-party code |
+| `cmd/wittyplay-check` | Plays real games with no browser, on the real sandboxed runner, and reports what happened to each. `docs/GAMING.md` explains it |
 | `stream` | Server side: starts runners, encodes with FFmpeg, serves WebRTC and WebSocket viewers |
 | `cores` | Finds cores on the machine and installs them on request |
 | `web/` | The browser half: the player, controllers, remapping and the touch editor (React) |

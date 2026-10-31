@@ -43,7 +43,8 @@ Three kinds of process, each doing one job:
 1. **`wittyplay-host`**: our own small libretro frontend, written in Go with no cgo. It loads a
    core, runs it one frame at a time and writes raw frames and audio to its stdout. It reads
    input and commands on stdin. It holds no network connection and no database. A crash or an
-   exploited core takes down one game, not the server.
+   exploited core takes down one game, not the server. Cores print to stdout too, so the runner
+   moves the pipe to a handle of its own before it loads one.
 2. **FFmpeg**: already part of every install. Video and audio each get their own process, so the
    hardware encoder detection the transcoder uses works here too.
 3. **`wms`**: holds the WebRTC connections and writes save files. It never loads a core.
@@ -275,6 +276,9 @@ each show a picture of the game. Wikipedia summaries are CC BY-SA 4.0, as for fi
 
 ## Saves, states and resume
 
+A state that arrives before the first frame waits for two frames that nobody sees. Some cores accept one
+earlier and then start the game from the beginning anyway.
+
 Everything is stored per account under the data folder:
 
 ```
@@ -338,7 +342,8 @@ Treat a ROM as hostile and a core as buggy:
   from the server's own list.
 - **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter
   refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder; memory and
-  file-size rlimits; lower priority; killed when the server dies.
+  file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve
+  far more than they use (one holding 30 MB had reserved 1.9 GB); lower priority; killed when the server dies.
 - **Windows:** a job object that kills it with the server, limits memory and forbids child
   processes, plus a low-integrity token so it can only write to its save folder; below-normal
   priority.
@@ -409,6 +414,9 @@ game and one level up, and copies what the core wants to its own system folder (
 leaving your copies alone. You can also put files straight in the system folder: a PlayStation 2 BIOS goes in
 `pcsx2/bios` inside it.
 
+**Satellaview games in `.bs` files** need the receiver's cartridge, named `BS-X.bin`, and only play on Mesen-S, which
+opens on the receiver's own screens. Satellaview games dumped like cartridges need nothing.
+
 **PlayStation 2 needs one** on LRPS2, the recommended core, and any region runs any game. With a whole set, the
 server picks a late first-generation US model, then any US model, then European. Without one, the game falls
 back to Play!, which needs no BIOS and runs fewer games. If only LRPS2 is installed the player says what's missing
@@ -438,11 +446,122 @@ Licences are from the [libretro core-info](https://github.com/libretro/libretro-
 | Atari 2600, 7800, Lynx | stella2014, prosystem, handy | GPLv2, GPLv2, zlib |
 | WonderSwan, Neo Geo Pocket, Virtual Boy | mednafen_wswan, mednafen_ngp, mednafen_vb | GPLv2 |
 
+If a game won't load on the chosen core, the other installed cores for that console are tried in turn. Some cores
+start with settings other than their own defaults, where those don't suit streaming (`coreoptions.go`).
+
 \* Draws with a graphics card. Every one of these exists on the build server for Windows and Linux amd64, checked
 on 2026-10-31. LRPS2 and PPSSPP also need support files, which the install fetches from the same host.
 
+## Testing with real games
+
+`cmd/wittyplay-check` in `modules/wittyplay` plays real games with no browser. It starts the real runner
+with its sandbox on, exactly as a game session does (`stream.StartRunner`), loads each game on a real core,
+and records what happened.
+
+```
+cd modules/wittyplay
+go build -o /some/folder/ ./cmd/wittyplay-check ./cmd/wittyplay-host
+/some/folder/wittyplay-check -console nes -cores-dir /some/cores -install -out /some/report -jobs 8 /path/to/nes/games
+```
+
+For each game on each core it:
+
+1. Loads it, and records how long that took and anything the core complained about.
+2. Plays a set number of frames, pressing buttons to get past title screens, and on a console with a touch screen,
+   tapping it too.
+3. Saves a state, records what follows, goes back and checks the same pictures come again. Then it replays
+   with buttons held, and a different picture proves input reached the game.
+4. Quits the way the server does, with a save, and checks the process ended cleanly.
+5. Starts a new process and restores the battery save and state the way a session does. The pictures must
+   match, which is what proves a resume really resumes.
+6. On a game with several discs, changes disc and back.
+
+`-quick` stops after step 2, for sweeping a large collection.
+
+A crash, hang or failure in one game only ends that game's check. The result is `ok`, `load-failed`, `crash`,
+`hang`, `blank` (only ever one colour), `frozen` (never changes), `shut-itself-down`, `skipped`, `refused` (an
+encrypted game, which nothing will try to open) or `too-slow-to-judge` (a busy machine couldn't run enough frames;
+`-continue` tries those again). Warnings say what else looked wrong: `slow`, `silent`, `no-audio`, `audio-rate`,
+`no-states`, `state-inexact`, `state-load-failed`, `no-input-effect`, `one-screen-blank`, `resume-*`, `quit-*`,
+`disc-change-failed`.
+
+The report folder has `summary.txt`, `results.jsonl` with every number per game, each game's last picture, and
+`sheets/`, pages of pictures to look over, because wrong colours and garbled pictures are things only eyes catch. The
+tool refuses a report folder inside a git checkout, as the report names your games, and its terminal output uses
+numbers only.
+
+| Flag | What it does |
+|---|---|
+| `-console` | A console id such as `nes`, or `all` with `-install` or `-smoke` |
+| `-core` | One core id, a path to a core file, or `all` (the default) for every core offered |
+| `-cores-dir` | The folder of cores. `-install` fills it with the app's own installer |
+| `-smoke` | With no games: every core must open in the sandboxed runner and cope with a file of junk |
+| `-jobs` | Games at once. Each one's sandbox is its own |
+| `-seconds` | How much of each game to play, in game time. A busy machine takes longer, up to four times this |
+| `-limit`, `-every` | Test only some of the games |
+| `-quick` | Only load and play |
+| `-shots` | Whether to keep pictures and make the sheets |
+| `-trace` | Writes everything each core says, every option, and every environment call it was refused, to `trace-*.log`, plus pictures around each restore |
+| `-system`, `-options`, `-memory-mb`, `-7z` | The BIOS folder, core options, the memory limit, and a 7-Zip program for `.7z` games |
+| `-load-timeout`, `-hang` | How long a load may take, and how long with no new frame counts as a hang |
+| `-continue` | Carries on a stopped run |
+
+`.zip` games are unpacked by the tool, and `.7z` needs a 7-Zip program. Point it at unpacked copies otherwise.
+
+Read speed and hangs only on a quiet machine: the runner has low priority on purpose, and the first time a new build
+of it starts it can stall for many seconds. CPU numbers from Windows are too low for games that do little per frame, as
+Windows counts a process's time in ticks. Linux's are the ones to believe.
+
+### What has been tried
+
+Run on 2026-10-31 on Windows, with the same cores checked on Linux where the table says so. "OK" means it loaded, drew
+a changing picture and quit cleanly. NES, SNES and PlayStation had full-speed runs on a quiet machine, and the speeds
+below come from those.
+
+| Console | What was played | Result |
+|---|---|---|
+| NES | 318 real games on all 3 cores | fceumm 311 OK, Nestopia 314, Mesen 318. Every game plays on some core. fceumm runs at 100% speed, peak 25 MB |
+| SNES | 1,861 real games, one dump of each, on Supafaust | 1,818 OK at 100% speed, peak 49 MB, no crashes or hangs. A sample of 187 with the full checks: 182 OK, and every state and resume in them good |
+| SNES, others | The same 187 on Mesen-S; all 1,861 on bsnes | Mesen-S 180 OK. bsnes 1,642 OK on a busy machine. It wouldn't load 32, mostly games with chips whose firmware it wants, and 28 of those play on Supafaust |
+| PlayStation | 1 loose game and 1 three-disc game | OK on PCSX ReARMed and Beetle PSX, with disc changes, resume and battery saves. PCSX ReARMed at 95% speed |
+| Nintendo DS | 1 real game | OK on melonDS and DeSmuME, both screens counted, with states and resume. Speed not measured on a quiet machine |
+| PSP | 1 real game | OK on PPSSPP, though a resumed picture doesn't quite match. Speed not measured on a quiet machine |
+| 3DS | 1 real game, encrypted | Refused with a plain message, as it should be. No 3DS game has been played |
+| Game Boy, GBA | 6 and 3 homebrew or test ROMs | OK on all cores. The GBA ROMs have no sound, so GBA audio is unproven |
+| Mega Drive, Master System, Game Gear | 3, 3 and 1 homebrew ROMs | OK on all cores. ClownMDEmu's resume doesn't match on any of the 3; BlastEm, the default, is fine |
+| PC Engine, Atari 2600, Virtual Boy, WonderSwan, Neo Geo Pocket | 3, 3, 3, 2 and 1 homebrew ROMs | OK on all cores |
+| Lynx | 20 homebrew or test ROMs | 16 OK. The other 4 are test ROMs that draw one colour. All are silent |
+| Atari 7800 | No game with a clear licence was found | Only that the core installs and opens |
+
+Every core offered installs and opens in the sandbox, on Windows, on Linux and in the container image: 27 of 27 at the
+time of that run. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter.
+
+In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264
+and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting,
+and clean exits when the server or the runner is killed.
+
+**The SNES games that stay blank on Supafaust**, 43 of them:
+
+- 7 play on another core.
+- 13 are Satellaview dumps. 31 of the 45 in the set play on Supafaust as they are; 2 of those that don't play on Mesen-S
+  with `BS-X.bin`.
+- 7 are Sufami Turbo cartridges and 2 are data packs, which all need a base cartridge plugged in.
+- 6 aren't games: start-up programs of copiers and cheat devices.
+- 8 others. Some use chips whose firmware the cores want, and none was available to test with.
+
+These ran for 25 seconds on all three cores, so they aren't merely slow starters. About one in five games made no sound
+in the first few seconds, with Supafaust and Mesen-S agreeing on 40 of the sample's 45, and that is usually a quiet title screen.
+Most games ignore the buttons in those seconds too, which is why `no-input-effect` is so common.
+
 ## Limits today
 
+- **A blank picture isn't noticed.** If a core won't load a game, the next is tried. If it loads and draws one colour, it
+  stays there. 4 NES games on fceumm and 7 SNES games on Supafaust do this and play on another core, which an admin can
+  pick in Settings, Gaming.
+- **Few games on some consoles.** Only NES, SNES, PlayStation, DS and PSP have been tried with real games, and only NES
+  and SNES with many. See "What has been tried".
+- **Container image:** about 800 MB, up from about 150 MB, as cores from the build server need Debian's C library rather
+  than Alpine's. Most of the size is Debian's FFmpeg, and the release's static FFmpeg could replace it.
 - **OpenGL only** with the built-in runner: see above for why. melonDS's own OpenGL mode produces no frames here,
   so DS games draw in software at native resolution.
 - **No bandwidth adaptation yet:** the bitrate is a setting (Auto, Data saver, High), not a live

@@ -5,6 +5,25 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+### Games tested with real games
+
+- **`wittyplay-check`** is a new tool that plays real games on the real sandboxed runner with no browser, and reports
+  on each. It found everything below. [GAMING.md](docs/GAMING.md) explains it and gives the results.
+- **Fixed, games that wouldn't start:** Mesen crashed on load, as the frontend set things up in the wrong order. PCSX ReARMed and Stella broke the connection by printing to it. bsnes crashed on Linux, as did PCSX ReARMed under
+  the memory limit, and clownmdemu couldn't load there at all. Supafaust ran at 1.5 frames a second, pinned to two CPUs.
+- **Fixed, resuming:** BlastEm started over without saying so, and SMS Plus refused its states. Leaving before the first
+  picture no longer overwrites a good resume point with a fresh start.
+- **Fixed, playing:** a very short tap of a button now reaches the game. The picture no longer goes wrong when a game
+  changes its frame rate or asks to be rotated. Nestopia no longer blurs its picture.
+- **Fixed, security:** on Linux the seccomp filter now covers every thread a core starts. It only covered one before.
+- **Fixed, connecting:** the WebSocket fallback no longer fails for a device signed in by token, and state pictures now
+  load there too.
+- **New:** a game a core won't load tries the console's other cores. Crashes say so in plain words. Games on several discs
+  can change disc in the player. Encrypted 3DS games are refused up front with a clear reason, and nothing tries to
+  decrypt them. Satellaview `.bs` files go to Mesen-S and say if `BS-X.bin` is missing.
+- **Changed:** the container image is now based on Debian rather than Alpine, because the runner couldn't start any core
+  on Alpine. It is about 800 MB, up from about 150 MB.
+
 ## 0.5.0-alpha
 
 ### Interface audit

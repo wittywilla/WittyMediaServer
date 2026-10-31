@@ -149,6 +149,7 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     stalls: [] as number[],
     loadedAt: 0,
     savedAt: 0,
+    shown: '',
     // A slider being dragged: where it is, and the seek that will follow it.
     pendingSec: null as number | null,
     pendingTimer: 0,
@@ -192,7 +193,9 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
     return mediaUrl(`/api/cd/${s.disc!.id}/audio?${q}`)
   }
 
-  const publish = useCallback(() => {
+  // publish tells the page where things are. The clock runs four times a second but
+  // the display changes once, so a tick with nothing new to show costs nothing.
+  const publish = useCallback((tick = false) => {
     const s = e.current
     const d = s.disc
     if (!d) { setNow(null); return }
@@ -219,6 +222,9 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
       hooksRef.current.onTime(Math.max(0, trackSec))
     }
     const a = audio.current
+    const shown = `${s.current?.number}|${index}|${Math.floor(trackSec)}|${!!a && !a.paused && a.readyState < 3}`
+    if (tick && shown === s.shown) return
+    s.shown = shown
     setNow({
       disc: d, track: s.current, trackSec, trackLen: s.current ? (s.current.end - s.current.start) / SECTORS_PER_SEC : 0, index,
       discSec, discLen: len / CD_RATE, repeat: s.repeat, shuffle: s.shuffle, program: s.program, order: s.order, format: s.format, quality: s.quality,
@@ -507,7 +513,7 @@ export function useCdEngine(audio: RefObject<HTMLAudioElement | null>, hooks: Ho
 
   // Events from the shared <audio>, which the provider passes on.
   const onTimeUpdate = () => {
-    publish()
+    publish(true)
     saveProgress()
   }
   const onPlay = () => { e.current.stopped = false; publish() }

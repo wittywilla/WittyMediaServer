@@ -98,7 +98,7 @@
 @media (pointer: coarse), (max-width: 720px) { .cdp-mode { min-height: 44px; } .d-time { min-height: 44px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .cdp-disc.spin, .cdp-eq b { animation: none; }
+  .cdp-disc.spin { animation: none; }
   .cdp-disc, .cdp-key, .cdp-cdg { transition: none; }
 }
 
@@ -132,12 +132,12 @@
 .cdp-tracks li.on .cdp-row .t b { color: var(--accent-text); font-weight: 600; }
 .cdp-tracks li.on .cdp-row .n { color: var(--accent-text); }
 .cdp-add { flex: none; }
-/* The bars beside the playing track: transforms only, so they never cost a layout. */
+/* The bars beside the playing track stay still: the disc and the meter are already
+   moving, and on a small box each moving thing has a price. */
 .cdp-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
-.cdp-eq b { display: block; width: 3px; height: 100%; background: var(--accent-text); transform-origin: bottom; animation: cdp-eq 900ms ease-in-out infinite; }
-.cdp-eq b:nth-child(2) { animation-delay: -300ms; }
-.cdp-eq b:nth-child(3) { animation-delay: -600ms; }
-@keyframes cdp-eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.cdp-eq b { display: block; width: 3px; background: var(--accent-text); height: 60%; }
+.cdp-eq b:nth-child(2) { height: 100%; }
+.cdp-eq b:nth-child(3) { height: 40%; }
 .cdp-program { padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-2); font-size: var(--text-sm); display: grid; gap: var(--sp-2); }
 .cdp-program p { margin: 0; }
 .cdp-program ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: p; }

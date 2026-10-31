@@ -157,8 +157,7 @@ export default function CdPlayer() {
     setEjecting(true)
     setTimeout(() => {
       actions.eject()
-      if (window.history.length > 1) nav(-1)
-      else nav(`/library/${disc?.libraryId ?? ''}`)
+      nav(`/library/${disc?.libraryId ?? ''}`)
     }, prefersReduced() ? 0 : 420)
   }
 

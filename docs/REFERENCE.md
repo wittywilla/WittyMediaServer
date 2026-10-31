@@ -128,6 +128,7 @@ flowchart LR
 | `modules/wittydisc`, `modules/wittydvd`, `modules/wittybluray` | the disc engines, each its own Go module and repository |
 | `web/` | the web app; `web/src/modules/*` holds the reader plugins (WittyInk, WittyEbook, WittyPDF, WittyComics) |
 | `apps/wittyreader` | WittyReader, the standalone reading app |
+| `apps/wittymediaplayer` | WittyMediaPlayer, the standalone desktop player (Qt 6, FFmpeg and a Go helper for the disc engines) |
 | `clients/` | desktop and mobile shells |
 | `deploy/`, `scripts/` | Docker, Kubernetes, release packaging, installers |
 

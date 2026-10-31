@@ -1,0 +1,86 @@
+/* WittyVisualizer. Colours come from the theme, so it's at home in all of them; the
+   fallbacks are for a host without one. The picture itself is always on black. */
+.wv-stage { position: relative; display: flex; flex-direction: column; background: #000; color: var(--fg, #eee); overflow: hidden; outline: none; }
+.wv-stage.panel { width: 100%; height: 100%; border-radius: inherit; }
+.wv-stage.whole { position: fixed; inset: 0; z-index: 90; }
+.wv-picture { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; cursor: pointer; }
+.wv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.wv-mini { position: relative; width: 100%; height: 100%; }
+.wv-mini .wv-canvas { pointer-events: none; }
+.wv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.wv-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1, 4px); padding: var(--sp-1, 4px) var(--sp-2, 8px); background: var(--bg-2, #1a1a20); border-top: 1px solid var(--border, #333); transition: opacity var(--dur-2, .2s), transform var(--dur-2, .2s); }
+.wv-stage.whole .wv-bar { position: absolute; left: 50%; bottom: max(var(--sp-4, 16px), env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(720px, calc(100% - 32px)); border: 1px solid var(--border, #333); border-radius: var(--r-lg, 12px); box-shadow: var(--e-3, 0 8px 28px #0008); }
+.wv-stage.whole.idle .wv-bar { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
+.wv-stage.whole.idle { cursor: none; }
+.wv-grow { flex: 1 1 0; }
+
+.wv-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; color: var(--fg, #eee); background: transparent; border: 0; border-radius: var(--r-md, 8px); cursor: pointer; }
+.wv-icon:hover { background: var(--hover, #fff2); }
+.wv-icon:active { background: var(--pressed, #fff3); }
+.wv-icon[aria-pressed='true'] { color: var(--accent-text, #9cf); }
+.wv-select { min-height: 36px; max-width: 100%; min-width: 0; padding: 0 var(--sp-2, 8px); color: var(--fg, #eee); background: var(--bg-3, #26262e); border: 1px solid var(--control-line, #777); border-radius: var(--r-md, 8px); font: inherit; font-size: var(--text-md, .875rem); }
+.wv-bar .wv-select { flex: 0 1 190px; }
+/* A panel is narrow: the list on a line of its own, and the buttons spread below it. */
+.wv-stage.panel .wv-bar { justify-content: space-between; gap: 0; }
+.wv-stage.panel .wv-bar .wv-select { flex: 1 1 100%; order: -1; margin-bottom: var(--sp-1, 4px); }
+.wv-stage.panel .wv-grow { display: none; }
+.wv-icon:focus-visible, .wv-select:focus-visible, .wv-btn:focus-visible, .wv-start:focus-visible, .wv-check input:focus-visible, .wv-details summary:focus-visible, .wv-btn.file:focus-within { outline: 2px solid var(--focus, #6cf); outline-offset: 2px; }
+
+.wv-start { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); min-height: 48px; padding: 0 var(--sp-5, 24px); color: var(--accent-fg, #000); background: var(--accent, #6cf); border: 0; border-radius: var(--r-pill, 999px); font: inherit; font-weight: 600; cursor: pointer; }
+.wv-note, .wv-stats { position: absolute; left: var(--sp-3, 12px); padding: var(--sp-1, 4px) var(--sp-2, 8px); font-size: var(--text-xs, .75rem); color: var(--fg, #eee); background: var(--bg-2, #1a1a20); border-radius: var(--r-sm, 6px); max-width: calc(100% - 24px); }
+.wv-note { top: var(--sp-3, 12px); }
+.wv-stats { top: calc(var(--sp-3, 12px) + 28px); font-family: var(--font-mono, monospace); }
+.wv-stage.whole.idle .wv-note { opacity: 0; }
+
+.wv-dialog-back { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: var(--sp-4, 16px); background: var(--scrim, #000a); }
+.wv-dialog { width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: var(--sp-5, 24px); color: var(--fg, #eee); background: var(--bg-2, #1a1a20); border: 1px solid var(--border, #333); border-radius: var(--r-xl, 16px); box-shadow: var(--e-3, 0 8px 28px #0008); text-align: left; }
+.wv-dialog.wide { width: min(560px, 100%); display: flex; flex-direction: column; gap: var(--sp-3, 12px); }
+.wv-dialog h2 { margin: 0 0 var(--sp-3, 12px); font-size: var(--text-xl, 1.25rem); font-weight: var(--weight-heading, 600); }
+.wv-dialog p { margin: 0 0 var(--sp-3, 12px); font-size: var(--text-base, .95rem); line-height: var(--leading-body, 1.5); color: var(--fg-2, #ccc); }
+.wv-dialog p strong { color: var(--fg, #eee); }
+.wv-dialog-head { display: flex; align-items: center; justify-content: space-between; }
+.wv-dialog-head h2 { margin: 0; }
+.wv-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--sp-2, 8px); margin-top: var(--sp-4, 16px); }
+.wv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 var(--sp-4, 16px); color: var(--fg, #eee); background: var(--bg-3, #26262e); border: 1px solid var(--border, #333); border-radius: var(--r-md, 8px); font: inherit; font-size: var(--text-md, .875rem); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.wv-btn:hover { background: var(--bg-4, #33333d); }
+.wv-btn.primary { color: var(--accent-fg, #000); background: var(--accent, #6cf); border-color: transparent; }
+.wv-btn.primary:hover { filter: brightness(1.08); }
+.wv-btn.file { position: relative; overflow: hidden; }
+.wv-btn.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.wv-check { display: flex; align-items: flex-start; gap: var(--sp-2, 8px); font-size: var(--text-md, .875rem); line-height: var(--leading-snug, 1.35); color: var(--fg, #eee); min-height: 24px; cursor: pointer; }
+.wv-check input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--accent, #6cf); }
+.wv-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1, 4px) var(--sp-3, 12px); font-size: var(--text-md, .875rem); }
+.wv-row small { display: block; color: var(--fg-3, #aaa); font-size: var(--text-xs, .75rem); }
+.wv-row > span { min-width: 0; max-width: 100%; }
+.wv-slider { display: flex; flex-direction: column; gap: var(--sp-1, 4px); font-size: var(--text-md, .875rem); }
+.wv-slider > span { display: flex; justify-content: space-between; }
+.wv-slider b { font-weight: 500; color: var(--fg-2, #ccc); font-variant-numeric: tabular-nums; }
+.wv-slider input { width: 100%; }
+.wv-details summary { cursor: pointer; font-size: var(--text-md, .875rem); font-weight: 500; min-height: 24px; }
+.wv-details[open] summary { margin-bottom: var(--sp-2, 8px); }
+.wv-details p { font-size: var(--text-sm, .8125rem); }
+.wv-msg { margin-top: var(--sp-2, 8px) !important; }
+.wv-custom { list-style: none; margin: var(--sp-2, 8px) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1, 4px); }
+.wv-custom li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2, 8px); font-size: var(--text-sm, .8125rem); }
+.wv-keys { font-size: var(--text-xs, .75rem) !important; color: var(--fg-3, #aaa) !important; margin: 0 !important; }
+.wv-keys kbd { font: inherit; padding: 0 4px; border: 1px solid var(--border-strong, #555); border-radius: var(--r-sm, 4px); }
+
+/* From the sofa: bigger targets, as for every screen. */
+html.using-controller .wv-icon, html.using-controller .wv-btn, html.using-controller .wv-select { min-height: 48px; min-width: 48px; }
+html.using-controller .wv-icon:focus, html.using-controller .wv-select:focus { outline: 3px solid var(--focus, #6cf); outline-offset: 2px; }
+@media (pointer: none) {
+  .wv-icon, .wv-btn, .wv-select { min-height: 48px; min-width: 48px; }
+}
+@media (pointer: coarse) {
+  .wv-icon { width: 44px; height: 44px; }
+}
+@media (max-width: 520px) {
+  .wv-bar .wv-select { flex: 1 1 100%; order: -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wv-bar { transition: none; }
+}
+@media (forced-colors: active) {
+  .wv-icon { border: 1px solid ButtonText; }
+}

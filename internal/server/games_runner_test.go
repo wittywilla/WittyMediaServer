@@ -79,7 +79,7 @@ func downloadedRunner(t *testing.T) (*modmgr.Manager, string) {
 	return m, dir
 }
 
-func gameItem(t *testing.T, g *gameServer) int64 {
+func runnerGameItem(t *testing.T, g *gameServer) int64 {
 	t.Helper()
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "Game.wittytest"), []byte("game"), 0o644); err != nil {
@@ -130,7 +130,7 @@ func TestDownloadedGameRunner(t *testing.T) {
 
 	// A scanner looking over a new program can hold it past the time a game has to load,
 	// which doesn't count against it, so a few more tries are allowed for that.
-	item := gameItem(t, g)
+	item := runnerGameItem(t, g)
 	tries := 0
 	for ; tries < 6 && m.Report().Modules[0].Version == "0.9.0"; tries++ {
 		w := g.do("POST", "/api/games/"+itoa64(item)+"/play", g.admin, map[string]any{})

@@ -1,0 +1,16 @@
+{
+  "id": "wittyvisualizer",
+  "name": "WittyVisualizer",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyVisualizer",
+  "delivery": "web",
+  "entry": "index.js",
+  "style": "style.css",
+  "api": 2,
+  "minServer": "0.5.0-alpha",
+  "maxServer": "0.5.x",
+  "group": "listen",
+  "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields, feedback and more, full screen.",
+  "updates": "The visualizer itself: its effects, how it listens to the music, its controls and its look. New effects can arrive this way.",
+  "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server. If this bundle fails, the copy in the app takes over."
+}

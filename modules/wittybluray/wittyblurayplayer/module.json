@@ -1,0 +1,11 @@
+{
+  "id": "wittyblurayplayer",
+  "name": "WittyBluray for WittyMediaPlayer",
+  "version": "0.1.0",
+  "repo": "wittywilla/WittyBluray",
+  "delivery": "helper",
+  "entry": "wittybluray-player",
+  "api": 1,
+  "minServer": "0.1.0",
+  "maxServer": "0.1.x"
+}

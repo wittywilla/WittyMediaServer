@@ -27,6 +27,7 @@ jobs:
           node-version: 22
       - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run test:play && npm run build
       - run: node --experimental-strip-types --test modules/wittyplay/web/logic.test.mjs
+      - run: cd web/src/modules/wittyvisualizer && node --test tests/*.test.mjs
       - name: Theme contrast and design tokens
         run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check
       - name: gofmt

@@ -35,6 +35,7 @@ MODULES=(
   "web/src/modules/wittyebook WittyEbook"
   "web/src/modules/wittypdf WittyPDF"
   "web/src/modules/wittycomics WittyComics"
+  "web/src/modules/wittyvisualizer WittyVisualizer"
   "apps/wittyreader WittyReader"
 )
 PURE_WEB="WittyInk WittyEbook WittyPDF WittyComics WittyReader"

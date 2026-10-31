@@ -26,6 +26,7 @@ MIRRORS=(
   "web/src/modules/wittyebook  WittyEbook"
   "web/src/modules/wittypdf    WittyPDF"
   "web/src/modules/wittycomics WittyComics"
+  "web/src/modules/wittyvisualizer WittyVisualizer"
   "apps/wittyreader            WittyReader"
   "modules/wittymodule         WittyModule"
   "modules/wittydisc           WittyDisc"

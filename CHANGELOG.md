@@ -104,6 +104,45 @@ follows you. See [GAMING.md](docs/GAMING.md).
 - **Native apps** get it through `GET /cd/{id}`, `GET /cd/{id}/audio` and the ordinary playback door: see *Audio CDs* in
   `docs/CLIENT-API.md`.
 - **Tools:** `wms cd info`, `wms cd check` and a standalone `wittycd` command. The module's reader is a public library: track map, samples, disc ID and the lookup (`wittycd/lookup`), for WittyMediaPlayer and anyone else.
+### WittyVisualizer
+
+- **Light shows that follow your music,** in the audio player and in WittyMediaPlayer, from one set of shader files:
+  spectrum bars, scopes, plasma, a tunnel, a starfield, feedback, a kaleidoscope, particles, fire, a wireframe landscape, a
+  fractal and more. Seventeen effects written for this project, with beat-reactive colours, smooth transitions, random order,
+  favourites and an automatic change of effect.
+- **Press V or the bars button,** on the whole screen, in place of the artwork in the full player, or small in the bar. Keyboard,
+  remote and controller all work. Choices are saved per person on a server.
+- **Safe by design:** off until you turn it on, a notice before the first use, a calm mode that's the default when the system
+  asks for reduced motion, and a flash guard no effect can get around. It's in the last step of drawing. A black and white
+  strobe comes out as a dim steady glow.
+- **Leaves playback alone:** it listens to a copy of the sound where the browser allows, and on the desktop reads a lock-free
+  copy. It runs only on your device, loads nothing until opened, adapts its resolution, and stops fully when hidden or off.
+- **You can write your own,** as a small text file, in the web app. It's checked as untrusted and tried in a throwaway graphics context first.
+
+### WittyMediaPlayer
+
+- **Plays and copies audio CDs**, from a drive or an image, on a CD screen with a tracklist, a big now-playing area and a
+  visualizer. Copies go to FLAC, ALAC, WAV, MP3, AAC, Opus or Ogg Vorbis, with naming templates, tags and cover art, and
+  careful reads that retry, compare two passes, correct for the drive's offset and report on every track. It can also make
+  a `.cue` and `.bin` image of a disc. Names and covers come from MusicBrainz only when you press the button, which sends
+  nothing but the disc's track layout. Discs that won't read normally get a plain message. The visuals are off until you
+  turn them on, tell you about flashing light first, and go through a flash limiter.
+- **A new desktop app**, under `apps/wittymediaplayer`, that needs no server. It's a first release for Windows amd64,
+  as a portable folder, built with Qt 6 and FFmpeg's libraries.
+- **Plays ordinary video and audio files**, with audio and subtitle track choice, seeking, volume, full screen, keyboard
+  shortcuts, drag and drop, and subtitle files found beside a video.
+- **Plays DVDs and Blu-rays with their real menus,** by arrow keys, Enter and mouse, from images, folders and directly
+  from a disc drive. It uses WittyDVD and WittyBluray with the same rules as the server's player, without transcoding.
+- **Makes `.iso` and `.img` images of discs** for a server's library. The copy is checked by opening it with the same
+  engines the server uses, and it never overwrites anything.
+- **Can play through the VLC libraries,** by VideoLAN and the VLC contributors, chosen in Settings and loaded from a VLC
+  already on the computer. They aren't included. Disc menus still come from WittyDVD and WittyBluray.
+- **WittyDVD and WittyBluray update on their own,** without a new player, under the same rules as a server's modules: a built-in copy
+  that always works, signed releases only, version ranges, and going back by itself if a version keeps failing. Looking for updates is
+  the only time the player uses the internet, and only when asked.
+- **Refuses copy-protected discs,** for playing and for copying, in plain words. It carries no decryption library, no key
+  database and nothing that could load one, VLC's disc modules aren't used, and it never uses the network. See
+  [its design note](apps/wittymediaplayer/DESIGN.md).
 
 ## 0.5.0-alpha
 ### Smooth DVD playback

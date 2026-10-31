@@ -12,4 +12,13 @@ use (
 	./modules/wittyphotos
 	./modules/wittytuner
 	./modules/wittyplay
+	./apps/wittymediaplayer/engine
+	./modules/wittydvd/wittydvdplayer
+	./modules/wittybluray/wittyblurayplayer
+)
+
+// The player's disc modules aren't published yet.
+replace (
+	github.com/wittywilla/wittybluray/wittyblurayplayer v0.1.0 => ./modules/wittybluray/wittyblurayplayer
+	github.com/wittywilla/wittydvd/wittydvdplayer v0.1.0 => ./modules/wittydvd/wittydvdplayer
 )

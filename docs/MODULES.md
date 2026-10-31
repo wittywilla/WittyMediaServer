@@ -14,7 +14,7 @@ Each app has its own repository.
 | App | What it is |
 |---|---|
 | **WittyMediaServer** | The host: accounts and profiles, libraries and scanning, metadata, transcoding and streaming, remote access, Live TV. Every plugin below runs in it. |
-| **WittyMediaPlayer** | A desktop player for local video and audio files, folders, disc images and discs. No server or accounts. Discs play with full menus through the WittyDVD and WittyBluray plugins. |
+| **WittyMediaPlayer** | A desktop player for local video and audio files, folder discs, disc images and real disc drives. No server or accounts. Discs play with full menus through the WittyDVD and WittyBluray plugins, and it makes disc images for a server's library. |
 | **WittyReader** | A desktop and web app for reading and annotating local books, PDFs and comics, built from WittyEbook, WittyPDF and WittyComics. |
 | **WittyMediaClient** | Apps that connect to a server: desktop (including Windows 7), Android TV, Apple TV, phones. |
 | **WittyMediaRemoteMedia** | An agent that shares NAS folders with a server. |
@@ -411,11 +411,12 @@ requires it:
 - **WittyReader** is a web app at heart: the reader plugins with a host that opens files from
   the disk (or dropped on the window) and keeps notes on the device. It ships as a desktop app
   and can also be installed from the browser. No server needed.
-- **WittyMediaPlayer** pairs a small native window with the same Go engine the server uses,
-  running inside the app on the loopback address only, with a secret that changes every launch.
-  Files never leave the computer. Discs play with full menus through the WittyDVD and WittyBluray
-  plugins, with the same remote and disc insert animation as the server's player.
-- Native windows use the system's own web view (WebView2 on Windows 10+, WebKit on macOS and
+- **WittyMediaPlayer** is a Qt 6 window that decodes with FFmpeg's libraries, and runs the WittyDVD
+  and WittyBluray engines in a small helper program beside it, reached over a pipe with the WittyModule
+  helper protocol. Its disc modules update on their own, under the rules below. There's no web view and no loopback server, and only
+  looking for module updates uses the network. See
+  [its design note](../apps/wittymediaplayer/DESIGN.md).
+- **Other native windows** use the system's own web view (WebView2 on Windows 10+, WebKit on macOS and
   Linux), which is far lighter than bundling a browser. The one exception is the Windows 7
   desktop client, which needs an older bundled browser engine and stays a thin client.
 
@@ -431,5 +432,5 @@ requires it:
    (`modules/wittybluray`) and WittyDisc (`modules/wittydisc`) have the same shape.
 4. **Server plugin interface**: books, discs and audio move behind `Module` first, then the rest
    as each is built or touched.
-5. **WittyMediaPlayer**: local engine, native window and the existing player interface, with the
-   WittyDVD and WittyBluray plugins for discs.
+5. **WittyMediaPlayer** (first version done, on Windows): a Qt 6 window with the WittyDVD and WittyBluray
+   plugins for discs, under `apps/wittymediaplayer`. Other platforms come after Windows.

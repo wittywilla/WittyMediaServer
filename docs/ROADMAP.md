@@ -23,7 +23,8 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   fix.
 - [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.
 - [ ] **WittyMediaPlayer:** a desktop player for local files, folders, images and discs, built
-  on the server's engines, with WittyDVD and WittyBluray as plugins. Own repository.
+  on the server's engines, with WittyDVD and WittyBluray as plugins. A first Windows build is in
+  `apps/wittymediaplayer`; still to come are its own repository and other platforms.
 - [ ] **Diagnostics:** the DVD and Blu-ray tools collect everything useful for diagnosing a disc,
   with no copyrighted material in what they generate. A small GUI for Windows and macOS that
   makes the diagnostic file. Clear program names on every platform.

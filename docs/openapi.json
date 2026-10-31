@@ -1471,6 +1471,9 @@
               }
             ]
           },
+          "license": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },

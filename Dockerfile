@@ -35,7 +35,7 @@ COPY --from=web /src/web/dist ./web/dist
 RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms \
  && cd modules/wittyplay && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host ./cmd/wittyplay-host
 
-FROM alpine:3.21
+FROM alpine:3.24
 RUN apk add --no-cache ffmpeg ca-certificates tzdata tini \
  && addgroup -g 1000 wms && adduser -D -u 1000 -G wms wms \
  && mkdir -p /config /media && chown wms:wms /config

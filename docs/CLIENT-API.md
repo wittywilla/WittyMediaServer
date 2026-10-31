@@ -1071,4 +1071,4 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /bdj/status` | admin | BDJ status. |
 
 ---
-<sub>WittyMediaServer 0.4.0-alpha documentation</sub>
+<sub>WittyMediaServer 0.5.0-alpha documentation</sub>

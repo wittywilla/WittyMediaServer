@@ -89,20 +89,6 @@
 
 /* ---------------------------------------------------------------- folder browser */
 
-/* ---------------------------------------------------------------- logs & privacy */
-.privacy-note { border-color: var(--accent-line); background: var(--bg-2); }
-.privacy-note p { line-height: 1.6; max-width: 80ch; }
-.log-cats { display: grid; gap: 4px; }
-.log-cat { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.log-cat .grow { flex: 1; min-width: 0; }
-.log-cat:last-child { border-bottom: 0; }
-.lc-title { font-weight: 600; }
-.lc-desc { font-size: var(--text-sm); line-height: 1.45; margin-top: 2px; }
-.log-level { display: grid; gap: 6px; max-width: 360px; margin-top: 14px; font-weight: 600; }
-.log-dir { display: flex; align-items: center; gap: 10px; background: var(--bg-3); border-radius: var(--r-md); padding: 10px 12px; }
-.log-dir svg { flex: none; width: 20px; height: 20px; color: var(--accent-text); }
-.log-dir code { font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-
 /* ---------------------------------------------------------------- profiles & limits */
 .who-tile { position: relative; }
 .who-kind { position: absolute; top: 2px; right: 0; font-size: var(--text-2xs); font-weight: 700; padding: 2px 8px; border-radius: var(--r-full); color: #fff; text-transform: uppercase; letter-spacing: .5px; }

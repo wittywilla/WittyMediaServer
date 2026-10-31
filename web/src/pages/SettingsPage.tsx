@@ -1,13 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { UpdateDot, VersionTag } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconClose, IconEdit, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlus, IconRefresh, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
+import { IconClose, IconDrive, IconEdit, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlus, IconRefresh, IconRight, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
-import LogSettings from './LogSettings'
 import Profiles from './Profiles'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
@@ -19,6 +18,8 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './se
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 
+const Diagnoser = lazy(() => import('./settings/Diagnoser'))
+const LogSettings = lazy(() => import('./LogSettings'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
@@ -45,7 +46,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
   { title: 'System', pages: [
-    { to: 'logs', label: 'Logs & privacy', icon: <IconShield />, admin: true, hint: 'What is recorded, and for how long' },
+    { to: 'logs', label: 'WittyLog', icon: <IconShield />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
+    { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconDrive />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'Versions, supported servers and updates' },
     { to: 'about', label: 'About & legal', icon: <IconInfo />, hint: 'Version, modules, license and credits' },
   ] },
@@ -57,6 +59,16 @@ export default function SettingsPage() {
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
   const slug = loc.pathname.split('/')[2]
+  // A crash the owner hasn't looked at yet is pointed out on every settings page.
+  // Asked again on leaving the logs page, where it may just have been dealt with.
+  const [unseenCrash, setUnseenCrash] = useState(false)
+  const onLogs = slug === 'logs'
+  useEffect(() => {
+    if (!user?.isAdmin || onLogs) return
+    let gone = false
+    api.get<{ crashes: { seen: boolean }[] }>('/logs/crashes').then((r) => { if (!gone) setUnseenCrash(r.crashes.some((c) => !c.seen)) }).catch(() => {})
+    return () => { gone = true }
+  }, [user?.isAdmin, onLogs])
   if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   return (
     <div className="set-shell">
@@ -77,6 +89,7 @@ export default function SettingsPage() {
         </NavLink>
       </nav>
       <main className="set-main">
+        {unseenCrash && !onLogs && <Link className="set-notice" to="/settings/logs?tab=crashes"><span>The server stopped unexpectedly. See what happened</span><IconRight /></Link>}
         <Routes>
           <Route path="libraries" element={<Libraries />} />
           <Route path="metadata" element={<MetadataSettings />} />
@@ -88,9 +101,10 @@ export default function SettingsPage() {
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />
-          <Route path="logs" element={<><PageHead title="Logs & privacy" desc="What the server records to help fix problems, and for how long. Nothing is ever sent anywhere." /><LogSettings /></>} />
+          <Route path="logs" element={<><PageHead title="WittyLog" desc="Logs and privacy: what the server records, and for how long. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
+          <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="modules" element={<ModulesSettings />} />
           <Route path="about" element={<About />} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />

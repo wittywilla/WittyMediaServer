@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName, isBluray } from '../api'
+import { setLogSession } from '../errorReport'
 import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
 import { usePlayerChrome } from './chrome'
 import { Controls, useVideoState } from './Controls'
@@ -99,6 +100,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   }, [item.id, mode, ttn, chapter, openMenu, menuVts])
 
   useEffect(() => () => { if (sid) api.del(`/dvd/${sid}`).catch(() => {}) }, [sid])
+  useEffect(() => { setLogSession(sid); return () => setLogSession(null) }, [sid])
 
   // Chapter and title names from the disc page.
   useEffect(() => { api.get<DiscView>(`/items/${item.id}/disc`).then(setDisc).catch(() => {}) }, [item.id])
@@ -252,6 +254,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   // Media source.
   const mediaUrlStr = pres?.media?.type === 'hls' ? pres.media.url! : null
   const hls = useSource(video, mediaUrlStr, {
+    logSession: sid,
     startAt: () => (presRef.current?.kind === 'title' ? pendingSeek.current : null),
     onReady: () => {
       const v = video.current

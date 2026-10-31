@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
+import { setLogVersion } from './errorReport'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
 type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandLogo?: string; theme?: string; update?: string }
@@ -63,6 +64,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPickerLocal(!!s.pickerLocal)
       setUpdate(s.update || '')
       setVersion(s.version)
+      setLogVersion(s.version)
       setBrandName(s.brandName || '')
       setBrandLogo(s.brandLogo || '')
       setServerThemeState(s.theme || 'default')

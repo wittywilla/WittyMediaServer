@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, getToken, mediaUrl, posterUrl, serverBase, type GameConsole, type Item, type Library } from '../api'
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
+import { reportClient, setLogSession } from '../errorReport'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 import type { PlayHost, SaveSlot, SessionInfo } from '@wittywilla/wittyplay'
@@ -233,10 +234,11 @@ export function GamePage() {
     }
     return {
       itemId: it.id, title: it.title, consoleId: it.console || '', resume: params.get('resume') === '1',
-      start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }),
+      start: (resume) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, client: 'browser' }).then((s) => { setLogSession(s.id); return s }),
+      report: (level, message) => reportClient({ level, kind: 'game', message, module: 'wittyplay' }),
       controls: (device) => api.get<any>(`/consoles/${it.console}/controls?device=${encodeURIComponent(device)}`),
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
-      stop: async (sid) => { await api.del(`/play/${sid}`) },
+      stop: async (sid) => { setLogSession(null); await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
       wsUrl: (sid, video) => {
         const tok = getToken()

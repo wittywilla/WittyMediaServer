@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, fmtTime, getPrefs, mediaUrl, posterUrl, type Item } from '../api'
+import { reportMediaError } from '../errorReport'
 import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconStop } from '../icons'
 import { setSpeed, SPEEDS } from '../player/Controls'
 import { toast } from '../state'
@@ -231,7 +232,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider value={ctx}>
       {children}
       <audio ref={audio} preload="auto" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={onEnded}
-        onError={() => { if (live && current) toast(`${current.title} can't be reached`) }}
+        onError={(e) => { if (live && current) { toast(`${current.title} can't be reached`); reportMediaError(e.currentTarget, `Audio of item ${current.id}`) } }}
         onTimeUpdate={() => {
           const p = position(), d = p - lastAt.current
           if (d > 0 && d < 5) listened.current += d

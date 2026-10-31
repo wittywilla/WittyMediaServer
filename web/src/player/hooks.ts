@@ -1,16 +1,19 @@
 import Hls from 'hls.js'
 import { useEffect, useRef } from 'react'
 import { getToken, mediaUrl, serverBase } from '../api'
+import { reportHlsError, watchPlayback } from '../errorReport'
 
 // Attaches an HLS (or direct) source to a <video>. Uses hls.js where MSE is
 // available and falls back to native HLS (Safari/iOS). startAt makes the
 // stream begin at that position, so the first frame shown is the right one
 // (seeking after the start would briefly show the beginning).
 export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
-  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined } = {}) {
+  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
+  // What goes wrong is reported to the server's log, under this stream's session.
+  useEffect(() => (video.current && url ? watchPlayback(video.current, url, optsRef.current.logSession) : undefined), [url, video])
   useEffect(() => {
     const v = video.current
     if (!v || !url) return
@@ -35,6 +38,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
       hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return
+        reportHlsError(data)
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
           else hls.startLoad()

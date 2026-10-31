@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { IconRefresh } from '../../icons'
 import { toast } from '../../state'
@@ -90,6 +91,7 @@ export default function ModulesSettings() {
               <div className="mod-row">
                 <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}</span></span>
                 <span className="mod-ver">{m.version}<span className={'mod-local' + (m.state === 'fallback' ? ' warn' : '')}>{stateLabel(m)}</span></span>
+                <Link className="btn ghost sm" to={`/settings/logs?module=${m.id}`} aria-label={`Logging for ${m.name}`}>Logging</Link>
               </div>
               {m.notice && <p className="upd-msg warn">{m.notice}</p>}
               {busy(m) && (
@@ -129,6 +131,7 @@ export default function ModulesSettings() {
             <div key={m.id} className="mod-row">
               <span className="mod-name"><b>{m.name}</b><span className="muted">Works with server {m.minServer} to {m.maxServer}, module API {m.api}</span></span>
               <span className="mod-ver">{m.version}<span className="mod-local">{stateLabel(m)}</span></span>
+              <Link className="btn ghost sm" to={`/settings/logs?module=${m.id}`} aria-label={`Logging for ${m.name}`}>Logging</Link>
             </div>
           ))}
         </div>

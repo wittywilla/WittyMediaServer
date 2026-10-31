@@ -789,8 +789,16 @@ func TestNothingPhonesHomeWithoutPermission(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 		go func() { m.Run(ctx); close(done) }()
-		deadline := time.Now().Add(20 * time.Second)
-		for one(t, m).Version != want && time.Now().Before(deadline) {
+		// On a busy machine a build of the helper takes time to scan and start, and the
+		// first check may not have begun: wait for what is expected, not for a moment.
+		deadline := time.Now().Add(2 * time.Minute)
+		settled := func() bool {
+			w.gh.mu.Lock()
+			asked := w.gh.requests > 0
+			w.gh.mu.Unlock()
+			return one(t, m).Version == want && (asked || !get(&allowCheck)())
+		}
+		for !settled() && time.Now().Before(deadline) {
 			time.Sleep(5 * time.Millisecond)
 		}
 		time.Sleep(50 * time.Millisecond)

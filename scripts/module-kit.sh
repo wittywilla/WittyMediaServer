@@ -20,8 +20,8 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 templates="$here/module-kit/templates"
 FOLDERS=(
-  modules/wittymodule modules/wittydisc modules/wittydvd modules/wittybluray
-  modules/wittyintegratedfilebrowser modules/wittyphotos modules/wittytuner modules/wittyplay
+  modules/wittymodule modules/wittydisc modules/wittydvd modules/wittybluray modules/wittycd
+  modules/wittyintegratedfilebrowser modules/wittyphotos modules/wittytuner modules/wittyplay modules/wittyrigs modules/wittycouch
   web/src/modules/wittyink web/src/modules/wittyebook web/src/modules/wittypdf web/src/modules/wittycomics web/src/modules/wittyvisualizer
   apps/wittyreader
 )

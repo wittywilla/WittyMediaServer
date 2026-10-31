@@ -52,7 +52,7 @@ jobs:
           want="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' module.json | head -1)"
           [ "v$want" = "$GITHUB_REF_NAME" ] || { echo "module.json says $want, and the tag is $GITHUB_REF_NAME"; exit 1; }
       - name: Build every platform and write the checksum list
-        run: go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 pack -out release .
+        run: go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 pack -out release .
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-files
@@ -96,7 +96,7 @@ jobs:
           key="$RUNNER_TEMP/module.key"
           trap 'rm -f "$key"' EXIT
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" -expect "wittybluray-${GITHUB_REF_NAME#v}" signed/*-SHA256SUMS.txt
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 sign -key "$key" -expect "wittybluray-${GITHUB_REF_NAME#v}" signed/*-SHA256SUMS.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: signature

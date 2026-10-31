@@ -166,7 +166,7 @@ works with, and belong to their owners. It's provided “as is”, with no warra
 
 A version tag builds a program for every platform, signs the checksum list, and publishes a release that servers can install.
 
-Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 bump .` raises it
+Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 bump .` raises it
 everywhere it is written (add `-part minor` for a bigger step). A bump isn't a release: nothing is
 tagged or published until you tag it. CI fails when code changed since the last tag and the version
 didn't, because tags never move.

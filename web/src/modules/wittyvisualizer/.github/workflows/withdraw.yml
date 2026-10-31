@@ -90,8 +90,8 @@ jobs:
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
           rm -f list/found.txt
           list="list/wittyvisualizer-withdrawn.json"
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 withdraw -list "$list" -list-key "$key" -module wittyvisualizer -severity "$SEVERITY" -reason "$REASON" -- "$VERSION"
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 sign -key "$key" "$list"
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 withdraw -list "$list" -list-key "$key" -module wittyvisualizer -severity "$SEVERITY" -reason "$REASON" -- "$VERSION"
+          go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 sign -key "$key" "$list"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: signed-list

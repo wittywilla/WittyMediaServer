@@ -234,12 +234,10 @@ func (m *Manager) applyRules(ctx context.Context) {
 			if !strings.EqualFold(p.Title, rule.Title) || p.Start < now.Unix() {
 				continue
 			}
-			var dup int64
-			if m.DB.QueryRowContext(ctx, `SELECT id FROM recordings WHERE channel_id = ? AND start = ?`, rule.ChannelID, p.Start).Scan(&dup) == nil {
-				continue
-			}
-			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, title, sub, start, stop, status, rule_id, created_at) VALUES(?,?,?,?,?,'scheduled',?,?)`,
-				rule.ChannelID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now())
+			// One statement: the scheduler and a new rule can both be here at once.
+			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, title, sub, start, stop, status, rule_id, created_at)
+				SELECT ?,?,?,?,?,'scheduled',?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE channel_id = ? AND start = ?)`,
+				rule.ChannelID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.ChannelID, p.Start)
 		}
 	}
 }

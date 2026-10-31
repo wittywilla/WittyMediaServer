@@ -158,12 +158,21 @@ node tests/player-check.mjs out           # through a real player, on a test ser
 Use, change and share it; if you redistribute it or build on it, keep the [NOTICE](NOTICE)
 attribution, *“WittyVisualizer, developed by WittyWilla”*, in your NOTICE file, documentation or About screen.
 
+
+## Legal
+
+WittyVisualizer is an independent open-source project. It isn't associated with, sponsored by or
+endorsed by any maker of other media players or visualizers. This can show flashing lights and
+fast-changing patterns, which may affect people with photosensitive conditions. Any third-party names
+here only describe what it works with, and belong to their owners. It's provided “as is”, with no
+warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.
+
 <!-- module-kit -->
 ## Releasing
 
 A version tag builds the bundle for the browser, signs the checksum list, and publishes a release that servers can install.
 
-Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.0 bump .` raises it
+Versions move in small steps as work lands. `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.2.1 bump .` raises it
 everywhere it is written (add `-part minor` for a bigger step). A bump isn't a release: nothing is
 tagged or published until you tag it. CI fails when code changed since the last tag and the version
 didn't, because tags never move.
@@ -179,11 +188,3 @@ To take a version back, run the *withdraw* workflow from the *Actions* tab. It a
 
 Licensed under Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 <!-- /module-kit -->
-
-## Legal
-
-WittyVisualizer is an independent open-source project. It isn't associated with, sponsored by or
-endorsed by any maker of other media players or visualizers. This can show flashing lights and
-fast-changing patterns, which may affect people with photosensitive conditions. Any third-party names
-here only describe what it works with, and belong to their owners. It's provided “as is”, with no
-warranty; see [LICENSE](LICENSE). Local law applies to how you use it. This isn't legal advice.

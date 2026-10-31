@@ -125,6 +125,7 @@ type glOut struct {
 const maxFramebuffer = ipc.MaxDimension
 
 func newGLOut(req glRequest, depth, stencil, flip bool) (*glOut, error) {
+	prepareGPU()
 	p, err := newGLPlatform(req)
 	if err != nil {
 		return nil, err

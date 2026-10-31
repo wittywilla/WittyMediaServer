@@ -140,6 +140,13 @@ func TestRealGPUCore(t *testing.T) {
 	if core == "" || rom == "" {
 		t.Skip("set WITTYPLAY_TEST_GPU_CORE and WITTYPLAY_TEST_GPU_ROM to run this")
 	}
+	if err := OnCoreThread(func() { playRealGPUCore(t, core, rom) }); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// This runs on the core's own thread, so it reports with Error and returns.
+func playRealGPUCore(t *testing.T, core, rom string) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	var pads [engine.MaxPorts]engine.PadState
@@ -158,13 +165,16 @@ func TestRealGPUCore(t *testing.T) {
 		Video: video, VideoFlipped: video, Input: func() *[engine.MaxPorts]engine.PadState { return &pads },
 	})
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	if _, err := c.LoadGame(rom); err != nil {
 		if errors.Is(err, ErrNoGPU) {
-			t.Skip(err)
+			t.Log("no graphics card here:", err)
+		} else {
+			t.Error(err)
 		}
-		t.Fatal(err)
+		return
 	}
 	for i := 0; i < 600; i++ {
 		c.Run()

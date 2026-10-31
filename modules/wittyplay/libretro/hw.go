@@ -158,7 +158,6 @@ func (c *Core) OptionList() []string { return c.optionList }
 // ProbeGPU makes an OpenGL context the way a game would and names the graphics
 // card behind it, or says why there isn't one.
 func ProbeGPU() (string, error) {
-	prepareGPU()
 	o, err := newGLOut(glRequest{major: 3, minor: 3, core: true}, false, false, false)
 	if err != nil {
 		return "", err

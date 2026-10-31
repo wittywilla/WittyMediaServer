@@ -81,7 +81,6 @@ var wglClassDone bool
 // newGLPlatform makes a context of the kind a core asked for, current on this
 // thread. A context the driver can't make is an error, not a quiet step down.
 func newGLPlatform(req glRequest) (glPlatform, error) {
-	prepareGPU()
 	if err := opengl32.Load(); err != nil {
 		return nil, fmt.Errorf("this server has no OpenGL: %w", err)
 	}

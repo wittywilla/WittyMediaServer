@@ -288,3 +288,57 @@ func TestCapabilities(t *testing.T) {
 		}
 	}
 }
+
+// A channel's ticket opens that channel's live stream and nothing else, and items' tickets
+// don't open channels.
+func TestChannelTicketOpensOnlyItsChannel(t *testing.T) {
+	ts := newContractServer(t)
+	u, session := ts.account(t, "Alex", "adult", false)
+	item := ts.item(t, "video", tempMedia(t, "a.mp4", "AAAA"))
+	itemTicket := mintFor(t, ts, session, item)
+	tok, _, err := ts.stream.mintChannel(session, u.ID, "lib-7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, _, _ := ts.stream.mintChannel(session, u.ID, "lib-7")
+	if again != tok {
+		t.Error("asking twice should give the same ticket")
+	}
+	if other, _, _ := ts.stream.mintChannel(session, u.ID, "lib-8"); other == tok {
+		t.Error("another channel shares the ticket")
+	}
+	// Past the sign-in, the channel's own check answers 404, so a refused ticket is the 401.
+	for _, c := range []struct {
+		name, path string
+		want       int
+	}{
+		{"its playlist", "/api/tv/lib-7/live/playlist.m3u8?st=" + tok, 404},
+		{"its segments", "/api/tv/lib-7/live/seg/a.ts?st=" + tok, 404},
+		{"another channel", "/api/tv/lib-8/live/playlist.m3u8?st=" + tok, 401},
+		{"an item", fmt.Sprintf("/api/items/%d/file?st=%s", item, tok), 401},
+		{"item zero", "/api/items/0/file?st=" + tok, 401},
+		{"an HLS stream", "/api/hls/v--x/playlist.m3u8?st=" + tok, 401},
+		{"tuning", "/api/tv/lib-7/tune?st=" + tok, 401},
+		{"an item's ticket on a channel", "/api/tv/lib-7/live/playlist.m3u8?st=" + itemTicket, 401},
+	} {
+		if w := ts.do(t, "GET", c.path, "", nil); w.Code != c.want {
+			t.Errorf("%s: %d, want %d", c.name, w.Code, c.want)
+		}
+	}
+	// It ends with the sign-in, like any other.
+	ts.do(t, "POST", "/api/logout", session, nil)
+	if w := ts.do(t, "GET", "/api/tv/lib-7/live/playlist.m3u8?st="+tok, "", nil); w.Code != 401 {
+		t.Errorf("after sign-out: %d", w.Code)
+	}
+}
+
+func TestCapabilitiesSayWhichAppsStillWork(t *testing.T) {
+	ts := newContractServer(t)
+	c := decode[map[string]any](t, ts.do(t, "GET", "/api/v1/capabilities", "", nil))
+	versions, _ := c["minClientVersions"].(map[string]any)
+	for _, app := range []string{"android", "apple", "desktop"} {
+		if s, _ := versions[app].(string); s == "" {
+			t.Errorf("no lowest version for %s: %v", app, c["minClientVersions"])
+		}
+	}
+}

@@ -171,11 +171,7 @@ func TestCouchLimitCountsStreamsStarting(t *testing.T) {
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
 	_ = ts.DB.SetSetting(context.Background(), "couchMaxStreams", "1")
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("WMS_WITTYCOUCH_HOST", self)
+	t.Setenv("WMS_WITTYCOUCH_HOST", fakeHostProgram(t))
 	_, adult := ts.user(t, "adult1", "adult", false, "")
 	f := rigFake(t)
 	h := addCouch(t, ts, f, adult)

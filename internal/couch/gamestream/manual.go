@@ -14,3 +14,5 @@ func CheckAddress(ctx context.Context, host string, _ func(context.Context, stri
 	err := service.Call(ctx, "wittycouch", "gamestream.CheckAddress", nil, nil, []any{host}, []any{&r})
 	return r, err
 }
+
+func init() { service.RegisterErrorType[StatusError]("gamestream.StatusError") }

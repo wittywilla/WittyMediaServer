@@ -9,6 +9,10 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/cd"
+	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
+	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
+	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,6 +23,9 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 )
+
+// Wire sets up what this package can't reach without going in a circle, as the server does at start.
+var Wire func(*modules.Manager)
 
 // EnvCatalog names the folder.
 const EnvCatalog = "WMS_TEST_CATALOG"
@@ -52,6 +59,12 @@ func start(catalog string) (*modules.Manager, error) {
 	manager = modules.New(modules.Config{Dir: dir, Server: "0.6.0-alpha", Starter: abs, Keys: []ed25519.PublicKey{ed25519.PublicKey(key)},
 		Log: slog.New(slog.DiscardHandler), WriteFolders: func(string) []string { return []string{os.TempDir()} }})
 	manager.UseServices()
+	cd.Open = modules.CDs{M: manager}.Open
+	dvdsession.SetEngine(dvdremote.Opener{M: manager, Log: slog.New(slog.DiscardHandler)}.Open)
+	bdremote.Use(manager)
+	if Wire != nil {
+		Wire(manager)
+	}
 	return manager, nil
 }
 

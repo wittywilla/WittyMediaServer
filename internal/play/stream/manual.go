@@ -249,3 +249,5 @@ func ProbeGPU(runner, dir string, _ *slog.Logger) GPUProbe {
 	_ = service.Call(ctx, module, "stream.ProbeGPU", nil, nil, []any{runner, dir}, []any{&p})
 	return p
 }
+
+func init() { service.RegisterErrorType[ProbeError]("stream.ProbeError") }

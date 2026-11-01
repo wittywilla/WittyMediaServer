@@ -3,6 +3,8 @@ package server
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/couch/relay/fakehost"
@@ -19,3 +21,22 @@ func TestMain(m *testing.M) {
 }
 
 func fakeHostEnv(c *exec.Cmd) { c.Env = append(c.Env, fakehost.Env+"=ok") }
+
+// fakeHostProgram is a program that runs this test program as the stand-in: WittyCouch starts it from
+// its own process, where nothing here can set its surroundings.
+func fakeHostProgram(t *testing.T) string {
+	t.Helper()
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in is a shell script")
+	}
+	p := filepath.Join(t.TempDir(), "wittycouch-host")
+	script := "#!/bin/sh\n" + fakehost.Env + "=ok exec '" + self + "' \"$@\"\n"
+	if err := os.WriteFile(p, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}

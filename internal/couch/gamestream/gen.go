@@ -7,6 +7,7 @@ package gamestream
 import (
 	context "context"
 	errors "errors"
+	fmt "fmt"
 	service "github.com/wittywilla/wittymodule/service"
 	net "net"
 	netip "net/netip"
@@ -54,6 +55,8 @@ type StatusError struct {
 	Code    int
 	Message string
 }
+
+func (e *StatusError) Error() string { return fmt.Sprintf("Sunshine said: %s (%d)", e.Message, e.Code) }
 
 // Info is what a PC says about itself.
 type Info struct {
@@ -312,12 +315,6 @@ func (r *Rig) SubmitPIN(ctx context.Context, user string, password string, pin s
 func (r *Rig) WebURL() string {
 	var r0 string
 	_ = service.Call(context.Background(), "wittycouch", "gamestream.Rig.WebURL", r, r, nil, []any{&r0})
-	return r0
-}
-
-func (e *StatusError) Error() string {
-	var r0 string
-	_ = service.Call(context.Background(), "wittycouch", "gamestream.StatusError.Error", e, e, nil, []any{&r0})
 	return r0
 }
 

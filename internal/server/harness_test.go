@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
+	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
 	"io"
 	"log/slog"
 	"net/http"
@@ -122,4 +125,11 @@ func (ts *testServer) item(t *testing.T, it *library.Item) *library.Item {
 		t.Fatal(err)
 	}
 	return it
+}
+
+func init() {
+	modtest.Wire = func(m *modmgr.Manager) {
+		library.SetPhotoEngine(photoengine.PhotoEngine{M: m})
+		library.EngineThere = m.Installed
+	}
 }

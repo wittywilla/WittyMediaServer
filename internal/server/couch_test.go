@@ -316,11 +316,7 @@ func TestCouchStreamsThroughTheProgram(t *testing.T) {
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("WMS_WITTYCOUCH_HOST", self)
+	t.Setenv("WMS_WITTYCOUCH_HOST", fakeHostProgram(t))
 	prepareCouchHost = fakeHostEnv
 	t.Cleanup(func() { prepareCouchHost = realPrepareCouchHost; ts.StopCouch() })
 	_, a := ts.user(t, "adult1", "adult", false, "")
@@ -413,6 +409,7 @@ func TestSessionAddressIsRebuilt(t *testing.T) {
 func TestSunshineIsOffUntilAsked(t *testing.T) {
 	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
+	ts.Modules = modtest.Need(t, "wittyrigs")
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult1", "adult", false, "")
 	if w := ts.do(t, "GET", "/api/wittyrigs", adult, nil); w.Code != 403 {

@@ -131,6 +131,8 @@ type ProbeError struct {
 	Reason string
 }
 
+func (e *ProbeError) Error() string { return e.Reason }
+
 // Runner is a started runner process, boxed in the way every game's is. Nothing
 // has been loaded yet: it waits for a load command on Stdin.
 type Runner struct {
@@ -271,12 +273,6 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	var r0 *ProbeResult
 	err := service.Call(ctx, "wittyplay", "stream.Probe", nil, nil, []any{opt}, []any{&r0})
 	return r0, err
-}
-
-func (e *ProbeError) Error() string {
-	var r0 string
-	_ = service.Call(context.Background(), "wittyplay", "stream.ProbeError.Error", e, e, nil, []any{&r0})
-	return r0
 }
 
 // Release frees the sandbox's resources once the runner has gone.

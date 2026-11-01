@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"os"
@@ -678,6 +679,7 @@ func formatServer(t *testing.T, tools *ffmpeg.Tools) *testServer {
 }
 
 func TestFormatTable(t *testing.T) {
+	modtest.Need(t, "wittycd", "wittydvd", "wittybluray", "wittyphotos")
 	if testing.Short() {
 		t.Skip("makes real samples and plays them")
 	}

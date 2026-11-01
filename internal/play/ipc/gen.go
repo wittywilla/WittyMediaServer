@@ -19,6 +19,7 @@ const (
 	MsgSaveRAM byte = 6  // battery save
 	MsgEvent   byte = 7  // JSON: Event
 	MsgError   byte = 8  // text, then the host exits
+	MsgTiming  byte = 9  // FrameTimingSize bytes: when the next picture was made. Optional
 	MsgProbe   byte = 20 // JSON: Probe, the answer to CmdProbe
 )
 
@@ -70,6 +71,9 @@ type Load struct {
 	// without a game. ROM is empty then.
 	Probe  bool   `json:"probe,omitempty"`
 	Assets string `json:"assets,omitempty"` // support files of its own, if it has any
+	// Stamp draws each frame's number and the newest input it saw into the picture, for
+	// measuring a whole path by looking at what arrives. Only wittyplay-probe asks for it.
+	Stamp bool `json:"stamp,omitempty"`
 }
 
 // TestCore is the Load.Core value for the built-in test core.
@@ -161,6 +165,14 @@ type Control struct {
 	Rewinding     *bool    `json:"rewinding,omitempty"`     // going backwards now
 	RunAhead      *int     `json:"runAhead,omitempty"`      // frames; 0 to RunAheadMax
 	Advance       *int     `json:"advance,omitempty"`       // frames to run while paused
+	// EarlyInput lets a new press start the next frame straight away, rather than waiting for
+	// its turn. It's on unless this says otherwise.
+	NoEarlyInput *bool `json:"noEarlyInput,omitempty"`
+	// QuietAhead: run-ahead wasn't anyone's choice, so turning itself off isn't worth a message.
+	QuietAhead *bool `json:"quietAhead,omitempty"`
+	// ShiftMs moves when frames start, once, by this many milliseconds, to land them just
+	// before a viewer's display wants them. Later is positive.
+	ShiftMs *float64 `json:"shiftMs,omitempty"`
 }
 
 // Save slots: 0 is automatic and 1 to MaxStateSlot belong to a person. The other two
@@ -185,6 +197,7 @@ const (
 	FrameSkipAuto  = -1
 	FrameSkipMax   = 8
 	RunAheadMax    = 3
+	RunAheadAuto   = -1 // from a setting: whatever suits this core. A runner is never sent it.
 	RewindBytesMax = 512 << 20
 	AdvanceMax     = 60
 )
@@ -207,12 +220,28 @@ type VideoHeader struct {
 // VideoHeaderSize is the encoded size of a VideoHeader.
 const VideoHeaderSize = 5
 
+// FrameTiming says when a picture was made, as Unix nanoseconds on the machine's clock.
+// A runner sends it just before the picture it describes. It's for measuring and nothing
+// else, so a runner may leave it out, and nothing depends on a value being sensible.
+type FrameTiming struct {
+	Seq      uint32 // counts frames from the start of the game
+	InputSeq uint32 // the newest numbered input this frame could have seen
+	InputAt  int64  // when that input reached the runner
+	RunStart int64  // when the core began this frame
+	RunEnd   int64  // when the picture was ready
+}
+
+// FrameTimingSize is the encoded size of a FrameTiming.
+const FrameTimingSize = 32
+
 // InputSize is the size of a CmdInput payload: port, buttons, then the left and
 // right sticks' X and Y. A browser sends the same bytes. InputSizeFull adds how far
-// the L2 and R2 triggers are held, 0 to 255, for clients that can tell.
+// the L2 and R2 triggers are held, 0 to 255, for clients that can tell. InputSizeStamped
+// adds a u32 that names this state, so that the picture it first affects can be found.
 const (
-	InputSize     = 11
-	InputSizeFull = 13
+	InputSize        = 11
+	InputSizeFull    = 13
+	InputSizeStamped = 17
 )
 
 // DeviceSize is the size of a CmdDevice payload: port, then a u32 device type.
@@ -246,6 +275,28 @@ type Probe struct {
 // have no version to read: raise this, and the manifest with it, whenever one changes
 // or a new one is added.
 const Version = "1"
+
+// Append adds the timing to b.
+func (t FrameTiming) Append(b []byte) []byte {
+	var r0 []byte
+	_ = service.Call(context.Background(), "wittyplay", "ipc.FrameTiming.Append", t, nil, []any{b}, []any{&r0})
+	return r0
+}
+
+// InputStamp reads the number of a stamped state, which is 0 when it has none.
+func InputStamp(p []byte) uint32 {
+	var r0 uint32
+	_ = service.Call(context.Background(), "wittyplay", "ipc.InputStamp", nil, nil, []any{p}, []any{&r0})
+	return r0
+}
+
+// ParseFrameTiming reads a MsgTiming payload.
+func ParseFrameTiming(p []byte) (FrameTiming, bool) {
+	var r0 FrameTiming
+	var r1 bool
+	_ = service.Call(context.Background(), "wittyplay", "ipc.ParseFrameTiming", nil, nil, []any{p}, []any{&r0, &r1})
+	return r0, r1
+}
 
 // ParseInput reads one player's state.
 func ParseInput(p []byte) (int, uint16, int16, int16, int16, int16, bool) {

@@ -57,6 +57,7 @@ type SlotMeta struct {
 type AU struct {
 	Data []byte
 	Key  bool
+	PTS  time.Duration // from the first frame the encoder was given
 }
 
 // NoGPUText is in the error a runner gives when a game needs a graphics card and
@@ -132,6 +133,23 @@ type ProbeError struct {
 }
 
 func (e *ProbeError) Error() string { return e.Reason }
+
+// ProcessIDs names what's running for a game, for tools that watch or test it.
+type ProcessIDs struct {
+	Runner      int `json:"runner"`
+	Video       int `json:"video"`
+	Audio       int `json:"audio"`
+	VideoStarts int `json:"videoStarts"`
+}
+
+// LatencyMode is the choice a person makes between speed and steadiness.
+type LatencyMode byte
+
+const (
+	LatencyFastest LatencyMode = iota
+	LatencyBalanced
+	LatencySteady
+)
 
 // Runner is a started runner process, boxed in the way every game's is. Nothing
 // has been loaded yet: it waits for a load command on Stdin.
@@ -377,6 +395,22 @@ func (s *Session) LoadState(slot int) error {
 func (s *Session) Pause(on bool) error {
 	err := service.Call(context.Background(), "wittyplay", "stream.Session.Pause", s, s, []any{on}, nil)
 	return err
+}
+
+// Processes says what's running for this game right now. Anything not running is 0.
+func (s *Session) Processes() ProcessIDs {
+	var r0 ProcessIDs
+	_ = service.Call(context.Background(), "wittyplay", "stream.Session.Processes", s, s, nil, []any{&r0})
+	return r0
+}
+
+// RawFrame is a copy of the newest picture to leave the core, for comparing with what a
+// viewer sees.
+func (s *Session) RawFrame() (ipc.VideoHeader, []byte) {
+	var r0 ipc.VideoHeader
+	var r1 []byte
+	_ = service.Call(context.Background(), "wittyplay", "stream.Session.RawFrame", s, s, nil, []any{&r0, &r1})
+	return r0, r1
 }
 
 // Reset is the console's reset button.

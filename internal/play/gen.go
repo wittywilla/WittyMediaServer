@@ -558,6 +558,8 @@ type CoreTraits struct {
 	SavesIn string
 	// Options are always passed. Each one makes the core use what this runner has.
 	Options map[string]string
+	// Threaded are options for a machine with threads to spare, of four or more.
+	Threaded map[string]string
 	// Resolution gives the options for an internal resolution, 1 to 4 times native.
 	Resolution func(times int) map[string]string `json:"-"`
 }
@@ -782,6 +784,12 @@ func DefaultRemote() map[int]string {
 // DefaultResolution is how many times native a console renders at with the
 // setting on Automatic. Sharp enough to be worth the graphics card, small enough
 // to stream well.
+//
+// PlayStation 2 stays native. Its games draw full-screen effects in small tiles, and the
+// fixes that hold those together when upscaled are worked out per game by the core's own
+// database, which doesn't always succeed: Gran Turismo 4 at 2x comes out in bands of the
+// wrong colour with a grid over them. At native size no such seams exist, and a frame
+// has a quarter of the pixels to draw, encode and send.
 func DefaultResolution(consoleID string) int {
 	var r0 int
 	_ = service.Call(context.Background(), "wittyplay", "wittyplay.DefaultResolution", nil, nil, []any{consoleID}, []any{&r0})

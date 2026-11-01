@@ -121,6 +121,11 @@ func identifyListing(l *gamearchive.Listing, console, archive, chosen string) Id
 	// something else altogether. What's asked about first is the file that would be played,
 	// and an altered copy isn't asked about while there's anything else in the archive.
 	base := strings.ToLower(gamearchive.BaseName(archive))
+	if c != nil {
+		if plan, err := gamearchive.ChooseEntry(l, c, archive, chosen); err == nil && len(plan.Want) == 1 {
+			chosen = plan.Want[0].Name // the one file a core would be given
+		}
+	}
 	played := picks[:0:0]
 	for _, e := range picks {
 		if q := gameid.QualityOf(path.Base(e.Name)); q <= gameid.QualityPrerelease || e.Name == chosen {

@@ -231,13 +231,14 @@ func score(name, base string) int {
 		s += 32
 	}
 	if strings.Contains(n, "[!]") {
-		s += 8
+		s += 3
 	}
+	// A plain dump in a widely-played region beats a verified one someone can't read.
 	switch {
 	case usaRe.MatchString(n):
-		s += 4
+		s += 8
 	case europeRe.MatchString(n):
-		s += 2
+		s += 6
 	case japanRe.MatchString(n):
 		s++
 	}

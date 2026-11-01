@@ -7,6 +7,7 @@
 .gr-banner strong { color: var(--fg); }
 .gr-banner.attention { border-color: var(--warn, var(--border)); }
 
+.gr-count { margin-left: var(--sp-2); padding: 0 var(--sp-2); border-radius: 999px; background: var(--bg-3, var(--bg-2)); color: var(--fg-2); font-size: var(--text-xs); }
 .gr-dialog .gr-live:empty { display: none; }
 .gr-live { margin: var(--sp-2) 0; color: var(--fg-2); font-size: var(--text-sm); }
 .gr-bulk { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }

@@ -52,8 +52,11 @@ export function GameImportBar({ libraryId, onChanged }: { libraryId: number; onC
     line = scan.phase === 'indexing' ? `Adding games: ${scan.done.toLocaleString()} of ${total.toLocaleString()}` : total ? `Checking files: ${scan.done.toLocaleString()} of ${total.toLocaleString()}` : 'Looking through the folders…'
     value = total ? scan.done / total : undefined
   } else if (lookup.pending > 0) {
-    line = `Finding details: ${(lookup.total - lookup.pending).toLocaleString()} of ${lookup.total.toLocaleString()} games`
-    value = lookup.total ? (lookup.total - lookup.pending) / lookup.total : undefined
+    const asked = lookup.total - lookup.pending
+    line = lookup.matched > asked
+      ? `${lookup.matched.toLocaleString()} of ${lookup.total.toLocaleString()} games recognised. Asking online sources for more about them: ${asked.toLocaleString()} done`
+      : `Finding details: ${asked.toLocaleString()} of ${lookup.total.toLocaleString()} games`
+    value = lookup.total ? asked / lookup.total : undefined
   } else if (lookup.pictures > 0) {
     line = `Fetching pictures: ${lookup.pictures.toLocaleString()} ${lookup.pictures === 1 ? 'game' : 'games'} to go`
   }
@@ -92,6 +95,8 @@ export function GameReviewBanner({ libraryId, consoles, version, onChanged }: { 
   )
 }
 
+const TabCount = ({ n }: { n?: number }) => (n ? <span className="gr-count">{n.toLocaleString()}</span> : null)
+
 function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { libraryId: number; consoles: GameConsole[]; first: Tab; onClose: () => void; onChanged: () => void }) {
   const [tab, setTab] = useState<Tab>(first)
   const [data, setData] = useState<GameReview | null>(null)
@@ -110,10 +115,10 @@ function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { 
   }
   const counts = data?.counts || {}
   const tabs = [
-    { value: 'needs' as Tab, label: 'Needs a look', badge: counts.needs || undefined },
-    { value: 'blocked' as Tab, label: 'Can’t play', badge: counts.blocked || undefined },
-    { value: 'left' as Tab, label: 'Left out', badge: leftCount(counts) || undefined },
-    { value: 'ignored' as Tab, label: 'You said no', badge: counts.ignored || undefined },
+    { value: 'needs' as Tab, label: 'Needs a look', badge: <TabCount n={counts.needs} /> },
+    { value: 'blocked' as Tab, label: 'Can’t play', badge: <TabCount n={counts.blocked} /> },
+    { value: 'left' as Tab, label: 'Left out', badge: <TabCount n={leftCount(counts)} /> },
+    { value: 'ignored' as Tab, label: 'You said no', badge: <TabCount n={counts.ignored} /> },
   ]
   return (
     <Dialog title="Files that didn’t become games" size="wide" onClose={onClose} className="gr-dialog"

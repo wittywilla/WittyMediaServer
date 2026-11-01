@@ -200,7 +200,7 @@ func (s *Store) SkippedGames(ctx context.Context, libraryID int64) map[string]in
 
 // GameCounts says how many games a library holds for each console.
 func (s *Store) GameCounts(ctx context.Context, libraryID int64, access *Access) (map[string]int, error) {
-	q := `SELECT IFNULL(i.console, ''), COUNT(*) FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND i.missing = 0`
+	q := `SELECT IFNULL(i.console, ''), COUNT(*) FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND i.missing = 0 AND ` + hideLinked
 	args := []any{libraryID}
 	if access != nil {
 		c, a := access.ItemClause()

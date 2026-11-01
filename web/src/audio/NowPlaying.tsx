@@ -163,6 +163,13 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     const name = NATIVE_STYLES.find((n) => n.id === id)?.name || shaders.find((s) => s.id === id)?.name
     if (name) setSaid(`Visualizer: ${name}`)
   }
+  // An effect picked on the whole screen stays picked, if an effect is what was showing.
+  const leaveWhole = () => {
+    setWholeShader(false)
+    const now = shaderSession()?.status.effect
+    if (now && !isNative(style)) { setShown(''); setPrefs({ style: now }) }
+    loadShaders()
+  }
   const subtitle = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : it.artist || it.albumArtist || ''
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
@@ -172,7 +179,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       <div className="np-glow" aria-hidden="true" />
       {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
       {p.vizHere && prefsLoaded && prefs.viz && !wholeShader && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
-      {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') setWholeShader(false) }} onClose={() => setWholeShader(false)} />}
+      {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">
         <button type="button" className="mp-ibtn np-close" onClick={p.closeFull} aria-label="Close the full player (Esc)" title="Close (Esc)"><IconDown /></button>

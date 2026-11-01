@@ -126,7 +126,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
             <h2><Link to={albumLink(lib.id, hero)}>{hero.title || 'Unknown album'}</Link></h2>
             <p className="mh-hero-sub">
               {hero.artist && !pods && <Link to={artistLink(lib.id, hero.artist)}>{hero.artist}</Link>}
-              {[hero.year, hero.genre].filter(Boolean).map((v) => <span key={String(v)}> · {v}</span>)}
+              {[hero.year, hero.genre].filter(Boolean).map((v, i) => <span key={String(v)}>{i > 0 || (hero.artist && !pods) ? ' · ' : ''}{v}</span>)}
             </p>
           </div>
         )}

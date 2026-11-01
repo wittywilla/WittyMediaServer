@@ -166,8 +166,9 @@ func TestAttachedExtrasGoByTheirShow(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := fmt.Sprintf("/api/meta/item/%d/attached", parent.ID)
-	if w := f.do(t, "GET", path, f.kid, nil); w.Code != 200 || strings.Contains(w.Body.String(), "Hidden extra") {
-		t.Errorf("a Kids profile: %d %s", w.Code, w.Body)
+	_, young := f.user(t, "young", "adult", false, `{"maxAge":13,"allowUnrated":true}`)
+	if w := f.do(t, "GET", path, young, nil); w.Code != 200 || strings.Contains(w.Body.String(), "Hidden extra") {
+		t.Errorf("an account with an age limit: %d %s", w.Code, w.Body)
 	}
 	if w := f.do(t, "GET", path, f.adult, nil); !strings.Contains(w.Body.String(), "Hidden extra") {
 		t.Errorf("an account with no limits: %s", w.Body)

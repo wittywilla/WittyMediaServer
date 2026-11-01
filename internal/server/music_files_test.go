@@ -15,9 +15,9 @@ import (
 // A music library with one song for everyone, and an administrator, an adult and a Kids profile.
 type musicFixture struct {
 	*testServer
-	dir              string
-	lib              int64
-	song             *library.Item
+	dir               string
+	lib               int64
+	song              *library.Item
 	admin, adult, kid string
 }
 

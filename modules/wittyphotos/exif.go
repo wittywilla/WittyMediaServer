@@ -88,11 +88,13 @@ func findTIFF(b []byte) []byte {
 		if len(b) < 92 {
 			return nil
 		}
-		off := binary.BigEndian.Uint32(b[84:88])
-		if int64(off) < int64(len(b)) {
-			return findTIFF(b[off:])
+		// Only ever a JPEG, so nothing here calls itself: a header pointing at itself
+		// would run the stack out, and that ends the whole program, not just this file.
+		off := int64(binary.BigEndian.Uint32(b[84:88]))
+		if off < 92 || off+2 > int64(len(b)) || b[off] != 0xFF || b[off+1] != 0xD8 {
+			return nil
 		}
-		return nil
+		return jpegExif(b[off:])
 	}
 	// HEIC, AVIF, CR3 and other box formats: the marker that starts the block.
 	marker := []byte("Exif\x00\x00")

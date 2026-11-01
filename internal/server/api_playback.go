@@ -568,7 +568,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 			}
 		}
 		if d.ToneMap {
-			if tm := s.Tools.ToneMapFilter(); tm != "" {
+			if tm := s.Tools.ToneMapFilter(src.Range); tm != "" {
 				vf = strings.Trim(vf+","+tm, ",")
 			}
 		}

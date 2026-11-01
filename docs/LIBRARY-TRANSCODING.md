@@ -10,6 +10,7 @@ files alone and stops when they do. Library transcoding **rewrites your files**,
 - [The three presets](#the-three-presets)
 - [What it does to your files](#what-it-does-to-your-files)
 - [How it affects people watching](#how-it-affects-people-watching)
+- [Converting new files by themselves](#converting-new-files-by-themselves)
 - [Sound tracks](#sound-tracks)
 - [Subtitles](#subtitles)
 - [Unusual files, decision by decision](#unusual-files-decision-by-decision)
@@ -81,6 +82,17 @@ longer to start, especially if their device needs the server to convert while it
 
 **Time a 20-second test** really converts a stretch from the middle of the file you chose, and tells you how fast this machine
 did it and what the whole film would come to. The figures from **Check this library** are rougher, and say so.
+
+## Converting new files by themselves
+
+Each library can have **Convert new files by themselves** turned on. It's off unless you turn it on, and it needs the recipe saved and library transcoding switched on.
+
+- **What counts as new.** Files a scan finds after you turned it on, and files that change after that. What's already in the library is left alone: **Start converting** is how to do those.
+- **When it starts.** After a scan finds something, it waits until each file has stopped changing, 2 minutes unless you change it, so that a file still being copied or downloaded is left to finish. Then it starts an ordinary conversion of those files.
+- **Its limits.** All the same ones: the hours, how much of the processor, files at once, low priority and pausing while people are streaming. Outside its hours or while people are watching, it doesn't start.
+- **Where to see it.** In the activity panel, first as **New files in** and the library's name, saying what it's waiting for, then as **Converting new files in** and the library's name, with Pause and Cancel. Files with nothing to do leave no trace.
+- **What it won't do again.** Each file's outcome is remembered against its size and date and the recipe. A file that fails, comes out no smaller, already matches, is put back, or whose run you cancelled, isn't tried again unless the file or the recipe changes. **Try again** in the activity panel, or **Start converting**, still does it when you ask.
+- **What it does try again.** A file someone was playing and a file that didn't fit on the drive are looked at after the next scan, because neither says anything against the file. A file that changed while it was being converted is looked at again too. If the server stopped partway, what was left is picked up when it starts again.
 
 ## Sound tracks
 

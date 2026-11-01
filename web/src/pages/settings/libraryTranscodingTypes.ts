@@ -25,10 +25,10 @@ export type Options = {
 
 export type Settings = {
   enabled: boolean; acknowledged: boolean; maxJobs: number; threads: number; lowPriority: boolean; pauseWhileStreaming: boolean
-  hoursOn: boolean; hoursFrom: number; hoursTo: number; useHardware: boolean; minFreeGb: number
+  hoursOn: boolean; hoursFrom: number; hoursTo: number; useHardware: boolean; minFreeGb: number; settleSeconds: number
 }
 
-export type Rule = { libraryId: number; policy: Policy; output: string; allowWrites: boolean; saved: boolean }
+export type Rule = { libraryId: number; policy: Policy; output: string; allowWrites: boolean; auto: boolean; autoSince: number; saved: boolean }
 
 export type Library = { id: number; name: string; type: string; items: number; readOnly: boolean; rule: Rule; blocked?: string }
 
@@ -50,7 +50,7 @@ export type Summary = {
   drives?: { folder: string; free: number; needs: number; enough: boolean }[]
 }
 
-export type Run = { id: number; libraryId: number; dry: boolean; policy: Policy; output: string; state: string; by?: string; createdAt: number; finishedAt?: number; summary: Summary }
+export type Run = { id: number; libraryId: number; dry: boolean; auto: boolean; policy: Policy; output: string; state: string; by?: string; createdAt: number; finishedAt?: number; summary: Summary }
 
 export type FileRow = {
   id: number; runId: number; itemId: number; part: number; path: string; verdict: string; reason: string; state: string; message?: string

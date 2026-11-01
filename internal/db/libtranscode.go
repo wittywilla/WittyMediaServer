@@ -38,6 +38,10 @@ var libTranscodeMigrations = []string{
 	   path TEXT NOT NULL, policy TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER NOT NULL,
 	   outcome TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(path, policy));
 	 ALTER TABLE libraries ADD COLUMN read_only INTEGER NOT NULL DEFAULT 0;`,
+	// 2: a library can have its new files converted by itself, from when that's turned on.
+	`ALTER TABLE ltc_rules ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE ltc_rules ADD COLUMN auto_since INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE ltc_runs ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrateLibTranscode(ctx context.Context) error {

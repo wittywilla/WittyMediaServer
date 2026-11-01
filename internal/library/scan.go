@@ -53,6 +53,9 @@ type Scanner struct {
 	TMDBBase string
 	// OnScanned runs after a scan of a library that holds films or shows.
 	OnScanned func()
+	// AfterScan is told when any library's scan has finished without trouble. It's called
+	// with the scan's turn at the disk given up, and must not hold things up.
+	AfterScan func(libraryID int64)
 	// OnGamesScanned runs after a scan of a library of games.
 	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
@@ -126,6 +129,10 @@ func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 				return
 			}
 			s.Log.ErrorContext(ctx, "scan failed", "library", libraryID, "err", err)
+			return
+		}
+		if s.AfterScan != nil {
+			s.AfterScan(libraryID)
 		}
 	}, "cat", "library", "session", id)
 	return true

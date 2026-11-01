@@ -35,13 +35,15 @@ type Settings struct {
 	UseHardware bool `json:"useHardware"`
 	// MinFreeGB: stop before a drive has less room than this.
 	MinFreeGB int `json:"minFreeGb"`
+	// SettleSeconds: automatic runs leave a new file alone until it hasn't changed for this long.
+	SettleSeconds int `json:"settleSeconds"`
 }
 
 const settingsKey = "libtranscode.settings"
 
 // DefaultSettings suit a modest machine that's mainly there for watching things.
 func DefaultSettings() Settings {
-	return Settings{MaxJobs: 1, LowPriority: true, PauseWhileStreaming: true, UseHardware: true, HoursFrom: 1, HoursTo: 7, MinFreeGB: 10}
+	return Settings{MaxJobs: 1, LowPriority: true, PauseWhileStreaming: true, UseHardware: true, HoursFrom: 1, HoursTo: 7, MinFreeGB: 10, SettleSeconds: 120}
 }
 
 // LoadSettings reads the settings.
@@ -66,6 +68,8 @@ func (s *Settings) Validate() error {
 		return errors.New("the hours it may run can't start and end at the same time")
 	case s.MinFreeGB < 1 || s.MinFreeGB > 100000:
 		return errors.New("the free space to keep must be at least 1 GB")
+	case s.SettleSeconds < 10 || s.SettleSeconds > 86400:
+		return errors.New("the wait for new files must be between 10 seconds and a day")
 	case s.Enabled && !s.Acknowledged:
 		return errors.New("read and accept the warning about streaming before turning this on")
 	}
@@ -100,7 +104,10 @@ type Rule struct {
 	// AllowWrites: conversions may write here even though the server has been told to
 	// keep metadata out of media folders.
 	AllowWrites bool `json:"allowWrites"`
-	Saved       bool `json:"saved"`
+	// Auto: new files are converted by themselves after a scan finds them, from AutoSince on.
+	Auto      bool  `json:"auto"`
+	AutoSince int64 `json:"autoSince"`
+	Saved     bool  `json:"saved"`
 }
 
 // LoadRule reads a library's rule, or the safe starting point when it has none.
@@ -108,8 +115,8 @@ func LoadRule(ctx context.Context, d *db.DB, library int64) Rule {
 	r := Rule{LibraryID: library, Output: OutputKeep}
 	r.Policy, _ = PresetPolicy(PresetCompatible)
 	var raw string
-	var allow int
-	err := d.QueryRowContext(ctx, `SELECT policy, output, allow_writes FROM ltc_rules WHERE library_id = ?`, library).Scan(&raw, &r.Output, &allow)
+	var allow, auto int
+	err := d.QueryRowContext(ctx, `SELECT policy, output, allow_writes, auto, auto_since FROM ltc_rules WHERE library_id = ?`, library).Scan(&raw, &r.Output, &allow, &auto, &r.AutoSince)
 	if err != nil {
 		return r
 	}
@@ -118,22 +125,29 @@ func LoadRule(ctx context.Context, d *db.DB, library int64) Rule {
 		r.Policy, r.Saved = p, true
 	}
 	r.AllowWrites = allow != 0
+	r.Auto = auto != 0
 	return r
 }
 
-// SaveRule stores a checked rule.
+// SaveRule stores a checked rule. Turning automatic runs on starts counting new files from now:
+// what's already in the library is left to a person.
 func SaveRule(ctx context.Context, d *db.DB, r Rule) error {
 	b, err := json.Marshal(r.Policy)
 	if err != nil {
 		return err
 	}
-	allow := 0
+	allow, auto := 0, 0
+	var since int64
 	if r.AllowWrites {
 		allow = 1
 	}
-	_, err = d.ExecContext(ctx, `INSERT INTO ltc_rules(library_id, policy, output, allow_writes, updated_at) VALUES(?, ?, ?, ?, ?)
-		ON CONFLICT(library_id) DO UPDATE SET policy = excluded.policy, output = excluded.output, allow_writes = excluded.allow_writes, updated_at = excluded.updated_at`,
-		r.LibraryID, string(b), r.Output, allow, db.Now())
+	if r.Auto {
+		auto, since = 1, db.Now()
+	}
+	_, err = d.ExecContext(ctx, `INSERT INTO ltc_rules(library_id, policy, output, allow_writes, updated_at, auto, auto_since) VALUES(?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(library_id) DO UPDATE SET policy = excluded.policy, output = excluded.output, allow_writes = excluded.allow_writes, updated_at = excluded.updated_at,
+		auto = excluded.auto, auto_since = CASE WHEN excluded.auto <> 0 AND ltc_rules.auto = 0 THEN excluded.auto_since ELSE ltc_rules.auto_since END`,
+		r.LibraryID, string(b), r.Output, allow, db.Now(), auto, since)
 	return err
 }
 
@@ -157,6 +171,7 @@ type Run struct {
 	ID        int64   `json:"id"`
 	LibraryID int64   `json:"libraryId"`
 	Dry       bool    `json:"dry"`
+	Auto      bool    `json:"auto"` // a scan started it, not a person
 	Policy    Policy  `json:"policy"`
 	Output    string  `json:"output"`
 	State     string  `json:"state"` // queued, running, done, failed, cancelled, interrupted
@@ -215,17 +230,20 @@ type FileRow struct {
 	Plan       *Plan   `json:"plan,omitempty"`
 }
 
-func (e *Engine) createRun(ctx context.Context, libraryID int64, p Policy, output string, dry bool, byID int64, by string) (int64, error) {
+func (e *Engine) createRun(ctx context.Context, libraryID int64, p Policy, output string, dry, auto bool, byID int64, by string) (int64, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
 		return 0, err
 	}
-	d := 0
+	d, a := 0, 0
 	if dry {
 		d = 1
 	}
-	res, err := e.DB.ExecContext(ctx, `INSERT INTO ltc_runs(library_id, dry, policy, output, state, by_id, by_name, created_at) VALUES(?, ?, ?, ?, 'queued', ?, ?, ?)`,
-		libraryID, d, string(b), output, byID, by, db.Now())
+	if auto {
+		a = 1
+	}
+	res, err := e.DB.ExecContext(ctx, `INSERT INTO ltc_runs(library_id, dry, auto, policy, output, state, by_id, by_name, created_at) VALUES(?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
+		libraryID, d, a, string(b), output, byID, by, db.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -258,13 +276,14 @@ func (e *Engine) setRunState(ctx context.Context, id int64, state string, sum *S
 
 func scanRun(sc interface{ Scan(...any) error }) (*Run, error) {
 	var r Run
-	var dry int
+	var dry, auto int
 	var policy, summary string
 	var finished sql.NullInt64
-	if err := sc.Scan(&r.ID, &r.LibraryID, &dry, &policy, &r.Output, &r.State, &r.By, &r.CreatedAt, &finished, &summary); err != nil {
+	if err := sc.Scan(&r.ID, &r.LibraryID, &dry, &auto, &policy, &r.Output, &r.State, &r.By, &r.CreatedAt, &finished, &summary); err != nil {
 		return nil, err
 	}
 	r.Dry = dry != 0
+	r.Auto = auto != 0
 	if finished.Valid {
 		r.Finished = &finished.Int64
 	}
@@ -273,7 +292,7 @@ func scanRun(sc interface{ Scan(...any) error }) (*Run, error) {
 	return &r, nil
 }
 
-const runCols = `id, library_id, dry, policy, output, state, by_name, created_at, finished_at, summary`
+const runCols = `id, library_id, dry, auto, policy, output, state, by_name, created_at, finished_at, summary`
 
 // GetRun reads one run.
 func (e *Engine) GetRun(ctx context.Context, id int64) (*Run, error) {

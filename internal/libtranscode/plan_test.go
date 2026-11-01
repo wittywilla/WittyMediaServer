@@ -15,7 +15,7 @@ type atomic32 = atomic.Int32
 func testEnv() Env {
 	return Env{
 		Encoders:  map[string]bool{"libx264": true, "libx265": true, "libsvtav1": true, "aac": true, "ac3": true, "eac3": true, "libopus": true, "hevc_nvenc": true},
-		HasFilter: func(string) bool { return true }, ToneMap: "tonemap-chain", Sidecars: true,
+		HasFilter: func(string) bool { return true }, ToneMap: func(string) string { return "tonemap-chain" }, Sidecars: true,
 	}
 }
 

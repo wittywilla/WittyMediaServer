@@ -1089,7 +1089,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("made an ordinary picture", func(t *testing.T) {
-		if l.engine.Env(context.Background()).ToneMap == "" {
+		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("this FFmpeg has no tone mapping filters")
 		}
 		r := l.run(preset(t, PresetCompatible), OutputBeside)
@@ -1229,7 +1229,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("profile 5 refused, 8 converted from its base layer", func(t *testing.T) {
-		if l.engine.Env(context.Background()).ToneMap == "" {
+		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("no tone mapping")
 		}
 		r := l.run(preset(t, PresetCompatible), OutputBeside)
@@ -1960,7 +1960,7 @@ func TestRealRecover(t *testing.T) {
 	other := l.gen("Crash2.avi", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-c:v", "mpeg4", "-c:a", "mp3"})...)
 	l.scan()
 	ctx := context.Background()
-	runID, err := l.engine.createRun(ctx, l.lib.ID, preset(t, PresetCompatible), OutputKeep, false, 0, "")
+	runID, err := l.engine.createRun(ctx, l.lib.ID, preset(t, PresetCompatible), OutputKeep, false, false, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2014,7 +2014,7 @@ func TestRealRecover(t *testing.T) {
 	os.MkdirAll(originals2, 0o755)
 	kept2 := filepath.Join(originals2, "Crash3.avi")
 	os.Rename(src2, kept2)
-	run2, _ := l2.engine.createRun(ctx, l2.lib.ID, preset(t, PresetCompatible), OutputKeep, false, 0, "")
+	run2, _ := l2.engine.createRun(ctx, l2.lib.ID, preset(t, PresetCompatible), OutputKeep, false, false, 0, "")
 	if _, err = l2.db.ExecContext(ctx, `INSERT INTO ltc_files(run_id, item_id, path, verdict, state, temp_path, final_path, kept_path, swap) VALUES(?, ?, ?, 'convert', 'running', ?, ?, ?, 'keep')`,
 		run2, it.ID, src2, filepath.Join(l2.root, library.WorkFolder, "gone.mp4"), final, kept2); err != nil {
 		t.Fatal(err)

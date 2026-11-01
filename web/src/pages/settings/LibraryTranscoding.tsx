@@ -120,6 +120,9 @@ function RunSettings({ settings, options, onChange }: { settings: Settings; opti
           <HourSelect label="Until" value={draft.hoursTo} onChange={(v) => set({ hoursTo: v })} />
         </Row>
       )}
+      <Row label="Wait for new files to settle" desc="For libraries that convert new files by themselves: how long a file has to stay the same size before it’s touched, so one still being copied or downloaded is left to finish.">
+        <Select value={String(draft.settleSeconds)} options={[...new Set([60, 120, 300, 900, 3600, draft.settleSeconds])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: n < 3600 ? `${Math.round(n / 60)} min` : `${Math.round(n / 3600)} hour` }))} onChange={(e) => set({ settleSeconds: Number(e.target.value) })} />
+      </Row>
       <Row label="How much of the processor" desc="For each file being converted.">
         <Select value={String(draft.threads)} options={threadChoices} onChange={(e) => set({ threads: Number(e.target.value) })} />
       </Row>
@@ -167,15 +170,16 @@ function LibraryPanel({ lib, onSaved, options, settings }: { lib: Library; onSav
   const [output, setOutput] = useState(lib.rule.output)
   const [readOnly, setReadOnly] = useState(lib.readOnly)
   const [allow, setAllow] = useState(lib.rule.allowWrites)
+  const [auto, setAuto] = useState(lib.rule.auto)
   const [busy, setBusy] = useState(false)
   const [ended, setEnded] = useState(0) // runs that have ended, so what they left gets listed
-  const dirty = JSON.stringify(policy) !== JSON.stringify(lib.rule.policy) || output !== lib.rule.output || readOnly !== lib.readOnly || allow !== lib.rule.allowWrites
+  const dirty = JSON.stringify(policy) !== JSON.stringify(lib.rule.policy) || output !== lib.rule.output || readOnly !== lib.readOnly || allow !== lib.rule.allowWrites || auto !== lib.rule.auto
   const save = async () => {
     setBusy(true)
     try {
-      const n = await api.put<Library>(`/libtranscode/libraries/${lib.id}`, { policy, output, readOnly, allowWrites: allow })
+      const n = await api.put<Library>(`/libtranscode/libraries/${lib.id}`, { policy, output, readOnly, allowWrites: allow, auto })
       // What came back is what's saved, tidied by the server, and is what's compared from now on.
-      setPolicy(n.rule.policy); setOutput(n.rule.output); setReadOnly(n.readOnly); setAllow(n.rule.allowWrites)
+      setPolicy(n.rule.policy); setOutput(n.rule.output); setReadOnly(n.readOnly); setAllow(n.rule.allowWrites); setAuto(n.rule.auto)
       onSaved(n); toast('Saved')
     } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
@@ -220,13 +224,16 @@ function LibraryPanel({ lib, onSaved, options, settings }: { lib: Library; onSav
         <Row label="This library is read-only" desc="Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.">
           <Switch label="This library is read-only" checked={readOnly} onChange={setReadOnly} />
         </Row>
+        <Row label="Convert new files by themselves" desc={<>When a scan finds a new or changed file, it waits until the file has stopped changing, then converts it with this recipe, within the limits above, and shows in the activity panel. Files already here when you turn this on are left alone: use Start converting for those. A file that fails or that you put back isn’t tried again unless it changes.{lib.blocked && auto ? <> It can’t run at the moment: {lib.blocked}</> : null}</>}>
+          <Switch label="Convert new files by themselves" checked={auto} onChange={setAuto} />
+        </Row>
         {!options.saveMeta && (
           <Row label="Allow conversions in this library" desc={<>This server keeps metadata out of media folders (<Link to="/settings/metadata">Save next to media</Link> is off), so nothing is written here unless you say so. With this on, new video files are written, but still no subtitle files or artwork.</>}>
             <Switch label="Allow conversions in this library" checked={allow} onChange={setAllow} />
           </Row>
         )}
       </Section>
-      <SaveBar dirty={dirty} busy={busy} save={save} discard={() => { setPolicy(lib.rule.policy); setOutput(lib.rule.output); setReadOnly(lib.readOnly); setAllow(lib.rule.allowWrites) }} />
+      <SaveBar dirty={dirty} busy={busy} save={save} discard={() => { setPolicy(lib.rule.policy); setOutput(lib.rule.output); setReadOnly(lib.readOnly); setAllow(lib.rule.allowWrites); setAuto(lib.rule.auto) }} />
 
       <TryOneFile lib={lib} policy={policy} />
       <Whole lib={lib} policy={policy} output={output} dirty={dirty} settings={settings} save={save} saving={busy} onEnded={() => setEnded((n) => n + 1)} />
@@ -547,7 +554,7 @@ function Whole({ lib, policy, output, dirty, settings, save, saving, onEnded }: 
       {!blocked && !dirty && !lib.rule.saved && <p className="ltc-actions"><span className="ltc-muted">This library has no recipe saved yet. A run does what’s saved.</span> <Button size="sm" busy={saving} onClick={save}>Save this recipe</Button></p>}
       {live && <LiveRun task={live} />}
       {failed && <LoadError what="The results" onRetry={load} />}
-      {runs && latest && !live && <RunResult key={latest.id} run={latest} heading={latest.dry ? 'Latest check' : 'Latest conversion'} />}
+      {runs && latest && !live && <RunResult key={latest.id} run={latest} heading={latest.dry ? 'Latest check' : latest.auto ? 'Latest automatic conversion' : 'Latest conversion'} />}
       {runs && <Past runs={runs.filter((r) => r.id !== latest?.id)} />}
     </Section>
   )
@@ -670,7 +677,7 @@ function Past({ runs }: { runs: Run[] }) {
           <li key={r.id}>
             <details className="ltc-more">
               <summary>
-                <span className="ltc-file-name">{r.dry ? 'Check' : 'Conversion'}, {new Date(r.createdAt * 1000).toLocaleString()}</span>
+                <span className="ltc-file-name">{r.dry ? 'Check' : r.auto ? 'Automatic conversion' : 'Conversion'}, {new Date(r.createdAt * 1000).toLocaleString()}</span>
                 <span className={'ltc-chip ' + r.state}>{RUN_WORDS[r.state] ?? r.state}</span>
               </summary>
               <RunResult run={r} />

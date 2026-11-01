@@ -37,11 +37,19 @@ type Env struct {
 	Sidecars bool
 	// Threads for an encoder. 0 lets FFmpeg decide.
 	Threads int
-	// ToneMap is the filter chain that makes HDR ordinary, "" when this FFmpeg can't.
-	ToneMap string
+	// ToneMap is the filter chain that makes this kind of HDR ordinary, "" when this
+	// FFmpeg can't. May be nil, which means it can't.
+	ToneMap func(rng string) string
 }
 
 func (e Env) filter(name string) bool { return e.HasFilter != nil && e.HasFilter(name) }
+
+func (e Env) toneMap(rng string) string {
+	if e.ToneMap == nil {
+		return ""
+	}
+	return e.ToneMap(rng)
+}
 
 // Step is what happens to one track, in words for the preview, plus what the command
 // needs. Steps of kept tracks are in the order the new file will have them.
@@ -305,7 +313,7 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 			return st, "Dolby Vision doesn't survive conversion, and you chose to keep it, so this file is left as it is."
 		}
 	}
-	if wantTone && env.ToneMap == "" {
+	if wantTone && env.toneMap(v.Range) == "" {
 		return st, "This HDR file can't be made an ordinary picture: this server's FFmpeg doesn't have the filters for it."
 	}
 	isHDR := (v.Range != "sdr" || v.DV) && !wantTone
@@ -338,9 +346,7 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 		st.filters = append(st.filters, flattenFilterFor(v))
 	}
 	if wantTone {
-		// The frames are told what they are first: a file may only say so in its container,
-		// and the filter stops with no way to tell what it's converting from.
-		st.filters = append(st.filters, hdrColorParams(v), env.ToneMap, "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709")
+		st.filters = append(st.filters, env.toneMap(v.Range))
 		st.args = append(st.args, "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709")
 	} else if isHDR {
 		st.args = append(st.args, hdrColorArgs(v)...)

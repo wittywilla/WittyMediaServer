@@ -228,7 +228,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
 	}
 	if d.ToneMap {
-		if tm := s.Tools.ToneMapFilter(); tm != "" {
+		if tm := s.Tools.ToneMapFilter(src.Range); tm != "" {
 			vf = strings.Trim(vf+","+tm, ",")
 		}
 	}

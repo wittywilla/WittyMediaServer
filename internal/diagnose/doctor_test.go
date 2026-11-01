@@ -1154,7 +1154,14 @@ func TestLeftoverHelperIsEnded(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	defer func() { _ = cmd.Process.Kill() }()
-	r := f.run("module-helpers")
+	// On a busy machine the system may take a moment to show the new process as this program.
+	var r *DoctorReport
+	for range 100 {
+		if r = f.run("module-helpers"); r.Find("module-helpers") != nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 	if i := f.issue(r, "module-helpers"); i.Safety != SafetySafe || i.Count != 1 {
 		t.Fatalf("found: %+v", i)
 	}

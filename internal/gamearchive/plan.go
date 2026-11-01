@@ -230,6 +230,14 @@ func score(name, base string) int {
 	if strings.EqualFold(strings.TrimSuffix(n, path.Ext(n)), base) {
 		s += 32
 	}
+	// Named for the archive but for its tags, as a set's main game is. A Satellaview
+	// broadcast in the same set needs a receiver's cartridge to play at all.
+	if title, _, ok := strings.Cut(n, " ("); ok && strings.EqualFold(title, strings.TrimSpace(base)) {
+		s += 16
+	}
+	if strings.HasPrefix(n, "BS ") {
+		s -= 4
+	}
 	if strings.Contains(n, "[!]") {
 		s += 3
 	}

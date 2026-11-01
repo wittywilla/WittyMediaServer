@@ -248,6 +248,35 @@ func (m *Manager) ZipPath(id string) (string, error) { return m.zipPath(id) }
 // Add validates an uploaded theme ZIP and stores it as <id>.zip. The id comes
 // from theme.json "id" or else the uploaded file name.
 func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
+	meta, err := parseTheme(data)
+	if err != nil {
+		return nil, err
+	}
+	id := strings.ToLower(meta.ID)
+	if id == "" {
+		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
+	}
+	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
+	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
+		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if cur, err := m.readMeta(filepath.Join(m.Dir, id+".zip")); err == nil && cur.Builtin {
+		return nil, fmt.Errorf("%q is a built-in theme; give your theme a different id", id)
+	}
+	if err := os.MkdirAll(m.Dir, 0o755); err != nil {
+		return nil, err
+	}
+	if err := writeAtomic(filepath.Join(m.Dir, id+".zip"), data); err != nil {
+		return nil, err
+	}
+	meta.ID = id
+	return meta, nil
+}
+
+// parseTheme checks a ZIP by the rules for a theme, and reads its theme.json.
+func parseTheme(data []byte) (*Meta, error) {
 	if len(data) > maxZipBytes {
 		return nil, fmt.Errorf("theme ZIP is larger than %d MB", maxZipBytes>>20)
 	}
@@ -290,27 +319,14 @@ func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
 	if meta.Builtin {
 		return nil, errors.New(`remove "builtin": true from theme.json (it is reserved for the themes that ship with WittyMediaServer)`)
 	}
-	id := strings.ToLower(meta.ID)
-	if id == "" {
-		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
-	}
-	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
-	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
-		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if cur, err := m.readMeta(filepath.Join(m.Dir, id+".zip")); err == nil && cur.Builtin {
-		return nil, fmt.Errorf("%q is a built-in theme; give your theme a different id", id)
-	}
-	if err := os.MkdirAll(m.Dir, 0o755); err != nil {
-		return nil, err
-	}
-	if err := writeAtomic(filepath.Join(m.Dir, id+".zip"), data); err != nil {
-		return nil, err
-	}
-	meta.ID = id
 	return &meta, nil
+}
+
+// CheckZip says whether a ZIP would be accepted as a theme someone uploads, by the same
+// rules, without keeping it.
+func CheckZip(data []byte) error {
+	_, err := parseTheme(data)
+	return err
 }
 
 // Remove deletes a user theme (built-ins are recreated at start-up, so they

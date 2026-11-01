@@ -1557,6 +1557,11 @@ func TestHostileFiles(t *testing.T) {
 		"cut-ole":  append([]byte("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"), noise[:2048]...),
 		"cut-iso":  append(append(make([]byte, 0x8001), "CD001"...), noise[:4096]...),
 	}
+	order := make([]string, 0, len(bodies))
+	for name := range bodies {
+		order = append(order, name)
+	}
+	sort.Strings(order)
 	for lib, exts := range map[string]string{
 		"videos": ".mkv .mp4 .avi .ts .m2ts .wmv .rm .mpg .webm .mxf .y4m .ivf .h264",
 		"music":  ".mp3 .flac .m4a .ogg .wav .mid .mod .xm .nsf .spc .dsf .ape .mka .cue .m3u .pls .xspf .asx",
@@ -1568,9 +1573,16 @@ func TestHostileFiles(t *testing.T) {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		for _, e := range strings.Fields(exts) {
-			for name, b := range bodies {
-				if err := os.WriteFile(filepath.Join(dir, name+"-"+strings.TrimPrefix(e, ".")+e), b, 0o644); err != nil {
+		for i, e := range strings.Fields(exts) {
+			// Every kind of damage for each extension takes minutes. The full run is for
+			// when the parsers change: WMS_HOSTILE_FULL=1.
+			every := []string{"noise", "html", "prog"}
+			every = append(every, order[i%len(order)])
+			if os.Getenv("WMS_HOSTILE_FULL") != "" {
+				every = order
+			}
+			for _, name := range every {
+				if err := os.WriteFile(filepath.Join(dir, name+"-"+strings.TrimPrefix(e, ".")+e), bodies[name], 0o644); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -1582,7 +1594,7 @@ func TestHostileFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, it := range items {
-			for _, u := range []string{"/book", "/page/0", "/image?w=320", "/motion", "/file", "/stream"} {
+			for _, u := range map[string][]string{"book": {"/book", "/page/0", "/file"}, "photo": {"/image?w=320", "/motion"}, "video": {"/file"}, "audio": {"/stream"}}[it.Kind] {
 				w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d%s", it.ID, u), tok, nil, "Range", "bytes=0-99")
 				if w.Code >= 500 && w.Code != 503 && strings.Contains(w.Body.String(), "panic") {
 					t.Errorf("%s %s: %d %s", it.Path, u, w.Code, trimBody(w.Body.String()))

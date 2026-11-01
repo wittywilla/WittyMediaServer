@@ -1,9 +1,9 @@
 package library
 
 import (
-	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"database/sql"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"strings"
 )
 
@@ -143,6 +143,12 @@ func (s *Store) Artists(ctx context.Context, libraryID int64, access *Access) ([
 // audioPlaysDirect: a browser plays this sound file as it is. Everything else is
 // converted to AAC while streaming.
 func audioPlaysDirect(it *Item) bool {
+	// A track of a CD comes as plain samples, and a podcast from wherever it lives: there
+	// is no file here to look at, only what the sound is.
+	if it.IsCDTrack() || it.Container == "" || strings.Contains(it.Path, "://") {
+		c := mediatypes.CodecByID(it.VideoCodec)
+		return c != nil && c.Browser
+	}
 	return mediatypes.AudioPlaysDirect(mediatypes.Canonical(it.Container, it.Path, "", it.VideoCodec), it.VideoCodec)
 }
 

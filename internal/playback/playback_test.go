@@ -66,6 +66,7 @@ func TestWebProfile(t *testing.T) {
 		{"12-bit vp9 plays", func(s *Source) { s.VideoCodec = "vp9"; s.Container = "webm"; s.Audio[0].Codec = "opus"; s.BitDepth = 10 }, nil, Direct, false},
 		{"3D in 2D", func(s *Source) { s.Stereo = "sbs" }, func(q *Request) { q.Flatten3D = true }, Transcode, false},
 		{"3D as it is", func(s *Source) { s.Stereo = "sbs" }, nil, Direct, false},
+		{"over the limit away from home", nil, func(q *Request) { q.OverLimit = true }, Transcode, false},
 		{"sound only goes through a stream", func(s *Source) { s.HasVideo = false; s.VideoCodec = "" }, nil, Transcode, false},
 	}
 	for _, c := range cases {
@@ -165,6 +166,17 @@ func TestExplanations(t *testing.T) {
 	}
 	if a := ExplainAudio(false, "ape", "ape"); a.Load != "light" || !strings.Contains(a.Source, "Monkey") {
 		t.Errorf("%+v", a)
+	}
+}
+
+func TestStereoForBrowsersSurroundForTVs(t *testing.T) {
+	s := h264MP4()
+	s.Audio[0].Channels, s.Audio[0].Codec = 6, "dts"
+	if d := Decide(prof(t, "web"), s, req()); d.AudioChannels != 2 {
+		t.Errorf("browser: %d channels", d.AudioChannels)
+	}
+	if d := Decide(prof(t, "appletv"), s, req()); d.AudioChannels != 6 {
+		t.Errorf("TV: %d channels", d.AudioChannels)
 	}
 }
 

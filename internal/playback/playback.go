@@ -52,6 +52,7 @@ const (
 	ReasonSplit        = "split-file"        // a film in several files plays as one stream
 	ReasonVideoTrack   = "video-track"       // another video stream of the file was chosen
 	ReasonFlatten3D    = "flatten-3d"        // a 3D picture shown as 2D
+	ReasonRemoteLimit  = "remote-limit"      // more data than viewers away from home are allowed
 )
 
 // Profile says what a client can play. The built-in ones are a safe default
@@ -77,6 +78,10 @@ type Profile struct {
 	MaxHeight        int `json:"maxHeight"`
 	MaxBitrateKbps   int `json:"maxBitrateKbps"`
 	MaxAudioChannels int `json:"maxAudioChannels"`
+	// SurroundOutput: sound that has to be converted stays 5.1. Otherwise it becomes
+	// stereo, which is what plays everywhere (a browser folds 5.1 down itself, but only
+	// when it has to, and stereo is far less to send).
+	SurroundOutput bool `json:"surroundOutput"`
 	// SwitchAudio: the player can pick another sound track inside a file, so
 	// choosing one needs no new stream.
 	SwitchAudio bool `json:"switchAudio"`
@@ -126,7 +131,7 @@ func Profiles() []Profile {
 			ID: "appletv", Name: "Apple TV 4K",
 			Containers: []string{"mp4", "m4v", "mov"}, VideoCodecs: []string{"h264", "hevc"},
 			AudioCodecs: []string{"aac", "ac3", "eac3", "alac", "mp3"},
-			HDR:         []string{"hdr10", "hlg", "dv5"}, TenBit: true, HVC1Only: true, MaxHeight: 2160, SwitchAudio: true,
+			HDR:         []string{"hdr10", "hlg", "dv5"}, TenBit: true, HVC1Only: true, MaxHeight: 2160, SwitchAudio: true, SurroundOutput: true,
 			EmbeddedSubtitles: []string{"mov_text"},
 			Remux:             true, HLSVideo: []string{"h264", "hevc"}, HLSAudio: []string{"aac", "ac3", "eac3"}, FMP4Video: []string{"hevc"}, HLSSubtitles: true,
 		},
@@ -134,7 +139,7 @@ func Profiles() []Profile {
 			ID: "appletv-hd", Name: "Apple TV HD",
 			Containers: []string{"mp4", "m4v", "mov"}, VideoCodecs: []string{"h264"},
 			AudioCodecs: []string{"aac", "ac3", "eac3", "alac", "mp3"},
-			HDR:         []string{}, MaxHeight: 1080, SwitchAudio: true,
+			HDR:         []string{}, MaxHeight: 1080, SwitchAudio: true, SurroundOutput: true,
 			EmbeddedSubtitles: []string{"mov_text"},
 			Remux:             true, HLSVideo: []string{"h264"}, HLSAudio: []string{"aac", "ac3", "eac3"}, FMP4Video: []string{}, HLSSubtitles: true,
 		},
@@ -142,7 +147,7 @@ func Profiles() []Profile {
 			ID: "androidtv", Name: "Android TV",
 			Containers: []string{"mp4", "m4v", "mov", "mkv", "webm", "ts"}, VideoCodecs: []string{"h264", "hevc", "vp9"},
 			AudioCodecs: []string{"aac", "mp3", "flac", "opus", "vorbis"},
-			HDR:         []string{}, TenBit: true, MaxHeight: 2160, SwitchAudio: true,
+			HDR:         []string{}, TenBit: true, MaxHeight: 2160, SwitchAudio: true, SurroundOutput: true,
 			EmbeddedSubtitles: []string{"subrip", "ass", "ssa", "webvtt", "mov_text", "hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle"},
 			SidecarSubtitles:  true,
 			Remux:             true, HLSVideo: []string{"h264", "hevc"}, HLSAudio: []string{"aac", "mp3"}, FMP4Video: []string{"hevc"}, HLSSubtitles: true,
@@ -273,13 +278,13 @@ type Subtitle struct {
 
 // Source describes a file, from the media probe.
 type Source struct {
-	Container   string // file extension without the dot
-	HasVideo    bool
-	VideoCodec  string
-	VideoTag    string // hvc1, hev1, avc1...
-	Height      int
-	BitDepth    int
-	Range       string // sdr | hdr10 | hlg | dv5
+	Container  string // file extension without the dot
+	HasVideo   bool
+	VideoCodec string
+	VideoTag   string // hvc1, hev1, avc1...
+	Height     int
+	BitDepth   int
+	Range      string // sdr | hdr10 | hlg | dv5
 	// Dynamic names what the range doesn't say, for the player's information: "HDR10+",
 	// or the Dolby Vision profile a base layer belongs to.
 	Dynamic    string
@@ -288,7 +293,7 @@ type Source struct {
 	// the other). "" is an ordinary picture.
 	Stereo string
 	// Parts: how many files a split film is stored in. 0 or 1 is an ordinary file.
-	Parts int
+	Parts       int
 	BitrateKbps int
 	Audio       []Audio
 	Subtitles   []Subtitle
@@ -305,6 +310,7 @@ type Request struct {
 	BurnSubtitle   bool // the client wants this subtitle in the picture (styled ASS)
 	VideoIndex     int  // which of the file's video streams, when it has several
 	Flatten3D      bool // show one eye of a 3D picture
+	OverLimit      bool // the file sent as it is would be over the limit for viewers away from home
 }
 
 // Decision is how the file will play.
@@ -336,7 +342,7 @@ func Decide(p Profile, src Source, q Request) Decision {
 	}
 	maxH := Smallest(p.MaxHeight, q.MaxHeight)
 	maxKbps := Smallest(p.MaxBitrateKbps, q.MaxBitrateKbps)
-	if a != nil && a.Channels > 2 && (p.MaxAudioChannels == 0 || p.MaxAudioChannels >= 6) {
+	if a != nil && a.Channels > 2 && p.SurroundOutput && (p.MaxAudioChannels == 0 || p.MaxAudioChannels >= 6) {
 		d.AudioChannels = 6
 	}
 
@@ -346,6 +352,9 @@ func Decide(p Profile, src Source, q Request) Decision {
 		picture = pictureProblems(p, src, maxH, maxKbps)
 		if q.Flatten3D && src.Stereo != "" {
 			picture = append(picture, ReasonFlatten3D)
+		}
+		if q.OverLimit {
+			picture = append(picture, ReasonRemoteLimit)
 		}
 	}
 	var direct []string

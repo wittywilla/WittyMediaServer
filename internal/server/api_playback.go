@@ -590,7 +590,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	q, serverMax := s.quality(r)
 	req := playback.Request{AudioIndex: chosen.Audio, SubtitleIndex: chosen.Subtitle, MaxBitrateKbps: b.MaxBitrateKbps, BurnSubtitle: b.BurnSubtitle,
 		AllowDirect: s.DB.GetSetting(ctx, "directPlay", "1") == "1", ForceTranscode: b.ForceTranscode, MaxHeight: playback.Smallest(b.MaxHeight, serverMax),
-		VideoIndex: videoPick, Flatten3D: b.Flatten3D}
+		VideoIndex: videoPick, Flatten3D: b.Flatten3D, OverLimit: !s.fitsCap(r, it.SizeBytes, pr.Duration())}
 	d := playback.Decide(p, src, req)
 
 	out.DurationSec = pr.Duration()
@@ -602,6 +602,14 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	out.VideoIndex, out.Stereo = videoPick, src.Stereo
 	out.Flattened = b.Flatten3D && src.Stereo != ""
 	ex := playback.Explain(d, src, req)
+	// The web app follows the sound format chosen in Settings. Apps ask by what they play.
+	audioCodec := "aac"
+	if p.ID == "web" {
+		audioCodec = s.audioCodec(r)
+		if audioCodec == "mp3" {
+			ex.Sound = strings.Replace(ex.Sound, "AAC", "MP3", 1)
+		}
+	}
 	out.Explain = &ex
 	if len(pictures) > 1 {
 		for i, v := range pictures {
@@ -701,7 +709,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	spec := hls.Spec{
 		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
-		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: "aac", VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
+		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: audioCodec, VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
 	}
 	if burn >= 0 {
 		if st := src.Subtitles[burn]; st.File != "" {

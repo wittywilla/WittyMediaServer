@@ -4970,6 +4970,9 @@
           "sidecarSubtitles": {
             "type": "boolean"
           },
+          "surroundOutput": {
+            "type": "boolean"
+          },
           "switchAudio": {
             "type": "boolean"
           },
@@ -5005,6 +5008,7 @@
           "name",
           "remux",
           "sidecarSubtitles",
+          "surroundOutput",
           "switchAudio",
           "tenBit",
           "videoCodecs"

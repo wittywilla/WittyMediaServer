@@ -48,6 +48,7 @@ var reasonWords = map[string]string{
 	ReasonSplit:        "The film is split across files, which play as one stream.",
 	ReasonVideoTrack:   "Another video stream of the file was chosen.",
 	ReasonFlatten3D:    "A 3D picture is being shown in 2D.",
+	ReasonRemoteLimit:  "The file holds more data than this server allows for viewers away from home.",
 }
 
 // ReasonText puts a reason in words.

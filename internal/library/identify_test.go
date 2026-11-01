@@ -293,3 +293,25 @@ func TestTitlesKeepWordsThatLookLikeExtensions(t *testing.T) {
 		}
 	}
 }
+
+func TestWhatPlaysDirect(t *testing.T) {
+	disc := int64(1)
+	for _, c := range []struct {
+		name string
+		it   Item
+		want bool
+	}{
+		{"mp3", Item{Container: "mp3", Path: "/a.mp3", VideoCodec: "mp3"}, true},
+		{"m4a", Item{Container: "mov", Path: "/a.m4a", VideoCodec: "aac"}, true},
+		{"alac", Item{Container: "mov", Path: "/a.m4a", VideoCodec: "alac"}, false},
+		{"flac in matroska", Item{Container: "matroska", Path: "/a.mka", VideoCodec: "flac"}, false},
+		{"opus in weba", Item{Container: "matroska", Path: "/a.weba", VideoCodec: "opus"}, true},
+		{"a CD track", Item{Container: "cue", Path: "/a.cue#track=1", VideoCodec: "pcm_s16le", CDDisc: &disc}, true},
+		{"a podcast online", Item{Path: "https://example.test/ep.mp3?x=1", VideoCodec: "mp3"}, true},
+		{"nothing known", Item{Path: "/a.ape", VideoCodec: "ape"}, false},
+	} {
+		if got := audioPlaysDirect(&c.it); got != c.want {
+			t.Errorf("%s: %v", c.name, got)
+		}
+	}
+}

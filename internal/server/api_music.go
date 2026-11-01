@@ -4,6 +4,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -114,8 +115,14 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	}
 	w = s.capWriter(w, r)
 	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
+		f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
+		if err != nil {
+			writeErr(w, 404, "not found")
+			return
+		}
+		defer f.Close()
 		w.Header().Set("Cache-Control", "private, max-age=3600")
-		http.ServeFile(w, r, it.Path)
+		http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
 		return
 	}
 	select {

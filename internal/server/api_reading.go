@@ -93,7 +93,7 @@ func (s *Server) handleBookSearch(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	zr, done, err := library.OpenArchive(it.Path)
+	zr, done, err := s.Store.OpenArchive(r.Context(), it.Path)
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not open a book", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		writeErr(w, 500, "cannot open this book")

@@ -2,12 +2,15 @@ package library
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -207,5 +210,108 @@ func TestSafeName(t *testing.T) {
 		case "CON", "NUL", "AUX", "PRN":
 			t.Errorf("safeName(%q) = %q is a reserved device name", in, got)
 		}
+	}
+}
+
+// junction makes a link to a folder that any account can make on Windows, and a symbolic link
+// elsewhere.
+func junction(t *testing.T, target, link string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+			t.Fatalf("%v %s", err, out)
+		}
+		return
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestOpenInRootsStaysInside(t *testing.T) {
+	lib, other, outside := t.TempDir(), t.TempDir(), t.TempDir()
+	roots := []string{lib, other}
+	write := func(p, data string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(lib, "sub", "film.mp4"), "film")
+	write(filepath.Join(other, "there", "film.mp4"), "other library")
+	write(filepath.Join(outside, "film.mp4"), "SECRET")
+	read := func(p string) (string, error) {
+		f, st, err := openInRoots(p, roots)
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+		if st.Size() == 0 {
+			return "", nil
+		}
+		b, err := io.ReadAll(f)
+		return string(b), err
+	}
+	if got, err := read(filepath.Join(lib, "sub", "film.mp4")); err != nil || got != "film" {
+		t.Errorf("a plain file: %q %v", got, err)
+	}
+	if _, err := read(filepath.Join(outside, "film.mp4")); !errors.Is(err, ErrNotInLibrary) {
+		t.Errorf("outside: %v", err)
+	}
+	if _, err := read(lib); err == nil {
+		t.Error("the folder itself opened")
+	}
+	if _, err := read(filepath.Join(lib, "missing.mp4")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("missing: %v", err)
+	}
+
+	// A folder link leading out is refused, wherever it is in the path.
+	junction(t, outside, filepath.Join(lib, "away"))
+	if got, err := read(filepath.Join(lib, "away", "film.mp4")); err == nil {
+		t.Errorf("through a link out: %q", got)
+	}
+	if resolvesInside(filepath.Join(lib, "away", "film.mp4"), roots) {
+		t.Error("the check says a link out is inside")
+	}
+	// One leading inside, or to another library, still works: an absolute link can't be followed
+	// by os.Root by itself, and real setups have them.
+	junction(t, filepath.Join(lib, "sub"), filepath.Join(lib, "alias"))
+	if got, err := read(filepath.Join(lib, "alias", "film.mp4")); err != nil || got != "film" {
+		t.Errorf("a link inside the library: %q %v", got, err)
+	}
+	junction(t, filepath.Join(other, "there"), filepath.Join(lib, "next"))
+	if got, err := read(filepath.Join(lib, "next", "film.mp4")); err != nil || got != "other library" {
+		t.Errorf("a link to another library: %q %v", got, err)
+	}
+}
+
+func TestFileLinksInOpenInRoots(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	secret := filepath.Join(outside, "wms.db")
+	if err := os.WriteFile(secret, []byte("SECRET"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	real := filepath.Join(lib, "real.mp4")
+	if err := os.WriteFile(real, []byte("film"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	symlink(t, secret, filepath.Join(lib, "steal.mp4"))
+	symlink(t, real, filepath.Join(lib, "absolute.mp4"))
+	symlink(t, "real.mp4", filepath.Join(lib, "relative.mp4"))
+	roots := []string{lib}
+	if f, _, err := openInRoots(filepath.Join(lib, "steal.mp4"), roots); err == nil {
+		f.Close()
+		t.Error("a link out opened")
+	}
+	for _, n := range []string{"absolute.mp4", "relative.mp4"} {
+		f, _, err := openInRoots(filepath.Join(lib, n), roots)
+		if err != nil {
+			t.Errorf("%s: %v", n, err)
+			continue
+		}
+		f.Close()
 	}
 }

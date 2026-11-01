@@ -24,14 +24,14 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{"format": it.Container, "reading": it.Reading, "title": it.Title}
 	switch it.Container {
 	case "cbz":
-		pages, err := library.ArchivePages(it.Path)
+		pages, err := s.Store.ArchivePages(r.Context(), it.Path)
 		if err != nil {
 			writeErr(w, 500, "cannot open this comic")
 			return
 		}
 		out["pages"] = len(pages)
 	case "epub":
-		info, words, err := library.ArchiveEPUB(it.Path)
+		info, words, err := s.Store.ArchiveEPUB(r.Context(), it.Path)
 		if err != nil {
 			writeErr(w, 422, err.Error())
 			return
@@ -63,12 +63,12 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n, err := strconv.Atoi(r.PathValue("n"))
-	pages, perr := library.ArchivePages(it.Path)
+	pages, perr := s.Store.ArchivePages(r.Context(), it.Path)
 	if err != nil || perr != nil || n < 0 || n >= len(pages) {
 		writeErr(w, 404, "no such page")
 		return
 	}
-	zr, done, err := library.OpenArchive(it.Path)
+	zr, done, err := s.Store.OpenArchive(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 500, "cannot open this comic")
 		return
@@ -93,7 +93,7 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad path")
 		return
 	}
-	zr, done, err := library.OpenArchive(it.Path)
+	zr, done, err := s.Store.OpenArchive(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 500, "cannot open this book")
 		return

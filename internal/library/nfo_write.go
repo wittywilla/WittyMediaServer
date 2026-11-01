@@ -87,13 +87,15 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 	case isRemote(ref):
 		b, err = fetchPicture(ctx, ref)
 	default:
-		if !s.Store.LibraryFile(ctx, ref) {
+		f, st, oerr := s.Store.OpenLibraryFile(ctx, ref)
+		if oerr != nil {
 			return nil, errors.New("artwork outside the libraries")
 		}
-		if st, serr := os.Stat(ref); serr == nil && st.Size() > 20<<20 { // the same limit as a download
+		defer f.Close()
+		if st.Size() > maxPictureRead { // the same limit as a download
 			return nil, errors.New("image too large")
 		}
-		b, err = os.ReadFile(ref)
+		b, err = io.ReadAll(io.LimitReader(f, maxPictureRead))
 	}
 	if err != nil {
 		return nil, err
@@ -120,8 +122,11 @@ func fetchPicture(ctx context.Context, ref string) ([]byte, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("image fetch: %s", res.Status)
 	}
-	return io.ReadAll(io.LimitReader(res.Body, 20<<20))
+	return io.ReadAll(io.LimitReader(res.Body, maxPictureRead))
 }
+
+// maxPictureRead is the largest picture read to be stored.
+const maxPictureRead = 20 << 20
 
 // writeArt stores image bytes at dst (unless dst already is the source).
 func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {

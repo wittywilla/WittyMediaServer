@@ -162,7 +162,7 @@ const maxCoverPixels = "100000000"
 
 // makeCover turns an image inside an archive into a 400 px cover.
 func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) error {
-	zr, err := zip.OpenReader(archive)
+	zr, err := openZip(archive)
 	if err != nil {
 		return err
 	}
@@ -261,12 +261,12 @@ var comicAges = map[string]string{"everyone": "G", "everyone 10+": "PG", "g": "G
 	"mature 17+": "R", "m": "R", "ma15+": "MA15+", "adults only 18+": "18", "x18+": "18", "r18+": "18"}
 
 func (s *Scanner) readCBZMeta(it *Item) func(context.Context, string) error {
-	zr, err := zip.OpenReader(it.Path)
+	zr, err := openZip(it.Path)
 	if err != nil {
 		return nil
 	}
 	defer zr.Close()
-	pages := ComicPages(&zr.Reader)
+	pages := ComicPages(zr.Reader)
 	it.RuntimeSec = float64(len(pages)) // books: length in pages
 	for _, f := range zr.File {
 		if strings.EqualFold(path.Base(f.Name), "ComicInfo.xml") {
@@ -478,12 +478,12 @@ type ncxPoint struct {
 }
 
 func (s *Scanner) readEPUBMeta(it *Item) func(context.Context, string) error {
-	zr, err := zip.OpenReader(it.Path)
+	zr, err := openZip(it.Path)
 	if err != nil {
 		return nil
 	}
 	defer zr.Close()
-	info, err := ReadEPUB(&zr.Reader)
+	info, err := ReadEPUB(zr.Reader)
 	if err != nil {
 		return nil
 	}
@@ -564,7 +564,7 @@ var archiveCache = struct {
 const archiveIdle = 2 * time.Minute
 
 type cachedArchive struct {
-	zr      *zip.ReadCloser
+	zr      *zipFile
 	mtime   time.Time
 	used    time.Time
 	pages   []string
@@ -592,9 +592,42 @@ func sweepArchives() {
 	}
 }
 
-// OpenArchive returns an open archive (call the release func when done).
-func OpenArchive(p string) (*zip.Reader, func(), error) {
-	st, err := os.Stat(p)
+// zipFile is a zip read through a handle already open, so it is the file that was checked.
+type zipFile struct {
+	*zip.Reader
+	f *os.File
+}
+
+func (z *zipFile) Close() error { return z.f.Close() }
+
+// newZipFile takes over f.
+func newZipFile(f *os.File, st fs.FileInfo) (*zipFile, error) {
+	zr, err := zip.NewReader(f, st.Size())
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	return &zipFile{Reader: zr, f: f}, nil
+}
+
+// openZip opens a zip found by a scan.
+func openZip(p string) (*zipFile, error) {
+	f, err := os.OpenFile(p, os.O_RDONLY|openNoBlock, 0)
+	if err != nil {
+		return nil, err
+	}
+	st, err := f.Stat()
+	if err != nil || st.IsDir() || !plainMode(st.Mode()) {
+		f.Close()
+		return nil, fs.ErrInvalid
+	}
+	return newZipFile(f, st)
+}
+
+// OpenArchive returns an open archive of a library (call the release func when done). The
+// file is opened again each time, so one replaced since doesn't get by on the copy kept open.
+func (s *Store) OpenArchive(ctx context.Context, p string) (*zip.Reader, func(), error) {
+	f, st, err := s.OpenLibraryFile(ctx, p)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -603,8 +636,9 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 	defer archiveCache.Unlock()
 	cur := archiveCache.m[p]
 	if cur != nil && cur.mtime.Equal(st.ModTime()) {
+		f.Close()
 		cur.used, cur.readers = time.Now(), cur.readers+1
-		return &cur.zr.Reader, func() { release(cur) }, nil
+		return cur.zr.Reader, func() { release(cur) }, nil
 	}
 	if cur != nil { // the file was replaced
 		delete(archiveCache.m, p)
@@ -614,7 +648,7 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 			cur.stale = true
 		}
 	}
-	zr, err := zip.OpenReader(p)
+	zr, err := newZipFile(f, st)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -643,7 +677,7 @@ func OpenArchive(p string) (*zip.Reader, func(), error) {
 	}
 	c := &cachedArchive{zr: zr, mtime: st.ModTime(), used: time.Now(), readers: 1}
 	archiveCache.m[p] = c
-	return &zr.Reader, func() { release(c) }, nil
+	return zr.Reader, func() { release(c) }, nil
 }
 
 func release(c *cachedArchive) {
@@ -656,8 +690,8 @@ func release(c *cachedArchive) {
 }
 
 // ArchiveEPUB is ReadEPUB and WordCounts for a cached archive.
-func ArchiveEPUB(p string) (*EPUBInfo, []int, error) {
-	zr, done, err := OpenArchive(p)
+func (s *Store) ArchiveEPUB(ctx context.Context, p string) (*EPUBInfo, []int, error) {
+	zr, done, err := s.OpenArchive(ctx, p)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -683,8 +717,8 @@ func ArchiveEPUB(p string) (*EPUBInfo, []int, error) {
 }
 
 // ArchivePages is ComicPages for a cached archive.
-func ArchivePages(p string) ([]string, error) {
-	zr, done, err := OpenArchive(p)
+func (s *Store) ArchivePages(ctx context.Context, p string) ([]string, error) {
+	zr, done, err := s.OpenArchive(ctx, p)
 	if err != nil {
 		return nil, err
 	}

@@ -276,17 +276,12 @@ func originalType(name string) string {
 }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
-	f, err := os.Open(it.Path)
+	f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")
 		return
 	}
 	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || st.IsDir() {
-		writeErr(w, 404, "file missing")
-		return
-	}
 	h := w.Header()
 	h.Set("Content-Type", originalType(it.Path))
 	h.Set("Content-Security-Policy", "default-src 'none'; sandbox")

@@ -11,7 +11,7 @@ import LegalNote from '../components/LegalNote'
 // into the server. No account, no navigation, nothing but what was shared.
 
 type SharedItem = { id: number; kind: 'photo' | 'video'; title: string; takenAt?: number; width: number; height: number; durationSec?: number }
-type Shared = { kind: 'item' | 'album'; title: string; owner: string; allowDownload: boolean; expiresAt: number | null; items: SharedItem[] }
+type Shared = { kind: 'item' | 'album'; title: string; allowDownload: boolean; expiresAt: number | null; items: SharedItem[] }
 
 export default function SharedPage() {
   const { token } = useParams()
@@ -33,7 +33,7 @@ export default function SharedPage() {
     <div className="gal-public">
       <header className="gal-public-head">
         <h1>{data.title}</h1>
-        <p className="muted">Shared by {data.owner}{data.expiresAt ? ` · until ${new Date(data.expiresAt * 1000).toLocaleDateString()}` : ''}</p>
+        {data.expiresAt ? <p className="muted">Until {new Date(data.expiresAt * 1000).toLocaleDateString()}</p> : null}
         <LegalNote kind="sharedView" newTab />
       </header>
       <div className="gal-grid">

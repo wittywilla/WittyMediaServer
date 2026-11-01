@@ -21,7 +21,10 @@ type Issue = Finding & {
 }
 type Report = { version: string; at: number; tookMs: number; data: string; serverRunning: boolean; checks: { id: string }[]; issues: Issue[]; problems: number; warnings: number; notes: number; fixable: number }
 type FixResult = { key: string; title: string; ok: boolean; done?: string; error?: string; copy?: string; restart?: boolean }
-type View = { running?: string; phase?: string; fraction: number; report?: Report; results: FixResult[]; restart: boolean; canRestart: boolean; twoFactor: boolean; error?: string; copies: string[] }
+type View = {
+  running?: string; phase?: string; fraction: number; report?: Report; results: FixResult[]; restart: boolean; canRestart: boolean; twoFactor: boolean; error?: string; copies: string[]
+  lastRepair?: { ok: boolean; kept?: string; error?: string; at: string }
+}
 type RemapPlan = { from: string; to: string; roots: number; rows: number; checked: number; found: number; sample: string[]; notFound: string[]; canApply: boolean; why?: string; applied?: boolean; copy?: string }
 
 const POLL_MS = 1200
@@ -124,6 +127,8 @@ export default function Repair() {
     <>
       <PageHead title="Repair" desc="Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first." />
       {TABS.length > 1 && <Tabs value="check" items={TABS} label="Repair" />}
+      {view.lastRepair && !view.lastRepair.ok && <Notice tone="danger" title="The repaired database couldn’t take over">{view.lastRepair.error} The old database is still in use. Run the check again.</Notice>}
+      {view.lastRepair?.ok && <Notice tone="ok" title="The repaired database is in use">It took over on {fmtDateTime(new Date(view.lastRepair.at).getTime())}. The old file is kept in <code>{view.lastRepair.kept}</code>.</Notice>}
       <Section title="Check this server" desc={<>Your media files are never changed or removed. To check a disc or a drive’s speed and health, use <Link to="/settings/diagnoser">WittyDiagnoser</Link>.</>}>
         <div className="rp-start">
           <button type="button" className="btn primary big" onClick={start} disabled={running}>{view.running === 'check' ? 'Checking…' : rep ? 'Check again' : 'Check this server'}</button>

@@ -843,7 +843,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		return nil
 	}
 	return []Issue{{Key: "nfo-files", Severity: SevWarn, Title: "Some NFO or metadata files can't be read", Safety: SafetyManual, Count: len(bad), Details: bad,
-		What: countOf(len(bad), "file beside your media has", "files beside your media have") + " a mistake in them, so what's in them is ignored. These are your own files, and nothing here changes them.",
+		What: countOf(len(bad), "file beside your media has a mistake, so it's", "files beside your media have mistakes, so they're") + " ignored. These are your own files, and nothing here changes them.",
 		Fix:  "Open the file and fix the line named.",
 		Steps: []string{
 			"Open the file in a text editor and go to the line named. Most often it's a stray & (write &amp;) or a tag that was never closed.",

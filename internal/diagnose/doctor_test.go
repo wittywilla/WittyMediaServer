@@ -192,9 +192,11 @@ func TestDoctorOnlySelects(t *testing.T) {
 			t.Errorf("%s was not asked for", c.ID)
 		}
 	}
-	all, _ := Selected(nil)
-	if len(all) != len(AllChecks()) {
-		t.Fatal("no list should mean every check")
+	for _, none := range [][]string{nil, {""}, {" "}} {
+		all, err := Selected(none)
+		if err != nil || len(all) != len(AllChecks()) {
+			t.Fatalf("%q should mean every check: %d, %v", none, len(all), err)
+		}
 	}
 }
 

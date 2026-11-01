@@ -277,6 +277,9 @@ func Selected(only []string) ([]Check, error) {
 		}
 		want[o] = true
 	}
+	if len(want) == 0 {
+		return all, nil
+	}
 	var out []Check
 	for _, c := range all {
 		if want[c.ID] || want[string(c.Area)] {

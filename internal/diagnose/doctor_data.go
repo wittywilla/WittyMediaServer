@@ -383,7 +383,7 @@ func checkTempFiles(_ context.Context, e *DoctorEnv) []Issue {
 		return nil
 	}
 	what := fmt.Sprintf("%s left behind by something that stopped partway.", countOf(n, "temporary file or folder", "temporary files and folders"))
-	if size > 0 {
+	if size >= 1<<20 {
 		what += fmt.Sprintf(" %d MB of them are converted video and unpacked game files.", size>>20)
 	}
 	return []Issue{{Key: "temp-files", Severity: SevWarn, Title: "Leftover temporary files", Safety: SafetySafe, Count: n, Names: names, data: t, What: what,

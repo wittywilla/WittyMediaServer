@@ -9,7 +9,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittymediaserver/internal/modules"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
 // Settings, Repair: the same doctor as `wms doctor`, run by the server on itself. One thing
@@ -50,6 +51,8 @@ type repairView struct {
 	TwoFactor  bool                   `json:"twoFactor"`
 	Error      string                 `json:"error,omitempty"`
 	Copies     []string               `json:"copies"`
+	// LastRepair: how the last database to wait for a restart went.
+	LastRepair *reset.RepairResult `json:"lastRepair,omitempty"`
 }
 
 // repairEnv tells the doctor about this server. Module changes go through the running
@@ -64,7 +67,7 @@ func (s *Server) repairEnv() *diagnose.DoctorEnv {
 	return e
 }
 
-type moduleOps struct{ m *modules.Manager }
+type moduleOps struct{ m *modmgr.Manager }
 
 func (o moduleOps) Rollback(id string) error   { return o.m.Rollback(id) }
 func (o moduleOps) UseBuiltin(id string) error { return o.m.UseBuiltin(id) }
@@ -77,7 +80,13 @@ func (s *Server) repairView(r *http.Request) repairView {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	v := repairView{Running: st.running, Phase: st.phase, Fraction: st.fraction, Report: st.report, Results: st.results, Restart: st.restart, Error: st.err,
-		CanRestart: s.Restart != nil, TwoFactor: userFrom(r).TwoFactor, Copies: diagnose.SafetyCopies(s.Cfg.DataDir)}
+		CanRestart: s.Restart != nil, TwoFactor: userFrom(r).TwoFactor, Copies: diagnose.SafetyCopies(s.Cfg.DataDir), LastRepair: reset.LastRepair(s.Cfg.DataDir)}
+	if v.LastRepair != nil && time.Since(v.LastRepair.At) > 7*24*time.Hour {
+		v.LastRepair = nil // old news
+	}
+	if reset.PendingRepair(s.Cfg.DataDir) != nil {
+		v.Restart = true // it survives this page being reloaded, and the server restarting
+	}
 	if v.Results == nil {
 		v.Results = []diagnose.FixResult{}
 	}
@@ -289,7 +298,7 @@ func (s *Server) handleRepairRestart(w http.ResponseWriter, r *http.Request) {
 	st.mu.Lock()
 	want := st.restart
 	st.mu.Unlock()
-	if !want {
+	if !want && reset.PendingRepair(s.Cfg.DataDir) == nil {
 		writeErr(w, 409, "no repair is waiting for a restart")
 		return
 	}

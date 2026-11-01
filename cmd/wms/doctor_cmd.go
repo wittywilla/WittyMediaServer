@@ -89,42 +89,52 @@ func cmdDoctor(args []string) int {
 	env.TryPort = tryPort
 	ctx := context.Background()
 	rep := diagnose.RunDoctor(ctx, env, checks, nil)
+	// With --json, stdout holds nothing but the one report: the words go to stderr.
+	say := io.Writer(os.Stdout)
 	if asJSON {
-		b, err := rep.JSON()
+		say = os.Stderr
+	}
+	writeReport := func(r *diagnose.DoctorReport) int {
+		if !asJSON {
+			fmt.Print(r.Text())
+			return doctorExit(r)
+		}
+		b, err := r.JSON()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return doctorFailed
 		}
 		fmt.Println(string(b))
-		if !fix {
-			return doctorExit(rep)
-		}
-	} else {
-		fmt.Print(rep.Text())
+		return doctorExit(r)
 	}
 	if !fix {
-		if rep.Fixable > 0 && !asJSON {
-			fmt.Println("\nThis was only a look: nothing was changed. To fix what can be fixed: wms doctor --fix")
+		code := writeReport(rep)
+		if rep.Fixable > 0 {
+			fmt.Fprintln(say, "\nThis was only a look: nothing was changed. To fix what can be fixed: wms doctor --fix")
 		}
-		return doctorExit(rep)
+		return code
+	}
+	if !asJSON {
+		fmt.Print(rep.Text())
 	}
 	in := bufio.NewReader(os.Stdin)
-	carefulOK := yes
 	// A fix can bring what was hidden behind it into view, such as the rows of a database
 	// that couldn't be read until now, so it looks again a few times.
+	declined := map[string]bool{}
 	var copyAt string
 	for pass := 0; pass < 3; pass++ {
 		var todo []*diagnose.Issue
 		for i := range rep.Issues {
 			iss := &rep.Issues[i]
-			if !iss.CanFix() || (safeOnly && iss.Safety != diagnose.SafetySafe) {
+			if !iss.CanFix() || declined[iss.Key] || (safeOnly && iss.Safety != diagnose.SafetySafe) {
 				continue
 			}
-			if iss.Safety == diagnose.SafetyCareful && !carefulOK {
-				fmt.Printf("\n%s\n  %s\nA safety copy is made first. Go ahead? Type yes: ", iss.Title, iss.Fix)
+			if iss.Safety == diagnose.SafetyCareful && !yes {
+				fmt.Fprintf(say, "\n%s\n  %s\nA safety copy is made first. Go ahead? Type yes: ", iss.Title, iss.Fix)
 				line, _ := in.ReadString('\n')
 				if strings.TrimSpace(strings.ToLower(line)) != "yes" {
-					fmt.Println("  Left as it is.")
+					fmt.Fprintln(say, "  Left as it is.")
+					declined[iss.Key] = true
 					continue
 				}
 			}
@@ -133,17 +143,17 @@ func cmdDoctor(args []string) int {
 		if len(todo) == 0 {
 			break
 		}
-		fmt.Printf("\nFixing %d...\n", len(todo))
+		fmt.Fprintf(say, "\nFixing %d...\n", len(todo))
 		failed := false
 		for _, r := range diagnose.ApplyFixes(ctx, env, todo, "") {
 			if r.Copy != "" {
 				copyAt = r.Copy
 			}
 			if r.OK {
-				fmt.Printf("  Fixed: %s\n    %s\n", r.Title, r.Done)
+				fmt.Fprintf(say, "  Fixed: %s\n    %s\n", r.Title, r.Done)
 			} else {
 				failed = true
-				fmt.Printf("  Not fixed: %s\n    %s\n", r.Title, r.Error)
+				fmt.Fprintf(say, "  Not fixed: %s\n    %s\n", r.Title, r.Error)
 			}
 		}
 		rep = diagnose.RunDoctor(ctx, env, checks, nil)
@@ -152,10 +162,10 @@ func cmdDoctor(args []string) int {
 		}
 	}
 	if copyAt != "" {
-		fmt.Printf("\nSafety copy: %s\n", copyAt)
+		fmt.Fprintf(say, "\nSafety copy: %s\n", copyAt)
 	}
-	fmt.Print("\nAfterwards:\n" + rep.Text())
-	return doctorExit(rep)
+	fmt.Fprint(say, "\nAfterwards:\n")
+	return writeReport(rep)
 }
 
 func doctorExit(r *diagnose.DoctorReport) int {

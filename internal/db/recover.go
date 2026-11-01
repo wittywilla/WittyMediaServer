@@ -141,19 +141,15 @@ func recoverTable(ctx context.Context, old, fresh *DB, conn *sql.Conn, table str
 	}
 	list := strings.Join(cols, ", ")
 	marks := strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", ")
-	ins, err := conn.PrepareContext(ctx, `INSERT OR IGNORE INTO `+QuoteIdent(table)+` (`+list+`) VALUES (`+marks+`)`)
+	// REPLACE: migrations seed some rows, and what the old database says beats those defaults.
+	ins, err := conn.PrepareContext(ctx, `INSERT OR REPLACE INTO `+QuoteIdent(table)+` (`+list+`) VALUES (`+marks+`)`)
 	if err != nil {
 		rt.Failed = true
 		return rt
 	}
 	defer ins.Close()
 	store := func(vals []any) {
-		r, err := ins.ExecContext(ctx, vals...)
-		if err != nil {
-			rt.Refused++
-			return
-		}
-		if n, _ := r.RowsAffected(); n == 0 {
+		if _, err := ins.ExecContext(ctx, vals...); err != nil {
 			rt.Refused++
 			return
 		}

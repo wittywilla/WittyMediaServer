@@ -209,6 +209,7 @@ func denyCalls(network bool) error {
 	const (
 		bpfLdW   = 0x00 | 0x00 | 0x20 // BPF_LD | BPF_W | BPF_ABS
 		bpfJeq   = 0x05 | 0x10 | 0x00 // BPF_JMP | BPF_JEQ | BPF_K
+		bpfJge   = 0x05 | 0x30 | 0x00 // BPF_JMP | BPF_JGE | BPF_K
 		bpfRet   = 0x06 | 0x00        // BPF_RET | BPF_K
 		retAllow = 0x7fff0000
 		retEPERM = 0x00050000 | uint32(syscall.EPERM)
@@ -221,6 +222,9 @@ func denyCalls(network bool) error {
 		{Code: bpfJeq, Jt: 1, K: seccompArch},
 		{Code: bpfRet, K: retKill},
 		{Code: bpfLdW, K: nrOff},
+	}
+	if seccompX32 != 0 {
+		prog = append(prog, unix.SockFilter{Code: bpfJge, Jf: 1, K: seccompX32}, unix.SockFilter{Code: bpfRet, K: retEPERM})
 	}
 	for _, nr := range deny {
 		prog = append(prog, unix.SockFilter{Code: bpfJeq, Jf: 1, K: nr}, unix.SockFilter{Code: bpfRet, K: retEPERM})

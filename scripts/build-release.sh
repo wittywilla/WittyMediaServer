@@ -160,6 +160,7 @@ make_app_bundle() {
   [ -f "$out/WittyMediaServer" ] || return 0
   mkdir -p "$app/MacOS" "$app/Resources"
   cp "$out/WittyMediaServer" "$out/wms" "$app/MacOS/"
+  [ -f "$out/wittyplay-host" ] && cp "$out/wittyplay-host" "$app/MacOS/"
   [ -d "$out/bin" ] && cp -R "$out/bin" "$app/MacOS/"
   "$TOOLS/genicon$HOSTEXE" "$app/Resources/icon.png" 512
   cat > "$app/Info.plist" <<EOF

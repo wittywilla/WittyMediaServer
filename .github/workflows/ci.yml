@@ -92,4 +92,8 @@ jobs:
             (cd modules/wittyphotos && GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyphotos-module) || exit 1
           done
       - name: Build-script smoke test (no FFmpeg downloads)
-        run: SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
+        run: |
+          SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
+          # Without the runner, a package can't play a single game.
+          test -x dist/wittymediaserver-ci-test-linux-amd64/wittyplay-host
+          test -f dist/wittymediaserver-ci-test-windows-amd64/wittyplay-host.exe

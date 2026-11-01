@@ -5,9 +5,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // The launcher's limits hold after it becomes the program, so they can't be skipped by
@@ -39,6 +43,17 @@ func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
 		}
 		if _, err := os.Create(target + ".new"); err == nil {
 			println("CREATED")
+		}
+		// The same call under the numbers a filter on exact numbers misses, and a ring
+		// that makes sockets with no call to filter.
+		if runtime.GOARCH == "amd64" {
+			if _, _, e := unix.RawSyscall(0x40000000+unix.SYS_SOCKET, unix.AF_UNIX, unix.SOCK_STREAM, 0); e == 0 {
+				println("REACHED x32 socket")
+			}
+		}
+		var ring [120]byte
+		if _, _, e := unix.RawSyscall(unix.SYS_IO_URING_SETUP, 8, uintptr(unsafe.Pointer(&ring)), 0); e == 0 {
+			println("REACHED io_uring")
 		}
 		if b, err := os.ReadFile(target); err != nil || len(b) == 0 {
 			println("CANNOT-READ")

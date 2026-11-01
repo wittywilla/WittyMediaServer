@@ -25,7 +25,7 @@ Copy-Item -Force "$here\wms.exe" $Prefix
 if (Test-Path "$here\bin") { Copy-Item -Recurse -Force "$here\bin" $Prefix }
 Get-ChildItem "$here\*.md" -ErrorAction SilentlyContinue | Copy-Item -Force -Destination $Prefix
 Copy-Item -Force "$here\start-wms.cmd", "$here\uninstall.ps1" $Prefix
-foreach ($f in @("WittyMediaServer.exe", "icon.ico", "LICENSE", "NOTICE")) { if (Test-Path "$here\$f") { Copy-Item -Force "$here\$f" $Prefix } }
+foreach ($f in @("WittyMediaServer.exe", "wittyplay-host.exe", "icon.ico", "LICENSE", "NOTICE")) { if (Test-Path "$here\$f") { Copy-Item -Force "$here\$f" $Prefix } }
 # Start-menu shortcut for the tray launcher.
 if (Test-Path "$Prefix\WittyMediaServer.exe") {
   $ws = New-Object -ComObject WScript.Shell

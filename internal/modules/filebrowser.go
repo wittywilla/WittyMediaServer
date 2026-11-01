@@ -90,9 +90,6 @@ func (m *Manager) missing(id string) error {
 // use. Without it, someone can still type a folder's path. M may be nil.
 type FileBrowser struct{ M *Manager }
 
-// Available says whether there's a version in use.
-func (b FileBrowser) Available() bool { return b.M != nil && b.M.Installed(fileBrowserID) }
-
 // Places lists where to start: the helper's drives and usual folders, then extra,
 // which is what the server knows itself, such as folders already in libraries.
 func (b FileBrowser) Places(extra ...Place) ([]Place, error) {

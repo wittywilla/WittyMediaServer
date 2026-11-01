@@ -763,6 +763,7 @@ type Opened struct {
 	once    sync.Once
 	// A stream that was clear on opening can turn out not to be: see watch.
 	stopWatch  context.CancelFunc
+	gate       *hlsGate // what FFmpeg reads a live stream through
 	refused    chan struct{}
 	refuseOnce sync.Once
 	refusal    error
@@ -840,6 +841,7 @@ func (o *Opened) Release() {
 			}
 		}
 		_ = o.Stream.Close()
+		o.gate.Close()
 		o.release()
 	})
 }
@@ -896,9 +898,19 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		note("")
 	}
 	o := &Opened{Stream: st, Channel: c, release: release, note: note}
+	if addr, ok := gateInput(st); ok {
+		g, err := newHLSGate(addr, st.Input, mayLeadHome(t), m.tunerLog(), o.refuse)
+		if err != nil {
+			_ = st.Close()
+			release()
+			return nil, err
+		}
+		o.gate, o.refused = g, make(chan struct{})
+		st.Input = g.args(st.Input)
+	}
 	if st.Recheck != nil {
 		wctx, cancel := context.WithCancel(ctx)
-		o.stopWatch, o.refused = cancel, make(chan struct{})
+		o.stopWatch = cancel
 		log := m.tunerLog().With("topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
 		logging.Go("stream re-check", func() { o.watch(wctx, log) }, "cat", "tv")
 	}

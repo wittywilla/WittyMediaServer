@@ -1,10 +1,10 @@
 package server
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"bufio"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -34,11 +34,11 @@ type radioLive struct {
 	streamsMu sync.Mutex
 	streams   int
 	perUser   map[int64]int
-	mu       sync.Mutex
-	titles   map[int64]*radioTitle
-	hlsUsers map[[2]int64]*radioHLSUser
-	keyOnce  sync.Once
-	key      []byte
+	mu        sync.Mutex
+	titles    map[int64]*radioTitle
+	hlsUsers  map[[2]int64]*radioHLSUser
+	keyOnce   sync.Once
+	key       []byte
 }
 
 type radioTitle struct {

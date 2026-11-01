@@ -74,10 +74,10 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 type gameService struct {
 	probeSlot   chan struct{} // asking a core what it offers, one at a time
 	silentCores sync.Map      // cores that said nothing when asked, by ID, and when
-	mgr      *stream.Manager
-	cores    *cores.Manager
-	archives *gamearchive.Cache
-	dir      string
+	mgr         *stream.Manager
+	cores       *cores.Manager
+	archives    *gamearchive.Cache
+	dir         string
 
 	gpuMu       sync.Mutex
 	gpu         stream.GPUProbe

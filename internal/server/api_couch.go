@@ -46,8 +46,8 @@ const (
 	couchAttemptsWindow = 10 * time.Minute
 	couchAttemptsLimit  = 20
 	// maxAppArt: a game's picture from a PC, which has no use for more.
-	maxAppArt = 2 << 20
-	couchHostLimit      = 32
+	maxAppArt      = 2 << 20
+	couchHostLimit = 32
 )
 
 func init() {

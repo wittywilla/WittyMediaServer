@@ -59,6 +59,10 @@ func Open(dataDir string) (*DB, error) {
 		sdb.Close()
 		return nil, err
 	}
+	if err := d.migrateLibTranscode(context.Background()); err != nil {
+		sdb.Close()
+		return nil, err
+	}
 	return d, nil
 }
 

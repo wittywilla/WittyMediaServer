@@ -332,7 +332,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil || !mediaEntry(root, p, d) {
+		if err != nil || !mediaEntry(root, p, d) || IsConvertedCopy(name) {
 			return nil
 		}
 		switch {

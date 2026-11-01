@@ -26,6 +26,8 @@ type Library struct {
 	// ShowMain: a commercials library also appears in the menus, Home and
 	// search. Off by default; channels can use it either way.
 	ShowMain bool `json:"showMain"`
+	// ReadOnly: nothing the server does may change this library's files.
+	ReadOnly bool `json:"readOnly"`
 }
 
 // CommercialsType is a library of the owner's own adverts and bumpers for
@@ -186,16 +188,17 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
-	var scanning, showMain int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain); err != nil {
+	var scanning, showMain, readOnly int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
 	l.ShowMain = showMain != 0
+	l.ReadOnly = readOnly != 0
 	l.Paths = []string{}
 	return &l, nil
 }

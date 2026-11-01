@@ -451,8 +451,8 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | 🔴 **Also count as my home network** | *Remote Access → Advanced* | **Anyone from those addresses is treated as family**: they see profile names and can use password-free profiles, with no HTTPS requirement. A wrong range can mean strangers | List only networks you fully control. Most people should leave it empty |
 | 🔴 **Trusted reverse proxies**, listed too widely | *Remote Access → Advanced* | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
 | 🔴 **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Remote Access is on, and the switch on the page can't turn it off | Use the switch on the page. See [A rented server](#a-rented-server-vps) |
-| 🔴 **Custom game cores** | *Settings → Consoles & cores* | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
-| 🔴 **Modules from someone's fork** | *Settings → Modules* | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules |
+| 🔴 **Custom game cores** | `WMS_GAMING_CUSTOM_CORES=1` on the machine, then *Settings → Consoles & cores* | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
+| 🔴 **Modules from someone's fork** | *Settings → Modules* | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules. If this server is someone else's to run, `WMS_NO_MODULE_FORKS=1` keeps forks off |
 | 🟠 **Show profiles outside your home** | *Settings* | Strangers can see who lives in your house, and names help password guessing | Leave it off. People can type their name |
 | 🟠 **Do this automatically** (port mapping) | *Remote Access* | You may forget a port is open | [Forward by hand](#forwarding-a-port-on-your-router), or don't |
 | 🟠 **Game PCs: who may connect, PCs on this server's own network, PCs over the internet** | *Settings → Game PCs* | By default, any adult with no limits can make the server connect to a Sunshine PC on your home network or the internet, and it then handles data from a machine it doesn't control | If you've invited people, allow only admins, and turn off what you don't use |
@@ -522,13 +522,15 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
 - **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't
   expose your password. Browsers that have used HTTPS keep using it for a week (HSTS).
 - **Sign-in limits.** After 5 wrong tries for one name from one address, each further try waits longer, up to 15 minutes. Away from home there are also limits
-  on one address trying many names (20 wrong tries, an IPv6 network counts as one address) and one name tried from many addresses (30). **Nobody on the internet
-  can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of
+  on one address trying many names (20 wrong tries, an IPv6 network counts as one address) and one name tried from many addresses (30). Counts are kept until an
+  address has been quiet for six hours. One address alone can't lock a name for anyone else, and **nobody on the internet can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of
   attempts can't take the whole machine.
 - **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you
   visit could otherwise ask a server on your network who its profiles are.
-- **Password-free Kids and Guest profiles** only work at home, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
+- **Your password is asked for again** to add an administrator, to remove one, to change another administrator's password, to reset the server, to change where a module
+  comes from and to go back to an older version of one, with your two-factor code if you have it on, so a device you left signed in can't do those.
+- **Password-free Kids and Guest profiles** only work at home, sign-ins made earlier included, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
   not signed in on the internet.
 
 **What these don't do. A researcher reads this part first.**

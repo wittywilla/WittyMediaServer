@@ -89,6 +89,13 @@ the file: `WMS_LISTEN` / `-listen`, `WMS_DATA_DIR` / `-data`, `WMS_METADATA_DIR`
 `WMS_TUNER_COMMANDS=1` allows the custom command tuner, which runs a program on the server. There is no
 setting for it on purpose: a web session alone must not be able to turn it on.
 
+`WMS_NO_MODULE_FORKS=1` keeps modules from other publishers off, whatever an administrator asks. See
+[MODULES.md](MODULES.md#using-someones-fork).
+
+`WMS_GAMING_CUSTOM_CORES=1`, `-gaming-custom-cores` or `"gamingCustomCores": true` lets custom game cores be turned
+on in *Settings → Consoles & cores*, for the same reason. `WMS_GAMING_NO_CUSTOM_CORES=1` keeps them off whatever else
+is set. See [GAMING.md](GAMING.md).
+
 A typo in a setting name stops the server with a clear message instead of being ignored.
 
 ## Portable mode

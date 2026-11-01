@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -179,8 +180,12 @@ const (
 	pairFails, pairWait, pairCeil = 5, 30 * time.Second, 15 * time.Minute // one name from one address
 	addrFails, addrWait, addrCeil = 20, 5 * time.Minute, time.Hour        // one address trying many names
 	acctFails, acctWait, acctCeil = 30, 15 * time.Minute, time.Hour       // one name from many addresses
-	failMemory                    = 30 * time.Minute                      // quiet for this long: start over
+	failMemory                    = 6 * time.Hour                         // quiet for this long: start over
 	limiterSize                   = 20000
+	// maxNamesPerAddress is more names than anyone has reason to try from one address. Past it,
+	// new names from there share one count, whether or not they belong to anyone.
+	maxNamesPerAddress = 64
+	overflowName       = "(many names)"
 )
 
 const (
@@ -199,7 +204,8 @@ func loginConcurrency() int { return max(2, runtime.NumCPU()/2) }
 type loginLimiter struct {
 	mu     sync.Mutex
 	m      map[string]*attempts
-	recent []time.Time // the latest failures, for Settings
+	names  map[string]map[string]bool // the per-name counts each address has
+	recent []time.Time                // the latest failures, for Settings
 }
 
 type attempts struct {
@@ -211,6 +217,61 @@ type attempts struct {
 func (l *loginLimiter) key(r *http.Request, name string) string {
 	return addressKey(r) + "|" + limitName(name)
 }
+
+// pair is the count this client's try at this name goes on: its own, or the shared one once the
+// address has run through more names than anyone would. Without this a flood of made-up names
+// from one address would fill the table.
+func (l *loginLimiter) pair(r *http.Request, name string) string {
+	addr, k := addressKey(r), l.key(r, name)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.m[k] != nil {
+		return k
+	}
+	set := l.names[addr]
+	if len(set) < maxNamesPerAddress {
+		return k
+	}
+	now := time.Now()
+	for known := range set {
+		if a := l.m[known]; a == nil || now.Sub(a.last) > failMemory {
+			l.forget(known)
+		}
+	}
+	if len(l.names[addr]) < maxNamesPerAddress {
+		return k
+	}
+	return addr + "|" + overflowName
+}
+
+// note and forget keep the list of what each address is counted for in step with the counts.
+func (l *loginLimiter) note(k string) {
+	addr, name, ok := strings.Cut(k, "|")
+	if !ok || spanningCount(addr) || name == overflowName {
+		return
+	}
+	if l.names == nil {
+		l.names = map[string]map[string]bool{}
+	}
+	if l.names[addr] == nil {
+		l.names[addr] = map[string]bool{}
+	}
+	l.names[addr][k] = true
+}
+
+func (l *loginLimiter) forget(k string) {
+	delete(l.m, k)
+	addr, _, _ := strings.Cut(k, "|")
+	if set := l.names[addr]; set != nil {
+		delete(set, k)
+		if len(set) == 0 {
+			delete(l.names, addr)
+		}
+	}
+}
+
+// spanningCount: a key's first part names a kind of count that spans many names or addresses.
+func spanningCount(first string) bool { return first == "addr" || first == "acct" || first == "setup" }
 
 func limitName(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
@@ -257,6 +318,7 @@ func (l *loginLimiter) bump(k string, limit int, wait, ceil time.Duration) time.
 		l.trim(now)
 		a = &attempts{}
 		l.m[k] = a
+		l.note(k)
 	}
 	a.fails++
 	a.last = now
@@ -278,29 +340,57 @@ func (l *loginLimiter) wait(k string) time.Duration {
 	return 0
 }
 
-// trim keeps the map from growing without bound: it forgets stale entries,
-// and when that isn't enough, entries that aren't holding anyone back.
+// trim keeps the map from growing without bound. It forgets what is stale, and when that isn't
+// enough makes room by dropping the least useful: the oldest per-name counts first, then the
+// emptiest counts across names or addresses, and what is holding someone back last of all. Nobody
+// can wipe a count that way by filling the table.
 func (l *loginLimiter) trim(now time.Time) {
 	if len(l.m) < maxLimiterEntries {
 		return
 	}
 	for k, a := range l.m {
-		if now.Sub(a.last) > 30*time.Minute || now.After(a.until) {
-			delete(l.m, k)
+		if now.Sub(a.last) > failMemory {
+			l.forget(k)
 		}
 	}
-	for k := range l.m {
-		if len(l.m) < maxLimiterEntries {
-			break
+	if len(l.m) < maxLimiterEntries {
+		return
+	}
+	type entry struct {
+		k    string
+		rank int
+		a    *attempts
+	}
+	list := make([]entry, 0, len(l.m))
+	for k, a := range l.m {
+		rank := 0
+		if first, _, ok := strings.Cut(k, "|"); ok && spanningCount(first) {
+			rank = 1
 		}
-		delete(l.m, k)
+		if now.Before(a.until) {
+			rank += 2
+		}
+		list = append(list, entry{k, rank, a})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		x, y := list[i], list[j]
+		switch {
+		case x.rank != y.rank:
+			return x.rank < y.rank
+		case x.rank == 1 && x.a.fails != y.a.fails:
+			return x.a.fails < y.a.fails
+		}
+		return x.a.last.Before(y.a.last)
+	})
+	for _, e := range list[:len(list)/10+1] {
+		l.forget(e.k)
 	}
 }
 
 // ok forgets the failures of a name once its password was right.
 func (l *loginLimiter) ok(k string) {
 	l.mu.Lock()
-	delete(l.m, k)
+	l.forget(k)
 	l.mu.Unlock()
 }
 
@@ -365,7 +455,7 @@ func (s *Server) setupCodeOK(given string) bool {
 
 // gate is how long this client must wait before trying this name again.
 func (l *loginLimiter) gate(r *http.Request, name string) time.Duration {
-	d := l.wait(l.key(r, name))
+	d := l.wait(l.pair(r, name))
 	if c := clientFrom(r); !c.Where.AtHome() {
 		d = max(d, l.wait("addr|"+remote.LimitKey(c.IP)), l.wait("acct|"+limitName(name)))
 	}
@@ -374,7 +464,7 @@ func (l *loginLimiter) gate(r *http.Request, name string) time.Duration {
 
 // failed counts a wrong password or code.
 func (l *loginLimiter) failed(r *http.Request, name string) {
-	l.fail(l.key(r, name))
+	l.fail(l.pair(r, name))
 	if c := clientFrom(r); !c.Where.AtHome() {
 		l.bump("addr|"+remote.LimitKey(c.IP), addrFails, addrWait, addrCeil)
 		l.bump("acct|"+limitName(name), acctFails, acctWait, acctCeil)
@@ -383,18 +473,25 @@ func (l *loginLimiter) failed(r *http.Request, name string) {
 }
 
 // attempt counts a sign-in as it starts, and says how long this client must
-// wait instead (0 = go ahead).
+// wait instead (0 = go ahead). It stops at the first lock, counting nothing further: otherwise a
+// locked-out address could go on filling the table, and lock any name for everyone else.
 func (l *loginLimiter) attempt(r *http.Request, name string) time.Duration {
-	d := l.bump(l.key(r, name), pairFails, pairWait, pairCeil)
-	if c := clientFrom(r); !c.Where.AtHome() {
-		d = max(d, l.bump("addr|"+remote.LimitKey(c.IP), addrFails, addrWait, addrCeil), l.bump("acct|"+limitName(name), acctFails, acctWait, acctCeil))
+	c := clientFrom(r)
+	away := !c.Where.AtHome()
+	if away {
+		if d := l.bump("addr|"+remote.LimitKey(c.IP), addrFails, addrWait, addrCeil); d > 0 {
+			return d
+		}
 	}
-	return d
+	if d := l.bump(l.pair(r, name), pairFails, pairWait, pairCeil); d > 0 || !away {
+		return d
+	}
+	return l.bump("acct|"+limitName(name), acctFails, acctWait, acctCeil)
 }
 
 // uncount takes back an attempt that turned out to guess nothing.
 func (l *loginLimiter) uncount(r *http.Request, name string) {
-	l.refund(l.key(r, name))
+	l.refund(l.pair(r, name))
 	l.refundAway(r, name)
 }
 
@@ -419,7 +516,11 @@ func (l *loginLimiter) noteFailure() {
 // from the address and account counts: signing in now and then must not wear
 // them out, nor wipe out what an attacker has used up.
 func (l *loginLimiter) passed(r *http.Request, name string) {
-	l.ok(l.key(r, name))
+	if k := l.pair(r, name); strings.HasSuffix(k, "|"+overflowName) {
+		l.refund(k) // shared with the names others are trying from there
+	} else {
+		l.ok(k)
+	}
 	l.refundAway(r, name)
 }
 
@@ -466,6 +567,6 @@ func (l *loginLimiter) snapshot() (locks []lockout, failures int) {
 
 func (l *loginLimiter) clear() {
 	l.mu.Lock()
-	l.m = nil
+	l.m, l.names = nil, nil
 	l.mu.Unlock()
 }

@@ -8,6 +8,7 @@
 package modules
 
 import (
+	"cmp"
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
@@ -526,7 +527,7 @@ func (e *entry) status(id string) Status {
 		Notice: e.notice, Latest: e.latest, TooNew: e.tooNew, Phase: e.phase, Done: e.done, Total: e.total, Error: e.lastError, Previous: e.state.Previous,
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
 		Installed: !e.state.Removed, Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
-		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: noFork[id]}
+		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: cmp.Or(noFork[id], ForkRefusal())}
 	// A release from before a description was written, or a fork's that has none, still
 	// gets one: it is the same module.
 	if st.Group == "" {

@@ -177,18 +177,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
 
-// loginAllowed answers 429 when this client has failed too often, or when too
+// signInAllowed answers 429 when this client has failed too often, or when too
 // many passwords are being checked right now. Otherwise it holds one of the
-// places for checking a password until release is called.
-func (s *Server) loginAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
-	if !s.loginWaitOver(w, r, name) {
-		return nil, false
-	}
-	return s.loginSlot(w, r)
-}
-
-// signInAllowed is loginAllowed for signing in. An attempt counts when it
-// starts, not when its password turns out wrong: otherwise hundreds of guesses
+// places for checking a password until release is called. An attempt counts when
+// it starts, not when its password turns out wrong: otherwise hundreds of guesses
 // sent at once all pass before the first one ends.
 func (s *Server) signInAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
 	if d := s.logins.attempt(r, name); d > 0 {
@@ -218,16 +210,6 @@ func (s *Server) loginSlot(w http.ResponseWriter, r *http.Request) (release func
 	}
 }
 
-// loginWaitOver answers 429 when this client has failed too often.
-func (s *Server) loginWaitOver(w http.ResponseWriter, r *http.Request, name string) bool {
-	d := s.logins.gate(r, name)
-	if d <= 0 {
-		return true
-	}
-	tooManyTries(w, d)
-	return false
-}
-
 func tooManyTries(w http.ResponseWriter, d time.Duration) {
 	w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 	writeErr(w, 429, fmt.Sprintf("Too many wrong tries. Try again in %s.", waitText(d)))
@@ -246,11 +228,6 @@ func (s *Server) endSessions(r *http.Request, id int64, keep string) {
 	if err := s.Auth.EndSessions(r.Context(), id, keep); err != nil {
 		s.Log.ErrorContext(r.Context(), "could not sign an account out of its other devices", "cat", "auth", "account", id, "err", err)
 	}
-}
-
-func (s *Server) signInFailed(r *http.Request, name string) {
-	s.logins.failed(r, name)
-	s.logSignInFailure(r, name)
 }
 
 // logSignInFailure writes down a failure that has already been counted.
@@ -401,6 +378,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		IsAdmin bool            `json:"isAdmin"`
 		Kind    string          `json:"kind"`
 		Access  *library.Access `json:"access"`
+		Current string          `json:"current"` // your own password, for a new administrator
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -416,6 +394,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if !me.IsAdmin {
 		c.IsAdmin = false
+	}
+	if c.IsAdmin && c.Kind == auth.KindAdult && !s.confirmOwner(w, r, c.Current, c.Code) {
+		return
 	}
 	restr := ""
 	if c.Access != nil || c.Kind != auth.KindAdult {
@@ -483,9 +464,23 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "cannot delete that user")
 		return
 	}
-	if target, err := s.Auth.User(r.Context(), id); err != nil || !s.canManage(r, userFrom(r), target.Kind) {
+	target, err := s.Auth.User(r.Context(), id)
+	if err != nil || !s.canManage(r, userFrom(r), target.Kind) {
 		writeErr(w, 403, "not allowed")
 		return
+	}
+	if target.IsAdmin {
+		var b struct {
+			Current string `json:"current"`
+			Code    string `json:"code"`
+		}
+		if err := readJSON(r, &b); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		if !s.confirmOwner(w, r, b.Current, b.Code) {
+			return
+		}
 	}
 	if err := s.Auth.DeleteUser(r.Context(), id); err != nil {
 		writeErr(w, 500, err.Error())
@@ -510,9 +505,11 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// Your own password (adults), or one you manage. Kids and Guest
 	// profiles cannot change theirs: the people who manage them do.
 	allowed := id == u.ID && u.Kind == auth.KindAdult
+	otherAdmin := false
 	if id != u.ID {
-		if t, err := s.Auth.User(r.Context(), id); err == nil && !t.IsAdmin && s.canManage(r, u, t.Kind) {
-			allowed = true
+		if t, err := s.Auth.User(r.Context(), id); err == nil {
+			otherAdmin = t.IsAdmin
+			allowed = !t.IsAdmin && s.canManage(r, u, t.Kind)
 		}
 	}
 	if !allowed && !(u.IsAdmin && id != u.ID) {
@@ -522,6 +519,7 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		Password string `json:"password"`
 		Current  string `json:"current"`
+		Code     string `json:"code"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -531,6 +529,10 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// another device can't lock you out of your account. Wrong guesses count
 	// like wrong sign-ins, so that session can't be used to guess it either.
 	if id == u.ID && !s.checkOwnPassword(w, r, u, c.Current) {
+		return
+	}
+	// Taking over another administrator is what a stolen session would want.
+	if otherAdmin && !s.confirmOwner(w, r, c.Current, c.Code) {
 		return
 	}
 	if err := s.Auth.SetPassword(r.Context(), id, c.Password); err != nil {

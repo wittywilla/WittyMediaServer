@@ -27,10 +27,12 @@ export default function Profiles() {
   const [curpw, setCurpw] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<UserView | null>(null)
+  const [removing, setRemoving] = useState<User | null>(null)
   const load = () => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
   useEffect(() => { load() }, [])
   const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw, current: curpw }); setMypw(''); setCurpw(''); toast('Password changed; other devices are signed out') } catch (e: any) { toast(e.message) } }
   const del = async (u: User) => {
+    if (u.isAdmin) { setRemoving(u); return } // this one asks for your password
     if (!confirm(`Remove the profile “${u.name}”? Their watch history is deleted too.`)) return
     try { await api.del(`/users/${u.id}`); load() } catch (e: any) { toast(e.message) }
   }
@@ -75,7 +77,50 @@ export default function Profiles() {
       )}
       {adding && <AddProfile admin={!!user?.isAdmin} onClose={() => setAdding(false)} onDone={() => { setAdding(false); load() }} />}
       {editing && <LimitsEditor user={editing} admin={!!user?.isAdmin} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />}
+      {removing && <RemoveAdmin user={removing} onClose={() => setRemoving(null)} onDone={() => { setRemoving(null); load() }} />}
     </>
+  )
+}
+
+// YourPassword asks again for the password of whoever is signed in, and their code if they
+// use one, before a change a stolen session must not be able to make.
+function YourPassword({ password, code, setPassword, setCode, autoFocus }: { password: string; code: string; setPassword: (s: string) => void; setCode: (s: string) => void; autoFocus?: boolean }) {
+  const { user } = useApp()
+  return (
+    <>
+      <label>Your password<input className="input" type="password" autoFocus={autoFocus} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+      {user?.twoFactor && <label>Code from your authenticator app<input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></label>}
+    </>
+  )
+}
+
+function RemoveAdmin({ user: target, onClose, onDone }: { user: User; onClose: () => void; onDone: () => void }) {
+  const { user } = useApp()
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErr(''); setBusy(true)
+    try {
+      await api.del(`/users/${target.id}`, { current: password, code })
+      toast(`Profile “${target.name}” removed`)
+      onDone()
+    } catch (x: any) { setErr(x.message); setBusy(false) }
+  }
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="modal" role="dialog" aria-label={`Remove ${target.name}`} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h2>Remove the administrator “{target.name}”?</h2>
+        <div className="form full">
+          <p className="muted" style={{ margin: 0 }}>Their watch history is deleted too. This asks for your password, so that someone using a device you left signed in can't do it.</p>
+          <YourPassword autoFocus password={password} code={code} setPassword={setPassword} setCode={setCode} />
+          {err && <div className="error" role="alert">{err}</div>}
+        </div>
+        <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn danger" disabled={busy || !password || (!!user?.twoFactor && !code)}>Remove</button></div>
+      </form>
+    </div>
   )
 }
 
@@ -97,11 +142,16 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
   const [isAdmin, setIsAdmin] = useState(false)
   const [age, setAge] = useState(7)
   const [err, setErr] = useState('')
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
+  const { user } = useApp()
   const needsPw = kind === 'adult'
+  const newAdmin = kind === 'adult' && isAdmin
   const save = async () => {
     setErr('')
     try {
-      const body: any = { name, password: pw, kind, isAdmin: kind === 'adult' && isAdmin }
+      const body: any = { name, password: pw, kind, isAdmin: newAdmin }
+      if (newAdmin) { body.current = current; body.code = code }
       if (kind !== 'adult') body.access = { maxAge: age, allowUnrated: false, liveTv: kind === 'kids', libraryChannels: kind === 'kids', tunerChannels: false }
       await api.post('/users', body)
       toast(`Profile “${name}” added`)
@@ -127,10 +177,11 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
           <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={40} /></label>
           <label>{needsPw ? 'Password' : 'Password or PIN (optional)'}<input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" /></label>
           {kind === 'adult' && admin && <label className="check-row"><input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} /> Administrator (can change everything)</label>}
+          {newAdmin && <YourPassword password={current} code={code} setPassword={setCurrent} setCode={setCode} />}
           {kind !== 'adult' && <AgePicker value={age} onChange={setAge} />}
           {err && <div className="error" role="alert">{err}</div>}
         </div>
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!name.trim() || (needsPw ? pw.length < 8 : pw.length > 0 && pw.length < 4)} onClick={save}>Add profile</button></div>
+        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!name.trim() || (needsPw ? pw.length < 8 : pw.length > 0 && pw.length < 4) || (newAdmin && (!current || (!!user?.twoFactor && !code)))} onClick={save}>Add profile</button></div>
       </div>
     </div>
   )

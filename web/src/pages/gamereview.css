@@ -34,4 +34,5 @@
 @media (max-width: 640px) {
   .gr-row { grid-template-columns: minmax(0, 1fr); }
   .gr-row-actions { justify-content: flex-start; }
+  .gr-row-actions .btn, .gr-bulk .btn, .gr-fix-actions .btn { min-height: 44px; }
 }

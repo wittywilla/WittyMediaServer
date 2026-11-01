@@ -19,6 +19,21 @@ func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// POST /api/themes/custom: a theme from the app's theme maker.
+func (s *Server) handleThemeCustom(w http.ResponseWriter, r *http.Request) {
+	var c themes.Custom
+	if err := readJSON(r, &c); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	meta, err := s.Themes.AddCustom(c)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 201, meta)
+}
+
 // GET /api/themes/{id}/{file...}: theme.css and the images/fonts it uses.
 func (s *Server) handleThemeFile(w http.ResponseWriter, r *http.Request) {
 	b, ct, err := s.Themes.File(r.PathValue("id"), r.PathValue("file"))

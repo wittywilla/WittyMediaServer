@@ -109,6 +109,7 @@ const (
 	wdMPARating   = "P1657"
 	wdDuration    = "P2047"
 	wdInstanceOf  = "P31"
+	wdPartOfSeries = "P179"
 )
 
 func (w *Wikidata) entities(ctx context.Context, ids []string, props string) (map[string]wdEntity, error) {
@@ -188,9 +189,16 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		rating = c[0].Mainsnak.itemID()
 		refs = append(refs, rating)
 	}
+	series := map[string]bool{}
+	for _, c := range best.Claims[wdPartOfSeries] {
+		if id := c.Mainsnak.itemID(); id != "" && !series[id] && len(series) < 8 {
+			series[id] = true
+			refs = append(refs, id)
+		}
+	}
 	if len(refs) > 0 {
 		if names, err := w.entities(ctx, refs, "labels"); err == nil {
-			var genres []string
+			var genres, seriesNames []string
 			for _, id := range refs {
 				l := names[id].Labels["en"].Value
 				if l == "" {
@@ -202,8 +210,13 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 					}
 					continue
 				}
+				if series[id] {
+					seriesNames = append(seriesNames, l)
+					continue
+				}
 				genres = append(genres, titleCase(strings.TrimSuffix(strings.TrimSuffix(l, " film"), " movie")))
 			}
+			it.series = pickSeries(seriesNames, it.Title)
 			if len(it.Genres) == 0 {
 				it.Genres = genres
 			}

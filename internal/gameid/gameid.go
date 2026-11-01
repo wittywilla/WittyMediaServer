@@ -183,7 +183,7 @@ func Sniff(r io.ReaderAt, size int64) Finding {
 	if f, ok := sniffSNES(r, size); ok {
 		return f
 	}
-	if f, ok := sniffBIOS(r, size, head); ok {
+	if f, ok := sniffBIOS(r, size); ok {
 		return f
 	}
 	sample := make([]byte, min(size, 4096))
@@ -191,7 +191,7 @@ func Sniff(r io.ReaderAt, size int64) Finding {
 	if looksLikeText(sample[:n]) {
 		return Finding{Kind: KindOther, Text: true, Proof: "It's a text file."}
 	}
-	if f, ok := sniffNotGame(sample[:n], size); ok {
+	if f, ok := sniffNotGame(sample[:n]); ok {
 		return f
 	}
 	return Finding{}
@@ -221,7 +221,7 @@ func (p prefixReader) ReadAt(b []byte, off int64) (int, error) {
 
 // sniffNotGame names common files that end up in game folders. A person wants to know
 // a setup program isn't a game more than that nothing could be said about it.
-func sniffNotGame(b []byte, size int64) (Finding, bool) {
+func sniffNotGame(b []byte) (Finding, bool) {
 	other := func(what string) (Finding, bool) {
 		return Finding{Kind: KindOther, Proof: "It's " + what + "."}, true
 	}
@@ -239,7 +239,6 @@ func sniffNotGame(b []byte, size int64) (Finding, bool) {
 	case bytes.HasPrefix(b, []byte("\xcf\xfa\xed\xfe")), bytes.HasPrefix(b, []byte("\xca\xfe\xba\xbe")):
 		return other("a program for a Mac")
 	}
-	_ = size
 	return Finding{}, false
 }
 

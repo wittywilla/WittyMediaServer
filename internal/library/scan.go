@@ -52,6 +52,8 @@ type Scanner struct {
 	TMDBBase string
 	// OnScanned runs after a scan of a library that holds films or shows.
 	OnScanned func()
+	// OnGamesScanned runs after a scan of a library of games.
+	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -478,6 +480,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
 		}
 		s.Store.ensureGameLogos(ctx, lib)
+		if s.OnGamesScanned != nil {
+			s.OnGamesScanned()
+		}
 		s.GameMeta.Kick()
 	}
 	return nil
@@ -530,7 +535,8 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
-	rule, hasRule := ctx.Value(rulesKey{}).(*ruleSet).test(c.path)
+	rules, _ := ctx.Value(rulesKey{}).(*ruleSet)
+	rule, hasRule := rules.test(c.path)
 	if hasRule {
 		if rule.Title != "" {
 			it.Title = rule.Title

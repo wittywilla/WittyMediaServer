@@ -651,8 +651,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	// Full is full, whatever the game. Unpacking it, copying it and applying its patches
 	// would all be for nothing.
-	if err := g.mgr.Room(userFrom(r).ID, gpu); err != nil {
-		writeErr(w, 503, err.Error())
+	if s.gamesFull(ctx, g, userFrom(r).ID) {
+		writeErr(w, 503, stream.ErrBusy.Error())
 		return
 	}
 	rom, cleanup, err := g.prepareGame(ctx, s.Store, it, console)
@@ -764,6 +764,19 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	info := sess.Info()
 	info.Modes = g.mgr.Modes(gameClient(b.Client))
 	writeJSON(w, 201, info)
+}
+
+// gamesFull says this person starting a game would go over the limit. Their own game
+// doesn't count, since starting another ends it. A slot may come free by the time it
+// matters, or go: this is only there so that nobody unpacks or patches a game with nowhere
+// to run it, and the graphics card's own limit is still checked when the game starts.
+func (s *Server) gamesFull(ctx context.Context, g *gameService, userID int64) bool {
+	limit, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingMaxSessions", "2"))
+	running := g.mgr.Count()
+	if g.mgr.ForUser(userID) != nil {
+		running--
+	}
+	return running >= limit
 }
 
 // recordPlayTime adds the time played to what "Continue playing" shows, in the

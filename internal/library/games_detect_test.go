@@ -15,6 +15,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 )
 
+func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
+
 // put writes a file for a test.
 func put(t *testing.T, root, rel string, b []byte) string {
 	t.Helper()

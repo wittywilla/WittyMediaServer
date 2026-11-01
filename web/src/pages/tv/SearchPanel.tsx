@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
+import { Button, Dialog, Input, Select } from '../../ui'
 import { useReminders } from './reminders'
 import { dayWord, fmtClock, type GuideHit } from './tvApi'
 
@@ -26,38 +27,34 @@ export default function SearchPanel({ onClose, onGo }: { onClose: () => void; on
     return () => clearTimeout(t)
   }, [q, days])
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal ctv-search" role="dialog" aria-modal="true" aria-labelledby="ctv-s-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="ctv-s-h">Search the schedule</h2>
-        <div className="ctv-search-row">
-          <input className="input" type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="A film, a show, an episode…" aria-label="Search for" />
-          <select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="How far ahead">
-            <option value={1}>Next 24 hours</option><option value={7}>Next week</option><option value={14}>Next 2 weeks</option>
-          </select>
-        </div>
-        {err && <p role="alert">{err}</p>}
-        {busy && <p className="muted" role="status">Searching…</p>}
-        <div aria-live="polite" className="sr-only">{hits && !busy ? `${hits.length} found` : ''}</div>
-        {hits && !busy && hits.length === 0 && <p className="muted">Nothing like that is coming up.</p>}
-        {hits && hits.length > 0 && (
-          <ul className="ctv-hits">
-            {hits.map((h) => {
-              const later = h.start > now
-              return (
-                <li key={h.channel + h.start}>
-                  <button className="ctv-hit" onClick={() => onGo(h)}>
-                    <b>{h.title}</b>
-                    {h.sub && <small>{h.sub}</small>}
-                    <span>{dayWord(h.start, now)} {fmtClock(h.start)} · Channel {h.number}, {h.name}{h.start <= now && h.end > now ? ' · On now' : ''}</span>
-                  </button>
-                  {later && <button className="btn sm ghost" aria-pressed={reminders.has(h.channel, h.start)} aria-label={`Remind me about ${h.title}`} onClick={() => void reminders.toggle(h.channel, h)}>{reminders.has(h.channel, h.start) ? '✓' : 'Remind'}</button>}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Close</button></div>
+    <Dialog className="ctv-search" title="Search the schedule" onClose={onClose} actions={<Button variant="ghost" onClick={onClose}>Close</Button>}>
+      <div className="ctv-search-row">
+        <Input type="search" autoFocus aria-label="Search for" value={q} onChange={(e) => setQ(e.target.value)} placeholder="A film, a show, an episode…" />
+        <Select aria-label="How far ahead" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={1}>Next 24 hours</option><option value={7}>Next week</option><option value={14}>Next 2 weeks</option>
+        </Select>
       </div>
-    </div>
+      {err && <p role="alert">{err}</p>}
+      {busy && <p className="muted" role="status">Searching…</p>}
+      <div aria-live="polite" className="sr-only">{hits && !busy ? `${hits.length} found` : ''}</div>
+      {hits && !busy && hits.length === 0 && <p className="muted">Nothing like that is coming up.</p>}
+      {hits && hits.length > 0 && (
+        <ul className="ctv-hits">
+          {hits.map((h) => {
+            const later = h.start > now
+            return (
+              <li key={h.channel + h.start}>
+                <button type="button" className="ctv-hit" onClick={() => onGo(h)}>
+                  <b>{h.title}</b>
+                  {h.sub && <small>{h.sub}</small>}
+                  <span>{dayWord(h.start, now)} {fmtClock(h.start)} · Channel {h.number}, {h.name}{h.start <= now && h.end > now ? ' · On now' : ''}</span>
+                </button>
+                {later && <Button size="sm" variant="ghost" aria-pressed={reminders.has(h.channel, h.start)} aria-label={`Remind me about ${h.title}`} onClick={() => void reminders.toggle(h.channel, h)}>{reminders.has(h.channel, h.start) ? '✓' : 'Remind'}</Button>}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Dialog>
   )
 }

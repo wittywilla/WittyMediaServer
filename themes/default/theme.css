@@ -1,36 +1,36 @@
 /*
- * WittyMediaServer - a WittyMediaServer theme.
- * The original look: deep slate with a violet accent.
+ * Witty - a WittyMediaServer theme.
+ * The house look: deep slate with a violet accent.
  *
- * Every variable below is documented in docs/THEMES.md. Copy this file into
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
  * your own theme ZIP as a starting point.
  */
 :root {
   color-scheme: dark;
 
-  /* Surfaces, darkest/lightest first */
+  /* Surfaces */
   --bg: #0f1115;          /* page background */
-  --bg-2: #171a21;        /* sidebar, panels, modals */
-  --bg-3: #1f232c;        /* inputs, cards, hovered rows */
-  --bg-4: #2a2f3a;        /* borders, scrollbar, pressed buttons */
-  --bg-rgb: 15 17 21;   /* --bg as "R G B" for translucent shades */
+  --bg-2: #171a21;        /* side menu, panels, dialogs */
+  --bg-3: #1f232c;        /* fields, cards, hovered rows */
+  --bg-4: #2a2f3a;        /* pressed buttons, scrollbars */
+  --bg-rgb: 15 17 21;   /* --bg as "R G B", for see-through shades */
   --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
   --control-line: #6f7480;      /* outlines of fields and switches: 3:1 on every surface */
 
   /* Text */
-  --fg: #e8eaf0;          /* primary text */
+  --fg: #e8eaf0;          /* main text */
   --fg-2: #a9afbd;        /* secondary text */
   --fg-3: #848b99;        /* hints, captions */
 
-  /* Accent (buttons, highlights, progress bars, selected items) */
+  /* Accent: buttons, highlights, progress bars, selected items */
   --accent: #7955ff;
-  --accent-2: #6a4df0;      /* hover / pressed accent */
-  --accent-fg: #ffffff;     /* text on accent backgrounds */
+  --accent-2: #6a4df0;      /* hovered or pressed accent */
+  --accent-fg: #ffffff;     /* text on the accent */
   --accent-text: #9174ff;   /* the accent as text: links, highlighted words */
   --accent-rgb: 121 85 255;
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
-  /* Status colours */
+  /* Status */
   --danger: #ff5c6c;
   --ok: #3ad29f;
   --warn: #e0a030;

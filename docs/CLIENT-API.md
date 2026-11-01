@@ -818,7 +818,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /legal/notices` | none | The short legal notices, by kind, and what this server's owner wrote. See "Legal notices". |
 | `GET /legal` | none | The full Legal page, with the privacy list and what this server's owner wrote. |
 | `POST /legal/acknowledge` | admin | Record that an administrator has seen the first-run notice, so `legalAck` in `/status` turns true. |
-| `GET /prefs` | user | Server-wide playback defaults every viewer needs. |
+| `GET /prefs` | user | Server-wide defaults every viewer needs: playback, and `navDefault`, the owner's arrangement of the main menu as JSON. |
 | `GET /branding/logo` | none | The custom logo, if the server has one (404 otherwise). The `brandLogo` value in `/status` changes when it does. |
 | `PUT /branding/logo` | admin | Replace the logo: the PNG or JPEG itself as the body, 2 MB at most. |
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
@@ -906,6 +906,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
 | `PUT /users/{id}/access` | user | Set an account's limits, or clear a Kids or Guest password. |
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
+| `PUT /users/{id}/profile` | user | Change `displayName`, `username` or `showUsername`. Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 
 ### Browsing
 
@@ -1100,6 +1101,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /themes/{id}/download` | none | The theme as a ZIP. |
 | `GET /themes/{id}/{file}` | none | A file of a theme: theme.css and the images and fonts it uses. |
 | `POST /themes` | admin | Install a theme: the ZIP as the body. |
+| `POST /themes/custom` | admin | Add a theme from the theme maker: `name`, `scheme`, `colors` and `radius`. Colours must be exactly `#rrggbb`. |
 | `DELETE /themes/{id}` | admin | Remove a theme. |
 
 ### Channels and live TV
@@ -1179,6 +1181,14 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
 | `POST /games/{id}/prepare` | user | Game prepare. |
+| `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
+| `PUT /games/{id}/version` | admin | Which file in its archive to play. |
+| `POST /games/{id}/split` | admin | A version becomes a game of its own. |
+| `PUT /games/{id}/console` | admin | This file is for another console. |
+| `POST /games/{id}/not-a-game` | admin | Takes it off the list; its file stays. |
+| `GET /libraries/{id}/games/review` | admin | Files that didn't become games, or can't play. Query: `kind`, `limit`, `offset`. |
+| `POST /libraries/{id}/games/review/apply` | admin | Says what those files are. |
+| `GET /libraries/{id}/games/import` | admin | How an import is going. |
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |

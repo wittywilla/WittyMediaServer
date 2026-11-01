@@ -277,7 +277,7 @@ func snesScore(r io.ReaderAt, off, size, base int64) int {
 }
 
 // sniffBIOS recognises the console start-up files most often left among games.
-func sniffBIOS(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
+func sniffBIOS(r io.ReaderAt, size int64) (Finding, bool) {
 	// The PlayStation 2's lists its own modules right at the start, and names itself.
 	if size >= 4<<20 && size <= 32<<20 {
 		if b := at(r, 0x2000, 0x1000); b != nil && bytes.Contains(b, []byte("RESET\x00")) {
@@ -289,7 +289,6 @@ func sniffBIOS(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
 			return Finding{Console: "ps1", Kind: KindBIOS, Proof: "It's the size of a PlayStation BIOS, and holds Sony's copyright line."}, true
 		}
 	}
-	_ = head
 	return Finding{}, false
 }
 

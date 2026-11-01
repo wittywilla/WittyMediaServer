@@ -1,3 +1,4 @@
+import { Button, Sheet } from '../../ui'
 import { contrast, PREVIEW_SIZES, previewSizeName, readableOn, resetLook, setLook, themeSuggestion, type Colours, type Layout, type Look } from './look'
 
 // "Look": how the guide appears. The first thing here is the big choice, the old
@@ -44,9 +45,8 @@ export default function LookPanel({ look, onClose }: { look: Look; onClose: () =
   const hasTheme = !!(theme.layout || theme.colours)
   const accentContrast = contrast(look.customAccent, look.customBg)
   return (
-    <div className="modal-backdrop ctv-look-backdrop" onClick={onClose}>
-      <div className="modal ctv-look" role="dialog" aria-modal="true" aria-labelledby="ctv-look-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="ctv-look-h">Look of the guide</h2>
+    <Sheet className="ctv-look" title="Look of the guide" onClose={onClose}
+      actions={<><Button variant="ghost" onClick={resetLook}>Back to how it started</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
         <p className="muted">Changes show straight away, and follow you to your other devices.</p>
 
         <div className="ctv-choice">
@@ -65,7 +65,7 @@ export default function LookPanel({ look, onClose }: { look: Look; onClose: () =
             {accentContrast < 4.5 && <small>These two are close together, so the guide will adjust the highlight until it can be read.</small>}
           </div>
         )}
-        {hasTheme && <p className="muted ctv-theme-note">Your theme suggests {[theme.layout === 'classic' ? 'the classic box' : theme.layout === 'streaming' ? 'the modern look' : '', theme.colours ? `${theme.colours} colours` : ''].filter(Boolean).join(' with ')}. What you choose here wins. <button type="button" className="btn sm ghost" onClick={resetLook}>Use its suggestion</button></p>}
+        {hasTheme && <p className="muted ctv-theme-note">Your theme suggests {[theme.layout === 'classic' ? 'the classic box' : theme.layout === 'streaming' ? 'the modern look' : '', theme.colours ? `${theme.colours} colours` : ''].filter(Boolean).join(' with ')}. What you choose here wins. <Button size="sm" variant="ghost" onClick={resetLook}>Use its suggestion</Button></p>}
 
         <Choice label="Preview" value={look.preview} onChange={(v) => setLook({ preview: v })} options={[{ v: 'highlight', label: 'The highlighted channel' }, { v: 'last', label: 'The last channel I watched' }, { v: 'off', label: 'Hidden' }]}
           hint="A preview runs a stream on the server, and on a tuner it uses up one tuner. If the server struggles, use the last channel, or hide it." />
@@ -88,12 +88,7 @@ export default function LookPanel({ look, onClose }: { look: Look; onClose: () =
             <label><input type="checkbox" checked={look.art} onChange={(e) => setLook({ art: e.target.checked })} /> The programme's picture at the top (modern look)</label>
           </div>
         </fieldset>
-        <div className="actions">
-          <button className="btn ghost" onClick={resetLook}>Back to how it started</button>
-          <button className="btn primary" onClick={onClose}>Done</button>
-        </div>
-      </div>
-    </div>
+    </Sheet>
   )
 }
 

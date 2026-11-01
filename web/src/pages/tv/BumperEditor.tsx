@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api, fmtRuntime, mediaUrlQ, type Item } from '../../api'
 import { IconPlus, IconSearch, IconTrash } from '../../icons'
 import { toast } from '../../state'
-import { Section, Switch } from '../settings/ui'
+import { ask, Button, Dialog, IconButton, Input, Switch } from '../../ui'
+import { Section } from '../settings/ui'
 import { uploadBumper, type Bumper, type BumperPlan, type BumperRule, type BumperWhen, type Definition, type EditorOptions, type Rules, type Trim, type TrimChoice } from './tvApi'
 import './tveditor.css'
 import { ACCEPT_VIDEO } from '../../mediaTypes.generated'
@@ -35,15 +36,15 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
     }
   }
   const remove = async (b: Bumper) => {
-    if (b.uploaded && !confirm(`Delete "${b.title}"? The file you uploaded goes too, and any channel using it stops playing it.`)) return
+    if (b.uploaded && !await ask({ title: `Delete “${b.title}”?`, body: 'The file you uploaded goes too, and any channel using it stops playing it.', confirm: 'Delete', danger: true })) return
     try { await api.del(`/channels/bumpers/item/${b.itemId}`); reload() } catch (e) { toast((e as Error).message) }
   }
   return (
     <>
       <div className="tvs-toolbar">
-        <button type="button" className="btn sm primary" disabled={busy} onClick={() => file.current?.click()}><IconPlus /> {busy ? 'Uploading…' : 'Upload videos'}</button>
+        <Button size="sm" variant="primary" icon={<IconPlus />} busy={busy} onClick={() => file.current?.click()}>{busy ? 'Uploading…' : 'Upload videos'}</Button>
         <input ref={file} hidden type="file" accept={"video/*," + ACCEPT_VIDEO} multiple onChange={(e) => void upload(e.target.files)} />
-        <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setFinding(true)}><IconSearch size={16} /> Choose from my media</button>
+        <Button size="sm" icon={<IconSearch size={16} />} aria-haspopup="dialog" onClick={() => setFinding(true)}>Choose from my media</Button>
       </div>
       {bumpers && bumpers.length === 0 && <p className="muted">Nothing here yet. Upload a short video, or choose one you already have. Anything in a Commercials library also appears here.</p>}
       {bumpers && bumpers.length > 0 && (
@@ -55,7 +56,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
                 <b title={b.title}>{b.title}</b>
                 <span>{fmtRuntime(b.durationSec)} · {b.uploaded ? 'Uploaded' : b.library}</span>
               </div>
-              {(b.uploaded || b.chosen) && <button type="button" className="btn sm ghost" onClick={() => void remove(b)} aria-label={`Remove ${b.title}`}><IconTrash size={16} /></button>}
+              {(b.uploaded || b.chosen) && <IconButton size="sm" onClick={() => void remove(b)} label={`Remove ${b.title}`}><IconTrash size={16} /></IconButton>}
             </li>
           ))}
         </ul>
@@ -78,19 +79,15 @@ function MediaFinder({ onClose, onPick }: { onClose: () => void; onPick: (it: It
     return () => clearTimeout(t)
   }, [q])
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal tve-finder" role="dialog" aria-modal="true" aria-labelledby="tve-f-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="tve-f-h">Choose from my media</h2>
-        <input className="input" type="search" autoFocus value={q} placeholder="Search your videos…" aria-label="Search your videos" onChange={(e) => setQ(e.target.value)} />
-        {items && items.length === 0 && <p className="muted">Nothing found.</p>}
-        {items && items.length > 0 && (
-          <ul className="tve-found">
-            {items.map((it) => <li key={it.id}><span><b>{it.showTitle ? `${it.showTitle}: ` : ''}{it.title}</b> <small>{fmtRuntime(it.runtimeSec)}</small></span><button type="button" className="btn sm" onClick={() => onPick(it)}>Add</button></li>)}
-          </ul>
-        )}
-        <div className="actions"><button className="btn primary" onClick={onClose}>Done</button></div>
-      </div>
-    </div>
+    <Dialog className="tve-finder" title="Choose from my media" onClose={onClose} actions={<Button variant="primary" onClick={onClose}>Done</Button>}>
+      <Input type="search" autoFocus aria-label="Search your videos" value={q} placeholder="Search your videos…" onChange={(e) => setQ(e.target.value)} />
+      {items && items.length === 0 && <p className="muted">Nothing found.</p>}
+      {items && items.length > 0 && (
+        <ul className="tve-found">
+          {items.map((it) => <li key={it.id}><span><b>{it.showTitle ? `${it.showTitle}: ` : ''}{it.title}</b> <small>{fmtRuntime(it.runtimeSec)}</small></span><Button size="sm" onClick={() => onPick(it)}>Add</Button></li>)}
+        </ul>
+      )}
+    </Dialog>
   )
 }
 
@@ -129,7 +126,7 @@ function RuleCard({ rule, n, bumpers, opts, films, up, remove }: { rule: BumperR
         <input className="input tve-rule-name" value={rule.name || ''} placeholder={`Rule ${n}`} maxLength={200} aria-label={`Name of ${label}`} onChange={(e) => up({ name: e.target.value })} />
         <label className="tve-mandatory" title="Never cut or left out to keep to the timetable"><Switch checked={!!rule.mandatory} label={`${label} is mandatory`} onChange={(v) => up({ mandatory: v })} /> Mandatory</label>
         <label className="tve-mandatory"><Switch checked={!rule.off} label={`${label} is in use`} onChange={(v) => up({ off: !v })} /> In use</label>
-        <button type="button" className="btn sm ghost" onClick={remove} aria-label={`Remove ${label}`}><IconTrash size={16} /></button>
+        <IconButton size="sm" onClick={remove} label={`Remove ${label}`}><IconTrash size={16} /></IconButton>
       </div>
       <div className="tve-sentence">
         <label>When
@@ -203,10 +200,10 @@ export function BumperSection({ def, setDef, opts, id }: { def: Definition; setD
           {rules.map((r, i) => <RuleCard key={r.id} rule={r} n={i + 1} bumpers={bumpers || []} opts={opts} films={films} up={(p) => setRule(r.id, p)} remove={() => setPlan({ rules: rules.filter((x) => x.id !== r.id) })} />)}
         </ul>
         <div className="tvs-toolbar">
-          <button type="button" className="btn sm" onClick={() => addRule({ when: 'before', name: 'Ident before every programme', mandatory: true })}><IconPlus /> Before every programme</button>
-          <button type="button" className="btn sm" onClick={() => addRule({ when: 'before', name: 'Only before a certain title', only: {} })}><IconPlus /> Only for a certain film or show</button>
-          <button type="button" className="btn sm" onClick={() => addRule({ when: 'every', everyMin: 15, name: 'A break every 15 minutes' })}><IconPlus /> A break every so often</button>
-          <button type="button" className="btn sm ghost" onClick={() => addRule({})}><IconPlus /> Blank rule</button>
+          <Button size="sm" icon={<IconPlus />} onClick={() => addRule({ when: 'before', name: 'Ident before every programme', mandatory: true })}>Before every programme</Button>
+          <Button size="sm" icon={<IconPlus />} onClick={() => addRule({ when: 'before', name: 'Only before a certain title', only: {} })}>Only for a certain film or show</Button>
+          <Button size="sm" icon={<IconPlus />} onClick={() => addRule({ when: 'every', everyMin: 15, name: 'A break every 15 minutes' })}>A break every so often</Button>
+          <Button size="sm" variant="ghost" icon={<IconPlus />} onClick={() => addRule({})}>Blank rule</Button>
         </div>
       </Section>
       <Section id={id ? id + '-trim' : undefined} title="Keeping to the timetable" desc="When a programme runs long, something has to give, or everything after it starts late.">
@@ -215,7 +212,7 @@ export function BumperSection({ def, setDef, opts, id }: { def: Definition; setD
           <div><b>Cut commercials short to keep to the timetable</b><span>The next programme starts on time, and the guide says when that really is.</span></div>
         </div>
         {trim.on && noGrid && (
-          <p className="tvs-note" role="status">This channel plays back to back, so there's no timetable to keep to. <button type="button" className="btn sm" onClick={() => setDef({ alignMin: 30 })}>Start programmes on the half hour</button></p>
+          <p className="tvs-note" role="status">This channel plays back to back, so there's no timetable to keep to. <Button size="sm" onClick={() => setDef({ alignMin: 30 })}>Start programmes on the half hour</Button></p>
         )}
         {trim.on && (
           <div className="tve-trim">

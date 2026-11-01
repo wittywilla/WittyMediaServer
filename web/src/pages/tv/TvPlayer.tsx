@@ -7,9 +7,10 @@ import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
-import { channelVars, customVars, previousChannel, rememberChannel, useLook } from './look'
+import { ChannelLogo } from './ChannelLogo'
+import { channelVars, customVars, previousChannel, rememberChannel, surfaceOf, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
-import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, logoSrc, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
+import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
@@ -254,7 +255,7 @@ export default function TvPlayer() {
         <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
-      {banner && (info ? <Banner info={info} /> : zap && <ZapBanner ch={zap} />)}
+      {banner && (info ? <Banner info={info} look={look} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
@@ -271,17 +272,17 @@ export default function TvPlayer() {
 }
 
 // The banner before the server has answered: the channel, straight away.
-function ZapBanner({ ch }: { ch: GuideChannel }) {
+function ZapBanner({ ch, look }: { ch: GuideChannel; look: Look }) {
   return (
     <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
-      <div className="ctv-banner-ch"><b>{ch.number}</b><span>{ch.name}</span></div>
+      <div className="ctv-banner-ch"><ChannelLogo ch={ch} look={look} on={surfaceOf(look)} /><b>{ch.number}</b><span>{ch.name}</span></div>
       <div className="ctv-banner-main"><div className="ctv-banner-title">{ch.name}</div><div className="ctv-banner-sub">Tuning…</div></div>
     </div>
   )
 }
 
 // The banner: what every box of the era showed on a channel change.
-function Banner({ info }: { info: TuneInfo }) {
+function Banner({ info, look }: { info: TuneInfo; look: Look }) {
   const [now, setNow] = useState(() => Date.now() / 1000)
   useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), 5000); return () => clearInterval(t) }, [])
   const p = info.now
@@ -289,7 +290,7 @@ function Banner({ info }: { info: TuneInfo }) {
   return (
     <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
       <div className="ctv-banner-ch">
-        {logoSrc(info.logo) ? <img src={logoSrc(info.logo)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
+        <ChannelLogo ch={info} look={look} on={surfaceOf(look)} />
         <b>{info.number}</b><span>{info.name}</span>
       </div>
       <div className="ctv-banner-main">

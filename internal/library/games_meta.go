@@ -61,6 +61,9 @@ type GameMeta struct {
 	HTTP, Pictures *http.Client
 	// Built overrides the sources, for tests.
 	Built func() []gamemeta.Source
+	// OnSettled runs when there's nothing left to look up for now: game studios found along
+	// the way may have logos to look for.
+	OnSettled func()
 
 	kick chan struct{}
 	id   gamemeta.Identifier
@@ -130,6 +133,11 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
+	defer func() {
+		if g.OnSettled != nil {
+			g.OnSettled()
+		}
+	}()
 	for ctx.Err() == nil {
 		g.setPhase(true, "details")
 		n, err := g.localBatch(ctx)

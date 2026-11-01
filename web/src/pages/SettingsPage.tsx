@@ -21,6 +21,8 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './se
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
+import { ask, Dialog } from '../ui/Overlay'
+import { Segmented } from '../ui/Choice'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
@@ -201,7 +203,7 @@ function Libraries() {
     try { await api.put('/settings', { libraryGrouping: g }); toast(g === 'combine' ? 'Folders of one kind now join one library' : 'New folders now become libraries of their own') } catch (e: any) { toast(e.message) }
   }
   const remove = async (l: Library) => {
-    if (!confirm(`Remove the library “${l.name}”? Your files stay where they are; only the server forgets them.`)) return
+    if (!await ask({ title: `Remove the library “${l.name}”?`, body: 'Your files stay where they are; only the server forgets them.', confirm: 'Remove library', danger: true })) return
     await api.del(`/libraries/${l.id}`)
     await refreshLibraries()
     toast('Library removed')
@@ -252,12 +254,9 @@ function Libraries() {
         </div>
       )}
       {adding && (
-        <div className="modal-backdrop" onClick={() => setAdding(false)}>
-          <div className="modal wide add-lib-modal" role="dialog" aria-label="Add a library" onClick={(e) => e.stopPropagation()}>
-            <div className="add-lib-modal-head"><h2>Add a library</h2><button className="btn sm ghost square" onClick={() => setAdding(false)} aria-label="Close"><IconClose /></button></div>
-            <AddLibrary existing={libraries} grouping={grouping} onAdded={async (l) => { setAdding(false); await refreshLibraries(); toast(`${l.name} saved; scanning`) }} />
-          </div>
-        </div>
+        <Dialog title="Add a library" size="wide" className="add-lib-modal" onClose={() => setAdding(false)}>
+          <AddLibrary existing={libraries} grouping={grouping} onAdded={async (l) => { setAdding(false); await refreshLibraries(); toast(`${l.name} saved; scanning`) }} />
+        </Dialog>
       )}
       {editing && <LibraryEditor lib={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshLibraries(); toast('Library saved; scanning') }} />}
       <LegalNote kind="local" className="set-legal" />
@@ -285,9 +284,8 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
     } catch (e: any) { setErr(e.message) }
   }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal set-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={lib.id ? 'Edit library' : 'Add library'}>
-        <h2>{lib.id ? `Edit ${lib.name}` : 'Add a library'}</h2>
+    <Dialog title={<>{lib.id ? `Edit ${lib.name}` : 'Add a library'}</>} onClose={onClose} size="wide" className="set-modal" actions={<><button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts')}>{lib.id ? 'Save and scan' : 'Add library'}</button></>}>
         <div className="set-form">
           <fieldset className="set-types">
             <legend>What's in it?</legend>
@@ -324,12 +322,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
           </div>
           {err && <div className="error">{err}</div>}
         </div>
-        <div className="actions">
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts')}>{lib.id ? 'Save and scan' : 'Add library'}</button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -356,10 +349,7 @@ function SignInScreen() {
   return (
     <Section title="Signing in">
       <Row label="Sign-in screen" desc="Profiles show everyone's picture to pick from, like a streaming service. The classic form asks for a name and password.">
-        <div className="seg" role="radiogroup" aria-label="Sign-in screen">
-          <button role="radio" aria-checked={profiles} className={profiles ? 'active' : ''} onClick={() => set('loginStyle', 'profiles')}>Profiles</button>
-          <button role="radio" aria-checked={!profiles} className={!profiles ? 'active' : ''} onClick={() => set('loginStyle', 'classic')}>Classic</button>
-        </div>
+        <Segmented label="Sign-in screen" value={profiles ? 'profiles' : 'classic'} onChange={(v) => set('loginStyle', v)} options={[{ value: 'profiles', label: 'Profiles' }, { value: 'classic', label: 'Classic' }]} />
       </Row>
       <Row label="Show profiles outside your home" desc="Off by default: anyone who can reach the server would see everyone's names. Passwords are always required." dim={!profiles}>
         <Switch label="Show profiles outside your home" disabled={!profiles} checked={on('profilesRemote', '0')} onChange={(v) => set('profilesRemote', v ? '1' : '0')} />
@@ -532,7 +522,7 @@ function Updates() {
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
   const apply = async () => {
-    if (!st?.latest || !confirm(`Install WittyMediaServer ${st.latest.version}? The server restarts, which pauses anything playing for a moment. Your library and settings are kept.`)) return
+    if (!st?.latest || !await ask({ title: `Install WittyMediaServer ${st.latest.version}?`, body: 'The server restarts, which pauses anything playing for a moment. Your library and settings are kept.', confirm: 'Install and restart' })) return
     try { from.current = st.current; setSt(await api.post<UpdateStatus>('/update/apply')) } catch (e: any) { toast(e.message) }
   }
   const setAutoCheck = async (v: boolean) => {

@@ -10,7 +10,7 @@ A failing colour is moved the shortest way that passes: lighter on dark
 themes, darker on light ones, keeping its hue. Light accents (gold to teal)
 on dark themes keep their colour and get dark labels instead. Run from the repository root:
 
-  python scripts/theme-contrast.py          report
+  python scripts/theme-contrast.py          check: fails if any colour falls short (CI)
   python scripts/theme-contrast.py --fix    adjust, and bump each changed theme's version
 """
 import colorsys, json, pathlib, re, sys
@@ -55,6 +55,7 @@ def move(color, against, need, lighter):
 
 
 changed = 0
+failed = 0
 for f in FILES:
     css = f.read_text(encoding='utf-8')
     root = css[css.index(':root'):]
@@ -100,8 +101,9 @@ for f in FILES:
             notes.append(f'--{k} {v[k]} -> {new[k]} ({min(ratio(new[k], s) for s in surfaces):.2f})')
     if 'control-line' in v:
         worst = min(ratio(v['control-line'], s) for s in surfaces)
-        # Only as strong as it has to be: a heavier outline is just noise.
-        if worst < 3 or worst > 3.4:
+        # Only as strong as it has to be: a heavier outline is just noise. The high
+        # contrast theme is the exception, where strong outlines are the point.
+        if worst < 3 or (worst > 3.4 and f.parent.name != 'contrast'):
             start = v['bg-3'] if worst > 3.4 else v['control-line']
             new['control-line'] = move(start, surfaces, 3, lighter=dark)
             if new['control-line'] != v['control-line']:
@@ -109,6 +111,8 @@ for f in FILES:
             else:
                 del new['control-line']
     print(f'{f}: ' + ('; '.join(notes) if notes else 'passes'))
+    if notes:
+        failed += 1
     if FIX and new != v:
         changed += 1
         for k in new:
@@ -133,3 +137,6 @@ for f in FILES:
             meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
 if FIX:
     print(f'{changed} files changed')
+elif failed:
+    print(f'\n{failed} files fall short. python scripts/theme-contrast.py --fix moves each colour the shortest way that passes.')
+    sys.exit(1)

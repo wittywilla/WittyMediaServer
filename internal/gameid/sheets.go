@@ -93,7 +93,7 @@ func ParseSheet(ext, name string, in io.Reader, dir string, exists func(string) 
 				if strings.EqualFold(m[1], "AUDIO") {
 					audio++
 				} else if s.Data == "" && lastFile != "" {
-					s.Data = lastData(s, lastFile, dir)
+					s.Data = lastData(s, lastFile)
 				}
 			}
 		case ".gdi":
@@ -125,14 +125,13 @@ func ParseSheet(ext, name string, in io.Reader, dir string, exists func(string) 
 }
 
 // lastData finds a file just listed, under the name it was found by.
-func lastData(s *Sheet, raw, dir string) string {
+func lastData(s *Sheet, raw string) string {
 	want := filepath.Base(filepath.FromSlash(strings.ReplaceAll(raw, `\`, "/")))
 	for i := len(s.Files) - 1; i >= 0; i-- {
 		if strings.EqualFold(filepath.Base(s.Files[i]), want) {
 			return s.Files[i]
 		}
 	}
-	_ = dir
 	return ""
 }
 

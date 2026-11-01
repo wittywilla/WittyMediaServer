@@ -101,6 +101,21 @@ func TestNoSecretLeavesInABundle(t *testing.T) {
 	}
 }
 
+// One log file on its own goes through the same check as a bundle.
+func TestDownloadingOneLogRedactsItAgain(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "wms.log")
+	if err := os.WriteFile(p, []byte(`time=2026-11-01T10:00:00Z level=INFO msg="old line" tdarrKey=OLDSECRET12345 url="https://h.example/a?passphrase=OLDSECRET12345"`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := CopyRedacted(&out, p); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), "OLDSECRET12345") || !strings.Contains(out.String(), "old line") {
+		t.Errorf("%s", out.String())
+	}
+}
+
 // An error's code and a port stay readable: a reader is after those.
 func TestRedactLeavesWhatADiagnosisNeeds(t *testing.T) {
 	for _, keep := range []string{`{"code":"password-needed"}`, `dial tcp 10.0.0.1:443: refused`, `token: expired, sign in again`[:0] + `error: no such file`, `http: TLS handshake error`, `keyboard: disconnected`} {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
+	"github.com/wittywilla/wittymediaserver/internal/libtranscode/tdarr"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
@@ -518,9 +519,13 @@ func (s *Server) handleTdarrPut(w http.ResponseWriter, r *http.Request) {
 		libtranscode.TdarrSettings
 		APIKey   string `json:"apiKey"`
 		ClearKey bool   `json:"clearKey"`
+		moduleSecrets
 	}
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.tdarrAddressGate(w, r, in.URL, in.moduleSecrets) {
 		return
 	}
 	if err := s.LibConvert.SaveTdarr(r.Context(), in.TdarrSettings, in.APIKey, in.ClearKey); err != nil {
@@ -528,6 +533,19 @@ func (s *Server) handleTdarrPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, s.LibConvert.LoadTdarr(r.Context()))
+}
+
+// tdarrAddressGate asks for the password before this server talks to an address it wasn't already
+// talking to. What answers from Tdarr's address says what's listening there, so without this a
+// stolen session could look around this machine and its network, one address at a time.
+func (s *Server) tdarrAddressGate(w http.ResponseWriter, r *http.Request, address string, b moduleSecrets) bool {
+	if address == "" {
+		return true
+	}
+	if base, err := tdarr.CleanAddress(address); err == nil && base == s.LibConvert.LoadTdarr(r.Context()).URL {
+		return true
+	}
+	return s.moduleGate(w, r, b, "tdarr")
 }
 
 // handleTdarrTest looks at a Tdarr server, the one typed in or the one saved.
@@ -538,9 +556,13 @@ func (s *Server) handleTdarrTest(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		URL    string `json:"url"`
 		APIKey string `json:"apiKey"`
+		moduleSecrets
 	}
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.tdarrAddressGate(w, r, in.URL, in.moduleSecrets) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)

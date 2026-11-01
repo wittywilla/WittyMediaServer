@@ -99,6 +99,17 @@ go run ./cmd/wms-sign sign wittymediaserver-0.4.0-alpha-SHA256SUMS.txt
 go run ./cmd/wms-sign verify wittymediaserver-0.4.0-alpha-SHA256SUMS.txt   # "good signature"
 ```
 
+**If a server release has to be taken back:** make `wittymediaserver-withdrawn.json` (the same form
+modules use: `{"module":"wittymediaserver","serial":N,"versions":[{"version":"x.y.z","severity":"security","reason":"..."}]}`,
+raising `serial` each time), sign it with `wms-sign sign`, and attach both files to a release tagged
+`withdrawals`. Servers stop offering that version, and one already running it says so under *Settings → About*.
+A server keeps the highest serial it has seen, so hiding or replaying the list changes nothing. Deleting a
+release from GitHub isn't enough: a server that has already seen it can still be offered it.
+
+**If the key is lost and nothing was exposed:** servers can't update themselves any more, because nothing else
+can sign a release they will accept. Add a new key as below and announce that the next release has to be
+installed by hand, once.
+
 **If the key is ever exposed** (or lost): make a new one (`wms-sign keygen -key new.key`), add its
 public key to `trustedKeys` in `internal/update/verify.go` next to the old one, and publish a
 release signed with the **old** key, so installed servers learn the new key. Sign later releases

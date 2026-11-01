@@ -188,6 +188,7 @@ func cmdServe(args []string) int {
 	update.Cleanup(progDir)
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
+	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {

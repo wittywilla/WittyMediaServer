@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymodule"
 )
 
 // ExitRestart is the exit code with which the server asks the program that
@@ -48,6 +49,8 @@ type Info struct {
 type Status struct {
 	Current    string `json:"current"`
 	Latest     *Info  `json:"latest,omitempty"` // only when newer than Current
+	// Withdrawn is why the running version was taken back, by the project's signed list.
+	Withdrawn  string `json:"withdrawn,omitempty"`
 	CheckedAt  int64  `json:"checkedAt,omitempty"`
 	CheckError string `json:"checkError,omitempty"`
 	Phase      string `json:"phase"`
@@ -78,6 +81,9 @@ type Updater struct {
 	busy     bool
 	reason   string // cached cannotApply answer
 	reasonAt time.Time
+
+	withdrawn     *wittymodule.Withdrawals // the newest signed list seen
+	withdrawnFile string                   // where it is kept
 }
 
 // New prepares an updater for the program in dir.
@@ -97,6 +103,7 @@ func (u *Updater) Status() Status {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	st := u.st
+	st.Withdrawn = u.withdrawnReason(u.Current)
 	st.CanApply, st.Reason = false, ""
 	if st.Latest != nil {
 		if time.Since(u.reasonAt) > 30*time.Second {
@@ -146,6 +153,11 @@ func (u *Updater) Check(ctx context.Context, maxAge time.Duration) Status {
 
 	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	rels, err := u.fetchReleases(cctx)
+	if err == nil {
+		if werr := u.readWithdrawals(cctx, rels); werr != nil {
+			u.Log.Warn("the list of withdrawn versions could not be read", "err", werr)
+		}
+	}
 	cancel()
 
 	u.mu.Lock()
@@ -160,7 +172,7 @@ func (u *Updater) Check(ctx context.Context, maxAge time.Duration) Status {
 		return u.Status()
 	}
 	u.st.CheckError = ""
-	rel := latest(rels, u.Current, runtime.GOOS, runtime.GOARCH)
+	rel := latest(rels, u.Current, runtime.GOOS, runtime.GOARCH, u.withdrawn)
 	u.rel = rel
 	if rel == nil {
 		u.st.Latest = nil

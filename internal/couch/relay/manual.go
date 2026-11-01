@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"os/exec"
@@ -82,4 +83,11 @@ func (s *Session) Ended() <-chan struct{} { return s.ended }
 // CheckProgram says whether the program a stream needs runs on this machine.
 func CheckProgram(ctx context.Context, program string, _ func(*exec.Cmd)) error {
 	return service.Call(ctx, module, "relay.CheckProgram", nil, nil, []any{program}, nil)
+}
+
+// MarshalJSON names a session to the module, by the name it gave.
+func (s *Session) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID string `json:"id"`
+	}{s.Sid})
 }

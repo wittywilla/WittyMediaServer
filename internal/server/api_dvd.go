@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -106,6 +107,10 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, err := s.DVD.Open(it.ID, it.Path, prefs)
 	if writeModuleMissing(w, err) {
+		return
+	}
+	if errors.Is(err, dvdsession.ErrScrambled) {
+		writeErr(w, 403, err.Error())
 		return
 	}
 	if err != nil {

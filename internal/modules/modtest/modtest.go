@@ -6,6 +6,7 @@
 package modtest
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
+	"github.com/wittywilla/wittymodule/service"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -93,8 +95,18 @@ func Need(t testing.TB, ids ...string) *modules.Manager {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if id == "wittyplay" {
+			t.Cleanup(stopGames)
+		}
 	}
 	return m
+}
+
+// stopGames leaves no game running: there's one set of them, for every test.
+func stopGames() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	_ = service.Call(ctx, "wittyplay", "stream.Manager.StopAll", nil, nil, nil, nil)
 }
 
 func add(m *modules.Manager, id string) error {

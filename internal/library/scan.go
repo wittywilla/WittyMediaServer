@@ -934,6 +934,11 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		return
 	}
 	o, err := dvdsession.Open(it.Path)
+	if errors.Is(err, dvdsession.ErrScrambled) {
+		s.Log.InfoContext(ctx, "this DVD is encrypted, so it won't play", "file", it.Path)
+		it.Container = "dvd"
+		return
+	}
 	if err != nil {
 		if s.probeBluray(ctx, it) {
 			return

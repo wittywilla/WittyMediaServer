@@ -82,6 +82,11 @@ func FuzzReadEPUB(f *testing.F) {
 		"a/c.xhtml":              `<html><body>word word</body></html>`,
 		"a/t.ncx":                `<ncx><navMap><navPoint><navLabel><text>x</text></navLabel><content src="../../../etc/passwd#x"/></navPoint></navMap></ncx>`,
 	}))
+	f.Add(build(map[string]string{
+		"META-INF/container.xml": `<container><rootfiles><rootfile full-path="b.opf"/></rootfiles></container>`,
+		"b.opf":                  `<package><manifest><item id="c" href="c.xhtml"/></manifest><spine><itemref idref="c"/></spine></package>`,
+		"c.xhtml":                strings.Repeat("<script>", 2000),
+	}))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 		if err != nil {
@@ -92,8 +97,14 @@ func FuzzReadEPUB(f *testing.F) {
 		if err != nil {
 			return
 		}
+		// A crash fuzzer can't see a slow worst case by itself, so this says how slow is too slow.
+		start := time.Now()
 		_ = WordCounts(zr, info.Spine)
 		_ = SearchBook(zr, info.Spine, "word")
+		_ = SearchBook(zr, info.Spine, "\u212A\u212A")
+		if d := time.Since(start); d > 30*time.Second {
+			t.Errorf("reading the book took %v", d)
+		}
 	})
 }
 

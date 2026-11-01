@@ -27,6 +27,8 @@ Sources are applied in this order; later ones only fill gaps:
 | 9 | **AniList** (Anime libraries) — built in, no API key needed, no switch of its own | titles in your chosen language, plots, posters, episode numbering |
 | 10 | Generated thumbnail | a frame 20 % into the video |
 
+NFO and metadata files have to be plain files of at most 4 MB. One that is a link, or larger, is ignored.
+
 Audio CDs have an order of their own: see [Audio CDs](#audio-cds).
 
 **Works out of the box.** TV shows and movies get information without any account or key.

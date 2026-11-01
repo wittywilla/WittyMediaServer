@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 // Output says where a run of FFmpeg writes.
@@ -27,12 +29,12 @@ func (pl *Plan) Args(src *Source, out Output) []string {
 		}
 	}
 	// Files that arrive with broken times get new ones instead of stopping the job.
-	args = append(args, "-fflags", "+genpts", "-analyzeduration", "20M", "-probesize", "20M",
-		"-protocol_whitelist", "file,pipe", "-i", src.Path)
+	args = append(args, "-fflags", "+genpts", "-analyzeduration", "20M", "-probesize", "20M")
+	args = append(args, ffmpeg.FileInput(src.Path)...)
 	inputs := 1
 	embeds := map[string]int{}
 	for _, e := range pl.embeds {
-		args = append(args, "-protocol_whitelist", "file,pipe", "-i", e.path)
+		args = append(args, ffmpeg.FileInput(e.path)...)
 		embeds[e.path] = inputs
 		inputs++
 	}
@@ -257,9 +259,9 @@ func coverName(st Step) string {
 
 // CoverArgs pulls one cover out of a file, as it's stored there.
 func CoverArgs(src string, st Step, out string) []string {
-	args := []string{"-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-protocol_whitelist", "file,pipe", "-i", src,
-		"-map", "0:" + strconv.Itoa(st.index), "-frames:v", "1", "-c", "copy", "-f", "image2", "-update", "1", out}
-	return args
+	args := []string{"-hide_banner", "-nostdin", "-y", "-loglevel", "error"}
+	args = append(args, ffmpeg.FileInput(src)...)
+	return append(args, "-map", "0:"+strconv.Itoa(st.index), "-frames:v", "1", "-c", "copy", "-f", "image2", "-update", "1", out)
 }
 
 // streamArgs turns encoder options into ones that apply to one stream.

@@ -484,10 +484,10 @@ func (m *Manager) resolve(id string, e *entry) {
 	e.fails, e.web, e.dir = 0, nil, ""
 	if pick != nil {
 		e.man, e.dir = pick, pickDir
-		switch pick.Delivery {
-		case wittymodule.DeliveryHelper:
+		if pick.Delivery == wittymodule.DeliveryHelper {
 			e.proc = m.newProcFor(id, e, pick, pickDir)
-		case wittymodule.DeliveryWeb:
+		}
+		if pick.HasWeb() {
 			w, err := loadWebFiles(pickDir, pick, m.keysFor(e))
 			if err != nil { // usable has just checked it, so only a change this moment gets here
 				m.log.Warn("modules: reading a bundle", "module", id, "err", err)
@@ -753,7 +753,7 @@ func (m *Manager) ReportBrowserFailure(id, ver, reason string, admin bool) error
 		m.mu.Unlock()
 		return ErrUnknown
 	}
-	if e.builtin.Delivery != wittymodule.DeliveryWeb || e.man.Version != ver || e.dir == "" {
+	if !e.man.HasWeb() || e.man.Version != ver || e.dir == "" {
 		m.mu.Unlock()
 		return nil
 	}

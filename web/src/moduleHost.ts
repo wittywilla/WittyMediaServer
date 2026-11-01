@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDom from 'react-dom'
 import * as jsxRuntime from 'react/jsx-runtime'
-import * as wittyink from '@wittywilla/wittyink'
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 
 // What a module's web bundle shares with the app, and reads from one global because an
@@ -13,13 +12,12 @@ import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 // Adding here raises the module API (moduleBundles.ts); removing or changing anything
 // breaks bundles already released.
 export const moduleHost = {
-  api: 2,
+  api: 3,
   react: React,
   reactDom: ReactDom,
   jsxRuntime,
-  // The loader replaces this with WittyInk's own bundle when one is in use.
-  wittyink: wittyink as Record<string, unknown>,
-  builtinInk: wittyink as Record<string, unknown>,
+  // The loader sets this to WittyInk's bundle before it loads a reader that's built on it.
+  wittyink: undefined as Record<string, unknown> | undefined,
   // Large, so only a PDF loads it; pdfjsModule is filled in before a bundle that needs it.
   pdfjs: () => import('pdfjs-dist/legacy/build/pdf.mjs'),
   pdfjsModule: undefined as unknown,

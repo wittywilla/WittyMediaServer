@@ -22,7 +22,7 @@
     ],
     "paths": {
       "@wittywilla/*": [
-        "./node_modules/@wittywilla/*"
+        "./src/moduletypes/*"
       ],
       "react": [
         "./node_modules/@types/react"

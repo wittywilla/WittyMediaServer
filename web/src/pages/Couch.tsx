@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
@@ -6,12 +6,13 @@ import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay } from '../icons'
 import { toast, useApp } from '../state'
 import type { CouchHost } from '@wittywilla/wittycouch'
+import { lazyModule } from '../moduleBundles'
 import './rigs.css'
 
 // Your own list of PCs running Sunshine, and the games on them. Anyone allowed can connect to any
 // PC they can pair with: nothing here is shared with other accounts.
 
-const Player = lazy(() => import('@wittywilla/wittycouch'))
+const Player = lazyModule<{ host: CouchHost }>('wittycouch', (m) => m.default)
 
 type Host = { id: number; name: string; address: string; port?: number; paired: boolean; state: string; message: string; currentGame?: string; canWake: boolean; public?: boolean }
 type App = { id: number; title: string; hasArt: boolean; isDesktop?: boolean }

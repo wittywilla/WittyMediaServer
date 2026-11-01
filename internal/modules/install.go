@@ -362,7 +362,7 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		if err := p.Try(); err != nil {
 			return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
 		}
-	} else {
+	} else if man.Delivery == wittymodule.DeliveryWeb {
 		if _, err := os.Stat(filepath.Join(stage, man.Entry)); err != nil {
 			return fmt.Errorf("the package has no %s", man.Entry)
 		}

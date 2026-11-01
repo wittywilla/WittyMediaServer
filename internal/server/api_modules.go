@@ -307,6 +307,9 @@ func (s *Server) handleModuleWebFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "no such file")
 		return
 	}
+	// An app that has its own copy of the page reaches this from another origin. A bundle is
+	// no secret, and what fetches it still has to be signed in.
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	file, hash, err := s.Modules.WebFile(id, ver, rel)
 	if err != nil {
 		writeErr(w, 404, "no such file")

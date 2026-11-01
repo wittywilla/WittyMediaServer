@@ -9,12 +9,12 @@ import (
 //go:embed all:dist
 var dist embed.FS
 
-//go:embed src/modules/*/module.json
+//go:embed module-manifests/*.json
 var moduleManifests embed.FS
 
 // ModuleManifests returns the manifests of the web modules in this client.
 func ModuleManifests() [][]byte {
-	files, err := fs.Glob(moduleManifests, "src/modules/*/module.json")
+	files, err := fs.Glob(moduleManifests, "module-manifests/*.json")
 	if err != nil {
 		panic(err)
 	}

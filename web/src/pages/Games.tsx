@@ -12,7 +12,7 @@ import './games.css'
 import LegalNote from '../components/LegalNote'
 
 // Games: the library page, a game's own page, and the page that holds the player.
-// The player itself is WittyPlay (modules/wittyplay/web), loaded only when a game
+// The player itself is WittyPlay (the web folder of WittyPlay's repository), loaded only when a game
 // is opened.
 
 const GamePlayer = lazy(() => import('@wittywilla/wittyplay'))

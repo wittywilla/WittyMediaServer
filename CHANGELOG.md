@@ -5,6 +5,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.6.0-alpha
+
+- **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
+  WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
+  WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
+  and `clients/mobile` shells are retired: WittyMediaClient replaces them.
+
 ## 0.5.2-alpha
 
 0.5.0-alpha was never published as a release, so this is the first release with everything from it as

@@ -1,7 +1,0 @@
-node_modules/
-dist/
-release/
-*.key
-*.tsbuildinfo
-go.work
-go.work.sum

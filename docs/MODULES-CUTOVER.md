@@ -1,5 +1,9 @@
 # Moving the modules to their own repositories
 
+> **Part way through.** Each module now has a local repository ([REPOSITORIES.md](REPOSITORIES.md)), and the folders and
+> `scripts/cutover-modules.sh` are gone from this repository. This page still describes the older plan, of pushing as it
+> goes, until it is rewritten around what is left for a person to do. The key and secret steps below still apply.
+
 Today the modules live in this repository, and their own repositories are copies. After the
 cutover each repository stands alone, with its own workflows and releases, and the server requires
 released versions. `scripts/cutover-modules.sh` does the work. Run on its own, it only rehearses.

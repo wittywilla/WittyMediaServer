@@ -304,11 +304,11 @@ nothing without the owner's agreement. The studios of films and networks of show
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /api/logos/status` | Signed in | `{consent: "yes"\|"no"\|"", counts: {pending, found, none, text}, source, sourceUrl}` |
+| `GET /api/logos/status` | Signed in | `{consent: "yes"\|"no"\|"", source, sourceUrl}`, and for an administrator `counts: {pending, found, none, text}` |
 | `PUT /api/logos/consent` `{accepted, removeDownloaded}` | Admin | Records the answer. Agreeing starts the downloads. Declining stops them, and removes what was downloaded if asked. Uploaded logos stay |
 | `POST /api/logos/lookup` `{logos: [{kind, name}]}` | Signed in | Up to 200 names at once. Answers `{logos: [{id, kind, name, status, has, version, opaque, source, sourceUrl, license, licenseUrl, credit}]}`. An admin's lookup adds names nobody has asked about; anyone else's only reads, because a looked-up name goes to the internet |
 | `GET /api/logos/{id}/image?variant=white\|dark\|original&v={version}` | Signed in | The PNG, or 404 |
-| `GET /api/logos/credits` | Signed in | Every logo with its source, licence and author |
+| `GET /api/logos/credits` | Signed in | Every logo with its source, licence and author. An account with limits gets the studios and networks of what it may see |
 | `GET /api/logos/{id}/candidates?q=` | Admin | What the source offers, to choose from. 409 without the owner's agreement |
 | `GET /api/logos/preview?src=` | Admin | A candidate's picture, through this server. Only Wikimedia addresses |
 | `PUT /api/logos/{id}` `{sourceId, q}` or `{status: "text"\|"pending"}` | Admin | Use a candidate; or the name alone; or look again |

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 const noLibraryForYou = `{"maxAge":-1,"allowUnrated":true,"libraries":[999]}`
@@ -30,5 +32,55 @@ func TestLikedSongsKeepToWhatAnAccountMaySee(t *testing.T) {
 	}
 	if w := f.do(t, "GET", "/api/music/likes", f.adult, nil); !strings.Contains(w.Body.String(), fmt.Sprint(f.song.ID)) {
 		t.Errorf("an account with no limits: %s", w.Body)
+	}
+}
+
+// The credits name every logo there is, and a limited account shouldn't learn of a studio that
+// way, or how much is on the server from the totals.
+func TestLogoFactsKeepToWhatAnAccountMaySee(t *testing.T) {
+	f := newMusicFixture(t)
+	ctx := context.Background()
+	for _, n := range []string{"Hidden Pictures", "Open Pictures"} {
+		if _, err := f.DB.ExecContext(ctx, `INSERT INTO logos(kind, key, name, status, file) VALUES('studio',?,?,'found','x')`, library.BrandKey(n), n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := f.DB.ExecContext(ctx, `INSERT INTO logos(kind, key, name, status, file) VALUES('console','a console','A Console','found','x')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, item_id) VALUES('studio',?,'Open Pictures',?,?)`, library.BrandKey("Open Pictures"), f.lib, f.song.ID); err != nil {
+		t.Fatal(err)
+	}
+	kid := f.do(t, "GET", "/api/logos/credits", f.kid, nil).Body.String()
+	if strings.Contains(kid, "Hidden Pictures") {
+		t.Errorf("a Kids profile read: %s", kid)
+	}
+	if !strings.Contains(kid, "Open Pictures") || !strings.Contains(kid, "A Console") {
+		t.Errorf("what it may see should still be credited: %s", kid)
+	}
+	if w := f.do(t, "GET", "/api/logos/credits", f.adult, nil); !strings.Contains(w.Body.String(), "Hidden Pictures") {
+		t.Errorf("an account with no limits should see them: %s", w.Body)
+	}
+	status := func(path, tok string) map[string]any {
+		var st map[string]any
+		if err := json.Unmarshal(f.do(t, "GET", path, tok, nil).Body.Bytes(), &st); err != nil {
+			t.Fatal(err)
+		}
+		return st
+	}
+	if st := status("/api/logos/status", f.kid); st["counts"] != nil {
+		t.Errorf("how many logos there are, to anyone: %v", st)
+	}
+	if st := status("/api/logos/status", f.admin); st["counts"] == nil {
+		t.Errorf("an administrator's settings need them: %v", st)
+	}
+	if _, err := f.DB.ExecContext(ctx, `INSERT INTO listing_titles(target, target_id, region, checked_at) VALUES('item',?,?,5)`, f.song.ID, f.Store.ListingsRegion(ctx)); err != nil {
+		t.Fatal(err)
+	}
+	if st := status("/api/listings/status", f.kid); st["titles"] != float64(0) || st["attribution"] == "" {
+		t.Errorf("how many titles were checked, to anyone: %v", st)
+	}
+	if st := status("/api/listings/status", f.admin); st["titles"] != float64(1) {
+		t.Errorf("an administrator's settings need them: %v", st)
 	}
 }

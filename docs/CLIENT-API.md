@@ -946,10 +946,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and how far they have got. |
+| `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and for an administrator how far they have got. |
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
-| `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. |
+| `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. An account with limits gets the studios and networks of what it may see. |
 | `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only. |
 | `GET /logos/{id}/image` | Signed in | A logo as a PNG. variant=white, dark or original. |
 | `GET /logos/{id}/candidates` | Admin | What the source offers for a logo, to choose from. |
@@ -965,7 +965,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /views/{id}` | Signed in | Change a saved view, or pin it to Home. |
 | `DELETE /views/{id}` | Signed in | Remove a saved view. |
 | `GET /views/{id}/titles` | Signed in | What a saved view finds now. |
-| `GET /listings/status` | Signed in | Whether streaming listings are on, for which region, and how old they are. |
+| `GET /listings/status` | Signed in | Whether streaming listings are on, for which region, and how old they are. Counts and progress are for an administrator. |
 | `PUT /listings/settings` | Admin | Turn streaming listings on, after accepting every statement, or off, which forgets them. |
 | `POST /listings/refresh` | Admin | Check listings again now. |
 | `GET /meta/removed` | Admin | Titles taken out of libraries. |

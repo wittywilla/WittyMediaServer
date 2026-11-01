@@ -257,10 +257,10 @@ func TestNobodyReachesSomeoneElsesGameData(t *testing.T) {
 	if w := g.do("GET", item+"/meta", g.kid, nil); strings.Contains(w.Body.String(), "private") || strings.Contains(w.Body.String(), `"favourite":true`) {
 		t.Error("another person read the note")
 	}
-	if w := g.do("GET", "/api/games/recent?favourites=1", g.kid, nil); strings.Contains(w.Body.String(), "one.wittytest") {
+	if w := g.do("GET", "/api/games/recent?favourites=1", g.kid, nil); strings.Contains(w.Body.String(), `"title":"one"`) {
 		t.Error("another person's favourites showed")
 	}
-	if w := g.do("GET", "/api/games/recent?favourites=1", g.other, nil); !strings.Contains(w.Body.String(), "one.wittytest") {
+	if w := g.do("GET", "/api/games/recent?favourites=1", g.other, nil); !strings.Contains(w.Body.String(), `"title":"one"`) {
 		t.Errorf("their own favourites didn't show: %s", w.Body)
 	}
 

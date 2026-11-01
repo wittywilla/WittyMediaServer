@@ -72,6 +72,8 @@ func (s *Server) gameRoutes(m *http.ServeMux) {
 // gameService is built the first time anything needs it, so a server nobody
 // plays games on spends nothing on them.
 type gameService struct {
+	probeSlot   chan struct{} // asking a core what it offers, one at a time
+	silentCores sync.Map      // cores that said nothing when asked, by ID, and when
 	mgr      *stream.Manager
 	cores    *cores.Manager
 	archives *gamearchive.Cache
@@ -126,7 +128,7 @@ func (s *Server) games() *gameService {
 		// can be running yet, and these can be gigabytes.
 		_ = os.RemoveAll(filepath.Join(dir, "tmp"))
 		coresDir := filepath.Join(dir, "cores")
-		s.gameSvc = &gameService{dir: dir, cores: &cores.Manager{Dir: coresDir, System: filepath.Join(dir, "system"), Client: library.SafeClient, Custom: s.customCoreList},
+		s.gameSvc = &gameService{dir: dir, probeSlot: make(chan struct{}, 1), cores: &cores.Manager{Dir: coresDir, System: filepath.Join(dir, "system"), Client: library.SafeClient, Custom: s.customCoreList},
 			custom: newCustomService(filepath.Join(dir, "custom-cores"), filepath.Join(dir, "system"), append([]string{coresDir}, cores.DefaultExtra()...), customFetchClient()),
 			mgr:    stream.NewManager(stream.Config{FFmpeg: s.Tools.FFmpeg, HaveEncoder: func(n string) bool { return s.Tools.Encoders[n] }, Log: s.Log.With("cat", "games", "module", "wittyplay")})}
 		s.gameSvc.archives = &gamearchive.Cache{Dir: filepath.Join(dir, "unpacked"), Limit: s.unpackLimit}

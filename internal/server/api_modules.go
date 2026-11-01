@@ -345,6 +345,11 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "unreadable request")
 		return
 	}
+	if !s.clientLogs.allow(userFrom(r).ID) { // each writes the module state to disk
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(429)
+		return
+	}
 	s.Log.Warn("a browser reported a module failing", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
 	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason, userFrom(r).IsAdmin); err != nil {
 		writeModuleErr(w, err)

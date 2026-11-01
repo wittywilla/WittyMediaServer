@@ -21,9 +21,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
+	"github.com/wittywilla/wittyplay/cores"
 	"github.com/wittywilla/wittyplay/ipc"
 	"github.com/wittywilla/wittyplay/patch"
 	"github.com/wittywilla/wittyplay/stream"
@@ -360,7 +362,7 @@ func (s *Server) customInput(ctx context.Context, r *http.Request, console strin
 // coreOptionsFor finds what the core for a console offers: from the running game, then
 // what was kept, then by asking the core. It returns which core that was, too.
 func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console string, itemID int64) ([]wittyplay.OptionInfo, string) {
-	coreID, corePath := s.coreForConsole(ctx, console)
+	coreID, corePath, custom := s.coreForConsole(ctx, console, itemID)
 	if coreID == "" {
 		return nil, ""
 	}
@@ -381,12 +383,29 @@ func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console st
 		return nil, coreID
 	}
 	g := s.games()
+	if at, ok := g.silentCores.Load(coreID); ok && time.Since(at.(time.Time)) < silentCoreFor {
+		return nil, coreID
+	}
+	// Asking loads the core, which the same promise as playing it covers.
+	if custom != nil {
+		if err := s.checkCustomCore(ctx, custom); err != nil {
+			s.Log.Warn("not asking a core for its options", "core", coreID, "err", err)
+			return nil, coreID
+		}
+	}
+	select {
+	case g.probeSlot <- struct{}{}:
+		defer func() { <-g.probeSlot }()
+	case <-ctx.Done():
+		return nil, coreID
+	}
 	opts, err := g.mgr.ProbeOptions(ctx, corePath, filepath.Join(g.dir, "system"), filepath.Join(g.dir, "tmp"))
 	if err != nil {
 		s.Log.Debug("asking a core for its options", "core", coreID, "err", err)
 		return nil, coreID
 	}
 	if len(opts) == 0 {
+		g.silentCores.Store(coreID, time.Now())
 		return nil, coreID // this core only says with a game loaded
 	}
 	s.keepCoreOptions(coreID, opts)
@@ -408,20 +427,24 @@ func (s *Server) gameSvcSession(userID, itemID int64) *stream.Session {
 	return sess
 }
 
-// coreForConsole is the core a console's games use here.
-func (s *Server) coreForConsole(ctx context.Context, console string) (id, path string) {
+// coreForConsole is the core a console's games, or this game, use here, the same way a
+// game chooses one. custom is set if that's somebody's own core.
+func (s *Server) coreForConsole(ctx context.Context, console string, itemID int64) (id, path string, custom *cores.Core) {
 	if console == wittyplay.TestConsole {
-		return "test", ipc.TestCore
+		return "test", ipc.TestCore, nil
 	}
 	c := wittyplay.ByID(console)
 	if c == nil {
-		return "", ""
+		return "", "", nil
 	}
-	core := s.games().cores.ForConsole(c, s.preferredCores(ctx)[console])
+	core := s.games().cores.ForConsole(c, s.preferredCore(ctx, c, itemID))
 	if core == nil {
-		return "", ""
+		return "", "", nil
 	}
-	return core.ID, core.Path
+	if core.Source == cores.SourceCustom {
+		custom = core
+	}
+	return core.ID, core.Path, custom
 }
 
 func (s *Server) handleGameSettingsValidate(w http.ResponseWriter, r *http.Request) {
@@ -508,6 +531,9 @@ func (s *Server) handleGamesRecent(w http.ResponseWriter, r *http.Request) {
 }
 
 const maxGameNote = 8 << 10
+
+// silentCoreFor: a core with nothing to say without a game isn't asked again for this long.
+const silentCoreFor = time.Hour
 
 func (s *Server) handleGameMeta(w http.ResponseWriter, r *http.Request) {
 	it, ok := s.gameItem(r)
@@ -788,6 +814,8 @@ func (s *Server) handleGamePatchDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
+var patchSlot = make(chan struct{}, 1)
+
 // patchROM makes a patched copy of a game for this session when its player has patches
 // turned on. The original is never touched. A patch that won't apply leaves the game
 // unpatched and playable, with a notice saying so.
@@ -809,6 +837,13 @@ func (g *gameService) patchROM(ctx context.Context, store *library.Store, userID
 	switch ext {
 	case ".cue", ".m3u", ".gdi", ".chd", ".pbp", ".iso":
 		return rom, cleanup, []string{"Patches only work on games that are a single file, so this one started unpatched."}
+	}
+	// A game and its patched copy are both in memory here, so only one at a time.
+	select {
+	case patchSlot <- struct{}{}:
+		defer func() { <-patchSlot }()
+	case <-ctx.Done():
+		return rom, cleanup, nil
 	}
 	st, err := os.Stat(rom)
 	if err != nil || st.Size() > patch.MaxOutput {

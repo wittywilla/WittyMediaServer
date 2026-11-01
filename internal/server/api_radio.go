@@ -31,6 +31,9 @@ import (
 // it is playing, and time listened to HLS stations, which have no one long request
 // to time. Entries leave when nobody is listening, so it stays small.
 type radioLive struct {
+	streamsMu sync.Mutex
+	streams   int
+	perUser   map[int64]int
 	mu       sync.Mutex
 	titles   map[int64]*radioTitle
 	hlsUsers map[[2]int64]*radioHLSUser
@@ -150,6 +153,36 @@ func (l *radioLive) hlsTick(user, id int64) (seconds float64, first bool) {
 // sign makes the proof that this server's own playlist gave out an address for a
 // station, so the relay can't be asked to fetch anything else. The key lasts until
 // a restart, after which a player starts the stream again.
+// How many stations this server relays at once, and for one person: each holds a
+// connection to the station, and a person may have a few devices going.
+const (
+	radioStreamsAtOnce  = 32
+	radioStreamsPerUser = 4
+)
+
+func (l *radioLive) takeStream(user int64) bool {
+	l.streamsMu.Lock()
+	defer l.streamsMu.Unlock()
+	if l.streams >= radioStreamsAtOnce || l.perUser[user] >= radioStreamsPerUser {
+		return false
+	}
+	if l.perUser == nil {
+		l.perUser = map[int64]int{}
+	}
+	l.streams++
+	l.perUser[user]++
+	return true
+}
+
+func (l *radioLive) dropStream(user int64) {
+	l.streamsMu.Lock()
+	defer l.streamsMu.Unlock()
+	l.streams--
+	if l.perUser[user]--; l.perUser[user] <= 0 {
+		delete(l.perUser, user)
+	}
+}
+
 func (l *radioLive) cipher() cipher.AEAD {
 	l.keyOnce.Do(func() {
 		l.key = make([]byte, 32)
@@ -494,6 +527,12 @@ func (s *Server) handleRadioStream(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !s.radio.takeStream(userFrom(r).ID) {
+		w.Header().Set("Retry-After", "30")
+		writeErr(w, 503, "too many stations are playing right now. Close one, or try again in a moment")
+		return
+	}
+	defer s.radio.dropStream(userFrom(r).ID)
 	bg := context.WithoutCancel(r.Context())
 	st, err := library.OpenStation(r.Context(), it.Path)
 	if err != nil {
@@ -533,17 +572,16 @@ func (s *Server) handleRadioStream(w http.ResponseWriter, r *http.Request) {
 		ct = "audio/mpeg"
 	}
 	setRadioHeaders(w.Header(), ct)
-	flusher, _ := w.(http.Flusher)
+	rc := http.NewResponseController(w)
+	out := &stallWriter{w: s.capWriter(w, r), rc: rc, limit: maxStreamStall}
 	buf := make([]byte, 32<<10)
 	for {
 		n, rerr := body.Read(buf)
 		if n > 0 {
-			if _, werr := w.Write(buf[:n]); werr != nil {
+			if _, werr := out.Write(buf[:n]); werr != nil {
 				return
 			}
-			if flusher != nil {
-				flusher.Flush()
-			}
+			_ = rc.Flush()
 		}
 		if rerr != nil {
 			if !errors.Is(rerr, io.EOF) && r.Context().Err() == nil {

@@ -546,4 +546,3 @@ func (s *Scanner) readComicMeta(it *Item) func(context.Context, string) error {
 	archive := it.Path
 	return func(ctx context.Context, out string) error { return s.comicCover(ctx, archive, out) }
 }
-

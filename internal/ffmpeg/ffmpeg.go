@@ -293,16 +293,29 @@ func (t *Tools) MeasureDuration(ctx context.Context, path string) float64 {
 	if err := cmd.Run(); err != nil {
 		return 0
 	}
-	all := measureTime.FindAllStringSubmatch(stderr.String(), -1)
-	if len(all) == 0 {
-		return 0
+	if all := measureTime.FindAllStringSubmatch(stderr.String(), -1); len(all) > 0 {
+		m := all[len(all)-1]
+		h, _ := strconv.ParseFloat(m[1], 64)
+		mi, _ := strconv.ParseFloat(m[2], 64)
+		sec, _ := strconv.ParseFloat(m[3], 64)
+		return h*3600 + mi*60 + sec
 	}
-	m := all[len(all)-1]
-	h, _ := strconv.ParseFloat(m[1], 64)
-	min, _ := strconv.ParseFloat(m[2], 64)
-	sec, _ := strconv.ParseFloat(m[3], 64)
-	return h*3600 + min*60 + sec
+	// A raw stream has no times at all. Its frames and frame rate say the same.
+	if m := measureFrames.FindAllStringSubmatch(stderr.String(), -1); len(m) > 0 {
+		frames, _ := strconv.ParseFloat(m[len(m)-1][1], 64)
+		if rate := measureRate.FindStringSubmatch(stderr.String()); rate != nil {
+			if fps, _ := strconv.ParseFloat(rate[1], 64); fps > 0 && fps < 1000 {
+				return frames / fps
+			}
+		}
+	}
+	return 0
 }
+
+var (
+	measureFrames = regexp.MustCompile(`frame=\s*(\d+)`)
+	measureRate   = regexp.MustCompile(`([0-9.]+) fps`)
+)
 
 // limitWriter keeps the last part of what's written to it, up to n bytes in all.
 type limitWriter struct {
@@ -380,7 +393,7 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 		}
 		pieces := splitExtents(s.Extents)
 		var url string
-		if len(pieces) == 1 {
+		if len(pieces) == 1 && !misleadingName(pieces[0].File) {
 			url = SubfileURL(pieces[0])
 		} else {
 			side := filepath.Join(dir, fmt.Sprintf("%s-seg%d.txt", name, i+1))
@@ -410,6 +423,11 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 	p := filepath.Join(dir, name+".ffconcat")
 	return p, os.WriteFile(p, []byte(b.String()), 0o644)
 }
+
+// misleadingName: FFmpeg picks how to read an input partly from the name of the file.
+// To it an .img is a GEM picture, so a disc image of that name goes through a list of
+// addresses, whose own name says nothing.
+func misleadingName(p string) bool { return strings.EqualFold(filepath.Ext(p), ".img") }
 
 // maxSubfile is the most one subfile address reads. Past 2 GiB in one FFmpeg
 // misjudges a program stream's end, and then loses about a second of its start.

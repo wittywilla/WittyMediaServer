@@ -248,7 +248,7 @@ func Canonical(formatName, name, videoCodec, audioCodec string) string {
 	}
 	switch {
 	case has("matroska", "webm"):
-		if ext == "webm" && webmVideo(videoCodec) && webmAudio(audioCodec) {
+		if (ext == "webm" || ext == "weba") && webmVideo(videoCodec) && webmAudio(audioCodec) {
 			return "webm"
 		}
 		return "mkv"
@@ -269,6 +269,8 @@ func Canonical(formatName, name, videoCodec, audioCodec string) string {
 		return "mpg"
 	case has("ogg"):
 		return "ogg"
+	case has("wav") && ext == "rf64":
+		return "rf64" // read like WAV; no browser reads it
 	}
 	for _, n := range names {
 		for i := range formats {

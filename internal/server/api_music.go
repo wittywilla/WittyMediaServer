@@ -142,7 +142,7 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
 	}
 	args = append(args, ffmpeg.FileInput(it.Path)...)
-	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
+	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-ac", "2", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
 	cmd := ffmpeg.Command(r.Context(), s.Tools.FFmpeg, args...)
 	cmd.Stdout = &stallWriter{w: w, rc: http.NewResponseController(w), limit: maxStreamStall}
 	var stderr logging.Tail

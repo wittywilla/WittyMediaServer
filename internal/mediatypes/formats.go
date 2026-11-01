@@ -232,9 +232,9 @@ var formats = []Format{
 	b("odt", "OpenDocument text", Book, exts(".odt"), "application/vnd.oasis.opendocument.text", PlayReader, looksLike("zip")),
 	b("doc", "Word 97-2003 document", Book, exts(".doc"), "application/msword", PlayReader, looksLike("ole2"), note("Its text is shown, without pictures or layout.")),
 	b("rtf", "Rich Text", Book, exts(".rtf"), "application/rtf", PlayReader),
-	b("md", "Markdown", Book, exts(".md", ".markdown"), "text/plain; charset=utf-8", PlayReader, confirm),
-	b("html", "Web page", Book, exts(".html", ".htm", ".xhtml"), "text/html", PlayReader, confirm, note("Scripts and outside links are removed before it is shown.")),
-	b("txt", "Plain text", Book, exts(".txt"), "text/plain; charset=utf-8", PlayReader, confirm),
+	b("md", "Markdown", Book, exts(".md", ".markdown"), "text/plain; charset=utf-8", PlayReader, confirm, looksLike("webpage")),
+	b("html", "Web page", Book, exts(".html", ".htm", ".xhtml"), "text/html", PlayReader, confirm, looksLike("webpage"), note("Scripts and outside links are removed before it is shown.")),
+	b("txt", "Plain text", Book, exts(".txt"), "text/plain; charset=utf-8", PlayReader, confirm, looksLike("webpage", "srt", "m3u", "cue", "lrc", "sbv", "microdvd")),
 	b("djvu", "DjVu", Book, exts(".djvu", ".djv"), "image/vnd.djvu", PlayReader, needs(needDjVuLibre), note("Pages are drawn by DjVuLibre when it is installed. Without it the book is still listed, and can be downloaded.")),
 
 	// ---- Discs. Video discs and audio CDs; encrypted discs are detected and refused.

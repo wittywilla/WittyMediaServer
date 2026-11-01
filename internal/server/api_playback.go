@@ -914,6 +914,34 @@ func (s *Server) subtitleFileVTT(ctx context.Context, file, format string) (stri
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
+	// Each file once: the warm-up and the player can ask at the same moment.
+	sf := &s.subtitles
+	sf.mu.Lock()
+	if sf.running == nil {
+		sf.running = map[string]chan struct{}{}
+	}
+	done, busy := sf.running[out]
+	if busy {
+		sf.mu.Unlock()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+		if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+			return out, nil
+		}
+		return "", errors.New("this subtitle file can't be converted")
+	}
+	done = make(chan struct{})
+	sf.running[out] = done
+	sf.mu.Unlock()
+	defer func() {
+		sf.mu.Lock()
+		delete(sf.running, out)
+		sf.mu.Unlock()
+		close(done)
+	}()
 	select {
 	case subtitleSlots <- struct{}{}:
 		defer func() { <-subtitleSlots }()

@@ -59,12 +59,12 @@ func fromText(data []byte) *Book {
 var (
 	mdHeadingRe = regexp.MustCompile(`^(#{1,6})\s+(.*?)\s*#*\s*$`)
 	mdListRe    = regexp.MustCompile(`^\s*([-*+]|\d{1,4}[.)])\s+(.*)$`)
-	mdRuleRe    = regexp.MustCompile(`^\s*([-*_])(\s*\1){2,}\s*$`)
+	mdRuleRe    = regexp.MustCompile(`^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$`)
 	mdLinkRe    = regexp.MustCompile(`\[([^\]]{1,500})\]\((https?://[^)\s"<>]{1,1000})\)`)
-	mdBoldRe    = regexp.MustCompile(`(\*\*|__)([^*_]{1,4000}?)(\*\*|__)`)
-	mdItalicRe  = regexp.MustCompile(`(^|[\s(])[*_]([^*_\s][^*_]{0,4000}?)[*_]($|[\s).,;:!?])`)
-	mdCodeRe    = regexp.MustCompile("`([^`]{1,2000})`")
-	mdImageRe   = regexp.MustCompile(`!\[[^\]]{0,500}\]\([^)]{0,2000}\)`)
+	mdBoldRe    = regexp.MustCompile(`(\*\*|__)([^*_]{1,1000}?)(\*\*|__)`)
+	mdItalicRe  = regexp.MustCompile(`(^|[\s(])[*_]([^*_\s][^*_]{0,1000}?)[*_]($|[\s).,;:!?])`)
+	mdCodeRe    = regexp.MustCompile("`([^`]{1,1000})`")
+	mdImageRe   = regexp.MustCompile(`!\[[^\]]{0,500}\]\([^)]{0,1000}\)`)
 )
 
 // fromMarkdown reads the common parts of Markdown. Anything that looks like HTML in

@@ -76,7 +76,11 @@ type ScanProgress struct {
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	sc := &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	if tools != nil && tools.FFmpeg != "" {
+		wittycd.ForeignAudio = sc.flacOfSheetAudio
+	}
+	return sc
 }
 
 // Start scans a library in the background (no-op if already scanning).
@@ -388,11 +392,16 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	tv := newTVScan()
 	covers := map[string]string{} // audio: one cover per folder+album
 	creators := newCreatorScan()
+	var playlists []candidate
 	for i, c := range all {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
+		if c.kind == playlistKind {
+			playlists = append(playlists, c)
+			continue // read once the songs it names are in
+		}
 		if s.leftOut(ctx, lib, c) {
 			continue // its name says media, its content says otherwise
 		}
@@ -430,6 +439,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
+	s.importPlaylists(ctx, lib, playlists)
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err
 	}

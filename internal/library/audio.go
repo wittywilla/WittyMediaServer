@@ -63,6 +63,10 @@ func discoverAudio(root string) ([]candidate, error) {
 		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
+		if mediatypes.IsPlaylist(name) {
+			out = append(out, candidate{path: p, kind: playlistKind, size: st.Size(), mtime: st.ModTime().Unix()})
+			return nil
+		}
 		format := ""
 		if !mediatypes.IsAudio(name) || !nameHolds(p, name, mediatypes.Audio) {
 			f := unnamed.sniff(p, name, st.Size(), mediatypes.Audio)
@@ -144,6 +148,12 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 	embeddedArt := false
 	if perr == nil {
 		it.RuntimeSec = p.Duration()
+		if it.RuntimeSec <= 0 {
+			// A bare stream, or a song that only says how long once it's been played.
+			mctx, done := context.WithTimeout(ctx, 2*time.Minute)
+			it.RuntimeSec = s.Tools.MeasureDuration(mctx, c.path)
+			done()
+		}
 		it.Container = strings.Split(p.Format.FormatName, ",")[0]
 		tags := []map[string]string{p.Format.Tags}
 		for _, st := range p.Streams {

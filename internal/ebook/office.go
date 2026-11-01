@@ -639,6 +639,10 @@ type oleFile struct {
 	sector  int
 	fat     []uint32
 	entries map[string]oleEntry
+	// The mini stream holds what's shorter than cutoff, in smaller sectors.
+	cutoff  uint64
+	mini    []byte
+	miniFAT []uint32
 }
 
 type oleEntry struct {
@@ -689,6 +693,8 @@ func openOLE(d []byte) (*oleFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	o.cutoff = uint64(binary.LittleEndian.Uint32(d[56:]))
+	var miniRoot oleEntry
 	for i := 0; i+128 <= len(dir) && i < 128*65536; i += 128 {
 		e := dir[i : i+128]
 		nameLen := int(binary.LittleEndian.Uint16(e[64:]))
@@ -699,9 +705,46 @@ func openOLE(d []byte) (*oleFile, error) {
 		for k := 0; k+1 < nameLen-2; k += 2 {
 			name.WriteRune(rune(binary.LittleEndian.Uint16(e[k:])))
 		}
-		o.entries[name.String()] = oleEntry{start: binary.LittleEndian.Uint32(e[116:]), size: binary.LittleEndian.Uint64(e[120:])}
+		entry := oleEntry{start: binary.LittleEndian.Uint32(e[116:]), size: binary.LittleEndian.Uint64(e[120:])}
+		if e[66] == 5 { // the root entry: its data is the mini stream
+			miniRoot = entry
+			continue
+		}
+		o.entries[name.String()] = entry
+	}
+	if miniRoot.size > 0 && miniRoot.size <= maxEntry {
+		if mini, err := o.chain(miniRoot.start, maxEntry); err == nil {
+			o.mini = mini[:min(uint64(len(mini)), miniRoot.size)]
+		}
+		if raw, err := o.chain(binary.LittleEndian.Uint32(d[60:]), maxEntry); err == nil {
+			for i := 0; i+4 <= len(raw); i += 4 {
+				o.miniFAT = append(o.miniFAT, binary.LittleEndian.Uint32(raw[i:]))
+			}
+		}
 	}
 	return o, nil
+}
+
+// miniChain reads a stream kept in the mini stream. Its sectors are 64 bytes.
+func (o *oleFile) miniChain(start uint32, size uint64) ([]byte, error) {
+	const miniSector = 64
+	out := make([]byte, 0, min(size, uint64(len(o.mini))))
+	hops := 0
+	for n := start; n != oleEnd && n != oleFree && uint64(len(out)) < size; {
+		off := int64(n) * miniSector
+		if off+miniSector > int64(len(o.mini)) || int(n) >= len(o.miniFAT) {
+			break
+		}
+		out = append(out, o.mini[off:off+miniSector]...)
+		if hops++; hops > len(o.miniFAT) {
+			return nil, errors.New("this Office file is damaged")
+		}
+		n = o.miniFAT[n]
+	}
+	if uint64(len(out)) > size {
+		out = out[:size]
+	}
+	return out, nil
 }
 
 func (o *oleFile) sectorAt(n uint32) []byte {
@@ -743,6 +786,9 @@ func (o *oleFile) stream(name string) ([]byte, error) {
 	if e.size > maxEntry {
 		return nil, ErrTooBig
 	}
+	if e.size < o.cutoff {
+		return o.miniChain(e.start, e.size)
+	}
 	b, err := o.chain(e.start, maxEntry)
 	if err != nil {
 		return nil, err
@@ -753,9 +799,7 @@ func (o *oleFile) stream(name string) ([]byte, error) {
 	return b, nil
 }
 
-// fromDOC reads the text of a Word 97-2003 file through its piece table. Short
-// streams live in a separate mini stream, but a Word document's main streams are
-// always large enough to be read directly.
+// fromDOC reads the text of a Word 97-2003 file through its piece table.
 func fromDOC(d []byte) (*Book, error) {
 	o, err := openOLE(d)
 	if err != nil {

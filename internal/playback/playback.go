@@ -117,10 +117,10 @@ func Profiles() []Profile {
 			// browser, the machine and the screen.
 			ID: "web", Name: "Web browser",
 			Containers: []string{"mp4", "m4v", "mov", "webm"}, VideoCodecs: []string{"h264", "vp8", "vp9", "av1"},
-			AudioCodecs: []string{"aac", "mp3", "opus", "vorbis", "flac"},
+			AudioCodecs: []string{"aac", "mp3", "opus", "vorbis", "flac", "pcm_s16le", "pcm_s24le", "pcm_u8", "pcm_f32le"},
 			HDR:         []string{}, TenBit: true,
 			SidecarSubtitles: true,
-			Remux:            true, HLSVideo: []string{"h264"}, HLSAudio: []string{"aac", "mp3"}, FMP4Video: []string{"hevc", "av1", "vp9"},
+			Remux:            true, HLSVideo: []string{"h264", "av1", "vp9"}, HLSAudio: []string{"aac", "mp3"}, FMP4Video: []string{"hevc", "av1", "vp9"},
 		},
 		{
 			ID: "appletv", Name: "Apple TV 4K",

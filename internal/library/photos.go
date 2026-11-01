@@ -234,6 +234,9 @@ func (s *Scanner) indexPhoto(ctx context.Context, lib *Library, c candidate) err
 		s.videoDate(ctx, it, &m)
 	} else {
 		s.readPhoto(ctx, it, &m)
+		if m.Motion == "" {
+			m.Motion = embeddedMotion(c.path, c.size)
+		}
 	}
 	if m.TakenAt == 0 {
 		if t, ok := DateFromName(filepath.Base(c.path)); ok {
@@ -265,6 +268,10 @@ func (s *Scanner) readPhoto(ctx context.Context, it *Item, m *photoMeta) {
 		it.Width, it.Height = in.Width, in.Height
 	} else {
 		s.Log.DebugContext(ctx, "no details read from a photo", "file", it.Path, "err", err)
+	}
+	if strings.HasPrefix(mediatypes.Ext(it.Path), ".svg") {
+		it.Width, it.Height = svgSize(it.Path)
+		return
 	}
 	if w, h := photos().Dimensions(it.Path); w > 0 {
 		it.Width, it.Height = w, h // the picture's own header beats EXIF, which editors leave stale

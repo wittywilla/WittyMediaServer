@@ -54,6 +54,8 @@ type Engine struct {
 	HoldTick time.Duration
 	// TdarrPoll replaces how often a connected Tdarr is asked what it's doing, in tests.
 	TdarrPoll time.Duration
+	// AutoSettle replaces how long a new file must hold still, in tests.
+	AutoSettle time.Duration
 
 	tdarrW tdarrWatch
 
@@ -61,6 +63,10 @@ type Engine struct {
 	once sync.Once
 	mu   sync.Mutex
 	live map[int64]context.CancelFunc
+	// busy: which library each real run is on.
+	busy map[int64]int64
+	// auto: the libraries with someone watching their new files.
+	auto map[int64]*autoWatch
 	// tested holds what test encodes found, by encoder.
 	tested map[string]bool
 }
@@ -69,6 +75,8 @@ func (e *Engine) init() {
 	e.once.Do(func() {
 		e.slot = make(chan struct{}, 1)
 		e.live = map[int64]context.CancelFunc{}
+		e.busy = map[int64]int64{}
+		e.auto = map[int64]*autoWatch{}
 		e.tested = map[string]bool{}
 		if e.Log == nil {
 			e.Log = slog.Default().With("cat", "transcode")
@@ -87,7 +95,7 @@ func (e *Engine) now() time.Time {
 func (e *Engine) Env(ctx context.Context) Env {
 	e.init()
 	s := LoadSettings(ctx, e.DB)
-	env := Env{Encoders: e.Tools.Encoders, HasFilter: e.Tools.HasFilter, ToneMap: e.Tools.ToneMapFilter(), Threads: s.Threads,
+	env := Env{Encoders: e.Tools.Encoders, HasFilter: e.Tools.HasFilter, ToneMap: e.Tools.ToneMapFilter, Threads: s.Threads,
 		Sidecars: e.SaveMeta == nil || e.SaveMeta()}
 	if env.Threads == 0 {
 		env.Threads = max(runtime.NumCPU()/2, 1)
@@ -177,7 +185,9 @@ type RunRequest struct {
 	Dry     bool
 	// Items limits it to these items, when given.
 	Items []int64
-	By    tasks.By
+	// Auto: a scan found these, and nobody pressed anything.
+	Auto bool
+	By   tasks.By
 }
 
 // Start begins a run and returns its id.
@@ -197,26 +207,25 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	if !ValidOutput(q.Output) {
 		return 0, errors.New("that's not one of the ways of writing the new file")
 	}
-	if !q.Dry && e.running() {
-		// It would wait its turn, but two runs of the same library would plan the same files.
-		e.mu.Lock()
-		for id := range e.live {
-			if r, err := e.GetRun(ctx, id); err == nil && r.LibraryID == q.Library && !r.Dry {
-				e.mu.Unlock()
-				return 0, errors.New("this library is being converted already")
-			}
-		}
-		e.mu.Unlock()
+	// It would wait its turn, but two runs of the same library would plan the same files.
+	if !q.Dry && e.libraryBusy(q.Library) {
+		return 0, errBusy
 	}
-	id, err := e.createRun(ctx, q.Library, q.Policy, q.Output, q.Dry, q.By.ID, q.By.Name)
+	id, err := e.createRun(ctx, q.Library, q.Policy, q.Output, q.Dry, q.Auto, q.By.ID, q.By.Name)
 	if err != nil {
 		return 0, err
 	}
 	rctx, cancel := context.WithCancel(context.Background())
 	e.mu.Lock()
 	e.live[id] = cancel
+	if !q.Dry {
+		e.busy[id] = q.Library
+	}
 	e.mu.Unlock()
 	title := "Converting " + lib.Name
+	if q.Auto {
+		title = "Converting new files in " + lib.Name
+	}
 	if q.Dry {
 		title = "Checking " + lib.Name + " for conversion"
 	}
@@ -225,13 +234,14 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 		unit = "files"
 	}
 	t := e.Tasks.Queue(tasks.Spec{Type: TaskType, Title: title, Phase: "Waiting for its turn", LibraryID: lib.ID, LibraryName: lib.Name, Unit: unit,
-		By: q.By, Cancel: cancel, Pausable: true, RetryKey: itoa(id), Quiet: q.Dry})
+		By: q.By, Cancel: cancel, Pausable: true, RetryKey: itoa(id), Quiet: q.Dry || q.Auto})
 	sid := logging.NewID("convert")
 	rctx = logging.WithSession(rctx, sid)
 	logging.Go("library conversion", func() {
 		defer func() {
 			e.mu.Lock()
 			delete(e.live, id)
+			delete(e.busy, id)
 			e.mu.Unlock()
 			cancel()
 		}()
@@ -240,10 +250,19 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	return id, nil
 }
 
-func (e *Engine) running() bool {
+// errBusy: a library is being converted already.
+var errBusy = errors.New("this library is being converted already")
+
+// libraryBusy says whether a real run of this library is going or waiting its turn.
+func (e *Engine) libraryBusy(library int64) bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return len(e.live) > 0
+	for _, l := range e.busy {
+		if l == library {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) runOne(ctx context.Context, id int64, lib *library.Library, q RunRequest, t *tasks.Handle) {
@@ -271,9 +290,22 @@ func (e *Engine) runOne(ctx context.Context, id int64, lib *library.Library, q R
 	case err != nil:
 		state = "failed"
 	}
-	e.setRunState(context.WithoutCancel(ctx), id, state, &sum)
+	bg := context.WithoutCancel(ctx)
+	e.setRunState(bg, id, state, &sum)
 	t.Item("", "")
-	t.Result(summarize(q.Dry, sum))
+	nothing := sum.Convert+sum.Remux == 0
+	if q.Auto {
+		e.memoAuto(bg, id, q.Policy, state)
+		if nothing && err == nil {
+			// Scans come round often, and this would fill the list with no news.
+			if _, derr := e.DB.ExecContext(bg, `DELETE FROM ltc_runs WHERE id = ?`, id); derr != nil {
+				e.Log.WarnContext(ctx, "could not tidy away a conversion with nothing to do", "run", id, "err", derr)
+			}
+		}
+	}
+	if !q.Auto || !nothing {
+		t.Result(summarize(q.Dry, sum))
+	}
 	e.Log.InfoContext(ctx, "conversion finished", "library", lib.Name, "state", state, "done", sum.Done, "failed", sum.Failed, "err", err)
 	t.Finish(err)
 }
@@ -620,7 +652,9 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		}
 	}
 	if len(todo) == 0 {
-		t.Progress(1, 1)
+		if !q.Auto {
+			t.Progress(1, 1)
+		}
 		return nil
 	}
 	s := LoadSettings(ctx, e.DB)
@@ -634,7 +668,7 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		t.Progress(min(sumLive/1000, totalInt), totalInt)
 	}
 	t.Progress(0, totalInt)
-	t.Phase(fmt.Sprintf("Converting: %d files to do", len(todo)))
+	t.Phase("Converting: "+countFiles(len(todo))+" to do")
 	jobs := make(chan *unit)
 	var wg sync.WaitGroup
 	var sumMu sync.Mutex
@@ -812,6 +846,10 @@ func (e *Engine) convertUnit(ctx context.Context, run int64, lib *library.Librar
 		}
 		t.Item(filepath.Base(f.src.Path), f.src.Path)
 		if err := e.prepare(ctx, f, q.Output, s); err != nil {
+			var nr *noRoom
+			if errors.As(err, &nr) {
+				return fail(FileFailed, err.Error(), noRoomDetail)
+			}
 			return fail(FileFailed, err.Error(), "")
 		}
 		e.updateFile(ctx, f.row, map[string]any{"state": FileRunning, "message": "", "temp_path": f.temp})
@@ -825,7 +863,7 @@ func (e *Engine) convertUnit(ctx context.Context, run int64, lib *library.Librar
 			}
 			var nr *noRoom
 			if errors.As(err, &nr) {
-				return fail(FileFailed, nr.Error(), "")
+				return fail(FileFailed, nr.Error(), noRoomDetail)
 			}
 			words := "FFmpeg couldn't convert this file, so the old one stays as it was. It may be damaged. The log has the details."
 			detail := err.Error()
@@ -1457,7 +1495,7 @@ func summarize(dry bool, s Summary) string {
 		return fmt.Sprintf("Looked at %d files: %d to convert, %d to tidy, %d already fine, %d left alone. Nothing was changed.", s.Files, s.Convert, s.Remux, s.Skip, s.Refuse)
 	}
 	var parts []string
-	parts = append(parts, fmt.Sprintf("Converted %d of %d files", s.Done, s.Convert+s.Remux))
+	parts = append(parts, fmt.Sprintf("Converted %d of %s", s.Done, countFiles(s.Convert+s.Remux)))
 	if s.BytesAfter > 0 {
 		parts = append(parts, "now taking "+sizeWords(s.BytesAfter))
 	}
@@ -1675,7 +1713,16 @@ func (e *Engine) Undo(ctx context.Context, fileID int64) error {
 	if first == "" {
 		return errors.New("there's no kept original to put back")
 	}
-	return e.Scanner.FileReplaced(ctx, f.ItemID, first)
+	if err := e.Scanner.FileReplaced(ctx, f.ItemID, first); err != nil {
+		return err
+	}
+	// Someone wanted this file as it was, so automatic conversion doesn't undo the undoing.
+	if it, err := e.Store.Item(ctx, f.ItemID); err == nil {
+		if st, err := os.Stat(first); err == nil {
+			e.remember(ctx, first, LoadRule(ctx, e.DB, it.LibraryID).Policy, st.Size(), st.ModTime().Unix(), FileUndone)
+		}
+	}
+	return nil
 }
 
 // DeleteLeftover deletes a kept original, or an unused converted copy, for good. It only

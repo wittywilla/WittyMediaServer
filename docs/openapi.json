@@ -8344,6 +8344,9 @@
       },
       "LibTranscodeRun": {
         "properties": {
+          "auto": {
+            "type": "boolean"
+          },
           "by": {
             "type": "string"
           },
@@ -8684,6 +8687,7 @@
           }
         },
         "required": [
+          "auto",
           "createdAt",
           "dry",
           "id",
@@ -8724,6 +8728,9 @@
           "pauseWhileStreaming": {
             "type": "boolean"
           },
+          "settleSeconds": {
+            "type": "integer"
+          },
           "threads": {
             "type": "integer"
           },
@@ -8741,6 +8748,7 @@
           "maxJobs",
           "minFreeGb",
           "pauseWhileStreaming",
+          "settleSeconds",
           "threads",
           "useHardware"
         ],

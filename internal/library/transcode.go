@@ -55,6 +55,28 @@ func (s *Store) ConversionItems(ctx context.Context, libraryID int64) ([]Convers
 	return out, rows.Err()
 }
 
+// ConversionItemsSince lists the video files of a library that are new or have changed since
+// a time. A row changes for other reasons too (someone edits its details), so this is who to
+// look at, and doesn't say that anything needs doing.
+func (s *Store) ConversionItemsSince(ctx context.Context, libraryID, since int64) ([]ConversionItem, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT id, path, kind, title, missing FROM items
+		WHERE library_id = ? AND kind = 'video' AND missing = 0 AND (added_at >= ? OR updated_at >= ?) ORDER BY added_at, id`, libraryID, since, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []ConversionItem{}
+	for rows.Next() {
+		var it ConversionItem
+		var missing int
+		if err := rows.Scan(&it.ID, &it.Path, &it.Kind, &it.Title, &missing); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
 // SetLibraryReadOnly says that nothing the server does may change this library's files.
 func (s *Store) SetLibraryReadOnly(ctx context.Context, id int64, on bool) error {
 	v := 0

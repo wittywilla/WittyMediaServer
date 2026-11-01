@@ -108,6 +108,9 @@ func discoverPhotos(root string) ([]candidate, error) {
 		default:
 			return nil
 		}
+		if !mediaEntry(root, p, d) {
+			return nil
+		}
 		st, err := d.Info()
 		if err != nil || st.Size() == 0 {
 			return nil

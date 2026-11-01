@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/jpeg"
 	"math"
@@ -273,10 +274,78 @@ func TestDimensions(t *testing.T) {
 func FuzzParse(f *testing.F) {
 	f.Add(sampleTIFF())
 	f.Add([]byte{0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x10, 'E', 'x', 'i', 'f', 0, 0})
+	f.Add(rafWithOffset(0))
+	f.Add(append(rafWithOffset(100), rafWithOffset(100)...))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		_, _ = Parse(b)
 		_, _ = previewRange(b)
 	})
+}
+
+// A directory of tags that each claim a value the size of the whole file. Reading a number
+// decoded the whole list every time, which held a thumbnail slot for many minutes.
+func TestTagsClaimingHugeValuesCostLittle(t *testing.T) {
+	huge := func(size int, ids ...uint16) []byte {
+		b := make([]byte, size)
+		copy(b, "II*\x00")
+		binary.LittleEndian.PutUint32(b[4:], 8)
+		binary.LittleEndian.PutUint16(b[8:], maxTags)
+		for i := range maxTags {
+			e := b[10+i*12:]
+			id := ids[i%len(ids)]
+			typ, count := uint16(4), uint32((size-16)/4)
+			if id == 0x010F { // Make, a string
+				typ, count = 2, uint32(size-16)
+			}
+			if id == 0x829A { // an exposure time, a list of fractions
+				typ, count = 5, uint32((size-16)/8)
+			}
+			binary.LittleEndian.PutUint16(e, id)
+			binary.LittleEndian.PutUint16(e[2:], typ)
+			binary.LittleEndian.PutUint32(e[4:], count)
+			binary.LittleEndian.PutUint32(e[8:], 16)
+		}
+		return b
+	}
+	start := time.Now()
+	_, _ = Parse(huge(1<<20, 0x0112, 0x010F))
+	_, _ = previewRange(huge(1<<20, 0x0201, tagSubIFDs))
+	if d := time.Since(start); d > 500*time.Millisecond {
+		t.Errorf("reading the tags took %v", d)
+	}
+}
+
+func rafWithOffset(off uint32) []byte {
+	b := make([]byte, 100)
+	copy(b, "FUJIFILMCCD-RAW")
+	binary.BigEndian.PutUint32(b[84:], off)
+	return b
+}
+
+// A RAF header says where its JPEG is. One pointing at itself recursed until the stack ran out,
+// which no recover catches: a 100-byte file ended the whole server, at every scan after.
+func TestRAFPointingAtItself(t *testing.T) {
+	if _, err := Parse(rafWithOffset(0)); !errors.Is(err, ErrNoExif) {
+		t.Errorf("%v", err)
+	}
+	// Headers inside headers are not what a RAF holds, however many there are.
+	var nested []byte
+	for range 200000 {
+		nested = append(nested, rafWithOffset(100)...)
+	}
+	if _, err := Parse(nested); !errors.Is(err, ErrNoExif) {
+		t.Errorf("nested: %v", err)
+	}
+	// A real one still reads.
+	jpeg := []byte{0xFF, 0xD8, 0xFF, 0xE1, 0, 0}
+	tiff := sampleTIFF()
+	binary.BigEndian.PutUint16(jpeg[4:], uint16(len(tiff)+8))
+	jpeg = append(jpeg, "Exif\x00\x00"...)
+	jpeg = append(jpeg, tiff...)
+	raf := append(rafWithOffset(100), jpeg...)
+	if _, err := Parse(raf); err != nil {
+		t.Errorf("a real RAF: %v", err)
+	}
 }
 
 // The manifest tells the server which files are RAW without starting the helper,

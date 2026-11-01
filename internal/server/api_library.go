@@ -700,11 +700,13 @@ func (s *Server) serveArtSrc(w http.ResponseWriter, r *http.Request, src string)
 	default:
 		// Pictures next to the media (poster.jpg, an NFO's thumb): inside a
 		// library folder only.
-		if !s.Store.LibraryFile(r.Context(), src) {
+		f, _, err := s.Store.OpenLibraryFile(r.Context(), src)
+		if err != nil {
 			writeErr(w, 404, "no artwork")
 			return
 		}
-		p = filepath.Clean(src)
+		s.serveArtFile(w, r, f, filepath.Clean(src))
+		return
 	}
 	f, err := os.Open(p)
 	if err != nil {

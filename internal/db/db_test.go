@@ -157,3 +157,42 @@ func TestTransactionsWaitForEachOther(t *testing.T) {
 		t.Errorf("tally = %d, want %d: a write was lost", n, writers)
 	}
 }
+
+// Rows saved before numbers were checked: one infinite rating blanked every list holding it.
+func TestInfiniteNumbersAreCleared(t *testing.T) {
+	d, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	if _, err := d.ExecContext(ctx, `INSERT INTO libraries(id, name, type, created_at) VALUES(1, 'L', 'movies', 0)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.ExecContext(ctx, `INSERT INTO items(id, library_id, kind, path, title, sort_title, rating, runtime_sec, added_at, updated_at) VALUES(1, 1, 'video', '/x', 't', 't', 9e999, 9e999, 0, 0), (2, 1, 'video', '/y', 't', 't', 7.5, 60, 0, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.ExecContext(ctx, `INSERT INTO shows(id, library_id, path, title, sort_title, rating, added_at, updated_at) VALUES(1, 1, '/s', 't', 't', 9e999, 0, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.ExecContext(ctx, clearInfinities); err != nil {
+		t.Fatal(err)
+	}
+	var rating *float64
+	var runtime float64
+	if err := d.QueryRowContext(ctx, `SELECT rating, runtime_sec FROM items WHERE id = 1`).Scan(&rating, &runtime); err != nil {
+		t.Fatal(err)
+	}
+	if rating != nil || runtime != 0 {
+		t.Errorf("%v %v", rating, runtime)
+	}
+	if err := d.QueryRowContext(ctx, `SELECT rating, runtime_sec FROM items WHERE id = 2`).Scan(&rating, &runtime); err != nil {
+		t.Fatal(err)
+	}
+	if rating == nil || *rating != 7.5 || runtime != 60 {
+		t.Errorf("an ordinary row changed: %v %v", rating, runtime)
+	}
+	if err := d.QueryRowContext(ctx, `SELECT rating FROM shows WHERE id = 1`).Scan(&rating); err != nil || rating != nil {
+		t.Errorf("%v %v", rating, err)
+	}
+}

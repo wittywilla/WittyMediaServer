@@ -308,22 +308,12 @@ func originalType(name string) string {
 }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
-	// A link swapped in after the scan doesn't lead anywhere else.
-	if !s.Store.LibraryFile(r.Context(), it.Path) {
-		writeErr(w, 404, "file missing")
-		return
-	}
-	f, err := os.Open(it.Path)
+	f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")
 		return
 	}
 	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || !st.Mode().IsRegular() {
-		writeErr(w, 404, "file missing")
-		return
-	}
 	h := w.Header()
 	h.Set("Content-Type", originalType(it.Path))
 	h.Set("Content-Security-Policy", "default-src 'none'; sandbox")
@@ -719,10 +709,7 @@ func (s *Server) saveUpload(r *http.Request, lib *library.Library, dest string, 
 	if !library.SniffMedia(head[:n]) {
 		return nil, library.ErrBadInput("the file's contents are not a picture or video")
 	}
-	if err := os.MkdirAll(dest, 0o755); err != nil {
-		return nil, err
-	}
-	f, path, err := createUnique(dest, name)
+	f, path, err := library.CreateInLibrary(lib.Paths[0], dest, name)
 	if err != nil {
 		return nil, err
 	}
@@ -743,25 +730,4 @@ func (s *Server) saveUpload(r *http.Request, lib *library.Library, dest string, 
 		return nil, library.ErrBadInput("the file could not be read as a picture or video")
 	}
 	return it, nil
-}
-
-// createUnique makes a new file, numbering the name when it is taken.
-func createUnique(dir, name string) (*os.File, string, error) {
-	ext := filepath.Ext(name)
-	stem := strings.TrimSuffix(name, ext)
-	for i := 0; i < 10000; i++ {
-		try := name
-		if i > 0 {
-			try = fmt.Sprintf("%s (%d)%s", stem, i, ext)
-		}
-		p := filepath.Join(dir, try)
-		f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if err == nil {
-			return f, p, nil
-		}
-		if !errors.Is(err, os.ErrExist) {
-			return nil, "", err
-		}
-	}
-	return nil, "", errors.New("too many files with this name")
 }

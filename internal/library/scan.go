@@ -241,7 +241,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			if strings.HasPrefix(name, ".") || strings.EqualFold(name, "@eaDir") || strings.EqualFold(name, "extras") {
 				return filepath.SkipDir
 			}
-			if _, err := os.Stat(filepath.Join(p, "VIDEO_TS", "VIDEO_TS.IFO")); err == nil {
+			if plainFile(filepath.Join(p, "VIDEO_TS", "VIDEO_TS.IFO")) {
 				st, _ := d.Info()
 				out = append(out, candidate{path: p, kind: "dvd-folder", mtime: st.ModTime().Unix()})
 				return filepath.SkipDir
@@ -249,7 +249,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			if strings.EqualFold(name, "VIDEO_TS") {
 				return filepath.SkipDir
 			}
-			if _, err := os.Stat(filepath.Join(p, "BDMV", "index.bdmv")); err == nil {
+			if plainFile(filepath.Join(p, "BDMV", "index.bdmv")) {
 				st, _ := d.Info()
 				out = append(out, candidate{path: p, kind: "bluray-folder", mtime: st.ModTime().Unix()})
 				return filepath.SkipDir

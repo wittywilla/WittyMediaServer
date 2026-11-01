@@ -2,6 +2,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -803,8 +804,17 @@ func (s *Server) requireAdmin(h http.HandlerFunc) http.Handler {
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	// Into memory first, which the encoder would do anyway: a value it can't write is then an
+	// error someone can see, not a success with nothing in it.
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(v); err != nil {
+		slog.Error("an answer could not be written", "cat", "http", "err", err)
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"error":"Something went wrong on the server. It is in the log."}` + "\n"))
+		return
+	}
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(v)
+	_, _ = w.Write(b.Bytes())
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {

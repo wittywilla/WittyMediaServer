@@ -87,13 +87,15 @@ func (s *Scanner) LoadImage(ctx context.Context, ref string) ([]byte, error) {
 	case isRemote(ref):
 		b, err = fetchPicture(ctx, ref)
 	default:
-		if !s.Store.LibraryFile(ctx, ref) {
+		f, st, oerr := s.Store.OpenLibraryFile(ctx, ref)
+		if oerr != nil {
 			return nil, errors.New("artwork outside the libraries")
 		}
-		if st, serr := os.Stat(ref); serr == nil && st.Size() > 20<<20 { // the same limit as a download
+		defer f.Close()
+		if st.Size() > maxPictureRead { // the same limit as a download
 			return nil, errors.New("image too large")
 		}
-		b, err = os.ReadFile(ref)
+		b, err = io.ReadAll(io.LimitReader(f, maxPictureRead))
 	}
 	if err != nil {
 		return nil, err
@@ -120,8 +122,11 @@ func fetchPicture(ctx context.Context, ref string) ([]byte, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("image fetch: %s", res.Status)
 	}
-	return io.ReadAll(io.LimitReader(res.Body, 20<<20))
+	return io.ReadAll(io.LimitReader(res.Body, maxPictureRead))
 }
+
+// maxPictureRead is the largest picture read to be stored.
+const maxPictureRead = 20 << 20
 
 // writeArt stores image bytes at dst (unless dst already is the source).
 func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
@@ -132,16 +137,16 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	if err != nil {
 		return err
 	}
-	return writeBeside(dst, b)
+	return writeBeside(dst, b, s.Store.Roots(ctx))
 }
 
 // writeNFO replaces a file beside the media in one step, so a crash or a full
 // disk can't leave someone's NFO cut short.
-func writeNFO(path string, doc any) error {
+func writeNFO(path string, doc any, roots []string) error {
 	if old, err := readPlain(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
 		if _, err := os.Lstat(path + ".bak"); os.IsNotExist(err) {
 			// Saving goes on regardless, so their own file is about to go.
-			if err := writeBeside(path+".bak", old); err != nil {
+			if err := writeBeside(path+".bak", old, roots); err != nil {
 				slog.Default().Warn("could not keep a copy of an NFO before replacing it", "cat", "library", "file", path, "err", err)
 			}
 		}
@@ -153,7 +158,7 @@ func writeNFO(path string, doc any) error {
 	out := []byte(xml.Header + nfoMarker + "\n")
 	out = append(out, b...)
 	out = append(out, '\n')
-	return writeBeside(path, out)
+	return writeBeside(path, out, roots)
 }
 
 type nfoUniqueID struct {
@@ -262,7 +267,7 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 		}
 		doc = m
 	}
-	if err := writeNFO(nfoPath, doc); err != nil {
+	if err := writeNFO(nfoPath, doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
@@ -313,7 +318,7 @@ func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
 			doc.TVDBIDCompat = sh.ProviderID
 		}
 	}
-	if err := writeNFO(filepath.Join(sh.Path, "tvshow.nfo"), doc); err != nil {
+	if err := writeNFO(filepath.Join(sh.Path, "tvshow.nfo"), doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)

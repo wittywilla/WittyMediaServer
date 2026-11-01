@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -694,7 +695,27 @@ func (s *Store) itemByPath(ctx context.Context, libraryID int64, path string) (*
 	return it, err
 }
 
+// finite is v, or 0 for what JSON can't say. Go reads "Inf" and "NaN" in a file as numbers, and
+// one in an answer leaves it empty for everyone whose list holds it.
+func finite(v float64) float64 {
+	if math.IsInf(v, 0) || math.IsNaN(v) {
+		return 0
+	}
+	return v
+}
+
+// finitePtr is the same for a value that may be absent.
+func finitePtr(v *float64) *float64 {
+	if v != nil && (math.IsInf(*v, 0) || math.IsNaN(*v)) {
+		return nil
+	}
+	return v
+}
+
 func (s *Store) upsertItem(ctx context.Context, it *Item) error {
+	// Every source of information about an item comes through here.
+	it.Rating, it.IntroStart, it.IntroEnd = finitePtr(it.Rating), finitePtr(it.IntroStart), finitePtr(it.IntroEnd)
+	it.RuntimeSec = finite(it.RuntimeSec)
 	var discJSON *string
 	if it.Disc != nil {
 		b, _ := json.Marshal(it.Disc)

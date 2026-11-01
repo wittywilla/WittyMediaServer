@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittytuner"
 	"github.com/wittywilla/wittytuner/mpegts"
@@ -74,7 +75,7 @@ func (t Tuners) Discover(ctx context.Context, env wittytuner.Env) []wittytuner.F
 	var wg sync.WaitGroup
 	var here []wittytuner.Found
 	wg.Add(1)
-	go func() { defer wg.Done(); here = wittytuner.DiscoverHere(ctx, env) }()
+	logging.Go("finding tuners", func() { defer wg.Done(); here = wittytuner.DiscoverHere(ctx, env) }, "cat", "tv")
 	var near []wittytuner.Found
 	list, cancel := context.WithTimeout(ctx, tunerListTime)
 	defer cancel()

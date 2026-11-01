@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseComicName(t *testing.T) {
@@ -80,6 +82,11 @@ func FuzzReadEPUB(f *testing.F) {
 		"a/c.xhtml":              `<html><body>word word</body></html>`,
 		"a/t.ncx":                `<ncx><navMap><navPoint><navLabel><text>x</text></navLabel><content src="../../../etc/passwd#x"/></navPoint></navMap></ncx>`,
 	}))
+	f.Add(build(map[string]string{
+		"META-INF/container.xml": `<container><rootfiles><rootfile full-path="b.opf"/></rootfiles></container>`,
+		"b.opf":                  `<package><manifest><item id="c" href="c.xhtml"/></manifest><spine><itemref idref="c"/></spine></package>`,
+		"c.xhtml":                strings.Repeat("<script>", 2000),
+	}))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 		if err != nil {
@@ -90,8 +97,14 @@ func FuzzReadEPUB(f *testing.F) {
 		if err != nil {
 			return
 		}
+		// A crash fuzzer can't see a slow worst case by itself, so this says how slow is too slow.
+		start := time.Now()
 		_ = WordCounts(zr, info.Spine)
 		_ = SearchBook(zr, info.Spine, "word")
+		_ = SearchBook(zr, info.Spine, "\u212A\u212A")
+		if d := time.Since(start); d > 30*time.Second {
+			t.Errorf("reading the book took %v", d)
+		}
 	})
 }
 
@@ -127,5 +140,151 @@ func TestFeedEntitiesAreNotExpanded(t *testing.T) {
 	fd, err := parseFeed(strings.NewReader(doc))
 	if err == nil && strings.Contains(fd.Channel.Title, "SECRET") {
 		t.Fatalf("read a local file through an XML entity: %q", fd.Channel.Title)
+	}
+}
+
+// chapterZip is a book of one chapter.
+func chapterZip(t *testing.T, chapter string) *zip.Reader {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	f, err := w.Create("c.xhtml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte(chapter)); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return zr
+}
+
+// An opening tag with no closing one made every match look to the end of the text: a 488-byte
+// book pinned a core for a minute, and the largest chapter for days, per request.
+func TestChapterTextIsLinear(t *testing.T) {
+	for _, tag := range []string{"<script>", "<style>", "<head>", "<script x=1>", "<", "<a", "</", "<script"} {
+		zr := chapterZip(t, strings.Repeat(tag, (16<<20)/len(tag)))
+		budget := int64(bookBudget)
+		start := time.Now()
+		chapterText(zr, "c.xhtml", &budget)
+		if d := time.Since(start); d > 15*time.Second {
+			t.Errorf("%q: %v", tag, d)
+		}
+	}
+}
+
+func TestChapterTextOutput(t *testing.T) {
+	for in, want := range map[string]string{
+		"<p>One</p><p>Two</p>":                           "One Two",
+		"<head><title>No</title></head><body>Yes</body>": "Yes",
+		"a<script>var x = '<p>no</p>';</script>b":        "a b",
+		"a<style type='x'>p{}</style>b":                  "a b",
+		"a<style>p{}</script>b</style>c":                 "a b c",
+		"<script>never closed, and <b>this</b> stays":    "never closed, and this stays",
+		"one &amp; two":                                  "one & two",
+		"x < y and y > z":                                "x z",
+		"<a href='q'>link</a>":                           "link",
+		"<br/>after":                                     "after",
+		"<scripted>kept</scripted>":                      "kept",
+		"<header>kept</header>":                          "kept",
+		"unclosed <":                                     "unclosed <",
+		"a\n\n  b":                                       "a b",
+		"<head\n>h</head>body":                           "body",
+		"<><a>t":                                         "<> t",
+		"a<header>one</header><head>two</head>b":         "a one b",
+		"<script></script><script></script>t":            "t",
+	} {
+		budget := int64(bookBudget)
+		if got := chapterText(chapterZip(t, in), "c.xhtml", &budget); got != want {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+}
+
+// The search's place comes from lower-cased text, and its length has to as well: some characters
+// shrink when lowered. This panicked.
+func TestSearchWithACharacterThatShrinks(t *testing.T) {
+	zr := chapterZip(t, "<p>kk</p>")
+	if got := SearchBook(zr, []string{"c.xhtml"}, "\u212A\u212A"); len(got) != 1 {
+		t.Errorf("%+v", got)
+	}
+	zr = chapterZip(t, "<p>\u212A\u212A and more</p>")
+	if got := SearchBook(zr, []string{"c.xhtml"}, "kk"); len(got) != 1 {
+		t.Errorf("%+v", got)
+	}
+}
+
+// bigNameZip is a zip of empty entries with names thousands of folders deep.
+func bigNameZip(t *testing.T, entries int) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "book.epub")
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	w := zip.NewWriter(f)
+	for i := range entries {
+		name := "d" + strconv.Itoa(i) + strings.Repeat("/a", 32000)
+		if _, err := w.Create(name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// The directory is read at a scan, with nobody opening the book, and Open builds a tree of every
+// folder of every name. 124 MB of these took over 2.3 GB of memory.
+func TestABooksDirectoryIsLimited(t *testing.T) {
+	for _, entries := range []int{300, 40} { // over the directory's limit, and within it but deep
+		p := bigNameZip(t, entries)
+		got := allocated(func() {
+			zr, err := openZip(p)
+			if err != nil {
+				return
+			}
+			defer zr.Close()
+			_, _ = ReadEPUB(zr.Reader)
+		})
+		if got > 64<<20 {
+			t.Errorf("%d entries: allocated %d MB", entries, got>>20)
+		}
+		_ = os.Remove(p)
+	}
+}
+
+// A comic of thousands of pages is an ordinary file.
+func TestALargeComicStillOpens(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "big.cbz")
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := zip.NewWriter(f)
+	for i := range 5000 {
+		if _, err := w.Create("Volume 1/Chapter 2/page" + strconv.Itoa(i) + ".jpg"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	zr, err := openZip(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close()
+	if got := len(ComicPages(zr.Reader)); got != 5000 {
+		t.Errorf("%d pages", got)
 	}
 }

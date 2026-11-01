@@ -457,7 +457,7 @@ type nfoShow struct {
 }
 
 func applyShowNFO(sh *Show, path string) bool {
-	b, err := os.ReadFile(path)
+	b, err := readSmall(path, maxNFO)
 	if err != nil {
 		return false
 	}
@@ -520,7 +520,7 @@ type nfoEpisode struct {
 }
 
 func applyEpisodeNFO(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
+	b, err := readSmall(path, maxNFO)
 	if err != nil {
 		return false
 	}

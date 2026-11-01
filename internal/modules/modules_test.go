@@ -1032,3 +1032,27 @@ func TestUnpublishedRepositoryIsNotAnError(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 }
+
+// A file that kills a helper would kill the server if the server then read it itself, which is
+// what the helper is there to prevent. Its details are simply left out.
+func TestAFileThatKillsAHelperIsntRetriedInTheServer(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1, "crash"))
+	m := w.manager()
+	defer m.Close()
+	check(t, m)
+	if s := installWait(t, m); s.Version != "0.2.0" {
+		t.Fatalf("%+v", s)
+	}
+	var b bytes.Buffer
+	if err := png.Encode(&b, image.NewRGBA(image.Rect(0, 0, 32, 24))); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(t.TempDir(), "real.png")
+	if err := os.WriteFile(p, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if w, h := (PhotoEngine{m}).Dimensions(p); w != 0 || h != 0 {
+		t.Errorf("the server read the file itself: %d %d", w, h)
+	}
+}

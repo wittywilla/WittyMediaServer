@@ -2,6 +2,7 @@ package library
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -19,6 +20,8 @@ import (
 	"syscall"
 	"time"
 	"unicode/utf8"
+
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // Podcasts: a podcasts library holds subscriptions (RSS feeds). Every
@@ -306,12 +309,12 @@ func parseDuration(v string) float64 {
 	total := 0.0
 	for _, p := range parts {
 		n, err := strconv.ParseFloat(p, 64)
-		if err != nil {
+		if err != nil || n < 0 {
 			return 0
 		}
 		total = total*60 + n
 	}
-	return total
+	return finite(total)
 }
 
 // Subscribe adds a feed to a podcasts library and loads its episodes.
@@ -506,12 +509,45 @@ func safeName(s string) string {
 	return s
 }
 
+const (
+	// maxDownloadTime: a host sending an episode a byte at a time doesn't hold on for ever.
+	maxDownloadTime = 6 * time.Hour
+	// keepFree is left on the disk by anything a feed chooses the size of. If the data folder is
+	// on the same disk, a full one stops the database.
+	keepFree       = int64(512) << 20
+	roomCheckEvery = int64(1) << 20 * 64
+)
+
+// ErrNoRoom: too little of the disk is left to go on.
+var ErrNoRoom = errors.New("the disk is nearly full")
+
+// copyLeavingRoom copies, looking at how much room is left (free says, -1 for unknown) before it
+// starts and as it goes.
+func copyLeavingRoom(dst io.Writer, src io.Reader, free func() int64) (int64, error) {
+	total := int64(0)
+	for {
+		if room := free(); room >= 0 && room < keepFree {
+			return total, ErrNoRoom
+		}
+		n, err := io.CopyN(dst, src, roomCheckEvery)
+		total += n
+		if errors.Is(err, io.EOF) {
+			return total, nil
+		}
+		if err != nil {
+			return total, err
+		}
+	}
+}
+
 // Download saves an episode into the library's first folder:
 // <folder>/<podcast>/<date> <title>.<ext>, and the item then plays from disk.
 func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
 		return nil // already on disk
 	}
+	ctx, cancel := context.WithTimeout(ctx, maxDownloadTime)
+	defer cancel()
 	lib, err := s.Store.Library(ctx, it.LibraryID)
 	if err != nil || len(lib.Paths) == 0 {
 		return errors.New("to download episodes, give this podcasts library a folder in Settings, Libraries")
@@ -524,9 +560,6 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 		}
 	}
 	dir := filepath.Join(lib.Paths[0], safeName(it.Album))
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
 	dst := filepath.Join(dir, safeName(strings.TrimSpace(it.Aired+" "+it.Title))+ext)
 	req, err := http.NewRequestWithContext(ctx, "GET", it.Path, nil)
 	if err != nil {
@@ -541,25 +574,21 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("download failed: %s", res.Status)
 	}
-	f, err := os.CreateTemp(dir, ".wms-*.part")
+	f, tmp, err := CreateInLibrary(lib.Paths[0], dir, ".wms-"+rand.Text()+".part")
 	if err != nil {
 		return err
 	}
-	tmp := f.Name()
-	n, err := io.Copy(f, io.LimitReader(res.Body, 4<<30))
+	n, err := copyLeavingRoom(f, io.LimitReader(res.Body, 4<<30), func() int64 { return sysinfo.FreeBytes(dir) })
 	if cerr := f.Close(); err == nil {
 		err = cerr
-	}
-	if err == nil {
-		err = os.Chmod(tmp, 0o644)
 	}
 	if err != nil {
 		os.Remove(tmp)
 		return err
 	}
 	// A feed chooses the name: it must not replace a file already there.
-	dst = freeName(dst)
-	if err := os.Rename(tmp, dst); err != nil {
+	dst, err = moveInLibrary(lib.Paths[0], tmp, dst)
+	if err != nil {
 		os.Remove(tmp)
 		return err
 	}

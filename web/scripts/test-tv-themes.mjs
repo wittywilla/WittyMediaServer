@@ -22,7 +22,7 @@ const server = process.env.WMS_SERVER || 'http://tv.localhost:9811'
 const [out = '.'] = process.argv.slice(2)
 mkdirSync(out, { recursive: true })
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
-const THEMES = ['modern', 'classic', 'satellite', 'teletext', 'listings', 'bigpicture', 'outline', 'compact', 'custom']
+const THEMES = process.env.WMS_THEMES ? process.env.WMS_THEMES.split(',') : ['modern', 'classic', 'satellite', 'teletext', 'listings', 'bigpicture', 'outline', 'compact', 'custom']
 // The least room above the first line of a TV page, and to either side of it. A TV crops up to
 // about 5% off each edge, so across the room it has to clear that.
 const SIZES = {
@@ -63,6 +63,8 @@ async function attach(hostPort) {
 const attached = process.env.WMS_ATTACH ? await attach(process.env.WMS_ATTACH) : null
 const browser = attached || await launch({ software: true, width: 1440, height: 900 })
 const page = attached ? attached.page : await browser.open(server + '/')
+// Something running without a window manager never has real focus, and focus styles need it.
+if (attached) await page.send('Emulation.setFocusEmulationEnabled', { enabled: true })
 if (attached) await page.go(server + '/')
 const only = process.env.WMS_ONLY || ''
 const size = ({ w, h, mobile }) => page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!mobile })
@@ -283,7 +285,7 @@ const AUDIT = `(minSize) => {
     if (document.activeElement === e) controls.find((x) => x !== e)?.focus({ preventScroll: true })
     const before = style(e)
     e.focus({ preventScroll: true })
-    if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e))
+    if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e) + ' ' + before + ' fv=' + e.matches(':focus-visible'))
     e.blur()
   }
   // Words
@@ -328,7 +330,7 @@ const keyOn = async (key) => {
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode: key.toUpperCase().charCodeAt(0) })
 }
 const closeDialog = async () => { await press('Escape'); await wait(350) }
-for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS)) {
+for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS).filter(([n]) => !process.env.WMS_SIZES || process.env.WMS_SIZES.split(',').includes(n))) {
   await size(s)
   // A phone's pointer is a finger, which is what makes its controls big enough for one.
   await page.send('Emulation.setTouchEmulationEnabled', { enabled: !!s.mobile, maxTouchPoints: s.mobile ? 5 : 1 })

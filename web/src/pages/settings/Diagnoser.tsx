@@ -307,7 +307,7 @@ function FindingCard({ f }: { f: Finding }) {
 
 function PastReports({ jobs, err, current, onOpen, onRetry }: { jobs: Job[] | null; err: string; current: string; onOpen: (id: string) => void; onRetry: () => void }) {
   return (
-    <Section title="Past reports" desc="The last 20 are kept on the server, and the newest few go in the support bundle with names hidden.">
+    <Section title="Past reports" desc="The last 20 are kept on the server, and the newest few go in the log download with names hidden.">
       {err && <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>Try again</button></div>}
       {!err && !jobs && <div className="dgn-browser-empty"><Spinner /></div>}
       {jobs && jobs.length === 0 && <div className="set-empty"><IconDisc size={34} /><b>No reports yet</b><p>When a check finishes, its report stays here.</p></div>}

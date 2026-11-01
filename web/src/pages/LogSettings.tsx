@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { Spinner } from '../components/common'
-import { IconRefresh } from '../icons'
+import { IconDownload, IconRefresh } from '../icons'
 import { toast } from '../state'
 import Bundle from './settings/logs/Bundle'
 import Crashes, { CrashBanner } from './settings/logs/Crashes'
@@ -14,8 +14,8 @@ import WhatToLog from './settings/logs/WhatToLog'
 import './settings/logs/logs.css'
 
 // Settings → WittyLog: reading the log as it's written, how much each part of the
-// server and each module records, the files, crash reports and the bundle for a
-// bug report. The address says which tab, session or module, so a link can jump
+// server and each module records, the files, crash reports and the download for a
+// bug report, which every tab points to. The address says which tab, session or module, so a link can jump
 // straight to one: /settings/logs?session=abc, /settings/logs?module=wittydvd.
 
 const TABS = [
@@ -24,7 +24,7 @@ const TABS = [
   { id: 'modules', label: 'Modules' },
   { id: 'files', label: 'Files' },
   { id: 'crashes', label: 'Crash reports' },
-  { id: 'bundle', label: 'Support bundle' },
+  { id: 'bundle', label: 'Download logs' },
 ]
 
 // Logging itself in trouble, in plain words.
@@ -100,6 +100,12 @@ export default function LogSettings() {
           <Link key={t.id} to={t.id === 'viewer' ? '?' : `?tab=${t.id}`} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined}>{t.label}</Link>
         ))}
       </nav>
+      {tab !== 'bundle' && (
+        <p className="lg-dl-row">
+          <span>Someone helping you? Send them the logs, sanitized for sharing.</span>
+          <Link className="btn sm" to="?tab=bundle"><IconDownload /> Download logs as ZIP</Link>
+        </p>
+      )}
       {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} onHealth={onHealth} />}
       {tab === 'levels' && <WhatToLog view={view} onView={onView} />}
       {tab === 'modules' && <LogModules view={view} onView={onView} />}

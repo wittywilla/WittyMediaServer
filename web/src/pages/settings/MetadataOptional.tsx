@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { api } from '../../api'
-import { forgetLogos, type LogoInfo } from '../../components/BrandLogo'
+import { forgetLogos, type LogoInfo, type LogoKind } from '../../components/BrandLogo'
+import { ChangeLogoButton, LOGO_KIND_NAMES, LogoRows } from '../../components/edit/LogoChooser'
+import LogoCredits from '../../components/LogoCredits'
 import LegalNote from '../../components/LegalNote'
 import type { ListingStatus } from '../../metadata'
 import { toast } from '../../state'
 import { Button, Notice } from '../../ui'
 import { Row, Section, Switch } from './ui'
-import { WebLink } from '../../components/WebLink'
 import './metadataoptional.css'
 
 // The optional downloads: logos, and which streaming services list a title. Both are off until
@@ -18,18 +20,54 @@ type LogoStatus = { consent: 'yes' | 'no' | ''; counts: Record<string, number>; 
 export function LogoConsentWords() {
   return (
     <ul className="set-consent">
-      <li>Logos of studios, networks, consoles and services are <b>not part of this software</b>. They're downloaded to your server, one at a time, from <a href="https://commons.wikimedia.org/wiki/Commons:Licensing" target="_blank" rel="noreferrer">Wikimedia Commons</a>.</li>
-      <li>Your server tells Wikidata and Wikimedia Commons the <b>name</b> of each studio, network or console it finds, and nothing else: nothing about you or your files.</li>
-      <li>Only files whose own page says they're free to reuse are taken. Each one's source, licence and author are listed in Settings, Metadata agents, under Logos.</li>
+      <li>Logos of studios, networks, TV channels, consoles and services are <b>not part of this software</b>. They're downloaded to your server, one at a time, from <a href="https://commons.wikimedia.org/wiki/Commons:Licensing" target="_blank" rel="noreferrer">Wikimedia Commons</a>.</li>
+      <li>Your server tells Wikidata and Wikimedia Commons the <b>name</b> of each studio, network, TV channel or console it finds, and nothing else: nothing about you or your files.</li>
+      <li>Only files whose own page says they're free to reuse are taken. Each one's source, licence and author are listed in Settings, Metadata agents, under Logos, and under Legal for everyone signed in.</li>
       <li><b>Logos are still trademarks of their owners.</b> They're shown only to name who made something, for your own use on your own server. If you share your server, that's for you to judge.</li>
       <li>Without this, the app shows names in plain text, and nothing else changes. You can upload your own logos either way.</li>
     </ul>
   )
 }
 
+// Any logo on the server: find it by name, change it, or start one for a name nothing has yet.
+function LogoFinder() {
+  const [kind, setKind] = useState<'' | LogoKind>('')
+  const [q, setQ] = useState('')
+  const [list, setList] = useState<{ logos: LogoInfo[]; total: number } | null>(null)
+  const [limit, setLimit] = useState(20)
+  const load = useCallback(() => {
+    api.get<{ logos: LogoInfo[]; total: number }>(`/logos?kind=${kind}&q=${encodeURIComponent(q)}&limit=${limit}`).then(setList).catch((e) => toast(e.message))
+  }, [kind, q, limit])
+  useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t) }, [load, q])
+  const names = Object.entries(LOGO_KIND_NAMES) as [LogoKind, string][]
+  const exact = list?.logos.some((l) => BrandKeyOf(l.name) === BrandKeyOf(q))
+  return (
+    <div className="set-logofinder">
+      <h3 className="set-subhead">Find or set a logo</h3>
+      <p className="muted">Everything here that can have a logo. Search by name, choose among what's found with its source and licence in view, upload your own, or choose none.</p>
+      <div className="field-row">
+        <input className="input" type="search" aria-label="Find a logo by name" placeholder="A network, studio, console…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="select" aria-label="What kind" value={kind} onChange={(e) => setKind(e.target.value as '' | LogoKind)}>
+          <option value="">Everything</option>
+          {names.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+        </select>
+      </div>
+      {q.trim() && list && !exact && <p><ChangeLogoButton kind={kind || 'network'} name={q.trim()} label="Set a logo for this name" variant="primary" onChanged={load} /></p>}
+      {list && list.logos.length === 0 && !q.trim() && <p className="muted">Nothing yet. Names appear as your libraries are scanned and channels are added.</p>}
+      {list && list.logos.length > 0 && <LogoRows logos={list.logos} onChanged={load} />}
+      {list && list.total > list.logos.length && <p><Button size="sm" onClick={() => setLimit((n) => Math.min(200, n + 40))}>Show more ({list.total - list.logos.length} left)</Button></p>}
+    </div>
+  )
+}
+
+const BrandKeyOf = (n: string) => n.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+
 export function LogoSettings() {
   const [s, setS] = useState<LogoStatus | null>(null)
-  const [credits, setCredits] = useState<LogoInfo[] | null>(null)
+  const [credits, setCredits] = useState(false)
+  const box = useRef<HTMLDivElement | null>(null)
+  const { hash } = useLocation()
+  useEffect(() => { if (hash === '#logos' && s) box.current?.scrollIntoView({ block: 'start' }) }, [hash, !!s]) // eslint-disable-line react-hooks/exhaustive-deps
   const load = useCallback(() => api.get<LogoStatus>('/logos/status').then(setS).catch(() => {}), [])
   useEffect(() => { load() }, [load])
   // While it's fetching, and only then, look in on it.
@@ -43,7 +81,7 @@ export function LogoSettings() {
   }
   if (!s) return null
   return (
-    <Section id="logos" title="Logos" desc="Logos on the cards for studios and networks, and for anything else that has one.">
+    <div ref={box}><Section id="logos" title="Logos" desc="Logos on the cards for studios and networks, TV channels, consoles, game studios and streaming services.">
       {s.consent === 'yes' ? (
         <>
           <Row label="Download logos" desc={`${s.counts.found} found, ${s.counts.pending} still to look for, ${s.counts.none} that no source has.`}>
@@ -52,14 +90,8 @@ export function LogoSettings() {
           <Row label="Remove what was downloaded" desc="Turns downloads off and deletes the pictures. Logos you uploaded stay.">
             <Button size="sm" onClick={() => answer(false, true)}>Remove them</Button>
           </Row>
-          <Row label="Where each logo came from" desc="The source, licence and author of each one, as their licences ask. Each was recoloured here to white and to dark." stack>
-            {credits ? (
-              credits.length === 0 ? <p className="muted">None yet.</p> : (
-                <ul className="set-credits">
-                  {credits.map((c) => <li key={c.id}><b>{c.name}</b>: {c.source === 'you' ? 'uploaded by you' : <><WebLink href={c.sourceUrl}>{c.license}</WebLink>{c.credit ? `, by ${c.credit}` : ''}</>}</li>)}
-                </ul>
-              )
-            ) : <Button size="sm" onClick={() => api.get<{ logos: LogoInfo[] }>('/logos/credits').then((r) => setCredits(r.logos)).catch((e) => toast(e.message))}>Show the list</Button>}
+          <Row label="Where each logo came from" desc="The source, licence and author of each one, as their licences ask. Everyone signed in can see this list too, under Legal." stack>
+            {credits ? <LogoCredits /> : <Button size="sm" onClick={() => setCredits(true)}>Show the list</Button>}
           </Row>
         </>
       ) : (
@@ -71,8 +103,9 @@ export function LogoSettings() {
           </div>
         </div>
       )}
+      {s && <LogoFinder />}
       <LegalNote kind="logos" className="set-legal" />
-    </Section>
+    </Section></div>
   )
 }
 

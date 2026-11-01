@@ -77,7 +77,11 @@
       "section": "ratings"
     },
     "logos": {
-      "text": "Logos here were downloaded from Wikimedia Commons because this server's owner asked for them, or were uploaded by the owner, and they stay on this server. They're trademarks of their owners, shown only to name who made something. They, and the companies they belong to, aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "text": "Logos here were downloaded from Wikimedia Commons because this server's owner asked for them, were named by a channel list the owner added, or were uploaded by the owner, and they stay on this server. They're trademarks of their owners, shown only to name who made something. They, and the companies they belong to, aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "trademarks"
+    },
+    "logosBrief": {
+      "text": "Logos are their owners' trademarks, shown only to name who made something, and the owners have no part in this.",
       "section": "trademarks"
     },
     "listings": {

@@ -4,8 +4,9 @@
   --ctv-bg: var(--bg); --ctv-panel: var(--bg-2); --ctv-panel-2: var(--bg-3); --ctv-head: var(--bg-2); --ctv-cell: var(--bg-3); --ctv-cell-2: var(--bg-3); --ctv-live: var(--bg-4); --ctv-live-2: var(--bg-4); --ctv-ch: var(--bg-2); --ctv-dim: var(--bg-2); --ctv-line: var(--border-strong);
   --ctv-text: var(--fg); --ctv-soft: var(--fg-2); --ctv-cell-text: var(--ctv-text); --ctv-cell-soft: var(--ctv-soft); --ctv-live-text: var(--ctv-text); --ctv-live-soft: var(--ctv-soft);
   --ctv-hi: var(--accent); --ctv-hi-text: var(--accent-fg); --ctv-accent: var(--accent-text); --ctv-accent-text: var(--bg); --ctv-key-a: var(--accent); --ctv-key-b: var(--accent); --ctv-key-c: var(--accent); --ctv-key-text: var(--accent-fg); --ctv-err: var(--danger);
-  --ctv-lite: rgb(var(--accent-rgb) / .24); --ctv-shade: rgb(var(--bg-rgb) / .24); --ctv-picture: var(--scrim); --ctv-font: var(--font); --ctv-r: var(--r-xs); --ctv-bevel: none;
+  --ctv-lite: rgb(var(--accent-rgb) / .24); --ctv-shade: rgb(var(--bg-rgb) / .24); --ctv-font: var(--font); --ctv-r: var(--r-xs); --ctv-bevel: none;
 }
+.ctv, .ctv-player { --ctv-picture: #000; } /* design-ok: behind a video, in every theme */
 .ctv { color: var(--ctv-text); background: var(--ctv-bg); font-family: var(--ctv-font); }
 
 /* The space around a TV screen's text, the one place that decides it. --ctv-top is what's above
@@ -172,12 +173,18 @@ html.ten-foot .ctv-page, html.using-controller .ctv-page { --ctv-top: max(48px, 
 .ctv-page.narrow .ctv-preview { order: -1; justify-self: center; }
 .ctv-page.narrow .ctv-clock { display: none; }
 @media (max-width: 720px) {
-  .ctv-bar-group { max-width: 100%; flex-wrap: nowrap; }
-  .ctv-bar-time, .ctv-chips, .ctv-hero-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .ctv-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
+  .ctv-bar-group { flex: none; max-width: none; flex-wrap: nowrap; }
+  .ctv-chips, .ctv-hero-actions { flex-wrap: nowrap; }
+  .ctv-hero-actions { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
   .ctv-bar-time > *, .ctv-chips > *, .ctv-hero-actions > * { flex: none; }
+  .ctv-hero-chtext span, .ctv-hero-next { display: none; }
+  .ctv-hero-sub { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctv-hero-meta { margin-top: 2px; font-size: var(--text-sm); }
+  .ctv-hero-when { margin-top: 2px; font-size: var(--text-sm); }
   .ctv-key { min-height: 44px; }
   .ctv-chip, .ctv-btn, .ctv-link-btn { min-width: 44px; }
-  .ctv-grid { --ctv-chw: 96px; flex-basis: 320px; }
+  .ctv-grid { --ctv-chw: 96px; flex-basis: 280px; min-height: 280px; }
   .ctv-hero { gap: var(--sp-3); }
   .ctv-hero-title { font-size: var(--text-lg); }
   .ctv-hero-actions .ctv-btn, .ctv-chip, .ctv-link-btn, .ctv-field select, .ctv-btn.sm { min-height: 44px; }
@@ -298,6 +305,8 @@ html.ten-foot .ctv-page, html.using-controller .ctv-page { --ctv-top: max(48px, 
 .ctv-banner-progress u { display: block; height: 100%; background: var(--ctv-accent); }
 .ctv-banner-next { margin-top: 3px; font-size: var(--text-sm); color: var(--ctv-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ctv-banner-notice { margin-top: 3px; font-size: var(--text-sm); color: var(--ctv-accent); }
+.ctv-banner-legal { margin: var(--sp-1) 0 0; max-width: none; color: var(--ctv-soft); }
+.ctv-banner-legal a { color: var(--ctv-text); }
 .ctv-banner-clock { flex: none; font-size: var(--text-xl); font-weight: 700; color: var(--ctv-accent); font-variant-numeric: tabular-nums; }
 .ctv-osd-dial { position: absolute; top: 72px; right: 32px; z-index: 6; padding: 6px 18px; background: var(--scrim); color: var(--ctv-key-b); font-family: var(--ctv-font); font-size: var(--text-5xl); font-weight: 700; font-variant-numeric: tabular-nums; }
 .ctv-msg-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -310,7 +319,9 @@ html.ten-foot .ctv-page, html.using-controller .ctv-page { --ctv-top: max(48px, 
   .ctv-banner { bottom: 84px; gap: 10px; padding: 8px; }
   .ctv-banner-ch { min-width: 62px; padding-right: 10px; }
   .ctv-banner-ch b { font-size: var(--text-xl); }
-  .ctv-banner-ch span, .ctv-banner-clock { display: none; }
+  .ctv-banner-ch span, .ctv-banner-legal { margin: var(--sp-1) 0 0; max-width: none; color: var(--ctv-soft); }
+.ctv-banner-legal a { color: var(--ctv-text); }
+.ctv-banner-clock { display: none; }
   .ctv-banner-title { font-size: var(--text-base); }
   .ctv-slate-msg { font-size: var(--text-2xl); }
 }

@@ -7,6 +7,8 @@ import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
+import { useLogo } from '../../components/BrandLogo'
+import LegalNote from '../../components/LegalNote'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
@@ -304,10 +306,18 @@ function Banner({ info, look }: { info: TuneInfo; look: Look }) {
         {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
         {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
+        <BannerRights ch={info} look={look} />
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>
   )
+}
+
+// A logo on the banner has its rights notice with it, however briefly it's up.
+function BannerRights({ ch, look }: { ch: Pick<TuneInfo, 'logo' | 'brand'>; look: Look }) {
+  const service = useLogo(ch.brand?.kind || 'studio', look.logos && !ch.logo && ch.brand ? ch.brand.name : '')
+  if (!look.logos || !(ch.logo || service?.has)) return null
+  return <LegalNote kind="logosBrief" className="ctv-banner-legal" />
 }
 
 function Slate({ name, next }: { name: string; next: Programme | null }) {

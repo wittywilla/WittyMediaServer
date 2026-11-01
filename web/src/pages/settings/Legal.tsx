@@ -1,3 +1,4 @@
+import LogoCredits from '../../components/LogoCredits'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import legal from '../../../../internal/legal/legal.json'
@@ -108,6 +109,7 @@ function Doc({ signedIn }: { signedIn: boolean }) {
         <Section key={s.id} id={s.id} title={s.title}>
           <div className="set-prose"><Body lines={s.body} signedIn={signedIn} /></div>
           {s.id === 'privacy' && <Services signedIn={signedIn} />}
+          {s.id === 'trademarks' && signedIn && <><h3 className="legal-credit-head" id="logo-credits">Where the logos here came from</h3><LogoCredits /></>}
         </Section>
       ))}
       <p className="legal-updated muted">Last changed {legal.updated}. This page is plain-language information, not legal advice.</p>

@@ -75,6 +75,9 @@ type Channel struct {
 	NumberSet  string `json:"numberSet,omitempty"`
 	NameSet    string `json:"nameSet,omitempty"`
 	EPGSet     string `json:"epgSet,omitempty"`
+	// LogoSet is what a person chose for its logo: "" to find it by name, "none", or
+	// "kind|name" in the logo service.
+	LogoSet    string `json:"logoSet,omitempty"`
 	locator    string
 	sourceName string
 	driver     string
@@ -634,7 +637,7 @@ func (m *Manager) ScanProgress(id int64) ScanState {
 // --------------------------------------------------------------------------
 
 const channelCols = `c.id, c.tuner_id, c.source_id, c.number, c.name, c.grp, c.callsign, c.locator, c.logo, c.hd, c.radio, c.encrypted, c.encrypted_why, c.program, c.enabled,
-	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name, t.driver, c.encrypted_seen, c.checked, c.seen_clear, c.atsc3, c.video_codec, c.audio_codec, c.no_record, c.no_record_set`
+	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name, t.driver, c.encrypted_seen, c.checked, c.seen_clear, c.atsc3, c.video_codec, c.audio_codec, c.no_record, c.no_record_set, c.logo_set`
 
 // What is known about a channel's protection.
 const (
@@ -648,7 +651,7 @@ func scanChannel(sc interface{ Scan(...any) error }) (*Channel, error) {
 	var hd, radio, enc, enabled, checked, seenClear, atsc3, noRecordSet int
 	var why, seen, noRecord string
 	if err := sc.Scan(&c.ID, &c.TunerID, &c.SourceID, &c.Number, &c.Name, &c.Group, &c.CallSign, &c.locator, &c.Logo, &hd, &radio, &enc, &why, &c.Program, &enabled,
-		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName, &c.driver, &seen, &checked, &seenClear, &atsc3, &c.VideoCodec, &c.AudioCodec, &noRecord, &noRecordSet); err != nil {
+		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName, &c.driver, &seen, &checked, &seenClear, &atsc3, &c.VideoCodec, &c.AudioCodec, &noRecord, &noRecordSet, &c.LogoSet); err != nil {
 		return nil, err
 	}
 	c.HD, c.Radio, c.Enabled, c.ATSC3 = hd != 0, radio != 0, enabled != 0, atsc3 != 0
@@ -760,6 +763,7 @@ type ChannelEdit struct {
 	Number  *string `json:"number"`
 	Name    *string `json:"name"`
 	EPG     *string `json:"epg"`
+	Logo    *string `json:"logo"` // see Channel.LogoSet
 	// NoRecord: the device's documentation says this may not be recorded.
 	NoRecord *bool `json:"noRecord"`
 	// CheckAgain forgets what a stream showed, for a station that has changed.
@@ -783,6 +787,11 @@ func (m *Manager) EditChannel(ctx context.Context, id int64, e ChannelEdit) (*Ch
 			return nil, errors.New("the name is too long")
 		}
 		if _, err := m.DB.ExecContext(ctx, `UPDATE tuner_channels SET name_set = ? WHERE id = ?`, strings.TrimSpace(*e.Name), id); err != nil {
+			return nil, err
+		}
+	}
+	if e.Logo != nil {
+		if _, err := m.DB.ExecContext(ctx, `UPDATE tuner_channels SET logo_set = ? WHERE id = ?`, *e.Logo, id); err != nil {
 			return nil, err
 		}
 	}

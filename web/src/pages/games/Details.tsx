@@ -1,3 +1,4 @@
+import { ChangeLogoButton } from '../../components/edit/LogoChooser'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PromptBar, useInputKind, type Prompt } from './prompts'
@@ -211,6 +212,10 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           {it.year && !meta?.released && <div><dt>Year</dt><dd>{it.year}</dd></div>}
           {meta?.released && <div><dt>Released</dt><dd>{fmtReleased(meta.released)}</dd></div>}
           {it.studio && <div><dt>Developer</dt><dd>{it.studio}</dd></div>}
+          {user?.isAdmin && (it.studio || c) && <div><dt>Logos</dt><dd className="gm-logo-buttons">
+            {c && <ChangeLogoButton kind="console" name={c.logoName || c.name} label={`${c.short} logo`} />}
+            {it.studio && <ChangeLogoButton kind="gamestudio" name={it.studio} label="Developer's logo" />}
+          </dd></div>}
           {meta?.publisher && <div><dt>Publisher</dt><dd>{meta.publisher}</dd></div>}
           {meta && meta.players > 0 && <div><dt>Players</dt><dd>{meta.players === 1 ? '1' : `Up to ${meta.players}`}</dd></div>}
           {meta?.franchise && <div><dt>Series</dt><dd><Link to={links.library(it.libraryId, 'series=' + encodeURIComponent(meta.franchise))}>{meta.franchise}</Link></dd></div>}

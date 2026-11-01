@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
@@ -262,7 +263,23 @@ func (s *Server) handleTunerChannels(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, list)
+	out := make([]tunerChannelView, 0, len(list))
+	for _, c := range list {
+		out = append(out, viewTunerChannel(c))
+	}
+	writeJSON(w, 200, out)
+}
+
+// tunerChannelView is a tuner channel for its settings page: as it's stored, with what it wears.
+type tunerChannelView struct {
+	*livetv.Channel
+	LogoURL string        `json:"logoUrl,omitempty"`
+	Brand   *channelBrand `json:"brand,omitempty"`
+}
+
+func viewTunerChannel(c *livetv.Channel) tunerChannelView {
+	u, b := tunerLogo(c)
+	return tunerChannelView{c, u, b}
 }
 
 func (s *Server) handleEnableAllChannels(w http.ResponseWriter, r *http.Request) {
@@ -296,12 +313,44 @@ func (s *Server) handleEditTunerChannel(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, err.Error())
 		return
 	}
+	if e.Logo != nil {
+		v, err := checkTunerLogoChoice(*e.Logo)
+		if err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		e.Logo = &v
+	}
 	c, err := s.TV.EditChannel(r.Context(), id, e)
 	if err != nil {
 		s.tunerError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, c)
+	if e.Logo != nil {
+		// A name someone gave goes straight to the service, whatever the limit on automatic ones.
+		if _, b := tunerLogo(c); b != nil {
+			if _, err := s.Store.EnsureLogo(r.Context(), b.Kind, b.Name); err == nil {
+				s.logos().Kick()
+			}
+		}
+		forgetTunerLogosNoted(s)
+	}
+	writeJSON(w, 200, viewTunerChannel(c))
+}
+
+// checkTunerLogoChoice bounds what a person can set as a channel's logo: nothing, none, or the
+// name of a row in the logo service.
+func checkTunerLogoChoice(v string) (string, error) {
+	v = strings.TrimSpace(v)
+	if v == "" || v == "none" {
+		return v, nil
+	}
+	kind, name, ok := strings.Cut(v, "|")
+	name = strings.TrimSpace(name)
+	if !ok || !library.ValidLogoKind(kind) || library.BrandKey(name) == "" || len(name) > 120 {
+		return "", errors.New("say none, or which logo: kind|name")
+	}
+	return kind + "|" + name, nil
 }
 
 func (s *Server) handleEPGSources(w http.ResponseWriter, r *http.Request) {
@@ -386,10 +435,12 @@ func (s *Server) tunerRows(ctx context.Context, r *http.Request) []guideChannel 
 	alts := livetv.Alternatives(list, s.silentChannel)
 	out := make([]guideChannel, 0, len(list))
 	for _, c := range list {
-		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: tunerLogoURL(c), HD: c.HD, Radio: c.Radio,
+		logo, brand := tunerLogo(c)
+		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: logo, Brand: brand, HD: c.HD, Radio: c.Radio,
 			Encrypted: c.Encrypted, CanRecord: c.Encrypted == "" && c.NoRecord == "", NoRecord: c.NoRecord, ATSC3: c.ATSC3, Security: securityOf(c), Alternative: alts[c.ID], Notices: s.channelNotices(c)}
 		out = append(out, row)
 	}
+	s.noteTunerLogos(list)
 	return out
 }
 
@@ -442,6 +493,69 @@ func logoAddress(c *livetv.Channel) *url.URL {
 	}
 	return u
 }
+
+// tunerLogo is what a tuner channel wears: a picture of its own, or a name for the logo service.
+// What a person chose comes first, then the logo its channel list names, then a match on its name.
+func tunerLogo(c *livetv.Channel) (string, *channelBrand) {
+	if c.LogoSet == "none" {
+		return "", nil
+	}
+	if kind, name, ok := strings.Cut(c.LogoSet, "|"); ok {
+		return "", &channelBrand{kind, name}
+	}
+	if u := tunerLogoURL(c); u != "" {
+		return u, nil
+	}
+	if !c.Radio {
+		if name := library.ChannelBrandName(c.Name); name != "" {
+			return "", &channelBrand{library.LogoNetwork, name}
+		}
+	}
+	return "", nil
+}
+
+// How many names a channel list can put to the logo service by itself, and how often it's
+// looked at. A list can name tens of thousands of stations, and each is a question on the
+// internet, one a second. The rest can still be found by hand, under Channels.
+const (
+	maxTunerLogoNames = 500
+	tunerLogoRecheck  = 5 * 60 // seconds
+)
+
+// noteTunerLogos tells the logo service about the channels in the guide, so they're looked for
+// once the owner has agreed to downloads. It's the guide being opened that does this, so a
+// channel list that changed in any way is noticed, with nothing running otherwise.
+func (s *Server) noteTunerLogos(list []*livetv.Channel) {
+	now := time.Now().Unix()
+	last := s.tunerLogosNoted.Load()
+	if now-last < tunerLogoRecheck || !s.tunerLogosNoted.CompareAndSwap(last, now) {
+		return
+	}
+	logging.Go("tuner logos", func() {
+		ctx := context.Background()
+		if s.Store.LogoConsent(ctx) != "yes" {
+			return
+		}
+		seen := map[string]bool{}
+		for _, c := range list {
+			_, b := tunerLogo(c)
+			if b == nil || seen[b.Kind+b.Name] {
+				continue
+			}
+			seen[b.Kind+b.Name] = true
+			if len(seen) > maxTunerLogoNames {
+				break
+			}
+			if _, err := s.Store.EnsureLogo(ctx, b.Kind, b.Name); err != nil {
+				s.Log.WarnContext(ctx, "could not note a channel's logo", "cat", "tv", "channel", c.Name, "err", err)
+				return
+			}
+		}
+		s.logos().Kick()
+	}, "cat", "tv")
+}
+
+func forgetTunerLogosNoted(s *Server) { s.tunerLogosNoted.Store(0) }
 
 // tunerLogoURL is where a client gets a channel's logo. The address's hash is
 // there so that a browser notices when a playlist changes the logo.
@@ -568,7 +682,8 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	}
 	ls.Viewer(viewerName(r))
 	now := time.Now()
-	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: tunerLogoURL(c), URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
+	logo, brand := tunerLogo(c)
+	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		ServerTime: now.Unix(), CanRecord: c.NoRecord == "", BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {

@@ -54,16 +54,20 @@ export function lookupLogo(kind: LogoKind, name: string): Promise<LogoInfo> {
   return p
 }
 
-// forgetLogos: after changing one, or after agreeing to downloads.
-export function forgetLogos() { known.clear() }
+// forgetLogos: after changing one, or after agreeing to downloads. Whatever is on the screen
+// asks again.
+const CHANGED = 'wms-logos-changed'
+export function forgetLogos() { known.clear(); window.dispatchEvent(new Event(CHANGED)) }
 
 export function useLogo(kind: LogoKind, name: string): LogoInfo | null {
   const [info, setInfo] = useState<LogoInfo | null>(null)
   useEffect(() => {
     let on = true
+    const ask = () => { if (name.trim()) lookupLogo(kind, name).then((l) => { if (on) setInfo(l) }) }
     setInfo(null)
-    if (name.trim()) lookupLogo(kind, name).then((l) => { if (on) setInfo(l) })
-    return () => { on = false }
+    ask()
+    window.addEventListener(CHANGED, ask)
+    return () => { on = false; window.removeEventListener(CHANGED, ask) }
   }, [kind, name])
   return info
 }

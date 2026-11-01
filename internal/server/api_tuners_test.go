@@ -232,3 +232,41 @@ func TestLogoAddressNeverReachesClients(t *testing.T) {
 		}
 	}
 }
+
+// A tuner channel's logo: what a person chose first, then what its list names, then a match on its name.
+func TestTunerChannelLogo(t *testing.T) {
+	c := &livetv.Channel{ID: 7, Name: "NBC HD"}
+	if u, b := tunerLogo(c); u != "" || b == nil || b.Kind != library.LogoNetwork || b.Name != "NBC" {
+		t.Errorf("found by name: %q %+v", u, b)
+	}
+	c.Logo = "https://logos.example/nbc.png"
+	if u, b := tunerLogo(c); u == "" || b != nil {
+		t.Errorf("the list's own comes before a match: %q %+v", u, b)
+	}
+	c.LogoSet = "studio|Open Pictures"
+	if u, b := tunerLogo(c); u != "" || b == nil || b.Kind != "studio" || b.Name != "Open Pictures" {
+		t.Errorf("a person's correction comes first: %q %+v", u, b)
+	}
+	c.LogoSet = "none"
+	if u, b := tunerLogo(c); u != "" || b != nil {
+		t.Errorf("none means none, even with the list's: %q %+v", u, b)
+	}
+	c = &livetv.Channel{Name: "Movies HD"}
+	if _, b := tunerLogo(c); b != nil {
+		t.Errorf("a word like that would only ever match the wrong thing: %+v", b)
+	}
+	c = &livetv.Channel{Name: "Open Radio", Radio: true}
+	if _, b := tunerLogo(c); b != nil {
+		t.Errorf("radio isn't a TV network: %+v", b)
+	}
+	for in, want := range map[string]string{"": "", " none ": "none", "network|NBC": "network|NBC", "studio| Open Pictures ": "studio|Open Pictures"} {
+		if got, err := checkTunerLogoChoice(in); err != nil || got != want {
+			t.Errorf("%q: %q %v", in, got, err)
+		}
+	}
+	for _, in := range []string{"NBC", "evil|NBC", "network|", "network|---", "network|" + strings.Repeat("x", 121)} {
+		if _, err := checkTunerLogoChoice(in); err == nil {
+			t.Errorf("%q should be refused", in)
+		}
+	}
+}

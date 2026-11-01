@@ -6,7 +6,9 @@ import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
+import TunerLogo from './TunerLogo'
 import BrandLogo from '../../components/BrandLogo'
+import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
 import { fromLegacy, THEMES } from './tvThemes'
 import { brandOf, forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
@@ -328,7 +330,7 @@ function TunerChannels() {
         </div>
         <div className="tvs-table-wrap">
           <table className="tvs-table">
-            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
+            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Logo</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
             <tbody>
               {shown.map((c) => (
                 <tr key={c.id} className={c.encrypted ? 'locked' : ''}>
@@ -338,6 +340,7 @@ function TunerChannels() {
                     <input className="input" aria-label={`Name of ${c.name}`} defaultValue={c.name} onBlur={(e) => { if (e.target.value !== c.name) void edit(c, { name: e.target.value }) }} />
                     {c.group && <small className="tvs-dim">{c.group}</small>}
                   </td>
+                  <td><TunerLogo channel={c} onChange={(n) => setList((l) => l?.map((x) => (x.id === n.id ? n : x)) || null)} /></td>
                   <td>
                     {c.security === 'encrypted' && <small className="tvs-lock">Encrypted: can't be played here. {c.encrypted}. <Link to="/tv/encrypted">What can I do?</Link> <button className="btn sm ghost" onClick={() => void edit(c, { checkAgain: true })} title="If the station has stopped encrypting: it is checked again next time it is tuned">Check again</button></small>}
                     {c.security === 'clear' && <small className="tvs-clear">Clear</small>}
@@ -352,6 +355,8 @@ function TunerChannels() {
           </table>
         </div>
         {list && shown.length < list.length && shown.length === 500 && <p className="muted">Showing the first 500. Use the search box to find others.</p>}
+        <LogoConsentHint compact />
+        <LegalNote kind="logos" className="set-legal" />
       </Section>
       {driver && opts && (
         <Section title="Settings" actions={<button className="btn sm primary" onClick={() => void saveSettings()}>Save</button>}>

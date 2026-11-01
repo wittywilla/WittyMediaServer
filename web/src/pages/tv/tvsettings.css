@@ -82,3 +82,7 @@
 .tvs-sug-name { display: flex; align-items: center; gap: var(--sp-2); }
 .tvs-sug-logo { flex: none; width: 3.5rem; height: 1.75rem; object-fit: contain; }
 .tvs-sug-logo.brand-logo-text { display: none; }
+.tvs-logo-cell { display: flex; align-items: center; gap: var(--sp-2); min-width: 150px; }
+.tvs-logo-cell .brand-logo-text { font-size: var(--text-xs); }
+.tvs-logo-forms { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.tvs-logo-field { display: grid; gap: var(--sp-1); font-size: var(--text-sm); }

@@ -93,6 +93,9 @@ var wittyTVMigrations = []string{
 	   channel TEXT NOT NULL, title TEXT NOT NULL, sub TEXT NOT NULL DEFAULT '', start INTEGER NOT NULL, stop INTEGER NOT NULL,
 	   UNIQUE(user_id, channel, start));
 	 CREATE INDEX IF NOT EXISTS tv_reminders_user ON tv_reminders(user_id, start);`,
+	// What a person chose for a tuner channel's logo, which a new channel list doesn't touch:
+	// "" to find it by name, "none", or "kind|name" for the logo service's row.
+	`ALTER TABLE tuner_channels ADD COLUMN logo_set TEXT NOT NULL DEFAULT '';`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

@@ -21,17 +21,8 @@
       "vite/client"
     ],
     "paths": {
-      "@wittywilla/wittyintegratedfilebrowser": [
-        "../modules/wittyintegratedfilebrowser/web/index.ts"
-      ],
-      "@wittywilla/wittyplay": [
-        "../modules/wittyplay/web/index.ts"
-      ],
-      "@wittywilla/wittycouch": [
-        "../modules/wittycouch/web/index.ts"
-      ],
       "@wittywilla/*": [
-        "./src/modules/*"
+        "./node_modules/@wittywilla/*"
       ],
       "react": [
         "./node_modules/@types/react"
@@ -44,16 +35,16 @@
       ],
       "react-dom/*": [
         "./node_modules/@types/react-dom/*"
+      ],
+      "pdfjs-dist": [
+        "./node_modules/pdfjs-dist"
+      ],
+      "pdfjs-dist/*": [
+        "./node_modules/pdfjs-dist/*"
       ]
     }
   },
   "include": [
-    "src",
-    "../modules/wittyintegratedfilebrowser/web",
-    "../modules/wittyplay/web",
-    "../modules/wittycouch/web"
-  ],
-  "exclude": [
-    "../modules/wittyplay/web/tests"
+    "src"
   ]
 }

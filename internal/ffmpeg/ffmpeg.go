@@ -47,7 +47,7 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	}
 	// The copy for working on this project, only in a source checkout: FFmpeg
 	// must not be run from whatever folder the server was started in.
-	if st, err := os.Stat("go.work"); err == nil && !st.IsDir() {
+	if st, err := os.Stat("gomod.go"); err == nil && !st.IsDir() {
 		candidates = append(candidates, ".tools/ffmpeg-master-latest-win64-gpl/bin")
 	}
 	find := func(explicit, name string) string {

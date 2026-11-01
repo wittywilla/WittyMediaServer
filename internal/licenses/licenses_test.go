@@ -94,11 +94,7 @@ func TestEveryGoLibraryIsListed(t *testing.T) {
 	}
 	root := filepath.Join("..", "..")
 	targets := []string{"./cmd/wms", "./cmd/wms-tray", "./cmd/wms-setup"}
-	cmds, _ := filepath.Glob(filepath.Join(root, "modules", "*", "cmd", "*"))
-	for _, c := range cmds {
-		rel, _ := filepath.Rel(root, c)
-		targets = append(targets, "./"+filepath.ToSlash(rel))
-	}
+	targets = append(targets, programsOf(root)...)
 	cmd := exec.Command("go", append([]string{"list", "-e", "-deps", "-f", `{{with .Module}}{{if not .Main}}{{.Path}}{{end}}{{end}}`}, targets...)...)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
@@ -137,4 +133,30 @@ func TestEveryWebPackageIsListed(t *testing.T) {
 			t.Errorf("%s is in the web app but isn't on the list of licenses: %s", p, regenerate)
 		}
 	}
+}
+
+// programsOf lists the commands in every module of this project this server requires.
+func programsOf(args ...string) []string {
+	cmd := exec.Command("go", "list", "-m", "-f", "{{.Path}}|{{.Dir}}", "all")
+	if len(args) > 0 {
+		cmd.Dir = args[0]
+	}
+	b, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, line := range strings.Fields(string(b)) {
+		p, dir, _ := strings.Cut(line, "|")
+		if !strings.HasPrefix(p, "github.com/wittywilla/") || strings.HasSuffix(p, "/wittymediaserver") || strings.Contains(p, "/wittymediaplayer") || dir == "" {
+			continue
+		}
+		cmds, _ := filepath.Glob(filepath.Join(dir, "cmd", "*"))
+		for _, c := range cmds {
+			if st, err := os.Stat(c); err == nil && st.IsDir() {
+				out = append(out, p+"/cmd/"+filepath.Base(c))
+			}
+		}
+	}
+	return out
 }

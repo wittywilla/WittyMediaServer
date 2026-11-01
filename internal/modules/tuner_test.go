@@ -509,7 +509,7 @@ func TestTunerDiscover(t *testing.T) {
 
 // The real helper, in its sandbox, against a stand-in for a network tuner.
 func TestRealTunerHelper(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "modules", "wittytuner", "module.json"))
+	raw, err := os.ReadFile(filepath.Join(moduleDir(t, "wittytuner"), "module.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

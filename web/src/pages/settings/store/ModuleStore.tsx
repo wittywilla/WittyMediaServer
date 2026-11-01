@@ -110,7 +110,7 @@ export default function ModuleStore() {
             <span>Platform</span>
             <Select inputSize="sm" value={platform} onChange={(e) => set('platform', e.target.value)} options={[{ value: '', label: 'Any' }, ...platforms.map((p) => ({ value: p, label: p === view.platform ? `${platformName(p)} (this server)` : platformName(p) }))]} />
           </label>
-          <Button size="sm" variant="ghost" icon={<IconRefresh />} aria-busy={checking} onClick={check}>{checking ? 'Checking…' : 'Check for updates'}</Button>
+          <Button size="sm" variant="ghost" className="st-check" icon={<IconRefresh />} aria-busy={checking} aria-label="Check for updates now" onClick={check}>{checking ? 'Checking…' : 'Check now'}</Button>
         </div>
       </section>
 

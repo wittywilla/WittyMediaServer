@@ -104,6 +104,7 @@ function scopeOf(el: Element | null): ParentNode {
 const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
+const COLUMNS = '.sidebar, .set-nav'
 
 // Where the focus last was. A button can take itself away when pressed (a row that's removed,
 // a list that closes), and a remote has no other way back to where that was.
@@ -130,15 +131,40 @@ function move(dir: Dir): boolean {
     const gone = focusGoneFrom(scope as Node)
     const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
     if (near) { focus(near); return true }
-    // Nothing focused yet: start at the first control of the main content.
-    const first = all.find((el) => el.closest('.content, .player, [role=dialog]') && visible(el, boxes.get(el)!)) || all.find((el) => visible(el, boxes.get(el)!))
+    // Nothing focused yet: start where this page's main action is, or at the first control of the main content.
+    const first = firstOf(all.filter((el) => el.closest('.content, .player, [role=dialog]')), boxes) || all.find((el) => visible(el, boxes.get(el)!))
     if (!first) return false
     focus(first)
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
   const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
-  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
+  // A row's own heading: the row is what's under it, even with few cards and See all far off to
+  // the right, where what's straight down is the next row's See all and to the left the side menu.
+  const head = cur.closest('.hub-head')
+  if (head && (dir === 'down' || dir === 'left')) {
+    const inRow = others.filter((el) => head.parentElement?.contains(el) && !head.contains(el) && can(el))
+    const row = inRow[0] && groupOf(inRow[0])
+    const left = row && lastIn.get(row)
+    const to = left && inRow.includes(left) ? left : nearest(boxes.get(cur)!, inRow, (el) => boxes.get(el)!)
+    if (to) { focus(to); return true }
+  }
+  // A side column is left and entered sideways. Going down a page mustn't fall into the side menu because the
+  // menu's last link happens to be lower, and the menu's last link mustn't fall into the page.
+  const col = cur.closest(COLUMNS)
+  const onward = dir === 'left' || dir === 'right' ? others : others.filter((el) => { const c = el.closest(COLUMNS); return c === col || (col?.matches('.set-nav') && el.closest('.topbar')) })
+  let best = ranked(boxes.get(cur)!, onward, (el) => boxes.get(el)!, dir).find(can)
+  // Past the end of a row: on to its See all if it has one. What's off to the side on some other row isn't
+  // where someone going along this one means to go.
+  const row = cur.closest('.row, [data-nav-group]')
+  if (best && dir === 'right' && row && !row.contains(best)) {
+    const a = boxes.get(cur)!, b = boxes.get(best)!
+    if (b.top >= a.bottom || b.bottom <= a.top) {
+      const seeAll = row.closest('.hub')?.querySelector<HTMLElement>('.hub-head a')
+      if (seeAll) focus(seeAll)
+      return !!seeAll
+    }
+  }
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
     const group = groupOf(best)
@@ -151,6 +177,26 @@ function move(dir: Dir): boolean {
     return false
   }
   focus(best)
+  return true
+}
+
+// Where a remote starts on a page: its main action if that's on the screen, or else its first control that isn't
+// a field, as landing in a text box can open a TV's on-screen keyboard.
+function firstOf(list: HTMLElement[], boxes: Map<HTMLElement, DOMRect>): HTMLElement | undefined {
+  const shown = list.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body))
+  const onScreen = (el: HTMLElement) => { const r = boxes.get(el)!; return r.top >= 0 && r.bottom <= window.innerHeight }
+  return shown.find((el) => el.matches('.btn.primary') && onScreen(el)) || shown.find((el) => !typing(el) && !el.matches('select') && onScreen(el)) || shown[0]
+}
+
+// focusFirst: for a page that has just arrived on a screen across the room, where a remote has
+// nothing to see until something has the focus.
+export function focusFirst(): boolean {
+  const main = document.getElementById('main')
+  if (!main || document.querySelector('[role=dialog], [role=alertdialog], [role=menu]')) return false
+  const all = Array.from(main.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute('data-nav-skip'))
+  const first = firstOf(all, new Map(all.map((el) => [el, el.getBoundingClientRect()])))
+  if (!first) return false
+  first.focus({ preventScroll: true })
   return true
 }
 

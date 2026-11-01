@@ -131,7 +131,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {!!it.screenshots?.length && (
         <section className="st-mod-sec" aria-labelledby="st-shots">
           <h2 id="st-shots">Screenshots</h2>
-          <div className="st-shots" tabIndex={0} role="group" aria-label={`Screenshots of ${it.name}`}>
+          <div className="st-shots" tabIndex={0} role="group" aria-label={`Screenshots of ${it.name}`} onKeyDown={shotKeys}>
             {it.screenshots.map((src, i) => <Screenshot key={src} src={src} alt={`${it.name}, screenshot ${i + 1} of ${it.screenshots!.length}`} />)}
           </div>
         </section>
@@ -198,7 +198,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
                     <div className="ms-ver-head">
                       <div className="ms-ver-title">
                         <b>{v.version}</b>
-                        {v.published ? <span className="muted">{new Date(v.published).toLocaleDateString()}</span> : null}
+                        {v.published ? <span className="muted">{new Date(v.published).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span> : null}
                         <span className="ms-tags">
                           {v.inUse && <Tag tone="ok" icon={<IconCheck size={12} />}>In use</Tag>}
                           {v.prerelease && <Tag>Pre-release</Tag>}
@@ -224,6 +224,16 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
     </div>
   )
+}
+
+// Along the row by arrows, as a list of pictures isn't a list of stops. At an end the arrow is
+// left alone, so a remote can move on.
+function shotKeys(e: React.KeyboardEvent<HTMLDivElement>) {
+  const by = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+  const el = e.currentTarget
+  if (!by || (by < 0 ? el.scrollLeft <= 1 : el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)) return
+  e.preventDefault(); e.stopPropagation()
+  el.scrollBy({ left: by * el.clientWidth * 0.8, behavior: 'auto' })
 }
 
 function Screenshot({ src, alt }: { src: string; alt: string }) {
@@ -259,8 +269,8 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   const [owner, setOwner] = useState(false)
   if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
     title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
-    body: <p>This changes which code runs on this server, so it asks for your password.</p>,
-    run: async (password, code) => { await useFork(it.store, it.id, true, { password, code }); toast(`${it.name} now comes from ${it.storeName}`); onDone(); onClose() },
+    body: <p>This changes which code runs on this server, so it asks for your password. The official version is deleted first, so if this one won’t install, {it.name} is off until you try again or go back to the official version.</p>,
+    run: async (password, code) => { await useFork(it.store, it.id, true, { password, code }); toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() },
   }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert

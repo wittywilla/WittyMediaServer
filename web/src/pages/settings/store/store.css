@@ -12,7 +12,8 @@
 .st-chip-n { margin-left: 2px; opacity: .72; font-variant-numeric: tabular-nums; }
 .st-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .st-filter { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); }
-.st-filter .select { max-width: 13rem; }
+.st-filter .select { max-width: 13rem; padding-right: var(--sp-8); }
+.st-check { margin-left: auto; }
 .st-count { margin: 0 0 var(--sp-3); color: var(--fg-2); font-size: var(--text-sm); }
 
 /* Shelves and cards. */

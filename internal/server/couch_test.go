@@ -21,6 +21,7 @@ type couchListedHost = couchHostView
 // account never may, so that one rule is opened up for the test that asks.
 func addCouch(t *testing.T, ts *testServer, f *fake.Sunshine, token string) couchListedHost {
 	t.Helper()
+	modtest.Need(t, "wittycouch")
 	w := ts.do(t, "POST", "/api/couch/hosts", token, map[string]any{"address": fmt.Sprintf("127.0.0.1:%d", f.Port())})
 	if w.Code != 201 {
 		t.Fatalf("add: %d %s", w.Code, w.Body)

@@ -55,7 +55,7 @@ var publicRoutes = map[string]bool{
 	"GET /api/reach/{nonce}": true,
 }
 
-var routeRe = regexp.MustCompile(`m\.Handle(?:Func)?\("((?:GET|POST|PUT|DELETE) (/api/[^"]*))",\s*(\S*)`)
+var routeRe = regexp.MustCompile(`m\.Handle(?:Func)?\("((?:GET|POST|PUT|PATCH|DELETE) (/api/[^"]*))",\s*(\S*)`)
 
 func routeServer(t *testing.T) (*Server, *auth.Service) {
 	t.Helper()
@@ -142,6 +142,43 @@ func TestEveryRouteChecksWhoIsAsking(t *testing.T) {
 					t.Errorf("%s as a non-admin: %d, want 403", route, code)
 				}
 			}
+		}
+	}
+}
+
+// A route any signed-in account can reach needs a rule of its own, which the first look can't check:
+// which limits it applies, and whose data it opens. So each one says what it is in routeRules.
+func TestEveryRouteHasAStatedRule(t *testing.T) {
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, name := range files {
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range routeRe.FindAllSubmatch(b, -1) {
+			route, handler := string(m[1]), string(m[3])
+			if publicRoutes[route] || strings.HasPrefix(handler, "s.requireAdmin") || strings.HasPrefix(handler, "ad(") || strings.HasPrefix(handler, "adm(") {
+				continue
+			}
+			seen[route] = true
+			if strings.TrimSpace(routeRules[route]) == "" {
+				t.Errorf("%s (%s) is open to signed-in accounts: say who may call it and what it checks, in route_rules_test.go", route, name)
+			}
+		}
+	}
+	if len(seen) < 90 {
+		t.Fatalf("found only %d routes: has the way they are declared changed?", len(seen))
+	}
+	for route := range routeRules {
+		if !seen[route] {
+			t.Errorf("%s is in route_rules_test.go but isn't a route for signed-in accounts", route)
 		}
 	}
 }

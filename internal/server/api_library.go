@@ -245,6 +245,8 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		Players: qInt(r, "players", 0),
 		// unmatched=1: games the lookup has finished with and found nothing for
 		Unmatched: qBool(r, "unmatched"),
+		// series=<name>: games of one franchise
+		Series: r.URL.Query().Get("series"),
 	}
 	if v, err := strconv.ParseFloat(r.URL.Query().Get("minRating"), 64); err == nil {
 		q.MinRating = v

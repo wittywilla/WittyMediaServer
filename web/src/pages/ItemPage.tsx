@@ -7,8 +7,8 @@ import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
-import { GameDetails } from './Games'
 
+const GameDetails = lazy(() => import('./games/Details'))
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
 import { BackLink, EmptyState, LoadError, Spinner, artHue, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
@@ -43,7 +43,7 @@ export default function ItemPage() {
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
   if (libType === 'radio') return <Navigate replace to={`/radio/${it.id}`} />
   if (it.kind === 'game' && it.console === 'rig') return <Suspense fallback={<Spinner />}><RigGameDetails it={it} /></Suspense>
-  if (it.kind === 'game') return <GameDetails it={it} reload={load} />
+  if (it.kind === 'game') return <Suspense fallback={<Spinner />}><GameDetails it={it} reload={load} /></Suspense>
   if (it.kind === 'cd-image') return <Navigate replace to={`/cd/${it.id}`} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />

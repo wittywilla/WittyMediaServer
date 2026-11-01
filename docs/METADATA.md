@@ -301,7 +301,19 @@ Kinds: `studio`, `network`, `console`, `gamestudio`, `platform`.
 ### Using it from the server
 
 When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, name)`. It only adds a row; `Logos.Kick()` starts looking, and does
-nothing without the owner's agreement. The studios of films and networks of shows are added by scans already.
+nothing without the owner's agreement. The studios of films and networks of shows are added by scans already, and so are the consoles of a games library and the studios of its games.
+
+### Consoles and game studios
+
+`GET /api/games/consoles` gives each console a `logoName`, the name it goes by on Wikidata, which is often not the one on its card. On a games screen, use the marks made for this, which are the same size
+whichever way a console appears. With no logo they're a short typed label, so a screen looks finished before anyone has agreed to logos, or if a console has none:
+
+```tsx
+import { ConsoleMark, StudioMark } from '../components/ConsoleMark'
+
+<ConsoleMark console={c} />                     // sizes: sm, md, lg
+<StudioMark name={it.studio} on="dark" />
+```
 
 ### Routes
 
@@ -363,11 +375,16 @@ or an app never talks to a source.
 1. **By checksum.** Archives record their files' checksums (`.zip`, `.7z` and `.gz`), so only the headers are read and
    nothing is unpacked. A cartridge file up to 128 MB is read once, with and without a copier's header. Nothing is
    read twice unless the file changes.
-2. **By disc code.** A disc's product code is read from a few sectors near its start, or from its file name (PlayStation,
-   PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name.
+2. **By code.** A disc's product code is read from a few sectors near its start, even inside a `.cso`, or from its file name (PlayStation,
+   PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name. A cartridge's code, and the title in its header, count
+   only when the file's name agrees, because a fan's hack of a game keeps both: it isn't that game, and shouldn't be named after it. A file called `rom.z64` has nothing to disagree with.
 3. **By name and console.** Region and dump tags are taken off and kept as details. Punctuation, articles and II or 2 don't
    matter, but different numbers always do. A name must be at least 85% alike to be used without asking, and only an exact name or a checksum renames a game: a close match
    gets its details, but keeps the name on its file, as it may be a variant.
+4. **By another version in its archive.** In a set, what's asked about first is the file that would be played. If neither that nor the name is known, a checksum of another version
+   in the archive still gives the game's details and art. Its name might be another region's, so unless the names agree the game keeps the one on its file.
+
+A file saved here earlier (an NFO this server wrote, and the pictures beside it) is only an old answer, which a better one replaces. An NFO a person wrote is theirs, and stays.
 
 A checksum found by one source gives the exact name to ask the others about, so they match better too. Every game's page
 shows administrators how it was matched and how sure that is, with **Fix match** (search every source and pick), **Lock**
@@ -377,7 +394,8 @@ A game from a gaming PC has no file to read, so it goes by name alone, on source
 
 ### Keeping requests down
 
-The queue is in the database, so a restart carries on where it stopped. Games are worked on in batches of 50, one console
+The queue is in the database, so a restart carries on where it stopped. The local database is asked about every game first, which takes seconds and no
+requests beyond fetching each console's list once. Pictures and online sources then go side by side, so a slow source holds nothing else up. Games are worked on in batches of 50, one console
 at a time. Each source's answer is kept, so changing the order of sources asks nobody anything, and adding one only
 asks that one, for what it can add.
 

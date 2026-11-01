@@ -8,6 +8,37 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 ## 0.6.0-alpha
 
 - **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
+- **Fixed, serious:** a web page could claim a fresh server from the browser of anyone at home, or read the list of accounts and sign in as a password-free profile, by sending a made-up header. A page elsewhere never counts as being at home now.
+- **Fixed, serious:** a 100-byte picture from any adult's upload could stop the server, and stop it again at every scan.
+- **Security:** setup from anywhere but the server's own desktop asks for the setup code, so someone else on your network can't get there first. The code is on the console and in `setup-code.txt` in the data folder; `setupFromHome` goes back to not asking at home.
+- **Security:** a file in a library that is really FFmpeg's list format, a playlist, or text no longer opens: FFmpeg only reads library files as real media formats.
+- **Security:** the Java for Blu-ray menus is set in the config file (`javaPath`, `WMS_JAVA`) and no longer in Settings. A location saved earlier is ignored.
+- **Security:** a playlist from the internet can't send the server to your home network or to a file. Its guide has to be a web address, and its channels web streams. RTSP, RTMP, SRT, UDP and DASH channels in one stop working; add them as single streams.
+- **Security:** network shares and device paths can't be chosen from another device, unless `allowNetworkPaths` is set. Libraries already on a share keep working.
+- **Security:** a link in a library folder can't hand over files from elsewhere on the machine. Everything that sends a library file now opens it in a way that can't leave the library.
+- **Security:** only administrators see file locations and the web addresses of radio stations and podcast episodes, everywhere. Tuner and recording errors no longer show a stream's address or login.
+- **Security:** someone without an account can no longer fill the server's memory with unfinished requests: every request sent without signing in is limited to 16 KB and 15 seconds. Ordinary API requests are limited to 1 MB, down from 4.
+- **Security:** limits on open connections (2048 in all, 128 from one address, `maxConnections` to change it), with room kept for your home network. A client that stops reading is let go after 2 minutes, or 15 for a file being played.
+- **Security:** a game session takes only so many connections, so an account allowed to play can't run the machine out.
+- **Security:** helpers can't open a file to other accounts through its access list, and can't reach the kernel's more exposed corners.
+- **Sign-in:** a flood of made-up names can't wipe the sign-in limits, one address can't lock a name for everyone else, and counts last until six hours of quiet. Your own password and two-factor code, when asked again, count as they start, so a burst from a stolen session can't get through.
+- **Accounts:** names that differ only in case are now taken. Confirming two-factor again changes nothing. Comments, collections and albums have a generous limit per account.
+- **Password-free profiles:** their sign-ins now only work at home, those made earlier included.
+- **Reverse proxies:** an address a trusted proxy sends that can't be read counts as the internet, never as this machine. Ports and brackets are understood.
+- **Pairing:** strangers can't use up the places for pairing or stop a code working at home, and a pending code ends with the sign-in that made it.
+- **Administrators:** adding or removing one, or changing another's password, asks for your password and code.
+- **Custom game cores:** they now also need `WMS_GAMING_CUSTOM_CORES=1` on the machine. If you use them, set this after updating.
+- **Modules:** using a fork, going back to an older version or rolling back asks for your password and code, and is written down. `WMS_NO_MODULE_FORKS=1` keeps forks off.
+- **Share links** are removed with what they share. A link to an album stops working when its owner makes the album private, only its owner can link it, and a shared page no longer shows who shared it.
+- **Recordings:** each person sees and manages their own, an administrator all of them. Channels that are turned off can't be recorded, one person can have 50 waiting and 20 series, and a recording stops when under 2 GB is left on its disk.
+- **Uploads:** each person has a total, 100 GB by default, in Settings, Sharing & photos, and uploads stop when under 2 GB is left on the disk. Downloaded episodes stop with 512 MB left.
+- **Games:** a Guest profile can't upload anything, and only adults can add patches.
+- **Limits:** a limited account can no longer use a stream or disc session of something it may not see, and show pages, next episodes, album covers and the year in review keep to what it may see. Opening a fifth disc closes your own oldest rather than someone else's.
+- **Updates:** a server version can be withdrawn by a signed list, and a server running one says so in Settings. Someone on a full release isn't moved to a test version.
+- **Logs:** more kinds of key are hidden, a podcast's address stays out, and apps' reports have a daily budget so nobody can push older lines out.
+- **Fixed:** a slow guide host could stop the server saving anything for up to 10 minutes. A huge or unusual file beside the media (an NFO, a metadata file, a pipe) could stop library scans or run the server out of memory: NFO and metadata files must now be plain files of at most 4 MB. A crafted book could hold a processor for days, or take gigabytes of memory to open. A rating or length of "Inf" in a file emptied every list holding that item. A title with `=` or `\` in its file name couldn't have subtitles burned in. A programme called CON or similar failed to record on Windows. With `-listen` set to one address, the local discovery port also answered on the machine's other networks.
+- **Containers and services:** the compose file and Kubernetes deployment run with a read-only root, no capabilities and nothing to gain, and the systemd unit is sandboxed further. A new data folder on Windows is private to the server's account.
+- **Bundled FFmpeg:** by exact file and hash. Windows, Linux and macOS packages move from a rolling build to the 9.0.2 release.
 - **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. The same older browsers and TVs are still reached.
 
 ## 0.5.2-alpha

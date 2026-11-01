@@ -28,7 +28,8 @@ This is a project of one maintainer, so these are aims, not promises:
 
 Only the newest release gets security fixes. Servers can update themselves from
 *Settings → About*; every update is checked against the project's signing key before it is
-installed.
+installed. A release found to be unsafe is withdrawn: servers stop offering it, and one running it
+says so on that page.
 
 ## What counts
 
@@ -37,16 +38,17 @@ around the limits on Kids, Guest or restricted accounts; a crafted media file, d
 podcast feed that crashes the server or reads other files; anything that weakens the update chain.
 
 What the administrator can do by design is not a vulnerability: choosing any folder on the machine
-as a library, for example. Getting past the limits of that role is: an administrator's account
-should not be able to read arbitrary files or run programs through FFmpeg settings.
+as a library, for example. Getting past the limits of that role is: an administrator's web session
+should not be able to read arbitrary files or run programs on the machine, or make itself a second
+administrator without the password.
 
 ## Running it safely
 
-- Keep the server on your home network, or put it behind HTTPS (see *docs/INSTALL.md*). Without
-  HTTPS, passwords and sessions cross the network unencrypted.
-- Finish first-time setup before exposing the server. From another network, setup asks for the
-  code the server writes to its log.
-- Use a long password for the administrator account.
+- Keep the server on your home network, or use [a private network](docs/REMOTE.md#the-recommended-way-a-private-network) to
+  reach it from elsewhere. Without HTTPS or a VPN, passwords and sessions cross the network unencrypted.
+- Finish first-time setup before exposing the server. From anywhere but the computer it runs on, setup asks
+  for a code found on the server's console and in `setup-code.txt` in its data folder.
+- Use a long password for the administrator account, with two-factor sign-in.
 
-The most recent review, its findings and what is still open are in
+Who the server is defended against, and how that gets checked, is in
 [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md).

@@ -1,5 +1,7 @@
 # Code audit, October 2026
 
+*A record of one audit at 0.4.0-alpha, mainly of speed and reliability. For the security model and how it is checked today, see [SECURITY-REVIEW.md](SECURITY-REVIEW.md).*
+
 A full audit of the server, the modules, the web client, the scripts and the CI workflows, at
 version 0.4.0-alpha (commit `4b1b1eb`). Every finding, what was done about it, and what was left and
 why.
@@ -157,15 +159,11 @@ reach parsers without `guard`.
 ## Left, and why
 
 These are decisions or larger changes, written up rather than done, so the parallel work merges
-easily. **The first four would be my first choices.**
+easily. 
 
 | # | What | Why it matters | Why it was left |
 |---|---|---|---|
-| a | **Store session tokens hashed** (SHA-256) in the database | A copied database or backup holds working logins for every account | Touches sign-in, which the remote access work is changing |
-| b | **Check the `Host` header, and a longer minimum password** (now 4) | A web page can use DNS rebinding to reach this server from a visitor's browser: it can't read a signed-in session, but it can finish setup on a new server and use password-free profiles. Important once reachable from outside | Remote access decides what the allowed hosts and password rules are. `X-Forwarded-For` trust belongs there too: behind a proxy that doesn't add it, everyone looks local, and behind one that does, everyone shares one sign-in limit |
 | c | **Should "save next to media" default to off?** | It writes into people's media folders on the first scan, unasked. It is careful now (finding 2), but a first run that changes nothing is easier to trust | The owner's decision: it is a behaviour people may rely on |
-| d | **Pin downloads in the release build** | `build-release.sh` bundles the "latest" FFmpeg with no checksum, and third-party actions (release upload, FreeBSD VM, Docker) are pinned by tag, not by commit, in the job that holds the signing key | Pinning needs a routine for updating them. It isn't a one-off change |
-| e | Keep the token out of media addresses | `?token=` lives in `localStorage` and in addresses. The cookie could do this for the web client, but a second server on the same host shares cookies, which is why it was added | A design change for the client and native wrappers |
 | f | Separate transcodes per viewer, or a smarter shared one | Two viewers of one file at different positions keep restarting FFmpeg for each other | A trade-off against CPU: sharing is what you want when they are together |
 | g | Filter restricted accounts' lists faster | A kid's list scans the library (45 ms here on 25000 items) as the rules can't use an index. Fine for now | No clear gain without a bigger change |
 | h | Paged lists for shows and albums, compressed JSON | Only films and episodes page so far. 400 shows are 146 KB | Worth it for remote use; follows the UI work |
@@ -173,10 +171,7 @@ easily. **The first four would be my first choices.**
 | j | Disc streams on leaving | The disc player closes its session, but its FFmpeg runs on up to 90 seconds | Streams are shared and the session doesn't own them; the idle stop covers it |
 | k | Per-day log size limit | One day of debug logging can grow without limit (files are capped, not their number) | Only with debug on, by the owner |
 | l | Update `golang.org/x/net` (0.60 to 0.62) and others. `staticcheck` style notes in `wittybluray` and `wms-setup` | No reachable vulnerability. Routine | Not an audit fix; the Blu-ray module is being worked on |
-| m | `.tools/...` is looked in for FFmpeg, relative to the current folder | A leftover for development; harmless unless started from a folder someone else can write to | Removing it changes how the project is run during development |
 
-Administrators remain trusted, by design: they can give FFmpeg raw options (Expert mode can write any
-file the server can), point agents at the local network, and choose folders for logs.
 
 ## Not verified
 

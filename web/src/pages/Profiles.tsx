@@ -100,11 +100,6 @@ function RemoveAdmin({ user: target, onClose, onDone }: { user: User; onClose: (
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr(''); setBusy(true)

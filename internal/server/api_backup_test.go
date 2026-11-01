@@ -15,6 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/backup"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 const backupPassword = "correct horse battery"
@@ -253,6 +254,53 @@ func TestBackupThroughTheRoutes(t *testing.T) {
 	}
 	if w := b.call("GET", link.URL, "", nil); w.Code != 404 {
 		t.Errorf("a ticket outlived its file: %d", w.Code)
+	}
+}
+
+// An upload has no size limit of its own, and may come from someone with no account during first-time
+// setup, so what it can't do is fill the disk, or take the place of what's been checked already.
+func TestBackupUploadLeavesRoomAndKeepsItsOwnName(t *testing.T) {
+	b := newBackupServer(t)
+	old := uploadFreeFloor
+	defer func() { uploadFreeFloor = old }()
+	send := func(body []byte) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "/api/backup/restore/upload", bytes.NewReader(body))
+		r.RemoteAddr, r.Host = "192.168.1.50:4000", "localhost:9797"
+		r.Header.Set("Authorization", "Bearer "+b.admin)
+		r.ContentLength = -1 // sent in pieces: nothing says how long it is
+		w := httptest.NewRecorder()
+		b.h.ServeHTTP(w, r)
+		return w
+	}
+	uploadFreeFloor = 1 << 62
+	if w := send([]byte("hello")); w.Code != 507 {
+		t.Fatalf("no room at all: %d %s", w.Code, w.Body)
+	}
+	if err := os.MkdirAll(b.backupFolders().Dir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	free := sysinfo.FreeBytes(b.backupFolders().Dir())
+	uploadFreeFloor = free - 64<<10
+	if w := send(make([]byte, 32<<20)); w.Code != 507 {
+		t.Fatalf("more than there's room for: %d %s", w.Code, w.Body)
+	}
+	if list := backup.List(b.backupFolders()); len(list) != 0 {
+		t.Errorf("what didn't fit stayed: %+v", list)
+	}
+	uploadFreeFloor = old
+	names := map[string]bool{}
+	for range 3 {
+		w := send([]byte("PK"))
+		var up struct {
+			File string `json:"file"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &up); err != nil || up.File == "" {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		names[up.File] = true
+	}
+	if len(names) != 3 {
+		t.Errorf("uploads in the same second took the same name, so one can replace what was checked: %v", names)
 	}
 }
 

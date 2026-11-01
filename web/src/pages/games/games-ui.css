@@ -99,7 +99,7 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 @media (hover: hover) { .gm-cont:hover .gm-cont-shot { transform: translateY(-4px); } }
 
 /* ---------------------------------------------------------------- consoles */
-.gm-console { flex: none; display: grid; align-content: center; justify-items: center; gap: var(--sp-1); width: clamp(8rem, 13vw, 11rem); min-height: 6rem; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-2); text-align: center; transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2); }
+.gm-console { position: relative; flex: none; display: grid; align-content: center; justify-items: center; gap: var(--sp-1); width: clamp(8rem, 13vw, 11rem); min-height: 6rem; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-2); text-align: center; transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2); }
 .gm-console small { color: var(--fg-2); font-size: var(--text-xs); }
 .gm-console:hover { background: var(--bg-3); }
 .gm-console:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); transform: scale(var(--focus-scale)); }
@@ -260,6 +260,7 @@ html.gm-couch, html.gm-couch body { background: var(--bg); }
 .gm-adv[open] > summary { margin-bottom: var(--sp-3); }
 .gm-adv .gaming-facts { margin-top: var(--sp-5); }
 .gm-bios-steps { margin: 0 0 var(--sp-3); padding-left: 1.4em; display: grid; gap: var(--sp-2); }
+.gm-bios-steps code, .gm-long-path code { overflow-wrap: anywhere; }
 .gm-confirm-list { margin: 0 0 var(--sp-3); padding-left: 1.2em; }
 
 /* ---------------------------------------------------------------- game PCs */

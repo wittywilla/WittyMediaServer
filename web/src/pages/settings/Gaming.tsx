@@ -192,7 +192,7 @@ export default function GamingSettings() {
           <li>Put your BIOS files in it. Each console above lists the files it looks for.</li>
           <li>Press Play. The server copies what it needs to its own BIOS folder, and leaves yours alone.</li>
         </ol>
-        <p className="muted">You can also put files straight into <code>{st.systemDir}</code>. A PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it.</p>
+        <p className="muted gm-long-path">You can also put files straight into <code>{st.systemDir}</code>. A PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it.</p>
       </Section>
 
       {settings && (

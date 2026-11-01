@@ -34,6 +34,8 @@ func main() {
 			os.Exit(cmdReset2FA(os.Args[2:]))
 		case "reset":
 			os.Exit(cmdReset(os.Args[2:]))
+		case "logs":
+			os.Exit(cmdLogs(os.Args[2:]))
 		case "version", "--version", "-v":
 			fmt.Println("wms", version)
 			return
@@ -67,6 +69,10 @@ usage:
                              back to a new install, the next time the server starts; keeps a copy unless -delete
   wms reset -list | -restore <copy> | -cancel
                              see the copies kept, bring one back, or take back a reset that's waiting
+  wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]
+                             the logs as a ZIP, sanitized for sharing unless --raw; no server needed
+  wms logs sanitize [-data <dir>] [-o out.txt] <file>
+                             a sanitized copy of any text log
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

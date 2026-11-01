@@ -66,11 +66,10 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
   }
   const toggle = (on: boolean) => call(() => api.post<ModuleReport>(`/modules/${it.id}/${on ? 'enable' : 'disable'}`), on ? `${it.name} turned on` : `${it.name} turned off`)
   const rollback = () => {
-    const to = m?.previous ? `version ${m.previous}` : 'the version before'
     setOwnerAsk({
-      title: `Go back to ${to}?`, action: 'Go back',
-      body: <p>{it.name} stops using version {m?.version}, and automatic updates won’t bring that version back. You can still choose it yourself. An older version may lack security fixes, so this asks for your password.</p>,
-      run: async (password, code) => { await api.post<ModuleReport>(`/modules/${it.id}/rollback`, { password, code }); toast(`${it.name} went back`); reload() },
+      title: m?.previous ? `Go back to version ${m.previous}?` : `Stop using ${it.name} ${m?.version}?`, action: m?.previous ? 'Go back' : 'Stop using it',
+      body: <p>{it.name} stops using version {m?.version}, and automatic updates won’t bring that version back. You can still choose it yourself.{m?.previous ? ' An older version may lack security fixes, so this asks for your password.' : ' There’s no earlier version here, so it won’t be working until you install another. This asks for your password.'}</p>,
+      run: async (password, code) => { await api.post<ModuleReport>(`/modules/${it.id}/rollback`, { password, code }); toast(m?.previous ? `${it.name} went back to version ${m.previous}` : `${it.name} is no longer in use`); reload() },
     })
   }
   const official = async () => {
@@ -181,7 +180,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         <section className="st-mod-sec" aria-labelledby="st-manage">
           <h2 id="st-manage">Manage</h2>
           <div className="ms-actions">
-            {installedHere && m!.canRollback && <Button size="sm" disabled={working} onClick={rollback}>{m!.previous ? `Go back to ${m!.previous}` : 'Go back to the version before'}</Button>}
+            {installedHere && m!.canRollback && <Button size="sm" disabled={working} onClick={rollback}>{m!.previous ? `Go back to version ${m!.previous}` : 'Stop using this version'}</Button>}
             {installedHere && !m!.core && m!.enabled !== false && <Button size="sm" disabled={working} onClick={() => toggle(false)}>Turn off</Button>}
             {installedHere && m!.enabled === false && <Button size="sm" disabled={working} onClick={() => toggle(true)}>Turn on</Button>}
             {installedHere && !m!.core && m!.delivery !== 'builtin' && <Button size="sm" variant="ghost" className="danger-hover" disabled={working} onClick={remove}>Remove</Button>}

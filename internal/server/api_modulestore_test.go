@@ -62,7 +62,6 @@ func TestModuleStoreRoutesAreForAdmins(t *testing.T) {
 	}
 }
 
-
 // What changes which code runs asks for the password, as a stolen session is what it's there for.
 func TestModuleStoreChangesAskForThePassword(t *testing.T) {
 	ts := newTestServer(t)

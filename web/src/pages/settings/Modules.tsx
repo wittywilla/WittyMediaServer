@@ -178,9 +178,9 @@ export default function ModulesSettings() {
     }
   }
   const rollback = (m: ModuleStatus) => setOwnerAsk({
-    title: `Go back to ${backTo(m)}?`, action: 'Go back',
-    body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself. An older version may lack security fixes, so this asks for your password.</p>,
-    run: async (password, code) => { setR(await api.post<ModuleReport>(`/modules/${m.id}/rollback`, { password, code })); toast(`${m.name} went back to ${backTo(m)}`); focusRow(m.id) },
+    title: m.previous ? `Go back to version ${m.previous}?` : `Stop using ${m.name} ${m.version}?`, action: m.previous ? 'Go back' : 'Stop using it',
+    body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.{m.previous ? ' An older version may lack security fixes, so this asks for your password.' : ' There’s no earlier version here, so it won’t be working until you install another. This asks for your password.'}</p>,
+    run: async (password, code) => { setR(await api.post<ModuleReport>(`/modules/${m.id}/rollback`, { password, code })); toast(m.previous ? `${m.name} went back to version ${m.previous}` : `${m.name} is no longer in use`); focusRow(m.id) },
   })
   const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? `${m.name} can update again` : `${m.name} stays on this version`)
   const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? `${m.name} can update by itself` : `${m.name} will wait for you to update it`)

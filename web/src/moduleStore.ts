@@ -6,7 +6,7 @@ import { api } from './api'
 export type Withdrawn = { version: string; severity: string; reason: string }
 export type Offer = { version: string; minServer: string; maxServer: string; notes?: string; url?: string; published?: number; prerelease: boolean; size?: number; reason?: string; blocked?: string }
 export type ModuleEvent = { at: number; kind: string; version?: string; detail?: string }
-export type ModuleSource = { repo: string; fingerprint: string; addedAt: number; addedBy?: string }
+export type ModuleSource = { repo: string; fingerprint: string; addedAt: number; addedBy?: string; store?: string }
 export type ModuleStatus = {
   id: string; name: string; version: string; builtinVersion: string; delivery: string; updatable: boolean; license?: string
   minServer: string; maxServer: string; api: number; repo: string; stockRepo: string; state: 'builtin' | 'installed' | 'fallback'
@@ -16,6 +16,7 @@ export type ModuleStatus = {
   withdrawn?: Withdrawn; lastFailure?: string; events?: ModuleEvent[]
   installed: boolean; core?: boolean; libraries?: string[]; requires?: string[]; requiredBy?: string[]
   source?: ModuleSource; noFork?: string; autoUpdate: boolean
+  description?: string; publisher?: { name: string; url?: string }; icon?: string; enabled?: boolean
 }
 export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[]; label?: string; shared?: boolean }
 export type ModuleRef = { id: string; name: string; installed: boolean }

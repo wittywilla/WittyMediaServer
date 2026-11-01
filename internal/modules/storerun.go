@@ -1,0 +1,454 @@
+package modules
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
+)
+
+// A run is a list of modules to change, one after another: everything Update All does, and an
+// install that has to bring what it's built on. One failure doesn't stop the rest, and the
+// summary stays until the next run, including across a restart.
+
+// What a module in a run is doing.
+const (
+	RunQueued  = "queued"
+	RunWorking = "working"
+	RunDone    = "done"
+	RunFailed  = "failed"
+	RunSkipped = "skipped"
+	RunUndone  = "undone"
+)
+
+// Kinds of run.
+const (
+	RunUpdateAll = "update-all"
+	RunInstall   = "install"
+)
+
+const (
+	runFile     = "last-run.json"
+	runPoll     = 300 * time.Millisecond
+	runItemWait = 31 * time.Minute // longer than an install's own limit
+)
+
+// RunItem is one module in a run.
+type RunItem struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	From    string   `json:"from,omitempty"`
+	To      string   `json:"to,omitempty"`
+	State   string   `json:"state"`
+	Why     string   `json:"why,omitempty"` // why it was skipped, or what it's here for
+	Phase   string   `json:"phase,omitempty"`
+	Done    int64    `json:"done,omitempty"`
+	Total   int64    `json:"total,omitempty"`
+	Failure *Failure `json:"failure,omitempty"`
+}
+
+// Run is a whole run, as the page shows it.
+type Run struct {
+	ID       string    `json:"id"`
+	Kind     string    `json:"kind"`
+	By       string    `json:"by,omitempty"`
+	Started  int64     `json:"started"`
+	Finished int64     `json:"finished,omitempty"`
+	Items    []RunItem `json:"items"`
+	Updated  int       `json:"updated"`
+	Failed   int       `json:"failed"`
+	Skipped  int       `json:"skipped"`
+	CanUndo  bool      `json:"canUndo,omitempty"`
+	Undone   bool      `json:"undone,omitempty"`
+}
+
+func (r *Run) copy() *Run {
+	if r == nil {
+		return nil
+	}
+	c := *r
+	c.Items = append([]RunItem(nil), r.Items...)
+	return &c
+}
+
+func (s *Stores) runPath() string { return filepath.Join(s.cfg.Dir, runFile) }
+
+func (s *Stores) loadRun() {
+	b, err := os.ReadFile(s.runPath())
+	if err != nil {
+		return
+	}
+	var r Run
+	if json.Unmarshal(b, &r) == nil && r.ID != "" {
+		for i := range r.Items { // a run the server stopped in the middle of says so
+			if st := r.Items[i].State; st == RunQueued || st == RunWorking {
+				r.Items[i].State, r.Items[i].Why = RunSkipped, "The server stopped before this was done."
+			}
+		}
+		if r.Finished == 0 {
+			r.Finished = time.Now().UnixMilli()
+		}
+		s.last = &r
+	}
+}
+
+// CurrentRun is the run going on now, or the last one to finish.
+func (s *Stores) CurrentRun() *Run {
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+	if s.current != nil {
+		return s.current.copy()
+	}
+	return s.last.copy()
+}
+
+// DismissRun forgets the last run's summary.
+func (s *Stores) DismissRun() {
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+	s.last = nil
+	_ = os.Remove(s.runPath())
+}
+
+// orderByNeeds puts what a module is built on before the module, and otherwise keeps names in
+// order. A loop, which a catalogue could claim, is only broken: it can't hang anything.
+func orderByNeeds(ids []string, requires func(id string) []string) []string {
+	want := map[string]bool{}
+	for _, id := range ids {
+		want[id] = true
+	}
+	sorted := append([]string(nil), ids...)
+	sort.Strings(sorted)
+	seen := map[string]int{} // 1 while visiting, 2 once placed
+	out := make([]string, 0, len(ids))
+	var visit func(id string)
+	visit = func(id string) {
+		if seen[id] != 0 {
+			return
+		}
+		seen[id] = 1
+		deps := append([]string(nil), requires(id)...)
+		sort.Strings(deps)
+		for _, d := range deps {
+			if want[d] {
+				visit(d)
+			}
+		}
+		seen[id] = 2
+		out = append(out, id)
+	}
+	for _, id := range sorted {
+		visit(id)
+	}
+	return out
+}
+
+// UpdatePlan says what Update All would do now.
+func (s *Stores) updatePlan() []RunItem {
+	mods := s.m.Report().Modules
+	byID := make(map[string]Status, len(mods))
+	var ids []string
+	for _, st := range mods {
+		byID[st.ID] = st
+		if st.Installed && st.Latest != nil {
+			ids = append(ids, st.ID)
+		}
+	}
+	var items []RunItem
+	for _, id := range orderByNeeds(ids, func(id string) []string { return byID[id].Requires }) {
+		st := byID[id]
+		it := RunItem{ID: id, Name: st.Name, From: st.Version, To: st.Latest.Version, State: RunQueued}
+		switch {
+		case st.Pin != "":
+			it.State, it.Why = RunSkipped, "It's pinned to this version on purpose."
+		case st.Source != nil:
+			it.State, it.Why = RunSkipped, "It's from another publisher, so you choose each of its versions on its own page."
+		case st.Latest.Blocked != "":
+			it.State, it.Why = RunSkipped, "This version was taken out of use before ("+st.Latest.Blocked+"), so it won't come back unless you choose it."
+		case st.Phase == PhaseDownloading || st.Phase == PhaseVerifying || st.Phase == PhaseInstalling:
+			it.State, it.Why = RunSkipped, "It's already being changed."
+		}
+		items = append(items, it)
+	}
+	return items
+}
+
+// UpdateCount is how many modules Update All would change now.
+func (s *Stores) UpdateCount() int {
+	n := 0
+	for _, it := range s.updatePlan() {
+		if it.State == RunQueued {
+			n++
+		}
+	}
+	return n
+}
+
+// ErrRunBusy: one run at a time.
+var ErrRunBusy = errors.New("modules are already being changed; wait for that to finish")
+
+// UpdateAll starts updating every module with an update, in order of what's built on what.
+func (s *Stores) UpdateAll(by string) (*Run, error) {
+	items := s.updatePlan()
+	any := false
+	for _, it := range items {
+		any = any || it.State == RunQueued
+	}
+	if !any {
+		return nil, errors.New("there's nothing to update right now")
+	}
+	return s.start(RunUpdateAll, by, items, false)
+}
+
+// InstallPlan says what installing a module would bring with it: everything it's built on that
+// isn't here yet, first, then the module. A module with no version that fits is named with why,
+// so nothing starts that can't finish.
+func (s *Stores) InstallPlan(id string) ([]RunItem, error) {
+	mods := s.m.Report().Modules
+	byID := make(map[string]Status, len(mods))
+	for _, st := range mods {
+		byID[st.ID] = st
+	}
+	if _, ok := byID[id]; !ok {
+		return nil, ErrUnknown
+	}
+	// What it needs, however far down that goes.
+	need := map[string]bool{}
+	var walk func(x string, depth int) error
+	walk = func(x string, depth int) error {
+		if need[x] || depth > 32 {
+			return nil
+		}
+		st, ok := byID[x]
+		if !ok {
+			return fmt.Errorf("%s is built on %s, and this server doesn't know of that module", byID[id].Name, x)
+		}
+		if st.Installed && x != id {
+			return nil
+		}
+		need[x] = true
+		for _, d := range st.Requires {
+			if err := walk(d, depth+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := walk(id, 0); err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(need))
+	for x := range need {
+		ids = append(ids, x)
+	}
+	var items []RunItem
+	for _, x := range orderByNeeds(ids, func(i string) []string { return byID[i].Requires }) {
+		st := byID[x]
+		it := RunItem{ID: x, Name: st.Name, State: RunQueued, From: st.Version}
+		if !st.Installed {
+			it.From = ""
+		}
+		if st.Latest != nil {
+			it.To = st.Latest.Version
+		}
+		if x != id {
+			it.Why = byID[id].Name + " is built on it."
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+// InstallWithNeeds starts installing a module and what it's built on.
+func (s *Stores) InstallWithNeeds(id, by string) (*Run, error) {
+	items, err := s.InstallPlan(id)
+	if err != nil {
+		return nil, err
+	}
+	return s.start(RunInstall, by, items, true)
+}
+
+// start begins a run in the background. stopOnFail: a module whose dependency failed is skipped,
+// which an install wants; Update All goes on regardless.
+func (s *Stores) start(kind, by string, items []RunItem, stopOnFail bool) (*Run, error) {
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+	if s.current != nil {
+		return nil, ErrRunBusy
+	}
+	r := &Run{ID: logging.NewID("run"), Kind: kind, By: by, Started: time.Now().UnixMilli(), Items: items}
+	s.current = r
+	s.log.Info("modules: a run started", "run", r.ID, "kind", kind, "modules", len(items), "by", by)
+	logging.Go("modules run", func() { s.work(r, stopOnFail) }, "cat", "modules", "session", r.ID)
+	return r.copy(), nil
+}
+
+// setItem changes one item under the lock.
+func (s *Stores) setItem(r *Run, i int, change func(*RunItem)) {
+	s.runMu.Lock()
+	change(&r.Items[i])
+	s.runMu.Unlock()
+}
+
+func (s *Stores) work(r *Run, stopOnFail bool) {
+	failed := map[string]bool{}
+	for i := range r.Items {
+		s.runMu.Lock()
+		it := r.Items[i]
+		s.runMu.Unlock()
+		if it.State != RunQueued {
+			continue
+		}
+		if stopOnFail && len(failed) > 0 {
+			s.setItem(r, i, func(x *RunItem) { x.State, x.Why = RunSkipped, "Something it's built on didn't install." })
+			continue
+		}
+		s.setItem(r, i, func(x *RunItem) { x.State = RunWorking })
+		failure := s.runOne(r, i, it)
+		s.setItem(r, i, func(x *RunItem) {
+			x.Phase, x.Done, x.Total = "", 0, 0
+			if failure != nil {
+				x.State, x.Failure = RunFailed, failure
+			} else {
+				x.State = RunDone
+			}
+		})
+		if failure != nil {
+			failed[it.ID] = true
+			s.log.Warn("modules: a run's module failed", "run", r.ID, "module", it.ID, "kind", failure.Kind, "detail", failure.Detail)
+		}
+	}
+	s.finish(r)
+}
+
+// runOne does one item and waits for it, following its progress.
+func (s *Stores) runOne(r *Run, i int, it RunItem) *Failure {
+	var err error
+	st, ok := s.statusOf(it.ID)
+	switch {
+	case !ok:
+		err = ErrUnknown
+	case !st.Installed:
+		err = s.m.AddModule(it.ID)
+	case it.To != "":
+		err = s.m.InstallVersion(it.ID, it.To, false)
+	default:
+		err = errors.New("no version of it that fits this server is known")
+	}
+	if err != nil {
+		var need *ErrNeedsConfirm
+		if errors.As(err, &need) {
+			s.setItem(r, i, func(x *RunItem) { x.Why = need.Warning })
+			return &Failure{Kind: FailOther, Title: "This one needs your say", Message: need.Warning, Detail: need.Warning,
+				Try: []string{"Open the module and choose this version yourself."}}
+		}
+		return explainErr(it.Name, err)
+	}
+	deadline := time.Now().Add(runItemWait)
+	for time.Now().Before(deadline) {
+		st, ok := s.statusOf(it.ID)
+		if !ok {
+			return explainErr(it.Name, ErrUnknown)
+		}
+		switch st.Phase {
+		case PhaseDownloading, PhaseVerifying, PhaseInstalling:
+			s.setItem(r, i, func(x *RunItem) { x.Phase, x.Done, x.Total = st.Phase, st.Done, st.Total })
+		case PhaseFailed:
+			return explainErr(it.Name, errors.New(st.Error))
+		default:
+			s.setItem(r, i, func(x *RunItem) { x.To = st.Version })
+			return nil
+		}
+		time.Sleep(runPoll)
+	}
+	return explainErr(it.Name, context.DeadlineExceeded)
+}
+
+func (s *Stores) statusOf(id string) (Status, bool) {
+	for _, st := range s.m.Report().Modules {
+		if st.ID == id {
+			return st, true
+		}
+	}
+	return Status{}, false
+}
+
+func (s *Stores) finish(r *Run) {
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+	r.Finished = time.Now().UnixMilli()
+	r.Updated, r.Failed, r.Skipped = 0, 0, 0
+	for i := range r.Items {
+		switch r.Items[i].State {
+		case RunDone:
+			r.Updated++
+		case RunFailed:
+			r.Failed++
+		case RunSkipped:
+			r.Skipped++
+		}
+	}
+	r.CanUndo = r.Updated > 0 && r.Kind == RunUpdateAll
+	s.current, s.last = nil, r
+	s.saveRun(r)
+	s.log.Info("modules: a run finished", "run", r.ID, "updated", r.Updated, "failed", r.Failed, "skipped", r.Skipped)
+}
+
+// saveRun keeps the summary. Call with s.runMu held.
+func (s *Stores) saveRun(r *Run) {
+	if b, err := json.Marshal(r); err == nil {
+		if err := writeAtomic(s.runPath(), b); err != nil {
+			s.log.Warn("modules: keeping the summary of a run", "err", err)
+		}
+	}
+}
+
+// UndoRun takes the last Update All back: each module it moved goes back to what it was using,
+// and the version it moved to isn't installed by itself again.
+func (s *Stores) UndoRun(by string) (*Run, error) {
+	s.runMu.Lock()
+	r := s.last
+	busy := s.current != nil
+	can := r != nil && r.CanUndo
+	if can && !busy {
+		r.CanUndo = false // pressed twice, it only runs once
+	}
+	items := []RunItem(nil)
+	if r != nil {
+		items = append(items, r.Items...)
+	}
+	s.runMu.Unlock()
+	switch {
+	case busy:
+		return nil, ErrRunBusy
+	case !can:
+		return nil, errors.New("there's nothing to take back")
+	}
+	// Newest dependents first: the reverse of how they went in.
+	for i := len(items) - 1; i >= 0; i-- {
+		it := items[i]
+		if it.State != RunDone {
+			continue
+		}
+		err := s.m.Rollback(it.ID)
+		s.runMu.Lock()
+		if err != nil {
+			r.Items[i].Failure = explainErr(it.Name, err)
+		} else {
+			r.Items[i].State = RunUndone
+		}
+		s.runMu.Unlock()
+	}
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+	r.Undone = true
+	s.saveRun(r)
+	s.log.Info("modules: a run was taken back", "run", r.ID, "by", by)
+	return r.copy(), nil
+}

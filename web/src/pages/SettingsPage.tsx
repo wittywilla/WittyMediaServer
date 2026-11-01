@@ -22,6 +22,9 @@ import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
+const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
+const ModulePage = lazy(() => import('./settings/store/ModulePage'))
+const OtherStores = lazy(() => import('./settings/store/OtherStores'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
@@ -144,6 +147,10 @@ export default function SettingsPage() {
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
+          <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /></Suspense>} />
+          <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
+          <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
+          <Route path="modules/stores" element={<Suspense fallback={null}><OtherStores /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />

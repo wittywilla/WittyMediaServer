@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	fb "github.com/wittywilla/wittyintegratedfilebrowser"
 

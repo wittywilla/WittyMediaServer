@@ -20,12 +20,8 @@ import (
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
-
-var videoExts = map[string]bool{
-	".mkv": true, ".mp4": true, ".m4v": true, ".mov": true, ".avi": true, ".wmv": true, ".ts": true, ".m2ts": true,
-	".mts": true, ".webm": true, ".flv": true, ".mpg": true, ".mpeg": true, ".vob": true, ".ogv": true, ".3gp": true,
-}
 
 // Scanner walks library paths and keeps items up to date.
 type Scanner struct {
@@ -203,6 +199,8 @@ type candidate struct {
 	motion string
 	// console: games, the console this file was sorted into.
 	console string
+	// format is the registry's id, when the content said it and the name didn't.
+	format string
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -235,6 +233,7 @@ func (u *unreadable) with(err error) error {
 func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
+	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			bad.note(err)
@@ -263,23 +262,29 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			}
 			return nil
 		}
-		ext := strings.ToLower(filepath.Ext(name))
 		st, err := d.Info()
 		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
 		switch {
-		case ext == ".iso" || ext == ".img":
+		case isVideoDiscImage(p, name):
 			out = append(out, candidate{path: p, kind: "dvd-iso", size: st.Size(), mtime: st.ModTime().Unix()})
-		case videoExts[ext]:
+		case mediatypes.IsVideo(name) && nameHolds(p, name, mediatypes.Video):
 			if skipSamples && (strings.HasPrefix(strings.ToLower(name), "sample") || st.Size() < 5<<20) {
 				return nil
 			}
 			out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix()})
+		default:
+			if skipSamples && st.Size() < 5<<20 {
+				return nil
+			}
+			if f := unnamed.sniff(p, name, st.Size(), mediatypes.Video); f != nil {
+				out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix(), format: f.ID})
+			}
 		}
 		return nil
 	})
-	return out, bad.with(err)
+	return stackParts(out), bad.with(err)
 }
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
@@ -387,8 +392,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		keep[c.path] = true
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
+		if s.leftOut(ctx, lib, c) {
+			continue // its name says media, its content says otherwise
+		}
+		keep[c.path] = true
 		err := guard(func() error {
 			switch {
 			case (lib.Type == "shows" || lib.Type == "anime") && IsDiscKind(c.kind):
@@ -664,7 +672,7 @@ func (s *Scanner) adopted(path string, lib *Library) ([]candidate, error) {
 		return discover(path)
 	}
 	kind := "video"
-	if ext := strings.ToLower(filepath.Ext(path)); ext == ".iso" || ext == ".img" {
+	if isVideoDiscImage(path, filepath.Base(path)) {
 		kind = "dvd-iso"
 	}
 	return []candidate{{path: path, kind: kind, size: st.Size(), mtime: st.ModTime().Unix()}}, nil
@@ -801,7 +809,23 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 		return
 	}
 	it.RuntimeSec = p.Duration()
+	if it.RuntimeSec <= 0 {
+		// A bare stream has no length written anywhere: read through it to find out.
+		mctx, done := context.WithTimeout(ctx, 2*time.Minute)
+		it.RuntimeSec = s.Tools.MeasureDuration(mctx, it.Path)
+		done()
+	}
 	it.Container = strings.Split(p.Format.FormatName, ",")[0]
+	if parts := StackedParts(it.Path); len(parts) > 1 {
+		// A film split across files: its length is all of them.
+		pctx, done := context.WithTimeout(ctx, 60*time.Second)
+		for _, part := range parts[1:] {
+			if q, err := s.Tools.ProbeFile(pctx, part); err == nil {
+				it.RuntimeSec += q.Duration()
+			}
+		}
+		done()
+	}
 	if v := p.Video(); v != nil {
 		it.VideoCodec = v.CodecName
 		it.Width, it.Height = v.DisplaySize()
@@ -814,6 +838,9 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	}
 	for _, st := range p.Subtitles() {
 		it.SubLangs = append(it.SubLangs, orUnd(st.Tags["language"]))
+	}
+	for _, st := range FindSubtitles(it.Path) {
+		it.SubLangs = append(it.SubLangs, orUnd(st.Language))
 	}
 	// "Skip intro": an Intro/Opening chapter marks the intro exactly.
 	for _, ch := range p.Chapters {

@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"database/sql"
 	"strings"
@@ -139,11 +140,14 @@ func (s *Store) Artists(ctx context.Context, libraryID int64, access *Access) ([
 	return out, rows.Err()
 }
 
-// DirectAudio lists the codecs every current browser plays without help;
-// everything else is converted to AAC while streaming. Keep in step with
-// web/src/audio/player.tsx.
-var DirectAudio = map[string]bool{"mp3": true, "aac": true, "flac": true, "opus": true, "vorbis": true,
-	"pcm_s16le": true, "pcm_s24le": true, "pcm_u8": true, "pcm_f32le": true}
+// audioPlaysDirect: a browser plays this sound file as it is. Everything else is
+// converted to AAC while streaming.
+func audioPlaysDirect(it *Item) bool {
+	return mediatypes.AudioPlaysDirect(mediatypes.Canonical(it.Container, it.Path, "", it.VideoCodec), it.VideoCodec)
+}
+
+// PlaysDirect is audioPlaysDirect for the server's handlers.
+func PlaysDirect(it *Item) bool { return audioPlaysDirect(it) }
 
 // MusicQuery asks for songs in a way a plain list of items can't: the order and the
 // shelf depend on who is listening.

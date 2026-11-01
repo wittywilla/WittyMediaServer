@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittyphotos"
 )
 
@@ -23,11 +24,6 @@ import (
 // video. The scan reads headers only (EXIF and dimensions, no decoding, no
 // FFmpeg for common formats); thumbnails are made the first time they are
 // asked for (thumbs.go).
-
-var photoExts = map[string]bool{
-	".jpg": true, ".jpeg": true, ".jpe": true, ".png": true, ".gif": true, ".webp": true, ".bmp": true,
-	".tif": true, ".tiff": true, ".heic": true, ".heif": true, ".hif": true, ".avif": true, ".jxl": true,
-}
 
 // PhotoEngine reads what photos say about themselves. The built-in copy of
 // WittyPhotos does this until a newer version replaces it (internal/modules).
@@ -61,21 +57,15 @@ func photos() PhotoEngine {
 
 // IsPhotoFile: a picture or camera RAW file by its name.
 func IsPhotoFile(name string) bool {
-	return photoExts[strings.ToLower(filepath.Ext(name))] || photos().IsRaw(name)
+	return mediatypes.IsPhoto(name) || photos().IsRaw(name)
 }
 
 // IsVideoFile: a video file by its name.
-func IsVideoFile(name string) bool { return videoExts[strings.ToLower(filepath.Ext(name))] }
+func IsVideoFile(name string) bool { return mediatypes.IsVideo(name) }
 
 // WebSafeImage: browsers and native TV image views show these as they are.
 // Everything else is sent as a JPEG.
-func WebSafeImage(name string) bool {
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp":
-		return true
-	}
-	return false
-}
+func WebSafeImage(name string) bool { return mediatypes.IsWebImage(name) }
 
 // Short clips beside a picture of the same name (a phone's live photo) belong
 // to the picture rather than the timeline.
@@ -84,6 +74,7 @@ const motionClipMax = 40 << 20
 func discoverPhotos(root string) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
+	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			bad.note(err)
@@ -101,18 +92,27 @@ func discoverPhotos(root string) ([]candidate, error) {
 		}
 		kind := ""
 		switch {
-		case IsPhotoFile(name):
+		case IsPhotoFile(name) && nameHolds(p, name, mediatypes.Photo):
 			kind = "photo"
-		case IsVideoFile(name):
+		case IsVideoFile(name) && nameHolds(p, name, mediatypes.Video):
 			kind = "video"
-		default:
-			return nil
 		}
 		st, err := d.Info()
 		if err != nil || st.Size() == 0 {
 			return nil
 		}
-		out = append(out, candidate{path: p, kind: kind, size: st.Size(), mtime: st.ModTime().Unix()})
+		format := ""
+		if kind == "" {
+			f := unnamed.sniff(p, name, st.Size(), mediatypes.Photo, mediatypes.Video)
+			if f == nil {
+				return nil
+			}
+			kind, format = "video", f.ID
+			if f.Category == mediatypes.Photo {
+				kind = "photo"
+			}
+		}
+		out = append(out, candidate{path: p, kind: kind, size: st.Size(), mtime: st.ModTime().Unix(), format: format})
 		return nil
 	})
 	return pairPhotos(out), bad.with(err)
@@ -827,29 +827,9 @@ func SafeFileName(name string) string {
 	return name
 }
 
-// SniffMedia: the first bytes of a file really are a picture or video of a kind
-// this library takes. Used for uploads, where the name alone proves nothing.
+// SniffMedia: the first bytes of a file really are a picture or video of a kind this
+// library takes. Used for uploads, where the name alone proves nothing.
 func SniffMedia(b []byte) bool {
-	has := func(sig string) bool { return strings.HasPrefix(string(b), sig) }
-	switch {
-	case len(b) < 12:
-		return false
-	case has("\xFF\xD8\xFF"), has("\x89PNG\r\n\x1a\n"), has("GIF87a"), has("GIF89a"), has("BM"):
-		return true
-	case has("II*\x00"), has("MM\x00*"), has("IIRO"), has("IIRS"), has("IIU\x00"), has("MMOR"): // TIFF and RAW on TIFF
-		return true
-	case has("FUJIFILMCCD-RAW"), has("\x00MRM"), has("FOVb"), has("CIFF"), has("II\x1a\x00\x00\x00HEAPCCDR"):
-		return true
-	case has("\x00\x00\x00\x0cJXL \r\n\x87\n"), has("\xFF\x0A"):
-		return true
-	case has("RIFF") && (string(b[8:12]) == "WEBP" || string(b[8:12]) == "AVI "):
-		return true
-	case string(b[4:8]) == "ftyp": // HEIC, AVIF, MP4, MOV, CR3
-		return true
-	case has("\x1A\x45\xDF\xA3"): // Matroska and WebM
-		return true
-	case string(b[4:8]) == "moov", string(b[4:8]) == "mdat", string(b[4:8]) == "free", string(b[4:8]) == "wide": // older QuickTime files
-		return true
-	}
-	return false
+	f := mediatypes.Sniff(b)
+	return f != nil && (f.Category == mediatypes.Photo || f.Category == mediatypes.Video)
 }

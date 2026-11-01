@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -39,9 +40,7 @@ var (
 // (callers often pass a name without one, and "Dr.Story.The.Treeline" must keep
 // its last word).
 func isFileExt(ext string) bool {
-	e := strings.ToLower(ext)
-	_, book := bookExts[e]
-	return videoExts[e] || audioExts[e] || book || e == ".iso" || e == ".img"
+	return mediatypes.IsMedia(ext)
 }
 
 // ParseName guesses title and year from a file or folder name.

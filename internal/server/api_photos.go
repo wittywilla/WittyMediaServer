@@ -14,6 +14,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // WittyPhotos: the gallery's JSON API and its pictures. See docs/PHOTOS.md.
@@ -241,39 +242,9 @@ func (s *Server) serveThumb(w http.ResponseWriter, r *http.Request, it *library.
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 
-// originalType is the type a photo or clip is served with, by its name only,
-// from a fixed list: a file never gets to say it is a web page.
-func originalType(name string) string {
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".jpg", ".jpeg", ".jpe":
-		return "image/jpeg"
-	case ".png":
-		return "image/png"
-	case ".gif":
-		return "image/gif"
-	case ".webp":
-		return "image/webp"
-	case ".avif":
-		return "image/avif"
-	case ".heic", ".heif", ".hif":
-		return "image/heif"
-	case ".tif", ".tiff":
-		return "image/tiff"
-	case ".bmp":
-		return "image/bmp"
-	case ".jxl":
-		return "image/jxl"
-	case ".mp4", ".m4v":
-		return "video/mp4"
-	case ".mov":
-		return "video/quicktime"
-	case ".webm":
-		return "video/webm"
-	case ".mkv":
-		return "video/x-matroska"
-	}
-	return "application/octet-stream"
-}
+// originalType is the type a photo or clip is served with, by its name only, from the
+// registry: a file never gets to say it is a web page.
+func originalType(name string) string { return mediatypes.MIME(name) }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
 	f, err := os.Open(it.Path)

@@ -8,6 +8,8 @@ package playback
 import (
 	"slices"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // Modes.
@@ -47,6 +49,9 @@ const (
 	ReasonBurnAsked    = "burn-subtitle"     // the client asked for burned-in subtitles
 	ReasonHLSVideo     = "hls-video-codec"   // the picture can't be carried in HLS for this client
 	ReasonRemuxDisable = "remux-unavailable" // this client doesn't take remuxed streams
+	ReasonSplit        = "split-file"        // a film in several files plays as one stream
+	ReasonVideoTrack   = "video-track"       // another video stream of the file was chosen
+	ReasonFlatten3D    = "flatten-3d"        // a 3D picture shown as 2D
 )
 
 // Profile says what a client can play. The built-in ones are a safe default
@@ -90,12 +95,9 @@ type Profile struct {
 	HLSSubtitles bool     `json:"hlsSubtitles"`
 }
 
-// Text subtitle codecs that convert to WebVTT. Anything else is a picture
-// (Blu-ray PGS, DVD and DVB bitmaps) and can only be drawn or burned in.
-var textSubs = []string{"subrip", "srt", "ass", "ssa", "webvtt", "mov_text", "text", "microdvd", "subviewer", "subviewer1", "sami", "realtext", "stl", "vplayer", "mpl2", "pjs", "jacosub", "ttml", "dfxp", "eia_608", "cea608"}
-
-// IsTextSubtitle reports whether a subtitle codec is text, not pictures.
-func IsTextSubtitle(codec string) bool { return slices.Contains(textSubs, codec) }
+// IsTextSubtitle reports whether a subtitle codec is text, not pictures (Blu-ray PGS,
+// DVD and DVB bitmaps), which can only be drawn or burned in.
+func IsTextSubtitle(codec string) bool { return mediatypes.IsTextSubtitle(codec) }
 
 // Profiles returns the built-in client profiles.
 //
@@ -110,10 +112,15 @@ func IsTextSubtitle(codec string) bool { return slices.Contains(textSubs, codec)
 func Profiles() []Profile {
 	return []Profile{
 		{
+			// What a browser that says nothing about itself is assumed to do. The web
+			// app says more (Capabilities): HEVC, Dolby sound and HDR depend on the
+			// browser, the machine and the screen.
 			ID: "web", Name: "Web browser",
-			Containers: []string{"mp4", "m4v", "mov", "webm"}, VideoCodecs: []string{"h264", "vp9", "av1"},
-			AudioCodecs: []string{"aac", "mp3", "opus", "vorbis"},
-			HDR:         []string{"hdr10", "hlg", "dv5"}, TenBit: true, HiTenH264: true, Interlaced: true,
+			Containers: []string{"mp4", "m4v", "mov", "webm"}, VideoCodecs: []string{"h264", "vp8", "vp9", "av1"},
+			AudioCodecs: []string{"aac", "mp3", "opus", "vorbis", "flac"},
+			HDR:         []string{}, TenBit: true,
+			SidecarSubtitles: true,
+			Remux:            true, HLSVideo: []string{"h264"}, HLSAudio: []string{"aac", "mp3"}, FMP4Video: []string{"hevc", "av1", "vp9"},
 		},
 		{
 			ID: "appletv", Name: "Apple TV 4K",
@@ -168,6 +175,11 @@ type Capabilities struct {
 	SidecarSubtitles  *bool    `json:"sidecarSubtitles"`
 	HLSAudio          []string `json:"hlsAudio"`
 	HLSVideo          []string `json:"hlsVideo"`
+	FMP4Video         []string `json:"fmp4Video"`
+	HiTenH264         *bool    `json:"hi10pH264"`
+	Interlaced        *bool    `json:"interlaced"`
+	SwitchAudio       *bool    `json:"switchAudio"`
+	Remux             *bool    `json:"remux"`
 }
 
 // Apply returns the profile with the capabilities filled in. Everything a
@@ -188,9 +200,17 @@ func (c *Capabilities) Apply(p Profile) Profile {
 	list(&p.EmbeddedSubtitles, c.EmbeddedSubtitles)
 	list(&p.HLSAudio, c.HLSAudio)
 	list(&p.HLSVideo, c.HLSVideo)
-	if c.TenBit != nil {
-		p.TenBit = *c.TenBit
+	list(&p.FMP4Video, c.FMP4Video)
+	flag := func(dst *bool, src *bool) {
+		if src != nil {
+			*dst = *src
+		}
 	}
+	flag(&p.TenBit, c.TenBit)
+	flag(&p.HiTenH264, c.HiTenH264)
+	flag(&p.Interlaced, c.Interlaced)
+	flag(&p.SwitchAudio, c.SwitchAudio)
+	flag(&p.Remux, c.Remux)
 	if c.SidecarSubtitles != nil {
 		p.SidecarSubtitles = *c.SidecarSubtitles
 	}
@@ -245,6 +265,10 @@ type Subtitle struct {
 	Default  bool
 	Forced   bool
 	SDH      bool
+	// File: a subtitle file beside the video rather than a track inside it.
+	File string
+	// Format is that file's format in the registry.
+	Format string
 }
 
 // Source describes a file, from the media probe.
@@ -256,7 +280,15 @@ type Source struct {
 	Height      int
 	BitDepth    int
 	Range       string // sdr | hdr10 | hlg | dv5
-	Interlaced  bool
+	// Dynamic names what the range doesn't say, for the player's information: "HDR10+",
+	// or the Dolby Vision profile a base layer belongs to.
+	Dynamic    string
+	Interlaced bool
+	// Stereo: a 3D picture stored in the frame: sbs (side by side) or tab (one above
+	// the other). "" is an ordinary picture.
+	Stereo string
+	// Parts: how many files a split film is stored in. 0 or 1 is an ordinary file.
+	Parts int
 	BitrateKbps int
 	Audio       []Audio
 	Subtitles   []Subtitle
@@ -271,6 +303,8 @@ type Request struct {
 	AllowDirect    bool // the server's Direct Play setting
 	ForceTranscode bool
 	BurnSubtitle   bool // the client wants this subtitle in the picture (styled ASS)
+	VideoIndex     int  // which of the file's video streams, when it has several
+	Flatten3D      bool // show one eye of a 3D picture
 }
 
 // Decision is how the file will play.
@@ -310,6 +344,9 @@ func Decide(p Profile, src Source, q Request) Decision {
 	var picture []string
 	if src.HasVideo {
 		picture = pictureProblems(p, src, maxH, maxKbps)
+		if q.Flatten3D && src.Stereo != "" {
+			picture = append(picture, ReasonFlatten3D)
+		}
 	}
 	var direct []string
 	add := func(list *[]string, cond bool, r string) {
@@ -331,6 +368,8 @@ func Decide(p Profile, src Source, q Request) Decision {
 		add(&direct, p.MaxAudioChannels > 0 && a.Channels > p.MaxAudioChannels, ReasonAudioChans)
 	}
 	add(&direct, q.AudioIndex != 0 && !p.SwitchAudio, ReasonAudioTrack)
+	add(&direct, src.Parts > 1, ReasonSplit)
+	add(&direct, q.VideoIndex != 0, ReasonVideoTrack)
 
 	// Subtitles: how each way of playing could show the chosen track.
 	directSub, hlsSub := SubNone, SubNone
@@ -500,6 +539,25 @@ var languageNames = map[string]string{
 	"zh": "Chinese", "ko": "Korean", "ru": "Russian", "sv": "Swedish", "da": "Danish", "no": "Norwegian", "fi": "Finnish", "pl": "Polish",
 	"cs": "Czech", "hu": "Hungarian", "el": "Greek", "tr": "Turkish", "he": "Hebrew", "ar": "Arabic", "hi": "Hindi", "th": "Thai",
 	"ro": "Romanian", "uk": "Ukrainian", "vi": "Vietnamese", "id": "Indonesian", "ca": "Catalan",
+}
+
+// LanguageFromWord reads a word in a file name as a language: a code in any of the
+// usual forms, or a language's English name. "" when it isn't one.
+func LanguageFromWord(w string) string {
+	w = strings.ToLower(strings.TrimSpace(w))
+	if len(w) < 2 {
+		return ""
+	}
+	base := NormalizeLanguage(w)
+	if _, ok := languageNames[base]; ok && (len(w) == 2 || len(w) == 3 || strings.ContainsAny(w, "-_")) {
+		return base
+	}
+	for code, name := range languageNames {
+		if strings.EqualFold(name, w) {
+			return code
+		}
+	}
+	return ""
 }
 
 // LanguageName is a language tag in English words, "" when it isn't known.

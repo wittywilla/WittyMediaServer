@@ -45,6 +45,7 @@ No answer holds a file path, except `volumes[].mount` for administrators, which 
 | `GET /system/metrics/now?sections=` | One `MetricsNow`, for an app that wants a number now and then. Takes about a quarter of a second if nobody is watching, as a speed needs two readings |
 | `GET /system/metrics/history?range=1h&series=cpu,memory` | `History`: `times`, and `series` by name. `peak` too when each point stands for several readings. Admins only |
 | `GET /system/metrics/report` | `MetricsReport`: everything that takes a look through the database. `?fresh=1` skips the minute's wait |
+| `GET /system/metrics/drives` | Each disk's health, where the system will say, or `note` saying why not. Admins only, and kept for ten minutes: on Windows, asking starts PowerShell, and the first answer can take seconds |
 
 **Sections:** `server`, `cpu`, `temperature`, `memory`, `gpu`, `disks`, `diskio`, `network`, `process`, `modules`, `streams`, `games`,
 `libraries`, `logs`. Leaving out `sections` gives all this account may have. A section a system can't provide is left out
@@ -79,6 +80,7 @@ are bytes. `goroutines`, `streams`, `transcodes` and `games` are counts.
 | Graphics | NVIDIA with `nvidia-smi`; AMD | NVIDIA with `nvidia-smi` | No | No |
 | Disk space | Yes | Yes | Yes | Yes |
 | Disk speed | Yes, with how busy | Yes, by drive letter | No | No |
+| Disk health | What the kernel says about the device | Windows' own health status, where it allows it | As in WittyDiagnoser | As in WittyDiagnoser |
 | Network, per interface | Yes | Yes | Names only | Names only |
 | This server | Yes | Yes | Yes, with peak memory | Yes, with peak memory |
 

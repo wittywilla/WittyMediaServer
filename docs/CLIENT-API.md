@@ -1443,6 +1443,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `GET /system/metrics/stream` | user | Server-sent events: a reading every two seconds, while it's open |
 | `GET /system/metrics/history` | user | Charts' worth of numbers, for administrators |
 | `GET /system/metrics/report` | user | Libraries, what's in them, and what's gone on |
+| `GET /system/metrics/drives` | admin | Each disk's health, where the system will say |
 
 ### More server routes
 

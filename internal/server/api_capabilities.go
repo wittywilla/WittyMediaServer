@@ -21,7 +21,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 7
+	apiRevision = 8
 	apiPrefix   = "/api/v1/"
 )
 

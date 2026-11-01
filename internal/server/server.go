@@ -65,9 +65,14 @@ type Server struct {
 	streams       streamTracker
 	metricStreams taskStreamCounts
 	reports       reportCache
-	Logs          *logging.Logger
-	Crashes       *logging.CrashGuard // crash reports; nil when they can't be kept
-	logMods       logModules          // how each module is logged
+	driveHealth   struct {
+		sync.Mutex
+		at   time.Time
+		list []DriveHealthView
+	}
+	Logs    *logging.Logger
+	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods logModules          // how each module is logged
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself

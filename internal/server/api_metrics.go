@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
@@ -47,6 +48,7 @@ func (s *Server) metricsRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/system/metrics/stream", a(s.handleMetricsStream))
 	m.Handle("GET /api/system/metrics/history", a(s.handleMetricsHistory))
 	m.Handle("GET /api/system/metrics/report", a(s.handleMetricsReport))
+	m.Handle("GET /api/system/metrics/drives", s.requireAdmin(s.handleMetricsDrives))
 }
 
 // metricsAccess says what this account gets.
@@ -592,6 +594,37 @@ func (s *Server) handleMetricsReport(w http.ResponseWriter, r *http.Request) {
 	s.reports.entries[u.ID] = reportEntry{at: time.Now(), rep: rep}
 	s.reports.Unlock()
 	writeJSON(w, 200, rep)
+}
+
+// DriveHealthView is what one disk says about itself.
+type DriveHealthView struct {
+	Mount   string   `json:"mount"`
+	Checked bool     `json:"checked"`
+	Bad     bool     `json:"bad,omitempty"`
+	Lines   []string `json:"lines"`
+	Note    string   `json:"note,omitempty"` // why it wasn't checked
+}
+
+// How long what the drives said is kept. Asking can start a program and wake a disk.
+const drivesKeep = 10 * time.Minute
+
+// GET /api/system/metrics/drives: each disk's health, where the system will say.
+func (s *Server) handleMetricsDrives(w http.ResponseWriter, r *http.Request) {
+	s.driveHealth.Lock()
+	defer s.driveHealth.Unlock()
+	if s.driveHealth.list == nil || time.Since(s.driveHealth.at) >= drivesKeep {
+		list := []DriveHealthView{}
+		for _, v := range sysinfo.ReadVolumes() {
+			h := diagnose.ReadDriveHealth(r.Context(), s.Log, v.Mount)
+			list = append(list, DriveHealthView{Mount: v.Mount, Checked: h.Checked, Bad: h.Bad, Lines: append([]string{}, h.Lines...), Note: h.Note})
+		}
+		if r.Context().Err() != nil {
+			writeErr(w, 503, "that was cut short")
+			return
+		}
+		s.driveHealth.list, s.driveHealth.at = list, time.Now()
+	}
+	writeJSON(w, 200, map[string]any{"drives": s.driveHealth.list})
 }
 
 // resolutionCase sorts a picture's height into the names people use.

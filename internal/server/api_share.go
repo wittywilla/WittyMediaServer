@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // Links that share one item or album with someone who has no account.
@@ -293,8 +293,12 @@ func (s *Server) handleSharePlay(w http.ResponseWriter, r *http.Request) {
 // where it was shot goes through the re-encoded stream instead, which carries
 // nothing of the sort.
 func (s *Server) browserSafeVideo(ctx context.Context, it *library.Item) bool {
-	ext := strings.ToLower(filepath.Ext(it.Path))
-	return (ext == ".mp4" || ext == ".m4v" || ext == ".webm") && (it.VideoCodec == "h264" || it.VideoCodec == "vp9" || it.VideoCodec == "av1") && !s.Store.PhotoLocated(ctx, it.ID)
+	switch mediatypes.Canonical(it.Container, it.Path, it.VideoCodec, "") {
+	case "mp4", "m4v", "webm":
+	default:
+		return false
+	}
+	return (it.VideoCodec == "h264" || it.VideoCodec == "vp9" || it.VideoCodec == "av1") && !s.Store.PhotoLocated(ctx, it.ID)
 }
 
 func shareStreamID(it *library.Item) string { return "share-" + hls.Key(it.Path) }

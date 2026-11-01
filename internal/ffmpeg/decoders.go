@@ -43,3 +43,33 @@ func parseDecoders(out string) map[string]bool {
 	}
 	return set
 }
+
+var (
+	demuxers     map[string]bool
+	demuxersOnce sync.Once
+)
+
+// HasDemuxer says whether this FFmpeg can read an input of this name, found once by
+// asking it. An FFmpeg that can't be asked has none.
+func (t *Tools) HasDemuxer(name string) bool {
+	demuxersOnce.Do(func() {
+		demuxers = map[string]bool{}
+		if t.FFmpeg == "" {
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-demuxers"})
+		if err != nil {
+			return
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if f := strings.Fields(line); len(f) >= 2 && strings.Contains(f[0], "D") {
+				for _, n := range strings.Split(f[1], ",") {
+					demuxers[n] = true
+				}
+			}
+		}
+	})
+	return demuxers[name]
+}

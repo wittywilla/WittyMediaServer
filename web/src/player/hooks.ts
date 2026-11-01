@@ -8,7 +8,7 @@ import { reportHlsError, watchPlayback } from '../errorReport'
 // stream begin at that position, so the first frame shown is the right one
 // (seeking after the start would briefly show the beginning).
 export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
-  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null } = {}) {
+  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null; growing?: boolean } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
@@ -26,7 +26,9 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
         maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
         fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
-        startPosition: start != null && start > 0.5 ? start : -1, lowLatencyMode: false,
+        // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
+        // start, however far ahead it has got.
+        startPosition: optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1), lowLatencyMode: false,
       })
       hlsRef.current = hls
       hls.loadSource(abs)
@@ -35,6 +37,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
       // A stream the server no longer has (it restarted) would be retried for
       // ever behind a spinner; a busy server (503) is worth waiting for.
       let gone = 0
+      let mediaErrors = 0
       hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return
@@ -42,7 +45,11 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
           else hls.startLoad()
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError()
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          // Once is worth it; a stream this browser really can't decode would go round for ever.
+          if (++mediaErrors <= 2) hls.recoverMediaError()
+          else optsRef.current.onError?.(data.details || 'playback error')
+        }
         else optsRef.current.onError?.(data.details || 'playback error')
       })
       return () => { destroyed = true; hls.destroy(); hlsRef.current = null }

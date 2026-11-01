@@ -3,9 +3,11 @@ package library
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -157,7 +159,74 @@ func (s *Scanner) makeThumb(ctx context.Context, it *Item, width int, out string
 			return err
 		}
 	}
-	return s.Tools.ImageThumb(ctx, src, orientation, width, jpegShrink(src, longSide, width), out)
+	err := s.Tools.ImageThumb(ctx, src, orientation, width, jpegShrink(src, longSide, width), out)
+	if err != nil && strings.EqualFold(filepath.Ext(it.Path), ".psd") {
+		// Photoshop keeps a small JPEG in the file, which is better than nothing.
+		if preview := psdPreview(it.Path); preview != nil {
+			tmp := out + ".psd.jpg"
+			if werr := os.WriteFile(tmp, preview, 0o644); werr != nil {
+				return werr
+			}
+			defer os.Remove(tmp)
+			return s.Tools.ImageThumb(ctx, tmp, orientation, width, 0, out)
+		}
+	}
+	return err
+}
+
+// psdPreview finds the JPEG in a Photoshop file's resources. Every length in it comes
+// from the file, so each is checked against what's left.
+func psdPreview(path string) []byte {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	const maxHead = 16 << 20
+	b := make([]byte, maxHead)
+	n, _ := io.ReadFull(f, b)
+	b = b[:n]
+	be32 := func(at int) int {
+		if at < 0 || at+4 > len(b) {
+			return -1
+		}
+		return int(binary.BigEndian.Uint32(b[at:]))
+	}
+	if len(b) < 26 || string(b[:4]) != "8BPS" {
+		return nil
+	}
+	colorLen := be32(26)
+	if colorLen < 0 {
+		return nil
+	}
+	at := 30 + colorLen
+	resLen := be32(at)
+	if resLen < 0 {
+		return nil
+	}
+	end := min(at+4+resLen, len(b))
+	for p := at + 4; p+12 <= end; {
+		if string(b[p:p+4]) != "8BIM" {
+			return nil
+		}
+		id := int(binary.BigEndian.Uint16(b[p+4:]))
+		nameLen := int(b[p+6])
+		pad := (nameLen + 2) &^ 1
+		sizeAt := p + 6 + pad
+		size := be32(sizeAt)
+		if size < 0 || sizeAt+4+size > end {
+			return nil
+		}
+		if (id == 1036 || id == 1033) && size > 28 {
+			// A thumbnail resource: a 28-byte header, then the JPEG.
+			j := b[sizeAt+4+28 : sizeAt+4+size]
+			if len(j) > 3 && j[0] == 0xFF && j[1] == 0xD8 {
+				return j
+			}
+		}
+		p = sizeAt + 4 + (size+1)&^1
+	}
+	return nil
 }
 
 // jpegShrink: how many times a JPEG can halve while decoding and still cover the

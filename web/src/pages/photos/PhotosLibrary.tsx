@@ -9,6 +9,7 @@ import { toast, useApp } from '../../state'
 import PhotoMap from './PhotoMap'
 import PhotoViewer from './PhotoViewer'
 import '../../gallery.css'
+import { ACCEPT_GALLERY } from '../../mediaTypes.generated'
 
 // WittyPhotos: the gallery. The timeline loads a month at a time as it comes
 // into view, so a library of any size costs what is on screen. All the lists
@@ -373,7 +374,7 @@ function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void }) {
   if (!lib.paths.length) return null
   return (
     <>
-      <input ref={input} type="file" multiple hidden accept="image/*,video/*,.heic,.heif,.avif,.dng,.cr2,.cr3,.nef,.arw,.orf,.rw2,.raf"
+      <input ref={input} type="file" multiple hidden accept={"image/*,video/*," + ACCEPT_GALLERY}
         onChange={(e) => { const f = [...(e.target.files || [])]; e.target.value = ''; if (f.length) run(f) }} />
       <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? `Uploading ${state.n}/${state.of} (${Math.round(state.pct * 100)}%)` : 'Upload'}</button>
       {state && <span className="sr-only" role="status">Uploading {state.name}</span>}

@@ -1215,7 +1215,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Every channel this account may watch, with its programmes. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`. Beside them, `theme`, `layout` and `skin`: what a new viewer starts with. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
@@ -1266,7 +1266,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tuners/{id}/scan` | admin | Scan progress2. |
 | `GET /tuners/{id}/channels` | admin | Tuner channels. |
 | `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
-| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. |
+| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |
 | `GET /epg/sources` | admin | EPG sources. |
 | `POST /epg/sources` | admin | Add EPG source. |
 | `DELETE /epg/sources/{id}` | admin | Delete EPG source. |

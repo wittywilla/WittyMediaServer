@@ -2,7 +2,7 @@
 
 Use this guide to add TV shows, name their files so each episode is recognised, and fix a show that was matched wrongly. Episodes are organised by show, season and episode, and you get Skip intro and the next episode offered near the credits.
 
-For always-on TV channels, see [Channels and live TV](CHANNELS.md).
+For always-on TV channels and the guide, and WittyTV's own themes, see [Channels and live TV](CHANNELS.md#the-look).
 
 - [Setting up](#setting-up)
 - [Naming your files](#naming-your-files)

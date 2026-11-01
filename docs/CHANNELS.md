@@ -1,6 +1,6 @@
 # Channels and live TV
 
-Use this guide to make always-on TV channels from your own library, add live TV from tuners and IPTV, and find your way around the guide. This is WittyTV: everything shows side by side in one programme guide, which can look like an early-2000s cable box or like a modern one.
+Use this guide to make always-on TV channels from your own library, add live TV from tuners and IPTV, and find your way around the guide. This is WittyTV: everything shows side by side in one programme guide, in the theme you choose, from an early-2000s cable box to a modern one.
 
 - [Your first channel](#your-first-channel)
 - [The guide](#the-guide)
@@ -68,27 +68,38 @@ Up from the top row and Left from the first cell hand the arrows back, so a remo
 
 ## The look
 
-Everything about the look is your own choice, kept with your account: press **Look** on the guide. An administrator sets what people start with, under **Options** in **Settings → Channels & tuners**, and a [theme](THEMES.md) can suggest a look. The order is your choice, then the theme's suggestion, then the administrator's.
+WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and find **WittyTV**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
 
-| Style | What it is like |
-|---|---|
-| **Classic cable box** | Chunky, bevelled and square, like a box of the early 2000s, with original artwork and colours. Raised cells, half-hour columns, an information panel on top with a clock, and a help strip with coloured A, B and C keys. It's all type |
-| **Modern** | Clean and dark, with the programme's picture up top. A title with its own logo artwork shows that at the top in place of its name, and screen readers still get the name |
+| Theme | What it is like | Colours |
+|---|---|---|
+| **Modern** | Clean and calm, with a big preview and the programme's picture up top. A title with its own logo artwork shows that in place of its name, and screen readers still get the name | From your app theme |
+| **Classic** | The chunky blue box of the early 2000s, bevelled and square, with raised cells, a clock, and coloured A, B and C keys. It's all type | Its own |
+| **Satellite** | A receiver's display: flat black and amber, thin rules, capitals, and digits in boxes like an LED read-out | Its own |
+| **Teletext** | Blocky letters and eight flat colours on black, with a page number and double-height headlines | Its own |
+| **Newspaper** | The listings page: ink on paper, serif type and hairline rules, with no filled cells | Its own |
+| **Big picture** | The preview comes first and takes about half the width, the words sit beside it, and the grid is short | From your app theme |
+| **Outline** | Light and open: cells are drawn rather than filled, and only the highlight is solid | From your app theme |
+| **Compact** | Small type and tight rows, with the top reduced to a strip, for seeing the most channels at once | From your app theme |
+| **Custom** | Your own: choose the layout from any of the above, the type and the colours. It starts from what was on your screen, and it stays as you left it if you try another theme | Your choice |
 
-**Title art only shows in the modern look.** **The programme's picture at the top** in **Look** turns the picture off.
+**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#tv-looks) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Channels & tuners**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
+
+**Colours.** Under **Colours**, choose **Background**, **Programmes**, **On now**, **Highlight**, **Accent** or **Text**, and pick one of the swatches, any colour, or type its code. A colour you pick overrides that one for this theme only, and **Back to following the app theme** or **Back to its own colours** undoes them. Text is always worked out to be readable on what it's on, and a colour that can't be read is moved until it can, whatever you choose, and it says so when that happens.
+
+**The programme's picture** and title art show in Modern and Outline, or in Custom with one of those layouts. **The programme's picture at the top** in **Look** turns them off.
 
 The rest of **Look**:
 
-- **Colours:** Cable blue, Satellite black and amber, Midnight, My theme, or My own colours. With your own, the text colour is worked out from the background, and a highlight too close to it is moved until it can be read.
 - **Row size** and **Hours across the screen**.
 - **Show:** a line at the current time down all channels, how far into each programme it is, episode names and details, and channel logos.
-- **Back to how it started** undoes your choices.
+
+**Room at the top.** Every theme leaves the same room above the first line of a TV page. It grows with the window, and across the room, in **Big screen mode** or with a controller or remote, it and the sides clear TV overscan, which can crop up to about 5% off each edge.
 
 Each channel can also have its own colour, in its editor, on its row, at the top of the guide and on its banner.
 
 ## The preview
 
-**Look** has a live picture beside the highlighted programme, on the right or left, in both looks. It can show **The highlighted channel**, **The last channel I watched**, or be **Hidden**.
+**Look** has a live picture beside the highlighted programme, on the right or left, in every theme. It can show **The highlighted channel**, **The last channel I watched**, or be **Hidden**.
 
 To resize it, do any of these:
 
@@ -97,7 +108,9 @@ To resize it, do any of these:
 - Use the - and + buttons under the picture, which work with a remote.
 - Choose **Preview size** in **Look**.
 
-It snaps to Small, Medium, Large and Extra large, and any size between works. It's part of the page's layout and not a layer over it, so at any size it moves what's beside it and covers nothing. Its largest size is worked out from the page, so the words and the guide always keep room. On a phone it has a line of its own above the words.
+**Automatic**, where it starts, suits the theme and the window: about 38% of the page's width in Modern, a third in Classic, half in Big picture and a fifth in Compact, so it reads the same on a laptop as across a room. On a phone it takes the whole width on a line of its own, as long as a third of the screen's height still leaves room for the guide; in Compact, about 60%. A size you set stays yours until you choose **Automatic** again.
+
+It snaps to Small, Medium, Large, Extra large and Huge, and any size between works. It's part of the page's layout and not a layer over it, so at any size it moves what's beside it and covers nothing. Its largest size is worked out from the page, so the words and the guide always keep room. On a phone it has a line of its own above the words.
 
 The buttons under it also turn its sound on, go full screen and hide it.
 
@@ -236,9 +249,11 @@ Everyone on a channel shares one stream, so a mixed channel can't show a Kids pr
 
 A channel's picture is, in order: your own upload (**Upload your own logo**), the logo chosen in the editor, or the logo of the one network or studio it plays. Those two come from the logo service, an optional download you agree to under **Settings → Metadata agents**: see [Where details come from](METADATA.md). With no logo, a channel shows its name as a clean text mark. No logos come with the server.
 
-**Tuner channels don't look up logos.** They use what their source gives, because a playlist can name thousands of stations, and each would be a lookup on the internet.
+**Tuner and playlist channels** wear, in order: what you chose for that channel, the logo its channel list names, or a match on its name. A match takes off what isn't part of the name, such as `HD`, `(US)` or `UK |`, and only a name that's exactly right takes a logo by itself. A name that could only ever match the wrong thing, such as a number or a word like `Movies`, isn't looked up, and the first 500 different names of a channel list are looked up by themselves, one a second, so a list of thousands stays gentle on everyone. All of this waits for the same one agreement, and nothing is looked up before it.
 
-**Title art** is the modern look's alone, as [above](#the-look).
+To put one right, open a tuner under **Tuners and IPTV**, and press **Change** beside a channel. Say what to look it up as, search and choose, upload your own, or choose **No logo for this channel**. It stays through a new reading of the channel list, and **Back to automatic** undoes it. See [Logos](FIXING-METADATA.md#logos).
+
+**Title art** shows in the themes with the programme's picture, as [above](#the-look).
 
 ## Tuners and IPTV
 
@@ -375,7 +390,7 @@ A channel is treated as ATSC 3.0 when its source names HEVC or AC-4. The server 
 
 ## What hasn't been tested
 
-**Run end to end on a real server with real FFmpeg:** one-click network channels, rule channels, hand timetables, tuning in mid-show, the guide and both looks, the preview and its resizing, commercials, bumper rules, commercials cut short, DVD and Blu-ray main features and scenes on a channel, IPTV playlists and streams against a local server, a stand-in network tuner, refusal of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
+**Run end to end on a real server with real FFmpeg:** one-click network channels, rule channels, hand timetables, tuning in mid-show, the guide and its themes, the preview and its resizing, commercials, bumper rules, commercials cut short, DVD and Blu-ray main features and scenes on a channel, IPTV playlists and streams against a local server, a stand-in network tuner, refusal of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 
 **Not tried:** every physical tuner, because none was available, real logo downloads, real phones and Safari.
 
@@ -389,7 +404,7 @@ Everything here lives on the server behind JSON, so apps can draw their own guid
 
 **The guide.** `GET /api/guide`, with `list=1` for numbers only, and `favourites=1`, `group=` or `channel=` to narrow it. It returns any window of any channels in one format, and the web page loads only the rows on screen, so a playlist of thousands stays quick. A TV app needs a grid that moves with a remote and D-pad focus: arrows, Page keys, 0 to 9 to dial and Enter to watch. `now` in the tune answer is the programme as the guide tells it, and `playing` is what's on the screen when that's a bumper inside it.
 
-**The look.** An account's look is kept under `tvLook` in `GET /api/me/ui`, so an app can follow it.
+**The look.** An account's look is kept under `tvLook` in `GET /api/me/ui`, so an app can follow it: `theme`, with `custom` for its layout and type and `themeColours` for what's overridden, per theme, and `layout` and `colours` beside them, saying what it comes to in the two looks there were before. `GET /api/guide` gives the owner's choice for new viewers as `theme`, and the same two older values as `layout` and `skin`. An empty `theme` means the owner set those two and nothing else.
 
 **Encrypted channels.** The guide, the tune answer and the tuner settings give each tuner channel `security: {state, label, detail, reason, helpUrl}`, where state is `encrypted`, `clear` or `unknown`, and `alternative` names a clear version. Show those, and the page from `GET /api/tv/encrypted-help`, rather than wording of your own. Keep the device notes here in step with `internal/livetv/help.go`.
 

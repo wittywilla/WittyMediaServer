@@ -75,7 +75,7 @@ Where titles, posters, plots and ratings come from. Information inside your file
 - **Built-in agents:** the ones marked "No API key needed" work straight away. **The Movie Database (TMDB)** and **TheTVDB** need a free key from their sites, and **Test** checks a key.
 - **Fix matches** at the top opens the list of titles to look over.
 - **Custom agents** are your own web services, for catalogues nothing else covers.
-- **Logos** downloads logos for studios and networks, only if you agree. **Streaming listings** shows which of your titles a streaming service has now.
+- **Logos** downloads logos for studios, networks, TV channels, consoles and services, only if you agree, and finds or sets any one of them by name. **Streaming listings** shows which of your titles a streaming service has now.
 - **Anime** sets where anime from TV libraries appears, and how titles are written.
 - **Saving information:** **Save information and artwork next to your media** writes NFO files and pictures beside your files. It's off by default, so nothing is written to your media folders until you turn it on.
 
@@ -222,6 +222,9 @@ How this server looks for you.
 - **Name and logo** (administrators): **Rename…** changes what shows in the corner, on the sign-in page and in the browser tab.
 
 More: [Themes](THEMES.md), [Watching and listening](PLAYING.md#moving-posters).
+
+
+**WittyTV** has themes of its own, apart from the app's theme: see [The look](CHANNELS.md#the-look).
 
 ### Sharing and photos
 

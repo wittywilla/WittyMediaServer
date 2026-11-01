@@ -175,7 +175,7 @@ function followingTokens(hi: 'fg' | 'accent'): Tokens {
     '--ctv-text': 'var(--fg)', '--ctv-soft': 'var(--fg-2)', '--ctv-cell-text': 'var(--fg)', '--ctv-cell-soft': 'var(--fg-2)', '--ctv-live-text': 'var(--fg)', '--ctv-live-soft': 'var(--fg-2)',
     '--ctv-hi': hiBg, '--ctv-hi-text': hiFg, '--ctv-accent': 'var(--accent-text)', '--ctv-accent-text': 'var(--bg)',
     '--ctv-key-a': hiBg, '--ctv-key-b': hiBg, '--ctv-key-c': hiBg, '--ctv-key-text': hiFg, '--ctv-err': 'var(--danger)',
-    '--ctv-lite': 'rgb(var(--accent-rgb) / .24)', '--ctv-shade': 'rgb(var(--bg-rgb) / .24)',
+    '--ctv-lite': 'rgb(var(--accent-rgb) / .24)', '--ctv-shade': 'rgb(var(--bg-rgb) / .12)',
   }
 }
 

@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }

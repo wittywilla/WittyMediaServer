@@ -56,7 +56,7 @@ before(async () => {
     hidden: false,
     body: { dispatchEvent: (e: { key: string }) => { keys.push(e.key); return true } },
     activeElement: null,
-    documentElement: { classList: { add: (c: string) => classes.add(c), remove: (c: string) => classes.delete(c), contains: (c: string) => classes.has(c) } },
+    documentElement: { dataset: {}, classList: { add: (c: string) => classes.add(c), remove: (c: string) => classes.delete(c), contains: (c: string) => classes.has(c) } },
     querySelector: (q: string) => (q.includes('.wp-playing') && inGameNow ? {} : null),
   }
   const { installTVInput } = await import('../src/tv')
@@ -137,4 +137,18 @@ test('a hidden page ignores the controller', () => {
   (globalThis as any).document.hidden = true
   tap(A, 100, 100)
   assert.deepEqual(keys, [])
+})
+
+test('Android lays a pad out the standard way, even one it gives no name to, such as a DualSense', () => {
+  const nav = (globalThis as any).navigator
+  const say = (userAgent: string) => Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { getGamepads: nav.getGamepads, userAgent } })
+  pads = [{ ...makePad(), mapping: '' }]
+  keys = []
+  say('Mozilla/5.0 (Windows NT 10.0)')
+  tap(DOWN, 80, 200)
+  assert.deepEqual(keys, [], 'elsewhere, an unnamed layout says nothing about where its D-pad is')
+  say('Mozilla/5.0 (Linux; Android 16) Chrome/143')
+  tap(DOWN, 80, 200)
+  assert.deepEqual(keys, ['ArrowDown'])
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: nav })
 })

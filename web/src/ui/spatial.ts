@@ -18,12 +18,15 @@ const LEAVES_LINE: Record<Dir, number> = { left: 4000, right: 4000, up: 0, down:
 export function score(a: Box, b: Box, dir: Dir): number | null {
   const ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2
   const bx = (b.left + b.right) / 2, by = (b.top + b.bottom) / 2
+  // How far from straight ahead, to the nearest part of it: a programme in a guide can be the width of the
+  // screen, and its middle is no measure of how close it is.
+  const offCentre = (p: number, lo: number, hi: number) => (p < lo ? lo - p : p > hi ? p - hi : 0)
   let gap: number, near: number, far: number, bNear: number, bFar: number, centre: number
   switch (dir) {
-    case 'right': if (bx <= ax + 1) return null; gap = b.left - a.right; near = a.top; far = a.bottom; bNear = b.top; bFar = b.bottom; centre = Math.abs(by - ay); break
-    case 'left': if (bx >= ax - 1) return null; gap = a.left - b.right; near = a.top; far = a.bottom; bNear = b.top; bFar = b.bottom; centre = Math.abs(by - ay); break
-    case 'down': if (by <= ay + 1) return null; gap = b.top - a.bottom; near = a.left; far = a.right; bNear = b.left; bFar = b.right; centre = Math.abs(bx - ax); break
-    default: if (by >= ay - 1) return null; gap = a.top - b.bottom; near = a.left; far = a.right; bNear = b.left; bFar = b.right; centre = Math.abs(bx - ax)
+    case 'right': if (bx <= ax + 1) return null; gap = b.left - a.right; near = a.top; far = a.bottom; bNear = b.top; bFar = b.bottom; centre = offCentre(ay, b.top, b.bottom); break
+    case 'left': if (bx >= ax - 1) return null; gap = a.left - b.right; near = a.top; far = a.bottom; bNear = b.top; bFar = b.bottom; centre = offCentre(ay, b.top, b.bottom); break
+    case 'down': if (by <= ay + 1) return null; gap = b.top - a.bottom; near = a.left; far = a.right; bNear = b.left; bFar = b.right; centre = offCentre(ax, b.left, b.right); break
+    default: if (by >= ay - 1) return null; gap = a.top - b.bottom; near = a.left; far = a.right; bNear = b.left; bFar = b.right; centre = offCentre(ax, b.left, b.right)
   }
   // How far off to the side it is: nothing if the two overlap across the direction of travel.
   const aside = Math.max(0, Math.max(near, bNear) - Math.min(far, bFar))

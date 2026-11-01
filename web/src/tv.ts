@@ -260,6 +260,8 @@ function onKey(e: KeyboardEvent) {
     if (target?.closest('[role=slider], input[type=range]') && (dir === 'left' || dir === 'right')) return
     // In the player, arrows drive DVD menus and seeking unless a control has focus.
     if (target?.closest(FULL_PLAYER) && !target.closest(PLAYER_CONTROLS) && !target.closest('[role=dialog]')) return
+    // With nothing focused the arrows are the player's too: on live TV they change channel.
+    if ((!target || target === document.body) && document.querySelector(FULL_PLAYER)) return
     if (target?.closest('.picker-grid')) return // the tile picker has its own grid navigation
     // In a book, arrows turn pages and scroll unless focus is on its toolbars.
     const reader = document.querySelector('.reader')
@@ -277,6 +279,12 @@ function onKey(e: KeyboardEvent) {
   if (isBackKey(e) || (e.key === 'Backspace' && !typing(target))) {
     if (document.querySelector(FULL_PLAYER) || document.querySelector('[role=dialog], [role=alertdialog], .modal')) return // handled there
     e.preventDefault()
+    // At the first page shown in an app's web view, Back belongs to the app. A controller's B can't reach
+    // it any other way: the web view keeps a controller's buttons for the page.
+    if (document.documentElement.dataset.appBack && (window.history.state as { idx?: number } | null)?.idx === 0) {
+      window.location.assign(document.documentElement.dataset.appBack)
+      return
+    }
     window.history.back()
   }
 }
@@ -321,12 +329,16 @@ const POLL_MS = 12
 let pollTimer = 0
 const held = new Map<string, number>() // key -> next repeat time
 
+// Android's web view lays out every pad it has a name for the standard way, whether or not it calls that
+// layout standard: a DualSense reports no mapping there, with its D-pad at 12 to 15 all the same.
+const standardLayout = (p: Gamepad) => p.mapping === 'standard' || /Android/.test(navigator.userAgent)
+
 // The keys the controllers are holding down at the moment.
 function keysDown(pads: Gamepad[]) {
   const down = new Set<string>()
   for (const p of pads) {
     const swap = isNintendo(p.id)
-    if (p.mapping === 'standard') {
+    if (standardLayout(p)) {
       p.buttons.forEach((b, i) => {
         if (!b.pressed) return
         let k = STD[i]
@@ -340,10 +352,10 @@ function keysDown(pads: Gamepad[]) {
     }
     // Left stick (and D-pad axes on non-standard pads) as arrows, with a dead zone.
     const last = p.axes[p.axes.length - 1] ?? 0
-    if (p.mapping !== 'standard' && Math.abs(last) > 1.05) hatPads.add(p.id)
+    if (!standardLayout(p) && Math.abs(last) > 1.05) hatPads.add(p.id)
     const hat = hatPads.has(p.id)
     if (hat && Math.abs(last) <= 1.05) for (const k of HAT_KEYS[Math.round((last + 1) * 3.5) & 7]) down.add(k)
-    const axes = p.mapping === 'standard' || hat ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
+    const axes = standardLayout(p) || hat ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
     for (const [x, y] of axes) {
       const ax = p.axes[x] ?? 0, ay = p.axes[y] ?? 0
       if (Math.abs(ax) > 0.6 && Math.abs(ax) >= Math.abs(ay)) down.add(ax > 0 ? 'ArrowRight' : 'ArrowLeft')

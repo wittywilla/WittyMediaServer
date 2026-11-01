@@ -322,7 +322,8 @@ short or scrolled away and nowhere near straight ahead.
 top dialog or menu, or else go back a page. Going back returns focus to the control you left, per
 history entry. A pointer has no such place to return to, so this is only for keyboard and remote use.
 An app showing this page in a TV's web view reads what has its own Back from `<html data-own-back>`, a
-selector the page sets, so the list has one home: `OWN_BACK` in `tv.ts`.
+selector the page sets, so the list has one home: `OWN_BACK` in `tv.ts`. An app can also set `<html data-app-back="/address">`: when
+Back has nothing left to go back through, the page goes to that address, for the app to catch. It's how a controller's B leaves a web view.
 
 `data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
 highlighted one, so it's one stop however many cells are drawn.

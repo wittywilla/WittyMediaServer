@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:music": "node scripts/test-music.mjs"
   },
   "dependencies": {
     "hls.js": "^1.6.0",

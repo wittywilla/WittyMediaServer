@@ -158,7 +158,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	info := playInfo{DurationSec: pr.Duration(), Container: it.Container, AudioIndex: qInt(r, "audio", 0), SubIndex: qInt(r, "subtitle", -1)}
@@ -362,7 +362,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 			if !errors.Is(err, context.Canceled) {
 				s.Log.WarnContext(r.Context(), "could not serve a playlist", "cat", "transcode", "session", sess.LogSession(), "stream", id, "err", err)
 			}
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 		_, _ = w.Write(b)
@@ -402,7 +402,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not serve a segment", "cat", "transcode", "session", sess.LogSession(), "stream", id, "segment", name, "err", err)
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	if sess.Spec.FMP4 {

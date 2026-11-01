@@ -24,7 +24,7 @@ import (
 func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *library.Item) {
 	d, err := wittybluray.Open(it.Path)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	defer d.Close()

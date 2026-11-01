@@ -357,7 +357,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 			} else if errors.Is(err, library.ErrNotFound) {
 				code = 404
 			}
-			writeErr(w, code, err.Error())
+			writeErr(w, code, s.viewerError(r, err))
 			return
 		}
 	default:
@@ -740,7 +740,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		pr, err := s.Tools.ProbeFile(pctx, it.Path)
 		if err != nil {
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 		subs := pr.Subtitles()
@@ -751,7 +751,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := s.subtitleVTT(r.Context(), it.Path, n)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
@@ -803,12 +803,12 @@ func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := s.subtitleVTT(logging.WithSession(r.Context(), sess.LogSession()), sess.Spec.Source, sess.Spec.Variant.Subtitles[n].Stream)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	b, err := os.ReadFile(p)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")

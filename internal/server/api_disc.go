@@ -144,7 +144,7 @@ func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item
 	}
 	o, err := wittydvd.Open(it.Path)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return nil, nil, false
 	}
 	return it, o, true
@@ -207,7 +207,7 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != nil {
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 	}

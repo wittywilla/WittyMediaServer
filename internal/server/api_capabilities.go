@@ -9,6 +9,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/discovery"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 // The API is versioned by its path: /api/v1/... is the contract clients are
@@ -70,9 +71,14 @@ var serverFeatures = []string{
 }
 
 // GET /api/capabilities (public): what this server is and can do, the first
-// thing an app asks. Nothing here is private: /api/status tells the version too.
+// thing an app asks. Nothing here is private, apart from which version runs, which as in
+// /api/status is nobody's business on the internet until they sign in.
 func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	version := s.Version
+	if clientFrom(r).Where == remote.Internet && s.resolveUser(r) == nil {
+		version = ""
+	}
 	profiles := []string{}
 	for _, p := range playback.Profiles() {
 		profiles = append(profiles, p.ID)
@@ -88,7 +94,7 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 		"serverName":    s.ServerName(ctx),
 		"publicKey":     id.PublicKey(),
 		"fingerprint":   id.Fingerprint(),
-		"version":       s.Version,
+		"version":       version,
 		"apiVersion":    apiVersion,
 		"apiRevision":   apiRevision,
 		"apiVersions":   []int{apiVersion},

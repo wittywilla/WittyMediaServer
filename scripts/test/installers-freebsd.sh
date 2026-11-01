@@ -20,7 +20,8 @@ log="$RESULTS/freebsd-$REL.log"; : > "$log"
 CACHE="$HOME/.cache/wittymediaserver-freebsd"; mkdir -p "$CACHE"
 RAW="$CACHE/FreeBSD-$REL-RELEASE-amd64-BASIC-CI.raw"
 if [ ! -f "$RAW" ]; then
-  curl -fsSL -o "$RAW.xz" "https://download.freebsd.org/releases/CI-IMAGES/$REL-RELEASE/amd64/Latest/FreeBSD-$REL-RELEASE-amd64-BASIC-CI.raw.xz" || { echo "can't download the image"; exit 1; }
+  BASE="https://download.freebsd.org/releases/CI-IMAGES/$REL-RELEASE/amd64/Latest/FreeBSD-$REL-RELEASE-amd64-BASIC-CI"
+  curl -fsSL -o "$RAW.xz" "$BASE.raw.xz" || curl -fsSL -o "$RAW.xz" "$BASE-ufs.raw.xz" || { echo "can't download the image"; exit 1; }
   xz -d "$RAW.xz"
 fi
 DISK="$(mktemp -d)/disk.qcow2"

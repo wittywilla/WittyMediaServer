@@ -559,9 +559,8 @@ func (s *Service) ResolveStream(ctx context.Context, tok string, r *http.Request
 const CookieName = "wms_token"
 
 // mediaRoute are the addresses a page opens with <img>, <video>, <a download>,
-// a WebSocket, a module script and the like, which can't carry a header. Only these take a token in the
-// address: one that leaked from a media link (a browser's history, a proxy's
-// log) can't be used to call the rest of the API or change anything.
+// a WebSocket, a module script and the like, which can't carry a header. Only these take a token
+// in the address, and only to read.
 var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/art/\d+$|games/\d+/saves/\d+/(thumb|file)$|games/\d+/battery$|game-bezels/\d+$|play/[0-9a-f]+/screenshot$|play/[0-9a-f]+/ws$|game-background/image$|modules/[a-z0-9]+/web/|music/artist-photo$|music/extras/\d+/file$|logos/\d+/image$)`)
 
 // queryToken is the ?token= of a media address.

@@ -681,7 +681,7 @@ func TestHostileRowsAreMadeHarmless(t *testing.T) {
 		`SELECT backdrop FROM items WHERE id = 1`:                                                     "",
 		`SELECT poster FROM items WHERE id = 2`:                                                       "",
 		`SELECT password_hash FROM users WHERE id = 2`:                                                "",
-		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name NOT IN ('title_meta_item_gone', 'title_meta_show_gone', 'listings_item_gone', 'listings_show_gone')`: "0",
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name NOT IN ('title_meta_item_gone', 'title_meta_show_gone', 'listings_item_gone', 'listings_show_gone', 'share_links_item_gone', 'share_links_album_gone')`: "0",
 	} {
 		if got := one(q); got != want {
 			t.Errorf("%s: %q, want %q", q, got, want)
@@ -907,7 +907,7 @@ func TestPartialRestore(t *testing.T) {
 	if got := one(`SELECT COUNT(*) FROM custom_consoles`); got != "1" {
 		t.Errorf("what no backup holds should stay: %q", got)
 	}
-	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "4" {
+	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "6" {
 		t.Errorf("triggers: %q", got)
 	}
 }

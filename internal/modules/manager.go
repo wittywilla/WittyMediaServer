@@ -540,6 +540,12 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 		p.dataDir = filepath.Join(m.modDir(id), "data")
 		if m.cfg.WriteFolders != nil {
 			p.writable = m.cfg.WriteFolders(id)
+			// A folder that isn't there can't be opened for it, and it can't make one by itself.
+			for _, d := range p.writable {
+				if err := os.MkdirAll(d, 0o755); err != nil {
+					m.log.Warn("modules: making a folder for a module", "module", id, "folder", d, "err", err)
+				}
+			}
 		}
 	}
 	p.strict = e.state.Source != nil

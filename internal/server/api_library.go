@@ -105,11 +105,12 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if err := s.validateLibrary(&b); err != nil {
-		writeErr(w, 400, err.Error())
+	// First: what's missing says so, where what it would have checked can't be known.
+	if !s.libraryAllowed(w, b.Type) {
 		return
 	}
-	if !s.libraryAllowed(w, b.Type) {
+	if err := s.validateLibrary(&b); err != nil {
+		writeErr(w, 400, err.Error())
 		return
 	}
 	lib, err := s.Store.CreateLibrary(r.Context(), b.Name, b.Type, b.Paths)
@@ -143,11 +144,12 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs.")
 		return
 	}
-	if err := s.validateLibrary(&b); err != nil {
-		writeErr(w, 400, err.Error())
+	// First: what's missing says so, where what it would have checked can't be known.
+	if !s.libraryAllowed(w, b.Type) {
 		return
 	}
-	if !s.libraryAllowed(w, b.Type) {
+	if err := s.validateLibrary(&b); err != nil {
+		writeErr(w, 400, err.Error())
 		return
 	}
 	lib, err := s.Store.UpdateLibrary(r.Context(), id, b.Name, b.Type, b.Paths)

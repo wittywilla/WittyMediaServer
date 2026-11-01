@@ -180,7 +180,9 @@ func (g *CrashGuard) collect(logDir string) []Crash {
 			continue
 		}
 		pid, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "run-"), ".json"))
-		if pid == os.Getpid() || pidAlive(pid) {
+		// This run hasn't written its marker yet, so one with this process number is from
+		// an earlier run: in a container, a server gets the same number every time.
+		if pid != os.Getpid() && pidAlive(pid) {
 			continue
 		}
 		p := filepath.Join(g.dir, name)

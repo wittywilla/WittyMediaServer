@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // ScreenScraper. Its API may only go in free software, and it identifies each program
@@ -24,11 +26,13 @@ import (
 // or sent to a browser: pictures are kept as "ss:" references and only turned into
 // addresses at the moment the server fetches them.
 
-// Set when building a release, with -ldflags "-X ...gamemeta.DevID=... -X ...gamemeta.DevPassword=...".
+// Set when building a copy to give out, with -ldflags "-X ...gamemeta.DevID=... -X ...gamemeta.DevPassword=...".
 var (
 	DevID       = ""
 	DevPassword = ""
 )
+
+func init() { logging.AddSecret(DevPassword) }
 
 // ScreenScraper asks screenscraper.fr.
 type ScreenScraper struct {
@@ -72,13 +76,13 @@ func (s *ScreenScraper) About() About {
 			{Setting: "ssDevPassword", Label: "Developer password", Hint: "Only if your copy of the server has none built in"}},
 		KeyURL: "https://www.screenscraper.fr/membreinscription.php", Cost: "Free. A donation raises the limits",
 		Steps: []string{"Make a free account at screenscraper.fr.", "Type its user name and password below. They are kept on this server and sent only to ScreenScraper.",
-			"A copy of the server built by yourself also needs a developer id: ask for one on ScreenScraper's forum."},
+			"A copy of the server with no developer id built in also needs one: ask on ScreenScraper's forum."},
 		Limit: "About 20,000 requests a day and 1 at a time on a free account. This server asks every 1.2 seconds and stops when told to.",
 		Sends: "Game names, console names, file checksums and sizes", Credit: "Data and images from ScreenScraper",
 		License: "CC BY-NC-SA 4.0. For free software only; data is kept on this server",
 	}
 	if s.DevUser == "" {
-		a.Unavailable = "This copy of the server has no ScreenScraper developer id. Official releases carry one; to use your own, ask on ScreenScraper's forum and fill it in below."
+		a.Unavailable = "This copy of the server has no ScreenScraper developer id, which this source needs. To use your own, ask on ScreenScraper's forum and fill it in below."
 	}
 	return a
 }

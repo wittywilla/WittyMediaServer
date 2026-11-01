@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -231,6 +232,12 @@ func TestRedactPlantedSecrets(t *testing.T) {
 		"attr recovery":    {"recoveryCode", m},
 		"attr group":       {slog.Group("req", "token", m)},
 		"url token":        {"url", "http://h/a?token=" + m + "&x=1"},
+		"url sspassword":   {"url", "http://h/a?ssid=me&sspassword=" + m + "&x=1"},
+		"url devpassword":  {"url", "http://h/a?devpassword=" + m},
+		"url client":       {"url", "http://h/a?client_secret=" + m},
+		"json ss":          {"body", `{"ssPassword":"` + m + `"}`},
+		"json igdb":        {"body", `{"igdbClientSecret":"` + m + `"}`},
+		"json rawg":        {"body", `{"rawgKey":"` + m + `"}`},
 		"url st":           {"url", "http://h/api/hls/1/seg/2?st=st1." + m},
 		"url apikey":       {"url", "https://a/b?api_key=" + m},
 		"url encoded name": {"url", "http://h/a?%74oken=" + m},
@@ -1030,6 +1037,31 @@ func TestCrashSurvivesProcess(t *testing.T) {
 
 func crashHelperFunction() {
 	panic("the panic value with token=PLANTEDSECRET")
+}
+
+// A marker with this process's own number can only be from an earlier run: in a
+// container the server gets the same number each time, and a power cut must still show.
+func TestUncleanStopWithTheSameProcessNumber(t *testing.T) {
+	dir := t.TempDir()
+	crashDir := filepath.Join(dir, "crash")
+	if err := os.MkdirAll(crashDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(runMarker{Version: "last", Started: time.Now().Add(-time.Hour), PID: os.Getpid(), LogDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(crashDir, fmt.Sprintf("run-%d.json", os.Getpid())), b, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	g, found, err := StartCrashGuard(crashDir, dir, "next")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.Close()
+	if len(found) != 1 || found[0].Kind != "unclean" {
+		t.Fatalf("%+v", found)
+	}
 }
 
 func TestCrashHelper(t *testing.T) {

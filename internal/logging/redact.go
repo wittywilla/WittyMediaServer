@@ -49,7 +49,7 @@ var textPatterns = []struct {
 	with  string
 }{
 	// In an address or a command line: token=..., ?st=..., password=...
-	{"=", nil, regexp.MustCompile(`(?i)(\b(?:token|access_token|refresh_token|id_token|auth|api[_-]?key|apikey|password|passwd|pwd|pass|secret|pin|key|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
+	{"=", nil, regexp.MustCompile(`(?i)(\b(?:[a-z0-9_-]*(?:token|password|passwd|secret)|auth|api[_-]?key|apikey|pwd|pass|pin|key|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
 	// The same with its name percent-encoded: %74oken=... signs in just the same.
 	{"%=", nil, regexp.MustCompile(`(?i)((?:%[0-9a-f]{2}|[a-z_-])*%[0-9a-f]{2}(?:%[0-9a-f]{2}|[a-z_-])*=)[^&\s"'<>]+`), "${1}" + hidden},
 	// A header, as a line of text or in FFmpeg's -headers.
@@ -57,7 +57,7 @@ var textPatterns = []struct {
 	{"", []string{"bearer"}, regexp.MustCompile(`(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+`), "${1}" + hidden},
 	{"", []string{"basic "}, regexp.MustCompile(`\b(Basic\s+)[A-Za-z0-9+/]*[A-Z0-9+/][A-Za-z0-9+/]{10,}={0,2}`), "${1}" + hidden},
 	// JSON: "password": "..."
-	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z_-]*token|password|passwd|secret|api[_-]?key|apikey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
+	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z0-9_-]*(?:token|password|passwd|secret|api[_-]?key|apikey)|rawgkey|tgdbkey|tmdbkey|tvdbkey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
 	// A login in an address: rtsp://user:password@camera/
 	{":@", nil, regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@`), "${1}" + hidden + "@"},
 	// A share link's token.

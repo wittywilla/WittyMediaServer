@@ -1167,3 +1167,60 @@ func TestEveryConsoleCanBeNamed(t *testing.T) {
 		}
 	}
 }
+
+// A hack of a game keeps that game's code and header. It isn't that game, and shouldn't be
+// named after it. An unhelpful file name has nothing to disagree with.
+func TestCartridgeCodesAreCheckedAgainstTheName(t *testing.T) {
+	d := &libDB{byCRC: map[uint32]int32{}, bySerial: map[string]int32{}, byKey: map[string][]int32{}, byWord: map[string][]int32{}}
+	d.add(&rdbRecord{Name: "Mega Racer 64 (USA)", Serial: "NMRE", CRC: 7, HasCRC: true}, 0)
+	d.add(&rdbRecord{Name: "Otra Carrera (Japan)", CRC: 9, HasCRC: true}, 0)
+	s := &Libretro{db: d, console: "n64"}
+	s.init()
+	find := func(q Query) (string, int) {
+		t.Helper()
+		q.Console = "n64"
+		_, i, _, conf, err := s.find(context.Background(), q)
+		if err != nil {
+			return "", 0
+		}
+		return d.recs[i].Name, conf
+	}
+	if got, _ := find(Query{Title: "Mega Racer 64 Fan Remix Deluxe Edition", Serial: "NMRE", HeaderTitle: "MEGA RACER 64"}); got != "" {
+		t.Errorf("a hack was named after its game: %q", got)
+	}
+	if got, _ := find(Query{Title: "Mega Racer 64", Serial: "NMRE"}); got != "Mega Racer 64 (USA)" {
+		t.Errorf("the code should count when the name agrees: %q", got)
+	}
+	if got, _ := find(Query{Title: "rom", Serial: "NMRE"}); got != "Mega Racer 64 (USA)" {
+		t.Errorf("a name that says nothing shouldn't count against it: %q", got)
+	}
+	if got, _ := find(Query{Title: "rom", HeaderTitle: "MEGA RACER 64"}); got != "Mega Racer 64 (USA)" {
+		t.Errorf("the header's name should do when the file's says nothing: %q", got)
+	}
+	// Another version in the archive: known, but its name isn't this one's.
+	if got, conf := find(Query{Title: "A Racing Game", AltCRCs: []uint32{9}}); got != "Otra Carrera (Japan)" || conf >= RenameConfidence {
+		t.Errorf("another region's version: %q %d", got, conf)
+	}
+	// The file's own name beats another version's checksum.
+	if got, _ := find(Query{Title: "Mega Racer 64", AltCRCs: []uint32{9}}); got != "Mega Racer 64 (USA)" {
+		t.Errorf("%q", got)
+	}
+}
+
+func TestCleanNameTidiesWhatListsLeaveIn(t *testing.T) {
+	for _, c := range []struct{ in, title, tags string }{
+		{"Mega Game Rev PRG1", "Mega Game", "Rev PRG1"},
+		{"Mega Game v1.0", "Mega Game", "v1.0"},
+		{"Mega Game 2", "Mega Game 2", ""},
+		{"000400000F700100 Mega Game (KTR-P-CAFE) (v2.2.0) (U)", "Mega Game", "v2.2.0, USA"},
+		{"Mega Game (J) [!]", "Mega Game", "Japan"},
+		{"Mega Game (JU)", "Mega Game", "Japan, USA"},
+	} {
+		if title, tags := CleanName(c.in); title != c.title || tags != c.tags {
+			t.Errorf("%q: %q, %q; want %q, %q", c.in, title, tags, c.title, c.tags)
+		}
+	}
+	if got := DropDiscTag("USA, Disc 3, Rev 1"); got != "USA, Rev 1" {
+		t.Errorf("%q", got)
+	}
+}

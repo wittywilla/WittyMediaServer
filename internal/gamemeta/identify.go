@@ -26,7 +26,9 @@ import (
 
 // Identity is what a file says about itself.
 type Identity struct {
-	CRCs   []uint32
+	CRCs []uint32
+	// AltCRCs are other versions in the same archive.
+	AltCRCs []uint32
 	Size   int64
 	Serial string
 }
@@ -149,9 +151,11 @@ func identifyListing(l *gamearchive.Listing, console, archive, chosen string) Id
 		if i >= 6 {
 			break
 		}
-		id.CRCs = append(id.CRCs, e.CRC)
 		if i == 0 {
+			id.CRCs = append(id.CRCs, e.CRC)
 			id.Size = e.Size
+		} else {
+			id.AltCRCs = append(id.AltCRCs, e.CRC)
 		}
 	}
 	return id

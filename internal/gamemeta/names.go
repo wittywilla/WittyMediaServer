@@ -68,6 +68,27 @@ func CleanName(base string) (title, tags string) {
 var regionLetters = map[string]string{"U": "USA", "J": "Japan", "E": "Europe", "W": "World", "G": "Germany", "F": "France", "S": "Spain", "I": "Italy",
 	"JU": "Japan, USA", "UE": "USA, Europe", "JE": "Japan, Europe", "JUE": "Japan, USA, Europe", "A": "Australia", "K": "Korea", "C": "China"}
 
+var unhelpfulRe = regexp.MustCompile(`(?i)^(?:game|rom|disc|disk|image|dump|file|data|new|untitled|track)[\s_-]*[0-9]*$`)
+
+// unhelpfulName is a name that says nothing about which game this is.
+func unhelpfulName(s string) bool {
+	return len(s) < 3 || unhelpfulRe.MatchString(s)
+}
+
+// DropDiscTag takes which disc this is out of a list of tags: it's a game with discs now.
+func DropDiscTag(tags string) string {
+	var keep []string
+	for _, t := range strings.Split(tags, ",") {
+		t = strings.TrimSpace(t)
+		if t != "" && !discTagRe.MatchString(t) {
+			keep = append(keep, t)
+		}
+	}
+	return strings.Join(keep, ", ")
+}
+
+var discTagRe = regexp.MustCompile(`(?i)^dis[ck]\s*[0-9a-d]+$`)
+
 // SearchTitle takes off what no database calls a game: which disc this is, and a
 // product code left in the name. "Dashes-for-spaces" names become words.
 func SearchTitle(title string) string {

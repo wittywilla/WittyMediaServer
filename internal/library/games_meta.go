@@ -293,6 +293,7 @@ type gameRow struct {
 	Serial, QueryTitle     string
 	HeaderTitle, EntryName string
 	ChosenEntry            string
+	AltCRCs                []uint32
 	Tags                   string
 	PosterRefs, BackRefs   []string
 	PosterRef, BackdropRef string
@@ -352,13 +353,14 @@ func toJSON(v any) string {
 	return string(b)
 }
 
-const gameRowCols = `item_id, status, tries, locked, edited, applied, file_size, file_mtime, crcs, crc_size, serial, query_title, tags, poster_refs, backdrop_refs, poster_ref, backdrop_ref, header_title, entry_name, chosen_entry`
+const gameRowCols = `item_id, status, tries, locked, edited, applied, file_size, file_mtime, crcs, crc_size, serial, query_title, tags, poster_refs, backdrop_refs, poster_ref, backdrop_ref, header_title, entry_name, chosen_entry, alt_crcs`
 
 func scanGameRow(sc interface{ Scan(...any) error }) (gameRow, error) {
 	var r gameRow
 	var locked int
-	var edited, applied, crcs, posters, backs string
-	err := sc.Scan(&r.ItemID, &r.Status, &r.Tries, &locked, &edited, &applied, &r.FileSize, &r.FileMTime, &crcs, &r.CRCSize, &r.Serial, &r.QueryTitle, &r.Tags, &posters, &backs, &r.PosterRef, &r.BackdropRef, &r.HeaderTitle, &r.EntryName, &r.ChosenEntry)
+	var edited, applied, crcs, posters, backs, alts string
+	err := sc.Scan(&r.ItemID, &r.Status, &r.Tries, &locked, &edited, &applied, &r.FileSize, &r.FileMTime, &crcs, &r.CRCSize, &r.Serial, &r.QueryTitle, &r.Tags, &posters, &backs, &r.PosterRef, &r.BackdropRef, &r.HeaderTitle, &r.EntryName, &r.ChosenEntry, &alts)
+	r.AltCRCs = parseCRCs(alts)
 	r.Locked = locked != 0
 	r.Edited, r.Applied, r.CRCs = setOf(edited), setOf(applied), parseCRCs(crcs)
 	r.PosterRefs, r.BackRefs = refList(posters), refList(backs)
@@ -589,13 +591,13 @@ func (g *GameMeta) identify(ctx context.Context, j *gameJob) {
 	}
 	if r.FileSize != it.SizeBytes || r.FileMTime != it.MTime {
 		id := g.id.Identify(it.Path, it.Console, r.ChosenEntry)
-		r.CRCs, r.CRCSize = id.CRCs, id.Size
+		r.CRCs, r.AltCRCs, r.CRCSize = id.CRCs, id.AltCRCs, id.Size
 		if id.Serial != "" {
 			r.Serial = id.Serial
 		}
 		r.FileSize, r.FileMTime = it.SizeBytes, it.MTime
-		_, _ = g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET file_size = ?, file_mtime = ?, crcs = ?, crc_size = ?, serial = ?, tags = ? WHERE item_id = ?`,
-			r.FileSize, r.FileMTime, formatCRCs(r.CRCs), r.CRCSize, r.Serial, tags, it.ID)
+		_, _ = g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET file_size = ?, file_mtime = ?, crcs = ?, alt_crcs = ?, crc_size = ?, serial = ?, tags = ? WHERE item_id = ?`,
+			r.FileSize, r.FileMTime, formatCRCs(r.CRCs), formatCRCs(r.AltCRCs), r.CRCSize, r.Serial, tags, it.ID)
 	}
 	if s := gamemeta.SerialInName(filepath.Base(it.Path)); s != "" && r.Serial == "" {
 		r.Serial = s
@@ -604,7 +606,7 @@ func (g *GameMeta) identify(ctx context.Context, j *gameJob) {
 	if r.QueryTitle != "" {
 		q = r.QueryTitle // someone chose what this game is
 	}
-	j.lookup = gamemeta.Query{Console: it.Console, Title: gamemeta.SearchTitle(q), Tags: tags, CRCs: r.CRCs, Size: r.CRCSize, Serial: r.Serial, HeaderTitle: r.HeaderTitle}
+	j.lookup = gamemeta.Query{Console: it.Console, Title: gamemeta.SearchTitle(q), Tags: tags, CRCs: r.CRCs, Size: r.CRCSize, Serial: r.Serial, HeaderTitle: r.HeaderTitle, AltCRCs: r.AltCRCs}
 }
 
 // lookup asks the sources that haven't answered about this game yet, then merges.
@@ -853,6 +855,7 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 	if nameTags == "" {
 		nameTags = m.Tags
 	}
+	nameTags = gamemeta.DropDiscTag(nameTags)
 	if nameTags != "" && fills("tagline", it.Tagline) {
 		it.Tagline = clip(nameTags, 200)
 		mark("tagline")

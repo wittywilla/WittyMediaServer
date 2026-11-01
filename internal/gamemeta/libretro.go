@@ -370,6 +370,22 @@ func (d *libDB) closest(title string, want int) []struct {
 	return out
 }
 
+// discConsoles are consoles whose games are started by a product code on the disc.
+var discConsoles = map[string]bool{"ps1": true, "ps2": true, "psp": true, "dc": true, "saturn": true, "segacd": true, "gc": true, "wii": true}
+
+// sameGame says two names could be one game, or the first says nothing: a file called
+// rom.z64 isn't disagreeing with anything.
+func sameGame(fileTitle, other string) bool {
+	if unhelpfulName(fileTitle) {
+		return true
+	}
+	// A name that goes on well past the other's is usually a game built on it.
+	if len(words(fileTitle)) >= len(words(other))+2 {
+		return false
+	}
+	return NameScore(fileTitle, other) >= 60
+}
+
 // find is what Lookup and LibretroArt share: which record a file is.
 func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, int, error) {
 	d, err := s.load(ctx, q.Console)
@@ -383,16 +399,32 @@ func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, in
 	}
 	for _, form := range serialForms(q.Console, q.Serial, DiscNumber(q.Tags)) {
 		if i, ok := d.bySerial[normalSerial(form)]; ok {
-			return d, i, MethodSerial, 98, nil
+			// A fan's hack of a cartridge game keeps the code of the game it was made from.
+			// A disc's code is what its console starts it by, so a disc can be believed.
+			if discConsoles[q.Console] || sameGame(q.Title, d.recs[i].Name) {
+				return d, i, MethodSerial, 98, nil
+			}
 		}
 	}
-	if q.HeaderTitle != "" {
+	// So does its header's name, so the file's own name has to agree.
+	if q.HeaderTitle != "" && sameGame(q.Title, q.HeaderTitle) {
 		if ids := d.byKey[NameKey(q.HeaderTitle)]; len(ids) > 0 {
 			return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
 		}
 	}
 	if ids := d.byKey[NameKey(q.Title)]; len(ids) > 0 {
 		return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
+	}
+	// Another version in the file's archive is known exactly. It's the same game, by the
+	// archive's reckoning, so its details hold. If its name is something else it can only
+	// be another region's: the file keeps the name it has, which is why it's less sure.
+	for _, crc := range q.AltCRCs {
+		if i, ok := d.byCRC[crc]; ok {
+			if sameGame(q.Title, d.recs[i].Name) {
+				return d, i, MethodChecksum, 95, nil
+			}
+			return d, i, MethodChecksum, RenameConfidence - 5, nil
+		}
 	}
 	if c := d.closest(q.Title, 1); len(c) > 0 && c[0].score >= AcceptScore {
 		return d, d.best(d.byKey[c[0].key], q.Tags), MethodName, nameConfidence(c[0].score), nil

@@ -8,7 +8,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 ## 0.6.0-alpha
 
 - **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
-- **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. PDFs need a browser from the last few years (Chrome 110, Safari 16.4 or later); everything else still reaches the same older browsers and TVs.
+- **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. The same older browsers and TVs are still reached.
 
 ## 0.5.2-alpha
 

@@ -23,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Finding out about games, in the background: scans only list files, and this comes
@@ -51,6 +52,7 @@ type sourceSet struct {
 type GameMeta struct {
 	Store     *Store
 	Log       *slog.Logger
+	Tasks     *tasks.Registry // where this shows in the activity panel; may be nil
 	ImagesDir string
 	CacheDir  string
 	// SaveMeta and Save write what was found beside the game, if the owner wants that.
@@ -133,6 +135,28 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
+	// This wakes every few minutes, so it only shows once a round has found something to do.
+	// Pictures go on beside the details, so either can be the first to find some.
+	var tMu sync.Mutex
+	var t *tasks.Handle
+	var failed error
+	defer func() {
+		tMu.Lock()
+		defer tMu.Unlock()
+		t.Finish(failed)
+	}()
+	note := func(n int) {
+		if n == 0 {
+			return
+		}
+		tMu.Lock()
+		if t == nil {
+			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
+		}
+		h := t
+		tMu.Unlock()
+		h.Add(int64(n))
+	}
 	defer func() {
 		if g.OnSettled != nil {
 			g.OnSettled()
@@ -148,6 +172,7 @@ func (g *GameMeta) work(ctx context.Context) {
 		if n == 0 {
 			break
 		}
+		note(n)
 	}
 	finished := make(chan struct{})
 	pictures := make(chan struct{})
@@ -163,6 +188,7 @@ func (g *GameMeta) work(ctx context.Context) {
 				return
 			}
 			if n > 0 {
+				note(n)
 				continue
 			}
 			select {
@@ -185,11 +211,13 @@ func (g *GameMeta) work(ctx context.Context) {
 		details, err := g.detailsBatch(ctx)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
+			failed = err
 			return
 		}
 		if details == 0 {
 			return
 		}
+		note(details)
 	}
 }
 

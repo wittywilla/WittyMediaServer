@@ -261,14 +261,16 @@ function press(key: string) {
   }
 }
 
-let polling = false
+// How often a connected controller is read. On a timer and not on animation frames, because
+// frames can stop for up to half a second while timers keep their time, and a press that
+// starts and ends in that gap would be lost. Asking for no frames also lets the browser draw
+// nothing while nothing moves.
+const POLL_MS = 12
+let pollTimer = 0
 const held = new Map<string, number>() // key -> next repeat time
 
-function poll() {
-  const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
-  if (!pads.length) { polling = false; held.clear(); return }
-  if (inGame()) { held.clear(); requestAnimationFrame(poll); return }
-  const now = performance.now()
+// The keys the controllers are holding down at the moment.
+function keysDown(pads: Gamepad[]) {
   const down = new Set<string>()
   for (const p of pads) {
     const swap = isNintendo(p.id)
@@ -296,20 +298,34 @@ function poll() {
       else if (Math.abs(ay) > 0.6) down.add(ay > 0 ? 'ArrowDown' : 'ArrowUp')
     }
   }
+  return down
+}
+
+function poll() {
+  const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
+  if (!pads.length) { clearInterval(pollTimer); pollTimer = 0; held.clear(); return }
+  if (document.hidden) { held.clear(); return } // nobody is looking, and browsers stop updating pads
+  const down = keysDown(pads)
+  if (inGame()) {
+    // Whatever is down belongs to the game, including the buttons that open its menu: they
+    // aren't presses in that menu until they've been let go and pressed again.
+    held.clear()
+    for (const k of down) held.set(k, Infinity)
+    return
+  }
+  const now = performance.now()
   for (const k of down) {
     const next = held.get(k)
     if (next === undefined) { press(k); held.set(k, now + 420) } // first press, then repeat after a pause
     else if (now >= next && k.startsWith('Arrow')) { press(k); held.set(k, now + 110) }
   }
   for (const k of [...held.keys()]) if (!down.has(k)) held.delete(k)
-  requestAnimationFrame(poll)
 }
 
 function startPolling() {
-  if (polling) return
-  polling = true
+  if (pollTimer) return
   document.documentElement.classList.add('using-controller')
-  requestAnimationFrame(poll)
+  pollTimer = window.setInterval(poll, POLL_MS)
 }
 
 let installed = false

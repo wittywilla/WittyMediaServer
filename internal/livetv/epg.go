@@ -15,6 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/xmltv"
 )
@@ -200,7 +201,9 @@ func (m *Manager) openGuide(ctx context.Context, place, auth string) (io.ReadClo
 
 // FetchSource reads one source now, storing only programmes of channels on
 // this server.
-func (m *Manager) FetchSource(ctx context.Context, id int64) error {
+func (m *Manager) FetchSource(ctx context.Context, id int64) (err error) {
+	task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeGuide, Title: "Updating the TV guide", AdminOnly: true})
+	defer func() { task.Finish(err) }()
 	var place, auth string
 	if err := m.DB.QueryRowContext(ctx, `SELECT url, auth FROM epg_sources WHERE id = ?`, id).Scan(&place, &auth); err != nil {
 		return ErrNotFound

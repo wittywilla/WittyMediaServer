@@ -17,6 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
@@ -324,7 +325,17 @@ func (m *Manager) startDue(ctx context.Context) {
 		if n, err := res.RowsAffected(); err != nil || n == 0 {
 			continue
 		}
-		logging.Go("recording", func() { m.record(r) }, "cat", "tv", "session", recSession(r.ID))
+		logging.Go("recording", func() {
+			task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeRecording, Title: "Recording " + r.Title, AdminOnly: true})
+			m.record(r)
+			var status, msg string
+			_ = m.DB.QueryRow(`SELECT status, error FROM recordings WHERE id = ?`, r.ID).Scan(&status, &msg)
+			if status == "failed" {
+				task.Fail("The recording failed. "+msg, "See the recordings page.", nil)
+			} else {
+				task.Finish(nil)
+			}
+		}, "cat", "tv", "session", recSession(r.ID))
 	}
 }
 

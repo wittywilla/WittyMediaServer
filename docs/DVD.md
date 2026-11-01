@@ -96,7 +96,7 @@ cell by cell with their buttons, timers and stills, exactly as authored. The top
 - The next menu clip (e.g. intro → looping menu) is prepared while the current one plays.
 - *Settings → Playback & discs → Low-power mode for DVDs* uses cheaper deinterlacing and the fastest
   encoder preset — enough for a Raspberry Pi 4/5 or an Intel N100 to play discs in real time.
-- A hardware encoder (*Settings → Transcoding*) helps most. See [Transcoding](TRANSCODING.md).
+- A hardware encoder (*Settings → Live transcoding*) helps most. See [Transcoding](TRANSCODING.md).
 
 ## How WittyDVD works
 

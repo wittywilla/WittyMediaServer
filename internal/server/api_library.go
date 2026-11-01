@@ -189,7 +189,7 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "library not found")
 		return
 	}
-	started := s.Scanner.Start(id)
+	started := s.Scanner.StartBy(id, byUser(userFrom(r)))
 	writeJSON(w, 202, map[string]any{"started": started})
 }
 

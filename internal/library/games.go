@@ -86,6 +86,12 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		if ix.looking != nil {
 			ix.looking(i, len(files))
 		}
+		// Between files, never within one: a file not looked at must not be judged, as these
+		// verdicts are saved and believed by every scan after this one.
+		if ix.stopped != nil && ix.stopped() {
+			ix.saveVerdicts(context.Background())
+			return nil, context.Canceled
+		}
 		if hidden[strings.ToLower(filepath.Clean(f.path))] {
 			continue
 		}

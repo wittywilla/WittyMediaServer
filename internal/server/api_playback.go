@@ -171,11 +171,11 @@ func probeSource(it *library.Item, pr *ffmpeg.Probe) playback.Source {
 		src.VideoCodec = v.CodecName
 		src.VideoTag = v.CodecTag
 		src.Height = v.Height
-		src.BitDepth = bitDepth(v)
-		src.Range = videoRange(v)
-		src.Dynamic = dynamicRange(v)
-		src.Interlaced = interlaced(v)
-		src.Stereo = stereoMode(v, it.Path)
+		src.BitDepth = v.Depth()
+		src.Range = v.Range()
+		src.Dynamic = v.DynamicRange()
+		src.Interlaced = v.IsInterlaced()
+		src.Stereo = v.StereoMode(it.Path)
 		src.BitrateKbps = kbps(v.BitRate)
 		if src.BitrateKbps == 0 {
 			src.BitrateKbps = kbps(pr.Format.BitRate)
@@ -205,118 +205,6 @@ func probeSource(it *library.Item, pr *ffmpeg.Probe) playback.Source {
 func kbps(s string) int {
 	n, _ := strconv.Atoi(s)
 	return n / 1000
-}
-
-func interlaced(v *ffmpeg.Stream) bool {
-	return v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
-}
-
-func bitDepth(v *ffmpeg.Stream) int {
-	if n, _ := strconv.Atoi(v.BitsPerSample); n > 0 {
-		return n
-	}
-	switch {
-	case strings.Contains(v.PixFmt, "12"):
-		return 12
-	case strings.Contains(v.PixFmt, "10"):
-		return 10
-	}
-	return 8
-}
-
-// videoRange classes the picture: sdr, hdr10 (PQ), hlg or dv5. Dolby Vision with a base
-// layer other players can show counts as that base layer; profile 5 has none (its
-// colours come out wrong without a Dolby Vision decoder).
-func videoRange(v *ffmpeg.Stream) string {
-	for _, sd := range v.SideData {
-		if t, _ := sd["side_data_type"].(string); t != "DOVI configuration record" {
-			continue
-		}
-		if p, _ := sd["dv_profile"].(float64); p == 5 {
-			return "dv5"
-		}
-		// The base layer's kind, by the record itself when the stream tags don't say.
-		switch c, _ := sd["dv_bl_signal_compatibility_id"].(float64); c {
-		case 1, 6:
-			return "hdr10"
-		case 2:
-			return "sdr"
-		case 4:
-			return "hlg"
-		}
-	}
-	switch v.ColorTransfer {
-	case "smpte2084":
-		return "hdr10"
-	case "arib-std-b67":
-		return "hlg"
-	}
-	return "sdr"
-}
-
-// dynamicRange names what the range alone doesn't say, for the player's information.
-func dynamicRange(v *ffmpeg.Stream) string {
-	for _, sd := range v.SideData {
-		switch t, _ := sd["side_data_type"].(string); t {
-		case "DOVI configuration record":
-			p, _ := sd["dv_profile"].(float64)
-			c, _ := sd["dv_bl_signal_compatibility_id"].(float64)
-			return fmt.Sprintf("Dolby Vision profile %d.%d", int(p), int(c))
-		case "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)":
-			return "HDR10+"
-		}
-	}
-	return ""
-}
-
-// stereoMode finds a 3D picture stored in one frame, from what the file says or the
-// way such files are named.
-func stereoMode(v *ffmpeg.Stream, path string) string {
-	mode := strings.ToLower(v.Tags["stereo_mode"])
-	for _, sd := range v.SideData {
-		if t, _ := sd["side_data_type"].(string); t == "Stereo 3D" {
-			if k, ok := sd["type"].(string); ok {
-				mode = strings.ToLower(k)
-			}
-		}
-	}
-	switch {
-	case strings.Contains(mode, "side") && !strings.Contains(mode, "mono"):
-		return "sbs"
-	case strings.Contains(mode, "top") || strings.Contains(mode, "bottom"):
-		return "tab"
-	}
-	name := strings.ToLower(filepath.Base(path))
-	switch {
-	case stereoNameSBS.MatchString(name):
-		return "sbs"
-	case stereoNameTAB.MatchString(name):
-		return "tab"
-	}
-	return ""
-}
-
-var (
-	stereoNameSBS = regexp.MustCompile(`(?:^|[\s._\-\[(])(?:half-?)?(?:h-?)?sbs(?:$|[\s._\-\])])|3d[\s._-]*(?:h-?)?sbs`)
-	stereoNameTAB = regexp.MustCompile(`(?:^|[\s._\-\[(])(?:half-?)?(?:h-?)?(?:tab|ou)(?:$|[\s._\-\])])`)
-)
-
-// flattenFilter keeps the left eye of a 3D picture. A half-width pair is stretched
-// back to its proper shape; a full-width one is simply cut in two.
-func flattenFilter(mode string, width, height int) string {
-	wide := height > 0 && float64(width)/float64(height) >= 2.8
-	tall := height > 0 && float64(width)/float64(height) <= 1.1
-	switch {
-	case mode == "sbs" && wide:
-		return "crop=iw/2:ih:0:0"
-	case mode == "sbs":
-		return "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1"
-	case mode == "tab" && tall:
-		return "crop=iw:ih/2:0:0"
-	case mode == "tab":
-		return "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1"
-	}
-	return ""
 }
 
 // variantInfo fills in the master playlist's description of a stream.
@@ -475,6 +363,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this kind of item isn't played: books open with GET /api/items/{id}/book")
 		return
 	}
+	s.streams.note(r, it, out.Decision, out.Reasons, out.StreamID)
 	writeJSON(w, 200, out)
 }
 
@@ -675,7 +564,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 		if out.Flattened {
 			if v := pr.Video(); v != nil {
-				vf = strings.Trim(vf+","+flattenFilter(src.Stereo, v.Width, v.Height), ",")
+				vf = strings.Trim(vf+","+ffmpeg.FlattenFilter(src.Stereo, v.Width, v.Height), ",")
 			}
 		}
 		if d.ToneMap {

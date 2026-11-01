@@ -32,6 +32,7 @@ export function CrashBanner({ crashes, onSeen }: { crashes: Crash[]; onSeen: (id
         <Link className="btn sm" to={`?tab=crashes&crash=${encodeURIComponent(c.id)}`}>View</Link>
         <DownloadButton path={crashDownload(c.id)} name={c.id + '.txt'}>Download</DownloadButton>
         <button type="button" className="btn sm ghost" onClick={() => onSeen(c.id)}><IconCheck /> Mark as seen</button>
+        <Link className="btn sm ghost" to="?tab=bundle">Download all logs</Link>
       </div>
     </div>
   )

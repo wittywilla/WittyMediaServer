@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/backup"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/config"
@@ -65,6 +66,8 @@ func cmdServe(args []string) int {
 
 	// A reset waiting from last time happens first, before anything opens these files.
 	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
+	repairDone := reset.ApplyRepair(cfg.DataDir)
+	restoreDone := backup.Apply(backup.Folders{Data: cfg.DataDir, Images: cfg.ImagesDir})
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
@@ -95,9 +98,17 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	log.Info("ffmpeg", "path", tools.FFmpeg, "version", tools.Version)
+	if repairDone != nil {
+		if repairDone.OK {
+			log.Warn("a repaired database took over", "cat", "server", "kept", repairDone.Kept)
+		} else {
+			log.Error("a repaired database couldn't take over, and the old one is still in use", "cat", "server", "err", repairDone.Error)
+		}
+	}
 	database, err := db.Open(cfg.DataDir)
 	if err != nil {
 		log.Error("database", "err", err)
+		fmt.Fprintln(os.Stderr, "The database couldn't be opened. To find out why and repair it, run: wms doctor")
 		return 1
 	}
 	defer database.Close()
@@ -245,6 +256,14 @@ func cmdServe(args []string) int {
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr, Crashes: guard, Restart: updater.Restart,
 	}
+	if restoreDone != nil {
+		if restoreDone.OK {
+			log.Warn("a backup was restored", "cat", "server", "mode", restoreDone.Mode, "file", restoreDone.Name, "parts", strings.Join(restoreDone.Parts, ","), "safety", restoreDone.Safety)
+		} else {
+			log.Error("a backup couldn't be restored", "cat", "server", "err", restoreDone.Error)
+		}
+		srv.NoteRestore(restoreDone)
+	}
 	if resetDone != nil {
 		if resetDone.OK {
 			log.Warn("this server was reset", "cat", "server", "mode", resetDone.Mode, "copy", resetDone.Copy, "notes", resetDone.Notes)
@@ -355,6 +374,7 @@ func cmdServe(args []string) int {
 		logging.Go("discovery", func() { d.Run(ctx) }, "cat", "remote")
 	}
 	srv.WatchModules(ctx)
+	srv.StartBackupSchedule(ctx)
 	logging.Loop("update check", func() {
 		updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
 	}, "cat", "update")
@@ -384,6 +404,7 @@ func cmdServe(args []string) int {
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)
+		srv.EndStreams()
 		if err := httpServer.Shutdown(sctx); err != nil {
 			log.Info("streams still open at shutdown are being closed", "err", err)
 		}

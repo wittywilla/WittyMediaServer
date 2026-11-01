@@ -100,6 +100,25 @@
         ],
         "type": "object"
       },
+      "ActivityAccess": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "readOnly",
+          "visible"
+        ],
+        "type": "object"
+      },
       "Agent": {
         "properties": {
           "enabled": {
@@ -336,6 +355,27 @@
       },
       "BundlePreview": {
         "properties": {
+          "changed": {
+            "items": {
+              "properties": {
+                "after": {
+                  "type": "string"
+                },
+                "before": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "after",
+                "before"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "days": {
             "type": "integer"
           },
@@ -367,6 +407,12 @@
           "redact": {
             "type": "boolean"
           },
+          "replaced": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
           "sample": {
             "items": {
               "type": "string"
@@ -375,6 +421,12 @@
               "array",
               "null"
             ]
+          },
+          "sanitize": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer"
           },
           "total": {
             "type": "integer"
@@ -385,6 +437,8 @@
           "parts",
           "redact",
           "sample",
+          "sanitize",
+          "scanned",
           "total"
         ],
         "type": "object"
@@ -2293,6 +2347,37 @@
         ],
         "type": "object"
       },
+      "DriveHealthView": {
+        "properties": {
+          "bad": {
+            "type": "boolean"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mount": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked",
+          "lines",
+          "mount"
+        ],
+        "type": "object"
+      },
       "Error": {
         "properties": {
           "error": {
@@ -2988,6 +3073,68 @@
         ],
         "type": "object"
       },
+      "GameView": {
+        "properties": {
+          "core": {
+            "type": "string"
+          },
+          "droppedFrames": {
+            "type": "integer"
+          },
+          "encodeMs": {
+            "type": "number"
+          },
+          "encoder": {
+            "type": "string"
+          },
+          "gameFps": {
+            "type": "number"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kbps": {
+            "type": "number"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "sentFps": {
+            "type": "number"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "droppedFrames",
+          "encodeMs",
+          "gameFps",
+          "id",
+          "kbps",
+          "sentFps",
+          "startedAt",
+          "title",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
       "Item": {
         "properties": {
           "addedAt": {
@@ -3434,6 +3581,9 @@
               "null"
             ]
           },
+          "readOnly": {
+            "type": "boolean"
+          },
           "scanning": {
             "type": "boolean"
           },
@@ -3451,6 +3601,7 @@
           "lastScanAt",
           "name",
           "paths",
+          "readOnly",
           "scanning",
           "showMain",
           "type"
@@ -3926,6 +4077,717 @@
         ],
         "type": "object"
       },
+      "MetricSection": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "full": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "MetricsAccess": {
+        "properties": {
+          "full": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "full",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "MetricsCPU": {
+        "properties": {
+          "cores": {
+            "items": {
+              "type": "number"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "percent": {
+            "type": "number"
+          },
+          "temps": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsTemp"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "cores",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "MetricsCatalog": {
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/MetricsAccess"
+          },
+          "everySec": {
+            "type": "integer"
+          },
+          "ranges": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSection"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "series": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "access",
+          "everySec",
+          "ranges",
+          "sections",
+          "series"
+        ],
+        "type": "object"
+      },
+      "MetricsDisk": {
+        "properties": {
+          "busyPercent": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readRate": {
+            "type": "number"
+          },
+          "writeRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "readRate",
+          "writeRate"
+        ],
+        "type": "object"
+      },
+      "MetricsGPU": {
+        "properties": {
+          "celsius": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderFps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderSessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryUsed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsHistory": {
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "peak": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "stepSec": {
+            "type": "integer"
+          },
+          "times": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "to": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "series",
+          "stepSec",
+          "times",
+          "to"
+        ],
+        "type": "object"
+      },
+      "MetricsMemory": {
+        "properties": {
+          "available": {
+            "type": "integer"
+          },
+          "swapTotal": {
+            "type": "integer"
+          },
+          "swapUsed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "used": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "swapTotal",
+          "swapUsed",
+          "total",
+          "used"
+        ],
+        "type": "object"
+      },
+      "MetricsNet": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rxBytes": {
+            "type": "integer"
+          },
+          "rxErrs": {
+            "type": "integer"
+          },
+          "rxRate": {
+            "type": "number"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "txBytes": {
+            "type": "integer"
+          },
+          "txErrs": {
+            "type": "integer"
+          },
+          "txRate": {
+            "type": "number"
+          },
+          "up": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "rxBytes",
+          "rxErrs",
+          "rxRate",
+          "txBytes",
+          "txErrs",
+          "txRate",
+          "up"
+        ],
+        "type": "object"
+      },
+      "MetricsNow": {
+        "properties": {
+          "cpu": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsCPU"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disks": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsDisk"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/GameView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "gpu": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsGPU"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsMemory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleNow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "net": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsNet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "process": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsProcess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "server": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServerNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/StreamView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tasks": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "time": {
+            "type": "integer"
+          },
+          "transcodes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranscodeNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsVolume"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "time"
+        ],
+        "type": "object"
+      },
+      "MetricsProcess": {
+        "properties": {
+          "cpuPercent": {
+            "type": "number"
+          },
+          "gcPauseMs": {
+            "type": "number"
+          },
+          "goroutines": {
+            "type": "integer"
+          },
+          "handles": {
+            "type": "integer"
+          },
+          "heapAlloc": {
+            "type": "integer"
+          },
+          "heapSys": {
+            "type": "integer"
+          },
+          "numGC": {
+            "type": "integer"
+          },
+          "rss": {
+            "type": "integer"
+          },
+          "threads": {
+            "type": "integer"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpuPercent",
+          "gcPauseMs",
+          "goroutines",
+          "heapAlloc",
+          "heapSys",
+          "numGC",
+          "rss",
+          "uptimeSec"
+        ],
+        "type": "object"
+      },
+      "MetricsReport": {
+        "properties": {
+          "bandwidth": {
+            "items": {
+              "$ref": "#/components/schemas/ReportBandwidth"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "byType": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "caches": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCache"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "codecs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "database": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDatabase"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duplicates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDuplicates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generatedAt": {
+            "type": "integer"
+          },
+          "libraries": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLibrary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLogHour"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mostWatched": {
+            "items": {
+              "$ref": "#/components/schemas/ReportWatched"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "peak": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportPeak"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "savings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportSavings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scans": {
+            "items": {
+              "$ref": "#/components/schemas/ReportScan"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "byType",
+          "codecs",
+          "generatedAt",
+          "libraries",
+          "mostWatched",
+          "resolutions"
+        ],
+        "type": "object"
+      },
+      "MetricsTemp": {
+        "properties": {
+          "celsius": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "celsius",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsVolume": {
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "free": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "mount": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "free",
+          "kind",
+          "mount",
+          "total"
+        ],
+        "type": "object"
+      },
       "ModuleEvent": {
         "properties": {
           "at": {
@@ -3994,6 +4856,38 @@
           "available",
           "modules",
           "type"
+        ],
+        "type": "object"
+      },
+      "ModuleNow": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "latest": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "installed",
+          "name",
+          "version"
         ],
         "type": "object"
       },
@@ -5809,6 +6703,282 @@
         ],
         "type": "object"
       },
+      "ReportBandwidth": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "ReportCache": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bytes",
+          "files",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportCount": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "items",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportDatabase": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "walBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "walBytes"
+        ],
+        "type": "object"
+      },
+      "ReportDupe": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "copies": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "wasted": {
+            "type": "integer"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bytes",
+          "copies",
+          "title",
+          "wasted"
+        ],
+        "type": "object"
+      },
+      "ReportDuplicates": {
+        "properties": {
+          "groups": {
+            "type": "integer"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDupe"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "wastedBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "groups",
+          "top",
+          "wastedBytes"
+        ],
+        "type": "object"
+      },
+      "ReportLibrary": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "lastScanAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "id",
+          "items",
+          "missing",
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReportLogHour": {
+        "properties": {
+          "errors": {
+            "type": "integer"
+          },
+          "hour": {
+            "type": "integer"
+          },
+          "warnings": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "errors",
+          "hour",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ReportPeak": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "streams": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "type": "object"
+      },
+      "ReportSavings": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "estimatedSaved": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "estimatedSaved",
+          "items"
+        ],
+        "type": "object"
+      },
+      "ReportScan": {
+        "properties": {
+          "files": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "type": "integer"
+          },
+          "library": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "tookSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "files",
+          "finishedAt",
+          "library",
+          "state",
+          "tookSec"
+        ],
+        "type": "object"
+      },
+      "ReportWatched": {
+        "properties": {
+          "itemId": {
+            "type": "integer"
+          },
+          "people": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "people",
+          "seconds",
+          "title"
+        ],
+        "type": "object"
+      },
       "ResetCopy": {
         "properties": {
           "at": {
@@ -6011,6 +7181,35 @@
         ],
         "type": "object"
       },
+      "ServerNow": {
+        "properties": {
+          "arch": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "updateAvailable": {
+            "type": "string"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "os",
+          "uptimeSec",
+          "version"
+        ],
+        "type": "object"
+      },
       "Show": {
         "properties": {
           "addedAt": {
@@ -6147,6 +7346,72 @@
           "updatedAt",
           "view",
           "year"
+        ],
+        "type": "object"
+      },
+      "StreamView": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "fileKbps": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sendingKbps": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "where": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "decision",
+          "id",
+          "reasons",
+          "sendingKbps",
+          "startedAt",
+          "user",
+          "userId"
         ],
         "type": "object"
       },
@@ -6433,6 +7698,240 @@
         ],
         "type": "object"
       },
+      "Task": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "byId": {
+            "type": "integer"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "canPause": {
+            "type": "boolean"
+          },
+          "canResume": {
+            "type": "boolean"
+          },
+          "canRetry": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "etaSec": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "type": "integer"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "libraryName": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "percent": {
+            "type": "number"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "problemCount": {
+            "type": "integer"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/TaskProblem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rate": {
+            "type": "number"
+          },
+          "result": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "canCancel",
+          "canPause",
+          "canResume",
+          "canRetry",
+          "done",
+          "id",
+          "percent",
+          "startedAt",
+          "state",
+          "title",
+          "total",
+          "type",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "TaskList": {
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/ActivityAccess"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TaskSummary"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "access",
+          "recent",
+          "summary",
+          "tasks"
+        ],
+        "type": "object"
+      },
+      "TaskProblem": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "item": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "message"
+        ],
+        "type": "object"
+      },
+      "TaskSummary": {
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "paused": {
+            "type": "integer"
+          },
+          "percent": {
+            "type": "number"
+          },
+          "queued": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "paused",
+          "percent",
+          "queued"
+        ],
+        "type": "object"
+      },
+      "TaskUpdate": {
+        "properties": {
+          "gone": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TaskSummary"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "summary",
+          "tasks"
+        ],
+        "type": "object"
+      },
       "ThemeMeta": {
         "properties": {
           "author": {
@@ -6575,6 +8074,21 @@
           "codec",
           "index",
           "language"
+        ],
+        "type": "object"
+      },
+      "TranscodeNow": {
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "max": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "max"
         ],
         "type": "object"
       },
@@ -6763,6 +8277,616 @@
           "twoFactor"
         ],
         "type": "object"
+      },
+      "LibTranscodeFile": {
+        "properties": {
+          "estBytes": {
+            "type": "integer"
+          },
+          "estSec": {
+            "type": "number"
+          },
+          "finalPath": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "keptPath": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "part": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "properties": {
+                  "container": {
+                    "type": "string"
+                  },
+                  "encoder": {
+                    "type": "string"
+                  },
+                  "estBytes": {
+                    "type": "integer"
+                  },
+                  "estSec": {
+                    "type": "number"
+                  },
+                  "ext": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "steps": {
+                    "items": {
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "from",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "verdict": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "container",
+                  "estBytes",
+                  "estSec",
+                  "ext",
+                  "notes",
+                  "reason",
+                  "steps",
+                  "verdict",
+                  "warnings"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "integer"
+          },
+          "sizeAfter": {
+            "type": "integer"
+          },
+          "sizeBefore": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estBytes",
+          "estSec",
+          "id",
+          "itemId",
+          "part",
+          "path",
+          "reason",
+          "runId",
+          "sizeAfter",
+          "sizeBefore",
+          "state",
+          "verdict"
+        ],
+        "type": "object"
+      },
+      "LibTranscodeRun": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "dry": {
+            "type": "boolean"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "output": {
+            "type": "string"
+          },
+          "policy": {
+            "properties": {
+              "audio": {
+                "properties": {
+                  "accept": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "addStereo": {
+                    "type": "boolean"
+                  },
+                  "codec": {
+                    "type": "string"
+                  },
+                  "commentary": {
+                    "type": "string"
+                  },
+                  "default": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "keep": {
+                    "type": "string"
+                  },
+                  "keepOriginal": {
+                    "type": "boolean"
+                  },
+                  "languages": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "lossless": {
+                    "type": "string"
+                  },
+                  "maxChannels": {
+                    "type": "integer"
+                  },
+                  "objects": {
+                    "type": "string"
+                  },
+                  "stereoFirst": {
+                    "type": "boolean"
+                  },
+                  "untagged": {
+                    "type": "string"
+                  },
+                  "untaggedAs": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accept",
+                  "addStereo",
+                  "codec",
+                  "commentary",
+                  "default",
+                  "description",
+                  "keep",
+                  "keepOriginal",
+                  "languages",
+                  "lossless",
+                  "maxChannels",
+                  "objects",
+                  "stereoFirst",
+                  "untagged",
+                  "untaggedAs"
+                ],
+                "type": "object"
+              },
+              "container": {
+                "type": "string"
+              },
+              "preset": {
+                "type": "string"
+              },
+              "subtitles": {
+                "properties": {
+                  "forced": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "type": "string"
+                  },
+                  "keep": {
+                    "type": "string"
+                  },
+                  "languages": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sdh": {
+                    "type": "string"
+                  },
+                  "sidecars": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "untagged": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "forced",
+                  "images",
+                  "keep",
+                  "languages",
+                  "sdh",
+                  "sidecars",
+                  "text",
+                  "untagged"
+                ],
+                "type": "object"
+              },
+              "video": {
+                "properties": {
+                  "accept": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "codec": {
+                    "type": "string"
+                  },
+                  "constantRate": {
+                    "type": "boolean"
+                  },
+                  "deinterlace": {
+                    "type": "boolean"
+                  },
+                  "dolbyVision": {
+                    "type": "string"
+                  },
+                  "eightBit": {
+                    "type": "boolean"
+                  },
+                  "extraVideo": {
+                    "type": "string"
+                  },
+                  "hdr": {
+                    "type": "string"
+                  },
+                  "maxHeight": {
+                    "type": "integer"
+                  },
+                  "minSavingPercent": {
+                    "type": "integer"
+                  },
+                  "quality": {
+                    "type": "integer"
+                  },
+                  "skipBelowKbps": {
+                    "type": "integer"
+                  },
+                  "speed": {
+                    "type": "string"
+                  },
+                  "threeD": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accept",
+                  "codec",
+                  "constantRate",
+                  "deinterlace",
+                  "dolbyVision",
+                  "eightBit",
+                  "extraVideo",
+                  "hdr",
+                  "maxHeight",
+                  "minSavingPercent",
+                  "quality",
+                  "skipBelowKbps",
+                  "speed",
+                  "threeD"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "audio",
+              "container",
+              "preset",
+              "subtitles",
+              "video"
+            ],
+            "type": "object"
+          },
+          "state": {
+            "type": "string"
+          },
+          "summary": {
+            "properties": {
+              "bytesAfter": {
+                "type": "integer"
+              },
+              "bytesBefore": {
+                "type": "integer"
+              },
+              "changed": {
+                "type": "integer"
+              },
+              "convert": {
+                "type": "integer"
+              },
+              "done": {
+                "type": "integer"
+              },
+              "drives": {
+                "items": {
+                  "properties": {
+                    "enough": {
+                      "type": "boolean"
+                    },
+                    "folder": {
+                      "type": "string"
+                    },
+                    "free": {
+                      "type": "integer"
+                    },
+                    "needs": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "enough",
+                    "folder",
+                    "free",
+                    "needs"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "estBytes": {
+                "type": "integer"
+              },
+              "estSec": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "files": {
+                "type": "integer"
+              },
+              "needsBytes": {
+                "type": "integer"
+              },
+              "notWorth": {
+                "type": "integer"
+              },
+              "postponed": {
+                "type": "integer"
+              },
+              "refuse": {
+                "type": "integer"
+              },
+              "remux": {
+                "type": "integer"
+              },
+              "skip": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "bytesAfter",
+              "bytesBefore",
+              "changed",
+              "convert",
+              "done",
+              "estBytes",
+              "estSec",
+              "failed",
+              "files",
+              "needsBytes",
+              "notWorth",
+              "postponed",
+              "refuse",
+              "remux",
+              "skip"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "createdAt",
+          "dry",
+          "id",
+          "libraryId",
+          "output",
+          "policy",
+          "state",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "LibTranscodeSettings": {
+        "properties": {
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "hoursFrom": {
+            "type": "integer"
+          },
+          "hoursOn": {
+            "type": "boolean"
+          },
+          "hoursTo": {
+            "type": "integer"
+          },
+          "lowPriority": {
+            "type": "boolean"
+          },
+          "maxJobs": {
+            "type": "integer"
+          },
+          "minFreeGb": {
+            "type": "integer"
+          },
+          "pauseWhileStreaming": {
+            "type": "boolean"
+          },
+          "threads": {
+            "type": "integer"
+          },
+          "useHardware": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "acknowledged",
+          "enabled",
+          "hoursFrom",
+          "hoursOn",
+          "hoursTo",
+          "lowPriority",
+          "maxJobs",
+          "minFreeGb",
+          "pauseWhileStreaming",
+          "threads",
+          "useHardware"
+        ],
+        "type": "object"
+      },
+      "TdarrSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "keySet": {
+            "type": "boolean"
+          },
+          "mappings": {
+            "items": {
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "libraryId": {
+                  "type": "integer"
+                },
+                "tdarrId": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "libraryId",
+                "tdarrId",
+                "to"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "keySet",
+          "mappings",
+          "url"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -6785,7 +8909,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.6.0"
+    "version": "1.8.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7117,6 +9241,399 @@
         "summary": "One artwork candidate as an image.",
         "tags": [
           "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup": {
+      "get": {
+        "operationId": "getBackup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/cancel": {
+      "post": {
+        "operationId": "postBackupCancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Stop what's running. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/create": {
+      "post": {
+        "operationId": "postBackupCreate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a backup: `{parts, password}`. With no password, secrets are left out.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/download": {
+      "get": {
+        "operationId": "getBackupDownload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/estimate": {
+      "get": {
+        "operationId": "getBackupEstimate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "About how large each part of a backup is, before compression.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/files/{name}": {
+      "delete": {
+        "operationId": "deleteBackupFilesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a backup kept on this server.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/files/{name}/link": {
+      "post": {
+        "operationId": "postBackupFilesNameLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A short-lived address to download a backup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/restore/inspect": {
+      "post": {
+        "operationId": "postBackupRestoreInspect",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/request": {
+      "delete": {
+        "operationId": "deleteBackupRestoreRequest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Take back a restore that's waiting for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/start": {
+      "post": {
+        "operationId": "postBackupRestoreStart",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Bring a checked archive back: `{parts, confirm: \"RESTORE\", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/upload": {
+      "post": {
+        "operationId": "postBackupRestoreUpload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/schedule": {
+      "put": {
+        "operationId": "putBackupSchedule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/undo": {
+      "post": {
+        "operationId": "postBackupUndo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put back what the last restore replaced: `{copy, password, code}`. The server restarts.",
+        "tags": [
+          "Server"
         ],
         "x-wms-auth": "admin"
       }
@@ -20680,6 +23197,134 @@
         "x-wms-auth": "admin"
       }
     },
+    "/metadata-folder": {
+      "get": {
+        "description": "Where it is, what's in it and how the export is going. No route here takes a path.",
+        "operationId": "getMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The editable metadata folder"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The editable metadata folder",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/apply": {
+      "post": {
+        "description": "Makes the changes in one batch that POST /meta/undo takes back. A bad file is listed and left out.",
+        "operationId": "applyMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Apply the files"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply the files",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/export": {
+      "post": {
+        "description": "Writes a plain text file for each title, in the background. Never deletes, and never writes over edits that haven't been applied.",
+        "operationId": "exportMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Write the files"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Write the files",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/preview": {
+      "get": {
+        "description": "Field by field, with every problem by file and line. Writes nothing.",
+        "operationId": "previewMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What applying would change"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What applying would change",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/metadata/test": {
       "post": {
         "operationId": "postMetadataTest",
@@ -25299,6 +27944,165 @@
         "x-wms-auth": "admin"
       }
     },
+    "/repair": {
+      "get": {
+        "operationId": "getRepair",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What's running, the last report, what fixes did, and the safety copies kept.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/check": {
+      "post": {
+        "operationId": "postRepairCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look for problems, changing nothing.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/fix": {
+      "post": {
+        "operationId": "postRepairFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run fixes from the last report. Anything that changes data needs the password again.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/remap": {
+      "post": {
+        "operationId": "postRepairRemap",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library's folder moved: say what would change, or do it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/restart": {
+      "post": {
+        "operationId": "postRepairRestart",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "description": "Restarting."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restart, for a fix that waits for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/reset": {
       "get": {
         "operationId": "getReset",
@@ -27316,6 +30120,610 @@
           }
         ],
         "summary": "Host, FFmpeg and hardware encoder details.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/metrics": {
+      "get": {
+        "operationId": "getSystemMetrics",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsCatalog"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What statistics this server can show, and what this account may see.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/drives": {
+      "get": {
+        "operationId": "getSystemMetricsDrives",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "drives": {
+                      "items": {
+                        "$ref": "#/components/schemas/DriveHealthView"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Each disk's health, where the system will say. Kept for ten minutes.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/metrics/history": {
+      "get": {
+        "operationId": "getSystemMetricsHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "series",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsHistory"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Charts' worth of numbers. Administrators only, whichever the account's sign-in.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/now": {
+      "get": {
+        "operationId": "getSystemMetricsNow",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsNow"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One reading of the statistics.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/report": {
+      "get": {
+        "operationId": "getSystemMetricsReport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "fresh",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Libraries, what's in them, and what's gone on.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/stream": {
+      "get": {
+        "operationId": "streamSystemMetrics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "An event stream."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events: a reading every two seconds. See STATS.md.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks": {
+      "get": {
+        "operationId": "getSystemTasks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskList"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Background work going on now, and what finished lately, as this account may see it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/history": {
+      "delete": {
+        "operationId": "clearSystemTaskHistory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets the history. What is still going stays.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getSystemTaskHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "tasks": {
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finished tasks, newest first.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/history/{id}": {
+      "delete": {
+        "operationId": "deleteSystemTaskHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets one finished task.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/stream": {
+      "get": {
+        "operationId": "streamSystemTasks",
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "An event stream."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events: a snapshot, then what changes. See TASKS.md.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/{id}/cancel": {
+      "post": {
+        "operationId": "cancelSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a task to stop.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/pause": {
+      "post": {
+        "operationId": "pauseSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a task to pause at its next step.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/resume": {
+      "post": {
+        "operationId": "resumeSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lets a paused task carry on.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/retry": {
+      "post": {
+        "operationId": "retrySystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starts a failed or cancelled task again.",
         "tags": [
           "Server"
         ],
@@ -29489,6 +32897,712 @@
         ],
         "x-wms-auth": "admin"
       }
+    },
+    "/libtranscode/files/{id}/leftover": {
+      "delete": {
+        "operationId": "deleteLibTranscodeLeftover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes a kept original or an unused copy, for good",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/files/{id}/undo": {
+      "post": {
+        "operationId": "undoLibTranscodeFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Puts the original back",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/files/{id}/use-copy": {
+      "post": {
+        "operationId": "useLibTranscodeCopy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Puts a converted copy into use, keeping the original",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/leftovers": {
+      "get": {
+        "operationId": "listLibTranscodeLeftovers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Kept originals and converted copies waiting for a decision",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries": {
+      "get": {
+        "operationId": "listLibTranscodeLibraries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Libraries that hold video files, each with its recipe and anything stopping it",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}": {
+      "put": {
+        "operationId": "putLibTranscodeLibrary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves a library's recipe, what happens to old files, and whether it's read-only",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/items": {
+      "get": {
+        "operationId": "listLibTranscodeItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finds files to try a recipe on",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/preview": {
+      "post": {
+        "operationId": "previewLibTranscode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a recipe would do to one file, track by track. Changes nothing",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/runs": {
+      "post": {
+        "operationId": "startLibTranscodeRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starts a run. dry: true looks at every file and changes nothing",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/sample": {
+      "post": {
+        "operationId": "sampleLibTranscode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Really converts 20 seconds into the server's cache, and measures it",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/options": {
+      "get": {
+        "operationId": "getLibTranscodeOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Presets, and what this machine's FFmpeg can do",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs": {
+      "get": {
+        "operationId": "listLibTranscodeRuns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent runs, newest first",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs/{id}": {
+      "get": {
+        "operationId": "getLibTranscodeRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One run",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs/{id}/files": {
+      "get": {
+        "operationId": "listLibTranscodeRunFiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A run's files and what became of each",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/settings": {
+      "get": {
+        "operationId": "getLibTranscodeSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How conversions run on this server",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putLibTranscodeSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes that. Turning it on needs the warning accepted",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr": {
+      "get": {
+        "operationId": "getTdarrSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The connection to a separately installed Tdarr. The API key is never sent back",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putTdarrSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes that",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr/send": {
+      "post": {
+        "operationId": "sendToTdarr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hands a library's files to Tdarr",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr/test": {
+      "post": {
+        "operationId": "testTdarr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a Tdarr server about itself, without saving anything",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
     }
   },
   "security": [
@@ -29557,6 +33671,10 @@
     {
       "description": "Editing titles, fixing matches, browsing by anything, logos and streaming listings. See METADATA.md.",
       "name": "Metadata"
+    },
+    {
+      "description": "Converting a library's files ahead of time, and connecting a separately installed Tdarr.",
+      "name": "Library transcoding"
     }
   ]
 }

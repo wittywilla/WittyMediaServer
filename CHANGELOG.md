@@ -17,6 +17,32 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Library transcoding.** Convert a library's files ahead of time, under **Settings, Library transcoding**. Three plain presets (play on any
+  device, save space, keep the best quality), with every detail open to change: sound tracks and subtitles by language, commentary, audio description, a
+  stereo track beside surround, lossless and object sound, forced and picture subtitles, HDR, Dolby Vision, 3D, files with several pictures, and more. A
+  preview says what becomes of each track of a file, a dry run says what becomes of a whole library, and a 20-second test measures this machine. Each new file is checked before
+  anything happens to the old one, which you can keep, replace or leave in use, and put back later. What's been watched and your edits stay. It's off until you've read how
+  it affects streaming, and can hold still while people watch or outside chosen hours. Copy-protected files are refused. It shows in the activity panel, with pause, cancel and retry. See
+  [the guide](docs/LIBRARY-TRANSCODING.md).
+- **Connect your own Tdarr.** See its nodes and what they're working on in the activity panel, and hand it libraries, over its documented API. Tdarr is a separate program under its own
+  licence, and isn't included.
+- **The Transcoding page** is now **Live transcoding**, to tell it apart. Its controls have been checked, its text made plain, and a claim that a resolution limit leaves direct play alone,
+  which wasn't true, put right.
+- **Libraries can be read-only**: nothing the server does may change their files.
+
+- **An activity button in the top bar.** A ring and a count show library scans and other background work as they happen, and it
+  stays quiet when nothing is going on. Its panel lists each task library by library, with the file being worked on, the speed, the
+  time left, and pause, resume, cancel and try again. A history keeps what finished, with errors that say what happened and what
+  to do. It works from the keyboard and with a remote, and is a sheet on phones. Administrators can hide it for themselves, and
+  the owner can turn it off or give others a read-only view with no file names and nobody else's details, in **Settings, Activity**.
+- **One place for background work.** Scans, game details, logos, streaming listings, match suggestions, radio checks, module installs,
+  server updates, the TV guide, channel scans, recordings, WittyDiagnoser and transcodes all report to it, live, with no polling.
+  Modules can report too, and apps can follow it through the API: see `docs/TASKS.md`.
+- **Server statistics, and the WittyStats module.** A screen you arrange yourself: processor per core, memory, graphics, each disk,
+  each network connection, the server itself, who is watching what and why it's converting, what's in your libraries, duplicates, scan times, the
+  log over time and more. Add, move and resize widgets by drag or by keyboard, keep several layouts, or go back to stock. Any chart can
+  be a table, and any widget opens into more detail with CSV and JSON export. The server only samples while someone is looking, and keeps a
+  small history for charts. Apps get the same numbers: see `docs/STATS.md`.
 - **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
 
 - **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
@@ -60,6 +86,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ### Fixed
 
+- A quick press on a controller could be lost in the menus, in a game's menu as much as anywhere, if the browser happened to hold back
+  its drawing for a moment. Controllers are now read on a timer of their own, which costs less, since no frames are asked for just to
+  read them. Buttons still held as a game's menu opens are no longer taken for presses in that menu.
+- A game's screenshots never showed on a server reached over plain http, or in an app that signs in with a token.
+- The console logo for the NES could be its Japanese counterpart's. A logo in English, or marked as preferred, now comes first.
+- On a game's page, the first key pressed could move the focus to the Play button rather than doing what it was pressed for.
 - In Settings, scrolling with the pointer over the menu moved the page beside it. The menu now scrolls by itself.
 - With internet radio or music playing, the account menu could open behind the audio bar, and the mini player could cover dialogs. Everything over the page now has one stacking order.
 
@@ -101,6 +133,20 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **A library's header stays in view** as you scroll, with its name, sort and Filters.
 - **Arrow keys and a remote reach everything** in the edit dialog, Fix matches and Pick in player, and carry on from nearby when the button you pressed goes away.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+### Backups, repair and logs
+
+- **Backup and restore:** *Settings → Backup* and `wms backup` make one ZIP of your database, settings, metadata, artwork, accounts, watch history, channels, game saves and module settings, with a tick for each, and a size estimate first. It runs in the background while the server carries on, and shows in the activity panel. Your media is never in it, and neither is any program.
+- **Real encryption:** a password seals the whole backup with AES-256-GCM, with the key made by Argon2id, and brings your API keys and two-factor sign-in along. With no password, secrets are left out.
+- **Scheduled backups:** every day or week, keeping the newest few.
+- **Restore,** from Settings, the command line, or first-time setup, so a reset no longer means setting everything up again. An archive is treated as hostile: every file is checked first, and anything that tries to leave its folder, a link, a ZIP bomb, a program, a picture that isn't one or a tampered database is refused, saying why. It shows who could sign in and which folders it would use before you agree. What's there now moves to a safety copy, goes back by itself if anything fails, and can be put back later. Every sign-in ends, on purpose.
+- **Metadata files:** *Settings → Repair → Metadata files* writes a plain text file for each film, show, episode, disc, home video, book and game, to fix by hand in any text editor. It shows what your edits would change, field by field, before anything does. Anything wrong is named by file and line, and one bad file doesn't hold up the rest. Changes lock themselves and can be undone in one step. A picture can be dropped beside a file. It works from the command line too, with the server stopped: `wms metadata export|check|apply|undo`. Guide: `docs/FIXING-METADATA.md`, and in the app.
+- **Safer metadata files:** everything read from an NFO, `.metadata.json`, `.info.json`, `.wittycd.json`, or a book's or comic's own details is limited in size and cleaned to plain text: no HTML, scripts, hidden characters or file addresses. `DOCTYPE` and `ENTITY` declarations are refused, and links that lead out of a folder aren't followed. Problems name the file and the line.
+- **Repair:** *Settings → Repair* and `wms doctor` find and fix problems with metadata, the database, modules and the install, on every platform, even when the server won't start. Each finding says what it found, what the fix does, and whether it's safe. It only looks until you say so, and a safety copy is made before anything changes.
+- **A damaged database can be recovered:** a new one is built from everything that can still be read, it says what couldn't be saved, and the damaged file is kept.
+- **Moved a drive?** `wms doctor remap` or *Settings → Repair* changes where the server looks, after checking the files are really there. Watch progress, matches and edits stay.
+- **Sanitized logs:** *Settings → WittyLog* has **Download logs as ZIP**, with **Sanitize for sharing** right beside it, on by default. IP addresses, computer and web names, network card addresses, account names, emails, file paths, folders, library names and titles become placeholders such as `[path-3]`, the same number all through the file, so a problem can still be followed. It shows the files, how much is replaced, and lines before and after, first. Versions, codecs, status codes, timings, routes and errors stay.
+- **`wms logs zip` and `wms logs sanitize`:** the same with no server running, even with a broken database.
+- **Getting to the logs:** every WittyLog tab, a page that fails to load, a crash notice and the page shown when the app itself hits an error now link to the download.
 ### Games
 
 - **A new home for your games.** A hero of covers on a shiny floor with the page tinted by the cover at the front, Continue
@@ -119,6 +165,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Settings, Consoles & cores** now starts with the consoles you have games for, whether each is ready, and the one thing to do
   if it isn't. There's a button to install every recommended core at once. Everything else is under Advanced.
 - Game PCs and gaming PC libraries match the rest, and a gaming PC's library is no longer limited to 500 games.
+- **Controllers and My game settings look like the rest of the app**, on every width: tabs, chips and cards from the app's own set,
+  button prompts, and larger targets on a phone or from across the room. Choosing a console is a row of chips rather than a drop-down
+  list, which a remote can use.
 
 ### Music
 

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -281,11 +282,28 @@ func (s *Server) handleCrashDelete(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- the support bundle
 
+// bundleSanitized: what's made for handing to someone is sanitized unless asked otherwise.
+// sanitize=0 turns it off; redact is its earlier name.
+func bundleSanitized(r *http.Request) bool {
+	q := r.URL.Query()
+	if q.Has("sanitize") {
+		return qBool(r, "sanitize")
+	}
+	if q.Has("redact") {
+		return qBool(r, "redact")
+	}
+	return true
+}
+
 func (s *Server) bundleOptions(r *http.Request) logging.BundleOptions {
-	o := logging.BundleOptions{Days: qInt(r, "days", 3), Redact: qBool(r, "redact")}
-	if libs, err := s.Store.Libraries(r.Context()); err == nil {
-		for _, l := range libs {
-			o.Roots = append(o.Roots, l.Paths...)
+	o := logging.BundleOptions{Days: qInt(r, "days", 3), Sanitize: bundleSanitized(r)}
+	if o.Sanitize {
+		o.Known = logging.KnownFromDB(r.Context(), s.DB)
+		if s.Cfg != nil {
+			o.Known.Folders = append(o.Known.Folders, s.Cfg.DataDir, s.Cfg.CacheDir, s.Cfg.TranscodeDir, s.Cfg.ImagesDir, s.Cfg.LogDir, s.Cfg.ConfigFile, config.ProgramDir())
+			if s.Cfg.PublicURL != "" {
+				o.Known.Hosts = append(o.Known.Hosts, s.Cfg.PublicURL)
+			}
 		}
 	}
 	if b, err := json.MarshalIndent(s.SystemSummary(r.Context()), "", "  "); err == nil {
@@ -297,20 +315,24 @@ func (s *Server) bundleOptions(r *http.Request) logging.BundleOptions {
 	return o
 }
 
-// GET /api/logs/bundle/preview (admin): what the bundle would hold. days, redact.
+// GET /api/logs/bundle/preview (admin): what the bundle would hold, with a sample of how it
+// will read and how much sanitizing changes. days, sanitize.
 func (s *Server) handleBundlePreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.Logs.Preview(s.Crashes, s.bundleOptions(r)))
 }
 
 // GET /api/logs/bundle (admin): the zip. It is made on request, and nothing is
-// sent anywhere but to whoever asked. days, redact.
+// sent anywhere but to whoever asked. days, sanitize.
 func (s *Server) handleBundle(w http.ResponseWriter, r *http.Request) {
-	name := "wittymediaserver-support-" + time.Now().Format("2006-01-02-150405") + ".zip"
+	o := s.bundleOptions(r)
+	name := "wittymediaserver-logs-" + time.Now().Format("2006-01-02-150405") + ".zip"
+	if o.Sanitize {
+		name = "wittymediaserver-logs-sanitized-" + time.Now().Format("2006-01-02-150405") + ".zip"
+	}
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
 	w.Header().Set("Cache-Control", "no-store")
-	o := s.bundleOptions(r)
-	s.Log.InfoContext(r.Context(), "support bundle made", "days", o.Days, "redacted", o.Redact)
+	s.Log.InfoContext(r.Context(), "support bundle made", "days", o.Days, "sanitized", o.Sanitize)
 	if err := s.Logs.WriteBundle(w, s.Crashes, o); err != nil {
 		// The zip has started: all that's left is to end it broken, and say why here.
 		s.Log.WarnContext(r.Context(), "support bundle stopped", "err", err)

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -174,6 +175,7 @@ type moduleState struct {
 }
 
 type entry struct {
+	task    *tasks.Handle // the install going on, in the activity panel
 	// builtin is what's known of it with no version on this server. For a module, absent says
 	// that's all it is: the name and purpose from a catalogue, which is never run. Only the
 	// parts of the server have a copy that's really built in.

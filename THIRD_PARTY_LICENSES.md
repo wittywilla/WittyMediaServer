@@ -13,6 +13,12 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | libx264 (inside FFmpeg) | GPL-2.0-or-later | <https://www.videolan.org/developers/x264.html> |
 | LAME, Opus (inside FFmpeg) | LGPL-2.1 / BSD-3-Clause | |
 
+## Connected to, never included
+
+| Component | Licence | Notes |
+|---|---|---|
+| **Tdarr** (server and nodes) | Proprietary: [Tdarr's EULA](https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md) | Not bundled, downloaded or run by this project. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin (its plugins are GPL-3.0) is included. See [docs/LIBRARY-TRANSCODING.md](docs/LIBRARY-TRANSCODING.md). |
+
 ## Go modules (statically linked)
 
 | Module | Licence |

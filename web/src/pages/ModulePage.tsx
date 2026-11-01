@@ -1,6 +1,6 @@
 import { Suspense, useMemo, type ComponentType, type LazyExoticComponent } from 'react'
 import { useParams } from 'react-router-dom'
-import { api, getToken } from '../api'
+import { api, getToken, serverBase } from '../api'
 import { lazyModule } from '../moduleBundles'
 import { useApp } from '../state'
 import { Spinner } from '../components/common'
@@ -54,7 +54,7 @@ export default function ModulePage() {
       set: async (key, value) => { await api.put(`/module-store/${module}/${encodeURIComponent(key)}`, value) },
     },
     token: getToken,
-    base: () => '',
+    base: serverBase,
   }), [module, admin])
   if (!WORD.test(module) || !WORD.test(page)) return null
   const Page = pageOf(module, page)

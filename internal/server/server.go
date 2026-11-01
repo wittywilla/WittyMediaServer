@@ -27,11 +27,14 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 )
@@ -53,9 +56,32 @@ type Server struct {
 	Themes   *themes.Manager
 	Web      fs.FS
 	Version  string
-	Logs     *logging.Logger
-	Crashes  *logging.CrashGuard // crash reports; nil when they can't be kept
-	logMods  logModules          // how each module is logged
+	// Tasks is every background job; see api_tasks.go. Made in Handler.
+	Tasks *tasks.Registry
+	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
+	LibConvert               *libtranscode.Engine
+	taskStore                *tasks.SQLStore
+	taskStreams              taskStreamCounts
+	streamEnd, streamEndInit sync.Once
+	streamEndCh              chan struct{}
+	// Metrics watches the machine; see api_metrics.go. Made in Handler.
+	Metrics       *metrics.Collector
+	gpus          metrics.GPUReader
+	streams       streamTracker
+	metricStreams taskStreamCounts
+	reports       reportCache
+	driveHealth   struct {
+		sync.Mutex
+		at   time.Time
+		list []DriveHealthView
+	}
+	Logs    *logging.Logger
+	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods logModules          // how each module is logged
+	// metaFolder is the editable metadata folder's export, running or last run.
+	metaFolder metaFolderJob
+	repair     repairState // Settings, Repair
+	backup     backupState // Settings, Backup
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -132,6 +158,7 @@ func tokenFrom(r *http.Request) string {
 // StartMetadata wakes the services that follow scans, and brings in anything added
 // before they existed. The server's own start calls it once.
 func (s *Server) StartMetadata() {
+	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
@@ -410,6 +437,10 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/modules/{id}/web/{version}/{path...}", s.requireUser(s.handleModuleWebFile))
 	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
 	s.remoteRoutes(m)
+	s.taskRoutes(m)
+	s.streams.init(s)
+	s.libTranscodeRoutes(m)
+	s.metricsRoutes(m)
 
 	// WittyPhotos
 	m.Handle("GET /api/photos/months", a(s.handlePhotoMonths))
@@ -499,12 +530,16 @@ func (s *Server) Handler() http.Handler {
 	s.gameRoutes(s.needing("wittyplay", m))
 	if s.GameMeta == nil {
 		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
+		s.GameMeta.Tasks = s.Tasks
 	}
 	s.gameMetaRoutes(m)
 	s.rigRoutes(s.needing("wittycouch", m))
 	s.couchRoutes(s.needing("wittycouch", m))
 	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
+	s.metaFolderRoutes(m)
+	s.repairRoutes(m)
+	s.backupRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

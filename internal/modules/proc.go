@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -51,7 +52,9 @@ type proc struct {
 	strict   bool                     // refuse to run without its sandbox: a fork, whose only limits these are
 	launch   string                   // the program that applies limits before it runs; "" for none
 	keep     bool                     // not stopped when idle: it holds state for a job
-	timeout  time.Duration            // for one call; 0 is callTimeout
+	// background: a kept helper that reports tasks between calls, and so can't stream.
+	background bool
+	timeout    time.Duration // for one call; 0 is callTimeout
 
 	mu      sync.Mutex
 	cmd     *exec.Cmd
@@ -66,6 +69,7 @@ type proc struct {
 
 	notify    func(method string, params json.RawMessage) // hears what the helper says unasked
 	listening bool
+	reporter  *tasks.Reporter // its task reports; see tasks.go
 }
 
 func newProc(man *wittymodule.Manifest, dir string, verify func() error, log *slog.Logger) *proc {
@@ -79,8 +83,16 @@ func (p *proc) setNotify(fn func(method string, params json.RawMessage)) {
 	defer p.mu.Unlock()
 	p.notify = fn
 	if p.conn != nil && !p.listening {
-		p.conn.OnNotify = fn
-		p.conn.Listen()
+		tasksHeard := p.conn.OnNotify
+		p.conn.OnNotify = func(method string, params json.RawMessage) {
+			if tasksHeard != nil {
+				tasksHeard(method, params)
+			}
+			fn(method, params)
+		}
+		if !p.background {
+			p.conn.Listen()
+		}
 		p.listening = true
 	}
 }
@@ -274,10 +286,20 @@ func (p *proc) start() error {
 		release()
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}
+	p.hearTasks(conn)
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.started = cmd, stdin, stdout, conn, release, t, started
 	if p.notify != nil {
-		conn.OnNotify = p.notify
-		conn.Listen()
+		// Beside the tasks it reports: what it says goes to each, and they know their own.
+		tasksHeard, heard := conn.OnNotify, p.notify
+		conn.OnNotify = func(method string, params json.RawMessage) {
+			if tasksHeard != nil {
+				tasksHeard(method, params)
+			}
+			heard(method, params)
+		}
+		if !p.background {
+			conn.Listen()
+		}
 		p.listening = true
 	}
 	p.log.Debug("helper started", "topic", "lifecycle", "version", p.man.Version, "sandboxed", sandboxed)
@@ -322,6 +344,7 @@ func (p *proc) halt(why string) {
 		<-done
 	}
 	logging.ChildExit(p.log, "module helper", werr, false, p.stderr, p.started, "topic", "lifecycle", "why", why, "version", p.man.Version)
+	p.endTasks(why)
 	p.release()
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil, nil
 }

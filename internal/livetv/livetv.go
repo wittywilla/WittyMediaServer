@@ -21,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
@@ -124,6 +125,9 @@ func secretFields(ctx context.Context, driver string, options map[string]string)
 
 // Manager owns the running sources.
 type Manager struct {
+	// Tasks is where guide updates, channel scans and recordings show in the activity
+	// panel. May be nil.
+	Tasks *tasks.Registry
 	DB    *db.DB
 	Tools *ffmpeg.Tools
 	Log   *slog.Logger
@@ -524,13 +528,17 @@ func (m *Manager) StartScan(id int64, source string) error {
 	ctx = logging.WithSession(ctx, session)
 	log := m.tunerLog().With("topic", "tuner", "tuner", id)
 	log.InfoContext(ctx, "channel scan started")
+	task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeGuide, Title: "Finding channels on a tuner", Cancel: cancel, AdminOnly: true})
 	logging.Go("channel scan", func() {
 		defer cancel()
 		ch, err := s.Scan(ctx, tuner.ScanOptions{Source: source}, func(p tuner.Progress) {
 			m.mu.Lock()
 			st.Percent, st.Found, st.Message = p.Percent, p.Found, p.Message
 			m.mu.Unlock()
+			task.Progress(int64(p.Percent), 100)
+			task.Phase(p.Message)
 		})
+		defer func() { task.Finish(err) }()
 		added := 0
 		if err == nil && ch != nil {
 			added, err = m.saveChannels(context.Background(), id, ch)

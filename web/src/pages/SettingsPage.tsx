@@ -5,7 +5,7 @@ import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibr
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
-import { IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
+import { IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -27,9 +27,13 @@ import { Segmented } from '../ui/Choice'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
+const ActivitySettings = lazy(() => import('./settings/Activity'))
+const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
+const BackupSettings = lazy(() => import('./settings/Backup'))
+const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
@@ -56,13 +60,15 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
     { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
-    { to: 'transcoding', label: 'Transcoding', icon: <IconFilm />, admin: true, hint: 'Quality, hardware and formats' },
+    { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
+    { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
   { title: 'You', pages: [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
     { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
+    { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
@@ -70,9 +76,11 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
-    { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
+    { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
+    { to: 'backup', label: 'Backup', icon: <IconDownload />, admin: true, hint: 'A ZIP of your data and metadata, on demand or on a schedule, and bringing one back' },
+    { to: 'repair', label: 'Repair', icon: <IconWrench />, admin: true, hint: 'Finds and fixes problems with metadata, the database, modules and this install' },
     { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
     { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
@@ -149,14 +157,19 @@ export default function SettingsPage() {
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
-          <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
+          <Route path="transcoding" element={<TranscodeSettings />} />
+          <Route path="library-transcoding" element={<Suspense fallback={null}><LibraryTranscoding /></Suspense>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />
-          <Route path="logs" element={<><PageHead title="WittyLog" desc="Logs and privacy: what the server records, and for how long. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
+          <Route path="logs" element={<><PageHead title="WittyLog" desc="What the server records and for how long, and the logs as a ZIP to share, sanitized if you want. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
+          <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
+          <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
+          <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
+          <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />

@@ -18,6 +18,7 @@ import (
 	wittycd "github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/cdlookup"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+
 )
 
 // CD images. A disc is one item (kind cd-image), which is what a shelf shows and
@@ -204,17 +205,12 @@ func cdSidecarPath(image string) string {
 }
 
 func readCDSidecar(image string) *cdSidecar {
-	p := cdSidecarPath(image)
-	st, err := os.Stat(p)
-	if err != nil || st.Size() > 1<<20 {
-		return nil
-	}
-	b, err := os.ReadFile(p)
-	if err != nil {
-		return nil
-	}
 	var sc cdSidecar
-	if json.Unmarshal(b, &sc) != nil || sc.Title == "" {
+	if !readSidecarJSON(cdSidecarPath(image), 1<<20, &sc) {
+		return nil
+	}
+	sc.clean()
+	if sc.Title == "" {
 		return nil
 	}
 	return &sc

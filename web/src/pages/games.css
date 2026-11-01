@@ -39,7 +39,7 @@
 .gm-shots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 44%), 1fr)); gap: var(--sp-2); }
 .gm-shots button { display: block; width: 100%; padding: 0; border: 0; background: var(--bg-3); border-radius: var(--r-md); overflow: hidden; cursor: pointer; }
 .gm-shots img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; image-rendering: pixelated; }
-.gm-shot-modal { max-width: min(900px, 96vw); }
+.modal.gm-shot-modal { width: min(60rem, 96vw); max-width: none; }
 .gm-shot-modal img { display: block; width: 100%; max-height: 70vh; object-fit: contain; image-rendering: pixelated; background: var(--bg-3); border-radius: var(--r-md); }
 .gm-match { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-2); }
 .gm-match p { margin: 0; color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }

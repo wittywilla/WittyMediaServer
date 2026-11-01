@@ -492,6 +492,7 @@ func (s *Server) Handler() http.Handler {
 	s.gameRoutes(m)
 	if s.GameMeta == nil {
 		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
+		s.GameMeta.Tasks = s.Tasks
 	}
 	s.gameMetaRoutes(m)
 	s.rigRoutes(m)

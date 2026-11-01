@@ -43,6 +43,7 @@ func (s *Server) diagnoser() *diagnose.Manager {
 		s.diag = diagnose.NewManager(diagnose.Env{
 			DataDir: s.Cfg.DataDir,
 			Log:     s.Log,
+			Tasks:   s.Tasks,
 			Version: s.Version,
 			Busy:    s.streamsPlaying,
 			Setting: func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },

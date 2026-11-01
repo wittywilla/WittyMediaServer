@@ -1,0 +1,47 @@
+/* The activity button and its panel. */
+.act-btn { position: relative; color: var(--fg-3); }
+.act-btn.on { color: var(--fg); }
+.act-ring { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; }
+.act-count {
+  position: absolute; top: 0; right: 0; min-width: 1.05rem; height: 1.05rem; padding: 0 var(--sp-1); border-radius: var(--r-full);
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-fg); font-size: var(--text-2xs); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.act-count.bad { background: var(--danger); color: var(--bg); }
+
+.modal.act-sheet { width: min(30rem, 100vw); }
+.act-sheet .tabs { padding-inline: var(--sp-1); }
+.act-tab-n { margin-inline-start: var(--sp-2); padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--bg-3); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.act-body { padding-block: var(--sp-3); }
+.act-offline, .act-readonly { margin: 0 0 var(--sp-3); color: var(--fg-2); font-size: var(--text-sm); }
+
+.act-group + .act-group { margin-top: var(--sp-5); }
+.act-group h3 { display: flex; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); font-weight: 600; }
+.act-group-pct { font-variant-numeric: tabular-nums; }
+
+.act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.act-task { display: grid; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); min-width: 0; }
+.act-task-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.act-task-head > div { min-width: 0; }
+.act-title { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
+.act-sub, .act-facts, .act-phase { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.act-sub { color: var(--fg-3); font-size: var(--text-xs); }
+.act-state { flex: none; display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--text-xs); white-space: nowrap; }
+.act-state.failed { border-color: var(--danger); color: var(--danger); }
+.act-state.done { border-color: var(--ok); color: var(--ok); }
+.act-state.paused { border-color: var(--warn); color: var(--warn); }
+.act-item { font-size: var(--text-sm); overflow-wrap: anywhere; }
+.act-path { color: var(--fg-3); font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.act-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+
+.act-problem-n, .act-problems summary { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--warn); font-size: var(--text-sm); }
+.act-problems summary { min-height: 2rem; cursor: pointer; }
+.act-problems ul { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: grid; gap: var(--sp-2); font-size: var(--text-sm); }
+.act-problems li { padding-block-start: var(--sp-2); border-top: 1px solid var(--border); }
+.act-more { margin: var(--sp-2) 0 0; color: var(--fg-3); font-size: var(--text-xs); }
+.act-detail summary { min-height: 2rem; color: var(--fg-3); font-size: var(--text-xs); cursor: pointer; }
+.act-detail code { display: block; font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+
+.act-history-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.act-load-more { display: flex; justify-content: center; margin-top: var(--sp-3); }
+
+@media (max-width: 600px) { .modal.act-sheet { width: 100%; max-height: 88dvh; } }

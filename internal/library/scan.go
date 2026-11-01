@@ -101,12 +101,12 @@ func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 	s.running[libraryID] = cancel
 	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix()}
 	s.mu.Unlock()
-	name := ""
+	name, rig := "", false
 	if lib, err := s.Store.Library(ctx, libraryID); err == nil {
-		name = lib.Name
+		name, rig = lib.Name, lib.IsRig()
 	}
 	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: "Scanning " + name, Phase: "Waiting for its turn", LibraryID: libraryID, LibraryName: name, Unit: "files",
-		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10)})
+		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10), Quiet: rig})
 	id := logging.NewID("scan")
 	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
 	logging.Go("library scan", func() {
@@ -141,6 +141,21 @@ func (s *Scanner) HoldScans(ctx context.Context) (release func(), err error) {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+}
+
+// scanResult says what came of a scan, for the activity history.
+func scanResult(files, problems int, took time.Duration) string {
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	s := fmt.Sprintf("Looked at %s in %s", plural(files, "file", "files"), took.Round(time.Second))
+	if problems == 0 {
+		return s + ", with no problems."
+	}
+	return s + ", with " + plural(problems, "problem", "problems") + "."
 }
 
 type taskKey struct{}
@@ -535,7 +550,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
-	task.Result(fmt.Sprintf("Looked at %d files in %s. %d had a problem.", len(all), time.Since(started).Round(time.Second), failed+problems))
+	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
 	if lib.Type == "games" {
 		s.GameMeta.Kick()
 	}
@@ -848,10 +863,15 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		}
 	}
 	rows.Close()
+	task := scanTask(ctx)
+	if len(todo) > 0 {
+		task.Phase("Reading sound formats")
+	}
 	for _, r := range todo {
-		if ctx.Err() != nil {
+		if task.Wait(ctx) != nil {
 			return
 		}
+		task.Item(filepath.Base(r.path), r.path)
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, r.path)
 		cancel()

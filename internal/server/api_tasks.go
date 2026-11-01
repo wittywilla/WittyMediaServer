@@ -65,6 +65,12 @@ func (s *Server) wireTasks() {
 		s.Scanner.Tasks = s.Tasks
 	}
 	modmgr.ReportTasksTo(s.Tasks)
+	if s.GameMeta != nil {
+		s.GameMeta.Tasks = s.Tasks
+	}
+	if s.Update != nil {
+		s.Update.Tasks = s.Tasks
+	}
 	s.Tasks.OnRetry(tasks.TypeScan, func(old tasks.Task, by tasks.By) error {
 		id, err := strconv.ParseInt(old.RetryKey, 10, 64)
 		if err != nil {

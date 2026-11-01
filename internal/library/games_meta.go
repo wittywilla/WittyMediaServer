@@ -22,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -51,6 +52,7 @@ type sourceSet struct {
 type GameMeta struct {
 	Store     *Store
 	Log       *slog.Logger
+	Tasks     *tasks.Registry // where this shows in the activity panel; may be nil
 	ImagesDir string
 	CacheDir  string
 	// SaveMeta and Save write what was found beside the game, if the owner wants that.
@@ -125,23 +127,35 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
+	// This wakes every few minutes, so it only shows once a round has found something to do.
+	var t *tasks.Handle
+	var failed error
+	defer func() { t.Finish(failed) }()
 	for ctx.Err() == nil {
 		g.setPhase(true, "details")
+		t.Phase("Details")
 		details, err := g.detailsBatch(ctx)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
+			failed = err
 			return
 		}
 		// Taking turns: covers are what someone looking at the page notices first.
 		g.setPhase(true, "pictures")
+		t.Phase("Pictures")
 		pictures, err := g.picturesBatch(ctx)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game pictures", "cat", "library", "err", err)
+			failed = err
 			return
 		}
 		if details == 0 && pictures == 0 {
 			return
 		}
+		if t == nil {
+			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
+		}
+		t.Add(int64(details + pictures))
 	}
 }
 

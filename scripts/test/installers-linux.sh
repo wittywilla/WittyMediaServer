@@ -181,29 +181,29 @@ if [ -n "$arc" ]; then
   [ $code -eq 0 ] || fail "uninstall exit $code"
   [ ! -e /srv/wittymedia ] || { find /srv/wittymedia; fail "the program stayed"; }
   [ ! -e /srv/wittydata ] || { find /srv/wittydata; fail "the data stayed"; }
-  rmdir /srv 2>/dev/null; mkdir -p /srv
   eval "$SNAPSHOT" > /tmp/after3.txt
   diff -u /tmp/before3.txt /tmp/after3.txt || fail "the archive's install left something behind"
   echo "NOTHING LEFT after install.sh and --uninstall"
 
   say "a real unpacked 0.5.2-alpha, portable, whose update lands the new package over it"
-  rm -rf /tmp/p && mkdir -p /tmp/p/data
-  tar -xzf "$old" -C /tmp/p --strip-components=1
-  echo '{"portable":true,"dataDir":"data","listen":":8125"}' > /tmp/p/wms.json
-  (cd /tmp/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
-  wait_up 8125
-  [ -f /tmp/p/data/wms.db ] || fail "the old copy isn't portable"
+  rm -rf /srv/p && mkdir -p /srv/p/data
+  tar -xzf "$old" -C /srv/p --strip-components=1
+  echo '{"portable":true,"dataDir":"data","listen":":8125"}' > /srv/p/wms.json
+  (cd /srv/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
+  wait_up 8125 || cat /tmp/p.log
+  [ -f /srv/p/data/wms.db ] || fail "the old copy isn't portable"
   kill "$(cat /tmp/p.pid)"; sleep 2
   # What 0.5.2's updater does: every file in the package goes in, nothing else is touched.
-  tar -xzf "$arc" -C /tmp/p --strip-components=1
-  (cd /tmp/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
+  tar -xzf "$arc" -C /srv/p --strip-components=1
+  (cd /srv/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
   wait_up 8125
-  /tmp/p/wms version | tee /tmp/v; grep -q "^wittymediaserver " /tmp/v || fail "./wms isn't the new server"
-  [ -f /tmp/p/data/wms.db ] || fail "the update lost the library"
+  /srv/p/wms version | tee /tmp/v; grep -q "^wittymediaserver " /tmp/v || fail "./wms isn't the new server"
+  [ -f /srv/p/data/wms.db ] || fail "the update lost the library"
   sleep 2
-  ls -a /tmp/p
-  for f in wittyplay-host LICENSE README.md icon.png; do [ ! -e "/tmp/p/$f" ] || fail "$f, from the old package, stayed"; done
-  pkill -f /tmp/p/bin/wittymediaserver; kill "$(cat /tmp/p.pid)" 2>/dev/null
+  ls -a /srv/p
+  for f in wittyplay-host LICENSE README.md icon.png; do [ ! -e "/srv/p/$f" ] || fail "$f, from the old package, stayed"; done
+  pkill -f /srv/p/bin/wittymediaserver; kill "$(cat /tmp/p.pid)" 2>/dev/null
+  rm -rf /srv/p
   echo "AN UNPACKED 0.5.2 TOOK THE UPDATE, kept its library, and the old command still works"
 fi
 echo ALLPASSED

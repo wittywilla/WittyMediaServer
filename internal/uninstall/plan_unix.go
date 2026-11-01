@@ -153,6 +153,10 @@ func planUnix(e *Env, pl *Plan) {
 			pl.add(fileItem("program file", q, GroupProgram, true))
 		}
 	}
+	// install.sh may have made this folder for its menu entry. Only ever removed if empty.
+	if q := e.p("/usr/local/share/applications/wittymediaserver.desktop"); exists(q) {
+		pl.add(emptyFolderItem(filepath.Dir(q), GroupProgram, true))
+	}
 	if tool == "" {
 		if q := e.p("/usr/share/applications/wittymediaserver.desktop"); exists(q) {
 			pl.add(fileItem("menu entry", q, GroupProgram, true))

@@ -2,6 +2,7 @@ package library
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,6 +21,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/wittywilla/wittymediaserver/internal/ebook"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
@@ -91,7 +94,16 @@ func discoverBooks(root string) ([]candidate, error) {
 		}
 		rank := bookRank[f.ID]
 		key := filepath.Join(filepath.Dir(p), strings.TrimSuffix(name, filepath.Ext(name)))
-		if cur, ok := best[key]; !ok || rank < cur.rank {
+		cur, ok := best[key]
+		wins := !ok || rank < cur.rank
+		// A locked EPUB gives way to any other copy of the same book. This only opens a
+		// file when there are two copies to choose between.
+		if ok && wins && f.ID == "epub" && epubFileLocked(p) {
+			wins = false
+		} else if ok && !wins && strings.EqualFold(filepath.Ext(cur.c.path), ".epub") && epubFileLocked(cur.c.path) {
+			wins = true
+		}
+		if wins {
 			best[key] = pick{candidate{path: p, kind: "book", size: st.Size(), mtime: st.ModTime().Unix(), format: format}, rank}
 		}
 		return nil
@@ -161,7 +173,7 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 	var cover func(context.Context, string) error
 	switch {
 	case format == "epub":
-		cover = s.readEPUBMeta(it, it.Path)
+		cover = s.readEPUBMeta(ctx, it, it.Path)
 	case format == "cbz" && comicIsZip(c.path):
 		cover = s.readCBZMeta(it)
 	case format == "cbz", format == "cbr", format == "cb7", format == "cbt":
@@ -190,7 +202,7 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 	case ebook.Convertible(format):
 		// Its details and cover come from the EPUB the reader will use.
 		if p, err := s.BookEPUB(it); err == nil {
-			cover = s.readEPUBMeta(it, p)
+			cover = s.readEPUBMeta(ctx, it, p)
 		} else {
 			s.minorFailure(ctx, "could not convert a book for the reader", err, "file", c.path)
 		}
@@ -439,8 +451,143 @@ type TOCEntry struct {
 	Href  string `json:"href"`
 }
 
-// ReadEPUB parses an EPUB's package document and table of contents.
+// Finding copy protection, so that a book can be refused with a plain message instead of
+// showing unreadable chapters. Nothing here removes it or reads what it protects.
+
+// fontObfuscation are the two ways a publisher scrambles an embedded font so it can't simply
+// be copied out for other uses. The book's own text isn't touched, so a book with only this
+// reads as it should, in the reader's own font.
+var fontObfuscation = map[string]bool{
+	"http://www.idpf.org/2008/embedding": true,
+	"http://ns.adobe.com/pdf/enc#RC":     true,
+}
+
+// fontFile and bookDocument say what a file listed in encryption.xml is to the reader.
+func fontFile(name string) bool {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".otf", ".ttf", ".ttc", ".woff", ".woff2", ".eot", ".pfb", ".pfa", ".dfont", ".cff", ".odttf":
+		return true
+	}
+	return false
+}
+
+func bookDocument(name string) bool {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".xhtml", ".xht", ".html", ".htm", ".opf", ".ncx", ".xml":
+		return true
+	}
+	return false
+}
+
+// epubEntry finds a file by name in any case: META-INF isn't always spelled the same.
+func epubEntry(zr *zip.Reader, name string) *zip.File {
+	for _, f := range zr.File {
+		if strings.EqualFold(f.Name, name) {
+			return f
+		}
+	}
+	return nil
+}
+
+// epubProtection says why a book can't be read: ebook.ErrEncrypted for a password on the ZIP,
+// ebook.ErrProtected for copy protection, nil for anything else.
+func epubProtection(zr *zip.Reader) error {
+	for _, f := range zr.File {
+		if f.Flags&0x1 != 0 {
+			return ebook.ErrEncrypted
+		}
+	}
+	f := epubEntry(zr, "META-INF/encryption.xml")
+	if f == nil {
+		return nil
+	}
+	rc, err := f.Open()
+	if err != nil {
+		return epubLooksLocked(zr)
+	}
+	defer rc.Close()
+	raw, err := io.ReadAll(io.LimitReader(rc, 8<<20))
+	if err != nil {
+		return epubLooksLocked(zr)
+	}
+	var doc struct {
+		Data []struct {
+			Method struct {
+				Algorithm string `xml:"Algorithm,attr"`
+			} `xml:"EncryptionMethod"`
+			Target struct {
+				URI string `xml:"URI,attr"`
+			} `xml:"CipherData>CipherReference"`
+		} `xml:"EncryptedData"`
+	}
+	if err := xml.Unmarshal(raw, &doc); err != nil {
+		return epubLooksLocked(zr)
+	}
+	for _, d := range doc.Data {
+		target := d.Target.URI
+		if u, err := url.PathUnescape(target); err == nil {
+			target = u
+		}
+		switch {
+		case fontObfuscation[strings.TrimSpace(d.Method.Algorithm)]:
+			if bookDocument(target) { // a chapter under it doesn't read, whatever it's called
+				return ebook.ErrProtected
+			}
+		case !fontFile(target): // a font on its own locked away doesn't stop the book reading
+			return ebook.ErrProtected
+		}
+	}
+	return nil
+}
+
+// epubLooksLocked decides when encryption.xml can't be read: a licence beside it, or chapters
+// that aren't text, are what a locked book looks like. Otherwise it's only a damaged list.
+func epubLooksLocked(zr *zip.Reader) error {
+	for _, n := range []string{"META-INF/rights.xml", "META-INF/license.lcpl", "META-INF/sinf.xml"} {
+		if epubEntry(zr, n) != nil {
+			return ebook.ErrProtected
+		}
+	}
+	for _, f := range zr.File {
+		if strings.EqualFold(path.Dir(f.Name), "META-INF") || !bookDocument(f.Name) || strings.HasSuffix(strings.ToLower(f.Name), ".opf") {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			continue
+		}
+		head := make([]byte, 4096)
+		n, _ := io.ReadFull(rc, head)
+		rc.Close()
+		return unreadableText(head[:n])
+	}
+	return nil
+}
+
+// unreadableText: any chapter is text, and encrypted data can't look like it for long.
+func unreadableText(b []byte) error {
+	if bytes.HasPrefix(b, []byte{0xFF, 0xFE}) || bytes.HasPrefix(b, []byte{0xFE, 0xFF}) { // UTF-16
+		return nil
+	}
+	// The last few bytes may be part of a character cut off by the 4096.
+	for cut := 0; cut < 4 && cut <= len(b); cut++ {
+		if s := b[:len(b)-cut]; utf8.Valid(s) && !bytes.Contains(s, []byte{0}) {
+			return nil
+		}
+	}
+	return ebook.ErrProtected
+}
+
+// ReadEPUB parses an EPUB's package document and table of contents. A book with copy protection
+// or a password stops here.
 func ReadEPUB(zr *zip.Reader) (*EPUBInfo, error) {
+	if err := epubProtection(zr); err != nil {
+		return nil, err
+	}
+	return parseEPUB(zr)
+}
+
+func parseEPUB(zr *zip.Reader) (*EPUBInfo, error) {
 	open := func(name string) ([]byte, error) {
 		f, err := zr.Open(name)
 		if err != nil {
@@ -550,14 +697,19 @@ type ncxPoint struct {
 }
 
 // readEPUBMeta reads a book's details from an EPUB: the file itself, or the one made
-// from it for the reader.
-func (s *Scanner) readEPUBMeta(it *Item, file string) func(context.Context, string) error {
+// from it for the reader. A locked book still gets its title and author, which are kept in
+// the clear, so that it's clear which book the message is about when someone opens it.
+func (s *Scanner) readEPUBMeta(ctx context.Context, it *Item, file string) func(context.Context, string) error {
 	zr, err := openZip(file)
 	if err != nil {
 		return nil
 	}
 	defer zr.Close()
-	info, err := ReadEPUB(zr.Reader)
+	locked := epubProtection(zr.Reader)
+	if locked != nil {
+		s.minorFailure(ctx, "a book can't be opened", locked, "file", file)
+	}
+	info, err := parseEPUB(zr.Reader)
 	if err != nil {
 		return nil
 	}
@@ -586,7 +738,7 @@ func (s *Scanner) readEPUBMeta(it *Item, file string) func(context.Context, stri
 		}
 	}
 	it.RuntimeSec = float64(len(info.Spine)) // books: length in chapters
-	if info.Cover == "" {
+	if info.Cover == "" || locked != nil {
 		return nil
 	}
 	archive, entry := file, info.Cover
@@ -651,6 +803,9 @@ type cachedArchive struct {
 	// chapter to count its words takes a moment on a small machine).
 	epub  *EPUBInfo
 	words []int
+	// Whether it's a locked book, once somebody has asked.
+	protection error
+	checked    bool
 }
 
 func sweepArchives() {
@@ -721,21 +876,62 @@ func (s *Store) OpenArchive(ctx context.Context, p string) (*zip.Reader, func(),
 }
 
 // OpenBook opens what the reader reads for a book: the library's own file, or the copy made
-// from it in the cache, which isn't in a library and which only this server writes.
+// from it in the cache, which isn't in a library and which only this server writes. A book
+// that's locked stops here, so none of its files go out.
 func (s *Store) OpenBook(ctx context.Context, it *Item, book string) (*zip.Reader, func(), error) {
+	var zr *zip.Reader
+	var done func()
+	var err error
 	if book == it.Path {
-		return s.OpenArchive(ctx, book)
+		zr, done, err = s.OpenArchive(ctx, book)
+	} else {
+		var f *os.File
+		if f, err = os.Open(book); err != nil {
+			return nil, nil, err
+		}
+		var st fs.FileInfo
+		if st, err = f.Stat(); err != nil {
+			f.Close()
+			return nil, nil, err
+		}
+		zr, done, err = keepArchive(book, f, st)
 	}
-	f, err := os.Open(book)
 	if err != nil {
 		return nil, nil, err
 	}
-	st, err := f.Stat()
-	if err != nil {
-		f.Close()
+	if err := archiveProtection(zr, book); err != nil {
+		done()
 		return nil, nil, err
 	}
-	return keepArchive(book, f, st)
+	return zr, done, nil
+}
+
+// archiveProtection is epubProtection, remembered while the archive stays open: every chapter
+// and picture of a book asks.
+func archiveProtection(zr *zip.Reader, p string) error {
+	archiveCache.Lock()
+	c := archiveCache.m[p]
+	archiveCache.Unlock()
+	if c != nil && c.zr.Reader == zr && c.checked {
+		return c.protection
+	}
+	err := epubProtection(zr)
+	if c != nil && c.zr.Reader == zr {
+		archiveCache.Lock()
+		c.protection, c.checked = err, true
+		archiveCache.Unlock()
+	}
+	return err
+}
+
+// epubFileLocked: this EPUB is known to be one that can't be opened.
+func epubFileLocked(p string) bool {
+	zr, err := openZip(p)
+	if err != nil {
+		return false
+	}
+	defer zr.Close()
+	return epubProtection(zr.Reader) != nil
 }
 
 func keepArchive(p string, f *os.File, st fs.FileInfo) (*zip.Reader, func(), error) {

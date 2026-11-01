@@ -100,6 +100,10 @@ func (s *Server) handleBookSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zr, done, err := s.Store.OpenBook(r.Context(), it, book)
+	if bookRefused(err) {
+		writeBookError(w, err)
+		return
+	}
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not open a book", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		writeErr(w, 500, "cannot open this book")

@@ -27,4 +27,4 @@ if [ -n "$note" ]; then
   mv CHANGELOG.md.new CHANGELOG.md
 fi
 
-# A server past a module's maxServer would quietly run its built-in copy: CI fails on it.
+# A server past a module's maxServer has to go without it until a new version of it comes out.

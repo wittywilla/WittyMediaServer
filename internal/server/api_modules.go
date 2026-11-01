@@ -478,3 +478,20 @@ func (s *Server) handleModuleIcon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	http.ServeFile(w, r, p)
 }
+
+// GET /api/modules/{id}/notices: the licenses of the libraries a module's programs are built
+// from, as plain text. Each module carries its own, since it's passed on by itself.
+func (s *Server) handleModuleNotices(w http.ResponseWriter, r *http.Request) {
+	if s.Modules == nil {
+		writeErr(w, 404, "no notices")
+		return
+	}
+	b, ok := s.Modules.Notices(r.PathValue("id"))
+	if !ok {
+		writeErr(w, 404, "no notices")
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write(b)
+}

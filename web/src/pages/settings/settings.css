@@ -4,7 +4,9 @@
 .set-shell { display: grid; grid-template-columns: 232px minmax(0, 760px); gap: 40px; justify-content: center; align-items: start; max-width: 1100px; margin: 12px auto 0; }
 
 /* ---------------------------------------------------------------- menu */
-.set-nav { position: sticky; top: 80px; display: grid; gap: 18px; padding-bottom: 24px; }
+/* The menu scrolls by itself when it's longer than the window, and a scroll that
+   reaches its end stops there instead of moving the page beside it. */
+.set-nav { --set-nav-top: calc(var(--topbar-h) + var(--sp-4)); position: sticky; top: var(--set-nav-top); max-height: calc(100dvh - var(--set-nav-top) - var(--sp-4) - var(--dock-space)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; display: grid; align-content: start; gap: var(--sp-4); padding-bottom: var(--sp-6); }
 .set-nav-title { margin: 0 0 2px var(--sp-3); font-size: var(--page-title); font-weight: var(--weight-heading); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
 .set-nav-group { display: grid; gap: 2px; }
 .set-nav-head { padding: 0 var(--sp-3) 6px; font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
@@ -121,7 +123,7 @@
 .set-prose code { font-size: var(--text-xs); background: var(--bg-3); padding: 1px 6px; border-radius: var(--r-sm); }
 
 /* Save bar: only while something has changed. */
-.set-savebar { position: sticky; bottom: 20px; z-index: 10; display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 12px 14px 12px 20px;
+.set-savebar { position: sticky; bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); z-index: var(--z-sticky); display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 12px 14px 12px 20px;
   border-radius: var(--r-lg); background: var(--bg-3); border: 1px solid var(--border); box-shadow: var(--e-3); animation: set-rise var(--dur-3) var(--ease-out); }
 .set-savebar span { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: var(--text-md); }
 .set-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / .2); }
@@ -199,7 +201,7 @@ a.mod-row:hover { background: var(--hover); }
 .set-back { display: none; }
 @media (max-width: 1280px) {
   .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; }
-  .set-nav { position: static; padding: 0; }
+  .set-nav { position: static; padding: 0; max-height: none; overflow: visible; }
   .set-shell:not(.at-menu) .set-nav, .set-shell.at-menu .set-main { display: none; }
   .set-back { display: block; margin-bottom: var(--sp-2); }
   .set-nav-link { min-height: 56px; padding: var(--sp-2); }
@@ -216,7 +218,6 @@ a.mod-row:hover { background: var(--hover); }
   .set-libs { grid-template-columns: minmax(0, 1fr); }
   .set-item { flex-wrap: wrap; }
   .set-item-actions { width: 100%; justify-content: flex-end; }
-  .set-savebar { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .set-savebar, .set-pill.live::before { animation: none; } }
 
@@ -265,3 +266,9 @@ a.mod-row:hover { background: var(--hover); }
 .form label.set-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 400; color: var(--fg); }
 .set-radio input { width: auto; flex: none; margin-top: 4px; }
 .set-radio b { font-weight: 600; }
+
+/* Users */
+.set-row-inline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: var(--control-h); font-size: var(--text-md); }
+.flush { margin: 0; }
+.limits-found { margin-top: var(--sp-2); }
+.limits-clear { margin-top: var(--sp-3); }

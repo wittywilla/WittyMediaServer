@@ -6,6 +6,7 @@ import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
 import { applyTheme, AUTO_THEME, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
+import NavCustomize from '../shell/NavCustomize'
 
 const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
 
@@ -141,6 +142,7 @@ function LayoutPanel() {
           </button>
         ))}
       </div>
+      <NavCustomize />
     </div>
   )
 }

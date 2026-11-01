@@ -21,7 +21,7 @@ const visible = (e: Element) => (e as HTMLElement).offsetParent !== null || getC
 export function useDialogs() {
   useEffect(() => {
     const opened = new Map<Element, HTMLElement | null>()
-    const top = () => [...opened.keys()].filter((d) => d.isConnected).pop() as HTMLElement | undefined
+    const top = () => [...opened.keys()].filter((d) => d.isConnected && d.matches(DIALOGS)).pop() as HTMLElement | undefined
     const prepare = (d: HTMLElement) => {
       if (opened.has(d)) return
       opened.set(d, document.activeElement as HTMLElement | null)
@@ -41,13 +41,14 @@ export function useDialogs() {
     const sweep = () => {
       document.querySelectorAll<HTMLElement>(DIALOGS).forEach((d) => { if (!d.parentElement?.closest(DIALOGS)) prepare(d) })
       for (const [d, back] of opened) {
-        if (d.isConnected) continue
+        if (d.isConnected && d.matches(DIALOGS)) continue
         opened.delete(d)
         if (back?.isConnected && !top()) back.focus({ preventScroll: true })
       }
     }
     const mo = new MutationObserver(sweep)
-    mo.observe(document.body, { childList: true, subtree: true })
+    // The side drawer stays in the page and only takes the role of a dialog while it's open.
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['role'] })
     sweep()
     const keys = (e: KeyboardEvent) => {
       const d = top()

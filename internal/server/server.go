@@ -347,6 +347,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/users", a(s.handleCreateUser)) // adults may add Kids profiles
 	m.Handle("DELETE /api/users/{id}", a(s.handleDeleteUser))
 	m.Handle("PUT /api/users/{id}/access", a(s.handleUserAccess))
+	m.Handle("PUT /api/users/{id}/profile", a(s.handleUserProfile))
 	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
 	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))

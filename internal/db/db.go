@@ -409,6 +409,10 @@ var migrations = []string{
 	   uuid TEXT NOT NULL, mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   public INTEGER NOT NULL DEFAULT 0, paired_at INTEGER, created_at INTEGER NOT NULL,
 	   UNIQUE(user_id, uuid));`,
+	// 25: a profile name, free for anyone to choose, apart from the unique username
+	// that signing in uses; and which of the two the corner of the screen shows.
+	`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE users ADD COLUMN show_username INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

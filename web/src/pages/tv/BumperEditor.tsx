@@ -27,7 +27,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
         const r = await uploadBumper(f)
         toast(`${r.title} added, ${fmtRuntime(r.durationSec)} long`)
       }
-    } catch (e: any) { toast(e.message) } finally {
+    } catch (e) { toast((e as Error).message) } finally {
       setBusy(false)
       if (file.current) file.current.value = ''
       reload()
@@ -35,7 +35,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
   }
   const remove = async (b: Bumper) => {
     if (b.uploaded && !confirm(`Delete "${b.title}"? The file you uploaded goes too, and any channel using it stops playing it.`)) return
-    try { await api.del(`/channels/bumpers/item/${b.itemId}`); reload() } catch (e: any) { toast(e.message) }
+    try { await api.del(`/channels/bumpers/item/${b.itemId}`); reload() } catch (e) { toast((e as Error).message) }
   }
   return (
     <>
@@ -60,7 +60,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
         </ul>
       )}
       {finding && <MediaFinder onClose={() => setFinding(false)} onPick={async (it) => {
-        try { await api.post('/channels/bumpers', { itemId: it.id }); toast(`${it.title} added`); reload() } catch (e: any) { toast(e.message) }
+        try { await api.post('/channels/bumpers', { itemId: it.id }); toast(`${it.title} added`); reload() } catch (e) { toast((e as Error).message) }
       }} />}
     </>
   )

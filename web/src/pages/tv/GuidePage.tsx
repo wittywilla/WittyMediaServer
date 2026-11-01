@@ -173,7 +173,7 @@ export default function GuidePage() {
       setServerLook({ layout: g.layout, colours: g.skin })
       setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
-    } catch (e: any) { loaded.current.delete(key); setErr(e.message) }
+    } catch (e) { loaded.current.delete(key); setErr((e as Error).message) }
   }, [fetchFrom, filterKey, filter.kind, filter.group, filter.favourites])
   useEffect(() => {
     for (let p = Math.floor(firstRow / PAGE); p <= Math.floor(lastRow / PAGE); p++) void loadPage(p)
@@ -262,13 +262,13 @@ export default function GuidePage() {
       await api.post('/recordings', { channel: ch.key, title: p.title, sub: p.sub, start: p.start, stop: p.end })
       toast(`Recording ${p.title}`)
       announce(`Recording ${p.title}`)
-    } catch (e: any) { toast(e.message) }
+    } catch (e) { toast((e as Error).message) }
   }
   const toggleFav = async (ch: GuideChannel) => {
     const on = !ch.favourite
     setRows((r) => { const n = { ...r }; for (const k of Object.keys(n)) if (n[Number(k)]?.key === ch.key) n[Number(k)] = { ...n[Number(k)], favourite: on }; return n })
     announce(on ? `${ch.name} added to favourites` : `${ch.name} removed from favourites`)
-    try { await setFavourite(ch.key, on); forgetLineup(); getLineup().then(setLineup).catch(() => {}) } catch (e: any) { toast(e.message) }
+    try { await setFavourite(ch.key, on); forgetLineup(); getLineup().then(setLineup).catch(() => {}) } catch (e) { toast((e as Error).message) }
   }
   const jumpToLast = () => {
     const key = cur && lastChannel() === cur.key ? previousChannel() : lastChannel()

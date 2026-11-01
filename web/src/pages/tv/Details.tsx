@@ -18,7 +18,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
     api.get<{ overview: string }>(`/items/${p.itemId}`).then((it) => setDesc(it.overview)).catch(() => {})
   }, [p.desc, p.itemId])
   const addSeries = async () => {
-    try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(`Every airing of ${p.title} will be recorded`); onClose() } catch (e: any) { toast(e.message) }
+    try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(`Every airing of ${p.title} will be recorded`); onClose() } catch (e) { toast((e as Error).message) }
   }
   const later = p.start > now
   const reminded = reminders.has(ch.key, p.start)

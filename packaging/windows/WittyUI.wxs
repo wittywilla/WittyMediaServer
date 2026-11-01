@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The installer's wizard: Windows Installer's standard pages, in the order people expect, with two
+  of our own. Who is it for, and a page of plain choices that only asks what applies.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Fragment>
+    <Property Id="WITTYSCOPE" Value="me" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Open WittyMediaServer now" />
+
+    <UI Id="WittyUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Segoe UI" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Segoe UI" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WixUI_Mode" Value="Custom" />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="OutOfDiskDlg" />
+      <DialogRef Id="OutOfRbDiskDlg" />
+      <DialogRef Id="WaitForCostingDlg" />
+      <DialogRef Id="CancelDlg" />
+      <DialogRef Id="DiskCostDlg" />
+
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+
+      <!-- The way through, first install and upgrade. An upgrade already knows who it's for. -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="WittyScopeDlg" Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="WittyOptionsDlg" Condition="NOT Installed AND WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
+
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WittyOptionsDlg" Condition="NOT Installed" Order="1" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Condition="Installed AND NOT PATCH" Order="2" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Condition="Installed AND PATCH" Order="3" />
+
+      <!-- Opening the .msi of what's installed. -->
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenApp"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed AND NOT (INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER)" Order="998" />
+
+      <Dialog Id="WittyScopeDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="290" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Who is it for?" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose who can use WittyMediaServer on this computer." />
+        <Control Id="Scope" Type="RadioButtonGroup" X="25" Y="58" Width="320" Height="120" Property="WITTYSCOPE">
+          <RadioButtonGroup Property="WITTYSCOPE">
+            <RadioButton Value="me" X="0" Y="0" Width="320" Height="16" Text="Just me" />
+            <RadioButton Value="everyone" X="0" Y="62" Width="320" Height="16" Text="Everyone on this computer" />
+          </RadioButtonGroup>
+        </Control>
+        <Control Id="MeText" Type="Text" X="40" Y="76" Width="300" Height="40" NoPrefix="yes"
+                 Text="Needs no administrator, and can update itself from Settings. It runs while you're signed in. Recommended for most people." />
+        <Control Id="EveryoneText" Type="Text" X="40" Y="138" Width="300" Height="40" NoPrefix="yes"
+                 Text="Asks for an administrator, and installs to Program Files. Choose this for a background service that's always on, even when nobody is signed in." />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="WelcomeDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Property="MSIINSTALLPERUSER" Value="1" Condition="WITTYSCOPE = &quot;me&quot;" Order="1" />
+          <Publish Property="MSIINSTALLPERUSER" Value="{}" Condition="WITTYSCOPE = &quot;everyone&quot;" Order="2" />
+          <!-- Other devices connecting is the point of a server for everyone: ticked the first time here. -->
+          <Publish Property="ADDFIREWALL" Value="1" Condition="WITTYSCOPE = &quot;everyone&quot; AND NOT WITTYASKED" Order="3" />
+          <Publish Property="WITTYASKED" Value="1" Condition="WITTYSCOPE = &quot;everyone&quot;" Order="4" />
+          <Publish Event="NewDialog" Value="WittyOptionsDlg" Order="5" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="WittyOptionsDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="290" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}How should it run?" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="You can change these later, or leave them as they are." />
+
+        <Control Id="Autostart" Type="CheckBox" X="25" Y="54" Width="320" Height="14" Property="AUTOSTART" CheckBoxValue="1"
+                 Text="Start when I sign in" DisableCondition="INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER" EnableCondition="NOT (INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER)" />
+        <Control Id="Desktop" Type="CheckBox" X="25" Y="72" Width="320" Height="14" Property="DESKTOPSHORTCUT" CheckBoxValue="1" Text="Put a shortcut on the desktop" />
+        <Control Id="Path" Type="CheckBox" X="25" Y="90" Width="320" Height="14" Property="ADDTOPATH" CheckBoxValue="1" Text="Add the wittymediaserver command to the command line" />
+
+        <Control Id="Service" Type="CheckBox" X="25" Y="114" Width="320" Height="14" Property="INSTALLSERVICE" CheckBoxValue="1"
+                 Text="Run as a background service, always on" HideCondition="MSIINSTALLPERUSER" ShowCondition="NOT MSIINSTALLPERUSER" />
+        <Control Id="ServiceText" Type="Text" X="40" Y="129" Width="305" Height="32" NoPrefix="yes"
+                 Text="It runs even when nobody is signed in, under a limited account. Give that account (LOCAL SERVICE) permission to read your media folders. Your library is then in ProgramData."
+                 HideCondition="MSIINSTALLPERUSER" ShowCondition="NOT MSIINSTALLPERUSER" />
+        <Control Id="Firewall" Type="CheckBox" X="25" Y="166" Width="320" Height="14" Property="ADDFIREWALL" CheckBoxValue="1"
+                 Text="Let other devices on my home network connect" HideCondition="MSIINSTALLPERUSER" ShowCondition="NOT MSIINSTALLPERUSER" />
+        <Control Id="FirewallText" Type="Text" X="40" Y="181" Width="305" Height="32" NoPrefix="yes"
+                 Text="Adds a rule to Windows Firewall, for networks you've marked as private. It doesn't open anything to the internet."
+                 HideCondition="MSIINSTALLPERUSER" ShowCondition="NOT MSIINSTALLPERUSER" />
+        <Control Id="MeFirewallText" Type="Text" X="25" Y="114" Width="320" Height="48" NoPrefix="yes"
+                 Text="When it first starts, Windows Firewall may ask whether it can use your network. Choose Allow so your phone, TV and other devices can reach it."
+                 HideCondition="NOT MSIINSTALLPERUSER" ShowCondition="MSIINSTALLPERUSER" />
+
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="WittyScopeDlg" Condition="NOT WIX_UPGRADE_DETECTED" />
+          <Publish Event="NewDialog" Value="WelcomeDlg" Condition="WIX_UPGRADE_DETECTED" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+
+    <UIRef Id="WixUI_Common" />
+  </Fragment>
+</Wix>

@@ -17,7 +17,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/ffmpeg-freebsd.yml
 
-  # The macOS tray launcher needs CGO (Cocoa), so build it natively for both
+  # The macOS app needs CGO (Cocoa), so build it natively for both
   # architectures and hand it to the packaging job.
   tray-macos:
     runs-on: macos-latest
@@ -32,12 +32,12 @@ jobs:
           go-version: "1.27.x"
           check-latest: true
           cache: false
-      - name: Build tray launcher (arm64 + amd64)
+      - name: Build the app (arm64 + amd64)
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           mkdir -p tray/arm64 tray/amd64
-          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/arm64/WittyMediaServer ./cmd/wms-tray
-          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/amd64/WittyMediaServer ./cmd/wms-tray
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/arm64/WittyMediaServer ./cmd/wittymediaserver-tray
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o tray/amd64/WittyMediaServer ./cmd/wittymediaserver-tray
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tray-darwin
@@ -101,25 +101,155 @@ jobs:
           SCREENSCRAPER_DEV_PASSWORD: ${{ secrets.SCREENSCRAPER_DEV_PASSWORD }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
-          SKIP_WEB=1 WMS_SIGNING_KEY="$RUNNER_TEMP/none" scripts/build-release.sh "$VERSION"
+          SKIP_WEB=1 scripts/build-release.sh "$VERSION"
+      - name: Build the .deb and .rpm
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          GOBIN="$RUNNER_TEMP/bin" GOWORK=off go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.46.3
+          export NFPM="$RUNNER_TEMP/bin/nfpm"
+          for a in amd64 arm64 armv7 386; do
+            packaging/linux/build-packages.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" dist
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: archives
           path: |
             dist/*.zip
             dist/*.tar.gz
-            dist/*-setup.exe
+            dist/*.deb
+            dist/*.rpm
+
+  # The installers that need their own system's tools, from the same files.
+  installers-windows:
+    needs: archives
+    if: ${{ !cancelled() && needs.archives.result == 'success' }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives
+          path: dist
+      - name: Build the .msi files
+        shell: pwsh
+        run: |
+          dotnet tool install --tool-path "$env:RUNNER_TEMP\wix" wix --version 6.0.2
+          $env:WIX_EXE = "$env:RUNNER_TEMP\wix\wix.exe"
+          & $env:WIX_EXE extension add -g WixToolset.UI.wixext/6.0.2 WixToolset.Firewall.wixext/6.0.2 WixToolset.Util.wixext/6.0.2
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ($env:GITHUB_REF_TYPE -ne 'tag') { $version = "dev-$($env:GITHUB_SHA.Substring(0,8))" }
+          foreach ($arch in 'amd64', 'arm64') {
+            Expand-Archive "dist\wittymediaserver-$version-windows-$arch.zip" stage
+            packaging\windows\build-msi.ps1 -Version $version -PackageDir "stage\wittymediaserver-$version-windows-$arch" -Arch $arch -OutDir installers
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: installers-windows
+          path: installers/*.msi
+          if-no-files-found: error
+
+  installers-macos:
+    needs: archives
+    if: ${{ !cancelled() && needs.archives.result == 'success' }}
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives
+          path: dist
+      - name: Build the .pkg files
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          mkdir stage
+          for a in arm64 amd64; do
+            tar -xzf "dist/wittymediaserver-$VERSION-darwin-$a.tar.gz" -C stage
+            packaging/macos/build-pkg.sh "$VERSION" "stage/wittymediaserver-$VERSION-darwin-$a" "$a" installers
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: installers-macos
+          path: installers/*.pkg
+          if-no-files-found: error
+
+  installers-freebsd:
+    needs: archives
+    if: ${{ !cancelled() && needs.archives.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives
+          path: dist
+      - name: Build the .pkg files
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+        with:
+          release: "14.4"
+          usesh: true
+          envs: REF_NAME REF_TYPE SHA
+          run: |
+            VERSION="${REF_NAME#v}"; [ "$REF_TYPE" = tag ] || VERSION="dev-$(printf %.8s "$SHA")"
+            mkdir -p stage installers
+            for a in amd64 arm64; do
+              tar -xzf "dist/wittymediaserver-$VERSION-freebsd-$a.tar.gz" -C stage
+              sh packaging/freebsd/build-pkg.sh "$VERSION" "stage/wittymediaserver-$VERSION-freebsd-$a" "$a" installers
+            done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: installers-freebsd
+          path: installers/*.pkg
+          if-no-files-found: error
+
+  # One checksum list for everything people can download.
+  checksums:
+    needs: [archives, installers-windows, installers-macos, installers-freebsd]
+    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.installers-windows.result == 'success' && needs.installers-macos.result == 'success' && needs.installers-freebsd.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          path: all
+          merge-multiple: true
+      - name: Write the checksum list
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          mkdir sums
+          (cd all && sha256sum -- *) > "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sums
-          path: dist/*SHA256SUMS.txt
+          path: sums/*SHA256SUMS.txt
 
   # The signing key is used here, on a clean machine that builds nothing but the
   # signing tool and sees only the checksum list. npm packages and build scripts
   # run in the job above, which never has the key.
   sign:
-    needs: archives
-    if: ${{ !cancelled() && needs.archives.result == 'success' && startsWith(github.ref, 'refs/tags/') }}
+    needs: checksums
+    if: ${{ !cancelled() && needs.checksums.result == 'success' && startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     # Add required reviewers to this environment (see docs/PUBLISHING.md) to
     # approve each signature by hand.
@@ -148,9 +278,9 @@ jobs:
           if [ -z "$SIGNING_KEY" ]; then echo "::warning::no signing key: this release is unsigned"; exit 0; fi
           key="$RUNNER_TEMP/release.key"
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
-          go run ./cmd/wms-sign sign -key "$key" -expect "wittymediaserver-${GITHUB_REF_NAME#v}" signed/*SHA256SUMS.txt
+          go run ./scripts/sign sign -key "$key" -expect "wittymediaserver-${GITHUB_REF_NAME#v}" signed/*SHA256SUMS.txt
           rm -f "$key"
-          go run ./cmd/wms-sign verify signed/*SHA256SUMS.txt
+          go run ./scripts/sign verify signed/*SHA256SUMS.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: signature
@@ -159,8 +289,8 @@ jobs:
 
   # Publishing runs no project code at all.
   publish:
-    needs: [archives, sign]
-    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.sign.result == 'success' && startsWith(github.ref, 'refs/tags/') }}
+    needs: [checksums, sign]
+    if: ${{ !cancelled() && needs.checksums.result == 'success' && needs.sign.result == 'success' && startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -168,6 +298,18 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: archives
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-windows
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-macos
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-freebsd
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -183,7 +325,10 @@ jobs:
           files: |
             dist/*.zip
             dist/*.tar.gz
-            dist/*-setup.exe
+            dist/*.msi
+            dist/*.pkg
+            dist/*.deb
+            dist/*.rpm
             dist/*SHA256SUMS.txt
             dist/*SHA256SUMS.txt.sig
           prerelease: ${{ contains(github.ref_name, '-') }}

@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
 // StageDir is the folder inside the program folder where an update is
@@ -83,6 +85,10 @@ func Swap(dir, staged string, protect []string) ([]string, error) {
 			return nil
 		}
 		dst := filepath.Join(dir, rel)
+		// How this copy was installed stays true after an update.
+		if rel == layout.Marker && fileExists(dst) {
+			return nil
+		}
 		for _, pr := range protect {
 			if within(dst, pr) {
 				return fmt.Errorf("the update would write %s, inside %s; nothing was changed", dst, pr)

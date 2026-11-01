@@ -25,7 +25,7 @@ shipping at scale, have a lawyer check it. The whole page is a good thing to han
 |---|---|---|
 | Separate programs shipped together don't affect each other's licences | GPLv3 section 5, "aggregate" | The archive can hold `wms` (Apache) and `wittyretroarch` (GPLv3) |
 | Pipes, sockets and command lines are how separate programs normally talk | FSF's GPL FAQ, "mere aggregation" | The protocol in `modules/wittyplay/ipc` keeps them separate |
-| Apache-2.0 code can go into a GPLv3 program, but not the other way | FSF's licence list | Never link RetroArch code into `wms` or `wittyplay-host` |
+| Apache-2.0 code can go into a GPLv3 program, but not the other way | FSF's licence list | Never link RetroArch code into `wittymediaserver` or `wittyplay-game-runner` |
 | Running a program is unrestricted; the conditions apply when you give it to others | GPLv3 sections 2 and 5 | A user combining things on their own server owes nothing |
 
 To stay on the safe side of "separate programs":
@@ -86,7 +86,7 @@ wittyretroarch --wittyplay -save <dir> -memory-mb <n>
 ```
 
 In that mode it has no window and no menus, and it speaks the protocol on stdin and stdout, exactly as
-`wittyplay-host` does. The server needs no other changes.
+`wittyplay-game-runner` does. The server needs no other changes.
 
 | RetroArch part | What the fork adds |
 |---|---|

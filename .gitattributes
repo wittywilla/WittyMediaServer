@@ -1,0 +1,7 @@
+# These run on Linux and macOS whatever machine they were checked out on.
+*.sh text eol=lf
+packaging/macos/scripts/** text eol=lf
+packaging/linux/** text eol=lf
+packaging/freebsd/** text eol=lf
+packaging/install.sh text eol=lf
+scripts/ffmpeg.lock text eol=lf

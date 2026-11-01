@@ -261,11 +261,11 @@ pictures have to be web addresses.
 These work on any system, with the server stopped, for instance if it won't start. Add `-data <folder>` if yours isn't the default.
 
 ```
-wms metadata export                write the files. -library <number> for only one library
-wms metadata check                 what's wrong with them, by file and line. It needs no database
-wms metadata apply                 what they would change. Nothing changes
-wms metadata apply --apply         change it
-wms metadata undo <batch>          take it back. Apply tells you the batch
+wittymediaserver metadata export                write the files. -library <number> for only one library
+wittymediaserver metadata check                 what's wrong with them, by file and line. It needs no database
+wittymediaserver metadata apply                 what they would change. Nothing changes
+wittymediaserver metadata apply --apply         change it
+wittymediaserver metadata undo <batch>          take it back. Apply tells you the batch
 ```
 
 `check` and `apply` end with a non-zero exit code if a file has a problem, so they can be used in a script. If a server is running on the same

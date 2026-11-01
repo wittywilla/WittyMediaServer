@@ -1,7 +1,7 @@
 # Repair
 
 Repair finds and fixes problems with the server's own data and install. It's in *Settings → Repair*, for administrators,
-and on the command line as `wms doctor`, which works with the server stopped, when it won't start, and with nothing but the
+and on the command line as `wittymediaserver doctor`, which works with the server stopped, when it won't start, and with nothing but the
 program and its data folder. Both are the same code and find the same things.
 
 **It looks first.** Nothing changes until you press a fix, or add `--fix`. Your media files are never changed or removed.
@@ -27,20 +27,20 @@ To check a disc, or a drive's speed and health, use [WittyDiagnoser](DIAGNOSER.m
 ## Using it on the command line
 
 ```bash
-wms doctor                         # look, and say what's wrong. Changes nothing
-wms doctor --fix                   # fix what can be fixed. Asks before what changes data
-wms doctor --fix --safe-only       # only what can't lose anything
-wms doctor --fix --yes             # don't ask
-wms doctor --only data             # one area: data, metadata, modules or install
-wms doctor --only ffmpeg,port      # or particular checks. wms doctor list shows them
-wms doctor --json                  # for a program
-wms doctor --try-port              # also try the port, listening on this machine for a moment
-wms doctor -data /path/to/folder   # a data folder other than the usual one
-wms doctor remap --from <old> --to <new> [--fix]
-wms doctor reinstall <module>      # the only thing here that goes online
+wittymediaserver doctor                         # look, and say what's wrong. Changes nothing
+wittymediaserver doctor --fix                   # fix what can be fixed. Asks before what changes data
+wittymediaserver doctor --fix --safe-only       # only what can't lose anything
+wittymediaserver doctor --fix --yes             # don't ask
+wittymediaserver doctor --only data             # one area: data, metadata, modules or install
+wittymediaserver doctor --only ffmpeg,port      # or particular checks. wittymediaserver doctor list shows them
+wittymediaserver doctor --json                  # for a program
+wittymediaserver doctor --try-port              # also try the port, listening on this machine for a moment
+wittymediaserver doctor -data /path/to/folder   # a data folder other than the usual one
+wittymediaserver doctor remap --from <old> --to <new> [--fix]
+wittymediaserver doctor reinstall <module>      # the only thing here that goes online
 ```
 
-It finds the folders the way the server does: `wms config path` shows which. A `wms.json` with a mistake in it doesn't stop it, and
+It finds the folders the way the server does: `wittymediaserver config path` shows which. A `wms.json` with a mistake in it doesn't stop it, and
 it says what the mistake is. It doesn't start a server, open a port or need FFmpeg.
 
 | Exit code | Means |
@@ -49,7 +49,7 @@ it says what the mistake is. It doesn't start a server, open a port or need FFmp
 | 1 | Something does |
 | 2 | It couldn't run |
 
-Run it as the same account that runs the server, so it can reach the same files. For a system service, that's `sudo -u wms wms doctor`.
+Run it as the same account that runs the server, so it can reach the same files. For a system service, that's `sudo -u wms wittymediaserver doctor`.
 
 ## What each word means
 
@@ -114,8 +114,8 @@ How safe the fix is:
 If a library's folder is now somewhere else, the server only needs to be told. Watch progress, matches, ratings and your edits all stay.
 
 ```bash
-wms doctor remap --from "D:\Movies" --to "E:\Movies"         # says what would change
-wms doctor remap --from "D:\Movies" --to "E:\Movies" --fix   # does it
+wittymediaserver doctor remap --from "D:\Movies" --to "E:\Movies"         # says what would change
+wittymediaserver doctor remap --from "D:\Movies" --to "E:\Movies" --fix   # does it
 ```
 
 Or *Settings → Repair → Moved a drive?*. Either way:
@@ -155,7 +155,7 @@ The newest five are kept, and older ones are removed by the next run. To undo a 
 
 - **In Settings**, the server repairs itself. Anything needing the database file to itself waits for the next start, and the page offers a restart. This uses the same
   mechanism as [Reset](TROUBLESHOOTING.md): a request is written, and the next start carries it out before anything opens the database. If anything can't move, every file goes back.
-- **On the command line**, `wms doctor` can look while a server is running. `--fix` still works for what SQLite can do safely alongside it. It refuses what needs the server
+- **On the command line**, `wittymediaserver doctor` can look while a server is running. `--fix` still works for what SQLite can do safely alongside it. It refuses what needs the server
   stopped, says so and points at Settings. It knows a server is running from the marker each run leaves in `<data>/crash/`, and checks that the process is alive.
 - Helpers, FFmpeg and working files are only called leftovers when no server is running: with one, they're its own.
 

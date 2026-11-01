@@ -1,0 +1,22 @@
+<!--
+  Proves the MSI on real Windows, in Windows Sandbox: a throwaway Windows that vanishes when closed.
+  Your PC's own Windows isn't touched.
+
+  Once: turn on "Windows Sandbox" in "Turn Windows features on or off", and restart.
+  Then: put the two .msi files in C:\WittyInstallerTest (the later version in its upgrade folder),
+  copy this file and installers-windows.ps1 to the same folder, and double-click this file.
+  A window runs the tests. Its result stays on the screen, and is also saved to the same folder.
+-->
+<Configuration>
+  <Networking>Disable</Networking>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\WittyInstallerTest</HostFolder>
+      <SandboxFolder>C:\WittyInstallerTest</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -NoExit -ExecutionPolicy Bypass -File C:\WittyInstallerTest\installers-windows.ps1</Command>
+  </LogonCommand>
+</Configuration>

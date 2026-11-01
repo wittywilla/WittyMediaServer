@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Windows installer of WittyMediaServer, built with the WiX Toolset by build-msi.ps1 from a
+  folder that scripts/build-release.sh built. The wizard is in WittyUI.wxs.
+
+  One MSI for both ways of installing. Just for this account, needing no administrator, in
+  %LOCALAPPDATA%\Programs. Or for everyone, in Program Files, where the background service and
+  the firewall rule become possible. Every choice is a property, so admins can skip the questions:
+
+    msiexec /i x.msi /qn MSIINSTALLPERUSER=1 AUTOSTART=1
+    msiexec /i x.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=9797
+
+  Installed apps shows our own entry in place of the MSI's, because only that can ask whether to
+  keep your library: Uninstall WittyMediaServer.exe asks, and then removes the MSI as well.
+  `msiexec /x` works too, and keeps your data.
+-->
+<?define Everyone = "(NOT MSIINSTALLPERUSER OR ALLUSERS=1)" ?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="WittyMediaServer"
+           Manufacturer="WittyWilla"
+           Version="$(var.Version)"
+           UpgradeCode="6f3c2a9e-58d1-4b77-9c1e-2d7a40b5e8c3"
+           Scope="perUserOrMachine"
+           Language="1033"
+           InstallerVersion="500">
+
+    <SummaryInformation Description="WittyMediaServer: your own media server" Manufacturer="WittyWilla" />
+
+    <!-- Reinstalling the same version works too, and a newer one replaces this in place. -->
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of WittyMediaServer is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="app.ico" SourceFile="!(bindpath.res)\icon.ico" />
+
+    <!-- Hides the MSI's own line in Installed apps: see the note at the top. -->
+    <Property Id="ARPSYSTEMCOMPONENT" Value="1" />
+    <Property Id="ARPPRODUCTICON" Value="app.ico" />
+
+    <!-- Scope above starts this as just for this account, and Windows Installer then points
+         Program Files at %LOCALAPPDATA%\Programs itself. MSIINSTALLPERUSER="" means everyone. -->
+    <Property Id="PORT" Value="9797" Secure="yes" />
+
+    <!-- The choices, with what someone gets by clicking Next. An upgrade keeps the last answers. -->
+    <Property Id="AUTOSTART" Value="1" Secure="yes" />
+    <Property Id="DESKTOPSHORTCUT" Secure="yes">
+      <RegistrySearch Id="RememberDesktopUser" Root="HKCU" Key="Software\WittyWilla\WittyMediaServer" Name="Desktop" Type="raw" />
+    </Property>
+    <Property Id="ADDTOPATH" Secure="yes">
+      <RegistrySearch Id="RememberPathUser" Root="HKCU" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="raw" />
+    </Property>
+    <Property Id="INSTALLSERVICE" Secure="yes">
+      <RegistrySearch Id="RememberService" Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="raw" />
+    </Property>
+    <Property Id="ADDFIREWALL" Secure="yes">
+      <RegistrySearch Id="RememberFirewall" Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Firewall" Type="raw" />
+    </Property>
+    <!-- For everyone last time, so for everyone again: a per-user install can't replace it. -->
+    <Property Id="INSTALLED_FOR_EVERYONE">
+      <RegistrySearch Id="FindMachineInstall" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\WittyMediaServer" Name="ProductCode" Type="raw" />
+    </Property>
+    <!-- Turned off from the tray icon since then: stays off. -->
+    <Property Id="AUTOSTART_USER">
+      <RegistrySearch Id="FindUserAutostart" Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WittyMediaServer" Type="raw" />
+    </Property>
+    <Property Id="AUTOSTART_MACHINE">
+      <RegistrySearch Id="FindMachineAutostart" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WittyMediaServer" Type="raw" />
+    </Property>
+    <SetProperty Id="AUTOSTART" After="FindRelatedProducts" Value="[NOTHING]" Sequence="both" Condition="WIX_UPGRADE_DETECTED AND NOT AUTOSTART_USER AND NOT AUTOSTART_MACHINE AND NOT Installed" />
+
+    <CustomAction Id="SetScope" Property="MSIINSTALLPERUSER" Value="[NOTHING]" />
+    <InstallUISequence>
+      <AppSearch Sequence="10" />
+      <Custom Action="SetScope" Sequence="11" Condition="INSTALLED_FOR_EVERYONE AND NOT Installed" />
+    </InstallUISequence>
+    <InstallExecuteSequence>
+      <AppSearch Sequence="10" />
+      <Custom Action="SetScope" Sequence="11" Condition="INSTALLED_FOR_EVERYONE AND NOT Installed" />
+      <!-- Stop what's running first, or the old copy keeps its files and an upgrade fails. -->
+      <Custom Action="StopRunningApp" Before="RemoveExistingProducts" Condition="(WIX_UPGRADE_DETECTED OR REMOVE) AND NOT UPGRADINGPRODUCTCODE" />
+      <!-- What 0.5.2-alpha left: its setup program's copy, boot task and firewall rule. -->
+      <Custom Action="TakeOverOldCopyUser" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND $(var.Everyone)" />
+      <!-- Before the service first starts: it holds password hashes and sessions. -->
+      <Custom Action="SecureServiceData" Before="StartServices" Condition="NOT REMOVE AND INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" />
+    </InstallExecuteSequence>
+
+    <!-- Failing here never stops an install: all that's left is something to tidy by hand. -->
+    <SetProperty Action="SetStopRunningApp" Id="StopRunningApp" Before="StopRunningApp" Sequence="execute"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$d='[INSTALLFOLDER]'; $p=Get-Process WittyMediaServer -EA 0 | ?{$_.Path -like ($d+'*')}; $p | Stop-Process -Force; Start-Sleep -Seconds 3; Get-Process wittymediaserver,wms,ffmpeg,ffprobe,wittyplay-game-runner -EA 0 | ?{$_.Path -like ($d+'*')} | Stop-Process -Force&quot;" />
+    <CustomAction Id="StopRunningApp" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
+    <SetProperty Action="SetTakeOverOldCopyUser" Id="TakeOverOldCopyUser" Before="TakeOverOldCopyUser" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; --take-over-old-copy" />
+    <CustomAction Id="TakeOverOldCopyUser" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="yes" />
+    <SetProperty Action="SetTakeOverOldCopyMachine" Id="TakeOverOldCopyMachine" Before="TakeOverOldCopyMachine" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; --take-over-old-copy" />
+    <CustomAction Id="TakeOverOldCopyMachine" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
+
+    <SetProperty Action="SetSecureServiceData" Id="SecureServiceData" Before="SecureServiceData" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; --secure-service-data &quot;[CommonAppDataFolder]WittyMediaServer&quot;" />
+    <CustomAction Id="SecureServiceData" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="check" Impersonate="no" />
+
+    <!-- Open the app at the end, if the box stays ticked. -->
+    <CustomAction Id="OpenApp" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]WittyMediaServer.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="WittyMediaServer">
+        <Directory Id="BinFolder" Name="bin" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="Program" Directory="INSTALLFOLDER">
+      <Component Id="AppExe">
+        <File Id="AppExe" Source="!(bindpath.pkg)\WittyMediaServer.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="UninstallExe">
+        <File Id="UninstallExe" Source="!(bindpath.pkg)\Uninstall WittyMediaServer.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="Marker">
+        <File Id="Marker" Source="!(bindpath.pkg)\package-info.json" KeyPath="yes" />
+      </Component>
+
+      <!-- The server: Windows Installer registers a service for the file its component holds,
+           so there are two components, of which one is installed. -->
+      <Component Id="ServerPlain" Guid="2e4b7c1d-96a3-4f08-b5d2-7a1c3e9f6d40" Directory="BinFolder" Condition="NOT (INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone))">
+        <File Id="ServerPlain" Name="wittymediaserver.exe" ShortName="WITTYMS.EXE" Source="!(bindpath.pkg)\bin\wittymediaserver.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="ServerAsService" Guid="a35d8f60-1c7e-4b29-8e64-f2d0b7a49c13" Directory="BinFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
+        <File Id="ServerAsService" Name="wittymediaserver.exe" ShortName="WITTYMS.EXE" Source="!(bindpath.pkg)\bin\wittymediaserver.exe" KeyPath="yes" />
+        <ServiceInstall Id="Service" Name="WittyMediaServer" DisplayName="WittyMediaServer"
+                        Description="Your media server, running in the background."
+                        Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService"
+                        Arguments="--windows-service serve -data &quot;[CommonAppDataFolder]WittyMediaServer&quot; -listen :[PORT]">
+          <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <!-- Stopping is waited for, as its files can't be replaced until it has. Starting isn't: a
+             service that takes a while, or can't start yet, is no reason to undo the install. -->
+        <ServiceControl Id="ServiceStop" Name="WittyMediaServer" Stop="both" Remove="uninstall" Wait="yes" />
+        <ServiceControl Id="ServiceStart" Name="WittyMediaServer" Start="install" Wait="no" />
+      </Component>
+
+      <!-- Everything else: FFmpeg, licences, and modules that come with this package. -->
+      <Files Include="!(bindpath.pkg)\bin\**" Directory="BinFolder">
+        <Exclude Files="!(bindpath.pkg)\bin\wittymediaserver.exe" />
+      </Files>
+      <Files Include="!(bindpath.pkg)\docs\**" Subdirectory="docs" />
+      <?if $(var.HasModules) = "1" ?>
+      <Files Include="!(bindpath.pkg)\modules\**" Subdirectory="modules" />
+      <?endif?>
+
+      <!-- Installed apps. Written here so it goes with the install, for this user or machine. -->
+      <Component Id="InstalledAppsEntry" Guid="9b0a1f27-4c7e-4d35-a7d6-0e6e5b2a8f11">
+        <RegistryKey Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\WittyMediaServer">
+          <RegistryValue Name="DisplayName" Type="string" Value="WittyMediaServer" KeyPath="yes" />
+          <RegistryValue Name="DisplayVersion" Type="string" Value="$(var.DisplayVersion)" />
+          <RegistryValue Name="Publisher" Type="string" Value="WittyWilla" />
+          <RegistryValue Name="DisplayIcon" Type="string" Value="[INSTALLFOLDER]WittyMediaServer.exe" />
+          <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
+          <RegistryValue Name="ProductCode" Type="string" Value="[ProductCode]" />
+          <RegistryValue Name="UninstallString" Type="string" Value="&quot;[INSTALLFOLDER]Uninstall WittyMediaServer.exe&quot;" />
+          <RegistryValue Name="QuietUninstallString" Type="string" Value="&quot;[INSTALLFOLDER]Uninstall WittyMediaServer.exe&quot; /S" />
+          <RegistryValue Name="URLInfoAbout" Type="string" Value="https://github.com/wittywilla/WittyMediaServer" />
+          <RegistryValue Name="HelpLink" Type="string" Value="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/TROUBLESHOOTING.md" />
+          <RegistryValue Name="NoModify" Type="integer" Value="1" />
+          <RegistryValue Name="NoRepair" Type="integer" Value="1" />
+        </RegistryKey>
+      </Component>
+
+      <!-- The Start menu. Not advertised: nothing repairs itself and undoes an update. -->
+      <Component Id="StartMenuEntry" Guid="3f6a0c55-8e21-47f1-bb0a-6a9c41d7e2f4" Directory="ProgramMenuFolder">
+        <Shortcut Id="StartMenuShortcut" Name="WittyMediaServer" Description="Your media server" Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="app.ico" />
+        <RegistryValue Root="HKMU" Key="Software\WittyWilla\WittyMediaServer" Name="StartMenu" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+      <Component Id="DesktopEntry" Guid="b71f0e3a-27c4-4f86-91d5-7e2c8a6d1f09" Directory="DesktopFolder" Condition="DESKTOPSHORTCUT=&quot;1&quot;">
+        <Shortcut Id="DesktopShortcut" Name="WittyMediaServer" Description="Your media server" Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="app.ico" />
+        <RegistryValue Root="HKMU" Key="Software\WittyWilla\WittyMediaServer" Name="Desktop" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Start with Windows: the app, for whoever signs in. Not alongside the service. -->
+      <Component Id="StartAtSignIn" Guid="5c2d8b91-6e0f-4a37-8f14-c9a1e7d3b062" Condition="AUTOSTART=&quot;1&quot; AND NOT (INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone))">
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WittyMediaServer" Type="string" Value="&quot;[INSTALLFOLDER]WittyMediaServer.exe&quot;" KeyPath="yes" />
+      </Component>
+
+      <!-- The command line, in every new terminal. -->
+      <Component Id="PathForMe" Guid="e94a2c6d-1b07-4e58-a2f3-8d6b5c0f7e13" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND NOT $(var.Everyone)">
+        <Environment Id="PathForMe" Name="PATH" Action="set" Part="last" System="no" Permanent="no" Value="[BinFolder]" />
+        <RegistryValue Root="HKCU" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+      <Component Id="PathForEveryone" Guid="f15c7e2a-3d48-4b96-8a07-1c6d9e3f5b20" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND $(var.Everyone)">
+        <Environment Id="PathForEveryone" Name="PATH" Action="set" Part="last" System="yes" Permanent="no" Value="[BinFolder]" />
+        <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Only for everyone: remembers that the service was asked for. SecureServiceData below
+           makes its folder, which only it and administrators can get into. -->
+      <Component Id="ServiceSettings" Guid="1a7d3e80-5f62-49b4-9c28-f0e6b1d4a735" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
+        <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+      <!-- Only for everyone: lets other devices on the home network connect. A firewall that
+           refuses, or one that's switched off, doesn't stop the install: Windows just asks later. -->
+      <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND $(var.Everyone)">
+        <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Firewall" Type="string" Value="1" KeyPath="yes" />
+        <fw:FirewallException Id="FirewallTcp" Name="WittyMediaServer" Description="Other devices on your home network connect to your media server."
+                              Port="[PORT]" Protocol="tcp" Scope="any" Profile="private" IgnoreFailure="yes" />
+        <fw:FirewallException Id="FirewallUdp" Name="WittyMediaServer" Description="Apps on your home network find your media server."
+                              Port="5353,9797" Protocol="udp" Scope="localSubnet" Profile="private" IgnoreFailure="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="WittyMediaServer" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="Program" />
+    </Feature>
+
+    <UIRef Id="WittyUI" />
+    <WixVariable Id="WixUIBannerBmp" Value="!(bindpath.res)\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="!(bindpath.res)\welcome.bmp" />
+  </Package>
+</Wix>

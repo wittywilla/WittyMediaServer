@@ -9,7 +9,8 @@
 //     default data folder are then inside the program's folder, so the
 //     whole server can live on a USB stick or in one folder.
 //  3. the platform's config folder (see UserConfigFile), and on Linux/BSD
-//     /etc/wittymediaserver/wms.json for system services.
+//     /etc/wittymediaserver/wms.json for system services, or on FreeBSD
+//     /usr/local/etc/wittymediaserver/wms.json.
 //
 // Relative paths inside a config file are relative to the file itself.
 package config
@@ -24,6 +25,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
 // How many connections can be open at once. A household is nowhere near this: a browser opens
@@ -109,6 +112,10 @@ func defaultDataDir() string {
 	if st, err := os.Stat("/config"); err == nil && st.IsDir() && runtime.GOOS != "windows" {
 		return "/config"
 	}
+	// Root using the command line of a packaged server means the service's library, not one of its own.
+	if d := serviceDataDir(); d != "" {
+		return d
+	}
 	switch runtime.GOOS {
 	case "windows":
 		if v := os.Getenv("LOCALAPPDATA"); v != "" {
@@ -127,6 +134,28 @@ func defaultDataDir() string {
 		}
 	}
 	return "wms-data"
+}
+
+// serviceDataDir is where a package's service keeps its data, for root's command line. "" when
+// this isn't root, or the service's folder isn't there.
+func serviceDataDir() string {
+	if os.Geteuid() != 0 {
+		return ""
+	}
+	d := ""
+	switch layout.Current().Kind {
+	case layout.KindDeb, layout.KindRPM:
+		d = "/var/lib/wittymediaserver"
+	case layout.KindFreeBSD:
+		d = "/var/db/wittymediaserver"
+	}
+	if d == "" {
+		return ""
+	}
+	if st, err := os.Stat(d); err != nil || !st.IsDir() {
+		return ""
+	}
+	return d
 }
 
 // UserConfigFile is where the config file lives when it is not portable:
@@ -154,17 +183,9 @@ func UserConfigFile() string {
 	return FileName
 }
 
-// ProgramDir is the folder of the running executable.
-func ProgramDir() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "."
-	}
-	if p, err := filepath.EvalSymlinks(exe); err == nil {
-		exe = p
-	}
-	return filepath.Dir(exe)
-}
+// ProgramDir is the program's top folder: where wms.json and a portable data folder
+// are, whichever program of the package is asking.
+func ProgramDir() string { return layout.Current().Root }
 
 // findFile returns the config file to load and whether it makes the server
 // portable.
@@ -180,6 +201,11 @@ func findFile(explicit string) (string, bool) {
 	}
 	if p := UserConfigFile(); exists(p) {
 		return p, false
+	}
+	if runtime.GOOS == "freebsd" {
+		if p := "/usr/local/etc/wittymediaserver/" + FileName; exists(p) {
+			return p, false
+		}
 	}
 	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
 		if p := "/etc/wittymediaserver/" + FileName; exists(p) {
@@ -281,7 +307,7 @@ func Parse(args []string) (*Config, error) {
 	openDef := f.OpenBrowser == nil || *f.OpenBrowser
 
 	c := &Config{ConfigFile: path, Portable: portable}
-	fs := flag.NewFlagSet("wms", flag.ContinueOnError)
+	fs := flag.NewFlagSet(layout.ServerCommand, flag.ContinueOnError)
 	var configFlag string
 	fs.StringVar(&configFlag, "config", "", "config file (WMS_CONFIG); see docs/CONFIG.md")
 	fs.StringVar(&c.DataDir, "data", env("WMS_DATA_DIR", or(rel(f.DataDir), dataDef)), "data directory (WMS_DATA_DIR)")
@@ -329,7 +355,7 @@ func Parse(args []string) (*Config, error) {
 	return c, nil
 }
 
-// Example is a commented starting point written by `wms config init`.
+// Example is a starting point written by `wittymediaserver config init`.
 const Example = `{
   "portable": false,
   "listen": ":9797",

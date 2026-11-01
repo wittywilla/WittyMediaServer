@@ -39,7 +39,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 
 Run `go version -m wms` on a binary for the exact module list and versions.
 
-## The game runner (`wittyplay-host`, a separate program)
+## The game runner (`wittyplay-game-runner`, a separate program)
 
 | Module | Licence |
 |---|---|

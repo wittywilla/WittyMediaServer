@@ -128,7 +128,7 @@ Saves follow your profile. [How it works](docs/GAMING.md).
 
 | Windows · macOS · Linux · FreeBSD | Docker | Always-on service |
 |---|---|---|
-| Double-click **WittyMediaServer**; it lives in the tray or menu bar. | `docker run -p 9797:9797 -v wms-config:/config -v /media:/media:ro ghcr.io/wittywilla/wittymediaserver` | `sudo ./install.sh` · Windows: `.\install.ps1` |
+| Double-click **WittyMediaServer**; it lives in the tray or menu bar. | `docker run -p 9797:9797 -v wms-config:/config -v /media:/media:ro ghcr.io/wittywilla/wittymediaserver` | `sudo apt install ./wittymediaserver-…-linux-amd64.deb`, `sudo dnf install ./…rpm`, or the Windows installer's service option |
 
 > **On your home network.** The server runs on your own computer, so it's available to every device
 > on your home network (TV, phone, tablet, other computers) at the address the wizard shows. Away from
@@ -216,7 +216,7 @@ starts in about half a second. Details: [Reference → Architecture](docs/REFERE
 
 Issues and pull requests are welcome; see **[CONTRIBUTING.md](CONTRIBUTING.md)**. Before opening a
 pull request, run `gofmt`, `go vet ./...`, `go test ./...` and `npm run build` in `web/`. For disc
-problems, attach `wms dvd walk` or `wms bluray walk` output, never disc images. The disc engines are
+problems, attach `wittymediaserver dvd walk` or `wittymediaserver bluray walk` output, never disc images. The disc engines are
 written from the public disc formats and must stay free of other players' code.
 
 ## Licence & legal

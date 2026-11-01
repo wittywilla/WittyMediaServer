@@ -169,7 +169,7 @@ Do all of this **before** you turn on Remote Access.
 *Sign-in & security*. For an administrator, on the server itself, stop the server and run:
 
 ```bash
-wms reset-2fa -data <your data folder> <name>
+wittymediaserver reset-2fa -data <your data folder> <name>
 ```
 
 ## Step 3: Reduce what an intruder would get

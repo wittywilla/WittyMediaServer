@@ -1,0 +1,53 @@
+[Unit]
+Description=WittyMediaServer
+Documentation=https://github.com/wittywilla/WittyMediaServer/blob/master/docs/INSTALL.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wms
+Environment=WMS_DATA_DIR=/var/lib/wittymediaserver
+Environment=WMS_LISTEN=:9797
+Environment=WMS_NO_BROWSER=1
+ExecStart=/usr/lib/wittymediaserver/bin/wittymediaserver serve
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RemoveIPC=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# Helpers run in a box made of these: without them they lose it.
+RestrictNamespaces=user pid net ipc
+# Graphics cards for transcoding, and TV tuners.
+DevicePolicy=closed
+DeviceAllow=char-drm rw
+DeviceAllow=char-DVB rw
+DeviceAllow=char-video4linux rw
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=~@mount @reboot @swap @raw-io @module @cpu-emulation
+ReadWritePaths=/var/lib/wittymediaserver
+# Not set: MemoryDenyWriteExecute (Java and game cores that recompile need it), PrivateDevices
+# (graphics cards and tuners), PrivateUsers (the video and render groups), and ProtectSystem=strict
+# or ProtectHome, as saving information beside media writes into your media folders. To keep media
+# read-only, use the folder's permissions, or add ReadOnlyPaths= entries here.
+# To change this, the port, or the folder the data is in, run: sudo systemctl edit wittymediaserver
+
+[Install]
+WantedBy=multi-user.target

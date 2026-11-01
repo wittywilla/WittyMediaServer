@@ -99,7 +99,7 @@ func checkModuleVersions(_ context.Context, e *DoctorEnv) []Issue {
 				Fix: "Takes this version out of use, and moves its files to the safety copy. The module goes back to the version before it, or to its built-in copy."}
 			if inUse {
 				iss.Options = []FixOption{{ID: "reinstall", Label: "Reinstall it", Network: true, What: "Also downloads this module's newest compatible version from its publisher. Nothing is downloaded unless you choose this."}}
-				iss.Steps = []string{"To reinstall afterwards: wms doctor reinstall " + id + ", or use the Modules page in Settings."}
+				iss.Steps = []string{"To reinstall afterwards: wittymediaserver doctor reinstall " + id + ", or use the Modules page in Settings."}
 			}
 			out = append(out, iss)
 		}
@@ -150,7 +150,7 @@ func fixModuleVersion(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) 
 	}
 	if f.Option == "reinstall" {
 		if e.Modules == nil {
-			return said + " To reinstall it: wms doctor reinstall " + b.id, nil
+			return said + " To reinstall it: wittymediaserver doctor reinstall " + b.id, nil
 		}
 		if err := e.Modules.Install(b.id); err != nil {
 			return said + " Reinstalling it didn't work: " + err.Error() + ". The Modules page can try again.", nil

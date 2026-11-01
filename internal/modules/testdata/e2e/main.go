@@ -362,7 +362,7 @@ func main() {
 	}
 
 	step("build the server (test-only feed) and a helper that can play any version")
-	bin := filepath.Join(abs, "wms"+exe)
+	bin := filepath.Join(abs, "wittymediaserver"+exe)
 	build := exec.Command("go", "build", "-tags", "updatetest", "-ldflags", "-X main.version="+serverVersion, "-o", bin, "./cmd/wms")
 	build.Stdout, build.Stderr = os.Stdout, os.Stderr
 	must(build.Run())

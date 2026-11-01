@@ -8,7 +8,7 @@ import FindingCard, { type Finding } from './FindingCard'
 import { PageHead, Section } from './ui'
 import './repair.css'
 
-// Repair: the same doctor as `wms doctor`, for someone who'd rather not open a terminal. It
+// Repair: the same doctor as `wittymediaserver doctor`, for someone who'd rather not open a terminal. It
 // looks first and says what it found and what each fix does, and nothing changes until
 // someone presses a fix. A safety copy is made first. The server does the work, so this page
 // can be left and come back to.

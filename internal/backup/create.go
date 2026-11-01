@@ -700,7 +700,7 @@ func scrubColumn(ctx context.Context, d *sql.DB, table, id, col string) error {
 const plainReadme = `WittyMediaServer backup
 
 This holds your server's data and metadata, as of the date in manifest.json. To bring it
-back, use Settings, Backup, or first-time setup, or: wms backup restore <this file>
+back, use Settings, Backup, or first-time setup, or: wittymediaserver backup restore <this file>
 
 What isn't here, on purpose: your media files, modules and their programs, game cores,
 BIOS files, logs, sign-ins, API keys, two-factor secrets and share links. Passwords are
@@ -714,7 +714,7 @@ const protectedReadme = `WittyMediaServer backup, protected with a password
 
 Everything is inside payload.wmsenc, sealed with AES-256-GCM. It can't be opened or changed
 without the password. To bring it back, use Settings, Backup, or first-time setup, or:
-wms backup restore <this file>
+wittymediaserver backup restore <this file>
 
 If you lose the password, nobody can open this file.
 `

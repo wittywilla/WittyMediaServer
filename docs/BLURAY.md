@@ -104,7 +104,7 @@ less smooth than on a hardware player.
 If an application can't run, the disc plays its main feature instead. This has been tested on Java 8,
 21 and 25 with our own test discs and with open-source sample applications, **not yet on a retail
 disc**: none of the discs tried so far has Java menus. Please report discs that fail, with the output
-of `wms bluray bdj <disc> 20`.
+of `wittymediaserver bluray bdj <disc> 20`.
 
 **Safety.** A BD-J disc contains code. It runs in a sandbox with no network and no access to files
 outside the disc's own areas, and a hostile test disc tries to break out every time the tests run.
@@ -175,11 +175,11 @@ and AACS discs are refused.
 The easy way is *Settings → [WittyDiagnoser](DIAGNOSER.md)*: it checks a disc and makes a report to attach, with nothing copyrighted in it. From the command line:
 
 ```bash
-wms bluray info   MY_DISC.iso          # titles, program, playlists, clips, streams, 3D/HDR flags
-wms bluray walk   MY_DISC.iso          # simulate inserting the disc; the menu's buttons and commands
-wms bluray walk   MY_DISC.iso 2 5      # ...then press buttons 2 and 5
-wms bluray render MY_DISC.iso out/     # the menu's pages as PNG files
-wms bluray bdj    MY_DISC.iso 20 a.png down enter # BD-J titles; with Java, run them for 20 seconds, pressing those keys
+wittymediaserver bluray info   MY_DISC.iso          # titles, program, playlists, clips, streams, 3D/HDR flags
+wittymediaserver bluray walk   MY_DISC.iso          # simulate inserting the disc; the menu's buttons and commands
+wittymediaserver bluray walk   MY_DISC.iso 2 5      # ...then press buttons 2 and 5
+wittymediaserver bluray render MY_DISC.iso out/     # the menu's pages as PNG files
+wittymediaserver bluray bdj    MY_DISC.iso 20 a.png down enter # BD-J titles; with Java, run them for 20 seconds, pressing those keys
 ```
 
 The same commands exist as a standalone tool, `wittybluray`, from the

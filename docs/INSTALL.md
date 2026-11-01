@@ -1,109 +1,207 @@
 # Installing WittyMediaServer
 
-One self-contained download per platform: the server, a tray launcher and FFmpeg, with nothing else
-to install first. New to all this? [Getting started](GETTING_STARTED.md) walks through it with no
-command line.
+Everything is in the download, FFmpeg included, with nothing else to install first. New to all this?
+[Getting started](GETTING_STARTED.md) walks through it with no command line.
 
 - [Downloads](#downloads)
-- [Windows: the setup](#windows-the-setup)
-- [Desktop: the tray app](#desktop-the-tray-app)
-- [Always on: as a service](#always-on-as-a-service)
+- [Windows](#windows)
+- [macOS](#macos)
+- [Linux](#linux)
+- [FreeBSD](#freebsd)
+- [Removing it](#removing-it)
+- [What the programs are](#what-the-programs-are)
+- [The tray app](#the-tray-app)
 - [Updating](#updating)
 - [Docker](#docker)
+- [A NAS](#a-nas)
 - [Kubernetes](#kubernetes)
 - [At home and away](#at-home-and-away)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
 
 ## Downloads
 
-Download the archive for your platform from the **Releases** page.
+From the **Releases** page. Most people want the first file in their row.
 
-| Platform | Archive | Notes |
+| Platform | Installer | Without installing |
 |---|---|---|
-| Windows 10/11 (x64, ARM64) | `…-windows-amd64-setup.exe`, `…-windows-arm64-setup.exe` | installs for your account, no admin needed |
-| | `…-windows-amd64.zip`, `…-windows-arm64.zip` | the same files to unpack and run anywhere |
-| macOS 11+ (Apple Silicon, Intel) | `…-darwin-arm64.tar.gz`, `…-darwin-amd64.tar.gz` | includes `WittyMediaServer.app` (menu-bar app) |
-| Linux x64 / ARM64, incl. Raspberry Pi 4/5 (64-bit) | `…-linux-amd64.tar.gz`, `…-linux-arm64.tar.gz` | static, works on any distribution |
-| Linux ARMv7, Raspberry Pi 2/3/4 (32-bit) | `…-linux-armv7.tar.gz` | static |
-| Linux x86 32-bit | `…-linux-386.tar.gz` | static, for old PCs |
-| FreeBSD 14+ (x64) | `…-freebsd-amd64.tar.gz` | static FFmpeg built in CI |
-| FreeBSD 14+ (ARM64) | `…-freebsd-arm64.tar.gz` | uses FreeBSD's FFmpeg: `pkg install ffmpeg` |
-| Docker | `ghcr.io/wittywilla/wittymediaserver` | amd64, arm64, armv7 |
+| Windows 10/11 (x64, ARM64) | `…-windows-amd64.msi`, `…-windows-arm64.msi` | `…-windows-amd64.zip`, `…-windows-arm64.zip` |
+| macOS 11+ (Apple Silicon, Intel) | `…-macos-arm64.pkg`, `…-macos-amd64.pkg` | `…-darwin-arm64.tar.gz`, `…-darwin-amd64.tar.gz` |
+| Debian, Ubuntu (x64, ARM64, ARMv7, x86) | `…-linux-amd64.deb`, and `arm64`, `armv7`, `386` | `…-linux-amd64.tar.gz`, and the same |
+| Fedora, RHEL, openSUSE (x64, ARM64, ARMv7, x86) | `…-linux-amd64.rpm`, and the same | `…-linux-amd64.tar.gz`, and the same |
+| FreeBSD 14+ (x64, ARM64) | `…-freebsd-amd64.pkg`, `…-freebsd-arm64.pkg` | `…-freebsd-amd64.tar.gz`, `…-freebsd-arm64.tar.gz` (ARM64 uses FreeBSD's FFmpeg: `pkg install ffmpeg`) |
+| Docker | `ghcr.io/wittywilla/wittymediaserver` (amd64, arm64, armv7) | |
 
 Each release has a `…-SHA256SUMS.txt` file to check downloads, and its signature
-(`…-SHA256SUMS.txt.sig`), which the server checks before it installs an update. Every archive looks
-like this:
+(`…-SHA256SUMS.txt.sig`), which the server checks before it installs an update.
 
+## Windows
+
+Open the `.msi`. If SmartScreen warns about an unknown publisher, choose *More info*, then *Run anyway*:
+alpha builds aren't code-signed yet. It asks two things.
+
+**Who is it for?**
+
+| | Just me | Everyone on this computer |
+|---|---|---|
+| Needs an administrator | No | Yes |
+| Program | `%LOCALAPPDATA%\Programs\WittyMediaServer` | `C:\Program Files\WittyMediaServer` |
+| Library, accounts and settings | `%LOCALAPPDATA%\WittyMediaServer` | each person's own, or with the service, `C:\ProgramData\WittyMediaServer` |
+| Update from Settings | Yes | Run the new installer |
+| Can run as a service | No | Yes |
+
+**How should it run?** Each of these is optional.
+
+- **Start when I sign in**: the tray app, starting by itself. You can turn this off from its icon. If it's
+  installed for everyone, turn it off in Windows Settings, Apps, Startup.
+- **A shortcut on the desktop**, and **the `wittymediaserver` command** in every new terminal.
+- **Run as a background service, always on** (for everyone only): it runs even when nobody is signed in,
+  under the limited `LOCAL SERVICE` account. Give that account permission to read your media folders:
+  a folder's *Properties*, *Security*, *Edit*, *Add*, type `LOCAL SERVICE`. It can't reach a network share by a
+  mapped drive letter, so use `\\server\share`, on a share that lets it in.
+- **Let other devices on my home network connect** (for everyone only): adds a Windows Firewall rule for
+  networks you've marked private. It opens nothing to the internet. Installed just for you, Windows asks
+  when the server first starts: choose *Allow*.
+
+Running a newer installer over an installed copy updates it in place and keeps your choices. It takes over
+from a copy that 0.5.2-alpha or older installed, as well: the old program, boot task and firewall rule go, and your
+library stays where it is.
+
+**For admins.** Every choice is a property, and `/qn` asks nothing:
+
+```powershell
+msiexec /i wittymediaserver-….msi /qn MSIINSTALLPERUSER=1 AUTOSTART=1 DESKTOPSHORTCUT=1 ADDTOPATH=1
+msiexec /i wittymediaserver-….msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=9797
 ```
-wittymediaserver-<version>-<os>-<arch>/
-├── WittyMediaServer(.exe)    tray / menu-bar launcher (desktop use)
-├── wms(.exe)                 the server (command line, services, Docker)
-├── bin/ffmpeg, bin/ffprobe   bundled FFmpeg
-├── install.sh / install.ps1  service installers
-├── wms-setup.exe             Windows: installs this folder for your account
-└── README, LICENSE, NOTICE, THIRD_PARTY_LICENSES
+
+**Without installing.** Unzip the `.zip` anywhere, and open `WittyMediaServer.exe`. Add a
+[`wms.json`](CONFIG.md) to keep everything in that folder, on a USB stick for instance.
+
+## macOS
+
+Right-click the `.pkg`, choose *Open*, and *Open* again: alpha builds aren't signed yet. It puts
+**WittyMediaServer** in Applications, and the `wittymediaserver` command in `/usr/local/bin`. *Customize* lets you leave
+out **Run in the background**, which otherwise starts the server when the Mac starts, as you, even when nobody
+is signed in. Your library is in `~/Library/Application Support/WittyMediaServer`.
+
+Running a newer `.pkg` updates it in place, and takes over from what the `install.sh` of 0.5.2-alpha or older put in `/opt`,
+keeping its library.
+
+## Linux
+
+```bash
+sudo apt install ./wittymediaserver-….deb    # Debian, Ubuntu and relatives
+sudo dnf install ./wittymediaserver-….rpm    # Fedora, RHEL and relatives
 ```
 
-## Windows: the setup
+That's all: the service is running. Open `http://<this computer>:9797/` to finish setting up.
 
-Run **`wittymediaserver-<version>-windows-amd64-setup.exe`** (or double-click `wms-setup.exe` in an
-unpacked folder). It needs no administrator rights:
+| | |
+|---|---|
+| Its status and log | `systemctl status wittymediaserver`, `journalctl -u wittymediaserver` |
+| Program | `/usr/lib/wittymediaserver`, with the command at `/usr/bin/wittymediaserver` |
+| Library, accounts and settings | `/var/lib/wittymediaserver` |
+| Runs as | its own account, `wms`, which needs read permission on your media folders |
+| Change the port, data folder or media access | `sudo systemctl edit wittymediaserver`, and see `/usr/lib/systemd/system/wittymediaserver.service` |
 
-- the program goes to `%LOCALAPPDATA%\Programs\WittyMediaServer`, a folder your account can write,
-  so the server can [update itself](#updating);
-- your library, accounts and settings stay in `%LOCALAPPDATA%\WittyMediaServer`, which installing,
-  updating and removing never touch;
-- it adds **WittyMediaServer** to the Start menu, starts the tray app when you sign in (switch that
-  off from the tray icon), and lists the app under *Settings → Apps → Installed apps*, where
-  **Uninstall** removes the program and keeps your data.
+Installing the same way updates it in place. It takes over from what the `install.sh` of 0.5.2-alpha or older installed, keeping
+its data folder, port and account. A desktop gets **WittyMediaServer** in its app menu: the tray app shows the
+service, and doesn't start a second server.
 
-Running a newer setup over an installed copy updates it in place. For scripts: `/S` installs
-silently, `/noautostart` skips starting at sign-in, and `wms-setup.exe /uninstall /S` removes it.
+**Another distribution.** Unpack the `.tar.gz`, and:
 
-Already running a copy from an unpacked folder with its library in `data\`? Quit it, run the setup,
-and copy the contents of that `data` folder into `%LOCALAPPDATA%\WittyMediaServer` before the first
-start to keep your library.
+```bash
+sudo ./install.sh                      # /opt/wittymediaserver, data in /var/lib/wittymediaserver, port 9797
+sudo ./install.sh --prefix /srv/wms --data /tank/wms --port 8080 --user media
+```
 
-## Desktop: the tray app
+Or just run `./WittyMediaServer`, or `./bin/wittymediaserver serve` with no tray icon.
 
-Double-click **WittyMediaServer** (`WittyMediaServer.exe` on Windows, `WittyMediaServer.app` on
-macOS). An icon appears in the system tray or menu bar:
+Run either a service or the tray app on a port, not both by hand: the tray app notices a server already
+answering, and only shows it.
+
+## FreeBSD
+
+```sh
+pkg add wittymediaserver-…-freebsd-amd64.pkg
+sysrc wittymediaserver_enable=YES
+service wittymediaserver start
+```
+
+Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's own packages, it doesn't start
+until you enable it.
+
+| | |
+|---|---|
+| Program | `/usr/local/lib/wittymediaserver`, with the command at `/usr/local/bin/wittymediaserver` |
+| Library, accounts and settings | `/var/db/wittymediaserver`, and the log is `wms.log` in there |
+| Runs as | its own account, `wms`, which needs read permission on your media folders |
+| Change the account, data folder or port | `sysrc wittymediaserver_user=…`, `wittymediaserver_data=…`, `wittymediaserver_listen=:8080` |
+| A settings file | `/usr/local/etc/wittymediaserver/wms.json` |
+
+`pkg add -f` with a newer package updates it in place, and `service wittymediaserver start` brings it back. It takes over from what `install.sh` installed, keeping
+its data folder, port and account. A package made for FreeBSD 14 needs `env IGNORE_OSVERSION=yes pkg add …` on 15.
+
+Prefer not to use a package? Unpack the `.tar.gz` and run `./install.sh`, with the same options as on Linux. It keeps
+everything inside its folder, and starts the service straight away.
+
+## Removing it
+
+It asks in plain words whether to keep your library, accounts and settings. Keep them, and they're there if you
+install it again. A full clean-up removes **everything WittyMediaServer made**: program files, services, scheduled tasks,
+firewall rules, startup entries, shortcuts, registry keys, the library database, settings, caches, logs, downloaded
+modules and game cores. Then it lists what it removed, and what it couldn't.
+
+| | How |
+|---|---|
+| **Windows** | *Settings, Apps, Installed apps*, WittyMediaServer, *Uninstall*. For scripts: `"Uninstall WittyMediaServer.exe" /S` keeps your data, and `/S /RemoveData` is a full clean-up. It finishes in the background: `--report <file>` says what it did. `msiexec /x` also works, and keeps your data |
+| **macOS** | Open **Uninstall WittyMediaServer** in Applications |
+| **Debian, Ubuntu** | `sudo wittymediaserver --uninstall` asks. Or `sudo apt remove wittymediaserver` keeps your data, and `sudo apt purge wittymediaserver` removes it |
+| **Fedora, RHEL** | `sudo wittymediaserver --uninstall` asks. `sudo dnf remove wittymediaserver` keeps your data |
+| **FreeBSD** | `wittymediaserver --uninstall`, as root, asks. `pkg delete wittymediaserver` keeps your data |
+| **Anywhere**, even if the installer has gone missing | `wittymediaserver --uninstall`, from the program's `bin` folder if the command isn't found |
+
+The command line can also skip the questions: `--keep-data` or `--remove-data`, `--remove-recordings`,
+`--remove-backups`, `--yes`, and `--dry-run` to see what it would do first.
+
+**What it never touches.** Your media: it reads your library folders from the database, and a folder that holds one
+stays, whatever it's called. Anything it didn't make, such as a file you put in the data folder: that stays, and it
+tells you. Recorded TV and backups have a question each, and a silent or `apt purge` removal leaves them.
+Artwork and details saved beside your media files stay too, as they're yours to keep with those files.
+A folder you chose yourself in [`wms.json`](CONFIG.md) or Settings, such as a cache on another drive, is listed for you to delete.
+
+**Other people's settings.** Run as an administrator or with `sudo`, it also clears what other accounts on the computer have.
+
+## What the programs are
+
+You only ever need to open the first one.
+
+| Program | What it does |
+|---|---|
+| `WittyMediaServer.exe` (Windows), `WittyMediaServer.app` (Mac), **WittyMediaServer** in the app menu (Linux) | **The app you open.** Puts an icon in the tray or menu bar, starts the server and opens the web app |
+| `Uninstall WittyMediaServer.exe`, `Uninstall WittyMediaServer.app` | Removes it, asking first |
+| `bin/wittymediaserver` | The server itself, and the command line for repairs and support: try `wittymediaserver help` |
+| `bin/ffmpeg`, `bin/ffprobe` | FFmpeg: converts video when a device needs it, and reads what's in a file |
+| `bin/wittyplay-game-runner` | Runs one game, in a process of its own |
+| `wms` | Only in the `.zip` and `.tar.gz`, so a copy of 0.5.2-alpha can update to this one. Safe to delete otherwise |
+
+On Windows each says what it is in its Properties, and in Task Manager's *Details*. On a Mac the same programs are
+inside the app, under `Contents/MacOS` and `Contents/Helpers`.
+
+## The tray app
+
+An icon appears in the system tray or menu bar:
 
 | Menu item | What it does |
 |---|---|
 | **● Running at http://localhost:9797** | live status |
 | **Open WittyMediaServer** | opens the web app (the setup wizard the first time) |
-| **Stop / Start / Restart server** | |
+| **Stop / Start / Restart server** | not when a background service is running it: the service looks after itself |
 | **Open data folder**, **View log** | |
 | **Start at login** | Windows Run key, macOS LaunchAgent or XDG autostart |
 | **Quit** | stops the server, including any FFmpeg jobs, and exits |
 
-The launcher restarts the server if it crashes, and stops trying after three quick failures so a bad
-configuration doesn't loop. The icon turns grey while the server is stopped.
-
-> **macOS:** the first launch of an unsigned app needs **right-click → Open**, or
-> `xattr -dr com.apple.quarantine WittyMediaServer.app`.
-> **Linux:** copy `wittymediaserver.desktop` into `~/.local/share/applications/` for an app-menu entry
-> (the installer does this system-wide).
-
-## Always on: as a service
-
-For servers, NAS boxes and always-on machines.
-
-```bash
-# Linux (systemd), macOS (launchd), FreeBSD (rc.d)
-sudo ./install.sh                      # /opt/wittymediaserver, data in /var/lib/wittymediaserver, port 9797
-sudo ./install.sh --prefix /srv/wms --data /tank/wms --port 8080 --user media
-```
-
-```powershell
-# Windows, in an elevated PowerShell: a Scheduled Task that runs at boot, plus a firewall rule
-Set-ExecutionPolicy -Scope Process Bypass
-.\install.ps1 -Port 9797
-.\uninstall.ps1 -KeepData     # remove the task, keep your library database
-```
-
-Run either the service or the tray app on a port, not both.
+The app restarts the server if it crashes, and stops trying after three quick failures so a bad configuration
+doesn't loop. The icon turns grey while the server is stopped.
 
 ## Updating
 
@@ -130,11 +228,15 @@ Otherwise Settings says why and links to the download:
 
 | Installed with | How to update |
 |---|---|
-| Windows setup, an unpacked folder, `install.ps1` (runs as SYSTEM) | **Update now** |
-| Tray app run from *Program Files* by a normal account | run the Windows setup, or `install.ps1` again as administrator |
+| Windows installer, *Just me*, or an unpacked folder | **Update now** |
+| Windows installer, *Everyone on this computer* | run the new installer, as Windows protects Program Files |
+| `.deb`, `.rpm`, FreeBSD `.pkg` | install the new package the same way, as your package manager owns these files |
 | `install.sh` (`/opt/…`, owned by root) | unpack the new archive and run `sudo ./install.sh` again |
-| macOS | download the new version and replace the app |
+| macOS | run the new `.pkg` |
 | Docker / Kubernetes | pull the new image and recreate the container |
+
+A copy of 0.5.2-alpha or older takes the update as well, from a folder it can write. The server moves to `bin/`
+at the same time, and a small `wms` stays where the old server was, so whatever started it still can.
 
 ## Docker
 
@@ -151,6 +253,24 @@ Or `docker compose up -d` with [`docker-compose.yml`](../docker-compose.yml). Fo
 transcoding pass `--device /dev/dri` (VAAPI) or use the NVIDIA container runtime, then tick the
 encoder under *Settings → Live transcoding*. The image runs as UID 1000: `chown` your media or add
 `--user`.
+
+The command line is there too: `docker exec wittymediaserver wittymediaserver doctor`. Remove the container and its
+`wms-config` volume, with `docker compose down -v`, for a full clean-up. It holds no media, as those are mounted from your disks.
+
+## A NAS
+
+Most NAS systems run containers, and that's the way to do it: a packaged app for each make isn't offered.
+
+| | |
+|---|---|
+| **Synology** (Container Manager), **QNAP** (Container Station), **TrueNAS SCALE**, **Unraid** | Create a project or stack from [`docker-compose.yml`](../docker-compose.yml) |
+| The `/config` volume | Keep it on a fast disk, an SSD if you have one, in a shared folder of its own. It holds the database and artwork |
+| Your media | Mount each share read-only at a folder under `/media`, as the file shows |
+| Permissions | The image runs as UID 1000. Set `user:` in the compose file to your NAS account's UID and GID, which `id` shows over SSH, and give that account read access to your media and write access to `/config` |
+| Hardware transcoding | Add `devices: ["/dev/dri:/dev/dri"]` on Intel and AMD, and tick the encoder under *Settings → Transcoding* |
+| An older or 32-bit NAS | `linux/arm/v7` and `amd64` images exist, without a 32-bit x86 one: the `…-linux-386.tar.gz` archive runs on those by hand |
+
+If your NAS runs Debian underneath, as OpenMediaVault does, the `.deb` works too.
 
 ## Kubernetes
 
@@ -183,7 +303,7 @@ rather not, start the server with `-setup-from-home` (or `WMS_SETUP_FROM_HOME=1`
 A server nobody can reach from a home network first (a rented one, say) also needs `remoteAccess` turned on
 in its configuration ([CONFIG.md](CONFIG.md)), and HTTPS.
 
-**Installed with `install.ps1`?** Its firewall rule covers home and work networks, not public ones.
+**Windows firewall rule from the installer?** It covers networks you've marked private, not public ones.
 If other devices can't connect, set your network to *Private* in Windows' network settings.
 
 Away from home it works once you turn on **Remote Access** in *Settings* and follow its steps. Until

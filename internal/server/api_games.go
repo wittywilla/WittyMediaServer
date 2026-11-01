@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -159,12 +159,13 @@ func (s *Server) unpackLimit() int64 {
 	return int64(gb) << 30
 }
 
-// findProgram looks beside the server, in bin/ and in the development build folder.
+// findProgram looks in the program's bin folder, beside it, and in the development
+// build folder.
 func (s *Server) findProgram(name string) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	dirs := []string{config.ProgramDir(), filepath.Join(config.ProgramDir(), "bin")}
+	dirs := layout.Current().ProgramDirs()
 	// Relative to wherever it was started, so never for a real install: that can be a
 	// folder other people can write to.
 	if s.Cfg != nil && s.Cfg.Dev {
@@ -183,6 +184,14 @@ func (s *Server) findProgram(name string) string {
 		return p
 	}
 	return ""
+}
+
+// findGameRunner finds the program that runs games, under its name up to 0.5.2-alpha too.
+func (s *Server) findGameRunner() string {
+	if p := s.findProgram(layout.GameRunner); p != "" {
+		return p
+	}
+	return s.findProgram(layout.OldGameRunner)
 }
 
 // wittyPlayID is the module whose downloaded versions can run games.
@@ -208,7 +217,7 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string, ve
 			return p, a, ver
 		}
 	}
-	return s.findProgram("wittyplay-host"), nil, ""
+	return s.findGameRunner(), nil, ""
 }
 
 // awaitHardwareProbe finds out which hardware encoders work, the first time a game
@@ -249,7 +258,7 @@ func (s *Server) configureGames(ctx context.Context) (version string, err error)
 	g := s.games()
 	runner, args, version := s.gameRunner(ctx)
 	if runner == "" {
-		return "", errors.New("the game runner (wittyplay-host) is missing from this install")
+		return "", errors.New("the game runner (wittyplay-game-runner) is missing from this install")
 	}
 	var hw []string
 	list, _ := s.Tools.HardwareStatus()

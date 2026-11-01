@@ -256,11 +256,11 @@ unprivileged user, and only turn this on for discs you trust.
 ## Testing a disc
 
 ```bash
-wms bluray info  THE_DISC.iso              # structure, flags, anything unreadable
-wms bluray walk  THE_DISC.iso              # simulate inserting it
-wms bluray bdj   THE_DISC.iso              # BD-J titles, and what their code needs that the runtime lacks
-wms bluray bdj   THE_DISC.iso 20 menu.png  # with Java: run them for 20 seconds, save the picture
-wms bluray bdj   THE_DISC.iso 30 menu.png down enter  # the same, pressing those keys on the way
+wittymediaserver bluray info  THE_DISC.iso              # structure, flags, anything unreadable
+wittymediaserver bluray walk  THE_DISC.iso              # simulate inserting it
+wittymediaserver bluray bdj   THE_DISC.iso              # BD-J titles, and what their code needs that the runtime lacks
+wittymediaserver bluray bdj   THE_DISC.iso 20 menu.png  # with Java: run them for 20 seconds, save the picture
+wittymediaserver bluray bdj   THE_DISC.iso 30 menu.png down enter  # the same, pressing those keys on the way
 ```
 
 With Java it also lists the Java library classes the disc names that the sandbox refuses, and what the

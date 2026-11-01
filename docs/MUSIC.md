@@ -216,7 +216,7 @@ V visualizer, E eject. Remotes and controllers move around the deck as they do e
 **A damaged image** plays as far as it goes, and says so. To find out what is wrong with one:
 
 ```bash
-wms cd check "Album.cue"
+wittymediaserver cd check "Album.cue"
 ```
 
 **Copy protection:** plain CD audio doesn't have any. An image whose audio is scrambled sounds like noise and is reported as

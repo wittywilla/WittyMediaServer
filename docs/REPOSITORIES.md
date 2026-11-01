@@ -38,6 +38,8 @@ or licence. The rest already exist on GitHub and only need pushing.
 | WittyMediaPlayer | The standalone desktop player | `apps/wittymediaplayer` | Exists |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others | `clients/wittymediaclient` | Exists |
 
+Each desktop product makes its own installers, with the same rules for names and for removing everything: `packaging/` in the player's repository, `desktop/` in the client's and the reader's.
+
 `clients/desktop` and `clients/mobile` were older, thinner shells around the web app. WittyMediaClient
 replaces both, so they were retired rather than moved. Their history stays in this repository's history.
 

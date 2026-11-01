@@ -75,7 +75,7 @@ jobs:
       # server version that falls outside a range fails here until maxServer is raised.
       - name: Module manifests and version ranges
         run: |
-          server="$(go run ./cmd/wms version | awk '{print $2}')"
+          server="$(go run ./cmd/wittymediaserver version | awk '{print $2}')"
           # The tool wants each manifest in a folder named for its module.
           tmp="$(mktemp -d)"
           for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/wittywilla/' | grep -vE '/(wittymodule|wittymediaserver)$'); do
@@ -90,14 +90,26 @@ jobs:
         run: |
           for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do
             echo "== $t"
-            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms || exit 1
-            case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms-tray || exit 1 ;; esac
+            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver || exit 1
+            case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver-tray || exit 1 ;; esac
+            case $t in windows/*|darwin/*) GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver-uninstall || exit 1 ;; esac
             flags=""; case $t in freebsd/*) flags="github.com/ebitengine/purego/internal/fakecgo=-std" ;; esac
             GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -gcflags="$flags" -o /dev/null github.com/wittywilla/wittyplay/cmd/wittyplay-host || exit 1
           done
       - name: Build-script smoke test (no FFmpeg downloads)
         run: |
           SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
-          # Without the runner, a package can't play a single game.
-          test -x dist/wittymediaserver-ci-test-linux-amd64/wittyplay-host
-          test -f dist/wittymediaserver-ci-test-windows-amd64/wittyplay-host.exe
+          # What a package holds, by name: internal/layout, docs/INSTALL.md.
+          test -x dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver
+          test -x dist/wittymediaserver-ci-test-linux-amd64/WittyMediaServer
+          test -x dist/wittymediaserver-ci-test-linux-amd64/bin/wittyplay-game-runner
+          test -f dist/wittymediaserver-ci-test-windows-amd64/bin/wittymediaserver.exe
+          test -f dist/wittymediaserver-ci-test-windows-amd64/WittyMediaServer.exe
+          test -f "dist/wittymediaserver-ci-test-windows-amd64/Uninstall WittyMediaServer.exe"
+          test -f dist/wittymediaserver-ci-test-windows-amd64/bin/wittyplay-game-runner.exe
+          SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test freebsd/amd64
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/bin/wittymediaserver
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/WittyMediaServer
+          test -f dist/wittymediaserver-ci-test-freebsd-amd64/share/wittymediaserver.rc
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/install.sh
+          dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver version

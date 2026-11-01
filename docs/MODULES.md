@@ -225,7 +225,7 @@ worth another look if plugins from strangers become common.
 | WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
 | WittyCD | Helper, **later**, for reading images only | Reading an image is a stateless parse of untrusted files, which suits a helper. Samples would then go directly to the listener from the image's extents, as FFmpeg already reads DVD extents, so there is no cost to playback |
 | WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
-| WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
+| WittyPlay | Already half done | `wittyplay-game-runner` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
 | WittyCouch, WittyRigs | Stays built in, for now | They need the network and hold people's pairings: a helper would have to be given what the sandbox takes away |
 | WittyCouch Host | Already a separate program | Its releases come from its own repository, signed the same way, once it has one |
 | WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |
@@ -648,7 +648,7 @@ both, test both, then release the module first and raise its version here with
    stored on the device. Then the mirror repositories for the plugins and the app.
 3. **Go plugins** (WittyDVD done): WittyDVD, its ISO reader and its CLI live in
    `modules/wittydvd` with their own `go.mod`; the server uses it through a `replace` directive,
-   and `wms dvd …` and the standalone `wittydvd` tool share one CLI package. WittyBluray
+   and `wittymediaserver dvd …` and the standalone `wittydvd` tool share one CLI package. WittyBluray
    (`modules/wittybluray`) and WittyDisc (`modules/wittydisc`) have the same shape.
 4. **Server plugin interface**: books, discs and audio move behind `Module` first, then the rest
    as each is built or touched.

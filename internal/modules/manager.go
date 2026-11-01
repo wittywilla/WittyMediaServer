@@ -598,6 +598,14 @@ var ErrUnknown = errors.New("there is no such module")
 
 // call runs one call on a module's helper. handled is false when the caller
 // should use the built-in copy instead: there is no helper in use, or it failed.
+// helperRunning: calls to this module go to a helper program.
+func (m *Manager) helperRunning(id string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	return e != nil && e.proc != nil
+}
+
 func (m *Manager) call(id, method string, params, out any) (blob []byte, err error, handled bool) {
 	m.mu.Lock()
 	e := m.mods[id]

@@ -106,6 +106,9 @@ var written = []Component{
 	{Group: GroupServices, Name: "TheGamesDB", License: "No written terms", URL: "https://thegamesdb.net", Note: "Used with your own key. Game details and art, credited."},
 	{Group: GroupServices, Name: "MusicBrainz", License: "CC0 (core data)", URL: "https://musicbrainz.org/doc/About/Data_License", Note: "Album and track names for audio CD images."},
 	{Group: GroupServices, Name: "Cover Art Archive", License: "Each picture's own", URL: "https://coverartarchive.org", Note: "Album covers for audio CD images."},
+	{Group: GroupServices, Name: "LRCLIB", License: "A free, open database; each song's words belong to its writers", URL: "https://lrclib.net", Note: "Timed lyrics, only if the owner turns online lyrics on. Kept in this server's cache, never shared."},
+	{Group: GroupServices, Name: "Musixmatch", License: "Musixmatch's terms", URL: "https://developer.musixmatch.com", Note: "Used with your own key, if you add one. Lyrics."},
+	{Group: GroupServices, Name: "Wikipedia and Wikimedia Commons", License: "CC BY-SA 4.0 (text); each picture's own", URL: "https://en.wikipedia.org/wiki/Wikipedia:Copyrights", Note: "Artist biographies and photos, only if the owner turns online music information on."},
 	{Group: GroupServices, Name: "Radio Browser", License: "Public domain data", URL: "https://www.radio-browser.info", Note: "Finding internet radio stations. The stations themselves belong to whoever runs them."},
 	{Group: GroupServices, Name: "libretro build server", License: "Each core's own", URL: "https://buildbot.libretro.com", Note: "Where a game core comes from, when an admin installs one."},
 }

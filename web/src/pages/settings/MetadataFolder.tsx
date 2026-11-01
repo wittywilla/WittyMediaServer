@@ -5,7 +5,7 @@ import { Spinner } from '../../components/common'
 import { IconFolder, IconRefresh } from '../../icons'
 import { toast } from '../../state'
 import { Button, LinkButton, Notice, Progress } from '../../ui'
-import { PageHead, Section } from './ui'
+import { Section } from './ui'
 import './metadatafolder.css'
 
 // Metadata files: one plain text file per title, in a folder of the server's own, to fix
@@ -126,7 +126,7 @@ export default function MetadataFolder() {
   const blocking = preview?.problems.some((p) => p.severity === 'error')
   return (
     <>
-      <PageHead title="Metadata files" desc="Fix what the server knows about a film or show with any text editor: one plain file for each title, in a folder of its own. Nothing changes until you've seen what would change and said yes." />
+      <p className="set-row-desc">Fix what the server knows about a film or show with any text editor: one plain file for each title, in a folder of its own. Nothing changes until you've seen what would change and said yes.</p>
       {err && <div className="error" role="alert">{err}</div>}
 
       <Section title="The folder" desc="Export writes a file for each film, show, episode, disc, home video, book and game. It never deletes anything, and never writes over a file you've edited and not applied."

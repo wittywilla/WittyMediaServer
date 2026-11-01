@@ -24,6 +24,7 @@ func dataChecks() []Check {
 		{ID: "database-size", Area: AreaData, Title: "Is the database carrying dead weight?", Run: checkDBSize, Fix: fixDBSize},
 		{ID: "temp-files", Area: AreaData, Title: "Are there leftover temporary files?", Run: checkTempFiles, Fix: fixTempFiles},
 		{ID: "reset-state", Area: AreaData, Title: "Is a reset or repair stuck halfway?", Run: checkResetState, Fix: fixResetState},
+		{ID: "restore-state", Area: AreaData, Title: "Is a restore waiting, or stuck part way?", Run: checkRestoreState, Fix: fixRestoreState},
 	}
 }
 

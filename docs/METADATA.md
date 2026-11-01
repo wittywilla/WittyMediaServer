@@ -108,6 +108,7 @@ picture is fetched from the internet only. Only real pictures (JPEG, PNG, WebP, 
 
 ## What is saved next to your media
 
+Your metadata is in the server's database, and comes along in a [backup](BACKUP.md). 
 With *Settings → Metadata agents → Save information and artwork next to your media* on (the
 default), the server writes these files in the standard layout other media servers read too:
 

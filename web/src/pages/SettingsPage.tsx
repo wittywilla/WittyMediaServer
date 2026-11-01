@@ -4,7 +4,7 @@ import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconActivity, IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -23,11 +23,11 @@ import LegalNote from '../components/LegalNote'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
-const MetadataFolder = lazy(() => import('./settings/MetadataFolder'))
 const ActivitySettings = lazy(() => import('./settings/Activity'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
+const BackupSettings = lazy(() => import('./settings/Backup'))
 const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
@@ -72,8 +72,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'System', pages: [
     { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
-    { to: 'metadata-files', label: 'Metadata files', icon: <IconEdit />, admin: true, hint: 'Fix a title’s details by hand, with any text editor' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
+    { to: 'backup', label: 'Backup', icon: <IconDownload />, admin: true, hint: 'A ZIP of your data and metadata, on demand or on a schedule, and bringing one back' },
     { to: 'repair', label: 'Repair', icon: <IconWrench />, admin: true, hint: 'Finds and fixes problems with metadata, the database, modules and this install' },
     { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
@@ -149,7 +149,8 @@ export default function SettingsPage() {
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
-          <Route path="metadata-files" element={<Suspense fallback={null}><MetadataFolder /></Suspense>} />
+          <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
+          <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />

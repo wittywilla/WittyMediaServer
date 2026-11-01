@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Settings, Repair: the same doctor as `wms doctor`, run by the server on itself. One thing
@@ -38,6 +40,7 @@ type repairState struct {
 	results  []diagnose.FixResult
 	restart  bool // a fix waits for the next start
 	err      string
+	task     *tasks.Handle // in the activity panel, while it runs
 }
 
 type repairView struct {
@@ -111,13 +114,21 @@ func (s *Server) startRepair(kind string, work func(ctx context.Context, st *rep
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	st.running, st.phase, st.fraction, st.cancel, st.err = kind, "Starting", 0, cancel, ""
+	st.task = s.Tasks.Start(tasks.Spec{Type: tasks.TypeDiagnose, Title: "Repair: " + kind, Unit: "percent", Cancel: cancel, AdminOnly: true})
+	task := st.task
 	st.mu.Unlock()
 	logging.Go("repair "+kind, func() {
 		defer cancel()
 		defer func() {
 			st.mu.Lock()
-			st.running, st.phase, st.fraction, st.cancel = "", "", 0, nil
+			failed := st.err
+			st.running, st.phase, st.fraction, st.cancel, st.task = "", "", 0, nil, nil
 			st.mu.Unlock()
+			if failed != "" {
+				task.Finish(errors.New(failed))
+			} else {
+				task.Finish(ctx.Err())
+			}
 		}()
 		work(ctx, st)
 	}, "cat", "server")
@@ -127,7 +138,10 @@ func (s *Server) startRepair(kind string, work func(ctx context.Context, st *rep
 func (st *repairState) progress(phase string, f float64) {
 	st.mu.Lock()
 	st.phase, st.fraction = phase, f
+	task := st.task
 	st.mu.Unlock()
+	task.Phase(phase)
+	task.Progress(int64(f*100), 100)
 }
 
 // POST /api/repair/check (admin) {only}: looks, and changes nothing.

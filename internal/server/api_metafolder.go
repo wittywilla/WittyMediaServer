@@ -9,6 +9,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 )
 
@@ -115,12 +116,15 @@ func (s *Server) handleMetaFolderExport(w http.ResponseWriter, r *http.Request) 
 	j.mu.Unlock()
 	log := s.Log.With("cat", "library", "session", logging.NewID("meta"))
 	dir := s.metaFolderDir()
+	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: "Writing metadata files", Unit: "titles", By: byUser(userFrom(r)), AdminOnly: true})
 	logging.Go("metadata folder export", func() {
 		res, err := s.Store.ExportMetadata(context.Background(), dir, b.Library, func(done, total int) {
 			j.mu.Lock()
 			j.Done, j.Total = done, total
 			j.mu.Unlock()
+			task.Progress(int64(done), int64(total))
 		})
+		task.Finish(err)
 		j.mu.Lock()
 		j.Running, j.What, j.Finished, j.Result = false, "", time.Now().UnixMilli(), res
 		if err != nil {

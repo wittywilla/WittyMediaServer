@@ -8235,6 +8235,386 @@
         "x-wms-auth": "admin"
       }
     },
+    "/backup": {
+      "get": {
+        "summary": "What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/cancel": {
+      "post": {
+        "summary": "Stop what's running. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/create": {
+      "post": {
+        "summary": "Start a backup: `{parts, password}`. With no password, secrets are left out.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/download": {
+      "get": {
+        "summary": "Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/estimate": {
+      "get": {
+        "summary": "About how large each part of a backup is, before compression.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/files/{name}": {
+      "delete": {
+        "summary": "Delete a backup kept on this server.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/files/{name}/link": {
+      "post": {
+        "summary": "A short-lived address to download a backup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/restore/inspect": {
+      "post": {
+        "summary": "Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/restore/request": {
+      "delete": {
+        "summary": "Take back a restore that's waiting for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/restore/start": {
+      "post": {
+        "summary": "Bring a checked archive back: `{parts, confirm: \"RESTORE\", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/restore/upload": {
+      "post": {
+        "summary": "An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/schedule": {
+      "put": {
+        "summary": "Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/backup/undo": {
+      "post": {
+        "summary": "Put back what the last restore replaced: `{copy, password, code}`. The server restarts.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/bdj/status": {
       "get": {
         "operationId": "getBdjStatus",

@@ -38,6 +38,8 @@ func main() {
 			os.Exit(cmdLogs(os.Args[2:]))
 		case "metadata":
 			os.Exit(cmdMetadata(os.Args[2:]))
+		case "backup":
+			os.Exit(cmdBackup(os.Args[2:]))
 		case "doctor":
 			os.Exit(cmdDoctor(os.Args[2:]))
 		case "version", "--version", "-v":
@@ -73,6 +75,8 @@ usage:
                              back to a new install, the next time the server starts; keeps a copy unless -delete
   wms reset -list | -restore <copy> | -cancel
                              see the copies kept, bring one back, or take back a reset that's waiting
+  wms backup create|list|parts|inspect|restore|undo|cancel [-data <dir>]
+                             a ZIP of your data and metadata, and bringing one back. wms backup help says more
   wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]
                              the logs as a ZIP, sanitized for sharing unless --raw; no server needed
   wms logs sanitize [-data <dir>] [-o out.txt] <file>

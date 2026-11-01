@@ -30,6 +30,7 @@ func metadataChecks() []Check {
 		{ID: "matches", Area: AreaMetadata, Title: "Are the matches to online sources well formed?", Run: checkMatches, Fix: fixMatches},
 		{ID: "duplicates", Area: AreaMetadata, Title: "Is anything listed twice?", Run: checkDuplicates, Fix: fixDuplicates},
 		{ID: "nfo-files", Area: AreaMetadata, Title: "Can the NFO and metadata files beside your media be read?", Run: checkSidecars},
+		{ID: "metadata-files", Area: AreaMetadata, Title: "Can the files in your metadata folder be used?", Run: checkMetaFiles},
 	}
 }
 

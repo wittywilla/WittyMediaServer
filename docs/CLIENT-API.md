@@ -1491,3 +1491,23 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+## Backup
+
+The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a refused one answers with the reason in the job's `error`, and `refused` is true. While a server has no accounts, the routes marked for first-time setup follow the rule for making the first account: on the home network, or with the setup code in `X-Setup-Code`.
+
+| Route | |
+|---|---|
+| `GET /backup` | What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet. |
+| `GET /backup/estimate` | About how large each part of a backup is, before compression. |
+| `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
+| `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
+| `POST /backup/files/{name}/link` | A short-lived address to download a backup. |
+| `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
+| `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |
+| `POST /backup/restore/inspect` | Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup. |
+| `POST /backup/restore/start` | Bring a checked archive back: `{parts, confirm: "RESTORE", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for. |
+| `DELETE /backup/restore/request` | Take back a restore that's waiting for the next start. |
+| `POST /backup/undo` | Put back what the last restore replaced: `{copy, password, code}`. The server restarts. |

@@ -742,6 +742,22 @@ func checkRestoredDB(data string) error {
 	return nil
 }
 
+// Interrupted names a safety copy from a restore that was cut off part way, or says "".
+// The next start puts it back.
+func Interrupted(f Folders) string {
+	for _, c := range SafetyCopies(f) {
+		b, err := os.ReadFile(filepath.Join(f.Dir(), c.Name, journalName))
+		if err != nil {
+			continue
+		}
+		var j journal
+		if json.Unmarshal(b, &j) == nil && j.State == "applying" {
+			return c.Name
+		}
+	}
+	return ""
+}
+
 // recoverInterrupted puts things back if a previous restore was cut off part way.
 func recoverInterrupted(f Folders) (string, error) {
 	for _, c := range SafetyCopies(f) {

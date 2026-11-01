@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api, fmtDateTime, setToken } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast } from '../../state'
@@ -38,7 +38,7 @@ const SAFETY_WORDS: Record<Safety, string> = { safe: 'Safe', careful: 'Backed up
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // The tabs of this page. Metadata files joins here, once there's more than checks to show.
-const TABS = [{ value: 'check' as const, label: 'Check and fix' }]
+const TABS = [{ value: 'check' as const, label: 'Check and fix' }, { value: 'files' as const, label: 'Metadata files' }]
 
 function countsLine(r: Report) {
   const part = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? one : many}` : '')
@@ -62,7 +62,11 @@ async function waitForRestart(say: (s: string) => void) {
   say('The server hasn’t come back. Start it again by hand: the repair finishes as it starts.')
 }
 
+const MetadataFolder = lazy(() => import('./MetadataFolder'))
+
 export default function Repair() {
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'files' ? 'files' as const : 'check' as const
   const [view, setView] = useState<View | null>(null)
   const [err, setErr] = useState('')
   const [waiting, setWaiting] = useState('')
@@ -123,10 +127,20 @@ export default function Repair() {
   const rep = view.report
   const safeCount = rep ? rep.issues.filter((i) => i.safety === 'safe' && !i.notChecked).length : 0
   const copy = view.results.find((r) => r.copy)?.copy
+  const tabs = <Tabs value={tab} onChange={(v) => setParams(v === 'check' ? {} : { tab: v }, { replace: true })} items={TABS} label="Repair" />
+  if (tab === 'files') {
+    return (
+      <>
+        <PageHead title="Repair" desc="Fix what the server knows about a film or show by hand, or let it find and fix problems for you." />
+        {tabs}
+        <Suspense fallback={<Spinner />}><MetadataFolder /></Suspense>
+      </>
+    )
+  }
   return (
     <>
       <PageHead title="Repair" desc="Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first." />
-      {TABS.length > 1 && <Tabs value="check" items={TABS} label="Repair" />}
+      {tabs}
       {view.lastRepair && (
         <div className="rp-note">
           {view.lastRepair.ok

@@ -71,6 +71,7 @@ type Server struct {
 	// metaFolder is the editable metadata folder's export, running or last run.
 	metaFolder metaFolderJob
 	repair     repairState // Settings, Repair
+	backup     backupState // Settings, Backup
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -514,6 +515,7 @@ func (s *Server) Handler() http.Handler {
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
 	s.repairRoutes(m)
+	s.backupRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

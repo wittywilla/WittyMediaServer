@@ -8,6 +8,7 @@ import { IconFull, IconGamepad, IconPlay, IconSearch, IconSettings, IconStar, Ic
 import { toast, useApp } from '../../state'
 import { Chip, CardRow, Sheet } from '../../ui'
 import { GameMetaNotice } from '../GameMeta'
+import { GameImportBar, GameReviewBanner } from '../GameReview'
 import { CoverFlow } from './CoverFlow'
 import { cachedHome, cardCover, consoleMap, crispIfSmall, fmtAgo, fmtPlayed, forgetHome, getHome, heroCover, saveThumb, setCouchOn, useCoverTint, useGameLinks, type GameContinue, type GameHome } from './data'
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
@@ -27,14 +28,6 @@ const SORTS = [
 ] as const
 const MORE_SORTS = [{ id: 'rating', label: 'Highest rated' }, { id: 'added', label: 'Recently added' }] as const
 const DEFAULT_SORT = 'popular'
-
-// A scan counts archives it can't read by why, and other files by their extension.
-const PROBLEMS: Record<string, string> = {
-  encrypted: 'password-protected archive', unsafe: 'unsafe archive', toobig: 'oversized archive', toomany: 'archive with too many files',
-  damaged: 'damaged archive', method: 'archive with unsupported compression', unavailable: 'unreadable archive',
-}
-const listProblem = (ext: string, n: number) => `${n.toLocaleString()} ${PROBLEMS[ext] ? (n === 1 ? PROBLEMS[ext] : PROBLEMS[ext].replace('archive', 'archives')) : ext}`
-const and = (parts: string[]) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`)
 
 const typingIn = (el: EventTarget | null) => !!(el as Element | null)?.matches?.('input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, select, [contenteditable]')
 
@@ -152,7 +145,7 @@ function ConsoleTile({ c, lib }: { c: GameConsole; lib: number }) {
   const n = c.count || 0
   return (
     <Link to={links.library(lib, `console=${encodeURIComponent(c.id)}`)} className="gm-console" aria-label={`${c.name}: ${n.toLocaleString()} ${n === 1 ? 'game' : 'games'}${c.ready ? '' : ', not set up yet'}`}>
-      <ConsoleMark console={c} />
+      <ConsoleMark console={c} size="lg" />
       <small>{n.toLocaleString()} {n === 1 ? 'game' : 'games'}{!c.ready && user?.isAdmin ? ' · set up' : ''}</small>
     </Link>
   )
@@ -217,7 +210,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const [homeFailed, setHomeFailed] = useState(false)
   const [facets, setFacets] = useState<GameFacets | null>(null)
   const [total, setTotal] = useState<number | null>(null)
-  const [skipped, setSkipped] = useState<Record<string, number>>({})
+  const [reviewVersion, setReviewVersion] = useState(0)
   const [version, setVersion] = useState(0)
   const [watch, setWatch] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -252,9 +245,8 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   useEffect(() => {
     let stop = false, timer = 0
     const tick = async () => {
-      const r = await api.get<{ scanning: boolean; skipped?: Record<string, number> }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false, skipped: undefined }))
+      const r = await api.get<{ scanning: boolean }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false }))
       if (stop) return
-      setSkipped(r.skipped || {})
       await loadConsoles()
       if (r.scanning) { setVersion((n) => n + 1); forgetHome(lib.id); void loadHome(); timer = window.setTimeout(tick, 3000) }
     }
@@ -275,8 +267,6 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const logosShown = useConsoleLogos(isHome ? present : [])
   const current = consoleId ? byId.get(consoleId) : undefined
   const resumable = useMemo(() => new Set((home?.continue || []).filter((e) => e.save).map((e) => e.item.id)), [home])
-  const left = Object.entries(skipped).sort((a, b) => b[1] - a[1])
-  const leftCount = left.reduce((n, [, c]) => n + c, 0)
 
   // Jumping along titles: only when the list is every game of this view, by title.
   const letters = useMemo(() => {
@@ -395,7 +385,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
     <div className={'gm-page' + (showHeroHome || consoleHero.length > 0 ? ' has-hero' : '')} onClickCapture={remember}>
       <div className="toolbar gm-toolbar">
         {consoleId && <Link className="btn ghost sm" to={links.library(lib.id)}>All consoles</Link>}
-        <h1>{current ? <ConsoleMark console={current} heading /> : title}</h1>
+        <h1>{title}</h1>
         {shownTotal != null && <span className="count">{shownTotal.toLocaleString()} {shownTotal === 1 ? 'game' : 'games'}</span>}
         <div className="grow" />
         {!links.couch && (
@@ -409,6 +399,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         )}
         {!links.couch && <Link className="btn ghost" to="/big" onClick={() => { setCouchOn(true); void document.documentElement.requestFullscreen?.().catch(() => {}) }} aria-label="Couch mode: full screen, made for controllers"><IconFull size={18} /> <span className="gm-hide-narrow">Couch mode</span></Link>}
       </div>
+      {!links.couch && user?.isAdmin && <GameImportBar libraryId={lib.id} onChanged={() => { setWatch((n) => n + 1); setReviewVersion((n) => n + 1) }} />}
       {current && !current.ready && (
         <div className="game-note" role="status">
           {current.unavailable || <>This server has no core for the {current.name} yet, so these games can’t start.{' '}
@@ -444,14 +435,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       )}
 
       {!links.couch && user?.isAdmin && (isHome || unmatched) && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => set('unmatched', on ? '1' : '')} onProgress={() => { setVersion((n) => n + 1) }} />}
-      {!links.couch && leftCount > 0 && (
-        <div className="warn-box gm-skipped" role="status">
-          <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>{' '}
-          {and(left.map(([e, c]) => listProblem(e, c)))}.{' '}
-          {left.some(([e]) => e === 'encrypted') ? 'This server doesn’t open archives with a password: unpack those yourself. ' : ''}
-          Anything else is a kind of file, or a console, that isn’t supported yet.
-        </div>
-      )}
+      {!links.couch && user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}
       <section className="gm-section gm-all" id="gm-all" data-gm-section aria-label="Games">
         <div className="gm-all-head">
           <h2>Games {total != null && <small>{total.toLocaleString()} {total === 1 ? 'game' : 'games'}</small>}</h2>

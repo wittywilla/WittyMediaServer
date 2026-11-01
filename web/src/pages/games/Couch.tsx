@@ -85,7 +85,7 @@ function CouchConsoles() {
           <div className="gm-console-grid">
             {l.consoles.map((c) => (
               <Link key={c.id} to={links.library(l.lib, 'console=' + encodeURIComponent(c.id))} className="gm-console big" aria-label={`${c.name}: ${(c.count || 0).toLocaleString()} games`}>
-                <ConsoleMark console={c} />
+                <ConsoleMark console={c} size="lg" />
                 <small>{(c.count || 0).toLocaleString()} {c.count === 1 ? 'game' : 'games'}</small>
               </Link>
             ))}

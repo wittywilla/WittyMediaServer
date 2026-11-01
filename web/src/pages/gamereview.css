@@ -1,0 +1,37 @@
+/* Putting a games library right: see GameReview.tsx. */
+.gr-import { display: grid; gap: var(--sp-1); margin-bottom: var(--sp-4); color: var(--fg-2); font-size: var(--text-sm); }
+.gr-import-line { color: var(--fg); font-weight: var(--weight-heading); }
+.gr-import-note { color: var(--fg-3); font-size: var(--text-xs); }
+
+.gr-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-4); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); font-size: var(--text-sm); color: var(--fg-2); }
+.gr-banner strong { color: var(--fg); }
+.gr-banner.attention { border-color: var(--warn, var(--border)); }
+
+.gr-count { margin-left: var(--sp-2); padding: 0 var(--sp-2); border-radius: 999px; background: var(--bg-3, var(--bg-2)); color: var(--fg-2); font-size: var(--text-xs); }
+.gr-dialog .gr-live:empty { display: none; }
+.gr-live { margin: var(--sp-2) 0; color: var(--fg-2); font-size: var(--text-sm); }
+.gr-bulk { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.gr-list { list-style: none; margin: var(--sp-3) 0 0; padding: 0; display: grid; gap: var(--sp-2); }
+.gr-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2) var(--sp-4); align-items: start; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-1, transparent); }
+.gr-row-text { display: grid; gap: var(--sp-1); min-width: 0; }
+.gr-name { overflow-wrap: anywhere; }
+.gr-path { color: var(--fg-3); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.gr-reason { color: var(--fg-2); font-size: var(--text-sm); }
+.gr-row-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+.gr-picker { grid-column: 1 / -1; }
+.gr-picker .select { width: 100%; max-width: 28rem; }
+
+.gr-fix { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--border); display: grid; gap: var(--sp-3); }
+.gr-how { margin: 0; color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.gr-how strong { color: var(--fg); }
+.gr-versions h3 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); }
+.gr-versions ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.gr-versions li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.gr-versions .select { width: 100%; max-width: 36rem; }
+.gr-fix-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.gr-problem { margin: var(--sp-3) 0; }
+
+@media (max-width: 640px) {
+  .gr-row { grid-template-columns: minmax(0, 1fr); }
+  .gr-row-actions { justify-content: flex-start; }
+}

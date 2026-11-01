@@ -61,7 +61,19 @@ export type GameDetailsInfo = {
   scores: GameScore[]; ages: { system: string; value: string; age: number | null }[]; art: { kind: string; url: string }[]
   credits: { source: string; name: string; site: string; text: string; license: string; url?: string }[]
   crcs?: string; serial?: string
+  // How its console was worked out, why it can't play if it can't, and its discs.
+  detectedBy?: string; detectSure?: number; detectWhy?: string; problem?: string; problemText?: string; entry?: string
+  discs?: { disc: number; name: string }[]
 }
+// Files in a games library that a scan wasn't sure about (GET /libraries/{id}/games/review).
+export type GameReviewItem = { id: number; path: string; name: string; size: number; kind: string; reason: string; suggest: { console: string; name: string; short: string }[]; itemId?: number }
+export type GameReview = { items: GameReviewItem[]; counts: Record<string, number>; total: number }
+export type GameImport = {
+  scanning: boolean; scan: { phase: string; current: string; found: number; done: number } | null; lookup: GameMetaStatus
+  review: Record<string, number>; games: Record<string, number>
+}
+export type GameVersion = { id?: number; entry?: string; label: string; current?: boolean; altered?: boolean }
+export type GameVersions = { versions: GameVersion[]; inside?: GameVersion[]; discs?: { disc: number; name: string }[] }
 export type GameCandidate = { source: string; id: string; title: string; year?: number; console?: string; poster?: string; score: number }
 export type GameFacet = { value: string; count: number }
 export type GameFacets = { genres: GameFacet[]; decades: GameFacet[]; players: GameFacet[]; rated: number; series: GameFacet[]; letters: GameFacet[] }
@@ -77,7 +89,7 @@ export type GameCore = { id: string; name: string; license: string; source?: str
 export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
   unavailable?: string; installed: GameCore[]; ready: boolean; count?: number; needsGpu?: boolean
-  customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string
+  customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }
 export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number; genre?: string }

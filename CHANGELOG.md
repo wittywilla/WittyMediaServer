@@ -7,6 +7,17 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
+  even inside a compressed `.cso`. A readme called `.md`, a BIOS, a copier's firmware, an update or a music CD no longer becomes a game, and a PlayStation 2 disc in the wrong folder lands in the right console.
+- **Needs a look.** What can't be proven doesn't become a game. It goes on a list on the library's page with its reason and a one-click fix, beside a list of what was left out and why.
+- **One game, however it's kept.** Discs come together as one game, in folders, in archives or a mix, with the disc changed from the game's menu. Copies are found by checksum. Regions and revisions
+  share a tile, with each still its own game. A set's best version plays, and another can be chosen.
+- **Fix this game**, on its page: the wrong console, not a game, which version, split a version off, and why the server believes what it does.
+- **Importing thousands of games** takes no attention. It runs in the background, survives a restart and shows how far it's got. Every game gets its name, checksum match and box art from the local
+  database first, in about a minute, before any online source is asked. A fan's hack isn't named after the game it was made from, and a set's right region is what's named.
+- **3DS:** whether a file is encrypted now comes from its bytes, and an encrypted one says so on its page before you press Play. New 3DS games tell the core to be one. Updates and extra content aren't listed as games.
+- **Console and studio marks:** logos for consoles and game studios from the logo service, optional as all logos are, and a typed label that looks right without them.
+- **A full server says so straight away,** rather than unpacking and patching a game first.
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`

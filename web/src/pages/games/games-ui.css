@@ -105,12 +105,8 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-console:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); transform: scale(var(--focus-scale)); }
 .gm-console.big { width: auto; min-height: 9rem; }
 .gm-console-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: var(--sp-4); }
-.gm-mark { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; font-weight: 700; }
-.gm-mark img { display: block; max-width: min(100%, 8rem); height: 2.5rem; object-fit: contain; }
-.gm-mark.plate img { padding: var(--sp-1); border-radius: var(--r-sm); background: var(--on-image); }
-.gm-mark.text { font-size: var(--text-xl); letter-spacing: var(--tracking-display); }
-.gm-mark.heading { min-height: 0; gap: var(--sp-3); font-weight: inherit; }
-.gm-mark.heading img { height: 2rem; }
+.gm-console .gc-mark { max-width: 8rem; }
+.gm-console .gc-mark-text { font-size: var(--text-xl); }
 
 /* ---------------------------------------------------------------- every game */
 .gm-all { margin-top: var(--section-gap); }

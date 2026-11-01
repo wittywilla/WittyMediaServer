@@ -9,6 +9,7 @@ import { IconCheck, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, Ic
 import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
+import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
 import { SettingsScreen, useConsoles, useSettingsHost } from '../Games'
 import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
@@ -82,7 +83,8 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const consoleList = useMemo(() => consoles.map((x) => ({ id: x.id, name: x.name, short: x.short })), [consoles])
   const auto = saves.find((s) => s.slot === 0)
   const others = saves.filter((s) => s.slot !== 0)
-  const ready = check ? check.ready : c?.ready ?? false
+  // A file that can't be played says why above the button, rather than failing when pressed.
+  const ready = (check ? check.ready : c?.ready ?? false) && !meta?.problem
   const startsResumed = !!auto && resumeMode === 'always'
   const offerResume = !!auto && resumeMode === 'ask'
   const played = it.progress?.positionSec || 0
@@ -159,6 +161,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               {mine && mine.plays > 0 && <span><b>{mine.plays.toLocaleString()}</b> {mine.plays === 1 ? 'session' : 'sessions'}</span>}
             </div>
           )}
+          {meta && <GameProblem d={meta} />}
           <div className="gm-game-actions">
             {ready && (offerResume || startsResumed)
               ? <Link className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
@@ -214,6 +217,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </section>
       </div>
 
+      {!user?.isAdmin && <GameVersionLinks it={it} />}
       {meta && meta.art.length > 0 && <div className="gm-section" data-gm-section><GameShots d={meta} title={it.title} /></div>}
 
       {saves.length > 0 && (
@@ -299,6 +303,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           <button type="button" className="btn sm ghost" onClick={() => void battery()}>{mine?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
         </div>
         {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { void loadMeta(); reload?.() }} />}
+        {user?.isAdmin && meta && <GameFixPanel it={it} d={meta} consoles={consoles} onChanged={() => { void loadMeta(); reload?.() }} />}
       </details>
       {meta && <GameCredits d={meta} />}
       <LegalNote kind="games" />

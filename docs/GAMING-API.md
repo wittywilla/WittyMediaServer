@@ -37,6 +37,14 @@ trip through the app switcher loses nothing.
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
 | `POST /games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
+| `GET /games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, and for an administrator the versions inside its archive, and its discs |
+| `PUT /games/{id}/version` `{entry}` | admin | Which file in its archive to play, or `""` to choose by the rules |
+| `POST /games/{id}/split` | admin | A version becomes a game of its own, and stays one |
+| `PUT /games/{id}/console` `{console}` | admin | This file is for another console. A scan follows |
+| `POST /games/{id}/not-a-game` | admin | Takes it off the list. Its file stays, and it can be brought back from the review list |
+| `GET /libraries/{id}/games/review?kind=needs\|blocked\|left\|ignored` | admin | Files that didn't become games, or can't play: `{items: [{id, path, name, size, kind, reason, suggest: [{console, name}], itemId}], counts, total}` |
+| `POST /libraries/{id}/games/review/apply` `{ids, action, console}` | admin | `add` says they're games for a console, `ignore` that they aren't games, `forget` takes that back. Up to 5,000 at a time. A scan follows |
+| `GET /libraries/{id}/games/import` | admin | How an import is going: `{scanning, scan, lookup, review, games}` |
 | `GET /game-profiles`, `POST /game-profiles` | user | This account's controller profiles; makes one |
 | `GET`, `PUT`, `DELETE /game-profiles/{id}`; `POST /game-profiles/{id}/copy`, `/active` | user | One profile, only the account's own |
 | `GET /game-profiles/resolve?kind=&controller=&console=&game=&raw=` | user | What a controller should do here: `{profile, map or keys, options}` |

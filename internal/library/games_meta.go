@@ -122,9 +122,56 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 }
 
 // work goes until there's nothing left to do right now.
+//
+// What this server can work out by itself comes first, for every game: a library of
+// thousands has its names and box art within a minute or two. After that, pictures and
+// online sources go side by side, each at its own pace, as one source that's slow or
+// asks to wait shouldn't hold everything up.
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
+	for ctx.Err() == nil {
+		g.setPhase(true, "details")
+		n, err := g.localBatch(ctx)
+		if err != nil && ctx.Err() == nil {
+			g.Log.Warn("game details", "cat", "library", "err", err)
+			break
+		}
+		if n == 0 {
+			break
+		}
+	}
+	finished := make(chan struct{})
+	pictures := make(chan struct{})
+	go func() {
+		defer close(pictures)
+		defer logging.Recover("game pictures", "cat", "library")
+		for ctx.Err() == nil {
+			n, err := g.picturesBatch(ctx)
+			if err != nil {
+				if ctx.Err() == nil {
+					g.Log.Warn("game pictures", "cat", "library", "err", err)
+				}
+				return
+			}
+			if n > 0 {
+				continue
+			}
+			select {
+			case <-finished:
+				if n, err := g.picturesBatch(ctx); n == 0 || err != nil {
+					return
+				}
+			case <-ctx.Done():
+				return
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
+	}()
+	defer func() {
+		close(finished)
+		<-pictures
+	}()
 	for ctx.Err() == nil {
 		g.setPhase(true, "details")
 		details, err := g.detailsBatch(ctx)
@@ -132,17 +179,97 @@ func (g *GameMeta) work(ctx context.Context) {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			return
 		}
-		// Taking turns: covers are what someone looking at the page notices first.
-		g.setPhase(true, "pictures")
-		pictures, err := g.picturesBatch(ctx)
-		if err != nil && ctx.Err() == nil {
-			g.Log.Warn("game pictures", "cat", "library", "err", err)
-			return
-		}
-		if details == 0 && pictures == 0 {
+		if details == 0 {
 			return
 		}
 	}
+}
+
+// localBatch asks the local database about games it hasn't been asked about, and applies
+// the answers straight away. Nothing here goes over the internet, beyond fetching a
+// console's list once.
+func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
+	set := g.sources(ctx)
+	if set.all["libretro"] == nil || !slices.Contains(set.on, "libretro") {
+		return 0, nil
+	}
+	jobs, err := g.Store.nextUnasked(ctx, 4*gameMetaBatch)
+	if err != nil || len(jobs) == 0 {
+		return 0, err
+	}
+	done := 0
+	for i := range jobs {
+		if ctx.Err() != nil {
+			return done, ctx.Err()
+		}
+		j := &jobs[i]
+		g.identify(ctx, j)
+		if _, ok := g.askLocal(ctx, j, set); !ok {
+			// The list can't be had just now, or it doesn't know this game.
+			if _, asked, err := g.Store.gameAnswers(ctx, j.it.ID); err != nil || !asked["libretro"] {
+				continue
+			}
+		}
+		done++
+		answers, _, err := g.Store.gameAnswers(ctx, j.it.ID)
+		if err != nil {
+			continue
+		}
+		// Pictures from a list of names, which asks nothing of anyone until they're fetched.
+		if art := set.all["libretroart"]; art != nil && slices.Contains(set.on, "libretroart") {
+			in, err := art.Lookup(ctx, j.lookup)
+			switch {
+			case err == nil:
+				answers["libretroart"] = in
+				_ = g.Store.saveGameAnswer(ctx, j.it.ID, "libretroart", in)
+			case errors.Is(err, gamemeta.ErrNotFound):
+				_ = g.Store.saveGameAnswer(ctx, j.it.ID, "libretroart", nil)
+			}
+		}
+		if err := g.applyAnswers(ctx, j.it.ID, answersInOrder(answers, set.on)); err != nil {
+			return done, err
+		}
+	}
+	return done, nil
+}
+
+// nextUnasked picks games the local database hasn't been asked about, one console at a time.
+func (s *Store) nextUnasked(ctx context.Context, n int) ([]gameJob, error) {
+	const unasked = `m.status = 'pending' AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') <> ? AND ` + hideLinked + `
+		AND NOT EXISTS (SELECT 1 FROM game_meta_sources s WHERE s.item_id = m.item_id AND s.source = 'libretro')`
+	var console string
+	err := s.DB.QueryRowContext(ctx, `SELECT IFNULL(i.console, '') FROM game_meta m JOIN items i ON i.id = m.item_id WHERE `+unasked+` ORDER BY i.console LIMIT 1`, wittyplay.TestConsole).Scan(&console)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT m.item_id FROM game_meta m JOIN items i ON i.id = m.item_id WHERE `+unasked+` AND IFNULL(i.console, '') = ? ORDER BY m.item_id LIMIT ?`, wittyplay.TestConsole, console, n)
+	if err != nil {
+		return nil, err
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	var out []gameJob
+	for _, id := range ids {
+		it, err := s.Item(ctx, id)
+		if err != nil {
+			continue
+		}
+		r, err := s.gameRow(ctx, id)
+		if err != nil {
+			continue
+		}
+		out = append(out, gameJob{it: it, meta: r})
+	}
+	return out, rows.Err()
 }
 
 // ---------------------------------------------------------------- the queue
@@ -164,6 +291,9 @@ type gameRow struct {
 	CRCs                   []uint32
 	CRCSize                int64
 	Serial, QueryTitle     string
+	HeaderTitle, EntryName string
+	ChosenEntry            string
+	AltCRCs                []uint32
 	Tags                   string
 	PosterRefs, BackRefs   []string
 	PosterRef, BackdropRef string
@@ -223,13 +353,14 @@ func toJSON(v any) string {
 	return string(b)
 }
 
-const gameRowCols = `item_id, status, tries, locked, edited, applied, file_size, file_mtime, crcs, crc_size, serial, query_title, tags, poster_refs, backdrop_refs, poster_ref, backdrop_ref`
+const gameRowCols = `item_id, status, tries, locked, edited, applied, file_size, file_mtime, crcs, crc_size, serial, query_title, tags, poster_refs, backdrop_refs, poster_ref, backdrop_ref, header_title, entry_name, chosen_entry, alt_crcs`
 
 func scanGameRow(sc interface{ Scan(...any) error }) (gameRow, error) {
 	var r gameRow
 	var locked int
-	var edited, applied, crcs, posters, backs string
-	err := sc.Scan(&r.ItemID, &r.Status, &r.Tries, &locked, &edited, &applied, &r.FileSize, &r.FileMTime, &crcs, &r.CRCSize, &r.Serial, &r.QueryTitle, &r.Tags, &posters, &backs, &r.PosterRef, &r.BackdropRef)
+	var edited, applied, crcs, posters, backs, alts string
+	err := sc.Scan(&r.ItemID, &r.Status, &r.Tries, &locked, &edited, &applied, &r.FileSize, &r.FileMTime, &crcs, &r.CRCSize, &r.Serial, &r.QueryTitle, &r.Tags, &posters, &backs, &r.PosterRef, &r.BackdropRef, &r.HeaderTitle, &r.EntryName, &r.ChosenEntry, &alts)
+	r.AltCRCs = parseCRCs(alts)
 	r.Locked = locked != 0
 	r.Edited, r.Applied, r.CRCs = setOf(edited), setOf(applied), parseCRCs(crcs)
 	r.PosterRefs, r.BackRefs = refList(posters), refList(backs)
@@ -246,7 +377,7 @@ func (s *Store) nextGames(ctx context.Context, n int) ([]gameJob, error) {
 	now := db.Now()
 	var console string
 	err := s.DB.QueryRowContext(ctx, `SELECT IFNULL(i.console, '') FROM game_meta m JOIN items i ON i.id = m.item_id
-		WHERE m.status = 'pending' AND m.next_try <= ? AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') <> ? ORDER BY i.console LIMIT 1`, now, wittyplay.TestConsole).Scan(&console)
+		WHERE m.status = 'pending' AND m.next_try <= ? AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') <> ? AND `+hideLinked+` ORDER BY i.console LIMIT 1`, now, wittyplay.TestConsole).Scan(&console)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -254,7 +385,7 @@ func (s *Store) nextGames(ctx context.Context, n int) ([]gameJob, error) {
 		return nil, err
 	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT m.item_id FROM game_meta m JOIN items i ON i.id = m.item_id
-		WHERE m.status = 'pending' AND m.next_try <= ? AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') = ? ORDER BY m.item_id LIMIT ?`, now, console, n)
+		WHERE m.status = 'pending' AND m.next_try <= ? AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') = ? AND `+hideLinked+` ORDER BY m.item_id LIMIT ?`, now, console, n)
 	if err != nil {
 		return nil, err
 	}
@@ -283,19 +414,27 @@ func (s *Store) nextGames(ctx context.Context, n int) ([]gameJob, error) {
 
 // EnqueueGame puts a game in the queue, because it's new or its file changed. A locked
 // match stays as it is; what the file is may still need working out again.
-func (s *Store) enqueueGame(ctx context.Context, it *Item, local []string) error {
+func (s *Store) enqueueGame(ctx context.Context, it *Item, local, earlier []string) error {
 	// Added to what's there: what someone typed by hand stays theirs whatever else is
-	// found beside the file.
-	var was string
-	_ = s.DB.QueryRowContext(ctx, `SELECT edited FROM game_meta WHERE item_id = ?`, it.ID).Scan(&was)
-	edited := setOf(was)
+	// found beside the file. What this server saved beside it earlier is only an old
+	// answer, for a better one to replace, unless someone has locked this game's match.
+	var was, applied string
+	var locked int
+	_ = s.DB.QueryRowContext(ctx, `SELECT edited, applied, locked FROM game_meta WHERE item_id = ?`, it.ID).Scan(&was, &applied, &locked)
+	edited, done := setOf(was), setOf(applied)
 	for _, f := range local {
 		edited[f] = true
 	}
-	_, err := s.DB.ExecContext(ctx, `INSERT INTO game_meta(item_id, library_id, edited) VALUES(?,?,?)
+	if locked == 0 {
+		for _, f := range earlier {
+			delete(edited, f)
+			done[f] = true
+		}
+	}
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO game_meta(item_id, library_id, edited, applied) VALUES(?,?,?,?)
 		ON CONFLICT(item_id) DO UPDATE SET status = CASE WHEN locked = 1 THEN status ELSE 'pending' END, next_try = 0, tries = 0,
-		  edited = excluded.edited`,
-		it.ID, it.LibraryID, listOf(edited))
+		  edited = excluded.edited, applied = excluded.applied`,
+		it.ID, it.LibraryID, listOf(edited), listOf(done))
 	if err != nil {
 		return err
 	}
@@ -303,6 +442,27 @@ func (s *Store) enqueueGame(ctx context.Context, it *Item, local []string) error
 		return err
 	}
 	return nil
+}
+
+// gameJudged says this game has been through the rules in games_detect.go.
+func (s *Store) gameJudged(ctx context.Context, id int64) bool {
+	var how string
+	return s.DB.QueryRowContext(ctx, `SELECT detect_how FROM game_meta WHERE item_id = ?`, id).Scan(&how) == nil && how != ""
+}
+
+// noteDetection keeps how a game's console was worked out and what its file calls itself.
+func (s *Store) noteDetection(ctx context.Context, it *Item, v gameVerdict) error {
+	how := v.How
+	if how == "" {
+		how = howFolder
+	}
+	if _, err := s.DB.ExecContext(ctx, `INSERT OR IGNORE INTO game_meta(item_id, library_id) VALUES(?, ?)`, it.ID, it.LibraryID); err != nil {
+		return err
+	}
+	_, err := s.DB.ExecContext(ctx, `UPDATE game_meta SET detect_how = ?, detect_sure = ?, detect_proof = ?, header_title = ?, entry_name = ?, problem = ?,
+		serial = CASE WHEN ? <> '' THEN ? ELSE serial END WHERE item_id = ?`,
+		how, v.Sure, v.Proof, v.Title, v.Name, v.Problem, v.Serial, v.Serial, it.ID)
+	return err
 }
 
 // gameFieldEdited says someone, or the owner's own files, set this field of a game.
@@ -424,17 +584,20 @@ func (g *GameMeta) askLocal(ctx context.Context, j *gameJob, set *sourceSet) (ga
 // identify works out what's needed to ask about a game, once per version of its file.
 func (g *GameMeta) identify(ctx context.Context, j *gameJob) {
 	it, r := j.it, &j.meta
-	title, tags := gamemeta.CleanName(gameBaseName(filepath.Base(it.Path)))
+	title, tags := gameTitleOf(it, r)
 	if it.Console == RigConsole {
 		// Its "file" is the PC's number for the game, which means nothing to anyone else.
 		title, tags = gamemeta.CleanName(it.Title)
 	}
 	if r.FileSize != it.SizeBytes || r.FileMTime != it.MTime {
-		id := g.id.Identify(it.Path, it.Console)
-		r.CRCs, r.CRCSize, r.Serial = id.CRCs, id.Size, id.Serial
+		id := g.id.Identify(it.Path, it.Console, r.ChosenEntry)
+		r.CRCs, r.AltCRCs, r.CRCSize = id.CRCs, id.AltCRCs, id.Size
+		if id.Serial != "" {
+			r.Serial = id.Serial
+		}
 		r.FileSize, r.FileMTime = it.SizeBytes, it.MTime
-		_, _ = g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET file_size = ?, file_mtime = ?, crcs = ?, crc_size = ?, serial = ?, tags = ? WHERE item_id = ?`,
-			r.FileSize, r.FileMTime, formatCRCs(r.CRCs), r.CRCSize, r.Serial, tags, it.ID)
+		_, _ = g.Store.DB.ExecContext(ctx, `UPDATE game_meta SET file_size = ?, file_mtime = ?, crcs = ?, alt_crcs = ?, crc_size = ?, serial = ?, tags = ? WHERE item_id = ?`,
+			r.FileSize, r.FileMTime, formatCRCs(r.CRCs), formatCRCs(r.AltCRCs), r.CRCSize, r.Serial, tags, it.ID)
 	}
 	if s := gamemeta.SerialInName(filepath.Base(it.Path)); s != "" && r.Serial == "" {
 		r.Serial = s
@@ -443,7 +606,7 @@ func (g *GameMeta) identify(ctx context.Context, j *gameJob) {
 	if r.QueryTitle != "" {
 		q = r.QueryTitle // someone chose what this game is
 	}
-	j.lookup = gamemeta.Query{Console: it.Console, Title: gamemeta.SearchTitle(q), Tags: tags, CRCs: r.CRCs, Size: r.CRCSize, Serial: r.Serial}
+	j.lookup = gamemeta.Query{Console: it.Console, Title: gamemeta.SearchTitle(q), Tags: tags, CRCs: r.CRCs, Size: r.CRCSize, Serial: r.Serial, HeaderTitle: r.HeaderTitle, AltCRCs: r.AltCRCs}
 }
 
 // lookup asks the sources that haven't answered about this game yet, then merges.
@@ -535,6 +698,15 @@ func laterOf(a, b time.Time) time.Time {
 
 func backoff(tries int) time.Duration {
 	return min(5*time.Minute<<min(tries, 8), 24*time.Hour)
+}
+
+// gameTitleOf is what a game is called going by its file alone.
+func gameTitleOf(it *Item, r *gameRow) (title, tags string) {
+	stem := gameBaseName(filepath.Base(it.Path))
+	if r != nil && r.EntryName != "" {
+		stem = r.EntryName
+	}
+	return gameFileTitle(stem, gameVerdict{})
 }
 
 func gameCleanTitle(name string) string {
@@ -637,7 +809,7 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 
 	// What a source filled in goes when no source says it any more: one was switched off,
 	// or a match changed. What someone typed is never in Applied, so it's safe.
-	fileTitle, fileTags := gamemeta.CleanName(gameBaseName(filepath.Base(it.Path)))
+	fileTitle, fileTags := gameTitleOf(it, &r)
 	drop := func(field string, clear func()) {
 		if r.Applied[field] {
 			clear()
@@ -683,6 +855,7 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 	if nameTags == "" {
 		nameTags = m.Tags
 	}
+	nameTags = gamemeta.DropDiscTag(nameTags)
 	if nameTags != "" && fills("tagline", it.Tagline) {
 		it.Tagline = clip(nameTags, 200)
 		mark("tagline")
@@ -704,6 +877,8 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 	if m.Developer != "" && fills("studio", it.Studio) {
 		it.Studio = m.Developer
 		mark("studio")
+		// Only a row: nothing is looked up until an administrator has agreed to logos.
+		_, _ = g.Store.EnsureLogo(ctx, LogoGameStudio, m.Developer)
 	}
 	if v := m.Rating(); v != nil && !r.Edited["rating"] && (it.Rating == nil || r.Applied["rating"]) {
 		it.Rating = v
@@ -1033,6 +1208,19 @@ type GameDetails struct {
 	// Checksums and serial, for administrators, to help fix a wrong match.
 	CRCs   string `json:"crcs,omitempty"`
 	Serial string `json:"serial,omitempty"`
+	// How its console was worked out: bytes (its own header proves it), extension, folder
+	// or chosen; how sure, out of 100; and why, in words.
+	DetectedBy string `json:"detectedBy,omitempty"`
+	DetectSure int    `json:"detectSure,omitempty"`
+	DetectWhy  string `json:"detectWhy,omitempty"`
+	// Problem says why it can't play as it is: "encrypted", or empty. ProblemText says
+	// that in words, and says what would.
+	Problem     string `json:"problem,omitempty"`
+	ProblemText string `json:"problemText,omitempty"`
+	// Discs are its discs, when it has more than one.
+	Discs []GameDisc `json:"discs,omitempty"`
+	// Entry is the file to play, when someone chose one from an archive holding several.
+	Entry string `json:"entry,omitempty"`
 }
 
 // GameDetails reads what's known about a game.
@@ -1040,8 +1228,8 @@ func (s *Store) GameDetails(ctx context.Context, id int64) (*GameDetails, error)
 	d := &GameDetails{ItemID: id, Status: "pending", Scores: []gamemeta.Score{}, Ages: []gamemeta.AgeRating{}, Art: []GameArt{}, Credits: []gamemeta.Credit{}}
 	var locked int
 	var scores, ages, art, credits string
-	err := s.DB.QueryRowContext(ctx, `SELECT status, locked, match_source, match_method, confidence, tags, released, developer, publisher, franchise, players, scores, ages, art, credits, crcs, serial
-		FROM game_meta WHERE item_id = ?`, id).Scan(&d.Status, &locked, &d.MatchSource, &d.MatchMethod, &d.Confidence, &d.Tags, &d.Released, &d.Developer, &d.Publisher, &d.Franchise, &d.Players, &scores, &ages, &art, &credits, &d.CRCs, &d.Serial)
+	err := s.DB.QueryRowContext(ctx, `SELECT status, locked, match_source, match_method, confidence, tags, released, developer, publisher, franchise, players, scores, ages, art, credits, crcs, serial, detect_how, detect_sure, detect_proof, problem, chosen_entry
+		FROM game_meta WHERE item_id = ?`, id).Scan(&d.Status, &locked, &d.MatchSource, &d.MatchMethod, &d.Confidence, &d.Tags, &d.Released, &d.Developer, &d.Publisher, &d.Franchise, &d.Players, &scores, &ages, &art, &credits, &d.CRCs, &d.Serial, &d.DetectedBy, &d.DetectSure, &d.DetectWhy, &d.Problem, &d.Entry)
 	if errors.Is(err, sql.ErrNoRows) {
 		return d, nil
 	}
@@ -1049,6 +1237,12 @@ func (s *Store) GameDetails(ctx context.Context, id int64) (*GameDetails, error)
 		return nil, err
 	}
 	d.Locked = locked != 0
+	if d.Problem != "" {
+		d.ProblemText = problemText(gameVerdict{Problem: d.Problem, Proof: d.DetectWhy})
+	}
+	if discs, err := s.GameDiscs(ctx, id); err == nil && len(discs) > 0 {
+		d.Discs = discs
+	}
 	_ = json.Unmarshal([]byte(scores), &d.Scores)
 	_ = json.Unmarshal([]byte(ages), &d.Ages)
 	_ = json.Unmarshal([]byte(credits), &d.Credits)
@@ -1218,11 +1412,11 @@ func (g *GameMeta) ClearMatch(ctx context.Context, it *Item) error {
 		return err
 	}
 	if r.Applied["title"] {
-		it.Title, _ = gamemeta.CleanName(gameBaseName(filepath.Base(it.Path)))
+		it.Title, _ = gameTitleOf(it, &r)
 		it.SortTitle = SortTitle(it.Title)
 	}
 	if r.Applied["tagline"] {
-		_, it.Tagline = gamemeta.CleanName(gameBaseName(filepath.Base(it.Path)))
+		_, it.Tagline = gameTitleOf(it, &r)
 	}
 	if r.Applied["overview"] {
 		it.Overview = ""
@@ -1356,7 +1550,7 @@ func (g *GameMeta) Status(ctx context.Context) GameMetaStatus {
 	rows, err := g.Store.DB.QueryContext(ctx, `SELECT IFNULL(i.console, ''), COUNT(*),
 		SUM(m.status = 'pending'), SUM(m.confidence >= ?), SUM(m.match_method IN ('checksum', 'serial')),
 		SUM(m.art_wanted = 1), SUM(IFNULL(i.poster, '') <> ''), SUM(IFNULL(i.overview, '') <> '')
-		FROM game_meta m JOIN items i ON i.id = m.item_id WHERE i.missing = 0 AND i.kind = 'game' GROUP BY 1`, gamemeta.AcceptConfidence)
+		FROM game_meta m JOIN items i ON i.id = m.item_id WHERE i.missing = 0 AND i.kind = 'game' AND `+hideLinked+` GROUP BY 1`, gamemeta.AcceptConfidence)
 	if err != nil {
 		return out
 	}

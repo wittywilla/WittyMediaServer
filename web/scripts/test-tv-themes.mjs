@@ -287,7 +287,8 @@ const AUDIT = `(minSize) => {
     if (e.matches('.ctv-cell')) continue
     // A dialog can hold on to focus: see it without by giving it to something else first.
     if (document.activeElement === e) controls.find((x) => x !== e)?.focus({ preventScroll: true })
-    if (e.matches(':focus, :focus-visible')) continue // it won't let go, so there's nothing to compare with
+    // The search box holds on to focus while its dialog is open, so real Tab presses check it, below.
+    if (e.matches('[role=dialog] input[type=search]')) continue
     const before = style(e)
     e.focus({ preventScroll: true })
     if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e) + ' ' + before + ' fv=' + e.matches(':focus-visible'))
@@ -350,6 +351,13 @@ for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS).filter((
     await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
     await keyOn('s'); await page.until(`document.querySelector('[role=dialog]')`, 4000, 'search'); await wait(250)
     await checkScreen(`${name} ${theme}: search`, s.min)
+    if (!attached) {
+      await page.eval(`document.querySelector('[role=dialog] input[type=search]').focus()`)
+      const look = `(() => { const c = getComputedStyle(document.querySelector('[role=dialog] input[type=search]')); return c.boxShadow + c.borderColor + c.outlineStyle })()`
+      const held = await page.eval(look)
+      await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }); await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }); await wait(250)
+      expect(`${name} ${theme}: focus shows on the search box`, held !== await page.eval(look))
+    }
     await closeDialog()
   }
   // The pages around it, in one theme of each kind and the most extreme colours.

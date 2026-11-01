@@ -5,6 +5,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.5.2-alpha
+
+0.5.0-alpha was never published as a release, so this is the first release with everything from it as
+well (see its section below). This one adds the fixes from a full code and design audit, *Settings → Reset*,
+and a remote access guide written around security.
+
 - **Fixed:** on Linux, an installed module could fail to start on a busy machine and be counted against its version: its
   address space limit was too close to what Go sets aside when it starts. Real memory use stays limited as before.
 - **Server 0.5.2-alpha:** The code and design audits: security and reliability fixes across the server, games, discs, modules, apps and the web UI, and a remote access guide written as a security guide.
@@ -380,7 +386,6 @@ disc: neither Blu-ray image on hand has Java menus.
 - **Changed:** the container image is now based on Debian rather than Alpine, because the runner couldn't start any core
   on Alpine. It is about 800 MB, up from about 150 MB.
 
-## 0.5.0-alpha
 ### Games: controllers
 
 - **Controllers just work:** common pads are recognised by model, including cheap USB ones and pads on Linux whose buttons a

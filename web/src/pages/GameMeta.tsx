@@ -190,6 +190,8 @@ const hintDismissed = () => { try { return localStorage.getItem(dismissKey) === 
 export function GameMetaNotice({ onProgress, unmatched, onUnmatched }: { onProgress: () => void; unmatched: boolean; onUnmatched: (on: boolean) => void }) {
   const [st, setSt] = useState<GameMetaStatus | null>(null)
   const [hidden, setHidden] = useState(hintDismissed)
+  const progress = useRef(onProgress) // this follows for as long as the lookup runs, so always the latest
+  progress.current = onProgress
   useEffect(() => {
     let stop = false
     let timer = 0
@@ -199,7 +201,7 @@ export function GameMetaNotice({ onProgress, unmatched, onUnmatched }: { onProgr
       if (stop || !r) return
       setSt(r)
       const left = r.pending + r.pictures
-      if (was !== -1 && left !== was) onProgress()
+      if (was !== -1 && left !== was) progress.current()
       was = left
       if (r.running || left > 0) timer = window.setTimeout(tick, r.running ? 5000 : 30000)
     }

@@ -141,7 +141,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
                   : <span className="kar-rest" aria-hidden="true">♪</span>}
               </p>
               <p className="kar-next">{nextLine?.text || ' '}</p>
-              <span className="wv-sr" aria-live="polite">{nowLine?.text || ''}</span>
+              <span className="mp-sr" aria-live="polite">{nowLine?.text || ''}</span>
             </>
           )}
       </main>

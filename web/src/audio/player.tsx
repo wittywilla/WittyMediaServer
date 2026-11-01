@@ -819,6 +819,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       <audio ref={deckB} preload="none" {...deckEvents} />
       {current && !takenOver && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (
         <>
+          <span className="mp-sr" aria-live="polite">{playing ? `Now playing: ${current.title}${current.artist ? `, by ${current.artist}` : ''}` : ''}</span>
           {!full && <MiniPlayer p={view} cdSpin={cdActive} />}
           {wantFull && <Suspense fallback={null}>{full && <NowPlaying p={view} />}</Suspense>}
         </>

@@ -153,7 +153,7 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
 
 /* Phones: the layout that's made for a thumb. */
 @media (max-width: 600px) {
-  .mh-toolbar h1 { display: none; }
+  .mh-toolbar h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .mh-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
   .mh-toolbar > * { flex: none; }
   .mh-toolbar .grow { display: none; }

@@ -116,6 +116,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 899px) { .audio-bar.collapsed { right: 8px; } .app:has(~ .audio-bar.collapsed) .content { padding-bottom: 150px; } }
 
 /* Small things used in the bar and the panels both. */
+.mp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mp-ibtn { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--fg); cursor: pointer; transition: background var(--dur-2), transform var(--dur-1), color var(--dur-2); }
 .mp-ibtn:hover { background: var(--hover); }
 .mp-ibtn:active { transform: scale(.94); }

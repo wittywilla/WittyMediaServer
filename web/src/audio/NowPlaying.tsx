@@ -77,8 +77,11 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       const saved = readPrefs(u.musicPlayer)
       setPrefsState(p.fullOpts.visualizer ? { ...saved, viz: true } : saved)
     }).catch(() => {}).finally(() => setPrefsLoaded(true))
-    shaderEffects().then(setShaders).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // The plugin comes when it's needed: most people's Bars, Waves and Drift don't need it.
+  const needShaders = prefsLoaded && prefs.viz && (!isNative(prefs.style) || (prefs.shuffleEvery > 0 && prefs.shufflePool === 'all'))
+  const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
+  useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
   useEffect(() => { if (p.fullOpts.panel) setPanel(p.fullOpts.panel) }, [p.fullOpts])
 
@@ -234,7 +237,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                   {NATIVE_STYLES.map((n) => <button type="button" role="radio" key={n.id} aria-checked={style === n.id} className={style === n.id ? 'on' : ''} onClick={() => pickStyle(n.id)}>{n.name}</button>)}
                   <Pop label="More visualizer styles" className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? 'More' : shaders.find((s) => s.id === style)?.name || 'More'}</span>}>
                     {(close) => (
-                      <div className="mp-menu np-style-menu" role="menu">
+                      <div className="mp-menu np-style-menu" role="menu" ref={(el) => { if (el && !shaders.length) loadShaders() }}>
+                        {!shaders.length && <span className="mp-menu-note">Loading…</span>}
                         {shaders.map((s) => <button type="button" role="menuitemradio" aria-checked={style === s.id} key={s.id} className={style === s.id ? 'on' : ''} onClick={() => { pickStyle(s.id); close() }}>{s.name}</button>)}
                         <span className="mp-menu-rule" />
                         <button type="button" role="menuitem" onClick={() => { setWholeShader(true); close() }}>Effect settings and your own effects…</button>
@@ -284,7 +288,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         <kbd>Esc</kbd> close · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next
         {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{p.vizHere && <> · <kbd>V</kbd> visualizer</>}
       </p>
-      <div className="wv-sr" aria-live="polite">{said}</div>
+      <div className="mp-sr" aria-live="polite">{said}</div>
       {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
     </div>
   )

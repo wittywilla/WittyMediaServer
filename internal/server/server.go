@@ -392,6 +392,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/modules/{id}/source", s.requireAdmin(s.handleModuleSourceClear))
 	m.Handle("GET /api/modules/{id}/icon", a(s.handleModuleIcon))
 	m.Handle("GET /api/modules/{id}/notices", a(s.handleModuleNotices))
+	m.Handle("GET /api/modules/{id}/store/{key}", a(s.handleModuleStoreGet))
+	m.Handle("PUT /api/modules/{id}/store/{key}", a(s.handleModuleStorePut))
 	m.Handle("POST /api/modules/{id}/add", s.requireAdmin(s.handleModuleAdd))
 	m.Handle("POST /api/modules/{id}/remove", s.requireAdmin(s.handleModuleRemove))
 	m.Handle("POST /api/modules/{id}/enable", s.requireAdmin(s.handleModuleEnable))

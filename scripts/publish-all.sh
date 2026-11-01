@@ -22,7 +22,7 @@ set -euo pipefail
 OWNER=wittywilla
 LIBRARIES=(WittyModule WittyDisc)
 PROGRAMS=(WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs WittyPlay WittyCouch WittyCouchHost)
-WEB=(WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer)
+WEB=(WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats)
 APPS=(WittyReader WittyMediaPlayer WittyMediaClient)
 CATALOG=WittyModuleCatalog
 SERVER=WittyMediaServer

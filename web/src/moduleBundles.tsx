@@ -12,7 +12,8 @@ export type ReaderFormat = 'epub' | 'pdf' | 'cbz'
 const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittypdf', cbz: 'wittycomics' }
 const HOST_API = 3 // the newest module API moduleHost.ts provides
 
-type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number }
+type Page = { id: string; title: string; where: 'main' | 'settings'; icon?: string }
+type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[] }
 type HostContextType = Context<ReaderHost | null>
 export type BundledReader = { bundle: Bundle; ink: Bundle | null; Reader: ComponentType; HostContext: HostContextType }
 
@@ -183,4 +184,18 @@ export function lazyModule<P extends object>(id: string, pick: (m: Record<string
     const c = m ? pick(m) as ComponentType<P> : null
     return { default: c ?? ((() => <ModuleMissing ids={[id]} onReady={() => window.location.reload()} />) as unknown as ComponentType<P>) }
   })
+}
+
+// The pages modules add to the app. Asked for once a session: adding a module reloads the page.
+export type ModulePage = Page & { module: string }
+let pagesAsked: Promise<ModulePage[]> | null = null
+export function useModulePages(): ModulePage[] {
+  const [pages, setPages] = useState<ModulePage[]>([])
+  useEffect(() => {
+    let live = true
+    pagesAsked ||= askServer().then((l) => l.flatMap((b) => (b.pages ?? []).map((p) => ({ ...p, module: b.id }))))
+    pagesAsked.then((p) => { if (live) setPages(p) })
+    return () => { live = false }
+  }, [])
+  return pages
 }

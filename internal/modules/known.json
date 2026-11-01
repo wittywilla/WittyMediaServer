@@ -225,6 +225,20 @@
       "versions": []
     },
     {
+      "id": "wittystats",
+      "name": "WittyStats",
+      "summary": "A statistics screen you arrange yourself: the machine, streams, libraries and history, as charts or tables, with exports.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyStats",
+      "group": "system",
+      "updates": "The screen itself: its widgets, charts, tables, layouts and exports. New widgets can arrive this way.",
+      "stays": "The numbers stay with the server, which collects them and decides who sees what, with or without this module. Saved layouts stay with each person's account.",
+      "versions": []
+    },
+    {
       "id": "wittytuner",
       "name": "WittyTuner",
       "summary": "Live TV and recording: network tuners, IPTV playlists, capture cards and guide data. Encrypted channels are refused.",

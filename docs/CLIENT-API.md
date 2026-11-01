@@ -868,6 +868,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /modules/{id}/add` | admin | Install the newest version that fits, and what it's built on. Answers 202, and progress shows in `phase`, `done` and `total`. |
 | `POST /modules/{id}/enable`, `/disable` | admin | Turn it on or off, with no restart. Turning off is refused, with names, while libraries need it. |
 | `GET /modules/{id}/icon` | user | Its picture, kept by the server and checked against the signed catalogue. |
+| `GET /modules/{id}/store/{key}`, `PUT` | user | A little JSON a module's page keeps for this person: at most 64 KB a key and 32 keys a module. |
 | `GET /modules/{id}/notices` | user | The licenses of the libraries in its programs, as plain text. |
 | `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |

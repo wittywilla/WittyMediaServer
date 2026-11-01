@@ -48,6 +48,7 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
   const controlRef = useRef<RTCDataChannel | null>(null)
   const sidRef = useRef('')
   const padsRef = useRef<Pads | null>(null)
+  const gone = useRef(false) // the page has left, though a start may still be on its way
   const [phase, setPhase] = useState<'choose' | 'starting' | 'playing' | 'ended'>('choose')
   const [message, setMessage] = useState('')
   const [menu, setMenu] = useState(false)
@@ -79,20 +80,31 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
     try {
       localStorage.setItem(PREF_KEY, JSON.stringify(prefs))
     } catch { /* it just won't be remembered */ }
+    let sid = ''
     try {
       // Width follows this screen's shape, on an even number, as encoders need.
       const aspect = Math.max(1.25, Math.min(3.6, (window.screen?.width || 16) / (window.screen?.height || 9)))
       const width = Math.round((prefs.height * aspect) / 2) * 2
       const info = await host.start({ width, height: prefs.height, fps: prefs.fps, bitrate: prefs.bitrate })
-      sidRef.current = info.id
-      await connect(info.id)
+      sid = info.id
+      sidRef.current = sid
+      await connect(sid)
     } catch (e: any) {
+      // Nothing can reach a stream with no page to show it, so it's ended here.
+      hangUp()
+      if (sid) void host.end(sid, false).catch(() => {})
+      if (gone.current) return
       setMessage(e?.message || 'The stream couldn\'t start.')
       setPhase('ended')
     }
   }
 
   const connect = async (sid: string) => {
+    // Stopped when the page leaves mid-way: begin ends the stream.
+    const stillHere = () => { if (gone.current) throw new Error('left') }
+    stillHere()
+    // Tracks from an earlier try have ended, and would leave the picture black.
+    if (video.current) video.current.srcObject = null
     const pc = new RTCPeerConnection()
     pcRef.current = pc
     pc.addTransceiver('video', { direction: 'recvonly' })
@@ -144,14 +156,22 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
       const t = window.setTimeout(done, 2000)
       pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); done() } }
     })
+    stillHere()
     const answer = await host.answer(sid, pc.localDescription!.sdp)
+    stillHere()
     await pc.setRemoteDescription({ type: 'answer', sdp: answer })
+    stillHere()
     const pads = new Pads(send, () => setMenu((m) => !m), setPadCount)
     padsRef.current = pads
     pads.start()
   }
 
-  useEffect(() => () => { hangUp() }, [hangUp])
+  useEffect(() => {
+    gone.current = false
+    return () => { gone.current = true; hangUp() }
+  }, [hangUp])
+  // The menu is for the player: a controller's presses don't reach the game behind it.
+  useEffect(() => { padsRef.current?.setPaused(menu) }, [menu])
 
   const leave = async (quit: boolean) => {
     const sid = sidRef.current
@@ -165,6 +185,11 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
   useEffect(() => {
     if (phase !== 'playing') return
     const held = new Set<string>()
+    // Anything held down when the keyboard stops going to the PC stays down there unless it's let go.
+    const release = () => {
+      held.forEach((code) => { const m = keyMessage(code, false, { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }); if (m) send(m, true) })
+      held.clear()
+    }
     const key = (down: boolean) => (e: KeyboardEvent) => {
       if (e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyM') {
         e.preventDefault()
@@ -184,9 +209,7 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
     const lock = () => {
       const locked = document.pointerLockElement === video.current || !!document.fullscreenElement
       if (!locked && captured) {
-        // Anything held down when focus went stays down on the PC unless it's let go here.
-        held.forEach((code) => { const m = keyMessage(code, false, { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }); if (m) send(m, true) })
-        held.clear()
+        release()
         setCaptured(false)
       }
     }
@@ -199,6 +222,7 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
       window.removeEventListener('keydown', onDown)
       window.removeEventListener('keyup', onUp)
       document.removeEventListener('pointerlockchange', lock)
+      release()
     }
   }, [phase, menu, captured, send])
 
@@ -274,8 +298,9 @@ export default function CouchPlayer({ host }: { host: CouchHost }) {
   const setFps = (fps: number) => setPrefs((p) => ({ ...p, fps, bitrate: defaultBitrate(p.height, fps) }))
 
   return (
-    // "wp-playing" stands the app's TV-style controller and arrow navigation down, as WittyPlay's player does.
-    <div className="ml-root wp-playing">
+    // "wp-playing" stands the app's TV-style controller and arrow navigation down, as WittyPlay's player
+    // does, and only while there's a game to send them to: a remote still has to reach these panels.
+    <div className={'ml-root' + (phase === 'playing' && !menu ? ' wp-playing' : '')}>
       <video ref={video} className="ml-video" autoPlay playsInline disablePictureInPicture
         onPointerMove={onMove} onPointerDown={(e) => onPress(e, true)} onPointerUp={(e) => onPress(e, false)} onContextMenu={(e) => e.preventDefault()}
         onWheel={(e) => { if (captured) send(scrollMessage(-e.deltaY, false), true); if (captured && e.deltaX) send(scrollMessage(e.deltaX, true), true) }} />

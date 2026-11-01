@@ -357,12 +357,19 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 	return out
 }
 
+// hideCustom takes out what an administrator chose to add, for everyone else: which custom
+// cores there are, their versions and hashes. Whether a console is ready stays.
+func hideCustom(views []consoleView) {
+	for i := range views {
+		views[i].Custom, views[i].DefaultCore = nil, ""
+		views[i].Installed = slices.DeleteFunc(views[i].Installed, func(c cores.Core) bool { return c.Source == cores.SourceCustom })
+	}
+}
+
 func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 	views := s.consoleViews(r.Context())
 	if !userFrom(r).IsAdmin {
-		for i := range views {
-			views[i].Custom, views[i].DefaultCore = nil, ""
-		}
+		hideCustom(views)
 	}
 	if id := int64(qInt(r, "library", 0)); id != 0 {
 		if counts, err := s.Store.GameCounts(r.Context(), id, s.access(r)); err == nil {
@@ -637,7 +644,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, err.Error())
 		return
 	}
-	if _, err := os.Stat(it.Path); err != nil {
+	if _, err := os.Stat(it.Path); err != nil || !s.Store.LibraryFile(ctx, it.Path) {
 		writeErr(w, 404, "the game file is missing")
 		return
 	}

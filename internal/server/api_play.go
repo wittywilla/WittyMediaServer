@@ -158,7 +158,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	info := playInfo{DurationSec: pr.Duration(), Container: it.Container, AudioIndex: qInt(r, "audio", 0), SubIndex: qInt(r, "subtitle", -1)}
@@ -221,7 +221,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
+		ID: hid, ItemID: it.ID, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
@@ -242,7 +242,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 // drive, and every change of audio or subtitle track asks again.
 func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, error) {
 	st, err := os.Stat(path)
-	if err != nil {
+	if err != nil || !s.Store.LibraryFile(ctx, path) {
 		return nil, errors.New("the file is missing")
 	}
 	key := fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())
@@ -328,9 +328,23 @@ func mediaType(path string) string {
 // HLS
 // ---------------------------------------------------------------------------
 
+// visibleStream is a stream this account may watch. Its address is hard to guess, but addresses
+// get written down, and limits can change while a stream runs. An account with limits is checked
+// against what the stream plays, at every request; one without pays nothing.
+func (s *Server) visibleStream(r *http.Request, id string) *hls.Session {
+	sess := s.HLS.Get(id)
+	if sess == nil {
+		return nil
+	}
+	if a := s.access(r); a != nil && (sess.Spec.ItemID == 0 || !s.itemAllowed(r.Context(), a, sess.Spec.ItemID)) {
+		return nil
+	}
+	return sess
+}
+
 func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
@@ -362,7 +376,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 			if !errors.Is(err, context.Canceled) {
 				s.Log.WarnContext(r.Context(), "could not serve a playlist", "cat", "transcode", "session", sess.LogSession(), "stream", id, "err", err)
 			}
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 		_, _ = w.Write(b)
@@ -373,7 +387,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream")
 		return
@@ -402,7 +416,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not serve a segment", "cat", "transcode", "session", sess.LogSession(), "stream", id, "segment", name, "err", err)
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	if sess.Spec.FMP4 {

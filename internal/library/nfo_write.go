@@ -287,7 +287,7 @@ func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
 			sh.Backdrop = dst
 		}
 	}
-	if seasons, err := s.Store.Seasons(ctx, sh.ID, 0); err == nil {
+	if seasons, err := s.Store.Seasons(ctx, sh.ID, 0, nil); err == nil {
 		for _, se := range seasons {
 			if se.Poster == "" {
 				continue

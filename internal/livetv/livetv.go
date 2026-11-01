@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -180,8 +181,12 @@ func PublicError(err error) string {
 	var ue *url.Error
 	var op *net.OpError
 	var dns *net.DNSError
+	var pe *fs.PathError
 	if errors.As(err, &ue) || errors.As(err, &op) || errors.As(err, &dns) {
 		return "the stream could not be reached"
+	}
+	if errors.As(err, &pe) {
+		return "the recording could not be written to its folder"
 	}
 	return addressInText.ReplaceAllString(err.Error(), "(address)")
 }

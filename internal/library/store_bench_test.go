@@ -162,7 +162,7 @@ func BenchmarkStore(b *testing.B) {
 		sh := show
 		it := &Item{ID: 5001, ShowID: &sh}
 		for b.Loop() {
-			st.NextEpisode(ctx, it)
+			st.NextEpisode(ctx, it, nil)
 		}
 	})
 	b.Run("ContinueWatching", func(b *testing.B) {

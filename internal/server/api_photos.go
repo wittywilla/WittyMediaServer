@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"math"
 	"mime"
 	"net/http"
 	"os"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // WittyPhotos: the gallery's JSON API and its pictures. See docs/PHOTOS.md.
@@ -47,6 +50,31 @@ func canPost(u *auth.User) bool {
 	return u != nil && (u.IsAdmin || u.Kind == auth.KindAdult || u.Kind == "")
 }
 func canReact(u *auth.User) bool { return u != nil && (u.IsAdmin || u.Kind != auth.KindGuest) }
+
+// What one account can keep. Far more than a person writes, and each row is a place to store
+// things on someone else's disk. An administrator has no limit.
+var (
+	maxCommentsPerAccount    = 5000
+	maxCollectionsPerAccount = 200
+	maxAlbumsPerAccount      = 200
+)
+
+// underLimit answers 409 when an account already has as many of something as it may.
+func (s *Server) underLimit(w http.ResponseWriter, r *http.Request, u *auth.User, count string, limit int, what string) bool {
+	if u.IsAdmin {
+		return true
+	}
+	var n int
+	if err := s.DB.QueryRowContext(r.Context(), count, u.ID).Scan(&n); err != nil {
+		writeErr(w, 500, "could not check that")
+		return false
+	}
+	if n >= limit {
+		writeErr(w, 409, fmt.Sprintf("You have %d %s, which is as many as one account can have. Remove some first.", n, what))
+		return false
+	}
+	return true
+}
 
 func (s *Server) photoQuery(r *http.Request) (library.PhotoQuery, error) {
 	q := r.URL.Query()
@@ -217,6 +245,10 @@ func (s *Server) handleItemImage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) serveThumb(w http.ResponseWriter, r *http.Request, it *library.Item, width int) {
 	p, err := s.Scanner.Thumb(r.Context(), it, width)
+	if errors.Is(err, library.ErrNotFound) {
+		writeErr(w, 404, "not found")
+		return
+	}
 	if err != nil {
 		if r.Context().Err() == nil {
 			s.Log.WarnContext(r.Context(), "could not make a thumbnail", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
@@ -276,6 +308,11 @@ func originalType(name string) string {
 }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
+	// A link swapped in after the scan doesn't lead anywhere else.
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	f, err := os.Open(it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")
@@ -283,7 +320,7 @@ func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *libra
 	}
 	defer f.Close()
 	st, err := f.Stat()
-	if err != nil || st.IsDir() {
+	if err != nil || !st.Mode().IsRegular() {
 		writeErr(w, 404, "file missing")
 		return
 	}
@@ -294,7 +331,7 @@ func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *libra
 	if download {
 		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filepath.Base(it.Path)}))
 	}
-	http.ServeContent(w, r, "", st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
 }
 
 // GET /api/items/{id}/original: the file itself, to download.
@@ -377,6 +414,9 @@ func (s *Server) handleCreateAlbum(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
 	if !canPost(u) {
 		writeErr(w, 403, "this profile can't make albums")
+		return
+	}
+	if !s.underLimit(w, r, u, `SELECT COUNT(*) FROM photo_albums WHERE owner_id = ?`, maxAlbumsPerAccount, "albums") {
 		return
 	}
 	var b albumBody
@@ -524,6 +564,45 @@ func (s *Server) uploadMaxBytes(r *http.Request) int64 {
 	return mb << 20
 }
 
+// uploadFreeFloor is the room uploads leave on a disk: the server's database may share it, and
+// stops when it's full.
+var uploadFreeFloor int64 = 2 << 30
+
+func (s *Server) uploadDiskFull(lib *library.Library) bool {
+	free := sysinfo.FreeBytes(lib.Paths[0])
+	return free >= 0 && free <= uploadFreeFloor
+}
+
+// uploadRoom is how much more this account can send to this library now: what's left of its
+// total across the server's galleries (uploadAccountMb, 0 for none, and none for an
+// administrator), within what the disk can spare.
+func (s *Server) uploadRoom(r *http.Request, u *auth.User, lib *library.Library, folder string) int64 {
+	room := int64(math.MaxInt64)
+	if free := sysinfo.FreeBytes(lib.Paths[0]); free >= 0 {
+		room = free - uploadFreeFloor
+	}
+	mb, err := strconv.ParseInt(s.DB.GetSetting(r.Context(), "uploadAccountMb", settingDefaults["uploadAccountMb"]), 10, 64)
+	if err != nil || mb <= 0 || u.IsAdmin {
+		return room
+	}
+	used := int64(0)
+	libs, _ := s.Store.Libraries(r.Context())
+	for _, l := range libs {
+		if (l.Type != "photos" && l.Type != "shorts") || len(l.Paths) == 0 {
+			continue
+		}
+		_ = filepath.WalkDir(filepath.Join(l.Paths[0], "Uploads", folder), func(_ string, d fs.DirEntry, err error) error {
+			if err == nil && d.Type().IsRegular() {
+				if info, err := d.Info(); err == nil {
+					used += info.Size()
+				}
+			}
+			return nil
+		})
+	}
+	return min(room, mb<<20-used)
+}
+
 // POST /api/libraries/{id}/upload (multipart, field "file", any number of files)
 // Files go to <library folder>/Uploads/<profile>/<yyyy-mm>/ and never replace
 // anything that is already there.
@@ -551,15 +630,24 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this library has no folder to save to")
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, s.uploadMaxBytes(r))
+	folder := library.SafeFileName(u.Name)
+	if folder == "" {
+		folder = fmt.Sprintf("profile-%d", u.ID)
+	}
+	room := s.uploadRoom(r, u, lib, folder)
+	if room <= 0 {
+		if s.uploadDiskFull(lib) {
+			writeErr(w, 507, "The disk this library is on is nearly full.")
+			return
+		}
+		writeErr(w, 413, "You've used all the upload room this server gives one account.")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, min(s.uploadMaxBytes(r), room))
 	mr, err := r.MultipartReader()
 	if err != nil {
 		writeErr(w, 400, "expected a multipart upload")
 		return
-	}
-	folder := library.SafeFileName(u.Name)
-	if folder == "" {
-		folder = fmt.Sprintf("profile-%d", u.ID)
 	}
 	dest := filepath.Join(lib.Paths[0], "Uploads", folder, time.Now().Format("2006-01"))
 	type result struct {

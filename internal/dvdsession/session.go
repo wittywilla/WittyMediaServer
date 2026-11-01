@@ -172,6 +172,7 @@ type Track struct {
 
 // Prefs are viewer preferences for a session.
 type Prefs struct {
+	Owner            int64 // the account that opened it; 0 for none
 	MenuLanguage     string
 	AudioLanguage    string
 	SubtitleLanguage string
@@ -231,16 +232,39 @@ func (m *Manager) list() map[string]*Session {
 // structure); the one left alone longest makes way.
 const maxSessions = 16
 
-func (m *Manager) makeRoom() {
-	var oldest *Session
-	if all := m.list(); len(all) >= maxSessions {
-		for _, o := range all {
-			if oldest == nil || o.lastUsed().Before(oldest.lastUsed()) {
-				oldest = o
+// maxSessionsPerAccount: one account opening discs goes through its own before anyone else's.
+const maxSessionsPerAccount = 4
+
+func (m *Manager) makeRoom(owner int64) {
+	if s := whoMakesWay(m.list(), owner); s != nil {
+		m.CloseSession(s.ID)
+	}
+}
+
+// whoMakesWay is the session to close so that owner can open another, if any: their own oldest
+// when they are at their limit, otherwise the oldest of all when the server is full. Sessions
+// with no owner belong to no account.
+func whoMakesWay(all map[string]*Session, owner int64) *Session {
+	var oldest, mine *Session
+	n := 0
+	for _, o := range all {
+		if oldest == nil || o.lastUsed().Before(oldest.lastUsed()) {
+			oldest = o
+		}
+		if owner != 0 && o.prefs.Owner == owner {
+			n++
+			if mine == nil || o.lastUsed().Before(mine.lastUsed()) {
+				mine = o
 			}
 		}
-		m.CloseSession(oldest.ID)
 	}
+	switch {
+	case n >= maxSessionsPerAccount:
+		return mine
+	case len(all) >= maxSessions:
+		return oldest
+	}
+	return nil
 }
 
 // Session is one viewer's DVD player.
@@ -293,7 +317,7 @@ func randomID() string {
 
 // Open starts a session for a disc path.
 func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error) {
-	m.makeRoom()
+	m.makeRoom(prefs.Owner)
 	o, err := openEngine(path)
 	if err != nil {
 		return nil, err
@@ -1123,7 +1147,7 @@ func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (stri
 		return "", err
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
 		AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, LowLatency: true, HoldLastFrame: true, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 	})
 	return id, nil
@@ -1246,7 +1270,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 			return err
 		}
 		s.m.HLS.Ensure(hls.Spec{
-			ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false), SeekMargin: 1.5,
+			ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false), SeekMargin: 1.5,
 			AudioIndex: audioIdx, AudioChannels: channels, AudioFilter: audioFilter, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 		})
 	}

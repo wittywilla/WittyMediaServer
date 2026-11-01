@@ -391,7 +391,7 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 | `POST /api/tuners/{id}/scan`, `GET` for progress | admin | Find channels |
 | `GET /api/tuners/{id}/channels`, `PUT /api/tuner-channels/{id}` | admin | Turn on or off, renumber, map guide data |
 | `GET`/`POST /api/epg/sources`, `DELETE`, `POST …/refresh` | admin | XMLTV sources |
-| `GET`/`POST /api/recordings`, `DELETE /api/recordings/{id}` | signed in, may use tuner channels | DVR |
+| `GET`/`POST /api/recordings`, `DELETE /api/recordings/{id}` | signed in, may use tuner channels. Each person sees and cancels their own; an administrator, all of them. Up to 50 waiting per person | DVR |
 | `GET`/`PUT /api/tv/settings` | admin | Buffers, DVR folder, conversion limits |
 
 ## Using it
@@ -425,5 +425,5 @@ channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 - ATSC huffman-compressed guide text (those events are skipped).
 - Commercial breaks inside a programme (they play between programmes).
 - A viewer and a recording sharing one tuner on the same channel.
-- Recording disk-space checks and automatic clean-up of old recordings.
+- Automatic clean-up of old recordings. A recording stops and says so when under 2 GB is left on its disk.
 - Guide data read over the air reaches only the channel being watched, not the others on its multiplex.

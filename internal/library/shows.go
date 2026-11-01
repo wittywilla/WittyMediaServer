@@ -214,10 +214,11 @@ func (s *Store) ShowFacts(ctx context.Context, id int64) (*Show, error) {
 }
 
 // EpisodePoster is the artwork of a show's first episode that has any.
-func (s *Store) EpisodePoster(ctx context.Context, showID int64) string {
+func (s *Store) EpisodePoster(ctx context.Context, showID int64, access *Access) string {
+	clause, cargs := access.ItemClause()
 	var p sql.NullString
-	_ = s.DB.QueryRowContext(ctx, `SELECT poster FROM items WHERE show_id = ? AND missing = 0 AND IFNULL(poster, '') <> ''
-		ORDER BY IFNULL(season, 0), IFNULL(episode, 0) LIMIT 1`, showID).Scan(&p)
+	_ = s.DB.QueryRowContext(ctx, `SELECT i.poster FROM items i WHERE i.show_id = ? AND i.missing = 0 AND IFNULL(i.poster, '') <> '' AND `+clause+`
+		ORDER BY IFNULL(i.season, 0), IFNULL(i.episode, 0) LIMIT 1`, append([]any{showID}, cargs...)...).Scan(&p)
 	return p.String
 }
 
@@ -267,11 +268,12 @@ func (s *Store) saveAirSlot(ctx context.Context, sh *Show) error {
 	return err
 }
 
-// Seasons lists the seasons that have episodes, with per-user unwatched counts.
-func (s *Store) Seasons(ctx context.Context, showID, userID int64) ([]Season, error) {
+// Seasons lists the seasons with episodes this account may see, with per-user unwatched counts.
+func (s *Store) Seasons(ctx context.Context, showID, userID int64, access *Access) ([]Season, error) {
+	clause, cargs := access.ItemClause()
 	rows, err := s.DB.QueryContext(ctx, `SELECT IFNULL(i.season, 0), COUNT(*),
 		SUM(CASE WHEN EXISTS (SELECT 1 FROM progress p WHERE p.item_id = i.id AND p.user_id = ? AND p.watched = 1) THEN 0 ELSE 1 END)
-		FROM items i WHERE i.show_id = ? AND i.missing = 0 AND i.season IS NOT NULL GROUP BY i.season ORDER BY 1`, userID, showID)
+		FROM items i WHERE i.show_id = ? AND i.missing = 0 AND i.season IS NOT NULL AND `+clause+` GROUP BY i.season ORDER BY 1`, append([]any{userID, showID}, cargs...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -441,14 +443,15 @@ func (s *Store) NextUpItems(ctx context.Context, userID int64, showIDs []int64, 
 	return out, s.AttachProgress(ctx, userID, out)
 }
 
-// NextEpisode returns the id of the episode after it in its show, if any.
-func (s *Store) NextEpisode(ctx context.Context, it *Item) *int64 {
+// NextEpisode returns the id of the next episode in its show this account may see, if any.
+func (s *Store) NextEpisode(ctx context.Context, it *Item, access *Access) *int64 {
 	if it.ShowID == nil {
 		return nil
 	}
+	clause, cargs := access.ItemClause()
 	// Only the numbers: this runs for every episode page and player start.
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, season, episode FROM items WHERE show_id = ? AND missing = 0
-		ORDER BY IFNULL(season, 0), IFNULL(episode, 0), id`, *it.ShowID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.season, i.episode FROM items i WHERE i.show_id = ? AND i.missing = 0 AND `+clause+`
+		ORDER BY IFNULL(i.season, 0), IFNULL(i.episode, 0), i.id`, append([]any{*it.ShowID}, cargs...)...)
 	if err != nil {
 		return nil
 	}

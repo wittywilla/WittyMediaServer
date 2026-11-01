@@ -397,6 +397,10 @@ func (s *Server) handleChannelLogo(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
+	if _, err := s.visibleChannel(r, id); err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
 	for format, ctype := range logoTypes {
 		b, err := os.ReadFile(channelLogoPath(s.channelLogoDir(), id, format))
 		if err != nil {
@@ -962,6 +966,9 @@ func (s *Server) itemLiveInput(ctx context.Context, id int64, seek, remain float
 	}
 	if library.IsDiscKind(it.Kind) {
 		return s.discLiveInput(ctx, it, seek, remain, q, maxHeight)
+	}
+	if !s.Store.LibraryFile(ctx, it.Path) {
+		return nil, errors.New("the file is missing")
 	}
 	pctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

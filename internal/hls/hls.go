@@ -34,6 +34,9 @@ import (
 // Spec describes one transcode.
 type Spec struct {
 	ID string
+	// ItemID is what this stream plays, so that someone holding its address can be checked
+	// against their limits like anyone asking for the item.
+	ItemID int64
 	// LogSession is the session this stream logs under when it is part of
 	// something bigger (a disc's streams use the disc's); "" = its own ID.
 	LogSession  string

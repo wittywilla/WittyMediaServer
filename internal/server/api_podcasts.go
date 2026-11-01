@@ -30,6 +30,15 @@ func (s *Server) handlePodcasts(w http.ResponseWriter, r *http.Request) {
 			if a != nil && !a.AllowsLibrary(p.LibraryID) {
 				continue
 			}
+			// None of its episodes showing means the subscription doesn't either: an
+			// account with limits can't learn what it may not see.
+			if a != nil {
+				title := p.Title
+				eps, _, err := s.Store.Items(r.Context(), library.ItemQuery{LibraryID: p.LibraryID, Album: &title, Access: a, Limit: 1, NoTotal: true, Brief: true})
+				if err != nil || len(eps) == 0 {
+					continue
+				}
+			}
 			p.URL = "" // a private feed's address is a password
 			out = append(out, p)
 		}

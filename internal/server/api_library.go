@@ -279,7 +279,7 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.Store.AttachProgress(r.Context(), userFrom(r).ID, []*library.Item{it})
-	it.NextID = s.Store.NextEpisode(r.Context(), it)
+	it.NextID = s.Store.NextEpisode(r.Context(), it, s.access(r))
 	if next := s.nextForCollection(r, it); next != nil {
 		it.NextID = next // playing a list through
 	}

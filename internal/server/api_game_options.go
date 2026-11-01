@@ -702,6 +702,11 @@ func (s *Server) handleGamePatches(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
+	// A patch changes what a core is given to run: that's for grown-up accounts.
+	if !canPost(userFrom(r)) {
+		writeErr(w, 403, "this profile can't add patches")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")
@@ -965,6 +970,10 @@ func reencodeImage(b []byte) (out []byte, width, height int, err error) {
 }
 
 func (s *Server) handleBezelAdd(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) {
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	ctx := r.Context()
 	id := userFrom(r).ID
 	existing, err := s.Store.GameBezels(ctx, id)
@@ -1210,6 +1219,10 @@ func saveRoom(dir string, size int64) bool {
 }
 
 func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) { // a Kids profile may bring its own saves; a guest only looks
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")
@@ -1302,6 +1315,10 @@ func (s *Server) handleBatteryExport(w http.ResponseWriter, r *http.Request) {
 // playing it, because the running game would write over it anyway. The old one is kept
 // beside it.
 func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) {
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")

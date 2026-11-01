@@ -33,7 +33,7 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 	case "epub":
 		info, words, err := library.ArchiveEPUB(it.Path)
 		if err != nil {
-			writeErr(w, 422, err.Error())
+			writeErr(w, 422, s.viewerError(r, err))
 			return
 		}
 		out["spine"], out["toc"] = info.Spine, info.TOC

@@ -105,9 +105,9 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {ch && !ch.encrypted && (later
             ? <button className={'ctv-btn' + (reminded ? '' : ' on')} aria-pressed={reminded} onClick={() => p && void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</button>
             : <button className="ctv-btn on" onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch full screen</span></button>)}
-          {ch && !ch.encrypted && later && <button className="ctv-btn" onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch channel</span></button>}
+          {ch && !ch.encrypted && later && <button className="ctv-btn" aria-label="Watch channel" onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch channel</span></button>}
           {isTitle && p && <button className="ctv-btn" onClick={() => nav(`/play/${p.itemId}?mode=title&start=${p.clip?.start ? Math.floor(p.clip.start) : 0}${p.clip ? `&ttn=${p.clip.title}` : ''}`)} title="Play it from the beginning, on your own"><IconPrev size={16} /> <span>Start over</span></button>}
-          {isTitle && p && <Link className="ctv-btn" to={p.showId ? `/show/${p.showId}` : `/item/${p.itemId}`}><IconFilm size={16} /> <span>{isFilm ? 'Open the film' : 'Open the show'}</span></Link>}
+          {isTitle && p && <Link className="ctv-btn" aria-label={isFilm ? 'Open the film' : 'Open the show'} to={p.showId ? `/show/${p.showId}` : `/item/${p.itemId}`}><IconFilm size={16} /> <span>{isFilm ? 'Open the film' : 'Open the show'}</span></Link>}
           {ch?.canRecord && p?.kind === 'broadcast' && p.end > now && <button className="ctv-btn" onClick={onRecord}>● Record</button>}
           {ch && <button className={'ctv-btn icon' + (ch.favourite ? ' fav' : '')} aria-pressed={!!ch.favourite} onClick={onFav} aria-label="Favourite channel" title="Favourite channel (F)"><IconStar size={17} /></button>}
           <button className="ctv-btn icon" onClick={onDown} aria-label="Channel down" title="Channel down"><IconDown size={18} /></button>

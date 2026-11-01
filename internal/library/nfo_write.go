@@ -156,6 +156,12 @@ func writeNFO(path string, doc any) error {
 	return writeBeside(path, out)
 }
 
+// nfoIsOurs: this server wrote this NFO, so it holds what a match said, not what a person typed.
+func nfoIsOurs(path string) bool {
+	b, err := readPlain(path)
+	return err == nil && bytes.Contains(b, []byte(nfoMarker))
+}
+
 type nfoUniqueID struct {
 	Type    string `xml:"type,attr"`
 	Default bool   `xml:"default,attr,omitempty"`

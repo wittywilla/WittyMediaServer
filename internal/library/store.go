@@ -101,6 +101,10 @@ type Item struct {
 	CDDisc *int64 `json:"cdDisc,omitempty"`
 	// Filled per user:
 	Progress *Progress `json:"progress,omitempty"`
+	// What a scan found beyond the row itself, kept by upsertItem and recordScan.
+	studios     []string
+	director    string
+	audioFormat string
 }
 
 // DiscInfo is the cached summary of a DVD.
@@ -454,6 +458,10 @@ func splitList(s string) []string {
 
 func joinList(l []string) string { return strings.Join(l, "|") }
 
+// hideLinked leaves out what's attached to another title (an extra, another version
+// of a film): those appear on their parent's page, not in lists.
+const hideLinked = "i.id NOT IN (SELECT item_id FROM item_links)"
+
 // ItemQuery filters and sorts items.
 type ItemQuery struct {
 	LibraryID int64
@@ -501,6 +509,9 @@ type ItemQuery struct {
 	// Audio: one album (by album artist and album title).
 	Album       *string
 	AlbumArtist *string
+	// IncludeAttached also lists extras and other versions, which appear only on
+	// their parent's page. Asking for particular IDs always gets them.
+	IncludeAttached bool
 }
 
 // BackfillAges fills min_age for items and shows saved before parental
@@ -548,6 +559,8 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.IDs != nil {
 		where = append(where, "i.id IN ("+ids(q.IDs)+")")
+	} else if !q.IncludeAttached {
+		where = append(where, hideLinked)
 	}
 	if q.LibraryID != 0 {
 		where = append(where, "i.library_id = ?")
@@ -718,7 +731,7 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		}
 		it.ID, _ = res.LastInsertId()
 		it.AddedAt, it.UpdatedAt = now, now
-		return nil
+		return s.saveScanBrands(ctx, it)
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
 		content_rating=?, studio=?, runtime_sec=?, poster=?, backdrop=?, container=?, video_codec=?, width=?, height=?, audio_langs=?, sub_langs=?,
@@ -731,7 +744,18 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		it.ShowID, it.Season, it.Episode, it.EpisodeEnd, it.Aired, it.IntroStart, it.IntroEnd, AgeFor(it.ContentRating),
 		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.Console, it.CDDisc, it.ID)
 	it.UpdatedAt = now
-	return err
+	if err != nil {
+		return err
+	}
+	return s.saveScanBrands(ctx, it)
+}
+
+// saveScanBrands keeps every studio a source named; the row holds only the first.
+func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
+	if it.studios == nil || it.ShowID != nil {
+		return nil
+	}
+	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)
 }
 
 // DiscLabels are names a user gave to a disc's titles and chapters, keyed by

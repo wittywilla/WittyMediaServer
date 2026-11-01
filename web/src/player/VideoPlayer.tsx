@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api, episodeLabel, langName, posterUrl, type Item, type PlayInfo, type Show } from '../api'
 import { IconBack, IconClose, IconExpand, IconMini, IconNext, IconPause, IconPlay } from '../icons'
 import { usePlayerChrome } from './chrome'
+import PickIntroBar from './PickIntroBar'
 import { Controls, useVideoState } from './Controls'
 import { toggleFullscreen, useIdle, useSource } from './hooks'
 import Remote, { DVD_ONLY, RemoteBar, type RemoteKey } from './Remote'
@@ -16,7 +17,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const nav = useNavigate()
   const chrome = usePlayerChrome()
   // A list being played through carries on with its next item.
-  const listId = new URLSearchParams(useLocation().search).get('collection')
+  const search = new URLSearchParams(useLocation().search)
+  const listId = search.get('collection')
+  // Choosing where the intro ends, from the edit dialog.
+  const pickIntro = search.get('pickIntro')
   const nextHref = `/play/${item.nextId}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
@@ -201,6 +205,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={false} />
             : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyMedia" />)}
           {inIntro && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(item.introEnd!) }}>Skip intro ›</button>}
+          {pickIntro && <PickIntroBar item={item} time={st.time} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && (
             <div className="watch-next" onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended

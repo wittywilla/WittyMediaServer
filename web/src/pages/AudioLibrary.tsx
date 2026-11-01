@@ -7,6 +7,7 @@ import { IconAudio, IconCheck, IconDisc, IconPlay } from '../icons'
 import { useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 import LegalNote from '../components/LegalNote'
+import LibraryHeader from '../components/LibraryHeader'
 
 // Music and audiobook libraries: albums (books), artists (authors) and all
 // songs, and the page of one album or book.
@@ -24,6 +25,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') || 'albums'
   const sort = params.get('sort') || (books ? 'artist' : 'title')
+  const desc = params.get('desc') === '1'
   const artist = params.get('artist')
   const [albums, setAlbums] = useState<Album[] | null>(null)
   const [artists, setArtists] = useState<Artist[] | null>(null)
@@ -36,24 +38,29 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
   }, [lib.id, tab, sort, artist, reload])
   const set = (k: string, v: string | null) => { const p = new URLSearchParams(params); v === null ? p.delete(k) : p.set(k, v); setParams(p) }
   const tabs: [string, string][] = pods ? [['albums', 'Podcasts']] : books ? [['albums', 'Books'], ['artists', 'Authors']] : [['albums', 'Albums'], ['artists', 'Artists'], ['songs', 'Songs']]
+  // Which way round is on this page: the lists come whole, so this is a matter of reading them backwards.
+  const shownAlbums = albums && desc ? [...albums].reverse() : albums
+  const sortAlbums = (key: string, d: boolean) => { const p = new URLSearchParams(params); p.set('sort', key); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p) }
   return (
     <>
-      <div className="toolbar">
-        <h1>{lib.name}{artist !== null && <span className="muted"> · {artist || 'Unknown'}</span>}</h1>
-        {tab === 'albums' && albums && <span className="count">{albums.length} {pods ? (albums.length === 1 ? 'podcast' : 'podcasts') : books ? (albums.length === 1 ? 'book' : 'books') : albums.length === 1 ? 'album' : 'albums'}</span>}
-        {tabs.length > 1 && <div className="seg" role="tablist">
+      <LibraryHeader
+        title={lib.name}
+        sub={artist !== null ? artist || 'Unknown' : undefined}
+        count={tab === 'albums' && albums ? `${albums.length} ${pods ? (albums.length === 1 ? 'podcast' : 'podcasts') : books ? (albums.length === 1 ? 'book' : 'books') : albums.length === 1 ? 'album' : 'albums'}` : undefined}
+        tabs={tabs.length > 1 ? <div className="seg" role="tablist">
           {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { set('artist', null); set('tab', k) }}>{l}</button>)}
-        </div>}
-        {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
-        <div className="grow" />
-        {tab === 'albums' && !pods && (
-          <select className="select" value={sort} aria-label="Sort" onChange={(e) => set('sort', e.target.value)}>
-            <option value="title">Title</option><option value="artist">{books ? 'Author' : 'Artist'}</option><option value="year">Year</option><option value="added">Recently added</option>
-          </select>
-        )}
-        <ScanButton lib={lib} />
-        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
-      </div>
+        </div> : undefined}
+        sorts={tab === 'albums' && !pods ? [{ key: 'title', label: 'Title' }, { key: 'artist', label: books ? 'Author' : 'Artist' }, { key: 'year', label: 'Year' }, { key: 'added', label: 'Recently added' }] : undefined}
+        sort={sort}
+        desc={desc}
+        onSort={sortAlbums}
+        onDirection={(d) => sortAlbums(sort, d)}
+        actions={<>
+          <ScanButton lib={lib} />
+          {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
+        </>}
+      />
+      {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
       {tab === 'albums' && (!albums ? <SkeletonGrid square={!books} /> : albums.length === 0 ? (pods ? (
         <div className="pod-empty">
           <h2>Your podcasts will live here</h2>
@@ -62,7 +69,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
         </div>
       ) : <EmptyState icon={<IconAudio />} title="Nothing here yet" text="Add audio files to this library's folders and scan it." />) : (
         <div className="album-grid">
-          {albums.map((a) => (
+          {(shownAlbums || []).map((a) => (
             <Link key={a.artist + '|' + a.title} to={albumLink(lib.id, a)} className="album-card">
               <div className={'album-cover' + (books ? ' book' : '')}>{a.coverItem ? <img src={cover(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} />}</div>
               <b>{a.title || 'Unknown album'}</b>

@@ -76,6 +76,14 @@
       "text": "Age limits rely on ratings from files and third-party services, which can be missing or wrong. A Kids profile helps, but it isn't a guarantee: please check what's suitable yourself.",
       "section": "ratings"
     },
+    "logos": {
+      "text": "Logos here were downloaded from Wikimedia Commons because this server's owner asked for them, or were uploaded by the owner, and they stay on this server. They're trademarks of their owners, shown only to name who made something. They, and the companies they belong to, aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "trademarks"
+    },
+    "listings": {
+      "text": "Nothing here streams from these services, and no account with them is used. This only sorts the media already on this server by public listings from JustWatch, through TMDB, which can be out of date or wrong. These services aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.",
+      "section": "trademarks"
+    },
     "flashing": {
       "text": "This can show flashing lights and fast-changing patterns, which may affect people with photosensitive conditions.",
       "section": "flashing"

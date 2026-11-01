@@ -203,6 +203,8 @@ func (t *TVMaze) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 					m.Backdrop = u
 				}
 				m.Backdrops = append(m.Backdrops, u)
+			case "banner":
+				m.Banners = append(m.Banners, u)
 			}
 		}
 		if m.Backdrop == "" && len(m.Backdrops) > 0 {

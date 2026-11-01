@@ -66,6 +66,7 @@ export default function HomePage() {
     ]
     const next = byKey('nextup')
     if (next) list.push(hub(next))
+    for (const h of home.hubs) if (h.key.startsWith('view-')) list.push(hub(h))
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
     list.push({ id: 'shuffle', title: 'Can’t decide?', render: () => <Shuffle /> })
     return list
@@ -194,7 +195,7 @@ function HubRow({ hub }: { hub: Hub }) {
     <section className="hub">
       <div className="hub-head">
         <h2>{hub.title}</h2>
-        {hub.libraryId && <Link to={`/library/${hub.libraryId}`}>See all <IconRight /></Link>}
+        {hub.libraryId && <Link to={`/library/${hub.libraryId}${hub.query ? `?${hub.query}` : ''}`}>See all <IconRight /></Link>}
       </div>
       <CardRow>
         {albumsOnce(hub.items).map((it) => (wideRow ? <ItemCard key={it.id} item={it} wide /> : <ItemCard key={it.id} item={it} />))}

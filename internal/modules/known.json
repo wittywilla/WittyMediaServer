@@ -1,13 +1,19 @@
 {
   "format": 1,
   "name": "WittyMediaServer modules",
-  "serial": 1,
-  "generated": "2026-11-01T07:13:04Z",
+  "serial": 2,
+  "generated": "2026-11-01T07:35:37Z",
   "modules": [
     {
       "id": "wittybluray",
       "name": "WittyBluray",
       "summary": "Blu-ray images with their menus, including 4K, HDR and 3D discs.",
+      "description": "Plays a Blu-ray image or BDMV folder the way a player does: first-play, interactive and pop-up menus, titles, subtitles, 4K and HDR. It reads the disc without mounting it, through WittyDisc.\n\nDiscs with Java (BD-J) menus need a Java that you install yourself, and only if you turn that on. None is shipped, and without it the disc plays its titles. On a 3D disc the 2D view plays, and secondary audio and picture-in-picture are not mixed in.\n\nEncrypted (AACS) discs are refused and nothing is decrypted. No media comes with it. It has been tested on custom-authored discs, so retail discs may show problems not seen yet.",
+      "icon": {
+        "url": "wittybluray.png",
+        "size": 4246,
+        "sha256": "c55f63a1672d091a03b51c442e247e85f4b6e9438a4a7c5542f5ac32771cfc38"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -16,6 +22,9 @@
       "group": "discs",
       "libraries": [
         "discs"
+      ],
+      "requires": [
+        "wittydisc"
       ],
       "needs": [
         "FFmpeg, which comes with the server",
@@ -29,6 +38,12 @@
       "id": "wittycd",
       "name": "WittyCD",
       "summary": "Audio CD images played as discs: gapless, with their tracks, indexes and CD-TEXT, in a CD player.",
+      "description": "Plays an image of an audio CD the way a CD player does: one continuous program, with tracks and indexes as places in it, so there is no gap between tracks. In WittyMediaServer that is a player window with a lit display, a list of tracks, and the spinning disc or WittyVisualizer.\n\nIt reads .cue sheets with .bin, .wav, .aiff or a single .flac, plus .toc, .ccd, .nrg and .chd images, and a bare .iso, .img or .bin that is really audio. Album details come from MusicBrainz and the Cover Art Archive, which are asked only by the disc's table of contents.\n\nNothing is decrypted or bypassed: scrambled audio shows up as noise and is reported. Other compressed audio, such as .mp3 or .ape, is not read. No music comes with it.",
+      "icon": {
+        "url": "wittycd.png",
+        "size": 4273,
+        "sha256": "3d7aaadeac742d82e5f220dce3347019e3e44f0e9027a55346d764e3d615e3cf"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -47,6 +62,12 @@
       "id": "wittycomics",
       "name": "WittyComics",
       "summary": "Comics and manga: pages, spreads, vertical strips, either reading direction.",
+      "description": "A reader for comics, manga and webtoons. Read one page at a time, a two-page spread with the cover alone so pairs line up as printed, or one long vertical strip, left to right or right to left.\n\nTurn pages by tapping, swiping or with the keyboard. Layout, direction and fit are remembered for each book, and it reopens on the same page.\n\nIt uses WittyInk, and runs in WittyMediaServer and the WittyReader app. No comics come with it.",
+      "icon": {
+        "url": "wittycomics.png",
+        "size": 5126,
+        "sha256": "d5da73a08cb6889ec772eec351887329475a589d251bc9e1c653f6f0f73a67b3"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -66,29 +87,69 @@
     {
       "id": "wittycouch",
       "name": "WittyCouch",
-      "summary": "",
+      "summary": "Play the games on any PC running Sunshine, in your browser.",
+      "description": "Play the games on a PC running Sunshine from your browser, with controllers, keyboard, mouse and touch. It finds PCs, pairs with them using a PIN, lists their games, and starts, resumes and quits them. A device that can't play in a page can hand off to the separately installed Moonlight app.\n\nPlaying needs WittyCouch Host, a separate program under the GPL-3.0. Without it, everything but playing still works.\n\nA real browser has played a real stream from a real Sunshine, but real games on real gaming PCs haven't been tried yet. It connects to a PC someone else may run, and what that PC offers isn't provided or checked. No games come with it. It isn't an official Moonlight or Sunshine project.",
+      "icon": {
+        "url": "wittycouch.png",
+        "size": 2632,
+        "sha256": "a73606b8570f221a664224e9f31d20b4a46d083632fe5f92e0acc4ba2e7478a8"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
       },
       "repo": "wittywilla/WittyCouch",
+      "group": "games",
       "versions": []
     },
     {
       "id": "wittycouchhost",
       "name": "WittyCouch Host",
-      "summary": "",
+      "summary": "The separate GPL-3.0 program that carries WittyCouch's game streams, built on Moonlight's code.",
+      "description": "A small program that is started for each game stream. It connects to a PC running Sunshine and passes on whole video frames and audio packets, without decoding them.\n\nIt is a separate program under the GPL-3.0, built on Moonlight's streaming core. WittyMediaServer and its browser client are Apache-2.0 and don't contain or link any of it: they only exchange messages with it. Each release carries the full source beside its programs.\n\nWindows and Linux x64 have taken real streams from a real Sunshine. Linux arm64 has only been run under emulation, and macOS hasn't been tried by hand. A stream is treated as if it might be hostile, so the program runs with tight limits. It isn't an official Moonlight or Sunshine project, and no games come with it.",
+      "icon": {
+        "url": "wittycouchhost.png",
+        "size": 3388,
+        "sha256": "7cc426aadee8e1763e3e06a5359532e23750ab7bdb791b97aa6e0167dcbc953a"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
       },
       "repo": "wittywilla/WittyCouchHost",
+      "group": "games",
+      "versions": []
+    },
+    {
+      "id": "wittydisc",
+      "name": "WittyDisc",
+      "summary": "Reads DVD and Blu-ray images without mounting them. The disc modules are built on it.",
+      "description": "Reads DVD and Blu-ray disc images (.iso and .img) without mounting them, and finds every file inside. A very large file is read in place, never copied. WittyDVD and WittyBluray are built on it.\n\nThere is nothing to use on its own: new versions reach a server inside those two modules. It doesn't decrypt anything, and no media comes with it.",
+      "icon": {
+        "url": "wittydisc.png",
+        "size": 6293,
+        "sha256": "58e6205c2bf73f28a7756ff7489d0b04c01058c42b97590864869cd8765b50b4"
+      },
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyDisc",
+      "group": "system",
+      "core": true,
+      "updates": "Nothing on its own: new versions reach a server inside WittyDVD and WittyBluray.",
       "versions": []
     },
     {
       "id": "wittydvd",
       "name": "WittyDVD",
       "summary": "DVD images with their real menus, chapters, angles and subtitles.",
+      "description": "Plays a DVD image or VIDEO_TS folder the way a DVD player does: first-play, menus with highlighted buttons, titles, chapters, angles and subtitles. It reads the disc without mounting it, through WittyDisc, and when part of a disc's structure is broken it reads the backup copy on the disc.\n\nCSS-scrambled discs are detected and refused, and nothing is ever decrypted. No media comes with it.",
+      "icon": {
+        "url": "wittydvd.png",
+        "size": 4316,
+        "sha256": "d7bfd6b80636f96edea6dcc6c025fae66baf0d791bb7502ac93c85dc1662ffe9"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -97,6 +158,9 @@
       "group": "discs",
       "libraries": [
         "discs"
+      ],
+      "requires": [
+        "wittydisc"
       ],
       "needs": [
         "FFmpeg, which comes with the server"
@@ -109,6 +173,12 @@
       "id": "wittyebook",
       "name": "WittyEbook",
       "summary": "Reflowable books (EPUB) with book view, typography and study tools.",
+      "description": "An ebook reader for EPUB 2 and 3, made for long and careful reading. Choose two pages side by side, one page or scrolling, with your own font, size, spacing and margins, on light, sepia, dark or black pages. A book reopens on the same words at any size, on any device.\n\nWittyInk adds highlights and notes, search, a pen with pressure, and reading aloud.\n\nChapters show in a sandbox where no script can run. It runs in WittyMediaServer and the WittyReader app. No books come with it.",
+      "icon": {
+        "url": "wittyebook.png",
+        "size": 2887,
+        "sha256": "2e1f99877bf3c07bf80d3c75f4b60f83b1cb563f9384bb5761be6cf108c69720"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -129,6 +199,12 @@
       "id": "wittyink",
       "name": "WittyInk",
       "summary": "What every reader shares: annotations, notes, definitions, citations and handwriting.",
+      "description": "The study and handwriting toolkit behind WittyEbook, WittyPDF and WittyComics. It gives them highlights in any colour, notes, bookmarks, definitions and citations, a pen with pressure and palm rejection, and undo and redo. All your notes can be exported as Markdown.\n\nYou don't open it on its own: the readers use it. A new version reaches a reader only when that reader is running a downloaded version too. If it fails, the copy in the app takes over.",
+      "icon": {
+        "url": "wittyink.png",
+        "size": 3194,
+        "sha256": "0b38322a47282291d62ba191e1907646dd92714ec1a5bd596595b8eb3ed1a40c"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -144,6 +220,12 @@
       "id": "wittyintegratedfilebrowser",
       "name": "WittyIntegratedFileBrowser",
       "summary": "Choosing a server's folders from any device. Read-only.",
+      "description": "A browser's own folder window only sees the device it runs on. This one lists the server's drives and folders instead, so a phone, a TV or a laptop can pick a media server's folders.\n\nIt shows drives with their free space, usual folders such as Home and Videos, network paths, and what kind of files a folder holds, and you can tick several folders at once. It works with a keyboard, touch, a mouse and screen readers.\n\nIt only reads: nothing is created, renamed or deleted.",
+      "icon": {
+        "url": "wittyintegratedfilebrowser.png",
+        "size": 2167,
+        "sha256": "aeb3f32df7d309600d17781bbea376902851fa988f4526eb91b8b4dc7f4c183e"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -156,9 +238,35 @@
       "versions": []
     },
     {
+      "id": "wittymodule",
+      "name": "WittyModule",
+      "summary": "What makes a plugin a project of its own: its manifest, version ranges, helper protocol and release tool.",
+      "description": "What a plugin needs to be a project of its own: the manifest, the rules for version ranges, the protocol a helper process speaks, and the tool that builds and signs a release.\n\nIt is for people who make modules. There is nothing to use on its own: it reaches a server inside the modules built with it. A module built with it comes from whoever published that module.",
+      "icon": {
+        "url": "wittymodule.png",
+        "size": 3050,
+        "sha256": "b38888bf025eaa840e4a6a4b11c7a8f2a2f40acf890da356078c50a6bc08820e"
+      },
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyModule",
+      "group": "system",
+      "core": true,
+      "updates": "Nothing on its own: it reaches a server inside the modules built with it.",
+      "versions": []
+    },
+    {
       "id": "wittypdf",
       "name": "WittyPDF",
       "summary": "PDFs with selectable text, zoom, outline, thumbnails and search.",
+      "description": "A PDF reader for papers, textbooks and scans. Pages run continuously, one or two across, at fit width, fit page or 50 to 400 percent, with dark or sepia pages for night reading. It has the document's own contents, page thumbnails and search, and reopens at the same place.\n\nWittyInk adds highlights and notes, citations with page numbers, a pen with pressure, and reading aloud.\n\nPages are drawn with pdf.js. PDF scripts never run and XFA forms are off. It runs in WittyMediaServer and the WittyReader app. No documents come with it.",
+      "icon": {
+        "url": "wittypdf.png",
+        "size": 2561,
+        "sha256": "add7cefff564288e8f827017d04ffff427e0328ef34639467c9a876eb2fbd4f4"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -179,6 +287,12 @@
       "id": "wittyphotos",
       "name": "WittyPhotos",
       "summary": "Photo libraries: what a photo says about itself, including RAW files, without decoding it.",
+      "description": "Reads what a photo says about itself without decoding it: when it was taken, with what camera and where, the picture's size, and the JPEG preview inside a camera RAW file. It reads JPEG, TIFF, RAW, HEIC, AVIF, PNG and WebP files.\n\nIt is used by the photo library in WittyMediaServer, where the photo pages stay. Only a bounded part of each file is read, and a malformed file gives an error or empty fields.",
+      "icon": {
+        "url": "wittyphotos.png",
+        "size": 3589,
+        "sha256": "befb9636023f02e120919f890c913978ed5d34f32aa1dad0f2e5b96309d67181"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -196,6 +310,12 @@
       "id": "wittyplay",
       "name": "WittyPlay",
       "summary": "Console games streamed to a browser or an app, with every controller and a touch layout editor.",
+      "description": "Plays console games in a browser, from your server. Each game runs in its own sandboxed process through a libretro core, and its picture and sound stream over WebRTC, with fallbacks where that can't work. It comes with picture effects, a game menu, controllers, remapping and a touch layout editor.\n\nNo games, ROMs, BIOS files or cores come with it. Bring your own games, and add cores in Settings, Consoles & cores. A core is a separate file with its own licence, and non-commercial ones are never offered.\n\nGames can contain flashing images.",
+      "icon": {
+        "url": "wittyplay.png",
+        "size": 2568,
+        "sha256": "7299af2a3eaf0f57cc9e11c402a6eb8f45a4f981eb578ce4dae80a693042dd4f"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -216,18 +336,31 @@
     {
       "id": "wittyrigs",
       "name": "WittyRigs",
-      "summary": "",
+      "summary": "An advanced option: host demanding PC games on your server's own hardware.",
+      "description": "For a server with a good graphics card and PC games installed on it. It finds a separately installed Sunshine on that machine, so its games can become a library, and people play them through WittyCouch. Most servers don't need this: to play on other PCs, a friend's included, use WittyCouch.\n\nIt's off until an admin turns it on. Sunshine is a separate GPL-3.0 program that you install yourself, and this only looks for it and talks to it over the network. No games come with it, and you're responsible for what you host and who you let play it. It isn't an official Sunshine project.",
+      "icon": {
+        "url": "wittyrigs.png",
+        "size": 3216,
+        "sha256": "3be1e176f153472a4cafde886e02aca9f08571976fa3a6a12297f4ddc52442d5"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
       },
       "repo": "wittywilla/WittyRigs",
+      "group": "games",
       "versions": []
     },
     {
       "id": "wittytuner",
       "name": "WittyTuner",
-      "summary": "Live TV and recording: network tuners, IPTV playlists, capture cards and guide data. Encrypted channels are refused.",
+      "summary": "Live TV and recording from network tuners, IPTV playlists and capture cards. Encrypted channels are refused.",
+      "description": "One way to reach TV tuners: network tuner boxes, M3U playlists, a single stream address, TV servers over open protocols, SAT>IP, Linux DVB, capture cards and your own command, which stays off unless it's turned on. It lists channels and opens them, and reads guide data from broadcasts and XMLTV files.\n\nEncrypted and copy-protected channels are detected and refused with a clear message, and nothing is decrypted. No channel lists or stream addresses come with it.\n\nIPTV and stream addresses have been tested with local streams. Network tuners and TV servers have only been tested against stand-ins, and SAT>IP, DVB and capture cards haven't been tried on real hardware. Windows digital (BDA) tuners aren't built.",
+      "icon": {
+        "url": "wittytuner.png",
+        "size": 6319,
+        "sha256": "b1b60ce08c034d2a33585b655b1c43b49dfb85f87f9c56bc187f20521010122b"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -245,7 +378,13 @@
     {
       "id": "wittyvisualizer",
       "name": "WittyVisualizer",
-      "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields, feedback and more, full screen.",
+      "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields and more, full screen.",
+      "description": "Light shows that follow your music, full screen: bars, scopes, plasma, tunnels, starfields, feedback and fire. It appears in the server's audio player and runs entirely on your device, with no work for the server.\n\nFlashing can harm people with photosensitive epilepsy, so it's off until someone turns it on, after a notice the first time, and it never starts on its own. A flash guard covers every effect, and calm mode leaves out the lively ones. No limiter makes moving light safe for everyone, and the guard hasn't been assessed by a clinician or with a professional flash analyser.",
+      "icon": {
+        "url": "wittyvisualizer.png",
+        "size": 3157,
+        "sha256": "e9869eb6e41923c4f4c561d1f7e8f028c0ac6375b87617758baae66d2aabf0b9"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"

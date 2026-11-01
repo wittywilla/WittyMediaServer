@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, ApiError, mediaUrl } from '../../../api'
+import { api, ApiError, getToken, mediaUrl, serverBase } from '../../../api'
 import { BackLink } from '../../../components/common'
 import { IconCheck, IconInfo, IconShield } from '../../../icons'
 import type { ModuleReport, VersionInfo } from '../../../moduleStore'
@@ -174,6 +174,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
             {installedHere && !m!.core && m!.delivery !== 'builtin' && <Button size="sm" variant="ghost" className="danger-hover" disabled={working} onClick={remove}>Remove</Button>}
             {usingThisFork && <Button size="sm" disabled={working} onClick={official}>Go back to the official version</Button>}
             <Button size="sm" variant="ghost" onClick={() => setLogOpen(true)}>Show log</Button>
+            {installedHere && <NoticesButton id={it.id} name={it.name} />}
           </div>
           {m?.core && <p className="muted">Other modules are built on this one, so it stays.</p>}
           {d.versions.length > 0 && (
@@ -209,6 +210,27 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {failure && <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute={repair} onClose={() => setFailure(null)} />}
       {forkAsk && <ForkDialog d={d} onClose={() => setForkAsk(false)} onDone={reload} />}
     </div>
+  )
+}
+
+// What a module brought with it under other licences, if anything. Asked for only when pressed.
+function NoticesButton({ id, name }: { id: string; name: string }) {
+  const [text, setText] = useState<string | null>(null)
+  const open = async () => {
+    try {
+      const r = await fetch(`${serverBase()}/api/modules/${encodeURIComponent(id)}/notices`, { headers: { Authorization: 'Bearer ' + getToken() } })
+      setText(r.ok ? await r.text() : 'This version lists no third-party licences.')
+    } catch { setText('These couldn’t be read just now.') }
+  }
+  return (
+    <>
+      <Button size="sm" variant="ghost" onClick={open}>Third-party licences</Button>
+      {text !== null && (
+        <Dialog title={`${name}: third-party licences`} size="wide" onClose={() => setText(null)} actions={<Button variant="primary" onClick={() => setText(null)}>Close</Button>}>
+          <pre className="st-log st-notices" tabIndex={0} aria-label="Third-party licences">{text}</pre>
+        </Dialog>
+      )}
+    </>
   )
 }
 

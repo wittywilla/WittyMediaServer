@@ -119,6 +119,7 @@
 .st-details-body h4 { margin: var(--sp-1) 0 0; font-size: var(--text-sm); }
 .st-details-body p { margin: 0; }
 .st-log { margin: 0; max-height: 16rem; overflow: auto; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--bg-3); color: var(--fg); font-family: var(--font-mono); font-size: var(--text-xs); line-height: var(--leading-snug); white-space: pre-wrap; overflow-wrap: anywhere; }
+.st-notices { max-height: 60vh; }
 .st-warn-body { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-3); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); }
 .st-warn-body p { margin: 0; }
 .st-warn-body > svg { color: var(--warn); }

@@ -27,6 +27,8 @@ a notice of its own.
 | A title's page with details or artwork from outside | `metadata` | Movie and episode pages, shows, albums |
 | Media streaming from outside: podcasts, stations | `webMedia` | Radio, podcast libraries and pages |
 | TV channels and guide data | `tv` | TV guide, Channels & tuners |
+| Studio, network or console logos, and any screen choosing one | `logos` | Library pages with logo cards, the brand page, the edit dialog's Logos, the logo chooser, Metadata agents |
+| Which streaming services list a title | `listings` | Library pages and the brand page showing listings, the disclosure screen |
 | Games and game details | `games` | Games library, game pages |
 | Downloading cores | `cores` | Settings, Consoles & cores, and the install dialog |
 | Modules and their updates | `modules` | Settings, Modules |

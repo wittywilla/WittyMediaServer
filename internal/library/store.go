@@ -454,6 +454,10 @@ func splitList(s string) []string {
 
 func joinList(l []string) string { return strings.Join(l, "|") }
 
+// hideLinked leaves out what's attached to another title (an extra, another version
+// of a film): those appear on their parent's page, not in lists.
+const hideLinked = "i.id NOT IN (SELECT item_id FROM item_links)"
+
 // ItemQuery filters and sorts items.
 type ItemQuery struct {
 	LibraryID int64

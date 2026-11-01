@@ -1,0 +1,5 @@
+/* A logo from the logo service, or the name when there isn't one. */
+.brand-logo { display: inline-block; max-width: 100%; max-height: 100%; object-fit: contain; vertical-align: middle; }
+.brand-logo-text { font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); overflow-wrap: anywhere; }
+/* A picture with its own background can't change colour, so it gets a plate. */
+.brand-logo-plate { background: #fff; border-radius: var(--r-xs); padding: var(--sp-1); }

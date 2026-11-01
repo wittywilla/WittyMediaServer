@@ -8,6 +8,7 @@ already use, so you can move an existing library in — or out — without re-ta
 - [Choosing artwork](#choosing-artwork)
 - [Editing by hand](#editing-by-hand)
 - [Coming from another media server](#coming-from-another-media-server)
+- [The logo service](#the-logo-service)
 - [Video games](#video-games)
 
 ## Where metadata comes from
@@ -143,6 +144,72 @@ saving on, the NFO is rewritten at once (a hand-written NFO is kept as `.nfo.bak
   `fanart.jpg`) is still read, and WittyMediaServer matches by the usual folder/file naming
   (`Movie (Year)`, `Show/Season 01/Show S01E01`). After a scan with metadata saving on, your
   folders gain NFOs that other NFO-based tools can read too.
+
+## The logo service
+
+Logos for studios, networks, consoles, game studios and streaming services, for every part of the app. **Nothing is bundled
+and nothing is downloaded until an administrator agrees**, in setup or in *Settings → Metadata agents*. Until then, and for
+anything with no logo, the app shows the name in plain text, and that's a finished look rather than a gap.
+
+### Where logos come from, and the terms
+
+| | |
+|---|---|
+| **Source** | [Wikidata](https://www.wikidata.org) says which file is a company's logo (its *logo image* statement). The data is CC0. The file itself is on [Wikimedia Commons](https://commons.wikimedia.org/wiki/Commons:Licensing), where each file's page states its licence |
+| **What's taken** | Only public domain files and free licences that allow changes and commercial use (`CC0`, `CC BY`, `CC BY-SA`). Anything marked non-free, non-commercial or no-derivatives is skipped |
+| **Credit** | Source, licence and author are kept with each logo and listed under *Settings → Metadata agents → Logos*, which is what `CC BY` and `CC BY-SA` ask for. The white and dark versions are recoloured, and the list says so |
+| **Trademarks** | A free picture licence says nothing about trademark. Logos are still their owners' trademarks and appear only to name who made something. The `logos` notice appears beside them |
+| **Sent** | The name, and nothing else: nothing about who asked or what's in your files. About one request a second |
+| **Why not TMDB's logos** | TMDB's API terms don't allow derivatives, and logos have to be recoloured to read on any background. Its data isn't used for this at all |
+
+A logo is used without asking only if the name on Wikidata (or one of its other names) is the name in your library. Anything
+close but not exact is only offered by **Change**, where a person chooses.
+
+### What happens to a picture
+
+It's read, limited to 8 MB and 25 megapixels, and written again from its pixels as a plain PNG, so nothing but pixels gets
+through: no SVG, no scripts, no metadata, no data on the end. Then two more versions are made: all white and all dark. If a logo
+has two clear tones, such as light letters on a dark shield, the larger tone is painted and the smaller is cut out, so the letters
+stay readable. A picture whose background can't be taken off stays as it is and gets a plate of its own (`opaque`).
+
+Pictures are kept in the image cache under `logos/`. They're served only by this server, so no browser or app contacts the source.
+
+### Using it in the web app
+
+```tsx
+import BrandLogo from '../components/BrandLogo'
+
+<BrandLogo kind="network" name={show.network} />            // follows the theme
+<BrandLogo kind="studio" name={it.studio} on="dark" />       // on a plate that's always dark, such as over artwork
+```
+
+It renders the logo, or the name in text, on its own. Lookups in the same moment go as one request. On a screen showing logos, also
+show `<LegalNote kind="logos" />` once. `useLogo(kind, name)` and `lookupLogo(kind, name)` give the details, and `forgetLogos()` drops
+what's been remembered after a change.
+
+Kinds: `studio`, `network`, `console`, `gamestudio`, `platform`.
+
+### Using it from the server
+
+When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, name)`. It only adds a row; `Logos.Kick()` starts looking, and does
+nothing without the owner's agreement. The studios of films and networks of shows are added by scans already.
+
+### Routes
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /api/logos/status` | Signed in | `{consent: "yes"\|"no"\|"", counts: {pending, found, none, text}, source, sourceUrl}` |
+| `PUT /api/logos/consent` `{accepted, removeDownloaded}` | Admin | Records the answer. Agreeing starts the downloads. Declining stops them, and removes what was downloaded if asked. Uploaded logos stay |
+| `POST /api/logos/lookup` `{logos: [{kind, name}]}` | Signed in | Up to 200 names at once. Answers `{logos: [{id, kind, name, status, has, version, opaque, source, sourceUrl, license, licenseUrl, credit}]}`. An admin's lookup adds names nobody has asked about; anyone else's only reads, because a looked-up name goes to the internet |
+| `GET /api/logos/{id}/image?variant=white\|dark\|original&v={version}` | Signed in | The PNG, or 404 |
+| `GET /api/logos/credits` | Signed in | Every logo with its source, licence and author |
+| `GET /api/logos/{id}/candidates?q=` | Admin | What the source offers, to choose from. 409 without the owner's agreement |
+| `GET /api/logos/preview?src=` | Admin | A candidate's picture, through this server. Only Wikimedia addresses |
+| `PUT /api/logos/{id}` `{sourceId, q}` or `{status: "text"\|"pending"}` | Admin | Use a candidate; or the name alone; or look again |
+| `PUT /api/logos/{id}/upload` (the picture as the body) | Admin | Use your own. PNG, JPEG, WebP or GIF, up to 8 MB. Needs no agreement, since nothing is downloaded |
+| `GET /api/brands?library=&kind=studio\|network` | Signed in | The studios or networks of a library, most titles first, counting only what this viewer may see |
+
+`status` is `pending` (not looked for yet), `found`, `none` (no source has one) or `text` (someone chose the name alone).
 
 ## Video games
 

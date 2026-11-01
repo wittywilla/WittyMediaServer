@@ -74,7 +74,9 @@
       "body": [
         "Names of consoles, disc formats, services, companies and other products appear only to describe what this software works with or where information came from. They belong to their owners. Using a name here doesn't mean the owner made, licensed, tested, sponsored or endorsed this software, and this software isn't certified by any of them.",
         "“DVD” is a trademark of DVD Format/Logo Licensing Corporation. “Blu-ray” and “Blu-ray Disc” are trademarks of the Blu-ray Disc Association. This software isn't a licensed or certified DVD or Blu-ray product, and it uses neither organization's logos. FFmpeg is a trademark of Fabrice Bellard. The names of game consoles belong to the companies that make them.",
-        "Disc menus, posters and artwork shown while something plays come from the media itself or from the services above, and belong to their owners."
+        "Disc menus, posters and artwork shown while something plays come from the media itself or from the services above, and belong to their owners.",
+        "Logos of studios, networks, consoles and services are an optional download an administrator has to agree to, and are never part of this software. They come from Wikimedia Commons, only where the file's own page gives a free licence or says it's in the public domain, or from the server's owner. Being free to copy as a picture doesn't change who owns a trademark: logos are shown only to name who made something, not to suggest any connection. Each one's source, licence and author are listed in Settings, Metadata agents.",
+        "Streaming listings are an optional feature, off until an administrator has read and accepted what it means. They name services such as subscription video platforms only to sort the media already on this server by which titles those services list. **Nothing plays from those services, no account with them is used, and the project has no connection with any of them.** The listings come from JustWatch, through TMDB."
       ]
     },
     {
@@ -414,6 +416,18 @@
       "when": "Answering devices is on by default. It never leaves your home network.",
       "control": "Settings, Profiles (Let apps find this server); Settings, Remote Access",
       "setting": "/settings/users"
+    },
+    {
+      "name": "Wikidata and Wikimedia Commons (logos)",
+      "hosts": [
+        "commons.wikimedia.org",
+        "upload.wikimedia.org",
+        "thumb.wikimedia.org"
+      ],
+      "gets": "The name of a studio, network, console or service from your library, and a request for its logo. Nothing about you or your files.",
+      "when": "Off until an administrator agrees, in setup or in Settings. Then once for each new name, about one a second, and when choosing a logo by hand.",
+      "control": "Settings, Metadata agents (Logos)",
+      "setting": "/settings/metadata"
     }
   ]
 }

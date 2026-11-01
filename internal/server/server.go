@@ -106,6 +106,8 @@ type Server struct {
 	radioChecks   sync.WaitGroup // "check every station" runs on its own
 	diagOnce      sync.Once
 	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
+	logoOnce      sync.Once
+	logoSvc       *library.Logos // the logo service, made when first wanted
 }
 
 type ctxKey int
@@ -163,6 +165,16 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/libraries/{id}/scan", a(s.handleScanProgress))
 	m.Handle("GET /api/genres", a(s.handleGenres))
 	m.Handle("GET /api/items", a(s.handleItems))
+	m.Handle("GET /api/logos/status", a(s.handleLogoStatus))
+	m.Handle("PUT /api/logos/consent", s.requireAdmin(s.handleLogoConsent))
+	m.Handle("POST /api/logos/lookup", a(s.handleLogoLookup))
+	m.Handle("GET /api/logos/credits", a(s.handleLogoCredits))
+	m.Handle("GET /api/logos/preview", s.requireAdmin(s.handleLogoPreview))
+	m.Handle("GET /api/logos/{id}/image", a(s.handleLogoImage))
+	m.Handle("GET /api/logos/{id}/candidates", s.requireAdmin(s.handleLogoCandidates))
+	m.Handle("PUT /api/logos/{id}", s.requireAdmin(s.handleLogoChange))
+	m.Handle("PUT /api/logos/{id}/upload", s.requireAdmin(s.handleLogoUpload))
+	m.Handle("GET /api/brands", a(s.handleBrands))
 	m.Handle("GET /api/items/{id}", a(s.handleItem))
 	m.Handle("PUT /api/items/{id}", s.requireAdmin(s.handleUpdateItem))
 	m.Handle("GET /api/items/{id}/poster", a(s.handlePoster))

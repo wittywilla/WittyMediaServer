@@ -36,6 +36,9 @@ A rule is JSON:
   "watched": "no", "addedWithinDays": 0, "sort": "added", "desc": true, "limit": 50 }
 ```
 
+Collections also appear as a shelf on the library page of anything in them. Categories, saved views and browsing by studio are in
+[METADATA.md](METADATA.md#categories-studios-and-browsing).
+
 ## Internet radio
 
 A library of the kind **Internet radio** needs no folder. Choose **Add stations** on its page, then:

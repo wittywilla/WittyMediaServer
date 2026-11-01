@@ -5,8 +5,11 @@ already use, so you can move an existing library in — or out — without re-ta
 
 - [Where metadata comes from](#where-metadata-comes-from)
 - [What is saved next to your media](#what-is-saved-next-to-your-media)
-- [Choosing artwork](#choosing-artwork)
-- [Editing by hand](#editing-by-hand)
+- [Editing and fixing matches](#editing-and-fixing-matches)
+- [Fix matches: the review list](#fix-matches-the-review-list)
+- [Names that say what a file is](#names-that-say-what-a-file-is)
+- [Categories, studios and browsing](#categories-studios-and-browsing)
+- [Streaming listings](#streaming-listings)
 - [Coming from another media server](#coming-from-another-media-server)
 - [The logo service](#the-logo-service)
 - [Video games](#video-games)
@@ -74,8 +77,8 @@ don't know: a family archive, a club's catalogue, a script you wrote. Add one in
 | **Use it for** | Movies, Home videos and/or Books libraries |
 
 Agents run in the order listed, before TMDB, TheTVDB, TVmaze and Wikidata, and only fill in what is
-still empty: information inside your files, NFO files and your own edits always win. When an
-agent answers, **Refresh** on a title uses it instead of the built-in agents. **Try it** in the
+still empty: information inside your files, NFO files and your own edits always win. They're also
+searched in **Search and match**, where an agent's answer can be chosen like any other. **Try it** in the
 agent's dialog looks a title up without changing anything.
 
 The agent answers with JSON, either one object, a list, or `{"results": [...]}` (the first entry
@@ -124,17 +127,118 @@ scan, and if you edit an item whose NFO you wrote by hand, the original is kept 
 Mount media read-only (Docker `:ro`) and turn the option off if you prefer the server not to write.
 
 
-## Choosing artwork
+## Editing and fixing matches
 
-**Artwork** on a movie, disc, episode or show page opens a picker with every candidate: images
-already in the folder, TMDB posters/backdrops (movies) and TheTVDB artwork (shows). The chosen
-image is copied to the standard file name above, so other servers use it too. You can also paste
-any image URL or file path.
+**Edit** on a film, episode or show opens one dialog with everything about it, in sections you can jump between. Delete, Cancel
+and Save stay in view however long it runs. *Ctrl+S* saves, and *Escape* closes, asking first if something isn't saved. Selecting text
+and letting go outside the dialog doesn't close it.
 
-## Editing by hand
+### Search and match
 
-**Edit** on any page changes title, year, overview, genres, content rating, poster and backdrop. With metadata
-saving on, the NFO is rewritten at once (a hand-written NFO is kept as `.nfo.bak` the first time).
+Type a name, or paste an id or address from TMDB, IMDb, TheTVDB, TVmaze, AniList or Wikidata: `tt0000123`, `tmdb:12`,
+`https://www.tvmaze.com/shows/56/a-show`. Every source that's on is asked at once, films and shows alike, so a disc of a series can be matched
+to the series. Each result says how likely it is out of 100, and **Why?** says why in plain words: the name, the year, whether it's the right kind of
+thing for the library.
+
+Choosing a result changes nothing yet. It shows **what would change**, field by field, with what's there now beside what's coming. Untick anything you want to keep.
+Text you typed, a hand-written NFO and pictures beside the file are shown but not ticked; locked fields can't be ticked. For a show, it also says how
+many of your episodes the source knows.
+
+A match you choose **stays**: no scan or refresh changes it, even if the file is replaced by a better copy. **Remove this match** takes away what the source gave
+and keeps what you typed; the title is named after its file again and nothing is looked up for it until you choose one. **Check for changes**, and **Refresh** on
+a title's page, show what looking it up again would change. Both keep the match it has.
+
+### Locks, sources and Revert
+
+Each field says where its value came from: *You typed this*, *From TMDB*, *From an NFO file*, *Saved earlier* (an NFO this server wrote), *From the file name*.
+
+| | |
+|---|---|
+| **Lock** | A locked field stays as it is. No scan, refresh, new match, NFO or sidecar can change it, whether the title is matched or not. Anything you type locks itself. **Lock all** does every field |
+| **Revert** | Goes back to what the source said before you typed over it, and unlocks the field |
+| **Undo** | Every match, edit and renumbering can be undone: right after it, or later under *Fix matches → History*. The last 5,000 changes are kept |
+
+### Artwork
+
+Poster, backdrop, banner and title logo each have **Browse images**, a grid from everywhere with a tick on the chosen one, and **Upload your own** (JPEG, PNG, WebP or GIF, up to 20 MB; it's checked to
+be a real picture, and kept in the image cache). Pictures from sources are fetched by your server, so no browser or app contacts them. Without a TMDB key, films have only what's in their folder:
+Wikidata has no posters, and TV shows get theirs from TVmaze.
+
+With *Save information and artwork next to your media* on, the chosen poster and backdrop are also copied to the standard names beside the file, and the NFO is rewritten (a hand-written one is kept as `.nfo.bak`).
+
+### Skip intro
+
+Where the intro ends, as `M:SS`, or **Pick in player**: play to the moment and press the button. Blank means work it out from the file's chapters. On a show it covers every episode with no intro of its own. Discs have their own menus, so this isn't offered for them.
+
+### Bonus features and versions
+
+**It's a bonus feature** takes a trailer, featurette, deleted scene, interview or short out of the lists and puts it on the page of the film or show it belongs to. **This is another version of…** does the same for a second copy of a film, such as a DVD and a 4K
+file, which its page then offers as a choice. Either can be undone with one button: *Make it a title of its own*, or *Split it off*.
+
+### In the wrong library?
+
+**Move to** puts a title in another library that holds the same kind of thing. Its files don't move: the library it was found in leaves it alone from then on, and the new one looks after it. Where it can't move, it says why.
+
+**Delete** takes a title out of its library and leaves its files on disk. It won't come back on a scan, and can be brought back from *Fix matches → Removed*. Nothing here ever deletes a file.
+
+## Fix matches: the review list
+
+*Fix matches*, on a library's page and in *Settings → Metadata agents*, lists every title in film, disc and TV libraries, worst first. Opening it asks nobody anything: how sure each match is comes from what's stored, comparing the file's name and year with what it's matched to.
+
+| Tab | What's there |
+|---|---|
+| **Needs a look** | No match, or one under 70% |
+| **No match**, **Not sure**, **Looks right** | Those on their own |
+| **You chose**, **Left alone** | What you've decided, which nothing changes |
+| **Removed** | Titles taken out of a library, to bring back |
+
+Choosing a title finds suggestions, one request per source; **Find suggestions for all** does the whole list in the background, gently. If a file's whole name finds nothing, its first words are dropped and it's tried again, as in `Dr Story The Treeline` for *The Treeline*.
+
+| Key | |
+|---|---|
+| `J` `K` | Next and last |
+| `A` | Accept the first suggestion |
+| `1` to `6` | Accept that suggestion |
+| `N` | It has no match |
+| `E` | Edit details |
+| `X` | Choose it, for doing several at once |
+| `/` | Search |
+| `U` | Undo |
+
+With several chosen, **Accept their best suggestions** or **Edit together**, which adds or takes away genres and tags, sets a year or a rating, and locks or unlocks. **Renumber episodes** shows each file beside what the source calls that number, with ways to move a whole season. Numbers you change are locked, so a scan keeps them.
+
+## Names that say what a file is
+
+An id in a file or folder's name wins over any search, and doesn't appear in the title. The usual forms all work: `My Film (2001) [tmdbid-123].mkv`, `{imdb-tt0000123}`, `[tvdb-456]`, `[tvmaze-78]`, `[anilist-90]`.
+
+A folder with a naming of its own can have **rules**, under *Fix matches → Naming rules*. A rule says how a path reads, using `{title}`, `{year}`, `{edition}`, `{tmdb}`, `{imdb}`, `{tvdb}`, `{any}`, and `*` for anything within a folder's name. For example, `Harbour Studio/{year} - {title}`. It can also say where to look (or not to look it up at all), add tags, or mark what it fits as a bonus feature. The first rule that fits decides. **Try them** shows what would happen without changing anything. Rules apply to new and changed files when a library is scanned.
+
+## Categories, studios and browsing
+
+A film or TV library opens on **shelves**: categories, recently added, collections, studios, networks, highest rated, and a row for each category. Each row asks for its titles only as it comes near the screen. Choosing a sort, a filter or a card turns it into a grid, and the address holds the whole state, so any view can be bookmarked.
+
+**Categories** are made from genres, one library at a time, with the art of what's in them. Different spellings of a genre are put together (*Sci-Fi* and *Science Fiction*), and combined ones split (*Action & Adventure*). **Categories** on the page lets an administrator rename, hide, reorder and merge them. Only the changes are kept, so new genres appear by themselves, and *Start again* forgets them.
+
+**Studios and networks** come from metadata, every studio a source names. A card opens everything from that studio, across libraries. Kids and Guest profiles see neither the titles they can't watch nor a studio or category only those titles are in.
+
+**Filters** cover type, category, studio, network, decade, year, age rating, score, picture (4K, 1080p, 720p, SD), sound (`AC3 5.1`), audio and subtitle language, edition, tags, whether it's been watched, and words in the title. **Save this view** keeps a view for your account, and can pin it to Home.
+
+## Streaming listings
+
+Optional, and off until an administrator accepts each statement of what it means, in *Settings → Metadata agents*. It shows which of the titles **already on your server** a streaming service currently lists, for someone used to finding things that way.
+
+**Nothing plays from those services, no account with them is used, and there's no connection with any of them.** Every screen that shows a listing says so, and dates it.
+
+| | |
+|---|---|
+| **Source** | TMDB's watch providers, which come from [JustWatch](https://www.justwatch.com). TMDB's terms require JustWatch to be credited, which every screen does, and don't allow commercial use. Answers are kept for about two weeks; TMDB's terms allow up to six months |
+| **Needs** | Your own free TMDB key. Without one it stays off, because no source of this data works without a key and allows this use |
+| **Sent** | The TMDB id of each title in your film and TV libraries, or its name and year to find that id, about once every two weeks. A title that can't be found with near certainty isn't listed, because a wrong guess would say something is on a service when it isn't |
+| **What counts** | Included with a subscription, free, or free with adverts. Rentals and purchases aren't what's on a service |
+| **Region** | Your choice, as listings differ by country |
+| **Names and logos** | Plain text unless you've agreed to logos too |
+
+Turning it off forgets everything it fetched.
 
 ## Coming from another media server
 

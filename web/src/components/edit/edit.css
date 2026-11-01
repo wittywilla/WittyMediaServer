@@ -5,7 +5,7 @@
 .ed-dialog h2 { margin: 0; }
 .ed-file { margin: var(--sp-1) 0 0; font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ed-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 148px minmax(0, 1fr); }
-.ed-nav { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-2) var(--sp-4) var(--sp-4); border-right: 1px solid var(--border); overflow: auto; }
+.ed-nav { scrollbar-width: none; display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-2) var(--sp-4) var(--sp-4); border-right: 1px solid var(--border); overflow: auto; }
 .ed-nav a { display: block; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
 .ed-nav a:hover, .ed-nav a:focus-visible { background: var(--hover); color: var(--fg); }
 .ed-scroll { overflow: auto; padding: var(--sp-5) var(--sp-6); scroll-padding-top: var(--sp-4); }
@@ -24,7 +24,12 @@
 
 /* Fields: a name, where its value came from, a lock, and Revert. */
 .ed-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-3); }
-.ed-field { min-width: 0; }
+.ed-field { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label tools' 'control control' 'hint hint'; align-items: center; column-gap: var(--sp-2); }
+.ed-field-label { grid-area: label; display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-2); min-height: var(--control-h-sm); padding-top: var(--sp-1); }
+.ed-field-label label { font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
+.ed-field-control { grid-area: control; min-width: 0; margin-top: var(--sp-1); }
+.ed-field > .ed-field-tools { grid-area: tools; }
+.ed-field > .ed-hint { grid-area: hint; }
 .ed-field.wide { grid-column: 1 / -1; }
 .ed-field-head { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--control-h-sm); margin-bottom: var(--sp-1); }
 .ed-field-head label { font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }

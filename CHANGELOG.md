@@ -5,6 +5,18 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.6.0-alpha
+
+- **Edit details:** one dialog for a film, an episode or a show, in sections, with Delete, Cancel and Save always in view. Every field says where its value came from, can be locked so nothing changes it (no scan, refresh, new match, NFO or file beside it, matched or not), and can go back to what its source said. It also has artwork from every source with your own uploads, banners and title logos, where the intro ends (typed, or picked in the player), bonus features, versions, moving to another library, and logos.
+- **Search and match:** every source at once, or a TMDB, IMDb, TheTVDB, TVmaze, AniList or Wikidata id or address. Each result says how likely it is and why. Choosing one shows what would change, field by field, before anything does. A match you choose stays through scans and refreshes, and a wrong one can be removed, keeping only what you typed.
+- **Refresh shows what will change** before it changes anything, and keeps the match a title has. It used to search again and could lose it.
+- **Fix matches:** a list of everything that needs a look, worst first, with suggestions and reasons, a key for each action, several at once, editing many titles together, renumbering episodes, naming rules and ids in file names, and a history where anything can be undone.
+- **Studios and networks:** first-class data with a row of logo cards and a page of everything from each. Logos are an optional download from Wikimedia Commons, only with your agreement, kept and served by your own server, in white and dark so they read on any theme. Without them, the names look right as text.
+- **Categories:** made from genres per library, with spellings of the same genre put together, and they can be hidden, reordered, renamed and merged, with art from what's in them.
+- **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
+- **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
+- **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+
 ## 0.5.2-alpha
 
 0.5.0-alpha was never published as a release, so this is the first release with everything from it as

@@ -10,6 +10,7 @@ import { IconCheck, IconPlus, IconTrash } from '../icons'
 import { undoBatch, type EpisodeMap, type EpisodeRow, type HistoryEntry, type MatchCandidate, type MatchPreview, type MatchRule, type QueueResult, type QueueRow, type RuleTry, type SearchResult, type Target } from '../metadata'
 import { toast, useApp } from '../state'
 import BulkEdit from './library/BulkEdit'
+import './library/library.css'
 import './fixmatches.css'
 
 // Fix matches: everything that needs a look, worst first, with suggestions and reasons, and a

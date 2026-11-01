@@ -16,7 +16,13 @@ import (
 func seriesDetails(source string, m *SeriesMeta) *MatchDetails {
 	d := &MatchDetails{Source: source, ID: m.ID, Kind: "show", URL: SourceURL(source, m.ID), Title: m.Title, Year: m.Year, Overview: m.Overview, Genres: m.Genres, Rating: m.Rating,
 		ContentRating: m.ContentRating, Network: m.Network, Status: m.Status, Poster: m.Poster, Backdrop: m.Backdrop, Posters: m.Posters, Backdrops: m.Backdrops,
-		SeasonPosters: m.SeasonPosters, AirDays: m.AirDays, AirTime: m.AirTime}
+		SeasonPosters: m.SeasonPosters, AirDays: m.AirDays, AirTime: m.AirTime, Banners: m.Banners, Logos: m.Logos}
+	if len(d.Banners) > 0 {
+		d.Banner = d.Banners[0]
+	}
+	if len(d.Logos) > 0 {
+		d.Logo = d.Logos[0]
+	}
 	return d
 }
 
@@ -439,7 +445,7 @@ func (w *wikidataSource) Search(ctx context.Context, q string, _ *int) ([]MatchC
 	for _, r := range search.Search {
 		kind := wdWhat(r.Description)
 		d := strings.ToLower(r.Description)
-		if kind == "" || containsAny(d, "franchise", "trilogy", "soundtrack", "character", "festival", "studio", "company", "book", "episode", "season of", "album") {
+		if kind == "" || containsAny(d, "franchise", "film series", "trilogy", "soundtrack", "character", "festival", "studio", "company", "book", "episode", "season of", "album") {
 			continue
 		}
 		ids = append(ids, r.ID)

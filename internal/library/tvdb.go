@@ -66,6 +66,8 @@ type SeriesMeta struct {
 	// All posters/backgrounds, best first (for the artwork picker).
 	Posters   []string
 	Backdrops []string
+	// Wide banners and the title as a picture, where the service has them.
+	Banners, Logos []string
 }
 
 // EpisodeMeta is one episode from the default (aired) order.
@@ -392,6 +394,15 @@ func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 		score float64
 	}
 	var posters, backdrops []scored
+	for _, a := range d.Artworks {
+		// TheTVDB's own numbers for a series' banner and clear logo.
+		switch a.Type {
+		case 1:
+			m.Banners = append(m.Banners, a.Image)
+		case 23:
+			m.Logos = append(m.Logos, a.Image)
+		}
+	}
 	for _, a := range d.Artworks {
 		if a.Image == "" {
 			continue

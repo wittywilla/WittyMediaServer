@@ -239,20 +239,21 @@ function FieldShell({ name, label, children, p, wide, hint }: { name: string; la
   const unsaved = p.val(name) !== (m?.value ?? '')
   return (
     <div className={'ed-field' + (wide ? ' wide' : '') + (locked ? ' locked' : '')}>
-      <div className="ed-field-head">
+      <div className="ed-field-label">
         <label htmlFor={id}>{label}</label>
         <span className="ed-source">{unsaved ? 'Not saved yet' : sourceWords(m)}</span>
-        <div className="ed-field-tools">
-          {m?.canRevert && !unsaved && (
-            <button type="button" className="btn sm ghost ed-revert" onClick={() => p.revert(name)} title={m.revertTo ? `Go back to: ${m.revertTo}` : 'Go back to empty'}
-              aria-label={`Go back to what ${m.revertFrom || 'the source'} said for ${label}`}><IconRefresh size={14} /> Revert</button>
-          )}
-          <button type="button" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} aria-label={`Lock ${label}`} title={locked ? 'Locked: nothing can change this. Press to unlock' : 'Lock this, so nothing can change it'} onClick={() => p.toggleLock(name)}>
-            {locked ? <IconLock size={16} /> : <IconUnlock size={16} />}
-          </button>
-        </div>
       </div>
-      {children(id, hintId)}
+      <div className="ed-field-control">{children(id, hintId)}</div>
+      {/* After the field in the tab order, though it's drawn above it: type, then lock. */}
+      <div className="ed-field-tools">
+        {m?.canRevert && !unsaved && (
+          <button type="button" className="btn sm ghost ed-revert" onClick={() => p.revert(name)} title={m.revertTo ? `Go back to: ${m.revertTo}` : 'Go back to empty'}
+            aria-label={`Go back to what ${m.revertFrom || 'the source'} said for ${label}`}><IconRefresh size={14} /> Revert</button>
+        )}
+        <button type="button" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} aria-label={`Lock ${label}`} title={locked ? 'Locked: nothing can change this. Press to unlock' : 'Lock this, so nothing can change it'} onClick={() => p.toggleLock(name)}>
+          {locked ? <IconLock size={16} /> : <IconUnlock size={16} />}
+        </button>
+      </div>
       {hint && <div className="ed-hint" id={hintId}>{hint}</div>}
     </div>
   )

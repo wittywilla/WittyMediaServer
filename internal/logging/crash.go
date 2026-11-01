@@ -354,6 +354,10 @@ var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean)$`)
 // IsCrashID accepts only our own report names (never a path).
 func IsCrashID(id string) bool { return crashName.MatchString(id) }
 
+// OpenCrashReports reads the reports in a folder without arming anything or changing any
+// of them, for a tool running beside a server or without one.
+func OpenCrashReports(dir string) *CrashGuard { return &CrashGuard{dir: dir} }
+
 // List is every report, newest first.
 func (g *CrashGuard) List() []Crash {
 	if g == nil {

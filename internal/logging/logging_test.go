@@ -1141,7 +1141,7 @@ func TestBundleRedactsTitlesAndPaths(t *testing.T) {
 			t.Errorf("%q survived redaction:\n%s", not, text)
 		}
 	}
-	for _, want := range []string{"permission denied", "/api/items/5/play", "Duration: 01:00:00", "[path:", `"version": "1"`} {
+	for _, want := range []string{"permission denied", "/api/items/5/play", "Duration: 01:00:00", "[path-", `"version": "1"`} {
 		if !strings.Contains(text, want) {
 			t.Errorf("redaction took too much, %q is gone:\n%s", want, text)
 		}

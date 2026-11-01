@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, mediaUrl } from '../../api'
-import BrandLogo, { forgetLogos, lookupLogo, type LogoInfo, type LogoKind } from '../../components/BrandLogo'
+import BrandLogo, { forgetLogos, lookupLogo, useLogo, type LogoInfo, type LogoKind } from '../../components/BrandLogo'
 import { LOGO_KIND_NAMES, LogoConsentHint, LogoPanel } from '../../components/edit/LogoChooser'
 import { toast } from '../../state'
 import { Button, Dialog } from '../../ui'
@@ -13,9 +13,10 @@ import { forgetLineup, type TunerChannel } from './tvApi'
 const KINDS: LogoKind[] = ['network', 'studio', 'platform']
 
 function Mark({ c }: { c: TunerChannel }) {
+  const found = useLogo(c.brand?.kind || 'network', !c.logoUrl && c.brand ? c.brand.name : '')
   if (c.logoUrl) return <img className="tvs-logo" src={mediaUrl(c.logoUrl)} alt="" loading="lazy" />
-  if (c.brand) return <span className="tvs-logo"><BrandLogo kind={c.brand.kind} name={c.brand.name} label={false} /></span>
-  return <span className="tvs-dim">None</span>
+  if (c.brand && found?.has) return <span className="tvs-logo"><BrandLogo kind={c.brand.kind} name={c.brand.name} label={false} /></span>
+  return <span className="tvs-dim">{c.logoSet === 'none' ? 'None' : 'Its name'}</span>
 }
 
 function why(c: TunerChannel): string {

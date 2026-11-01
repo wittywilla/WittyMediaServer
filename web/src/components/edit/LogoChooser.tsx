@@ -7,6 +7,7 @@ import LegalNote from '../LegalNote'
 import { sendPicture } from '../../metadata'
 import { Button, Dialog, Notice } from '../../ui'
 import { WebLink } from '../WebLink'
+import './edit.css'
 
 // Everywhere a logo can be set: search by name, choose among what comes back with its source
 // and licence in view, keep your own upload, or choose none. Before downloads are agreed to,

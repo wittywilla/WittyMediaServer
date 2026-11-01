@@ -82,14 +82,17 @@ function read(): Saved {
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
+// While a change is on its way to the account, this device's copy is the newer one.
+let saving = 0
 function saveToAccount(saved: Saved) {
   clearTimeout(saveTimer)
+  if (!saving) saving = 1
   saveTimer = setTimeout(() => {
     // Beside the theme, what it comes to in the two looks an older app knows about.
     const shape = saved.theme === 'custom' ? saved.custom?.shape || 'modern' : saved.theme ? themeById(saved.theme)!.shape : undefined
     const full = saved.theme && shape ? { ...saved, ...legacyOf(saved.theme, shape) } : saved
     // The server keeps an account's interface choices whole, and others have some there too.
-    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: full })).catch(() => { /* still saved on this device */ })
+    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: full })).catch(() => { /* still saved on this device */ }).finally(() => { saving = 0 })
   }, 800)
 }
 
@@ -213,7 +216,7 @@ export function useLook(): Look {
     if (!user) return
     let on = true
     askOwner()
-    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook) store(upgradeSaved(u.tvLook, owner)) }).catch(() => { /* this device's copy will do */ })
+    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook && !saving) store(upgradeSaved(u.tvLook, owner)) }).catch(() => { /* this device's copy will do */ })
     return () => { on = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // Read on each drawing, and cheap: the look only changes identity when one of these really has.

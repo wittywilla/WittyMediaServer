@@ -27,7 +27,8 @@ a notice of its own.
 | A title's page with details or artwork from outside | `metadata` | Movie and episode pages, shows, albums |
 | Media streaming from outside: podcasts, stations | `webMedia` | Radio, podcast libraries and pages |
 | TV channels and guide data | `tv` | TV guide, Channels & tuners |
-| Studio, network or console logos, and any screen choosing one | `logos` | Library pages with logo cards, the brand page, the edit dialog's Logos, the logo chooser, Metadata agents |
+| Studio, network, channel or console logos, and any screen choosing one | `logos` | Library pages with logo cards, a show or title with one, the brand page, the guide, Channels & tuners, a channel's editor, a tuner's channel table, the edit dialog's Logos, the logo chooser, Metadata agents. `components/LogoNotice` shows it only when one is on the screen |
+| A logo on something that's only up for a moment | `logosBrief` | The banner in the TV player |
 | Which streaming services list a title | `listings` | Library pages and the brand page showing listings, the disclosure screen |
 | Games and game details | `games` | Games library, game pages |
 | Downloading cores | `cores` | Settings, Consoles & cores, and the install dialog |

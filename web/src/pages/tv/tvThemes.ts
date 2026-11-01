@@ -34,13 +34,13 @@ export type ShapeInfo = {
 }
 
 export const SHAPES: Record<Shape, ShapeInfo> = {
-  box: { name: 'Cable box', rows: [56, 64, 84], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  modern: { name: 'Modern', rows: [64, 76, 92], preview: 0.38, side: 'right', art: true, details: true, rowHighlight: true },
-  receiver: { name: 'Receiver', rows: [56, 58, 80], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  teletext: { name: 'Teletext', rows: [52, 50, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  listings: { name: 'Newspaper', rows: [60, 62, 84], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  cinema: { name: 'Big picture', rows: [56, 54, 72], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
-  outline: { name: 'Outline', rows: [60, 66, 86], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false },
+  box: { name: 'Cable box', rows: [56, 64, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  modern: { name: 'Modern', rows: [64, 76, 80], preview: 0.38, side: 'right', art: true, details: true, rowHighlight: true },
+  receiver: { name: 'Receiver', rows: [56, 58, 70], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  teletext: { name: 'Teletext', rows: [52, 50, 64], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  listings: { name: 'Newspaper', rows: [60, 62, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  cinema: { name: 'Big picture', rows: [56, 54, 64], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
+  outline: { name: 'Outline', rows: [60, 66, 76], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false },
   compact: { name: 'Compact', rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false },
 }
 
@@ -344,7 +344,7 @@ export const PREVIEW_MIN = 180
 // room. A phone gives it the whole width, on a line of its own.
 export function previewLimit(pageW: number, pageH: number, narrow: boolean, gutter = 16): number {
   const byWidth = narrow ? pageW - gutter * 2 : pageW * 0.6
-  const byHeight = (pageH * (narrow ? 0.34 : 0.5) - 44) * (16 / 9)
+  const byHeight = (pageH * (narrow ? 0.34 : 0.46) - 44) * (16 / 9)
   return Math.round(Math.max(PREVIEW_MIN, Math.min(byWidth, byHeight)))
 }
 

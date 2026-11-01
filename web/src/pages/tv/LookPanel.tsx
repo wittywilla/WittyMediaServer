@@ -103,7 +103,7 @@ function WhoChose({ look }: { look: Look }) {
   )
 }
 
-const PALETTE = ['#000000', '#0f1115', '#06164a', '#17223b', '#1f3d36', '#3b1f47', '#7955ff', '#2196f3', '#00acc1', '#2fb67c', '#ffd60a', '#ffb300', '#e8590c', '#d6336c', '#f5f0e4', '#ffffff']
+const PALETTE: [string, string][] = [['#000000', 'Black'], ['#0f1115', 'Near black'], ['#06164a', 'Deep blue'], ['#17223b', 'Slate'], ['#1f3d36', 'Deep green'], ['#3b1f47', 'Deep purple'], ['#7955ff', 'Violet'], ['#2196f3', 'Blue'], ['#00acc1', 'Teal'], ['#2fb67c', 'Green'], ['#ffd60a', 'Yellow'], ['#ffb300', 'Amber'], ['#e8590c', 'Orange'], ['#d6336c', 'Pink'], ['#f5f0e4', 'Paper'], ['#ffffff', 'White']]
 
 function Colours({ look }: { look: Look }) {
   const t = themeById(look.theme)!
@@ -132,7 +132,7 @@ function Colours({ look }: { look: Look }) {
       <Segmented<Slot> className="ctv-slot-tabs" label="Which colour" value={slot} onChange={(s) => { typing.current = false; setSlot(s) }}
         options={SLOTS.map((s) => ({ value: s.slot, label: <><span className="ctv-slot-dot" style={{ background: value(s.slot) }} />{s.name}</>, name: s.name }))} />
       <div className="ctv-swatches" role="group" aria-label={`Colours for ${SLOTS.find((s) => s.slot === slot)!.name}`} data-nav-group>
-        {PALETTE.map((c) => <button key={c} type="button" className={'ctv-swatch' + (value(slot).toLowerCase() === c ? ' on' : '')} style={{ background: c }} aria-label={`Use ${c}`} aria-pressed={value(slot).toLowerCase() === c} onClick={() => { typing.current = false; set(c) }} />)}
+        {PALETTE.map(([c, name]) => <button key={c} type="button" className={'ctv-swatch' + (value(slot).toLowerCase() === c ? ' on' : '')} style={{ background: c }} aria-label={name} title={name} data-colour={c} aria-pressed={value(slot).toLowerCase() === c} onClick={() => { typing.current = false; set(c) }} />)}
       </div>
       <div className="ctv-colour-row">
         <label>Any colour <input type="color" value={value(slot)} onChange={(e) => { typing.current = false; set(e.target.value) }} /></label>

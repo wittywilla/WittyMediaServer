@@ -120,7 +120,7 @@ html.ten-foot .ctv-page[data-shape="modern"] { --ctv-grid-edge: var(--ctv-edge);
    one typewriter font, double-height headlines and a page number. Nothing rounded, nothing soft. */
 [data-shape="teletext"] { --ctv-font: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", ui-monospace, monospace; --ctv-r: 0px; }
 .ctv[data-shape="teletext"] .ctv-hero { background: var(--ctv-bg); border-bottom: 0; padding-top: calc(var(--ctv-top) + 1.5em); }
-.ctv[data-shape="teletext"] .ctv-hero::before { content: "P100  WITTYTV  GUIDE"; position: absolute; top: var(--ctv-top); left: var(--ctv-edge); color: var(--ctv-soft); font-size: var(--text-md); letter-spacing: .1em; white-space: pre; } /* design-ok: this theme's masthead */
+.ctv[data-shape="teletext"] .ctv-hero::before { content: "P100  WITTYTV  GUIDE"; content: "P100  WITTYTV  GUIDE" / ""; position: absolute; top: var(--ctv-top); left: var(--ctv-edge); color: var(--ctv-soft); font-size: var(--text-md); letter-spacing: .1em; white-space: pre; } /* design-ok: this theme's masthead */
 .ctv[data-shape="teletext"] .ctv-hero-num { font-size: var(--text-xl); color: var(--ctv-accent); }
 .ctv[data-shape="teletext"] .ctv-hero-chtext b { color: var(--ctv-soft); text-transform: uppercase; }
 .ctv[data-shape="teletext"] .ctv-hero-chtext span { color: var(--ctv-text); }

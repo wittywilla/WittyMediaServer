@@ -1518,7 +1518,7 @@ func TestCodecsDecoders(t *testing.T) {
 	if err != nil {
 		t.Skip("no FFmpeg here")
 	}
-	for _, c := range []string{"vc1", "rv30", "rv40", "ape", "tak", "wmapro", "prores", "dnxhd", "dts", "truehd", "cook", "hevc", "av1", "vp9"} {
+	for _, c := range []string{"vc1", "rv30", "rv40", "ape", "tak", "wmapro", "prores", "dnxhd", "dca", "truehd", "cook", "hevc", "av1", "vp9"} {
 		if !tools.CanDecode(c) && !tools.CanDecode("lib"+c) && !tools.CanDecode("lib"+c+"1") && c != "av1" {
 			t.Errorf("this FFmpeg can't decode %s", c)
 		}

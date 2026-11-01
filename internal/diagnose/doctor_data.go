@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
@@ -367,8 +368,10 @@ func checkTempFiles(_ context.Context, e *DoctorEnv) []Issue {
 		}
 	}
 	var size int64
-	// With no server running, everything in the conversion folder and the place game files
-	// unpack to is left over. With one running, some of it is in use.
+	// With no server running, the folders of old streams and the place game files unpack to
+	// are left over. With one running, some of it is in use. The conversion folder can be
+	// anywhere the owner chose, with anything else in it, so only a stream's folder counts,
+	// as when the server starts up.
 	if !e.ServerUp() {
 		for _, dir := range []string{e.Transcode, filepath.Join(e.Data, "gaming", "tmp")} {
 			entries, err := os.ReadDir(dir)
@@ -376,6 +379,9 @@ func checkTempFiles(_ context.Context, e *DoctorEnv) []Issue {
 				continue
 			}
 			for _, d := range entries {
+				if dir == e.Transcode && !(d.IsDir() && hls.IsSessionDir(d.Name())) {
+					continue
+				}
 				p := filepath.Join(dir, d.Name())
 				t.remove = append(t.remove, p)
 				size += treeSize(p)

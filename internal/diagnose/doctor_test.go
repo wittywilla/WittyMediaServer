@@ -782,7 +782,24 @@ func TestDoctorTempFiles(t *testing.T) {
 	f := newDoctorFixture(t)
 	stray := filepath.Join(f.env.Data, "wms.db.tmp")
 	fresh := filepath.Join(f.env.Data, "other.tmp")
-	seg := filepath.Join(f.env.Transcode, "stream-1")
+	seg := filepath.Join(f.env.Transcode, "v-1234-r1")
+	// That folder is the owner's choice, and can hold things of theirs.
+	mine := filepath.Join(f.env.Transcode, "holiday videos")
+	if err := os.MkdirAll(mine, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	theirs := filepath.Join(f.env.Transcode, "notes.txt")
+	if err := os.WriteFile(theirs, []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if _, err := os.Stat(mine); err != nil {
+			t.Error("a folder of the owner's went")
+		}
+		if _, err := os.Stat(theirs); err != nil {
+			t.Error("a file of the owner's went")
+		}
+	}()
 	if err := os.WriteFile(stray, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1098,11 +1115,13 @@ func TestOnlyOurProcessesAreRecognised(t *testing.T) {
 	}
 	trans := filepath.FromSlash("/data/transcode")
 	ff := []procInfo{
-		{pid: 20, exe: filepath.FromSlash("/usr/bin/ffmpeg"), cmdline: "ffmpeg -i x " + trans + "/s1/out.m3u8"},
+		{pid: 20, exe: filepath.FromSlash("/usr/bin/ffmpeg"), cmdline: "ffmpeg -i x " + trans + string(filepath.Separator) + "v-1234-r1" + string(filepath.Separator) + "out.m3u8"},
 		{pid: 21, exe: filepath.FromSlash("/usr/bin/ffmpeg"), cmdline: "ffmpeg -i x /home/me/mine.mkv"},
-		{pid: 22, exe: filepath.FromSlash("/usr/bin/vlc"), cmdline: "vlc " + trans + "/s1/out.m3u8"},
+		{pid: 22, exe: filepath.FromSlash("/usr/bin/vlc"), cmdline: "vlc " + trans + string(filepath.Separator) + "v-1234-r1" + string(filepath.Separator) + "out.m3u8"},
+		// Someone's own conversion, using the same folder.
+		{pid: 23, exe: filepath.FromSlash("/usr/bin/ffmpeg"), cmdline: "ffmpeg -i " + trans + string(filepath.Separator) + "holiday.mkv out.mp4"},
 	}
-	got = ffmpegsOf(ff, trans, "")
+	got = ffmpegsOf(ff, trans)
 	if len(got) != 1 || got[0].pid != 20 {
 		t.Fatalf("ffmpegs: %+v", got)
 	}

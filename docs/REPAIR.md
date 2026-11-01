@@ -72,7 +72,7 @@ How safe the fix is:
 | `database` | Damage, using SQLite's own check; indexes out of step; a file that isn't a database | Rebuilds indexes, or [recovers what can be read](#a-damaged-database) |
 | `database-links` | Rows pointing at things that no longer exist | Removes those rows |
 | `database-size` | A large journal; a lot of empty space | Folds it in; compacts the file |
-| `temp-files` | Temporary files left by something that stopped | Moves them to the safety copy. Converted video and unpacked games are removed, as they're made again when needed |
+| `temp-files` | Temporary files left by something that stopped | Moves them to the safety copy. The folders of old streams and unpacked games are removed, as they're made again when needed. In a conversion folder you chose, anything that isn't a stream's folder is yours, and stays |
 | `reset-state` | A reset or repair waiting from a while ago, an unreadable request, a reset that stopped halfway, copies taking up space | Takes the request back, or brings the copy back. It never deletes copies: *Settings → Reset* does that |
 
 **Metadata**
@@ -106,7 +106,7 @@ How safe the fix is:
 | `disk-space` | Under 5 GB where the server keeps things | You make room, with suggestions |
 | `port` | The port taken, and by what if the system says; a server of another version already on it | You choose, with steps |
 | `firewall` | Nothing it can see: a note on what to allow if other devices can't connect | You do it, with steps for your system. Firewall settings are never changed |
-| `leftover-processes` | FFmpeg still converting for a server that stopped | Ends them. Only an FFmpeg whose command line names this server's folders |
+| `leftover-processes` | FFmpeg still converting for a server that stopped | Ends them. Only an FFmpeg whose command line names a stream's folder in this server's conversion folder |
 | `layout` | A data folder inside the program's folder, which a reinstall can remove | You move it, with steps |
 
 ## Moved a drive?

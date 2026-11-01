@@ -19,6 +19,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
@@ -403,18 +404,36 @@ func checkFirewall(_ context.Context, e *DoctorEnv) []Issue {
 
 // --------------------------------------------------------------- FFmpeg left running
 
-// ffmpegsOf finds FFmpeg processes that are provably working for this data folder: their
-// command line names its conversion folder. An FFmpeg anyone else runs doesn't name it.
-func ffmpegsOf(list []procInfo, transcode, cache string) []ownedProcess {
+// ffmpegsOf finds FFmpeg processes that are provably working for this server: their command
+// line names a stream's folder in its conversion folder. That folder is the owner's choice and
+// could be anywhere, so an FFmpeg that merely mentions it isn't enough.
+func ffmpegsOf(list []procInfo, transcode string) []ownedProcess {
 	var out []ownedProcess
+	if transcode == "" {
+		return out
+	}
+	prefix := strings.TrimRight(transcode, `/\`)
 	for _, p := range list {
 		base := strings.ToLower(filepath.Base(p.exe))
 		if base != "ffmpeg" && base != "ffmpeg.exe" {
 			continue
 		}
-		for _, dir := range []string{transcode, cache} {
-			if dir != "" && strings.Contains(p.cmdline, dir) {
-				out = append(out, ownedProcess{pid: p.pid, exe: p.exe, root: dir})
+		rest := p.cmdline
+		for {
+			i := strings.Index(rest, prefix)
+			if i < 0 {
+				break
+			}
+			rest = rest[i+len(prefix):]
+			if rest == "" || (rest[0] != '/' && rest[0] != '\\') {
+				continue
+			}
+			seg := rest[1:]
+			if j := strings.IndexAny(seg, `/\ "'`); j >= 0 {
+				seg = seg[:j]
+			}
+			if hls.IsSessionDir(seg) {
+				out = append(out, ownedProcess{pid: p.pid, exe: p.exe, root: filepath.Join(transcode, seg)})
 				break
 			}
 		}
@@ -430,7 +449,7 @@ func checkLeftoverFFmpeg(ctx context.Context, e *DoctorEnv) []Issue {
 	if err != nil {
 		return notChecked("leftover-processes:failed", "FFmpeg left running", "The list of running programs couldn't be read: "+err.Error()+".")
 	}
-	found := ffmpegsOf(list, e.Transcode, e.Cache)
+	found := ffmpegsOf(list, e.Transcode)
 	if len(found) == 0 {
 		return nil
 	}

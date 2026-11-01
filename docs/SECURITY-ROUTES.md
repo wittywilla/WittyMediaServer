@@ -578,18 +578,18 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/channels/bumpers/item/{id}` | Admin | Bumper exists. A file is deleted only in the bumpers folder |
 | `GET /api/channels/discs` | Admin | Nothing further |
 | `POST /api/channels/clip-preview` | Admin | A disc that exists. Title exists. Encrypted discs are refused |
-| `GET /api/backup` | An admin, or before any account exists the home network or the setup code | Backups kept, what's going on, and a restore waiting. Before any account exists: no folder, schedule or settings |
+| `GET /api/backup` | An admin, or before any account exists this machine or the setup code | Backups kept, what's going on, and a restore waiting. Before any account exists: no folder, schedule or settings |
 | `GET /api/backup/estimate` | Admin | Nothing further |
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
-| `POST /api/backup/cancel` | An admin, or before any account exists the home network or the setup code | Nothing: stops the job going |
+| `POST /api/backup/cancel` | An admin, or before any account exists this machine or the setup code | Nothing: stops the job going |
 | `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
 | `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
-| `POST /api/backup/restore/upload` | An admin, or before any account exists the home network or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
-| `POST /api/backup/restore/inspect` | An admin, or before any account exists the home network or the setup code | Name as for deleting. One job at a time. Every name, link, size, ratio and hash, and each folder's kind of file. A database is read as values into a clean one, and its rows made harmless. Nothing is changed |
-| `POST /api/backup/restore/start` | An admin, or before any account exists the home network or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
-| `DELETE /api/backup/restore/request` | An admin, or before any account exists the home network or the setup code | Nothing: takes back what's waiting for the next start |
+| `POST /api/backup/restore/upload` | An admin, or before any account exists this machine or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
+| `POST /api/backup/restore/inspect` | An admin, or before any account exists this machine or the setup code | Name as for deleting. One job at a time. Every name, link, size, ratio and hash, and each folder's kind of file. A database is read as values into a clean one, and its rows made harmless. Nothing is changed |
+| `POST /api/backup/restore/start` | An admin, or before any account exists this machine or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
+| `DELETE /api/backup/restore/request` | An admin, or before any account exists this machine or the setup code | Nothing: takes back what's waiting for the next start |
 | `POST /api/backup/undo` | Admin | Password, and code with two-factor sign-in. Safety copy name by form, holding its own list. What it moves stays inside the data folders |
 | `GET /api/games/home` | Signed-in | limits, in the query. Library number. own lists, without what the account can no longer see |
 | `GET /api/games/{id}/check` | Signed-in | limits. A game. Says what it needs, as Play does: BIOS files beside the game are collected. Names and paths of the server aren't answered |

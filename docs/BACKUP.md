@@ -85,7 +85,7 @@ can't stay, because its numbers would point at other titles. The page says so.
 ## Starting again from a reset
 
 Make a backup, then *Settings → Reset*. A reset that keeps a copy leaves the `backups` folder where it is; one that deletes everything deletes those too, so download first.
-First-time setup has **Restore from a backup** on its first page, so you never have to set anything up again. From another network it asks for the setup code on the
+First-time setup has **Restore from a backup** on its first page, so you never have to set anything up again. From another device it asks for the setup code on the
 server's console, just as making the first account does.
 
 ## What happens to sign-ins, keys and modules

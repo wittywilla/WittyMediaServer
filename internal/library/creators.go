@@ -7,7 +7,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -115,16 +114,11 @@ type sideComment struct {
 const maxSidecar = 48 << 20
 
 func readSidecar(path string) (*videoSidecar, int64) {
-	f, err := os.Open(path)
+	b, err := readSmall(path, maxSidecar)
 	if err != nil {
 		return nil, 0
 	}
-	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || st.IsDir() || st.Size() > maxSidecar {
-		return nil, 0
-	}
-	b, err := io.ReadAll(io.LimitReader(f, maxSidecar))
+	st, err := os.Lstat(path)
 	if err != nil {
 		return nil, 0
 	}
@@ -468,8 +462,8 @@ type musicVideoNFO struct {
 
 // readMusicVideoNFO reads the common sidecar for music videos.
 func readMusicVideoNFO(p string) *musicVideoNFO {
-	b, err := os.ReadFile(p)
-	if err != nil || len(b) > 1<<20 {
+	b, err := readSmall(p, maxSideDoc)
+	if err != nil {
 		return nil
 	}
 	var n musicVideoNFO
@@ -582,8 +576,8 @@ func (s *Store) ensureCreator(ctx context.Context, libraryID int64, c creatorRow
 		avatar = artIn(c.Folder, "avatar", "channel", "profile", "folder", "poster", "cover")
 		banner = artIn(c.Folder, "banner", "fanart", "backdrop", "header")
 		for _, n := range []string{"channel.json", "creator.json", "channel.info.json"} {
-			b, err := os.ReadFile(filepath.Join(c.Folder, n))
-			if err != nil || len(b) > 1<<20 {
+			b, err := readSmall(filepath.Join(c.Folder, n), maxSideDoc)
+			if err != nil {
 				continue
 			}
 			var m channelSidecar

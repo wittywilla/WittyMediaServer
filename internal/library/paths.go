@@ -1,8 +1,10 @@
 package library
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -220,6 +222,12 @@ func plainMode(m fs.FileMode) bool {
 	return m&(fs.ModeDir|fs.ModeSymlink|fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice|fs.ModeCharDevice) == 0
 }
 
+// plainFile: there is a file at path, not a folder, pipe or device.
+func plainFile(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && plainMode(st.Mode())
+}
+
 // mediaEntry says whether a scan may index a directory entry under root: a
 // plain file, or a link to one inside the same folder. A link leading out of
 // the library would let anyone who can write there read any file on this
@@ -264,8 +272,20 @@ func writeBeside(path string, data []byte) error {
 	return err
 }
 
-// readPlain reads path unless it is a link or special file.
-func readPlain(path string) ([]byte, error) {
+// How much of a file beside the media is read. Real ones are kilobytes.
+const (
+	maxNFO     = 4 << 20
+	maxSideDoc = 1 << 20
+)
+
+// ErrTooLarge: a file beside the media is bigger than any real one of its kind.
+var ErrTooLarge = errors.New("too large")
+
+// readSmall reads a file beside the media, which can be anything: a sparse file the size of
+// the disk, a link to a device, or a pipe that nothing will ever write to, which would hold the
+// scan for good. It reads only a plain file of at most limit bytes, opened without waiting,
+// and a link isn't one. Scans come across these files by themselves, with nobody asking.
+func readSmall(path string, limit int64) ([]byte, error) {
 	st, err := os.Lstat(path)
 	if err != nil {
 		return nil, err
@@ -273,8 +293,35 @@ func readPlain(path string) ([]byte, error) {
 	if !plainMode(st.Mode()) {
 		return nil, fs.ErrInvalid
 	}
-	return os.ReadFile(path)
+	if st.Size() > limit {
+		return nil, ErrTooLarge
+	}
+	f, err := os.OpenFile(path, os.O_RDONLY|openNoBlock, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	// It may have been swapped for something else since.
+	if st, err = f.Stat(); err != nil || !plainMode(st.Mode()) {
+		return nil, fs.ErrInvalid
+	}
+	if st.Size() > limit {
+		return nil, ErrTooLarge
+	}
+	var b bytes.Buffer
+	b.Grow(int(st.Size()) + bytes.MinRead)
+	n, err := b.ReadFrom(io.LimitReader(f, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if n > limit {
+		return nil, ErrTooLarge
+	}
+	return b.Bytes(), nil
 }
+
+// readPlain reads path unless it is a link or special file, or too large to be an NFO.
+func readPlain(path string) ([]byte, error) { return readSmall(path, maxNFO) }
 
 // artRef checks a picture reference from a sidecar file: a web address, or a
 // file named relative to the sidecar. Absolute paths are dropped: a sidecar

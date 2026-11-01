@@ -142,7 +142,7 @@ type nfoMovie struct {
 }
 
 func applyNFO(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
+	b, err := readSmall(path, maxNFO)
 	if err != nil {
 		return false
 	}
@@ -243,7 +243,7 @@ type sidecarJSON struct {
 }
 
 func applySidecarJSON(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
+	b, err := readSmall(path, maxNFO)
 	if err != nil {
 		return false
 	}

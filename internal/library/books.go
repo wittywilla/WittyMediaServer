@@ -522,8 +522,8 @@ func (s *Scanner) readEPUBMeta(it *Item) func(context.Context, string) error {
 // applyArchiveMeta reads a digital-library *_meta.xml for title, author
 // and description (titles only when the file name gave no number).
 func applyArchiveMeta(it *Item, p string, title bool) {
-	b, err := os.ReadFile(p)
-	if err != nil || len(b) > 4<<20 {
+	b, err := readSmall(p, maxNFO)
+	if err != nil {
 		return
 	}
 	var m struct {

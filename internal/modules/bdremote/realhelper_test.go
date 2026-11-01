@@ -169,14 +169,14 @@ func TestThroughTheManager(t *testing.T) {
 	}
 	tool := func(args ...string) {
 		t.Helper()
-		cmd := exec.Command("go", append([]string{"run", "./modules/wittymodule/cmd/wittymodule"}, args...)...)
+		cmd := exec.Command("go", append([]string{"run", "github.com/wittywilla/wittymodule/cmd/wittymodule"}, args...)...)
 		cmd.Dir = root
 		if b, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("wittymodule %v: %v\n%s", args, err, b)
 		}
 	}
-	tool("check", "modules/wittybluray")
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, "modules/wittybluray")
+	tool("check", moduleDir(t, "wittybluray"))
+	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, moduleDir(t, "wittybluray"))
 	real, err := wittymodule.ParseManifest(wittybluray.ManifestJSON)
 	if err != nil {
 		t.Fatal(err)

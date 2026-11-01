@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
+import { ReminderWatcher } from './pages/tv/reminders'
 import { api, inMainMenus } from './api'
 import { IconGamepad, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
@@ -14,14 +15,18 @@ import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
+import { AskHost } from './ui/Overlay'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
+const DesignPage = lazy(() => import('./pages/DesignPage'))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
+const FixMatches = lazy(() => import('./pages/FixMatches'))
+const BrandPage = lazy(() => import('./pages/library/BrandPage'))
 const CouchPage = lazy(() => import('./pages/Couch'))
 const CouchHostPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchHostPage })))
 const CouchPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchPlayPage })))
@@ -36,6 +41,7 @@ const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
 const CdPlayer = lazy(() => import('./player/CdPlayer'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
+const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
@@ -53,6 +59,7 @@ export default function App() {
     <AppProvider>
       <Shell />
       <ToastHost />
+      <AskHost />
       <Announcer />
     </AppProvider>
   )
@@ -95,6 +102,7 @@ function Shell() {
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
       <PlayerDock />
+      <ReminderWatcher />
     </AudioProvider>
   )
 }
@@ -128,6 +136,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
             <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
             <Route path="/cd/:id" element={<CdPlayer />} />
             <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
@@ -138,12 +147,15 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
             <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
+            <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
             <Route path="/pair" element={<PairPage />} />
             <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
             <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
+            <Route path="/design" element={<DesignPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>

@@ -54,12 +54,7 @@ export function Row({ label, desc, badge, children, stack, dim }: { label: React
   )
 }
 
-export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled}
-      className={'set-switch' + (checked ? ' on' : '')} onClick={() => onChange(!checked)}><i /></button>
-  )
-}
+export { Switch } from '../../ui/Field'
 
 // Settings stored on the server, edited as a draft until saved.
 export function useServerSettings() {

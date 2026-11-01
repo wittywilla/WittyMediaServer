@@ -8,10 +8,6 @@ WORKDIR /src/web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY web/ ./
-# WittyIntegratedFileBrowser's web half lives beside its Go half.
-COPY modules/wittyintegratedfilebrowser/web/ /src/modules/wittyintegratedfilebrowser/web/
-COPY modules/wittyplay/web/ /src/modules/wittyplay/web/
-COPY modules/wittycouch/web/ /src/modules/wittycouch/web/
 # The legal notices' wording, shared with the server.
 COPY internal/legal/ /src/internal/legal/
 RUN npm run build
@@ -20,26 +16,13 @@ FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine@sha256:d200d2dd76b03a99b5265
 ARG VERSION=dev
 ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
-# The server builds the disc engines from local source through the replace directives in go.mod,
-# so go.work isn't needed here; their go.mod files must be present too.
 ENV GOWORK=off
 COPY go.mod go.sum ./
-COPY modules/wittydisc/go.mod modules/wittydisc/
-COPY modules/wittydvd/go.mod modules/wittydvd/
-COPY modules/wittycd/go.mod modules/wittycd/
-COPY modules/wittybluray/go.mod modules/wittybluray/
-COPY modules/wittyintegratedfilebrowser/go.mod modules/wittyintegratedfilebrowser/go.sum modules/wittyintegratedfilebrowser/
-COPY modules/wittymodule/go.mod modules/wittymodule/
-COPY modules/wittyphotos/go.mod modules/wittyphotos/
-COPY modules/wittytuner/go.mod modules/wittytuner/
-COPY modules/wittyplay/go.mod modules/wittyplay/go.sum modules/wittyplay/
-COPY modules/wittyrigs/go.mod modules/wittyrigs/
-COPY modules/wittycouch/go.mod modules/wittycouch/go.sum modules/wittycouch/
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
 RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms \
- && cd modules/wittyplay && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host ./cmd/wittyplay-host
+ && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host github.com/wittywilla/wittyplay/cmd/wittyplay-host
 
 # Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is

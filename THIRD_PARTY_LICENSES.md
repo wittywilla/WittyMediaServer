@@ -156,5 +156,10 @@ Settings. It loads them at run time from a VLC already on the computer, and no p
 **MusicBrainz and the Cover Art Archive** supply CD names and covers, only when someone presses **Look up names**. Their data
 isn't shipped.
 
+**LRCLIB** (<https://lrclib.net>, its server is MIT licensed) supplies timed lyrics, and **Musixmatch** does with your own key, only if the owner
+turns online lyrics on. **Wikipedia** and **Wikimedia Commons** supply artist biographies (CC BY-SA 4.0, credited on the artist's page) and photos
+(each with its own licence, linked from its article), only if the owner turns online music information on. None of it is shipped, and lyrics belong to their
+writers.
+
 Not shipped, used only for building or testing it: MinGW GCC, CMake, Ninja and NASM, and a general LGPL FFmpeg
 that makes the tests' short clips.

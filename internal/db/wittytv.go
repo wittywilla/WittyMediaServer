@@ -76,6 +76,23 @@ var wittyTVMigrations = []string{
 	 ALTER TABLE tuner_channels ADD COLUMN audio_codec TEXT NOT NULL DEFAULT '';
 	 ALTER TABLE tuner_channels ADD COLUMN no_record TEXT NOT NULL DEFAULT '';
 	 ALTER TABLE tuner_channels ADD COLUMN no_record_set INTEGER NOT NULL DEFAULT 0;`,
+	// 5: the guide's categories and each channel's own colour; the bumper
+	// library; each account's favourite channels and reminders. Existing channels
+	// keep working as they are: their categories are worked out until someone
+	// chooses some.
+	`ALTER TABLE channels ADD COLUMN categories TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE channels ADD COLUMN look TEXT NOT NULL DEFAULT '';
+	 CREATE TABLE IF NOT EXISTS channel_bumpers (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL DEFAULT '', uploaded INTEGER NOT NULL DEFAULT 0, added_at INTEGER NOT NULL);
+	 CREATE TABLE IF NOT EXISTS tv_favourites (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   channel TEXT NOT NULL, added_at INTEGER NOT NULL, PRIMARY KEY(user_id, channel));
+	 CREATE TABLE IF NOT EXISTS tv_reminders (
+	   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   channel TEXT NOT NULL, title TEXT NOT NULL, sub TEXT NOT NULL DEFAULT '', start INTEGER NOT NULL, stop INTEGER NOT NULL,
+	   UNIQUE(user_id, channel, start));
+	 CREATE INDEX IF NOT EXISTS tv_reminders_user ON tv_reminders(user_id, start);`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

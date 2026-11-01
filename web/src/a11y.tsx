@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigationType } from 'react-router-dom'
+import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
 // open, page changes announced and focused, and a polite voice for things
@@ -58,7 +59,7 @@ export function useDialogs() {
         if (!d.contains(document.activeElement)) { e.preventDefault(); first.focus(); return }
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-      } else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !(e.target as HTMLElement)?.matches?.('input, textarea, select, [contenteditable=true]'))) {
+      } else if (e.key === 'Escape' || isBackKey(e) || (e.key === 'Backspace' && !(e.target as HTMLElement)?.matches?.('input, textarea, select, [contenteditable=true]'))) {
         if (e.key !== 'Escape') e.preventDefault()
         // Let the dialog's own handlers run first; close by the backdrop if
         // nothing did (a still-open dialog after this tick).
@@ -74,6 +75,18 @@ export function useDialogs() {
   }, [])
 }
 
+// Going back returns to the control you left, wherever the keyboard or remote had
+// reached: remembered by what it links to or by its own id, per history entry, as
+// the page around it is rebuilt. A mouse has no such place to go back to.
+const describe = (el: Element) => {
+  if (el.id && !el.id.startsWith(':') && !el.id.startsWith('«')) return '#' + CSS.escape(el.id)
+  const key = el.getAttribute('data-focus-key')
+  if (key) return `[data-focus-key="${CSS.escape(key)}"]`
+  const href = el.getAttribute('href')
+  return href ? `a[href="${CSS.escape(href)}"]` : ''
+}
+const focusMemory = new Map<string, string>()
+
 let say: (text: string) => void = () => {}
 
 // announce: a short message for screen readers, read when they are idle
@@ -86,7 +99,23 @@ export function announce(text: string) { say(text) }
 export function Announcer() {
   const [msg, setMsg] = useState('')
   const loc = useLocation()
+  const navType = useNavigationType()
   const first = useRef(true)
+  const entry = useRef(loc.key)
+  entry.current = loc.key
+  const usingKeys = useRef(false)
+  useEffect(() => {
+    const keys = () => { usingKeys.current = true }
+    const mouse = () => { usingKeys.current = false }
+    const remember = (e: FocusEvent) => {
+      const what = usingKeys.current && e.target instanceof Element ? describe(e.target) : ''
+      if (what) focusMemory.set(entry.current, what)
+    }
+    window.addEventListener('keydown', keys, { passive: true })
+    window.addEventListener('pointerdown', mouse, { passive: true })
+    window.addEventListener('focusin', remember, { passive: true })
+    return () => { window.removeEventListener('keydown', keys); window.removeEventListener('pointerdown', mouse); window.removeEventListener('focusin', remember) }
+  }, [])
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
     say = (text) => { setMsg(''); clearTimeout(t); t = setTimeout(() => setMsg(text), 60) }
@@ -102,7 +131,14 @@ export function Announcer() {
       const active = document.activeElement
       if (main && (!active || active === document.body || !main.contains(active))) main.focus({ preventScroll: true })
     }, 350)
-    return () => clearTimeout(t)
-  }, [loc.pathname])
+    // Coming back: the page may still be loading what you left, so look a few times.
+    const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
+    const later: ReturnType<typeof setTimeout>[] = !was ? [] : [400, 800, 1500, 2500].map((ms) => setTimeout(() => {
+      const active = document.activeElement
+      if (active && active !== document.body && active !== document.getElementById('main')) return
+      document.querySelector<HTMLElement>(was)?.focus()
+    }, ms))
+    return () => { clearTimeout(t); later.forEach(clearTimeout) }
+  }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{msg}</div>
 }

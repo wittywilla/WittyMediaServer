@@ -2,10 +2,16 @@ import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
 
+export type ClipRef = { title: number; start: number; end: number; label?: string }
 export type Programme = {
-  start: number; end: number; kind: 'show' | 'filler' | 'slate' | 'broadcast' | 'none'
+  start: number; end: number; kind: 'show' | 'filler' | 'slate' | 'broadcast' | 'none' | 'group'
   title: string; sub?: string; desc?: string; genre?: string; rating?: string; year?: number
   itemId?: number; showId?: number; season?: number; episode?: number
+  // Why a stretch of bumpers is there, and how much was cut to keep the timetable.
+  role?: 'pre' | 'post' | 'break' | 'ad' | 'between' | 'pad'; rule?: string; mandatory?: boolean; offset?: number; trimmed?: number
+  clip?: ClipRef
+  // Very short programmes the grid has no room to draw one by one.
+  group?: Programme[]
 }
 // Whether a channel is encrypted, in the server's words: every client shows the same.
 export type Security = { state: 'clear' | 'encrypted' | 'unknown'; label: string; detail: string; reason?: string; helpUrl?: string }
@@ -14,16 +20,17 @@ export type GuideChannel = {
   key: string; kind: 'library' | 'tuner'; id: number; number: string; name: string; group?: string; logo?: string
   hd?: boolean; radio?: boolean; encrypted?: string; canRecord?: boolean; noRecord?: string; atsc3?: boolean
   security?: Security; alternative?: Alternative; notices?: string[]; programmes: Programme[]
+  description?: string; categories?: string[]; accent?: string; favourite?: boolean
 }
 export type EncryptedHelpPage = {
   title: string; sections: { heading: string; paragraphs?: string[]; bullets?: string[] }[]
   devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
 }
 export type GuidePage = { now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming' }
-export type Skin = 'cable' | 'satellite' | 'theme'
+export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
-  now: Programme | null; next: Programme | null; positionSec: number; serverTime: number
+  now: Programme | null; next: Programme | null; playing?: Programme; description?: string; accent?: string; positionSec: number; serverTime: number
   countProgress: boolean; canRecord: boolean; bufferSec: number
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
 }
@@ -31,25 +38,39 @@ export type TuneInfo = {
 export type Rules = {
   libraries?: number[]; kinds?: string[]; genres?: string[]; excludeGenres?: string[]; networks?: string[]; studios?: string[]
   yearFrom?: number; yearTo?: number; decades?: number[]; maxAge?: number; allowUnrated?: boolean; ratings?: string[]; minScore?: number
-  shows?: number[]; excludeShows?: number[]; items?: number[]; excludeItems?: number[]; seasonFrom?: number; seasonTo?: number
+  shows?: number[]; excludeShows?: number[]; items?: number[]; excludeItems?: number[]; collections?: number[]; clips?: DiscClip[]; seasonFrom?: number; seasonTo?: number
   includeSpecials?: boolean; watched?: '' | 'watched' | 'unwatched'; watchedBy?: number; minMinutes?: number; maxMinutes?: number; search?: string
 }
 export type Order = { mode: '' | 'rotate' | 'sequential' | 'aired' | 'shuffle'; keepEpisodeOrder?: boolean }
-export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut' }
+export type DiscClip = { id: string; item: number; title?: number; start?: number; end?: number; fromChapter?: number; toChapter?: number; label?: string }
+export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut'; fromDate?: string; toDate?: string; marathon?: boolean }
+export type BumperWhen = 'before' | 'after' | 'between' | 'every'
+export type BumperRule = { id: string; name?: string; off?: boolean; when: BumperWhen; everyMin?: number; source: Rules; count?: number; mandatory?: boolean; only?: Rules }
+export type TrimChoice = '' | 'cut' | 'drop' | 'keep'
+export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKeepSec?: number; tailSec?: number }
+export type BumperPlan = { rules?: BumperRule[]; trim?: Trim }
 export type Definition = {
   mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
   filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[] }; alignMin: number
+  bumpers?: BumperPlan
 }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
 export type Visibility = { mode: '' | 'adults' | 'only'; users?: number[] }
 export type Channel = {
   id: number; number: string; name: string; description: string; enabled: boolean; definition: Definition
-  rev: number; logo: string; visibility: Visibility; countProgress: boolean; updatedAt: number
+  rev: number; logo: string; visibility: Visibility; countProgress: boolean; updatedAt: number; categories: string[]; look: { accent?: string }
 }
 export type PoolStats = { titles: number; shows: number; seconds: number }
-export type Suggestion = { key: string; group: 'network' | 'era' | 'genre' | 'show' | 'classic'; name: string; description: string; definition: Definition; stats: PoolStats; exists: boolean }
+export type Suggestion = { key: string; group: 'network' | 'era' | 'genre' | 'studio' | 'collection' | 'show' | 'classic'; name: string; description: string; definition: Definition; stats: PoolStats; exists: boolean }
 export type NetworkFact = { name: string; shows: number; episodes: number; slots: number; fromYear: number; toYear: number; decades: number[] }
-export type EditorOptions = { networks: NetworkFact[]; genres: string[]; studios: string[]; ratings: string[]; decades: number[]; shows: { id: number; title: string; year?: number; network?: string; seasons: number }[] }
+export type EditorOptions = { networks: NetworkFact[]; genres: string[]; studios: string[]; ratings: string[]; decades: number[]; shows: { id: number; title: string; year?: number; network?: string; seasons: number }[]; collections: { id: number; name: string; items: number }[] }
+export type Bumper = { itemId: number; title: string; durationSec: number; library: string; rating?: string; uploaded: boolean; chosen: boolean; updatedAt: number }
+export type DiscOption = { id: number; title: string; year?: number; format: 'dvd' | 'bluray'; scrambled: boolean; mainTitle: number; runtimeSec: number; updatedAt: number; titles: number }
+export type DiscChapter = { n: number; start: number; label: string }
+export type DiscTitle = { ttn: number; label: string; durationSec: number; chapters: DiscChapter[]; wide: boolean }
+export type DiscPage = { main: DiscTitle | null; extras: DiscTitle[] }
+export type GuideHit = Programme & { channel: string; number: string; name: string }
+export type Reminder = { id: number; channel: string; title: string; sub?: string; start: number; end: number }
 
 export type DriverField = { key: string; label: string; kind: 'text' | 'url' | 'path' | 'password' | 'select' | 'number' | 'textarea' | 'toggle'; help?: string; default?: string; required?: boolean; options?: string[] }
 export type Driver = { id: string; name: string; description: string; status: 'tested' | 'mock' | 'untested' | 'planned'; platforms?: string[]; fields: DriverField[]; scans: boolean; planned?: boolean; available: boolean; note?: string }
@@ -125,9 +146,49 @@ export function getLineup(): Promise<GuideChannel[]> {
 }
 export const forgetLineup = () => { lineup = null }
 
+// Sends a file as the whole body of a request, as uploads of one file do here.
+export async function uploadBumper(file: File): Promise<{ itemId: number; title: string; durationSec: number }> {
+  const headers: Record<string, string> = { 'Content-Type': file.type || 'application/octet-stream' }
+  const tok = getToken()
+  if (tok) headers.Authorization = 'Bearer ' + tok
+  const res = await fetch(serverBase() + `/api/channels/bumpers/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers, credentials: 'same-origin', body: file })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || res.statusText)
+  return data
+}
+
+export const setFavourite = (key: string, on: boolean) => (on ? api.put(`/tv/favourites/${key}`, {}) : api.del(`/tv/favourites/${key}`))
+
 export const fmtClock = (u: number) => new Date(u * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 export const fmtDay = (u: number) => new Date(u * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
 export const fmtSpan = (p: Programme) => `${fmtClock(p.start)} to ${fmtClock(p.end)}`
+// "1h 28m left": how long, in the fewest words that are still exact enough.
+export function fmtLeft(sec: number): string {
+  const m = Math.max(1, Math.round(sec / 60))
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  return m % 60 ? `${h}h ${m % 60}m` : `${h}h`
+}
+export function fmtTimecode(sec: number): string {
+  const s = Math.max(0, Math.round(sec)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  const ss = String(s % 60).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
+}
+// Reads 1:02:03, 2:03 or 123 as seconds; null when it isn't a time.
+export function parseTimecode(text: string): number | null {
+  const parts = text.trim().split(':')
+  if (!text.trim() || parts.length > 3 || parts.some((p) => !/^\d+(\.\d+)?$/.test(p))) return null
+  return parts.reduce((t, p) => t * 60 + Number(p), 0)
+}
+// "Tonight", "Tomorrow", or the day's name: as someone would say it.
+export function dayWord(u: number, now: number): string {
+  const day = (x: number) => { const d = new Date(x * 1000); d.setHours(0, 0, 0, 0); return d.getTime() / 1000 }
+  const diff = Math.round((day(u) - day(now)) / 86400)
+  if (diff === 0) return new Date(u * 1000).getHours() >= 17 ? 'Tonight' : 'Today'
+  if (diff === 1) return 'Tomorrow'
+  if (diff === -1) return 'Yesterday'
+  return new Date(u * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+}
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export const fullDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 

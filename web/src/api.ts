@@ -80,7 +80,7 @@ export type GameConsole = {
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }
-export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }
+export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number; genre?: string }
 export type Artist = { name: string; albums: number; tracks: number; coverItem: number }
 export type Show = {
   id: number; libraryId: number; path: string; title: string; sortTitle: string; year: number | null; overview: string
@@ -93,7 +93,7 @@ export type Season = { number: number; title: string; overview: string; poster: 
 export type ShowDetail = { show: Show; seasons: Season[]; episodes: Item[]; nextUpId: number | null }
 export type Prefs = { dvdStart: 'menu' | 'title'; insertFx: boolean; tvdb: boolean; tmdb: boolean; episodeView: 'cards' | 'list'; maxSpeed: number; clientLogs?: boolean; insertSound?: boolean; shareLinks?: boolean; uploads?: boolean; visualizer?: boolean }
 export type ArtCandidate = { url: string; source: 'local' | 'tmdb' | 'tvdb' | 'tvmaze' | 'anilist' | 'current' }
-export type Hub = { key: string; title: string; libraryId?: number; items: Item[]; shows?: Show[] }
+export type Hub = { key: string; title: string; libraryId?: number; query?: string; items: Item[]; shows?: Show[] }
 export type Home = { hubs: Hub[]; featured: Item[]; libraries: Library[] }
 export type Track = { index: number; language: string; title?: string; codec: string; channels?: number }
 export type PlayInfo = {
@@ -245,7 +245,7 @@ export function mediaUrl(path: string): string {
   return full + (full.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok)
 }
 // mediaUrl with something more in its query.
-const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }
+export const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }
 
 export const posterUrl = (it: Item) => mediaUrlQ(`/api/items/${it.id}/poster`, `v=${it.updatedAt}`)
 // '' when the item has no picture at all (nothing to ask the server for).

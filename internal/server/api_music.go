@@ -33,10 +33,10 @@ func (s *stallWriter) Write(p []byte) (int, error) {
 	return s.w.Write(p)
 }
 
-// GET /api/music/albums?library=&artist=&search=&sort=
+// GET /api/music/albums?library=&artist=&search=&sort=&genre=
 func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	al, err := s.Store.Albums(r.Context(), int64(qInt(r, "library", 0)), q.Get("artist"), q.Get("search"), q.Get("sort"), s.access(r))
+	al, err := s.Store.AlbumsFiltered(r.Context(), int64(qInt(r, "library", 0)), library.AlbumFilter{Artist: q.Get("artist"), Search: q.Get("search"), Sort: q.Get("sort"), Genre: q.Get("genre"), UserID: userFrom(r).ID}, s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

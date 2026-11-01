@@ -940,6 +940,69 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). |
 
+### Metadata, matches and browsing
+
+`METADATA.md` says how these fit together. `target` is `item` or `show`.
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and how far they have got. |
+| `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
+| `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
+| `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. |
+| `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only. |
+| `GET /logos/{id}/image` | Signed in | A logo as a PNG. variant=white, dark or original. |
+| `GET /logos/{id}/candidates` | Admin | What the source offers for a logo, to choose from. |
+| `PUT /logos/{id}` | Admin | Use a candidate, the name alone, or look again. |
+| `PUT /logos/{id}/upload` | Admin | Use your own picture as a logo. The picture is the body. |
+| `GET /brands` | Signed in | The studios or networks of a library, most titles first. |
+| `GET /browse` | Signed in | Films and shows as one list, by any filter and sort. |
+| `GET /browse/facets` | Signed in | Everything a library can be filtered by, with counts. |
+| `GET /browse/shelves` | Signed in | A library page in one answer: categories, studios, networks, collections and streaming services. |
+| `PUT /browse/categories` | Admin | Rename, hide, merge or reorder a library's categories, or start again. |
+| `GET /views` | Signed in | This account's saved views. |
+| `POST /views` | Signed in | Save a view. |
+| `PUT /views/{id}` | Signed in | Change a saved view, or pin it to Home. |
+| `DELETE /views/{id}` | Signed in | Remove a saved view. |
+| `GET /views/{id}/titles` | Signed in | What a saved view finds now. |
+| `GET /listings/status` | Signed in | Whether streaming listings are on, for which region, and how old they are. |
+| `PUT /listings/settings` | Admin | Turn streaming listings on, after accepting every statement, or off, which forgets them. |
+| `POST /listings/refresh` | Admin | Check listings again now. |
+| `GET /meta/removed` | Admin | Titles taken out of libraries. |
+| `POST /meta/removed/restore` | Admin | Bring a removed title back. |
+| `POST /meta/undo` | Admin | Undo a group of changes. |
+| `GET /meta/history` | Admin | Recent changes, each of which can be undone. |
+| `POST /meta/bulk` | Admin | Edit up to 500 titles together. |
+| `GET /meta/show/{id}/episodes` | Admin | A show's files beside what its source lists. |
+| `PUT /meta/show/{id}/episodes` | Admin | Renumber a show's episodes. |
+| `GET /meta/{target}/{id}` | Admin | Everything the edit dialog needs. target is item or show. |
+| `PUT /meta/{target}/{id}` | Admin | Change fields and locks. |
+| `DELETE /meta/{target}/{id}` | Admin | Take a title out of its library. Its files stay. |
+| `POST /meta/{target}/{id}/revert` | Admin | Put a field back to what its source said, and unlock it. |
+| `POST /meta/{target}/{id}/search` | Admin | Search every source, or find an id or address. |
+| `POST /meta/{target}/{id}/preview` | Admin | What choosing a result, or refreshing, would change. Changes nothing. |
+| `POST /meta/{target}/{id}/match` | Admin | Choose a result. It stays chosen through scans and refreshes. |
+| `DELETE /meta/{target}/{id}/match` | Admin | Remove a match and keep only what was typed. |
+| `POST /meta/{target}/{id}/refresh` | Admin | Look a title up again, keeping its match and its locks. |
+| `POST /meta/{target}/{id}/suggest` | Admin | Search for a title and keep the best results. |
+| `POST /meta/{target}/{id}/leave` | Admin | It has no match, or is right as it is: stop asking. |
+| `GET /meta/{target}/{id}/artwork` | Admin | Every picture every source has for a title. |
+| `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. |
+| `GET /meta/{target}/{id}/art/{kind}` | Signed in | A title's banner or logo. |
+| `POST /meta/{target}/{id}/link` | Admin | Make an item a bonus feature or another version of something. |
+| `DELETE /meta/{target}/{id}/link` | Admin | Make an attached item a title of its own again. |
+| `POST /meta/{target}/{id}/move` | Admin | Put a title in another library. Its files stay. |
+| `GET /meta/{target}/{id}/listings` | Signed in | Which streaming services list a title, with its date and credit. |
+| `GET /meta/{target}/{id}/attached` | Signed in | A title's extras, versions, studios and other details beyond its row. |
+| `GET /match/queue` | Admin | Titles worst first, with how sure each match is and why. |
+| `POST /match/accept` | Admin | Choose results for up to 100 titles at once. |
+| `POST /match/suggest-all` | Admin | Find suggestions for everything that needs a look, in the background. |
+| `GET /match/suggest-all` | Admin | How that is going. |
+| `DELETE /match/suggest-all` | Admin | Stop it. |
+| `GET /match/rules` | Admin | A library's naming rules. |
+| `PUT /match/rules` | Admin | Replace a library's naming rules. |
+| `POST /match/rules/try` | Admin | What some rules would do to a library's files. Changes nothing. |
+
 ### Playback
 
 | Route | Sign-in | What it does |
@@ -992,6 +1055,21 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /music/albums` | user | Albums or books of a library. |
 | `GET /music/artists` | user | Artists or authors. |
 | `GET /music/tracks` | user | Tracks of one album, or all songs; an empty `album` or `artist` means none or unknown. |
+| `GET /music/home` | user | A music library's front page in one request: `library`. |
+| `GET /music/songs` | user | Songs: `library`, `view` (`liked`, `played`, `recent`, `added`), `artist`, `genre`, `search`, `sort`, `desc`, `limit`, `offset`. |
+| `GET /music/likes` | user | The ids of this person's liked songs: `library`. |
+| `GET /music/radio/{id}` | user | A station made from this song, from this library: `limit`. |
+| `GET /music/loudness/{id}` | user | The volume correction a file is tagged with (ReplayGain or R128), in dB. |
+| `GET /music/extras/{id}` | user | Booklets and text beside a song's album. |
+| `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
+| `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
+| `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
+| `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
+| `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
+| `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |
@@ -1056,6 +1134,19 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
 | `GET /tv/encrypted-help` | user | Encrypted help. |
+| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. |
+| `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
+| `PUT /tv/favourites/{key}` | user | Star a channel. |
+| `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
+| `GET /tv/reminders` | user | This account's reminders still to come. |
+| `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
+| `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
+| `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
+| `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
+| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. |
+| `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
+| `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
+| `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |
 | `GET /tuners/drivers` | admin | Tuner drivers. |
 | `GET /tuners/discover` | admin | Tuner discover. |
 | `GET /tuners` | admin | Tuners. |

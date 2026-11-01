@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,6 +60,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("PUT /api/channels/{id}/logo", ad(s.handleSetChannelLogo))
 	m.Handle("DELETE /api/channels/{id}/logo", ad(s.handleDeleteChannelLogo))
 	s.tunerRoutes(m)
+	s.tvExtraRoutes(m)
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +125,10 @@ func channelError(w http.ResponseWriter, err error) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if errors.Is(err, channels.ErrEncryptedClip) {
+		writeErr(w, 400, dvdsession.EncryptedRefusal)
+		return
+	}
 	writeErr(w, 400, err.Error())
 }
 
@@ -153,6 +159,10 @@ func (s *Server) fillWatchedBy(c *channels.Channel, r *http.Request) {
 	fix(c.Definition.Filler.Rules)
 	for i := range c.Definition.Blocks {
 		fix(c.Definition.Blocks[i].Rules)
+	}
+	for i := range c.Definition.Bumpers.Rules {
+		fix(&c.Definition.Bumpers.Rules[i].Source)
+		fix(c.Definition.Bumpers.Rules[i].Only)
 	}
 }
 
@@ -301,8 +311,8 @@ func (s *Server) handleChannelPreview(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if len(progs) > 400 {
-		progs = progs[:400]
+	if len(progs) > 3000 {
+		progs = progs[:3000]
 	}
 	writeJSON(w, 200, map[string]any{"stats": stats, "programmes": progs})
 }
@@ -482,11 +492,11 @@ func (s *Server) handleDeleteChannelLogo(w http.ResponseWriter, r *http.Request)
 
 // tvSettings are stored in the settings table under these names.
 var tvSettings = map[string]string{
-	"tvLibraryBufferMin": "5",  // minutes kept for pausing a library channel
-	"tvTunerBufferMin":   "30", // and a tuner channel
-	"tvCopyVideo":        "1",  // pass H.264 through instead of converting it
-	"tvMaxHeight":        "0",  // 0 = the server's general limit
-	"tvSkin":             "cable",
+	"tvLibraryBufferMin": "5",       // minutes kept for pausing a library channel
+	"tvTunerBufferMin":   "30",      // and a tuner channel
+	"tvCopyVideo":        "1",       // pass H.264 through instead of converting it
+	"tvMaxHeight":        "0",       // 0 = the server's general limit
+	"tvSkin":             "cable",   // cable | satellite | midnight | theme
 	"tvLayout":           "classic", // classic | streaming: what a new viewer starts with
 	"dvrFolder":          "",        // "" = recordings in the data folder
 	"dvrLibrary":         "",        // a library to rescan after recording
@@ -533,7 +543,7 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "tvSkin":
-			if v != "cable" && v != "satellite" && v != "theme" {
+			if v != "cable" && v != "satellite" && v != "midnight" && v != "theme" {
 				writeErr(w, 400, "unknown guide style")
 				return
 			}
@@ -589,23 +599,35 @@ type guideProgramme struct {
 	ShowID  int64  `json:"showId,omitempty"`
 	Season  *int   `json:"season,omitempty"`
 	Episode *int   `json:"episode,omitempty"`
+	// Role and Trimmed say what a stretch of bumpers is doing, for what is
+	// playing now; the guide itself joins them to their programme.
+	Role    string `json:"role,omitempty"`
+	Trimmed int64  `json:"trimmed,omitempty"`
+	// Clip: a scene from the disc ItemID, not the whole of it.
+	Clip *channels.ClipRef `json:"clip,omitempty"`
 }
 
 // guideChannel is one row of the guide.
 type guideChannel struct {
-	Key       string `json:"key"` // lib-5, tun-12
-	Kind      string `json:"kind"`
-	ID        int64  `json:"id"`
-	Number    string `json:"number"`
-	Name      string `json:"name"`
-	Group     string `json:"group,omitempty"`
-	Logo      string `json:"logo,omitempty"`
-	HD        bool   `json:"hd,omitempty"`
-	Radio     bool   `json:"radio,omitempty"`
-	Encrypted string `json:"encrypted,omitempty"` // why it cannot be tuned
-	CanRecord bool   `json:"canRecord,omitempty"`
-	NoRecord  string `json:"noRecord,omitempty"` // why not, when the device says
-	ATSC3     bool   `json:"atsc3,omitempty"`
+	Key    string `json:"key"` // lib-5, tun-12
+	Kind   string `json:"kind"`
+	ID     int64  `json:"id"`
+	Number string `json:"number"`
+	Name   string `json:"name"`
+	Group  string `json:"group,omitempty"`
+	Logo   string `json:"logo,omitempty"`
+	// Description, Categories and Accent are a library channel's own; a tuner
+	// channel has its playlist's Group.
+	Description string   `json:"description,omitempty"`
+	Categories  []string `json:"categories,omitempty"`
+	Accent      string   `json:"accent,omitempty"`
+	Favourite   bool     `json:"favourite,omitempty"`
+	HD          bool     `json:"hd,omitempty"`
+	Radio       bool     `json:"radio,omitempty"`
+	Encrypted   string   `json:"encrypted,omitempty"` // why it cannot be tuned
+	CanRecord   bool     `json:"canRecord,omitempty"`
+	NoRecord    string   `json:"noRecord,omitempty"` // why not, when the device says
+	ATSC3       bool     `json:"atsc3,omitempty"`
 	// Security is the same wording for every client. Tuner channels only: a
 	// library channel plays the owner's own files.
 	Security    *securityInfo       `json:"security,omitempty"`
@@ -627,7 +649,7 @@ const encryptedHelpURL = "/api/tv/encrypted-help"
 
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,
-		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode}
+		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip}
 	if p.Kind == channels.KindSlate {
 		g.Title = "We'll be right back"
 	}
@@ -646,7 +668,8 @@ func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChanne
 		if !s.Channels.Visible(ctx, c, user, a) {
 			continue
 		}
-		row := guideChannel{Key: "lib-" + strconv.FormatInt(c.ID, 10), Kind: "library", ID: c.ID, Number: c.Number, Name: c.Name}
+		row := guideChannel{Key: "lib-" + strconv.FormatInt(c.ID, 10), Kind: "library", ID: c.ID, Number: c.Number, Name: c.Name,
+			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent}
 		if c.Logo != "" {
 			row.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 		}
@@ -655,7 +678,7 @@ func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChanne
 	return out
 }
 
-// GET /api/guide?from=UNIX&hours=3&offset=0&limit=40&kind=library&group=News
+// GET /api/guide?from=UNIX&hours=3&offset=0&limit=40&kind=library&group=News&favourites=1&channel=lib-5
 func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	now := time.Now()
@@ -688,16 +711,26 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	if kind == "" || kind == "tuner" {
 		rows = append(rows, s.tunerRows(ctx, r)...)
 	}
+	favs, err := s.Channels.Favourites(ctx, userFrom(r).ID)
+	if err != nil {
+		s.Log.WarnContext(ctx, "could not read favourite channels", "cat", "tv", "err", err)
+	}
 	groups := map[string]bool{}
-	for _, c := range rows {
-		if c.Group != "" {
-			groups[c.Group] = true
+	for i := range rows {
+		rows[i].Favourite = favs[rows[i].Key]
+		if rows[i].Group != "" {
+			groups[rows[i].Group] = true
+		}
+		for _, g := range rows[i].Categories {
+			groups[g] = true
 		}
 	}
-	if group != "" {
+	one := r.URL.Query().Get("channel")
+	wantFavs := qBool(r, "favourites")
+	if group != "" || wantFavs || one != "" {
 		kept := rows[:0]
 		for _, c := range rows {
-			if c.Group == group {
+			if (group == "" || c.Group == group || slices.Contains(c.Categories, group)) && (!wantFavs || c.Favourite) && (one == "" || c.Key == one) {
 				kept = append(kept, c)
 			}
 		}
@@ -723,9 +756,25 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	for g := range groups {
 		names = append(names, g)
 	}
-	sort.Strings(names)
+	// The two everyone knows come first, then the rest of the owner's own.
+	rank := func(g string) int {
+		return map[string]int{"Movies": 0, "Kids": 1}[g] + b2i(g != "Movies" && g != "Kids")*2
+	}
+	sort.Slice(names, func(i, j int) bool {
+		if a, b := rank(names[i]), rank(names[j]); a != b {
+			return a < b
+		}
+		return names[i] < names[j]
+	})
 	writeJSON(w, 200, map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
 		"channels": rows, "groups": names, "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout")})
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to time.Time) []guideProgramme {
@@ -737,19 +786,18 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 	if err != nil {
 		return out
 	}
-	list, err := s.Channels.Window(ctx, c, from, to)
+	// A little either side, so that what runs across the edge of the window
+	// still joins up with its programme.
+	list, err := s.Channels.Window(ctx, c, from.Add(-12*time.Hour), to.Add(time.Hour))
 	if err != nil {
 		s.Log.WarnContext(ctx, "could not read a channel's guide", "cat", "tv", "channel", row.Name, "err", err)
 		return out
 	}
-	// A rows' worth of bumpers tells a viewer nothing: they join the show
-	// they follow in the guide, and short slates vanish.
-	for _, p := range list {
-		if p.Kind != channels.KindShow && len(out) > 0 && p.End-p.Start < 900 {
-			out[len(out)-1].End = p.End
-			continue
+	// A row's worth of bumpers tells a viewer nothing: they join their programme.
+	for _, p := range channels.GuideCells(list) {
+		if p.End > from.Unix() && p.Start < to.Unix() {
+			out = append(out, fromSchedule(p))
 		}
-		out = append(out, fromSchedule(p))
 	}
 	return out
 }
@@ -759,22 +807,28 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 // ---------------------------------------------------------------------------
 
 type tuneInfo struct {
-	Key           string          `json:"key"`
-	Kind          string          `json:"kind"`
-	Number        string          `json:"number"`
-	Name          string          `json:"name"`
-	Logo          string          `json:"logo,omitempty"`
-	URL           string          `json:"url"`
-	Now           *guideProgramme `json:"now"`
-	Next          *guideProgramme `json:"next"`
-	PositionSec   float64         `json:"positionSec"`
-	ServerTime    int64           `json:"serverTime"`
-	CountProgress bool            `json:"countProgress"`
-	CanRecord     bool            `json:"canRecord"`
-	BufferSec     float64         `json:"bufferSec"`
-	ATSC3         bool            `json:"atsc3,omitempty"`
-	Security      *securityInfo   `json:"security,omitempty"`
-	Notices       []string        `json:"notices,omitempty"`
+	Key    string          `json:"key"`
+	Kind   string          `json:"kind"`
+	Number string          `json:"number"`
+	Name   string          `json:"name"`
+	Logo   string          `json:"logo,omitempty"`
+	URL    string          `json:"url"`
+	Now    *guideProgramme `json:"now"`
+	Next   *guideProgramme `json:"next"`
+	// Playing is what is on the screen when that isn't Now itself: a bumper
+	// or a commercial inside it.
+	Playing     *guideProgramme `json:"playing,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Accent      string          `json:"accent,omitempty"`
+	// PositionSec is how far into the title it is at ServerTime.
+	PositionSec   float64       `json:"positionSec"`
+	ServerTime    int64         `json:"serverTime"`
+	CountProgress bool          `json:"countProgress"`
+	CanRecord     bool          `json:"canRecord"`
+	BufferSec     float64       `json:"bufferSec"`
+	ATSC3         bool          `json:"atsc3,omitempty"`
+	Security      *securityInfo `json:"security,omitempty"`
+	Notices       []string      `json:"notices,omitempty"`
 	// Alternative: the same station with sound, when this one has none.
 	Alternative *livetv.Alternative `json:"alternative,omitempty"`
 }
@@ -842,15 +896,25 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	}
 	ls.Viewer(viewerName(r))
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
-		PositionSec: float64(now.Unix() - cur.Start), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
+		Description: c.Description, Accent: c.Look.Accent,
+		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
 	if c.Logo != "" {
 		info.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 	}
-	g := fromSchedule(*cur)
+	// The banner speaks of programmes; the schedule knows each stretch of them.
+	shown, after, err := s.Channels.GuideNow(r.Context(), c, now)
+	if err != nil || shown == nil {
+		shown, after = cur, next
+	}
+	g := fromSchedule(*shown)
 	info.Now = &g
-	if next != nil {
-		n := fromSchedule(*next)
+	if after != nil {
+		n := fromSchedule(*after)
 		info.Next = &n
+	}
+	if cur.Kind == channels.KindFiller {
+		p := fromSchedule(*cur)
+		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
 	writeJSON(w, 200, info)
@@ -945,7 +1009,7 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 			off = 0
 		}
 		if cur.Kind != channels.KindSlate && cur.ItemID != 0 {
-			in, err := s.itemLiveInput(ctx, cur.ItemID, off, remain, q, maxHeight, copyOK)
+			in, err := s.itemLiveInput(ctx, cur, off, remain, q, maxHeight, copyOK)
 			if err == nil {
 				return in, nil
 			}
@@ -955,17 +1019,23 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 	}
 }
 
-// itemLiveInput prepares a library title for a channel.
-func (s *Server) itemLiveInput(ctx context.Context, id int64, seek, remain float64, q ffmpeg.Quality, maxHeight int, copyOK bool) (*hls.LiveInput, error) {
-	it, err := s.Store.Item(ctx, id)
+// itemLiveInput prepares what a programme plays, from off seconds into it.
+func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, remain float64, q ffmpeg.Quality, maxHeight int, copyOK bool) (*hls.LiveInput, error) {
+	it, err := s.Store.Item(ctx, p.ItemID)
 	if err != nil {
 		return nil, err
 	}
 	if it.Missing {
 		return nil, errors.New("the file is missing")
 	}
+	seek := off + float64(p.Offset)
 	if library.IsDiscKind(it.Kind) {
-		return s.discLiveInput(ctx, it, seek, remain, q, maxHeight)
+		title := 0
+		if p.Clip != nil {
+			title = p.Clip.Title
+			seek += p.Clip.Start
+		}
+		return s.discLiveInput(ctx, it, title, seek, remain, q, maxHeight)
 	}
 	if !s.Store.LibraryFile(ctx, it.Path) {
 		return nil, errors.New("the file is missing")
@@ -1001,14 +1071,14 @@ func canCopy(v *ffmpeg.Stream, maxHeight int) bool {
 	return v.PixFmt == "yuv420p" || v.PixFmt == "yuvj420p"
 }
 
-// discLiveInput plays a disc's main title through the disc engines, without
-// menus. Encrypted discs are refused by the engines and never reach a pool.
-func (s *Server) discLiveInput(ctx context.Context, it *library.Item, seek, remain float64, q ffmpeg.Quality, maxHeight int) (*hls.LiveInput, error) {
+// discLiveInput plays a title of a disc (0 = its main feature) through the disc
+// engines, without menus. Encrypted discs are refused by the engines and never
+// reach a pool.
+func (s *Server) discLiveInput(ctx context.Context, it *library.Item, ttn int, seek, remain float64, q ffmpeg.Quality, maxHeight int) (*hls.LiveInput, error) {
 	if it.Disc != nil && it.Disc.Scrambled {
 		return nil, errors.New(dvdsession.EncryptedRefusal)
 	}
-	ttn := 0
-	if it.Disc != nil {
+	if ttn == 0 && it.Disc != nil {
 		ttn = it.Disc.MainTitle
 	}
 	prefs := dvdsession.Prefs{Wide: true, Quality: q, MaxHeight: maxHeight, AudioCodec: "aac",
@@ -1030,15 +1100,18 @@ func (s *Server) discLiveInput(ctx context.Context, it *library.Item, seek, rema
 		defer s.DVD.CloseSession(sess.ID)
 		p = sess.PlayTitle(ctx, ttn, 0)
 	}
-	if p == nil || p.Scrambled || p.Media == nil || p.Media.URL == "" {
-		return nil, errors.New("the disc's main title cannot be played on a channel")
+	if p != nil && p.Scrambled {
+		return nil, errors.New(dvdsession.EncryptedRefusal)
+	}
+	if p == nil || p.Media == nil || p.Media.URL == "" {
+		return nil, errors.New("this part of the disc cannot be played on a channel")
 	}
 	id := strings.TrimSuffix(strings.TrimPrefix(p.Media.URL, "/api/hls/"), "/playlist.m3u8")
 	vod := s.HLS.Get(id)
 	if vod == nil {
 		return nil, errors.New("the disc's stream did not start")
 	}
-	return &hls.LiveInput{InputArgs: vod.Spec.InputArgs, Seek: seek, Duration: remain, VideoFilter: vod.Spec.VideoFilter, AudioIndex: vod.Spec.AudioIndex}, nil
+	return &hls.LiveInput{InputArgs: vod.Spec.InputArgs, Seek: seek, Duration: remain, VideoFilter: vod.Spec.VideoFilter, AudioIndex: vod.Spec.AudioIndex, Total: vod.Spec.Duration}, nil
 }
 
 // canWatchLive: every request for a stream checks the channel again.

@@ -13,10 +13,6 @@ web/dist/*
 Thumbs.db
 dvd_iso_test/
 stuff-to-reverse-engineer/
-clients/desktop/node_modules/
-clients/desktop/out/
-clients/mobile/node_modules/
-apps/*/node_modules/
 
 # TypeScript build cache
 *.tsbuildinfo
@@ -24,3 +20,8 @@ apps/*/node_modules/
 # Release signing keys never belong in the repository
 *.key
 .wms-signing/
+
+# For building against local module repositories: scripts/dev-modules.mjs
+go.work
+go.work.sum
+.dev-modules

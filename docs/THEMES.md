@@ -9,6 +9,7 @@ download any of them as a starting point for your own.
 - [Where themes live](#where-themes-live)
 - [Anatomy of a theme ZIP](#anatomy-of-a-theme-zip)
 - [theme.json reference](#themejson-reference)
+- [Suggesting a look for the TV guide](#suggesting-a-look-for-the-tv-guide)
 - [How theme CSS is applied](#how-theme-css-is-applied)
 - [Variables reference](#variables-reference)
 - [Selector reference](#selector-reference)
@@ -101,6 +102,20 @@ Allowed file types: `.css .json .png .jpg .jpeg .webp .gif .avif .svg .woff2 .wo
 | `description`, `author`, `version` | no | shown in the picker / for your records |
 | `preview` | no | the four colours of the picker's miniature: page background, card surface, text and accent |
 | `builtin` | — | reserved for the shipped themes; uploads containing it are rejected |
+
+## Suggesting a look for the TV guide
+
+A theme can suggest how the TV guide looks, with two properties on `:root`:
+
+```css
+:root {
+  --tv-layout: classic;     /* classic (the cable box) or streaming (the modern look) */
+  --tv-colours: satellite;  /* cable, satellite, midnight or theme */
+}
+```
+
+It is only a suggestion: what a viewer picks under **Look** on the guide wins, and the guide tells them what the theme
+suggests. Leave these out and the guide starts with what the server's owner chose.
 
 ## How theme CSS is applied
 

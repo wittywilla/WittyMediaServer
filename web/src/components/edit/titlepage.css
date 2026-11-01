@@ -1,0 +1,13 @@
+/* The parts of a title's page that come from the metadata service. */
+.title-logo { margin: 0 0 var(--sp-2); }
+.title-logo img { display: block; max-width: min(420px, 100%); max-height: 160px; object-fit: contain; object-position: left center; }
+.title-extras { display: flex; flex-direction: column; gap: var(--sp-4); margin: var(--sp-4) 0; }
+.title-extras h2 { margin: 0 0 var(--sp-2); font-size: var(--text-lg); }
+.title-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); font-size: var(--text-md); }
+.title-brands { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.title-brand { display: flex; align-items: center; justify-content: center; width: 120px; height: 56px; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); text-align: center; font-size: var(--text-xs); }
+.title-brand:hover { background: var(--bg-4); }
+.title-version-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.title-bonus-card { flex: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.title-listed-note { font-size: var(--text-sm); margin: var(--sp-2) 0 0; }
+.meta-brand { display: inline-flex; align-items: center; height: 1.6em; max-width: 120px; color: inherit; vertical-align: middle; }

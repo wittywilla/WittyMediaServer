@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -11,6 +12,41 @@ import (
 )
 
 const repo = "../.."
+
+// moduleRoots is the source of every module this server requires, wherever it is.
+func moduleRoots(t *testing.T) []string {
+	t.Helper()
+	b, err := exec.Command("go", "list", "-m", "-f", "{{.Path}}|{{.Dir}}", "all").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var dirs []string
+	for _, line := range strings.Fields(string(b)) {
+		p, dir, _ := strings.Cut(line, "|")
+		if strings.HasPrefix(p, "github.com/wittywilla/") && !strings.HasSuffix(p, "/wittymediaserver") && dir != "" {
+			dirs = append(dirs, dir)
+		}
+	}
+	return dirs
+}
+
+// clientShared is WittyMediaClient's shared folder, in a clone of it beside this repository.
+func clientShared(t *testing.T) string {
+	t.Helper()
+	d, err := filepath.Abs(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for ; ; d = filepath.Dir(d) {
+		s := filepath.Join(d, "WittyMediaClient", "shared")
+		if _, err := os.Stat(s); err == nil {
+			return s
+		}
+		if filepath.Dir(d) == d {
+			return ""
+		}
+	}
+}
 
 // The core words: third-party notices say this, in these words, so no screen
 // quietly says less than the others.
@@ -193,7 +229,11 @@ func TestSetupWizardAsksOnce(t *testing.T) {
 
 // The apps say what the server says.
 func TestClientAppsUseTheSameWords(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join(repo, "clients/wittymediaclient/shared/data/strings.en.json"))
+	shared := clientShared(t)
+	if shared == "" {
+		t.Skip("no clone of WittyMediaClient beside this repository")
+	}
+	b, err := os.ReadFile(filepath.Join(shared, "data", "strings.en.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,20 +242,27 @@ func TestClientAppsUseTheSameWords(t *testing.T) {
 		t.Fatal(err)
 	}
 	if s["legalConnect"] != Short().Notices["connect"].Text {
-		t.Errorf("clients/wittymediaclient/shared/data/strings.en.json's legalConnect should match the connect notice:\n%s\n%s", s["legalConnect"], Short().Notices["connect"].Text)
+		t.Errorf("WittyMediaClient's shared/data/strings.en.json legalConnect should match the connect notice:\n%s\n%s", s["legalConnect"], Short().Notices["connect"].Text)
 	}
 }
 
 // Don't send anyone to a way around copy protection.
 func TestNothingTellsPeopleToDecrypt(t *testing.T) {
 	re := regexp.MustCompile(`(?i)(make|making|create)\s+(a\s+)?decrypted|decrypt\s+it\s+before|tool\s+that\s+is\s+legal`)
-	for _, root := range []string{"internal", "modules", "cmd", "web/src", "docs", "README.md", "clients/wittymediaclient/shared"} {
-		err := filepath.WalkDir(filepath.Join(repo, root), func(p string, d fs.DirEntry, err error) error {
+	roots := moduleRoots(t)
+	if shared := clientShared(t); shared != "" {
+		roots = append(roots, shared)
+	}
+	for _, root := range []string{"internal", "cmd", "web/src", "docs", "README.md"} {
+		roots = append(roots, filepath.Join(repo, root))
+	}
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
 			if d.IsDir() {
-				if d.Name() == "node_modules" {
+				if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == ".claude" {
 					return filepath.SkipDir
 				}
 				return nil
@@ -258,13 +305,14 @@ func TestEveryHostInTheCodeIsOnThePrivacyList(t *testing.T) {
 		}
 	}
 	url := regexp.MustCompile(`https?://([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})`)
-	for _, root := range []string{"internal", "modules", "cmd"} {
-		err := filepath.WalkDir(filepath.Join(repo, root), func(p string, d fs.DirEntry, err error) error {
+	roots := append(moduleRoots(t), filepath.Join(repo, "internal"), filepath.Join(repo, "cmd"))
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
 			if d.IsDir() {
-				if d.Name() == "testdata" || d.Name() == "web" || d.Name() == "java" {
+				if d.Name() == "testdata" || d.Name() == "web" || d.Name() == "java" || d.Name() == ".git" || d.Name() == ".claude" || d.Name() == "node_modules" {
 					return filepath.SkipDir
 				}
 				return nil

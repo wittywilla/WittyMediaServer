@@ -788,6 +788,8 @@ func (s *Scanner) IndexUploaded(ctx context.Context, lib *Library, path string) 
 		switch lib.Type {
 		case "photos":
 			return s.indexPhoto(ctx, lib, c)
+		case CommercialsType:
+			return s.index(ctx, lib, c)
 		default:
 			return s.indexCreatorVideo(ctx, lib, c, newCreatorScan())
 		}

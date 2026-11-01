@@ -216,7 +216,7 @@ for t in "${TARGETS[@]}"; do
   # build needs one package compiled with the standard library's privileges.
   host_flags=(); [ "$os" = freebsd ] && host_flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std")
   abs_out=$(cd "$out" && pwd)
-  (cd modules/wittyplay && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$abs_out/wittyplay-host$ext" ./cmd/wittyplay-host)
+  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$abs_out/wittyplay-host$ext" github.com/wittywilla/wittyplay/cmd/wittyplay-host
   if [ "${SKIP_FFMPEG:-}" != "1" ]; then
     if ! bundle_ffmpeg "$out" "$os" "$arch"; then
       echo "   !! no FFmpeg bundled for $t (wms will use ffmpeg from PATH on that machine)" >&2

@@ -70,9 +70,8 @@
   .topnav, .topbar .menu-toggle, .top-brand { display: none; }
   .app.nav-top .topbar .search, .topbar .search { flex: 1 1 auto; min-width: 0; max-width: none; }
   /* The mini player sits above the tab bar. */
-  .player.mini { bottom: calc(70px + env(safe-area-inset-bottom)) !important; }
+  .player.mini { bottom: calc(var(--tabbar-space) + var(--sp-2)) !important; }
   .app:has(~ .player.mini) .content { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
-  .toast { bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
 }
 
 /* Comfortable touch targets on coarse pointers (the control sizes in styles.css follow too). */

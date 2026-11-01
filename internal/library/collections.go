@@ -251,7 +251,7 @@ func (s *Store) smartSummary(ctx context.Context, r *CollectionRule, userID int6
 	clause, cargs := access.ItemClause()
 	all := append(append([]any{}, args...), cargs...)
 	var c sql.NullInt64
-	err = s.DB.QueryRowContext(ctx, `SELECT COUNT(*), MAX(i.id) FROM items i WHERE i.missing = 0 AND `+w+` AND `+clause, all...).Scan(&count, &c)
+	err = s.DB.QueryRowContext(ctx, `SELECT COUNT(*), MAX(i.id) FROM items i WHERE i.missing = 0 AND `+hideLinked+` AND `+w+` AND `+clause, all...).Scan(&count, &c)
 	if r.Limit > 0 && count > r.Limit {
 		count = r.Limit
 	}
@@ -366,7 +366,7 @@ func (s *Store) CollectionItems(ctx context.Context, c *Collection, userID int64
 				limit = c.Rule.Limit - offset
 			}
 		}
-		q = `SELECT ` + itemCols + ` FROM items i WHERE i.missing = 0 AND ` + w + ` AND ` + clause + ` ORDER BY ` + order + ` LIMIT ? OFFSET ?`
+		q = `SELECT ` + itemCols + ` FROM items i WHERE i.missing = 0 AND ` + hideLinked + ` AND ` + w + ` AND ` + clause + ` ORDER BY ` + order + ` LIMIT ? OFFSET ?`
 		args = append(append(append(args, wargs...), cargs...), oargs...)
 	} else {
 		q = `SELECT ` + itemCols + ` FROM collection_items x JOIN items i ON i.id = x.item_id WHERE x.collection_id = ? AND i.missing = 0 AND ` + clause + ` ORDER BY x.added_at, x.item_id LIMIT ? OFFSET ?`

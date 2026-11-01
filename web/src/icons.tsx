@@ -61,6 +61,12 @@ export const IconMic = (p: P) => <S {...p} d="M12 2a3.5 3.5 0 00-3.5 3.5v6a3.5 3
 export const IconHeadphones = (p: P) => <S {...p} d="M12 3a9 9 0 00-9 9v7a2 2 0 002 2h2a2 2 0 002-2v-4a2 2 0 00-2-2H5v-1a7 7 0 0114 0v1h-2a2 2 0 00-2 2v4a2 2 0 002 2h2a2 2 0 002-2v-7a9 9 0 00-9-9z" />
 export const IconCamera = (p: P) => <S {...p} d="M9 3L7.2 5H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V7a2 2 0 00-2-2h-3.2L15 3zm3 15a5 5 0 110-10 5 5 0 010 10zm0-2a3 3 0 100-6 3 3 0 000 6z" />
 export const IconContrast = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z" />
+export const IconMore = (p: P) => <S {...p} d="M5 10a2 2 0 110 4 2 2 0 010-4zm7 0a2 2 0 110 4 2 2 0 010-4zm7 0a2 2 0 110 4 2 2 0 010-4z" />
+export const IconUser = (p: P) => <S {...p} d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-3.3 0-8 1.7-8 4.5V21h16v-2.5c0-2.8-4.7-4.5-8-4.5z" />
+export const IconEye = (p: P) => <S {...p} d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 11.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
+export const IconEyeOff = (p: P) => <S {...p} d="M3.3 2L2 3.3l3.2 3.2A11.8 11.8 0 001 12c1.7 3.9 6 7 11 7 1.6 0 3.1-.3 4.5-.9l3.2 3.2 1.3-1.3zM12 16.5A4.5 4.5 0 017.9 10l1.6 1.6a2.5 2.5 0 002.9 2.9l1.6 1.6c-.6.3-1.3.4-2 .4zM12 5c-1.3 0-2.5.2-3.7.6l2.2 2.2a4.5 4.5 0 015.7 5.7l3.2 3.2A11.8 11.8 0 0023 12c-1.7-3.9-6-7-11-7z" />
+export const IconLayers = (p: P) => <S {...p} d="M12 2L2 8l10 6 10-6zm-8.3 9.8L2 13l10 6 10-6-1.7-1.2L12 16.7zm0 5L2 18l10 6 10-6-1.7-1.2L12 21.7z" />
+export const IconSidebar = (p: P) => <S {...p} d="M20 3H4a2 2 0 00-2 2v14a2 2 0 002 2h16a2 2 0 002-2V5a2 2 0 00-2-2zM9 19H4V5h5zm11 0H11V5h9z" />
 export const IconSortUp = (p: P) => <S {...p} d="M13 20h-2V7.8l-5.6 5.6L4 12l8-8 8 8-1.4 1.4L13 7.8z" />
 export const IconSortDown = (p: P) => <S {...p} d="M11 4h2v12.2l5.6-5.6L20 12l-8 8-8-8 1.4-1.4 5.6 5.6z" />
 // Jump back or forward by a number of seconds: a circular arrow around it.
@@ -80,4 +86,5 @@ export const IconChannels = (p: P) => <S {...p} d="M21 5H3a2 2 0 00-2 2v10a2 2 0
 export const IconRadio = (p: P) => <S {...p} d="M3.2 6.8A2 2 0 002 8.6V20a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2H8.3l8.3-3.4L16 1zM7 20a3 3 0 110-6 3 3 0 010 6zm13-8h-2v-2h-2v2H4V8h16z" />
 export const IconGlobe = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.9 9h-3.4a15.7 15.7 0 00-1.4-6 8 8 0 014.8 6zM12 4c.9 1.2 2 3.7 2.4 7H9.6C10 7.7 11.1 5.2 12 4zM8.9 5a15.7 15.7 0 00-1.4 6H4.1a8 8 0 014.8-6zM4.1 13h3.4a15.7 15.7 0 001.4 6 8 8 0 01-4.8-6zm7.9 7c-.9-1.2-2-3.7-2.4-7h4.8c-.4 3.3-1.5 5.8-2.4 7zm3.1-1a15.7 15.7 0 001.4-6h3.4a8 8 0 01-4.8 6z" />
 export const IconLock = (p: P) => <S {...p} d="M18 8h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zM9 6a3 3 0 016 0v2H9zm3 11a2 2 0 110-4 2 2 0 010 4z" />
+export const IconUnlock = (p: P) => <S {...p} d="M12 2a5 5 0 00-5 5h2a3 3 0 016 0v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm0 12a2 2 0 110 4 2 2 0 010-4z" />
 export const libIcon = (type: string) => (type === 'games' ? <IconGamepad /> : type === 'photos' ? <IconImage /> : type === 'shorts' ? <IconShorts /> : type === 'channels' || type === 'musicvideos' ? <IconChannels /> : type === 'radio' ? <IconRadio /> : type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' ? <IconAudio /> : type === 'podcasts' ? <IconMic /> : type === 'audiobooks' ? <IconHeadphones /> : type === 'books' ? <IconBook /> : type === 'videos' ? <IconCamera /> : <IconDisc />)

@@ -1,3 +1,4 @@
+import { MusicOnlineStep } from './MusicOnline'
 import { useEffect, useState } from 'react'
 import { api, setToken, type GameSource, type Library, type User } from '../api'
 import { GameKeyFields } from './GameMeta'
@@ -429,6 +430,7 @@ function MetadataStep({ onBack, onNext }: { onBack: () => void; onNext: (keys: n
         })}
       </div>
       <GameKeysStep keys={keys} setKeys={setKeys} />
+      <MusicOnlineStep />
       <p className="muted oobe-hint">Have your own catalogue? Add <b>custom agents</b> later in Settings → Metadata agents.</p>
       <LegalNote kind="webResults" newTab />
       <div className="oobe-actions">

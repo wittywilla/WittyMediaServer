@@ -161,6 +161,11 @@ func (s *Server) handleUpdateShow(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "show not found")
 		return
 	}
+	if err := s.lockEdited(ctx, library.TargetShow, id, map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "genres": b.Genres != nil,
+		"poster": b.Poster != nil, "backdrop": b.Backdrop != nil, "contentRating": b.ContentRating != nil, "network": b.Network != nil, "introEnd": b.IntroEnd != nil}); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	if b.Title != nil && strings.TrimSpace(*b.Title) != "" {
 		sh.Title = strings.TrimSpace(*b.Title)
 		sh.SortTitle = library.SortTitle(sh.Title)

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -350,6 +351,14 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	// A field someone sets here is theirs, as it is in the edit dialog.
+	if it.Kind != "game" {
+		if err := s.lockEdited(r.Context(), library.TargetItem, it.ID, map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "tagline": b.Tagline != nil,
+			"contentRating": b.ContentRating != nil, "genres": b.Genres != nil, "poster": b.Poster != nil, "backdrop": b.Backdrop != nil}); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+	}
 	if b.Title != nil && strings.TrimSpace(*b.Title) != "" {
 		it.Title = strings.TrimSpace(*b.Title)
 		it.SortTitle = library.SortTitle(it.Title)
@@ -394,34 +403,19 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if b.Refresh {
-		// The owner's own agents first; they fill only what is empty.
-		if lib, err := s.Store.Library(r.Context(), it.LibraryID); err == nil && it.ShowID == nil {
-			if strings.HasPrefix(it.Provider, "agent:") {
-				it.Provider, it.ProviderID, it.Overview, it.Genres = "", "", "", nil
-			}
-			s.Scanner.ApplyAgents(r.Context(), it, lib.Type)
+		// A refresh keeps the match it has and whatever is locked, which is what the
+		// edit dialog's Refresh does, after showing what will change.
+		t, err := s.Store.LoadTitle(r.Context(), library.TargetItem, it.ID)
+		if err != nil {
+			writeErr(w, 404, "item not found")
+			return
 		}
-		if strings.HasPrefix(it.Provider, "agent:") {
-			// An agent answered: it takes the place of the built-in ones.
-		} else if key := s.DB.GetSetting(r.Context(), "tmdbKey", ""); key != "" {
-			t := &library.TMDB{Key: key}
-			it.Provider, it.ProviderID = "", ""
-			it.Overview, it.Poster, it.Backdrop = "", "", ""
-			it.Genres = nil
-			if err := t.Enrich(r.Context(), it); err != nil {
-				writeErr(w, 502, "TMDB: "+err.Error())
-				return
-			}
-		} else if it.ShowID == nil && s.DB.GetSetting(r.Context(), "wikidata", "1") == "1" {
-			// No TMDB key: facts and the rating from Wikidata (posters stay).
-			if it.Provider == "wikidata" || it.Provider == "" {
-				it.Provider, it.ProviderID, it.Overview, it.Genres, it.ContentRating = "", "", "", nil, ""
-			}
-			if err := (&library.Wikidata{}).Enrich(r.Context(), it); err != nil {
-				writeErr(w, 502, "No match on Wikidata: "+err.Error())
-				return
-			}
+		if _, err := s.Scanner.RefreshTitle(r.Context(), t, nil, userName(r)); err != nil {
+			writeErr(w, sourceErrorStatus(err), err.Error())
+			return
 		}
+		it = t.Item
+		b.Refresh = false
 	}
 	if b.PlayMode != nil || b.InsertFX != nil {
 		pm, fx := it.PlayMode, it.InsertFX
@@ -506,7 +500,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		Key     string          `json:"key"`
 		Title   string          `json:"title"`
 		Library *int64          `json:"libraryId,omitempty"`
-		Items   []*library.Item `json:"items"`
+		// Query: what "See all" adds to the library's address, for a saved view.
+		Query string          `json:"query,omitempty"`
+		Items []*library.Item `json:"items"`
 		Shows   []*library.Show `json:"shows,omitempty"`
 	}
 	hubs := []hub{}
@@ -564,6 +560,38 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		hidePaths(r, items...)
 		id := l.ID
 		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
+	}
+	// Saved views this account pinned to Home, each a row of its own.
+	if views, err := s.Store.SavedViews(ctx, u.ID); err == nil {
+		for _, v := range views {
+			if !v.Pinned {
+				continue
+			}
+			q, err := url.ParseQuery(v.Query)
+			if err != nil {
+				continue
+			}
+			f := library.ParseBrowseFilter(q)
+			f.Library, f.Limit = v.LibraryID, 20
+			res, err := s.Store.Browse(ctx, f, u.ID, acc)
+			if err != nil || len(res.Results) == 0 {
+				continue
+			}
+			h := hub{Key: "view-" + itoa(v.ID), Title: v.Name, Query: v.Query, Items: []*library.Item{}}
+			if v.LibraryID != 0 {
+				id := v.LibraryID
+				h.Library = &id
+			}
+			for _, row := range res.Results {
+				if row.Item != nil {
+					h.Items = append(h.Items, row.Item)
+				}
+				if row.Show != nil {
+					h.Shows = append(h.Shows, row.Show)
+				}
+			}
+			hubs = append(hubs, h)
+		}
 	}
 	// A "featured" pick for the hero: a random highly rated / recent item.
 	var featured []*library.Item

@@ -82,10 +82,7 @@ func main() {
 // platform, since some are only used on one.
 func goModules() map[string]string {
 	targets := []string{"./cmd/wms", "./cmd/wms-tray", "./cmd/wms-setup"}
-	cmds, _ := filepath.Glob(filepath.Join("modules", "*", "cmd", "*"))
-	for _, c := range cmds {
-		targets = append(targets, "./"+filepath.ToSlash(c))
-	}
+	targets = append(targets, programsOf()...)
 	mods := map[string]string{}
 	for _, goos := range []string{"linux", "windows", "darwin", "freebsd"} {
 		args := append([]string{"list", "-e", "-deps", "-f", `{{with .Module}}{{if not .Main}}{{.Path}}|{{.Dir}}{{end}}{{end}}`}, targets...)
@@ -103,6 +100,32 @@ func goModules() map[string]string {
 		}
 	}
 	return mods
+}
+
+// programsOf lists the commands in every module of this project this server requires.
+func programsOf(args ...string) []string {
+	cmd := exec.Command("go", "list", "-m", "-f", "{{.Path}}|{{.Dir}}", "all")
+	if len(args) > 0 {
+		cmd.Dir = args[0]
+	}
+	b, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, line := range strings.Fields(string(b)) {
+		p, dir, _ := strings.Cut(line, "|")
+		if !strings.HasPrefix(p, "github.com/wittywilla/") || strings.HasSuffix(p, "/wittymediaserver") || strings.Contains(p, "/wittymediaplayer") || dir == "" {
+			continue
+		}
+		cmds, _ := filepath.Glob(filepath.Join(dir, "cmd", "*"))
+		for _, c := range cmds {
+			if st, err := os.Stat(c); err == nil && st.IsDir() {
+				out = append(out, p+"/cmd/"+filepath.Base(c))
+			}
+		}
+	}
+	return out
 }
 
 var versionSuffix = regexp.MustCompile(`/v[0-9]+$`)

@@ -1,4 +1,0 @@
-- [Home](Home.md)
-- [Using it](Using-it.md)
-- [Writing effects](Writing-effects.md)
-- [Embedding](Embedding.md)

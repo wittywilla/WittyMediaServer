@@ -1353,7 +1353,7 @@ func TestLibraryKindsAreSharedOnlyOnPurpose(t *testing.T) {
 	}
 	all := append(GoManifests(), ServerManifests()...)
 	for _, dir := range []string{"wittycomics", "wittyebook", "wittyink", "wittypdf"} {
-		b, err := os.ReadFile(filepath.Join("..", "..", "web", "src", "modules", dir, "module.json"))
+		b, err := os.ReadFile(filepath.Join("..", "..", "web", "module-manifests", dir+".json"))
 		if err != nil {
 			t.Fatal(err)
 		}

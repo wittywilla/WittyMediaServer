@@ -27,12 +27,4 @@ if [ -n "$note" ]; then
   mv CHANGELOG.md.new CHANGELOG.md
 fi
 
-# A server past a module's maxServer would quietly run its built-in copy. CI fails on it too.
-manifests=$(ls -d modules/*/ web/src/modules/*/ 2>/dev/null || true)
-if [ -n "$manifests" ]; then
-  # shellcheck disable=SC2086
-  go run ./modules/wittymodule/cmd/wittymodule check -server "$ver" $manifests || {
-    echo "raise maxServer in the modules above, then run this check again" >&2
-    exit 1
-  }
-fi
+# A server past a module's maxServer would quietly run its built-in copy: CI fails on it.

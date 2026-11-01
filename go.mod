@@ -67,27 +67,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
-
-replace github.com/wittywilla/wittydvd => ./modules/wittydvd
-
-replace github.com/wittywilla/wittycd => ./modules/wittycd
-
-replace github.com/wittywilla/wittydisc => ./modules/wittydisc
-
-replace github.com/wittywilla/wittybluray => ./modules/wittybluray
-
-// Not released yet: built from this repository's copy.
-replace github.com/wittywilla/wittyintegratedfilebrowser => ./modules/wittyintegratedfilebrowser
-
-// Not released yet: built from this repository's copy.
-replace github.com/wittywilla/wittymodule => ./modules/wittymodule
-
-replace github.com/wittywilla/wittyphotos => ./modules/wittyphotos
-
-replace github.com/wittywilla/wittytuner => ./modules/wittytuner
-
-replace github.com/wittywilla/wittyplay => ./modules/wittyplay
-
-replace github.com/wittywilla/wittycouch => ./modules/wittycouch
-
-replace github.com/wittywilla/wittyrigs => ./modules/wittyrigs

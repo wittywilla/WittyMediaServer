@@ -48,8 +48,7 @@ func buildCustomRunner(t *testing.T) string {
 		if runtime.GOOS == "windows" {
 			customRunner += ".exe"
 		}
-		b := exec.Command("go", "build", "-o", customRunner, "./cmd/wittyplay-host")
-		b.Dir = filepath.Join("..", "..", "modules", "wittyplay")
+		b := exec.Command("go", "build", "-o", customRunner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
 		b.Env = append(os.Environ(), "CGO_ENABLED=0")
 		if out, err := b.CombinedOutput(); err != nil {
 			customRunnerErr = fmt.Errorf("%v: %s", err, out)

@@ -311,6 +311,7 @@ func localArtwork(dir, base string) (poster, backdrop string) {
 type TMDB struct {
 	Key    string
 	Client *http.Client
+	Base   string // tests
 }
 
 const tmdbImage = "https://image.tmdb.org/t/p/"
@@ -365,7 +366,11 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 	if !bearer {
 		q.Set("api_key", key)
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.themoviedb.org/3"+path+"?"+q.Encode(), nil)
+	base := t.Base
+	if base == "" {
+		base = "https://api.themoviedb.org/3"
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", base+path+"?"+q.Encode(), nil)
 	if err != nil {
 		return err
 	}
@@ -386,6 +391,18 @@ func (t *TMDB) get(ctx context.Context, path string, q url.Values, out any) erro
 		return fmt.Errorf("tmdb: %s: %s", res.Status, strings.TrimSpace(string(b)))
 	}
 	return json.NewDecoder(io.LimitReader(res.Body, maxAnswer)).Decode(out)
+}
+
+// getBoth reads one answer into two shapes.
+func (t *TMDB) getBoth(ctx context.Context, path string, q url.Values, a, b any) error {
+	var raw json.RawMessage
+	if err := t.get(ctx, path, q, &raw); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw, a); err != nil {
+		return err
+	}
+	return json.Unmarshal(raw, b)
 }
 
 // Images lists poster and backdrop URLs for an item's movie (best first),
@@ -457,9 +474,24 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		id = strconv.Itoa(s.Results[0].ID)
 	}
 	var m tmdbMovie
-	if err := t.get(ctx, "/movie/"+id, url.Values{"append_to_response": {"release_dates"}}, &m); err != nil {
+	var extra struct {
+		Credits struct {
+			Crew []struct {
+				Name string `json:"name"`
+				Job  string `json:"job"`
+			} `json:"crew"`
+		} `json:"credits"`
+	}
+	if err := t.getBoth(ctx, "/movie/"+id, url.Values{"append_to_response": {"release_dates,credits"}}, &m, &extra); err != nil {
 		return err
 	}
+	var directors []string
+	for _, c := range extra.Credits.Crew {
+		if c.Job == "Director" {
+			directors = append(directors, c.Name)
+		}
+	}
+	it.director = strings.Join(directors, ", ")
 	it.Provider, it.ProviderID = "tmdb", id
 	if it.Title == "" || it.Provider == "tmdb" {
 		it.Title = m.Title
@@ -486,6 +518,10 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 	}
 	if it.Studio == "" && len(m.ProductionCompanies) > 0 {
 		it.Studio = m.ProductionCompanies[0].Name
+		it.studios = make([]string, 0, len(m.ProductionCompanies))
+		for _, c := range m.ProductionCompanies {
+			it.studios = append(it.studios, c.Name)
+		}
 	}
 	if it.RuntimeSec == 0 && m.Runtime > 0 {
 		it.RuntimeSec = float64(m.Runtime) * 60

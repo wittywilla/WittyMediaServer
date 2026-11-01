@@ -238,6 +238,7 @@ func cmdServe(args []string) int {
 		}
 	}
 	handler := srv.Handler()
+	srv.StartMetadata()
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           handler,

@@ -7,7 +7,8 @@ import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
-import { rememberChannel, useLook } from './look'
+import { channelVars, customVars, previousChannel, rememberChannel, useLook } from './look'
+import MiniGuide from './MiniGuide'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, logoSrc, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
 
@@ -32,7 +33,12 @@ export default function TvPlayer() {
   const [dial, setDial] = useState('')
   const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
   const [alt, setAlt] = useState<Alternative | null>(null)
-  const lastKey = useRef<string | null>(null)
+  const [mini, setMini] = useState(false)
+  const [picture, setPicture] = useState(false)
+  // Shown the moment a channel is chosen, from what the list already knows: the
+  // number and name don't wait for the stream.
+  const [zap, setZap] = useState<GuideChannel | null>(null)
+  const lastKey = useRef<string | null>(previousChannel() || null)
   const prevKey = useRef('')
   const bannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const look = useLook()
@@ -50,10 +56,12 @@ export default function TvPlayer() {
   useEffect(() => {
     if (prevKey.current && prevKey.current !== key) lastKey.current = prevKey.current
     prevKey.current = key
-    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null)
+    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null); setPicture(false)
     const ac = new AbortController()
     showBanner()
     rememberChannel(key)
+    setZap(null)
+    getLineup().then((l) => { if (prevKey.current === key) setZap(l.find((c) => c.key === key) || null) }).catch(() => {})
     const v = viewer.current
     tune(key, v, ac.signal)
       .then(async (i) => {
@@ -111,15 +119,16 @@ export default function TvPlayer() {
   useEffect(() => {
     if (!info?.countProgress || !info.now?.itemId) return
     const p = info.now
+    const at = info.positionSec, atTime = info.serverTime
     const send = () => {
       const v = video.current
       if (!v || v.paused) return
-      const pos = Date.now() / 1000 - p.start
+      const pos = at + (Date.now() / 1000 - atTime)
       api.post(`/items/${p.itemId}/progress`, { positionSec: pos, durationSec: p.end - p.start }).catch(() => {})
     }
     const t = setInterval(send, 30000)
     return () => { clearInterval(t); send() }
-  }, [info?.countProgress, info?.now])
+  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime])
 
   // Where the live edge is, and how far back the buffer goes.
   useEffect(() => {
@@ -164,6 +173,7 @@ export default function TvPlayer() {
 
   const last = () => { if (lastKey.current) nav(`/tv/watch/${lastKey.current}`, { replace: true }) }
   const guide = () => nav('/tv')
+  const tuneTo = (k: string) => { setMini(false); if (k !== key) nav(`/tv/watch/${k}`, { replace: true }) }
   const setRemoteOn = (on: boolean) => { setRemoteOnState(on); try { localStorage.setItem(REMOTE_KEY, on ? '1' : '0') } catch { /* ignore */ } }
 
   useEffect(() => {
@@ -172,6 +182,7 @@ export default function TvPlayer() {
       const tag = (e.target as HTMLElement)?.tagName
       if (!v || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (document.querySelector('.modal-backdrop, .scene-panel')) return
+      if (mini) return // it has the keys while it is open
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote')) return
       if (/^[0-9.]$/.test(e.key)) { pressDigit(e.key); return }
       switch (e.key) {
@@ -186,7 +197,7 @@ export default function TvPlayer() {
         case 'f': toggleFullscreen(root.current); break
         case 'r': setRemoteOn(!remoteOn); break
         case 'i': case 'Enter': e.preventDefault(); showBanner(); break
-        case 'g': case 'ContextMenu': guide(); break
+        case 'g': case 'G': case 'ContextMenu': e.preventDefault(); setMini(true); break
         case 'l': goLive(); break
         case 'Backspace': e.preventDefault(); last(); break
         case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); guide() } break
@@ -218,10 +229,10 @@ export default function TvPlayer() {
   const isBehind = win.behind > 20
 
   return (
-    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout}>
+    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
-      <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} /></div>
-      {!url && !err && <div className="center-spinner"><div className="spinner" /></div>}
+      <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
+      {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {err && (
         <div className="overlay-msg" role="alert">
@@ -243,7 +254,8 @@ export default function TvPlayer() {
         <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
-      {banner && info && <Banner info={info} />}
+      {banner && (info ? <Banner info={info} /> : zap && <ZapBanner ch={zap} />)}
+      {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
         extra={<>
@@ -251,8 +263,19 @@ export default function TvPlayer() {
           <button className="btn sm" onClick={() => void step(-1)} title="Channel down (Page Down)" aria-label="Channel down">CH −</button>
           <button className="btn sm" onClick={() => void step(1)} title="Channel up (Page Up)" aria-label="Channel up">CH +</button>
           <button className="btn sm hide-narrow" onClick={last} disabled={!lastKey.current} title="Last channel (Backspace)">Last</button>
-          <button className="btn sm" onClick={guide} title="Guide (G)">Guide</button>
+          <button className="btn sm" onClick={() => setMini(true)} title="Now and next (G)">Mini guide</button>
+          <button className="btn sm hide-narrow" onClick={guide} title="The full guide">Guide</button>
         </>} />
+    </div>
+  )
+}
+
+// The banner before the server has answered: the channel, straight away.
+function ZapBanner({ ch }: { ch: GuideChannel }) {
+  return (
+    <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
+      <div className="ctv-banner-ch"><b>{ch.number}</b><span>{ch.name}</span></div>
+      <div className="ctv-banner-main"><div className="ctv-banner-title">{ch.name}</div><div className="ctv-banner-sub">Tuning…</div></div>
     </div>
   )
 }
@@ -274,6 +297,7 @@ function Banner({ info }: { info: TuneInfo }) {
         <div className="ctv-banner-sub">{p?.sub || (p ? '' : 'No guide data')}</div>
         {p && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
         {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
+        {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>

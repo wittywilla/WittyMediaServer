@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
-import { IconCheck, IconFilm, IconInfo, IconLeft, IconPlay, IconRefresh, IconRight } from '../icons'
+import { IconCheck, IconLeft, IconPlay, IconRefresh } from '../icons'
+
+// These moved to the shared parts; pages keep importing them from here.
+export { CardRow, EmptyState, LoadError, SkeletonGrid, Spinner } from '../ui/Surface'
 
 // The way back up: the library (or show) a page belongs to.
 export function BackLink({ to, label }: { to: string; label: string }) {
@@ -90,69 +92,6 @@ export function ShowCard({ show }: { show: Show }) {
       <div className="sub" title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</div>
     </Link>
   )
-}
-
-// CardRow: a sideways-scrolling row of cards. Mouse users get arrows at its ends
-// (touch and keyboard scroll it themselves); they update on the DOM directly, so
-// scrolling never re-renders the cards.
-export function CardRow({ children }: { children: React.ReactNode }) {
-  const row = useRef<HTMLDivElement | null>(null)
-  const prev = useRef<HTMLButtonElement | null>(null)
-  const next = useRef<HTMLButtonElement | null>(null)
-  useEffect(() => {
-    const el = row.current
-    if (!el) return
-    let frame = 0
-    const update = () => {
-      frame = 0
-      if (prev.current) prev.current.hidden = el.scrollLeft < 8
-      if (next.current) next.current.hidden = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8
-    }
-    const later = () => { if (!frame) frame = requestAnimationFrame(update) }
-    update()
-    el.addEventListener('scroll', later, { passive: true })
-    const size = new ResizeObserver(later)
-    size.observe(el)
-    return () => { el.removeEventListener('scroll', later); size.disconnect(); cancelAnimationFrame(frame) }
-  }, [])
-  const by = (dir: number) => { const el = row.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }
-  return (
-    <div className="row-wrap">
-      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
-      <div className="row" ref={row}>{children}</div>
-      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
-    </div>
-  )
-}
-
-// A page that couldn't load, which is not the same as having nothing to show.
-export function LoadError({ what, onRetry }: { what: string; onRetry?: () => void }) {
-  return (
-    <div className="empty" role="alert">
-      <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
-      <h3>{what} couldn’t be loaded</h3>
-      <p>The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.</p>
-      {onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
-    </div>
-  )
-}
-
-export function EmptyState({ title, text, action, icon = <IconFilm /> }: { title: string; text?: string; action?: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <div className="empty">
-      <span className="empty-ic" aria-hidden="true">{icon}</span>
-      <h3>{title}</h3>
-      {text && <p>{text}</p>}
-      {action}
-    </div>
-  )
-}
-
-export function Spinner() { return <div className="loading-box"><div className="spinner" /></div> }
-
-// SkeletonGrid: grey shapes where a grid of cards will land.
-export function SkeletonGrid({ square, count = 12 }: { square?: boolean; count?: number }) {
-  return <div className={(square ? 'album-grid' : 'grid') + ' skeleton-grid' + (square ? ' square' : '')} aria-busy="true" aria-label="Loading">{Array.from({ length: count }, (_, i) => <div key={i} />)}</div>
 }
 
 // VersionTag is the release line shown at the bottom of every page, e.g.

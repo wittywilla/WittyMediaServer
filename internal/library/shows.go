@@ -112,6 +112,8 @@ type ShowQuery struct {
 	HideAnime bool
 	// Started: only shows with an episode UserID has watched.
 	Started bool
+	// IDs limits the result to these shows.
+	IDs []int64
 }
 
 const animeGenre = "('|' || IFNULL(s.genres,'') || '|') LIKE '%|Anime|%'"
@@ -131,6 +133,9 @@ func (s *Store) Shows(ctx context.Context, q ShowQuery) ([]*Show, error) {
 	case q.LibraryID != 0:
 		where = append(where, "s.library_id = ?")
 		args = append(args, q.LibraryID)
+	}
+	if q.IDs != nil {
+		where = append(where, "s.id IN ("+ids(q.IDs)+")")
 	}
 	if q.HideAnime {
 		where = append(where, "NOT "+animeGenre)

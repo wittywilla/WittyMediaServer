@@ -100,7 +100,7 @@ func testClip() []byte {
 // bdjDisc is a folder holding a disc whose first play is the given object and test JAR.
 func bdjDisc(t *testing.T, jarName string, object []byte) string {
 	t.Helper()
-	jar, err := os.ReadFile("../../modules/wittybluray/bdj/testdata/" + jarName)
+	jar, err := os.ReadFile(moduleDir(t, "wittybluray") + "/bdj/testdata/" + jarName)
 	if err != nil {
 		t.Skip("test application not built")
 	}

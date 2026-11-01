@@ -942,15 +942,15 @@ func TestRealHelperEndToEnd(t *testing.T) {
 	}
 	tool := func(args ...string) {
 		t.Helper()
-		cmd := exec.Command("go", append([]string{"run", "./modules/wittymodule/cmd/wittymodule"}, args...)...)
+		cmd := exec.Command("go", append([]string{"run", "github.com/wittywilla/wittymodule/cmd/wittymodule"}, args...)...)
 		cmd.Dir = root
 		if b, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("wittymodule %v: %v\n%s", args, err, b)
 		}
 	}
-	tool("check", "modules/wittyphotos")
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, "modules/wittyphotos")
-	raw, err := os.ReadFile(filepath.Join(root, "modules", "wittyphotos", "module.json"))
+	tool("check", moduleDir(t, "wittyphotos"))
+	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, moduleDir(t, "wittyphotos"))
+	raw, err := os.ReadFile(filepath.Join(moduleDir(t, "wittyphotos"), "module.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

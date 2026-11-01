@@ -122,7 +122,7 @@ func testKind(name string) string {
 
 // The real helper answers just as the built-in copy does, on every point a page sees.
 func TestFileBrowserHelperMatchesBuiltin(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "modules", "wittyintegratedfilebrowser", "module.json"))
+	raw, err := os.ReadFile(filepath.Join(moduleDir(t, "wittyintegratedfilebrowser"), "module.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

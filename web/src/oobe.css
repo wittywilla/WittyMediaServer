@@ -246,3 +246,10 @@
 .oobe-mod-text small { color: var(--fg-2); font-size: var(--text-xs); line-height: 1.4; }
 .oobe-mod .set-switch { pointer-events: none; display: block; }
 .oobe-mod-note { margin: var(--sp-5) 0 0; }
+
+/* Yes or no questions that are off until answered. */
+.oobe-consents { display: grid; gap: var(--sp-2); }
+.oobe-consent { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); cursor: pointer; }
+.oobe-consent input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.oobe-consent span { display: grid; gap: 2px; min-width: 0; }
+.oobe-consent small { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }

@@ -40,6 +40,49 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Containers and services:** the compose file and Kubernetes deployment run with a read-only root, no capabilities and nothing to gain, and the systemd unit is sandboxed further. A new data folder on Windows is private to the server's account.
 - **Bundled FFmpeg:** by exact file and hash. Windows, Linux and macOS packages move from a rolling build to the 9.0.2 release.
 - **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. The same older browsers and TVs are still reached.
+- **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
+  WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
+  WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
+  and `clients/mobile` shells are retired: WittyMediaClient replaces them.
+- **WittyTV guide:** rebuilt around the highlighted programme: channel, title, times, how far in, what's next, and Watch
+  full screen, Start over, Open the film, favourite, channel up and down, and the whole day. Filters for favourites and
+  categories, jumps to tonight or tomorrow, a search across the schedule, reminders, a mini guide over the player, and
+  an *On TV now* row on Home. Very short programmes are handled properly in the rows.
+- **WittyTV preview:** resize it by dragging its corner, with the keyboard or remote, or to a named size. It sits beside
+  the programme rather than over the guide, so at any size it covers nothing, and it can be hidden. It's remembered for
+  your account.
+- **WittyTV looks:** the classic cable box stays, joined by a modern look, Midnight colours, your own two colours, a
+  colour for each channel, and a theme can suggest a look.
+- **WittyTV discs:** a channel can play a disc's main feature or scenes you pick by chapter, from thumbnails, and fine-tune
+  to the second. DVDs and Blu-rays alike. Encrypted discs stay refused, with the usual message.
+- **WittyTV bumpers:** a bumper library (upload, or choose from your media), and rules per channel: before or after a
+  programme, between commercials, or a break every so many minutes, mandatory or only for particular films, shows,
+  genres or collections.
+- **WittyTV timetable:** "cut commercials short" keeps programmes starting on time, with clear choices about what may give
+  way, and the editor shows the whole day with what was cut.
+- **WittyTV channels:** one click for studios and your collections as well as genres, decades and networks, with *Add all*.
+  Holiday seasons and marathon blocks. Channels you already have carry on as they were.
+- **Edit details:** one dialog for a film, an episode or a show, in sections, with Delete, Cancel and Save always in view. Every field says where its value came from, can be locked so nothing changes it (no scan, refresh, new match, NFO or file beside it, matched or not), and can go back to what its source said. It also has artwork from every source with your own uploads, banners and title logos, where the intro ends (typed, or picked in the player), bonus features, versions, moving to another library, and logos.
+- **Search and match:** every source at once, or a TMDB, IMDb, TheTVDB, TVmaze, AniList or Wikidata id or address. Each result says how likely it is and why. Choosing one shows what would change, field by field, before anything does. A match you choose stays through scans and refreshes, and a wrong one can be removed, keeping only what you typed.
+- **Refresh shows what will change** before it changes anything, and keeps the match a title has. It used to search again and could lose it.
+- **Fix matches:** a list of everything that needs a look, worst first, with suggestions and reasons, a key for each action, several at once, editing many titles together, renumbering episodes, naming rules and ids in file names, and a history where anything can be undone.
+- **Studios and networks:** first-class data with a row of logo cards and a page of everything from each. Logos are an optional download from Wikimedia Commons, only with your agreement, kept and served by your own server, in white and dark so they read on any theme. Without them, the names look right as text.
+- **Categories:** made from genres per library, with spellings of the same genre put together, and they can be hidden, reordered, renamed and merged, with art from what's in them.
+- **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
+- **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
+- **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+### Music
+
+- **A new front page for music, audiobooks and podcasts:** covers to flip through with their reflections, artists as round photos, albums and songs as shelves with **See all**, and colours taken from the artwork. **Play my music** shuffles it all.
+- **Full-screen player:** artwork with a visualizer behind it, the full transport, and volume, playlists, a sleep timer, the queue and likes along the top. Keys for everything, and arrows alone reach every control.
+- **The bar along the bottom** is new: floating, with shuffle, repeat, like, volume and the queue, and it collapses to a small button. It leaves room under the page, and steps behind the account menu.
+- **Lyrics that follow the music.** From a `.lrc` file beside the song, the song's own tags, or, if the owner agrees, LRCLIB, which is free and needs no key. A paid Musixmatch key or your own LRCLIB server can be added. Press a line to go to it, nudge the timing for yourself, or correct it for everyone with **Tap along**.
+- **Karaoke:** big words that fill in as they're sung, a count-in, the next line waiting, the voice turned down, and the key moved up or down. The screen says what the voice reduction can and can't do.
+- **Visualizer:** Bars, Waves and Drift are on behind the artwork in the full-screen player, with a large button and a **Slow** switch. **It no longer changes effect by itself** unless you choose an interval, now up to every 10 minutes.
+- **Sound:** no gaps between songs, crossfade, ReplayGain and a ten-band equaliser.
+- **The queue can be edited as it plays,** and saved as a playlist. Shuffle now really reorders it. **Liked songs, Most played, Played lately** and **stations** made from a song.
+- **Artist pages,** with discography, and a biography and photo from Wikipedia if the owner agrees. An `artist.jpg` in their folder comes first. Multi-disc albums are divided by disc, with other versions of an album offered below it.
+- **Read:** a booklet or text file beside an album, from the full-screen player.
 
 ## 0.5.2-alpha
 

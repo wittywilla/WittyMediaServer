@@ -20,6 +20,7 @@ import (
 // app. Posters are not taken from there (they are copyrighted).
 type Wikidata struct {
 	Client *http.Client
+	API    string // tests
 }
 
 const wikiUA = "WittyMediaServer/0.4 (https://github.com/wittywilla/WittyMediaServer)"

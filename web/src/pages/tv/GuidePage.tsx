@@ -1,35 +1,42 @@
 import { EmptyState } from '../../components/common'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, mediaUrl } from '../../api'
+import { api } from '../../api'
 import { announce } from '../../a11y'
-import { IconLeft, IconPlay, IconRight, IconSettings, IconTv } from '../../icons'
+import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import LookPanel from './LookPanel'
-import { lastChannel, useLook, type Layout, type Colours } from './look'
-import Preview from './Preview'
-import { fmtClock, fmtDay, fmtSpan, getLineup, logoSrc, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
+import { channelVars, customVars, lastChannel, previousChannel, setLook, useLook, type Colours, type Layout, type Look } from './look'
+import DetailsDialog from './Details'
+import Hero, { ChannelMark } from './Hero'
+import SearchPanel from './SearchPanel'
+import { useReminders } from './reminders'
+import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
 import LegalNote from '../../components/LegalNote'
 
-// The programme guide. Two layouts over one real ARIA grid: the classic box of
-// the early 2000s, and clean streaming rows with a line down every channel at
-// the current time. The look is each viewer's own (see look.ts). Only the rows
-// on screen are loaded and drawn, so a playlist of thousands of channels stays
-// quick.
+// The programme guide. Two looks over one real ARIA grid: the classic box of the
+// early 2000s, and a clean modern one. At the top, the highlighted channel: its
+// programme, what's next, what can be done with it and a live preview. Below,
+// the rows. The look is each viewer's own (see look.ts). Only the rows on screen
+// are loaded and drawn, so a playlist of thousands of channels stays quick.
 
 const SLOT = 1800
 const PAGE = 30
 const FETCH_SPAN = 3 * 3600
+const FETCH_HOURS = 8
 const floorSlot = (u: number) => Math.floor(u / SLOT) * SLOT
 const DAY_NAMES = 15
+// A cell narrower than this on screen can't show anything: several in a row are
+// drawn as one, which says how many.
+const TINY_PX = 14
 
-type Filter = { kind: '' | 'library' | 'tuner'; group: string }
+type Filter = { kind: '' | 'library' | 'tuner'; group: string; favourites: boolean }
 type Focus = { row: number; at: number }
 
 // The cells of a row for the window on screen; gaps are cells too, so every
 // moment of every channel can be reached with the keyboard.
-function cellsFor(ch: GuideChannel | undefined, from: number, to: number): Programme[] {
+function cellsFor(ch: GuideChannel | undefined, from: number, to: number, pxPerSec: number): Programme[] {
   if (!ch) return []
   const out: Programme[] = []
   let t = from
@@ -41,60 +48,102 @@ function cellsFor(ch: GuideChannel | undefined, from: number, to: number): Progr
     t = Math.max(t, p.end)
   }
   if (t < to) out.push(none(t, to))
+  return groupTiny(out, pxPerSec, from, to)
+}
+
+function groupTiny(cells: Programme[], pxPerSec: number, from: number, to: number): Programme[] {
+  if (!pxPerSec) return cells
+  const width = (p: Programme) => (Math.min(p.end, to) - Math.max(p.start, from)) * pxPerSec
+  const out: Programme[] = []
+  for (let i = 0; i < cells.length; i++) {
+    let j = i
+    while (j + 1 < cells.length && width(cells[j]) < TINY_PX && width(cells[j + 1]) < TINY_PX) j++
+    if (j > i) {
+      const group = cells.slice(i, j + 1)
+      out.push({ start: group[0].start, end: group[group.length - 1].end, kind: 'group', title: `${group.length} short programmes`, group })
+      i = j
+    } else out.push(cells[i])
+  }
   return out
 }
 
-const useClock = () => {
+// The clock, a little at a time: this redraws the page, so not every second.
+const useClock = (ms: number) => {
   const [now, setNow] = useState(() => Date.now() / 1000)
-  useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), 5000); return () => clearInterval(t) }, [])
+  useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), ms); return () => clearInterval(t) }, [ms])
   return now
 }
 
 function slotsForWidth(w: number) { return w < 560 ? 3 : w < 1000 ? 4 : w < 1500 ? 5 : 6 }
-function baseRow(width: number) { return width < 560 ? 50 : width >= 1800 ? 76 : 56 }
+function baseRow(width: number, layout: Layout) { return width < 560 ? 56 : width >= 1800 ? 84 : layout === 'streaming' ? 68 : 56 }
+
+// "Tomorrow 8 PM" and "Tomorrow morning": times people actually jump to.
+function jumps(now: number): { label: string; at: number }[] {
+  const at = (days: number, hour: number) => { const d = new Date(now * 1000); d.setDate(d.getDate() + days); d.setHours(hour, 0, 0, 0); return d.getTime() / 1000 }
+  const tonight = at(0, 20)
+  return [tonight > now + 1800 ? { label: 'Tonight 8 PM', at: tonight } : { label: 'Tomorrow 8 PM', at: at(1, 20) }, { label: 'Tomorrow morning', at: at(1, 8) }]
+}
+
+const matches = (c: GuideChannel, f: Filter) => (!f.kind || c.kind === f.kind) && (!f.group || c.group === f.group || !!c.categories?.includes(f.group)) && (!f.favourites || !!c.favourite)
 
 export default function GuidePage() {
   const { user } = useApp()
   const nav = useNavigate()
-  const now = useClock()
+  const now = useClock(30000)
   const [from, setFrom] = useState(() => floorSlot(Date.now() / 1000))
-  const [filter, setFilter] = useState<Filter>({ kind: '', group: '' })
+  const [filter, setFilter] = useState<Filter>({ kind: '', group: '', favourites: false })
   const [rows, setRows] = useState<Record<number, GuideChannel>>({})
   const [total, setTotal] = useState<number | null>(null)
   const [groups, setGroups] = useState<string[]>([])
   const [serverLook, setServerLook] = useState<{ layout?: Layout; colours?: Colours }>({})
   const look = useLook(serverLook.layout, serverLook.colours)
   const [lookOpen, setLookOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [err, setErr] = useState('')
   const [focus, setFocus] = useState<Focus>(() => ({ row: 0, at: Date.now() / 1000 }))
-  const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme } | null>(null)
+  const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme; day?: boolean } | null>(null)
   const [dial, setDial] = useState('')
   const [width, setWidth] = useState(() => window.innerWidth)
+  const [pageSize, setPageSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [scrollTop, setScrollTop] = useState(0)
   const [viewH, setViewH] = useState(400)
   const [gutter, setGutter] = useState(0)
+  const [trackW, setTrackW] = useState(0)
   const [lineup, setLineup] = useState<GuideChannel[]>([])
+  const page = useRef<HTMLDivElement | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
   const grid = useRef<HTMLDivElement | null>(null)
-  const wantFocus = useRef(false)
+  const wantFocus = useRef(true)
   const loaded = useRef(new Set<string>())
   const slots = look.hours ? look.hours * 2 : slotsForWidth(width)
-  const rowH = Math.round(baseRow(width) * ({ compact: 0.8, normal: 1, large: 1.25 }[look.density]) * (look.layout === 'classic' ? 1.14 : 1))
+  const rowH = Math.round(baseRow(width, look.layout) * ({ compact: 0.8, normal: 1, large: 1.25 }[look.density]) * (look.layout === 'classic' ? 1.14 : 1))
   const to = from + slots * SLOT
   const fetchFrom = Math.floor(from / FETCH_SPAN) * FETCH_SPAN
-  const filterKey = filter.kind + '|' + filter.group
+  const filterKey = filter.kind + '|' + filter.group + '|' + filter.favourites
+  const pxPerSec = trackW ? trackW / (to - from) : 0
+  const reminders = useReminders()
 
   useEffect(() => {
     const onResize = () => setWidth(window.innerWidth)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+  // The page's own size, which everything about the preview is held to.
+  const pageEl = page.current
+  useEffect(() => {
+    if (!pageEl) return
+    const ro = new ResizeObserver(() => setPageSize({ w: pageEl.clientWidth, h: pageEl.clientHeight }))
+    ro.observe(pageEl)
+    return () => ro.disconnect()
+  }, [pageEl])
   // The scrollbar takes width from the rows: the times over them must line up.
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el) return
     setViewH(el.clientHeight)
     setGutter(el.offsetWidth - el.clientWidth)
+    const track = el.querySelector<HTMLElement>('.ctv-track')
+    if (track) setTrackW(track.clientWidth)
   })
 
   // A changed filter or a new stretch of hours starts the rows afresh.
@@ -109,14 +158,14 @@ export default function GuidePage() {
     if (loaded.current.has(key)) return
     loaded.current.add(key)
     try {
-      const g = await api.get<Page>(`/guide?from=${fetchFrom}&hours=6&offset=${p * PAGE}&limit=${PAGE}&kind=${filter.kind}&group=${encodeURIComponent(filter.group)}`)
+      const g = await api.get<Page>(`/guide?from=${fetchFrom}&hours=${FETCH_HOURS}&offset=${p * PAGE}&limit=${PAGE}&kind=${filter.kind}&group=${encodeURIComponent(filter.group)}${filter.favourites ? '&favourites=1' : ''}`)
       setTotal(g.total)
-      setGroups(g.groups)
+      setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...g.groups])] : g.groups))
       setServerLook({ layout: g.layout, colours: g.skin })
       setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
     } catch (e: any) { loaded.current.delete(key); setErr(e.message) }
-  }, [fetchFrom, filterKey, filter.kind, filter.group])
+  }, [fetchFrom, filterKey, filter.kind, filter.group, filter.favourites])
   useEffect(() => {
     for (let p = Math.floor(firstRow / PAGE); p <= Math.floor(lastRow / PAGE); p++) void loadPage(p)
   }, [firstRow, lastRow, loadPage])
@@ -127,21 +176,29 @@ export default function GuidePage() {
   }, [])
 
   const cur = rows[focus.row]
-  const cells = useMemo(() => cellsFor(cur, from, to), [cur, from, to])
+  const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
   const curCell = cells.find((c) => c.start <= focus.at && c.end > focus.at) || cells[0]
+  // What the top of the page is about: the highlighted programme, and what follows it.
+  const panel = details ? (details.p.kind === 'group' ? curCell : details.p) : curCell
+  const nextShow = useMemo(() => {
+    if (!cur || !panel) return undefined
+    return cur.programmes.find((p) => p.start >= panel.end && p.kind !== 'slate' && p.kind !== 'none')
+  }, [cur, panel])
 
-  const moveRow = (row: number) => {
-    const max = (total ?? 1) - 1
-    const r = Math.max(0, Math.min(max, row))
-    wantFocus.current = true
-    setFocus((f) => ({ ...f, row: r }))
-    const el = scroller.current
-    if (el) {
-      const top = r * rowH
-      if (top < el.scrollTop) el.scrollTop = top
-      else if (top + rowH > el.scrollTop + el.clientHeight) el.scrollTop = top + rowH - el.clientHeight
-    }
-  }
+  const moveRow = useCallback((row: number) => {
+    setTotal((tot) => {
+      const r = Math.max(0, Math.min((tot ?? 1) - 1, row))
+      wantFocus.current = true
+      setFocus((f) => ({ ...f, row: r }))
+      const el = scroller.current
+      if (el) {
+        const top = r * rowH
+        if (top < el.scrollTop) el.scrollTop = top
+        else if (top + rowH > el.scrollTop + el.clientHeight) el.scrollTop = top + rowH - el.clientHeight
+      }
+      return tot
+    })
+  }, [rowH])
   const shiftTime = (dt: number, at?: number) => {
     const minFrom = floorSlot(now) - 2 * 3600
     const maxFrom = floorSlot(now) + 14 * 86400
@@ -150,12 +207,19 @@ export default function GuidePage() {
     wantFocus.current = true
     setFocus((f) => ({ ...f, at: at ?? Math.max(next, Math.min(next + slots * SLOT - 1, f.at + dt)) }))
   }
-  const goNow = () => { const f = floorSlot(now); setFrom(f); setFocus((x) => ({ ...x, at: now })); wantFocus.current = true }
+  const goAt = (at: number, row?: number) => {
+    setFrom(floorSlot(at))
+    setFocus((f) => ({ row: row ?? f.row, at }))
+    wantFocus.current = true
+    if (row != null) moveRow(row)
+  }
+  const goNow = () => goAt(Date.now() / 1000)
 
+  const watch = (key: string) => nav(`/tv/watch/${key}`)
   const activate = (ch: GuideChannel, p: Programme) => {
-    if (ch.encrypted) { setDetails({ ch, p }); return }
+    if (ch.encrypted || p.kind === 'group') { setDetails({ ch, p }); return }
     const live = p.kind === 'none' ? p.start <= now + 60 : p.start <= now && p.end > now
-    if (live) nav(`/tv/watch/${ch.key}`)
+    if (live) watch(ch.key)
     else setDetails({ ch, p })
   }
 
@@ -167,8 +231,16 @@ export default function GuidePage() {
     dialTimer.current = setTimeout(async () => {
       setDial('')
       const list = await getLineup().catch(() => [] as GuideChannel[])
-      const shown = list.filter((c) => (!filter.kind || c.kind === filter.kind) && (!filter.group || c.group === filter.group))
-      const i = shown.findIndex((c) => c.number === next)
+      const shown = list.filter((c) => matches(c, filter))
+      let i = shown.findIndex((c) => c.number === next)
+      // On another filter: leave it, to get there.
+      if (i < 0 && list.some((c) => c.number === next)) {
+        setFilter({ kind: '', group: '', favourites: false })
+        i = list.findIndex((c) => c.number === next)
+        setTimeout(() => moveRow(i), 0)
+        announce(`Channel ${list[i].number}, ${list[i].name}`)
+        return
+      }
       if (i >= 0) { moveRow(i); announce(`Channel ${shown[i].number}, ${shown[i].name}`) } else { announce(`No channel ${next}`); toast(`No channel ${next}`) }
     }, 1200)
   }
@@ -181,6 +253,20 @@ export default function GuidePage() {
       announce(`Recording ${p.title}`)
     } catch (e: any) { toast(e.message) }
   }
+  const toggleFav = async (ch: GuideChannel) => {
+    const on = !ch.favourite
+    setRows((r) => { const n = { ...r }; for (const k of Object.keys(n)) if (n[Number(k)]?.key === ch.key) n[Number(k)] = { ...n[Number(k)], favourite: on }; return n })
+    announce(on ? `${ch.name} added to favourites` : `${ch.name} removed from favourites`)
+    try { await setFavourite(ch.key, on); forgetLineup(); getLineup().then(setLineup).catch(() => {}) } catch (e: any) { toast(e.message) }
+  }
+  const jumpToLast = () => {
+    const key = cur && lastChannel() === cur.key ? previousChannel() : lastChannel()
+    const c = lineup.find((x) => x.key === key)
+    if (!c) { toast('No other channel watched yet'); return }
+    const i = lineup.filter((x) => matches(x, filter)).findIndex((x) => x.key === key)
+    if (i >= 0) { moveRow(i); announce(`Channel ${c.number}, ${c.name}`) } else watch(key)
+  }
+  const cycleKind = () => setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' }))
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey) return
@@ -188,10 +274,13 @@ export default function GuidePage() {
     const idx = cells.findIndex((c) => c === curCell)
     let handled = true
     switch (e.key) {
-      case 'ArrowUp': moveRow(row - 1); break
+      case 'ArrowUp':
+        // The top row hands the arrows back, so a remote can reach the buttons above.
+        if (row === 0) return
+        moveRow(row - 1); break
       case 'ArrowDown': moveRow(row + 1); break
-      case 'PageUp': moveRow(row - Math.max(1, Math.floor(viewH / rowH) - 1)); break
-      case 'PageDown': moveRow(row + Math.max(1, Math.floor(viewH / rowH) - 1)); break
+      case 'PageUp': case 'ChannelUp': moveRow(row - Math.max(1, Math.floor(viewH / rowH) - 1)); break
+      case 'PageDown': case 'ChannelDown': moveRow(row + Math.max(1, Math.floor(viewH / rowH) - 1)); break
       case 'Home': goNow(); break
       case 'ArrowRight': {
         const next = cells[idx + 1]
@@ -202,15 +291,24 @@ export default function GuidePage() {
       case 'ArrowLeft': {
         const prev = cells[idx - 1]
         if (prev) { wantFocus.current = true; setFocus({ row, at: Math.max(prev.start, from) }) }
+        else if (from <= floorSlot(now) - 2 * 3600) return
         else shiftTime(-SLOT, from - SLOT)
         break
       }
       case 'Enter': if (cur && curCell) activate(cur, curCell); break
       case 'i': case 'I': if (cur && curCell) setDetails({ ch: cur, p: curCell }); break
       case 'r': case 'R': if (cur?.canRecord && curCell?.kind === 'broadcast') void record(cur, curCell); break
+      case 'f': case 'F': if (cur) void toggleFav(cur); break
+      case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
+      case 'm': case 'M': if (cur && curCell && curCell.start > now) void reminders.toggle(cur.key, curCell); break
+      case 'l': case 'L': jumpToLast(); break
+      case 's': case 'S': case '/': setSearchOpen(true); break
+      case 'n': case 'N': goNow(); break
+      case '+': case '=': setLook({ hours: Math.max(1.5, (look.hours || slots / 2) - 0.5) as Look['hours'] }); break
+      case '-': setLook({ hours: Math.min(4, (look.hours || slots / 2) + 0.5) as Look['hours'] }); break
       case 'a': case 'A': shiftTime(-86400); break
       case 'b': case 'B': shiftTime(86400); break
-      case 'c': case 'C': setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' })); break
+      case 'c': case 'C': cycleKind(); break
       default:
         if (/^[0-9.]$/.test(e.key)) pressDigit(e.key)
         else handled = false
@@ -227,14 +325,7 @@ export default function GuidePage() {
 
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
-  const nowPct = now >= from && now < to ? pct(now) : null
   const totalRows = total ?? 0
-  const label = (ch: GuideChannel, p: Programme) => {
-    const when = p.kind === 'none' ? '' : fmtSpan(p)
-    const on = p.start <= now && p.end > now ? ', on now' : ''
-    const lock = ch.security?.state === 'encrypted' ? `, ${ch.security.label}` : ''
-    return `Channel ${ch.number}, ${ch.name}: ${[p.title, p.sub, when].filter(Boolean).join(', ')}${on}${lock}`
-  }
   // What the little TV shows: settled on by the preview itself.
   const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : (cur && !cur.encrypted ? cur.key : '')
   const previewName = useMemo(() => {
@@ -243,10 +334,16 @@ export default function GuidePage() {
     return c ? `${c.number} ${c.name}` : ''
   }, [previewKey, cur, lineup])
 
+  // The most the preview may take: never so much that the words beside it or the
+  // guide below have no room. A phone gives it the whole width, on its own line.
+  const narrow = pageSize.w < 760
+  const previewMax = Math.round(Math.min(narrow ? pageSize.w - 32 : pageSize.w * 0.55, (pageSize.h * (narrow ? 0.38 : 0.5) - 40) * (16 / 9)))
+
+  const vars = { ...customVars(look) }
   const shell = (children: React.ReactNode) => (
-    <div className={'ctv ctv-page pv-' + (look.preview === 'off' ? 'none' : look.previewPos) + ' pvs-' + look.previewSize} data-skin={look.colours} data-layout={look.layout}>{children}</div>
+    <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '')} data-skin={look.colours} data-layout={look.layout} style={vars}>{children}</div>
   )
-  if (total === 0 && !filter.kind && !filter.group) {
+  if (total === 0 && !filter.kind && !filter.group && !filter.favourites) {
     // Nothing to show yet, so the guide's own colours have nothing to dress up.
     return (
       <>
@@ -258,90 +355,45 @@ export default function GuidePage() {
     )
   }
 
-  const panel = details ? null : curCell
   const dayStart = (u: number) => { const d = new Date(u * 1000); d.setHours(0, 0, 0, 0); return d.getTime() / 1000 }
   const today = dayStart(now)
   const dayOffset = Math.round((dayStart(from) - today) / 86400)
   const goDay = (n: number) => shiftTime(n === 0 ? floorSlot(now) - from : (n - dayOffset) * 86400)
+  const hasBoth = lineup.some((c) => c.kind === 'tuner') && lineup.some((c) => c.kind === 'library')
+  const anyFav = lineup.some((c) => c.favourite)
   return shell(
     <>
       <h1 className="sr-only">TV guide</h1>
-      <section className="ctv-info" aria-label="Highlighted show">
-        {look.preview === 'off' && (
-          <div className="ctv-art" aria-hidden="true">
-            {panel?.itemId ? <img src={mediaUrl(`/api/items/${panel.itemId}/backdrop`)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : null}
-            <span className="ctv-art-ch">{cur ? <><b>{cur.number}</b><i>{cur.name}</i></> : <IconTv size={32} />}</span>
-          </div>
-        )}
-        <div className="ctv-info-text">
-          <div className="ctv-info-chan">{cur ? `${cur.number} ${cur.name}` : ' '}</div>
-          <div className="ctv-info-title">{panel?.title || cur?.name || ' '}</div>
-          <div className="ctv-info-sub">{panel?.sub || ' '}</div>
-          <div className="ctv-info-meta">
-            {panel && panel.kind !== 'none' && <span>{fmtSpan(panel)}</span>}
-            {panel?.rating && <span className="ctv-rate">{panel.rating}</span>}
-            {panel?.genre && <span>{panel.genre}</span>}
-            {panel?.year ? <span>{panel.year}</span> : null}
-            {cur?.hd && <span className="ctv-rate">HD</span>}
-            {cur?.atsc3 && <span className="ctv-rate">ATSC 3.0</span>}
-            {cur?.security?.state === 'clear' && <span className="ctv-rate">Clear</span>}
-            {cur?.security?.state === 'unknown' && <span className="ctv-rate" title={cur.security.detail}>{cur.security.label}</span>}
-          </div>
-          {panel?.desc && <p className="ctv-info-desc">{panel.desc}</p>}
-          {cur?.security?.state === 'encrypted' && (
-            <p className="ctv-info-desc"><b>{cur.security.label}.</b> {cur.security.detail} <Link className="ctv-link" to="/tv/encrypted">What can I do?</Link></p>
-          )}
-          {cur?.notices?.map((n) => <p key={n} className="ctv-info-desc">{n}</p>)}
-          {cur?.alternative && (
-            <div className="ctv-info-actions">
-              <button className="ctv-btn on" onClick={() => nav(`/tv/watch/${cur.alternative!.key}`)}><IconPlay size={15} /> Watch {cur.alternative.number} {cur.alternative.name} instead</button>
-            </div>
-          )}
-          {cur && panel && !cur.encrypted && (
-            <div className="ctv-info-actions">
-              <button className="ctv-btn on" onClick={() => activate(cur, panel)}><IconPlay size={15} /> {panel.kind === 'none' || (panel.start <= now && panel.end > now) ? 'Watch' : 'Details'}</button>
-              {cur.canRecord && panel.kind === 'broadcast' && panel.end > now && <button className="ctv-btn" onClick={() => void record(cur, panel)}>● Record</button>}
-            </div>
-          )}
-        </div>
-        <div className="ctv-clock" aria-hidden="true">
-          <b>{fmtClock(now)}</b>
-          <span>{fmtDay(now)}</span>
-        </div>
-      </section>
-      {look.preview !== 'off' && <Preview channel={previewKey} label={previewName} look={look} />}
+      <Hero ch={cur} p={panel} next={nextShow} look={look} now={now} previewKey={previewKey} previewName={previewName} previewMax={previewMax}
+        onWatch={watch} onDetails={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) }} onDay={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }) }}
+        onFav={() => { if (cur) void toggleFav(cur) }} onUp={() => moveRow(focus.row + 1)} onDown={() => moveRow(focus.row - 1)} onRecord={() => { if (cur && panel) void record(cur, panel) }} />
 
       <div className="ctv-bar">
-        <div className="ctv-bar-group" role="group" aria-label="Time">
-          <button className="ctv-btn sm" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
-          <button className="ctv-btn sm" onClick={goNow}>Now</button>
-          <button className="ctv-btn sm" onClick={() => shiftTime(SLOT)} aria-label="Half an hour later"><IconRight size={16} /></button>
+        <div className="ctv-bar-group">
+          <h2 className="ctv-bar-title">Guide</h2>
+          <div className="ctv-chips" role="group" aria-label="Which channels">
+            <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter({ kind: '', group: '', favourites: false })}>All</button>
+            {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
+            {groups.map((g) => <button key={g} className={'ctv-chip' + (filter.group === g ? ' on' : '')} aria-pressed={filter.group === g} onClick={() => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g })}>{g}</button>)}
+            {hasBoth && <button className={'ctv-chip' + (filter.kind === 'library' ? ' on' : '')} aria-pressed={filter.kind === 'library'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' })}>My library</button>}
+            {hasBoth && <button className={'ctv-chip' + (filter.kind === 'tuner' ? ' on' : '')} aria-pressed={filter.kind === 'tuner'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' })}>Live TV</button>}
+          </div>
+        </div>
+        <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time">
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
+          <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>Now</button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label="Half an hour later"><IconRight size={16} /></button>
+          {jumps(now).map((j) => <button key={j.label} className="ctv-link-btn" onClick={() => goAt(j.at)}>{j.label}</button>)}
           <label className="ctv-field"><span className="sr-only">Day</span>
             <select value={dayOffset} onChange={(e) => goDay(Number(e.target.value))}>
               {dayOffset < 0 && <option value={dayOffset}>Yesterday</option>}
               {Array.from({ length: DAY_NAMES }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600)}</option>)}
             </select>
           </label>
-        </div>
-        <div className="ctv-bar-group">
-          <label className="ctv-field">Show
-            <select value={filter.kind} onChange={(e) => setFilter({ kind: e.target.value as Filter['kind'], group: '' })}>
-              <option value="">All channels</option>
-              <option value="library">My library</option>
-              <option value="tuner">Live TV</option>
-            </select>
-          </label>
-          {groups.length > 0 && (
-            <label className="ctv-field">Group
-              <select value={filter.group} onChange={(e) => setFilter((f) => ({ ...f, group: e.target.value }))}>
-                <option value="">Any</option>
-                {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </label>
-          )}
+          <button className="ctv-btn sm icon" onClick={() => setSearchOpen(true)} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
-          <Link className="ctv-btn sm" to="/tv/recordings">Recordings</Link>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels" aria-label="Set up channels and tuners" title="Set up channels and tuners"><IconSettings size={16} /></Link>}
+          <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span><span className="sr-only">Edit channels</span></Link>}
         </div>
       </div>
 
@@ -351,107 +403,119 @@ export default function GuidePage() {
       <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
-          <div className="ctv-corner" role="columnheader" aria-colindex={1}>Channel</div>
+          <div className="ctv-corner" role="columnheader" aria-colindex={1}><b>{dayWord(from, now)}</b> <span className="hide-narrow">{fmtClock(from)}</span></div>
           <div className="ctv-time-track">
             {timeHeads.map((t, i) => <div key={t} role="columnheader" aria-colindex={i + 2} className="ctv-time" style={{ left: pct(t) + '%', width: 100 / slots + '%' }}>{fmtClock(t)}</div>)}
           </div>
         </div>
-        {look.nowLine && nowPct != null && (
-          <div className="ctv-nowline" aria-hidden="true" style={{ left: `calc(var(--ctv-chw) + (100% - var(--ctv-chw) - var(--ctv-gutter)) * ${nowPct / 100})` }}>
-            <span>{fmtClock(now)}</span>
-          </div>
-        )}
+        {look.nowLine && <NowLine from={from} to={to} />}
         <div className="ctv-rows" ref={scroller} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
           <div style={{ height: totalRows * rowH, position: 'relative' }} role="presentation">
-            {Array.from({ length: Math.max(0, Math.min(lastRow, totalRows - 1) - firstRow + 1) }, (_, i) => firstRow + i).map((r) => {
-              const ch = rows[r]
-              const rowCells = cellsFor(ch, from, to)
-              return (
-                <div key={r} className={'ctv-row' + (r === focus.row ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top: r * rowH, height: rowH }}>
-                  {ch ? (
-                    <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
-                      <span className="ctv-num">{ch.number}</span>
-                      {look.logos && logoSrc(ch.logo) ? <img className="ctv-logo" src={logoSrc(ch.logo)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
-                      <span className="ctv-name">{ch.name}</span>
-                      {ch.encrypted && <span className="ctv-lock" aria-hidden="true">🔒</span>}
-                    </div>
-                  ) : <div className="ctv-ch" role="rowheader" aria-colindex={1}><span className="ctv-name">…</span></div>}
-                  <div className="ctv-track">
-                    {ch && rowCells.map((p) => {
-                      const start = Math.max(p.start, from), end = Math.min(p.end, to)
-                      const focused = r === focus.row && p === (rowCells.find((c) => c.start <= focus.at && c.end > focus.at) || rowCells[0])
-                      const colStart = Math.floor((start - from) / SLOT)
-                      const colSpan = Math.max(1, Math.ceil((end - from) / SLOT) - colStart)
-                      const live = p.start <= now && p.end > now
-                      return (
-                        <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
-                          aria-label={label(ch, p)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined}
-                          className={'ctv-cell' + (focused ? ' focus' : '') + (live ? ' live' : '') + (p.kind === 'none' || p.kind === 'slate' ? ' dim' : '') + (ch.encrypted ? ' locked' : '') + (p.end <= now ? ' past' : '')}
-                          style={{ left: pct(start) + '%', width: pct(end) - pct(start) + '%' }}
-                          onClick={() => { if (focused) activate(ch, p); else { setFocus({ row: r, at: Math.max(p.start, from) }); wantFocus.current = true } }}
-                          onDoubleClick={() => activate(ch, p)}>
-                          {look.progress && live && p.kind !== 'none' && <i className="ctv-fill" aria-hidden="true" style={{ width: ((now - start) / Math.max(1, end - start)) * 100 + '%' }} />}
-                          {p.start < from && <span className="ctv-more" aria-hidden="true">◄</span>}
-                          <span className="ctv-cell-text">
-                            <b>{p.title}</b>
-                            {look.subtitles && p.sub && <small>{p.sub}</small>}
-                            {look.layout === 'streaming' && live && p.kind !== 'none' && <small className="ctv-left">{Math.max(1, Math.round((p.end - now) / 60))} min left</small>}
-                          </span>
-                          {p.end > to && <span className="ctv-more" aria-hidden="true">►</span>}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
+            {Array.from({ length: Math.max(0, Math.min(lastRow, totalRows - 1) - firstRow + 1) }, (_, i) => firstRow + i).map((r) => (
+              <GuideRow key={r} r={r} ch={rows[r]} top={r * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
+                onFocus={(row, at) => setFocus({ row, at })} onActivate={activate} wantFocus={wantFocus} />
+            ))}
           </div>
         </div>
       </div>
-      {total === 0 && <div className="ctv-err">No channels match that.</div>}
+      {total === 0 && <div className="ctv-err">{filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'}</div>}
 
       <footer className="ctv-help" aria-label="Keys">
         <button className="ctv-key a" onClick={() => shiftTime(-86400)}><b>A</b> Day −</button>
         <button className="ctv-key b" onClick={() => shiftTime(86400)}><b>B</b> Day +</button>
-        <button className="ctv-key c" onClick={() => setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' }))}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
-        <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · I Info · R Record</span>
+        <button className="ctv-key c" onClick={cycleKind}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
+        <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info</span>
       </footer>
       <LegalNote kind="tv" className="ctv-legal" />
 
-      {details && <Details ch={details.ch} p={details.p} now={now} onClose={() => setDetails(null)} onWatch={() => nav(`/tv/watch/${details.ch.key}`)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
+      {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
+      {searchOpen && <SearchPanel onClose={() => setSearchOpen(false)} onGo={(hit) => {
+        setSearchOpen(false)
+        const i = lineup.filter((x) => matches(x, filter)).findIndex((x) => x.key === hit.channel)
+        if (i >= 0) goAt(hit.start, i)
+        else { setFilter({ kind: '', group: '', favourites: false }); const k = lineup.findIndex((x) => x.key === hit.channel); setTimeout(() => goAt(hit.start, Math.max(0, k)), 0) }
+      }} />}
     </>
   )
 }
 
-function Details({ ch, p, now, onClose, onWatch, onRecord }: { ch: GuideChannel; p: Programme; now: number; onClose: () => void; onWatch: () => void; onRecord: () => void }) {
-  const [desc, setDesc] = useState(p.desc || '')
-  useEffect(() => {
-    if (p.desc || !p.itemId) return
-    api.get<{ overview: string }>(`/items/${p.itemId}`).then((it) => setDesc(it.overview)).catch(() => {})
-  }, [p.desc, p.itemId])
-  const addSeries = async () => {
-    try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(`Every airing of ${p.title} will be recorded`); onClose() } catch (e: any) { toast(e.message) }
-  }
+// The line at the current time. It has a clock of its own, so that moving it
+// doesn't redraw anything else, and it moves only every few seconds.
+function NowLine({ from, to }: { from: number; to: number }) {
+  const now = useClock(5000)
+  if (now < from || now >= to) return null
+  const pct = ((now - from) / (to - from)) * 100
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal ctv-details" role="dialog" aria-modal="true" aria-labelledby="ctv-d-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="ctv-d-h">{p.title}</h2>
-        {p.sub && <p className="muted">{p.sub}</p>}
-        <p className="muted">Channel {ch.number}, {ch.name}{p.kind !== 'none' && <> · {fmtDay(p.start)}, {fmtSpan(p)}</>}{p.rating && <> · {p.rating}</>}</p>
-        {desc && <p>{desc}</p>}
-        {ch.security?.state === 'encrypted' && <p role="alert"><b>{ch.security.label}.</b> {ch.security.detail} <Link to="/tv/encrypted">What can I do?</Link></p>}
-        {ch.security?.state === 'unknown' && <p className="muted" style={{ fontSize: 13 }}>{ch.security.detail}</p>}
-        {ch.noRecord && <p className="muted" style={{ fontSize: 13 }}>This channel can't be recorded: {ch.noRecord}.</p>}
-        {ch.notices?.map((n) => <p key={n} className="muted" style={{ fontSize: 13 }}>{n}</p>)}
-        {ch.kind === 'library' && <p className="muted" style={{ fontSize: 13 }}>Library channels can't be recorded: what they play is already in your library.</p>}
-        <div className="actions">
-          <button className="btn ghost" onClick={onClose}>Close</button>
-          {ch.canRecord && p.kind === 'broadcast' && p.end > now && <><button className="btn" onClick={() => void addSeries()}>Record every airing</button><button className="btn" onClick={onRecord}>Record this</button></>}
-          {ch.alternative && <Link className="btn primary" to={`/tv/watch/${ch.alternative.key}`}><IconPlay /> Watch {ch.alternative.number} {ch.alternative.name} instead</Link>}
-          {!ch.encrypted && <button className={'btn' + (ch.alternative ? '' : ' primary')} onClick={onWatch}><IconPlay /> Watch channel now</button>}
-        </div>
-      </div>
+    <div className="ctv-nowline" aria-hidden="true" style={{ left: `calc(var(--ctv-chw) + (100% - var(--ctv-chw) - var(--ctv-gutter)) * ${pct / 100})` }}>
+      <span>{fmtClock(now)}</span>
     </div>
   )
 }
+
+const programmeLabel = (ch: GuideChannel, p: Programme, now: number) => {
+  const when = p.kind === 'none' ? '' : fmtSpan(p)
+  const on = p.start <= now && p.end > now ? ', on now' : ''
+  const lock = ch.security?.state === 'encrypted' ? `, ${ch.security.label}` : ''
+  return `Channel ${ch.number}, ${ch.name}: ${[p.title, p.sub, when].filter(Boolean).join(', ')}${on}${lock}`
+}
+
+type RowProps = {
+  r: number; ch?: GuideChannel; top: number; rowH: number; from: number; to: number; pxPerSec: number; now: number; focusAt: number | null; look: Look
+  onFocus: (row: number, at: number) => void; onActivate: (ch: GuideChannel, p: Programme) => void; wantFocus: React.RefObject<boolean>
+}
+
+// One channel's row. Only rows that changed draw again, which is what keeps
+// moving around the guide quick on a cheap box.
+const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, now, focusAt, look, onFocus, onActivate, wantFocus }: RowProps) {
+  const span = to - from
+  const pct = (u: number) => ((u - from) / span) * 100
+  const cells = cellsFor(ch, from, to, pxPerSec)
+  const focusedCell = focusAt == null ? null : cells.find((c) => c.start <= focusAt && c.end > focusAt) || cells[0]
+  const accent = ch?.accent ? channelVars(ch.accent) : undefined
+  return (
+    <div className={'ctv-row' + (focusAt != null ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top, height: rowH, ...accent }}>
+      {ch ? (
+        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
+          <span className="ctv-num">{ch.number}</span>
+          <ChannelMark ch={ch} look={look} />
+          {ch.favourite && <span className="ctv-fav" role="img" aria-label="Favourite"><IconStar size={13} /></span>}
+          {ch.encrypted && <span className="ctv-lock" aria-hidden="true">🔒</span>}
+        </div>
+      ) : <div className="ctv-ch" role="rowheader" aria-colindex={1}><span className="ctv-name">…</span></div>}
+      <div className="ctv-track">
+        {ch && cells.map((p) => {
+          const start = Math.max(p.start, from), end = Math.min(p.end, to)
+          const focused = p === focusedCell
+          const colStart = Math.floor((start - from) / SLOT)
+          const colSpan = Math.max(1, Math.ceil((end - from) / SLOT) - colStart)
+          const live = p.start <= now && p.end > now
+          const wide = pxPerSec ? (end - start) * pxPerSec : 200
+          const tiny = wide < 34
+          const small = wide < 96
+          const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).join(' · ')
+          return (
+            <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
+              aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined}
+              className={'ctv-cell' + (focused ? ' focus' : '') + (live ? ' live' : '') + (p.kind === 'none' || p.kind === 'slate' ? ' dim' : '') + (ch.encrypted ? ' locked' : '') + (p.end <= now ? ' past' : '') + (tiny ? ' tiny' : '') + (p.kind === 'group' ? ' group' : '')}
+              style={{ left: pct(start) + '%', width: pct(end) - pct(start) + '%' }}
+              onFocus={() => { if (!focused) onFocus(r, Math.max(p.start, from)) }}
+              onClick={() => { if (focused) onActivate(ch, p); else { onFocus(r, Math.max(p.start, from)); wantFocus.current = true } }}
+              onDoubleClick={() => onActivate(ch, p)}>
+              {look.progress && live && p.kind !== 'none' && <i className="ctv-fill" aria-hidden="true" style={{ width: ((now - start) / Math.max(1, end - start)) * 100 + '%' }} />}
+              {!tiny && p.start < from && <span className="ctv-more" aria-hidden="true">◄</span>}
+              {tiny ? (p.kind === 'group' ? <span className="ctv-count" aria-hidden="true">{p.group?.length}</span> : null) : (
+                <span className="ctv-cell-text">
+                  <b>{p.title}</b>
+                  {look.subtitles && look.layout === 'streaming' && details && <small>{details}</small>}
+                  {look.subtitles && look.layout !== 'streaming' && p.sub && <small>{p.sub}</small>}
+                </span>
+              )}
+              {!tiny && p.end > to && <span className="ctv-more" aria-hidden="true">►</span>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+})

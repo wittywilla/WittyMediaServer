@@ -1,0 +1,9 @@
+/* A reminder coming due, on whatever page someone is on. */
+.tv-remind {
+  position: fixed; right: var(--space-4, 16px); bottom: var(--space-4, 16px); z-index: 1000; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+  max-width: min(420px, calc(100vw - 32px)); padding: 12px 14px; border-radius: var(--radius-md, 10px); background: var(--bg-3); color: var(--fg); box-shadow: 0 8px 28px rgb(0 0 0 / .45); font-size: var(--text-sm);
+}
+.tv-remind small { display: block; color: var(--fg-2); }
+.tv-remind-actions { display: flex; gap: 6px; margin-left: auto; }
+.tv-remind-actions .btn { min-height: 36px; }
+@media (max-width: 720px) { .tv-remind { bottom: 76px; } .tv-remind-actions .btn { min-height: 44px; } }

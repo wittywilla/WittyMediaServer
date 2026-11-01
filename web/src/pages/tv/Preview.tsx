@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconFull, IconMute, IconVolume } from '../../icons'
+import { IconClose, IconFull, IconMute, IconVolume } from '../../icons'
 import { useSource } from '../../player/hooks'
-import { setLook, type Look } from './look'
+import { PREVIEW_MIN, PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
 
 // The little TV on the guide. It waits for the highlight to settle before
 // tuning, because each channel it shows runs a stream, and says when it leaves,
-// so a channel that was only flicked past stops at once.
+// so a channel that was only flicked past stops at once. With the tab in the
+// background it stops altogether.
+//
+// It sits in the page's layout, not over it, so it can't cover anything. Its
+// size is any width from small up to what the page can spare (`max`), set by
+// dragging its handle or with the keys on it, and snaps to the named sizes.
 
 const SETTLE_MS = 1500
+const STEP = 24
+const SNAP_WITHIN = 18
 
-export default function Preview({ channel, label, look }: { channel: string; label: string; look: Look }) {
+const snap = (w: number) => PREVIEW_SIZES.find((s) => Math.abs(s.w - w) <= SNAP_WITHIN)?.w ?? w
+
+export default function Preview({ channel, label, look, max }: { channel: string; label: string; look: Look; max: number }) {
   const nav = useNavigate()
   const video = useRef<HTMLVideoElement | null>(null)
   const box = useRef<HTMLDivElement | null>(null)
@@ -20,10 +29,17 @@ export default function Preview({ channel, label, look }: { channel: string; lab
   const [info, setInfo] = useState<TuneInfo | null>(null)
   const [state, setState] = useState<'idle' | 'tuning' | 'playing' | 'failed'>('idle')
   const [msg, setMsg] = useState('')
+  const [hidden, setHidden] = useState(() => document.hidden)
+
+  useEffect(() => {
+    const on = () => setHidden(document.hidden)
+    document.addEventListener('visibilitychange', on)
+    return () => document.removeEventListener('visibilitychange', on)
+  }, [])
 
   useEffect(() => {
     setUrl(null); setInfo(null); setMsg('')
-    if (!channel) { setState('idle'); return }
+    if (!channel || hidden) { setState('idle'); return }
     setState('tuning')
     const ac = new AbortController()
     const v = viewer.current
@@ -42,7 +58,7 @@ export default function Preview({ channel, label, look }: { channel: string; lab
     const gone = () => leaveChannel(channel, v)
     window.addEventListener('pagehide', gone)
     return () => { clearTimeout(t); ac.abort(); window.removeEventListener('pagehide', gone); gone() }
-  }, [channel])
+  }, [channel, hidden])
 
   useSource(video, url, {
     onReady: () => {
@@ -55,55 +71,69 @@ export default function Preview({ channel, label, look }: { channel: string; lab
   })
   useEffect(() => { if (video.current) video.current.muted = !look.previewSound }, [look.previewSound])
 
-  // Moving it: drag with a pointer, or the arrow keys on the handle.
-  const place = (x: number, y: number) => {
-    setLook({ previewPos: 'custom', previewX: Math.max(0, Math.min(100, x)), previewY: Math.max(0, Math.min(100, y)) })
-  }
+  // Below what the controls need, a preview can't be used at all.
+  const least = Math.min(PREVIEW_MIN, max)
+  const width = Math.max(least, Math.min(max, look.previewW))
+  const setWidth = (w: number) => setLook({ previewW: Math.round(Math.max(least, Math.min(max, w))) })
+
+  // Dragging changes only this element, so nothing else redraws on every move.
   const onDrag = (e: React.PointerEvent) => {
-    const el = box.current, page = el?.parentElement
-    if (!el || !page) return
+    const el = box.current
+    if (!el) return
     e.preventDefault()
-    const pr = page.getBoundingClientRect(), r = el.getBoundingClientRect()
-    const dx = e.clientX - r.left, dy = e.clientY - r.top
+    const startX = e.clientX, startW = el.getBoundingClientRect().width
+    const sign = look.previewSide === 'right' ? -1 : 1
+    let now = startW
     const move = (ev: PointerEvent) => {
-      const room = { w: Math.max(1, pr.width - r.width), h: Math.max(1, pr.height - r.height) }
-      place(((ev.clientX - pr.left - dx) / room.w) * 100, ((ev.clientY - pr.top - dy) / room.h) * 100)
+      now = snap(Math.max(least, Math.min(max, startW + (ev.clientX - startX) * sign)))
+      el.style.width = now + 'px'
     }
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      setWidth(now)
+    }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
   }
-  const onGripKey = (e: React.KeyboardEvent) => {
-    const step = { ArrowLeft: [-3, 0], ArrowRight: [3, 0], ArrowUp: [0, -3], ArrowDown: [0, 3] }[e.key]
-    if (!step) return
-    e.preventDefault(); e.stopPropagation()
-    let x = look.previewX, y = look.previewY
-    if (look.previewPos !== 'custom') {
-      const el = box.current, page = el?.parentElement
-      if (el && page) {
-        const pr = page.getBoundingClientRect(), r = el.getBoundingClientRect()
-        x = ((r.left - pr.left) / Math.max(1, pr.width - r.width)) * 100
-        y = ((r.top - pr.top) / Math.max(1, pr.height - r.height)) * 100
-      }
+  // The named sizes that fit, for jumping between with Page keys and the buttons.
+  const sizes = PREVIEW_SIZES.map((s) => s.w).filter((w) => w <= max)
+  const up = () => { const n = sizes.find((w) => w > width + 1); setWidth(n ?? max) }
+  const down = () => { const n = [...sizes].reverse().find((w) => w < width - 1); setWidth(n ?? least) }
+  const onKey = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowRight': setWidth(width + STEP); break
+      case 'ArrowLeft': setWidth(width - STEP); break
+      case 'PageUp': up(); break
+      case 'PageDown': down(); break
+      case 'Home': setWidth(least); break
+      case 'End': setWidth(max); break
+      default: return
     }
-    place(x + step[0], y + step[1])
+    e.preventDefault(); e.stopPropagation()
   }
-  const style: React.CSSProperties = look.previewPos === 'custom'
-    ? { left: `calc((100% - var(--ctv-pv-w)) * ${look.previewX / 100})`, top: `calc((100% - var(--ctv-pv-h)) * ${look.previewY / 100})` }
-    : {}
   return (
-    <div className={'ctv-preview pos-' + look.previewPos} ref={box} style={style} role="group" aria-label={`Preview: ${label || 'no channel'}`}>
-      <video ref={video} playsInline muted preload="auto" aria-hidden="true" tabIndex={-1} />
-      {state !== 'playing' && (
-        <div className="ctv-preview-msg" aria-live="polite">
-          {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small>{info ? 'Tuning…' : label}</small> : <small>No preview for this channel</small>}
-        </div>
-      )}
+    <div className={'ctv-preview side-' + look.previewSide} ref={box} style={{ width }} role="group" aria-label={`Preview: ${label || 'no channel'}`}>
+      <div className="ctv-preview-screen">
+        <video ref={video} playsInline muted preload="auto" aria-hidden="true" tabIndex={-1} />
+        {state !== 'playing' && (
+          <div className="ctv-preview-msg" aria-live="polite">
+            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small>{info ? 'Tuning…' : label}</small> : <small>{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
+          </div>
+        )}
+        <span className="ctv-preview-handle" role="slider" tabIndex={0} aria-label="Preview size" aria-orientation="horizontal"
+          aria-valuemin={Math.round(least)} aria-valuemax={Math.round(max)} aria-valuenow={Math.round(width)} aria-valuetext={previewSizeName(width)}
+          title="Drag to resize, or use the arrow keys" onPointerDown={onDrag} onKeyDown={onKey} />
+      </div>
       <div className="ctv-preview-bar">
-        <button type="button" className="ctv-preview-grip" title="Drag to move, or use the arrow keys" aria-label="Move the preview. Use the arrow keys." onPointerDown={onDrag} onKeyDown={onGripKey}>⠿</button>
         <span className="ctv-preview-name">{label}</span>
-        <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label="Preview sound" title="Preview sound">{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
+        <button type="button" onClick={down} disabled={width <= least} aria-label="Smaller preview" title="Smaller">−</button>
+        <button type="button" onClick={up} disabled={width >= max} aria-label="Larger preview" title="Larger">+</button>
+        <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label="Preview sound" title={look.previewSound ? 'Sound on' : 'Sound off'}>{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
         <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`)} aria-label={`Watch ${label} full screen`} title="Full screen"><IconFull size={15} /></button>
+        <button type="button" onClick={() => setLook({ preview: 'off' })} aria-label="Hide the preview" title="Hide the preview"><IconClose size={15} /></button>
       </div>
     </div>
   )

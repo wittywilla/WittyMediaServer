@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
 import AddLibrary from '../components/AddLibrary'
@@ -17,6 +17,7 @@ import { useOpenItem } from '../openItem'
 type Layout = { v?: number; order: string[]; hidden: string[] }
 type Widget = { id: string; title: string; render: () => React.ReactNode | null }
 const LAYOUT_V = 2
+const OnNowRow = lazy(() => import('./tv/OnNowRow'))
 
 export default function HomePage() {
   const [home, setHome] = useState<Home | null>(null)
@@ -60,6 +61,7 @@ export default function HomePage() {
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
       { id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> },
       { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
+      { id: 'onnow', title: 'On TV now', render: () => <Suspense fallback={null}><OnNowRow /></Suspense> },
       { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items || [], shows: forYou.shows || [] }} /> : null) },
     ]
     const next = byKey('nextup')

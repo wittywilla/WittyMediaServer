@@ -1,0 +1,134 @@
+/* The channel editor's bigger parts: discs and scenes, bumpers, the timetable and
+   the schedule preview. Settings pages follow the app's theme and tokens. */
+.tve-jump { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--space-3, 12px); padding: 8px 0; background: var(--bg); }
+.tve-jump a { flex: none; padding: 6px 12px; min-height: 36px; display: inline-flex; align-items: center; border-radius: 999px; background: var(--bg-3); color: var(--fg); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+.tve-jump a:hover, .tve-jump a:focus-visible { background: var(--bg-4); outline: 2px solid var(--accent); outline-offset: 1px; }
+.tve-sub { margin: -4px 0 8px; font-size: var(--text-sm); }
+.tve-find { margin-bottom: 10px; max-width: 320px; }
+
+/* Discs */
+.tve-discs { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.tve-disc { display: flex; gap: 12px; padding: 10px; border: 2px solid transparent; border-radius: var(--radius-md, 10px); background: var(--bg-3); }
+.tve-disc.chosen { border-color: var(--accent); }
+.tve-disc-art { position: relative; flex: none; width: 84px; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; background: var(--bg-4); }
+.tve-disc-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tve-disc.locked .tve-disc-art img { filter: grayscale(1) brightness(.55); }
+.tve-disc-badge { position: absolute; left: 4px; top: 4px; padding: 0 5px; border-radius: 3px; background: rgb(0 0 0 / .78); color: #fff; font-size: 10px; font-weight: 700; }
+.tve-disc-lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; }
+.tve-disc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tve-disc-text > span { color: var(--fg-2); font-size: var(--text-sm); }
+.tve-disc-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
+.tve-refused { margin: 6px 0 0; color: var(--fg-2); font-size: var(--text-xs); line-height: 1.35; }
+.tve-picked { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tve-picked li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: var(--bg-3); }
+.tve-picked img { flex: none; width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 5px; background: var(--bg-4); }
+.tve-picked-text { flex: 1 1 200px; min-width: 0; display: grid; gap: 3px; }
+.tve-picked-text span { color: var(--fg-2); font-size: var(--text-sm); }
+.tve-picked-actions { display: flex; gap: 2px; }
+
+/* The scene picker */
+.tve-picker { width: min(1040px, 100%); max-width: none; max-height: 92dvh; overflow-y: auto; }
+.tve-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tve-picker-head h2 { margin: 0; }
+.tve-how { margin: 6px 0; font-size: var(--text-sm); }
+.tve-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px; scrollbar-width: thin; }
+.tve-tab { flex: none; display: grid; gap: 1px; padding: 6px 12px; min-height: 44px; border: 2px solid transparent; border-radius: 8px; background: var(--bg-3); color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.tve-tab span { color: var(--fg-2); font-size: var(--text-xs); }
+.tve-tab.on { border-color: var(--accent); }
+.tve-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tve-chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 44dvh; overflow-y: auto; padding: 3px; }
+.tve-chapter { display: grid; gap: 4px; padding: 4px; border: 2px solid transparent; border-radius: 8px; background: var(--bg-3); color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.tve-chapter img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 5px; background: var(--bg-4); display: block; }
+.tve-chapter span { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 0 3px 2px; font-size: var(--text-sm); }
+.tve-chapter b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+.tve-chapter small { flex: none; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.tve-chapter:hover { background: var(--bg-4); }
+.tve-chapter.on { border-color: var(--accent); background: rgb(var(--accent-rgb) / .18); }
+.tve-chapter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tve-timeline { position: relative; height: 14px; margin: 10px 0; border-radius: 4px; background: var(--bg-3); overflow: hidden; }
+.tve-timeline i { position: absolute; top: 0; bottom: 0; display: block; }
+.tve-timeline .tick { width: 1px; background: var(--bg-4); }
+.tve-timeline .done { background: rgb(var(--accent-rgb) / .4); }
+.tve-timeline .now { background: var(--accent); min-width: 2px; }
+.tve-range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 10px; border-radius: 8px; background: var(--bg-2); }
+.tve-time label, .tve-range-name { display: grid; gap: 3px; font-size: var(--text-sm); }
+.tve-time .input { width: 100px; font-variant-numeric: tabular-nums; }
+.tve-nudge { display: flex; gap: 2px; margin-top: 3px; }
+.tve-nudge .btn { padding: 2px 7px; min-height: 30px; }
+.tve-range-name { flex: 1 1 160px; }
+.tve-range-len { align-self: center; color: var(--fg-2); font-size: var(--text-sm); }
+.tve-try { margin-top: 10px; }
+.tve-try video { display: block; width: min(560px, 100%); aspect-ratio: 16 / 9; background: #000; border-radius: 8px; }
+.tve-chosen { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.tve-chosen li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 8px; border-radius: 6px; background: var(--bg-3); font-size: var(--text-sm); }
+
+/* The bumper library */
+.tve-bumpers { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.tve-bumper { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px; background: var(--bg-3); }
+.tve-bumper img { flex: none; width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: var(--bg-4); }
+.tve-bumper-text { flex: 1; min-width: 0; display: grid; }
+.tve-bumper-text b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--text-sm); }
+.tve-bumper-text span { color: var(--fg-2); font-size: var(--text-xs); }
+.tve-finder { width: min(560px, 100%); max-height: 88dvh; overflow-y: auto; }
+.tve-found { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 4px; }
+.tve-found li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px; border-radius: 6px; background: var(--bg-3); font-size: var(--text-sm); }
+.tve-found small { color: var(--fg-2); }
+
+/* Rules */
+.tve-rules { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
+.tve-rule { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: var(--bg-3); }
+.tve-rule.off { opacity: .66; }
+.tve-rule-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tve-rule-name { flex: 1 1 200px; min-width: 0; font-weight: 600; }
+.tve-mandatory { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); }
+.tve-sentence { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.tve-sentence label { display: grid; gap: 3px; font-size: var(--text-sm); color: var(--fg-2); flex: 1 1 170px; min-width: 0; }
+
+/* Keeping to the timetable */
+.tve-trim-switch { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg-3); }
+.tve-trim-switch div { display: grid; }
+.tve-trim-switch span { color: var(--fg-2); font-size: var(--text-sm); }
+.tve-trim { display: grid; gap: 12px; margin-top: 12px; }
+.tve-radios { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; min-width: 0; }
+.tve-radios legend { padding: 0; margin-bottom: 4px; font-weight: 600; font-size: var(--text-sm); }
+.tve-radios.row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.tve-radio { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; min-height: 44px; border: 2px solid transparent; border-radius: 8px; background: var(--bg-3); cursor: pointer; }
+.tve-radio.on { border-color: var(--accent); }
+.tve-radio:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tve-radio span { display: grid; }
+.tve-radio small { color: var(--fg-2); font-size: var(--text-xs); }
+
+/* What the schedule will be */
+.tve-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.tve-stat { flex: 1 1 120px; display: grid; padding: 8px 12px; border-radius: 8px; background: var(--bg-3); font-size: var(--text-xs); color: var(--fg-2); }
+.tve-stat b { font-size: var(--text-xl); color: var(--fg); font-variant-numeric: tabular-nums; }
+.tve-strip { display: flex; height: 28px; margin-bottom: 4px; border-radius: 6px; overflow: hidden; background: var(--bg-3); }
+.tve-strip i { display: block; min-width: 1px; border-right: 1px solid var(--bg); }
+.tve-strip i.show { background: var(--accent); }
+.tve-strip i.filler { background: var(--fg-2); }
+.tve-strip i.must { background: var(--fg); }
+.tve-strip i.slate { background: var(--bg-4); }
+.tve-strip-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px; color: var(--fg-2); font-size: var(--text-xs); }
+.tve-strip-key i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+.tve-sched { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 420px; overflow-y: auto; }
+.tve-sched li { display: flex; align-items: baseline; gap: 10px; padding: 3px 8px; border-radius: 5px; font-size: var(--text-sm); }
+.tve-sched time { flex: none; min-width: 74px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.tve-sched li.show { background: var(--bg-3); font-weight: 600; }
+.tve-sched li.slate { color: var(--fg-2); font-style: italic; }
+.tve-sched .tag { flex: none; padding: 0 6px; border-radius: 3px; background: var(--bg-4); font-size: var(--text-2xs); font-weight: 700; }
+.tve-sched .tag.must { background: var(--fg); color: var(--bg); }
+.tve-sched .cut { color: var(--fg-2); font-size: var(--text-xs); }
+.tve-sched .main { flex: 1; min-width: 0; }
+.tve-sched small { color: var(--fg-2); font-weight: 400; }
+
+.tve-accent { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tve-accent input[type=color] { width: 44px; height: 36px; padding: 0; border: 1px solid var(--bg-4); border-radius: 6px; background: none; }
+.tve-season { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.tve-season label { display: grid; gap: 3px; font-size: var(--text-sm); }
+.tve-season .input { width: 92px; }
+@media (max-width: 720px) {
+  .tve-discs { grid-template-columns: minmax(0, 1fr); }
+  .tve-picker { max-height: 100dvh; }
+  .tve-chapters { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+  .tve-nudge .btn { min-height: 44px; min-width: 44px; }
+}

@@ -154,7 +154,7 @@
 
 /* The strip of controls between the top and the grid. */
 .ctv-bar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; padding: 6px 10px; background: var(--ctv-panel); flex: none; }
-.ctv-bar-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.ctv-bar-group { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .ctv-bar-title { margin: 0 4px 0 2px; font-size: 18px; font-weight: 700; color: var(--ctv-accent); }
 .ctv-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .ctv-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 4px 12px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--ctv-text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -250,7 +250,11 @@
 .ctv-page.narrow .ctv-clock { display: none; }
 @media (max-width: 720px) {
   .ctv-bar { padding: 6px 16px; }
-  .ctv-bar-time, .ctv-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .ctv-bar-group { max-width: 100%; flex-wrap: nowrap; }
+  .ctv-bar-time, .ctv-chips, .ctv-hero-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .ctv-bar-time > *, .ctv-chips > *, .ctv-hero-actions > * { flex: none; }
+  .ctv-key { min-height: 44px; }
+  .ctv-chip, .ctv-btn, .ctv-link-btn { min-width: 44px; }
   .ctv-grid { --ctv-chw: 96px; flex-basis: 320px; }
   .ctv-hero { min-height: 0; gap: 10px; padding: 8px 16px; }
   .ctv-hero-title { font-size: 19px; }

@@ -124,6 +124,12 @@ func TestCutCommercialsShortKeepsTheTimetable(t *testing.T) {
 	if shows < 40 {
 		t.Fatalf("only %d slots in a day", shows)
 	}
+	// Exactly on the grid, every one, with nothing out of place between them.
+	for i := 1; i < len(progs); i++ {
+		if progs[i].Start != progs[i-1].End {
+			t.Fatalf("a gap in the schedule: %+v then %+v", progs[i-1], progs[i])
+		}
+	}
 	if trimmed == 0 {
 		t.Error("nothing was cut, though three commercials can't fit after a show of 29:50")
 	}

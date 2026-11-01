@@ -5,6 +5,27 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.6.0-alpha
+
+- **WittyTV guide:** rebuilt around the highlighted programme: channel, title, times, how far in, what's next, and Watch
+  full screen, Start over, Open the film, favourite, channel up and down, and the whole day. Filters for favourites and
+  categories, jumps to tonight or tomorrow, a search across the schedule, reminders, a mini guide over the player, and
+  an *On TV now* row on Home. Very short programmes are handled properly in the rows.
+- **WittyTV preview:** resize it by dragging its corner, with the keyboard or remote, or to a named size. It sits beside
+  the programme rather than over the guide, so at any size it covers nothing, and it can be hidden. It's remembered for
+  your account.
+- **WittyTV looks:** the classic cable box stays, joined by a modern look, Midnight colours, your own two colours, a
+  colour for each channel, and a theme can suggest a look.
+- **WittyTV discs:** a channel can play a disc's main feature or scenes you pick by chapter, from thumbnails, and fine-tune
+  to the second. DVDs and Blu-rays alike. Encrypted discs stay refused, with the usual message.
+- **WittyTV bumpers:** a bumper library (upload, or choose from your media), and rules per channel: before or after a
+  programme, between commercials, or a break every so many minutes, mandatory or only for particular films, shows,
+  genres or collections.
+- **WittyTV timetable:** "cut commercials short" keeps programmes starting on time, with clear choices about what may give
+  way, and the editor shows the whole day with what was cut.
+- **WittyTV channels:** one click for studios and your collections as well as genres, decades and networks, with *Add all*.
+  Holiday seasons and marathon blocks. Channels you already have carry on as they were.
+
 ## 0.5.2-alpha
 
 0.5.0-alpha was never published as a release, so this is the first release with everything from it as

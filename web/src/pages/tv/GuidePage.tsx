@@ -179,7 +179,9 @@ export default function GuidePage() {
   const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
   const curCell = cells.find((c) => c.start <= focus.at && c.end > focus.at) || cells[0]
   // What the top of the page is about: the highlighted programme, and what follows it.
-  const panel = details ? (details.p.kind === 'group' ? curCell : details.p) : curCell
+  const panelCell = details ? (details.p.kind === 'group' ? curCell : details.p) : curCell
+  // A run of very short programmes is one cell, but the top of the page says which one.
+  const panel = panelCell?.group ? panelCell.group.find((c) => c.start <= focus.at && c.end > focus.at) || panelCell.group[0] : panelCell
   const nextShow = useMemo(() => {
     if (!cur || !panel) return undefined
     return cur.programmes.find((p) => p.start >= panel.end && p.kind !== 'slate' && p.kind !== 'none')
@@ -337,7 +339,7 @@ export default function GuidePage() {
   // The most the preview may take: never so much that the words beside it or the
   // guide below have no room. A phone gives it the whole width, on its own line.
   const narrow = pageSize.w < 760
-  const previewMax = Math.round(Math.min(narrow ? pageSize.w - 32 : pageSize.w * 0.55, (pageSize.h * (narrow ? 0.38 : 0.5) - 40) * (16 / 9)))
+  const previewMax = Math.round(Math.min(narrow ? pageSize.w - 32 : pageSize.w * 0.55, (pageSize.h * (narrow ? 0.3 : 0.5) - 40) * (16 / 9)))
 
   const vars = { ...customVars(look) }
   const shell = (children: React.ReactNode) => (

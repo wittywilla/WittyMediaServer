@@ -907,6 +907,12 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 		if next > t {
 			t = g.pad(t, min(next, limit))
 		}
+		// Keeping to the timetable means exactly: a moment too short for a card
+		// goes to what is playing, rather than the next programme starting early.
+		if trim.On && target > t && target-t < minSlate && len(g.out) > 0 {
+			g.out[len(g.out)-1].End = target
+			t = target
+		}
 	}
 	return t
 }

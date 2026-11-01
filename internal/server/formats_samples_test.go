@@ -435,7 +435,7 @@ func s3mBytes() []byte {
 	h[64], h[65] = 0, 8
 	var b bytes.Buffer
 	b.Write(h)
-	b.WriteByte(0)                                 // order 0: pattern 0
+	b.WriteByte(0)                                   // order 0: pattern 0
 	binary.Write(&b, binary.LittleEndian, uint16(7)) // paragraph where the pattern is
 	for b.Len()%16 != 0 {
 		b.WriteByte(0)
@@ -778,4 +778,30 @@ func copyFile(dst, src string) error {
 		return err
 	}
 	return os.WriteFile(dst, b, 0o644)
+}
+
+// scrambleVOBs marks the video and sound of a DVD image as encrypted, as CSS does.
+// Nothing here encrypts anything: the mark is what the scan looks for.
+func scrambleVOBs(path string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	const sector = 2048
+	for off := 0; off+sector <= len(b); off += sector {
+		pack := b[off : off+sector]
+		if pack[0] != 0 || pack[1] != 0 || pack[2] != 1 || pack[3] != 0xBA {
+			continue
+		}
+		p := 14 + int(pack[13]&7)
+		for p+9 <= len(pack) && pack[p] == 0 && pack[p+1] == 0 && pack[p+2] == 1 {
+			id := pack[p+3]
+			l := int(binary.BigEndian.Uint16(pack[p+4:]))
+			if id != 0xBB && id != 0xBE && id != 0xBF {
+				pack[p+6] |= 0x30
+			}
+			p += 6 + l
+		}
+	}
+	return os.WriteFile(path, b, 0o644)
 }

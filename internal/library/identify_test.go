@@ -285,3 +285,11 @@ func TestBooksLeaveOutNotes(t *testing.T) {
 		t.Errorf("found %v", names)
 	}
 }
+
+func TestTitlesKeepWordsThatLookLikeExtensions(t *testing.T) {
+	for name, want := range map[string]string{"The.Nut": "The Nut", "Mr.Doc": "Mr Doc", "Far.Med": "Far Med", "A.Film.mkv": "A Film", "Long.Title.iso": "Long Title"} {
+		if got, _ := ParseName(name); got != want {
+			t.Errorf("%q: %q, want %q", name, got, want)
+		}
+	}
+}

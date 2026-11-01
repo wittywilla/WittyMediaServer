@@ -543,6 +543,12 @@ func discRows() []*formatRow {
 		{id: "mdf DVD", file: "c.mdf", make: func(st *sampleTools, p string) error { return st.dvdISO(p) }, want: "disc"},
 		{id: "nrg DVD", file: "d.nrg", make: func(st *sampleTools, p string) error { return st.dvdISO(p) }, want: "disc"},
 		{id: "bin DVD (data sectors)", file: "e.bin", make: func(st *sampleTools, p string) error { return st.dvdISO(p) }, want: "disc"},
+		{id: "Encrypted DVD (refused)", file: "scrambled.iso", make: func(st *sampleTools, p string) error {
+			if err := st.dvdISO(p); err != nil {
+				return err
+			}
+			return scrambleVOBs(p)
+		}, want: "refused"},
 	}
 }
 
@@ -766,9 +772,18 @@ func TestFormatTable(t *testing.T) {
 	if subs := checkSubtitles(t, ts, tok, tools, st, root, filter); subs != "" {
 		table.WriteString(subs)
 	}
-	if checkFailures(&failures); len(failures) > 0 {
+	if extra := checkSheets(t, ts, tok, st, root, filter); extra != "" {
+		table.WriteString(extra)
+	}
+	if len(failures) > 0 {
 		sort.Strings(failures)
-		t.Errorf("%d formats failed:\n%s", len(failures), strings.Join(failures, "\n"))
+		// Older FFmpegs don't read everything (HEIC before 7, for one), and that's what
+		// a format's Needs says. What's enforced is this FFmpeg and later.
+		if ffmpegMajor(tools) >= 8 {
+			t.Errorf("%d formats failed:\n%s", len(failures), strings.Join(failures, "\n"))
+		} else {
+			t.Logf("%d formats didn't work with %s:\n%s", len(failures), tools.Version, strings.Join(failures, "\n"))
+		}
 	}
 	t.Log(table.String())
 	if out := os.Getenv("WMS_FORMAT_TABLE"); out != "" {
@@ -778,8 +793,145 @@ func TestFormatTable(t *testing.T) {
 	}
 }
 
-// checkFailures is where anything allowed to fail would be listed. Nothing is.
-func checkFailures(*[]string) {}
+var ffmpegVersionRe = regexp.MustCompile(`version (N-|n?)(\d*)`)
+
+// ffmpegMajor reads a version; a build from the development branch counts as new.
+func ffmpegMajor(t *ffmpeg.Tools) int {
+	m := ffmpegVersionRe.FindStringSubmatch(t.Version)
+	if m == nil {
+		return 0
+	}
+	if m[1] == "N-" {
+		return 99
+	}
+	n := 0
+	fmt.Sscanf(m[2], "%d", &n)
+	return n
+}
+
+// checkSheets covers the files read beside media: playlists become collections, and
+// details and artwork reach the items they belong to.
+func checkSheets(t *testing.T, ts *testServer, tok string, st *sampleTools, root string, filter *regexp.Regexp) string {
+	t.Helper()
+	var rows []string
+	row := func(id, what, result string) {
+		rows = append(rows, fmt.Sprintf("| %s | %s | %s |\n", id, what, result))
+		if strings.HasPrefix(result, "FAIL") {
+			t.Errorf("%s: %s", id, result)
+		}
+	}
+	if filter != nil && !filter.MatchString("sheets") {
+		return ""
+	}
+	music := filepath.Join(root, "playlist-music")
+	songs := []string{"One.mp3", "sub/Two.flac", "Three.ogg"}
+	for _, s := range songs {
+		p := filepath.Join(music, filepath.FromSlash(s))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		args := map[string][]string{".mp3": {"-c:a", "libmp3lame"}, ".flac": {"-c:a", "flac"}, ".ogg": {"-c:a", "libvorbis"}}[filepath.Ext(s)]
+		if err := st.ffaudio(p, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lists := map[string]string{
+		"list m3u.m3u":   "#EXTM3U\n#EXTINF:1,One\nOne.mp3\nsub/Two.flac\nhttp://evil.test/x.mp3\n../../../etc/passwd\nThree.ogg\n",
+		"list m3u8.m3u8": "#EXTM3U\nThree.ogg\nOne.mp3\n",
+		"list pls.pls":   "[playlist]\nNumberOfEntries=2\nFile2=sub/Two.flac\nFile1=One.mp3\n",
+		"list xspf.xspf": `<?xml version="1.0"?><playlist xmlns="http://xspf.org/ns/0/"><trackList><track><location>One.mp3</location></track><track><location>Three.ogg</location></track></trackList></playlist>`,
+		"list asx.asx":   `<asx version="3.0"><entry><ref href="sub/Two.flac"/></entry><entry><ref href="One.mp3"/></entry></asx>`,
+		"none.m3u":       "http://evil.test/only.mp3\n",
+	}
+	for n, body := range lists {
+		if err := os.WriteFile(filepath.Join(music, n), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	id := ts.library(t, "music", music)
+	scanAndWait(t, ts.Server, id)
+	cols := ts.do(t, "GET", "/api/collections", tok, nil)
+	var named []struct {
+		ID    int64  `json:"id"`
+		Name  string `json:"name"`
+		Count int    `json:"count"`
+	}
+	json.Unmarshal(cols.Body.Bytes(), &named)
+	want := map[string]int{"list m3u": 3, "list m3u8": 2, "list pls": 2, "list xspf": 2, "list asx": 2}
+	got := map[string]int{}
+	for _, c := range named {
+		got[c.Name] = c.Count
+	}
+	for name, n := range want {
+		res := "ok"
+		if got[name] != n {
+			res = fmt.Sprintf("FAIL: %d songs, wanted %d (%v)", got[name], n, got)
+		}
+		row(name, "a collection of the songs it names", res)
+	}
+	if _, made := got["none"]; made {
+		row("A playlist of web addresses", "makes nothing", "FAIL: it made a collection")
+	} else {
+		row("A playlist of web addresses", "makes nothing", "ok")
+	}
+	// NFO and artwork.
+	films := filepath.Join(root, "sidecar-films")
+	if err := os.MkdirAll(filepath.Join(films, "Odd Name"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	film := filepath.Join(films, "Odd Name", "odd.mp4")
+	if err := st.ff(film, join(h264v(), x264, []string{"-c:a", "aac"})...); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(films, "Odd Name", "odd.nfo"), []byte(`<movie><title>The Made-Up Film</title><year>1999</year></movie>`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	j := smallJPEGBytes(t)
+	if err := os.WriteFile(filepath.Join(films, "Odd Name", "poster.tbn"), j, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	album := filepath.Join(root, "sidecar-album")
+	if err := st.ffaudio(filepath.Join(album+"-make.mp3"), "-c:a", "libmp3lame"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(album, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyFile(filepath.Join(album, "Song.mp3"), album+"-make.mp3"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(album, "folder.webp"), []byte("RIFF0000WEBP"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lid := ts.library(t, "videos", films)
+	scanAndWait(t, ts.Server, lid)
+	items, _, err := ts.Store.Items(context.Background(), library.ItemQuery{LibraryID: lid, NoTotal: true, Limit: 100})
+	if err != nil || len(items) != 1 {
+		t.Fatalf("%v items, %v", len(items), err)
+	}
+	res := "ok"
+	if items[0].Title != "The Made-Up Film" {
+		res = "FAIL: titled " + items[0].Title
+	}
+	row("nfo", "gives the title and details", res)
+	res = "ok"
+	if !strings.HasSuffix(items[0].Poster, "poster.tbn") {
+		res = "FAIL: poster is " + items[0].Poster
+	}
+	row("tbn and other pictures beside a file", "become its artwork", res)
+	aid := ts.library(t, "music", album)
+	scanAndWait(t, ts.Server, aid)
+	songsOf, _, err := ts.Store.Items(context.Background(), library.ItemQuery{LibraryID: aid, NoTotal: true, Limit: 100})
+	if err != nil || len(songsOf) != 1 {
+		t.Fatalf("%v items, %v", len(songsOf), err)
+	}
+	res = "ok"
+	if !strings.HasSuffix(songsOf[0].Poster, "folder.webp") {
+		res = "FAIL: cover is " + songsOf[0].Poster
+	}
+	row("Album art in the folder", "becomes the cover", res)
+	return "\n### Playlists and files beside media\n\n| Format | What should happen | Result |\n|---|---|---|\n" + strings.Join(rows, "")
+}
 
 func scanAndWait(t *testing.T, s *Server, id int64) {
 	t.Helper()
@@ -805,9 +957,10 @@ type playbackAnswer struct {
 	Seek             string `json:"seek"`
 	SubtitleDelivery string `json:"subtitleDelivery"`
 	Disc             *struct {
-		Type     string `json:"type"`
-		HasMenus bool   `json:"hasMenus"`
-		OpenURL  string `json:"openUrl"`
+		Type      string `json:"type"`
+		HasMenus  bool   `json:"hasMenus"`
+		OpenURL   string `json:"openUrl"`
+		Scrambled bool   `json:"scrambled"`
 	} `json:"disc"`
 	Subtitles []struct {
 		Index    int    `json:"index"`
@@ -899,6 +1052,17 @@ func checkItem(t *testing.T, ts *testServer, tok, lib string, row *formatRow, it
 			return
 		}
 		row.res.decision = a.Decision
+		if row.want == "refused" {
+			row.res.probe, row.res.art = a.Disc.Type, sNA
+			w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/dvd", it.ID), tok, map[string]any{"mode": "title"})
+			row.res.play = "FAIL: it plays: " + trimBody(w.Body.String())
+			if !a.Disc.Scrambled {
+				row.res.decision = "FAIL: not noticed"
+			} else if w.Code >= 400 || strings.Contains(w.Body.String(), "scrambled") {
+				row.res.play = "refused"
+			}
+			return
+		}
 		if a.Decision != row.want || a.Disc == nil {
 			row.res.decision = "FAIL: " + a.Decision + ", wanted " + row.want
 			return
@@ -1357,6 +1521,86 @@ func TestCodecsDecoders(t *testing.T) {
 	for _, c := range []string{"vc1", "rv30", "rv40", "ape", "tak", "wmapro", "prores", "dnxhd", "dts", "truehd", "cook", "hevc", "av1", "vp9"} {
 		if !tools.CanDecode(c) && !tools.CanDecode("lib"+c) && !tools.CanDecode("lib"+c+"1") && c != "av1" {
 			t.Errorf("this FFmpeg can't decode %s", c)
+		}
+	}
+}
+
+// Damaged, empty and made-up files of every kind: a scan gets through them, and asking to
+// play or open each gets an answer rather than a crash.
+func TestHostileFiles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs FFmpeg on bad files")
+	}
+	tools, err := ffmpeg.Locate("", "")
+	if err != nil {
+		t.Skip("no FFmpeg here")
+	}
+	ts := formatServer(t, tools)
+	_, tok := ts.user(t, "tester", auth.KindAdult, true, "")
+	root := t.TempDir()
+	noise := make([]byte, 1<<16)
+	for i := range noise {
+		noise[i] = byte(i*2654435761>>13) ^ byte(i>>3)
+	}
+	bodies := map[string][]byte{
+		"noise": noise, "zeros": make([]byte, 1<<16), "tiny": []byte("x"),
+		"html":     []byte("<!DOCTYPE html><html><script>alert(1)</script></html>" + strings.Repeat(" ", 2000)),
+		"prog":     append([]byte("MZ\x90\x00\x03\x00\x00\x00"), noise...),
+		"cut-mkv":  append([]byte("\x1A\x45\xDF\xA3\x01\x42\x82\x88matroska"), noise[:512]...),
+		"cut-mp4":  append([]byte("\x00\x00\x00\x18ftypisom\x00\x00\x00\x00isom"), noise[:512]...),
+		"cut-zip":  append([]byte("PK\x03\x04\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"), noise[:512]...),
+		"cut-rar":  append([]byte("Rar!\x1A\x07\x01\x00"), noise[:512]...),
+		"cut-7z":   append([]byte("7z\xBC\xAF\x27\x1C\x00\x04"), noise[:512]...),
+		"cut-pdb":  append(append(make([]byte, 60), "BOOKMOBI"...), noise[:512]...),
+		"cut-midi": append([]byte("MThd\x00\x00\x00\x06\x00\x01\x7F\xFF\x00\x01MTrk\x7F\xFF\xFF\xFF"), noise[:512]...),
+		"cut-svg":  []byte(strings.Repeat("<svg><g>", 4000)),
+		"cut-ole":  append([]byte("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"), noise[:2048]...),
+		"cut-iso":  append(append(make([]byte, 0x8001), "CD001"...), noise[:4096]...),
+	}
+	for lib, exts := range map[string]string{
+		"videos": ".mkv .mp4 .avi .ts .m2ts .wmv .rm .mpg .webm .mxf .y4m .ivf .h264",
+		"music":  ".mp3 .flac .m4a .ogg .wav .mid .mod .xm .nsf .spc .dsf .ape .mka .cue .m3u .pls .xspf .asx",
+		"photos": ".jpg .png .heic .avif .jxl .svg .svgz .tiff .cr2 .cr3 .nef .ico .psd",
+		"books":  ".epub .mobi .azw3 .fb2 .docx .odt .doc .rtf .pdf .djvu .cbz .cbr .cb7 .cbt .txt .md .html",
+		"discs":  ".iso .img .nrg .mdf .bin",
+	} {
+		dir := filepath.Join(root, lib)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range strings.Fields(exts) {
+			for name, b := range bodies {
+				if err := os.WriteFile(filepath.Join(dir, name+"-"+strings.TrimPrefix(e, ".")+e), b, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		id := ts.library(t, lib, dir)
+		scanAndWait(t, ts.Server, id)
+		items, _, err := ts.Store.Items(context.Background(), library.ItemQuery{LibraryID: id, NoTotal: true, Limit: 100000})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, it := range items {
+			for _, u := range []string{"/book", "/page/0", "/image?w=320", "/motion", "/file", "/stream"} {
+				w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d%s", it.ID, u), tok, nil, "Range", "bytes=0-99")
+				if w.Code >= 500 && w.Code != 503 && strings.Contains(w.Body.String(), "panic") {
+					t.Errorf("%s %s: %d %s", it.Path, u, w.Code, trimBody(w.Body.String()))
+				}
+			}
+			w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/playback", it.ID), tok, map[string]any{"profile": "web"})
+			if w.Code == 200 {
+				var a playbackAnswer
+				if json.Unmarshal(w.Body.Bytes(), &a) == nil && a.StreamID != "" {
+					ts.do(t, "DELETE", "/api/hls/"+a.StreamID, tok, nil)
+				}
+			}
+			if strings.Contains(strings.ToLower(it.Path), "html-") || strings.Contains(it.Path, "prog-") {
+				switch lib {
+				case "videos", "music", "photos":
+					t.Errorf("%s: a web page or a program got into a %s library", it.Path, lib)
+				}
+			}
 		}
 	}
 }

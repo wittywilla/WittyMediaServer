@@ -1081,7 +1081,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /items/{id}/book` | user | What a reader needs: `format` (cbz, epub, pdf), `reading` direction, then `pages` for comics or `spine`, `toc` and `words` for EPUB. |
+| `GET /items/{id}/book` | user | What a reader needs: `format` (the book's own: mobi, cbr, docx…), `reader` (which reader opens it: cbz, epub or pdf, also on the item as `reader`), `reading` direction, then `pages` for page by page or `spine`, `toc` and `words` for the rest. Kindle, FictionBook, Word, Rich Text, Markdown, web pages and plain text read as EPUB. A book with copy protection answers 422 and says so. |
 | `GET /items/{id}/page/{n}` | user | One comic page, n from 0. |
 | `GET /items/{id}/epub/{file}` | user | A file inside an EPUB. Treat its HTML as untrusted: no scripts. |
 | `GET /items/{id}/annotations` | user | The account's bookmarks and highlights in this book. |

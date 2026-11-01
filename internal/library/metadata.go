@@ -39,8 +39,18 @@ var (
 // isFileExt reports whether ext is the extension of a file a library holds
 // (callers often pass a name without one, and "Dr.Story.The.Treeline" must keep
 // its last word).
+//
+// Only the names people really leave on: a last word of a title can be many a rarer
+// extension ("The.Nut", "Mr.Doc", "It"), and a title losing a word is a worse mistake
+// than one keeping ".rm" on its end.
 func isFileExt(ext string) bool {
-	return mediatypes.IsMedia(ext)
+	switch strings.ToLower(ext) {
+	case ".mkv", ".mp4", ".m4v", ".mov", ".avi", ".wmv", ".ts", ".m2ts", ".mts", ".webm", ".flv", ".mpg", ".mpeg", ".vob", ".ogv", ".3gp", ".divx", ".rmvb", ".asf", ".iso", ".img",
+		".mp3", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus", ".wav", ".wma", ".aiff", ".aif", ".alac", ".ape", ".wv", ".mka", ".dsf",
+		".cbz", ".epub", ".pdf", ".cbr", ".cb7", ".cbt", ".mobi", ".azw3":
+		return true
+	}
+	return false
 }
 
 // ParseName guesses title and year from a file or folder name.

@@ -303,6 +303,8 @@ focus restoration.
 - `data-nav-group` on a set of controls that belong together makes coming back land where you left.
   Rows, the top bar, the side menu and the phone bars already are groups.
 - `data-focus-key="..."` on a control with no `href` lets Back return to it.
+- `data-tv-first` on a page's main action (Play on an item) is where focus lands when someone arrives with a
+  remote. Without one, it's the first control in the page, passing over the links in the headings of rows.
 - If you handle arrows yourself, call `preventDefault`, and leave them alone at the ends, so a remote
   can move on. `Segmented`, `Tabs` and `Menu` show how.
 - Text fields give up the arrows at the ends of the text. Selects open on OK. Sliders keep only the
@@ -312,11 +314,14 @@ focus restoration.
 past the current one in that direction count. The distance along the direction counts in full; the
 distance across it is penalised heavily, and more for left and right, so a far card on this row beats a
 near one on the next. Lowest score wins. On entering a group, the last focused control in it wins if
-it's also that way.
+it's also that way. From the link in a row's heading, Down and Left go into that row first, as it may be
+short or scrolled away and nowhere near straight ahead.
 
 **Back**: `GoBack`, `BrowserBack`, keyCode 461 and 10009, and Backspace outside a text field, close the
 top dialog or menu, or else go back a page. Going back returns focus to the control you left, per
 history entry. A pointer has no such place to return to, so this is only for keyboard and remote use.
+An app showing this page in a TV's web view reads what has its own Back from `<html data-own-back>`, a
+selector the page sets, so the list has one home: `OWN_BACK` in `tv.ts`.
 
 `data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
 highlighted one, so it's one stop however many cells are drawn.

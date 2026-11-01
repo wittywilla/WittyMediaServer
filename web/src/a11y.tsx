@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
+import { landOnPage } from './tv'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -108,6 +109,7 @@ export function Announcer() {
   const loc = useLocation()
   const navType = useNavigationType()
   const first = useRef(true)
+  const settled = useRef('')
   const entry = useRef(loc.key)
   entry.current = loc.key
   const usingKeys = useRef(false)
@@ -129,7 +131,13 @@ export function Announcer() {
     return () => { say = () => {} }
   }, [])
   useEffect(() => {
-    if (first.current) { first.current = false; return }
+    // Across the room, somewhere to start from. The page may still be loading, so look a few times.
+    const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage()) settled.current = loc.key }, ms)
+    if (first.current) {
+      first.current = false
+      const opening = [400, 800, 1500, 2500].map(land)
+      return () => opening.forEach(clearTimeout)
+    }
     const t = setTimeout(() => {
       if (document.querySelector(DIALOGS)) return
       const main = document.getElementById('main')
@@ -145,7 +153,9 @@ export function Announcer() {
       if (active && active !== document.body && active !== document.getElementById('main')) return
       document.querySelector<HTMLElement>(was)?.focus()
     }, ms))
-    return () => { clearTimeout(t); later.forEach(clearTimeout) }
+    // Nothing to come back to, or it has gone by now.
+    const landing = (was ? [3000] : [500, 900, 1500, 2500]).map(land)
+    return () => { clearTimeout(t); later.forEach(clearTimeout); landing.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{msg}</div>
 }

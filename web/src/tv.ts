@@ -25,6 +25,9 @@ const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .m
 // The player that fills the screen. A player inside a page (.inline) is just a
 // part of that page.
 const FULL_PLAYER = '.player:not(.mini):not(.inline)'
+// What has its own idea of Back, so that Back closes it rather than leaving the page. Apps that
+// show this page read it from <html data-own-back>, rather than each keeping a copy.
+export const OWN_BACK = `[role=dialog], [role=alertdialog], [role=menu], .modal, .picker-backdrop, .view-settings, .audio-bar.full, .reader, ${FULL_PLAYER}`
 // What OK reaches first when the picture has the focus: whatever is asking
 // for an answer, then the controls.
 const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.pick-intro button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
@@ -116,6 +119,42 @@ function focusGoneFrom(scope: Node): DOMRect | null {
   return l.box
 }
 
+// What a page offers first from across the room: whatever it marks as its main action (Play on
+// an item), and otherwise the first thing in it, passing over the links in the headings of rows.
+const ROW_HEAD = '.hub-head, .mh-shelf-head'
+function firstOnPage(all: HTMLElement[], ok: (el: HTMLElement) => boolean): HTMLElement | undefined {
+  const inPage = all.filter((el) => el.closest('.content') && ok(el))
+  return inPage.find((el) => el.matches('[data-tv-first]')) || inPage.find((el) => !el.closest(ROW_HEAD))
+}
+
+// A heading's link sits at the far end of the line, over a row that may be short or scrolled away,
+// so straight down and straight left can both miss the row it belongs to. From there, the row is next.
+function fromRowHead(cur: HTMLElement, others: HTMLElement[], dir: Dir, box: (el: HTMLElement) => DOMRect, can: (el: HTMLElement) => boolean): HTMLElement | undefined {
+  if (dir !== 'down' && dir !== 'left') return undefined
+  const section = cur.closest(ROW_HEAD)?.parentElement
+  if (!section) return undefined
+  return ranked(box(cur), others.filter((el) => section.contains(el) && !el.closest(ROW_HEAD)), box, dir).find(can)
+}
+
+// Someone arriving at a page with a remote has nothing to tell them where they are, and their first
+// press would only put them somewhere. Answers whether focus has somewhere to be now; a page still
+// loading says no, to be asked again.
+export function landOnPage(): boolean {
+  const html = document.documentElement
+  if (!html.classList.contains('ten-foot') && !html.classList.contains('using-controller') && !matchMedia('(pointer: none)').matches) return true
+  const active = document.activeElement
+  if (active && active !== document.body && active.id !== 'main') return true
+  if (document.querySelector('[role=dialog], [role=alertdialog], .modal, .picker-backdrop, [role=menu]')) return true
+  const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE))
+  const first = firstOnPage(all, (el) => {
+    const r = el.getBoundingClientRect()
+    return visible(el, r) && r.top < window.innerHeight
+  })
+  if (!first) return false
+  focus(first)
+  return true
+}
+
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
@@ -130,15 +169,16 @@ function move(dir: Dir): boolean {
     const gone = focusGoneFrom(scope as Node)
     const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
     if (near) { focus(near); return true }
-    // Nothing focused yet: start at the first control of the main content.
-    const first = all.find((el) => el.closest('.content, .player, [role=dialog]') && visible(el, boxes.get(el)!)) || all.find((el) => visible(el, boxes.get(el)!))
+    // Nothing focused yet: start at what the page offers first, or the first control of what's open.
+    const shows = (el: HTMLElement) => visible(el, boxes.get(el)!)
+    const first = firstOnPage(all, shows) || all.find((el) => el.closest('.player, [role=dialog]') && shows(el)) || all.find(shows)
     if (!first) return false
     focus(first)
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
   const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
-  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
+  let best = fromRowHead(cur, others, dir, (el) => boxes.get(el)!, can) || ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
     const group = groupOf(best)
@@ -333,12 +373,16 @@ let installed = false
 export function installTVInput() {
   if (installed) return
   installed = true
+  // A TV app around this page answers Back itself when the page has nothing to close, and asks here.
+  document.documentElement.dataset.ownBack = OWN_BACK
   window.addEventListener('keydown', onKey)
   window.addEventListener('focusin', (e) => {
     const el = e.target as HTMLElement
     const group = groupOf(el)
     if (group) lastIn.set(group, el)
-    lastFocus = { box: el.getBoundingClientRect(), scope: scopeOf(el) as Node, page: location.pathname }
+    // The page itself takes focus when it changes. That's no place to come back near: its centre
+    // would decide the first press.
+    if (el.matches(FOCUSABLE)) lastFocus = { box: el.getBoundingClientRect(), scope: scopeOf(el) as Node, page: location.pathname }
   }, { passive: true })
   // A list is open from the moment it is pressed until a choice or leaving it.
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })

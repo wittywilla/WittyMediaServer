@@ -17,7 +17,7 @@
 .topnav-link.active svg { opacity: 1; }
 .topnav-caret { margin-inline: calc(-1 * var(--sp-1)); }
 .topnav-measure { visibility: hidden; }
-.top-brand { padding: 0 var(--sp-2) 0 0; margin: 0; font-size: var(--text-base); flex: none; white-space: nowrap; }
+.top-brand { padding: 0 var(--sp-2) 0 0; margin: 0; font-size: var(--text-base); flex: 0 0 auto; max-width: 18rem; min-width: 0; white-space: nowrap; }
 .top-brand img { width: 26px; height: 26px; }
 /* Top-bar mode drops the side menu on wide screens; phones keep it as the drawer behind the Libraries tab. */
 @media (min-width: 901px) { .app.nav-top .sidebar { display: none; } }

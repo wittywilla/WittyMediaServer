@@ -62,7 +62,7 @@ export default function ShowPage() {
             {(show.genres || []).length > 0 && <span>{show.genres.join(', ')}</span>}
           </div>
           <div className="actions">
-            {next && <button className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
+            {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
               <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
             </button>}
             <SaveButton showId={show.id} />

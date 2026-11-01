@@ -154,6 +154,9 @@ html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px
 html.using-controller, html.ten-foot { --focus: var(--fg); }
 @media (pointer: none) { :root { --focus: var(--fg); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
+/* The side menu grows with the type, or the server's name is cut off. Themes set the plain size, and this has to win. */
+html.using-controller, html.ten-foot { --sidebar: 300px; --rail: 95px; }
+@media (pointer: none) { html:root { --sidebar: 300px; --rail: 95px; } }
 /* Whatever is docked at the bottom keeps the things that float above it clear. */
 html:has(.audio-bar:not(.full)) { --dock-space: 88px; }
 html:has(.player.mini) { --dock-space: 88px; }
@@ -192,8 +195,12 @@ input[type=range] { accent-color: var(--accent); }
 .app { display: flex; min-height: 100%; }
 .sidebar {
   width: var(--sidebar); flex: none; background: var(--bg-2); border-right: 1px solid var(--border); padding: var(--sp-3);
-  position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; scrollbar-width: thin;
+  position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 2px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin;
 }
+/* A server can have a long name of its own: it wraps here rather than being cut off. */
+.sidebar .brand .nav-text { min-width: 0; }
+.sidebar .brand img { flex: none; }
+.sidebar .brand .brand-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-tight); }
 .brand { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); margin-bottom: var(--sp-3); font-weight: 700; font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
 .brand img { width: 28px; height: 28px; }
 .brand span { color: var(--fg); }

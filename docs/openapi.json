@@ -21136,6 +21136,36 @@
         "x-wms-auth": "public"
       }
     },
+    "/logos": {
+      "get": {
+        "operationId": "listLogos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every name the logo service knows, to find one: kind, q, limit, offset.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/logos/consent": {
       "put": {
         "operationId": "putLogosConsent",

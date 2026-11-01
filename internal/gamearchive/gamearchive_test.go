@@ -655,6 +655,17 @@ func TestDescriptorsAreCheckedAndCorrected(t *testing.T) {
 		t.Fatal("a disc outside the folder got through")
 	}
 
+	// A list that names a list: following it could go round for ever, which ends the server.
+	write(t, filepath.Join(dir, "Loop.m3u"), []byte("Loop.m3u\n"))
+	if err := checkReferences(dir, "Loop.m3u", []string{"Loop.m3u"}); err == nil || !strings.Contains(err.Error(), "Loop.m3u") {
+		t.Fatalf("a list naming itself: %v", err)
+	}
+	write(t, filepath.Join(dir, "A.m3u"), []byte("B.M3U\n"))
+	write(t, filepath.Join(dir, "B.M3U"), []byte("A.m3u\n"))
+	if err := checkReferences(dir, "A.m3u", []string{"A.m3u", "B.M3U"}); err == nil {
+		t.Fatal("two lists naming each other got through")
+	}
+
 	// A list too long to be one.
 	write(t, filepath.Join(dir, "Huge.cue"), bytes.Repeat([]byte("REM x\n"), maxDescriptor))
 	if err := checkReferences(dir, "Huge.cue", append(files, "Huge.cue")); !errors.Is(err, ErrTooBig) {
@@ -1011,6 +1022,32 @@ func TestTooLargeForTheCache(t *testing.T) {
 	}
 	if list, _ := os.ReadDir(c.Dir); len(list) != 0 {
 		t.Fatalf("left %v", list)
+	}
+}
+
+// A compressed file doesn't say how large it is, so the room left on the disk has to
+// hold while it unpacks.
+func TestUnknownSizesKeepToTheFreeSpace(t *testing.T) {
+	dir := t.TempDir()
+	p := write(t, filepath.Join(dir, "Game.sfc.gz"), gzBytes(t, make([]byte, 1<<20), "Game.sfc"))
+	c := newCache(t, 1<<30)
+	diskFree = func(string) int64 { return freeReserve + 1000 }
+	defer func() { diskFree = freeBytes }()
+	_, _, err := c.Acquire(context.Background(), p, wittyplay.ByID("snes"))
+	if !errors.Is(err, ErrNoSpace) {
+		t.Fatalf("got %v", err)
+	}
+	if list, _ := os.ReadDir(c.Dir); len(list) != 0 {
+		t.Fatalf("left %v", list)
+	}
+	diskFree = func(string) int64 { return freeReserve + 2<<20 }
+	rom, release, err := newCache(t, 1<<30).Acquire(context.Background(), p, wittyplay.ByID("snes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	release()
+	if rom == "" {
+		t.Fatal("no game")
 	}
 }
 

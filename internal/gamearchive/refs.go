@@ -45,6 +45,10 @@ func checkReferences(dir, entry string, files []string) error {
 			return err
 		}
 		for _, d := range discs {
+			// Never followed: one that names itself would go round until the server crashed.
+			if strings.EqualFold(path.Ext(d), ".m3u") {
+				return fmt.Errorf("the m3u in this archive names another list, %q, and only discs can be listed", path.Base(d))
+			}
 			if err := checkReferences(dir, d, files); err != nil {
 				return err
 			}

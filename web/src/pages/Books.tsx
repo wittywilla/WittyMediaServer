@@ -6,11 +6,12 @@ import { IconBook } from '../icons'
 import { useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LibraryHeader from '../components/LibraryHeader'
+import { BOOK_FORMATS } from '../mediaTypes.generated'
 
 // Books, comics and manga: the library page and a book's details.
 
-const FORMAT: Record<string, string> = { cbz: 'Comic (CBZ)', epub: 'EPUB', pdf: 'PDF', cbr: 'Comic (CBR)', cb7: 'Comic (CB7)', mobi: 'MOBI', azw3: 'AZW3' }
-export const readable = (it: Item) => it.container === 'cbz' || it.container === 'epub' || it.container === 'pdf'
+const FORMAT = BOOK_FORMATS
+export const readable = (it: Item) => !!it.reader
 
 function progressOf(it: Item) {
   if (!it.progress || !it.runtimeSec) return 0
@@ -98,10 +99,10 @@ export function BookDetails({ it }: { it: Item }) {
       <div className="album-head">
         <div className="album-cover big book">{it.poster ? <img src={posterUrl(it)} alt="" /> : <span><IconBook /></span>}</div>
         <div className="album-meta">
-          <span className="muted">{it.reading === 'rtl' ? 'Manga' : it.container === 'cbz' ? 'Comic' : 'Book'} · {FORMAT[it.container] || it.container}</span>
+          <span className="muted">{it.reading === 'rtl' ? 'Manga' : it.reader === 'cbz' ? 'Comic' : 'Book'} · {FORMAT[it.container] || it.container}</span>
           <h1>{it.title}</h1>
           {it.artist && <span className="album-artist">{it.artist}</span>}
-          <div className="muted">{[it.album && it.track ? `${it.album} #${it.track}` : it.album, it.year, it.runtimeSec ? `${it.runtimeSec} ${it.container === 'cbz' ? 'pages' : 'chapters'}` : ''].filter(Boolean).join(' · ')}</div>
+          <div className="muted">{[it.album && it.track ? `${it.album} #${it.track}` : it.album, it.year, it.runtimeSec ? `${it.runtimeSec} ${it.reader === 'epub' ? 'chapters' : 'pages'}` : ''].filter(Boolean).join(' · ')}</div>
           {pct > 0 && <div className="book-progress"><span style={{ width: pct + '%' }} /></div>}
           <div className="actions">
             {readable(it)

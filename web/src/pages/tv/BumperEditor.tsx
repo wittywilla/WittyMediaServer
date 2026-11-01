@@ -5,6 +5,7 @@ import { toast } from '../../state'
 import { Section, Switch } from '../settings/ui'
 import { uploadBumper, type Bumper, type BumperPlan, type BumperRule, type BumperWhen, type Definition, type EditorOptions, type Rules, type Trim, type TrimChoice } from './tvApi'
 import './tveditor.css'
+import { ACCEPT_VIDEO } from '../../mediaTypes.generated'
 
 // Bumpers, in sentences: a rule reads as "Before each programme, play one of these,
 // always". The library is shared between channels; each channel has its own rules.
@@ -41,7 +42,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
     <>
       <div className="tvs-toolbar">
         <button type="button" className="btn sm primary" disabled={busy} onClick={() => file.current?.click()}><IconPlus /> {busy ? 'Uploading…' : 'Upload videos'}</button>
-        <input ref={file} hidden type="file" accept="video/*,.mkv,.ts,.avi" multiple onChange={(e) => void upload(e.target.files)} />
+        <input ref={file} hidden type="file" accept={"video/*," + ACCEPT_VIDEO} multiple onChange={(e) => void upload(e.target.files)} />
         <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setFinding(true)}><IconSearch size={16} /> Choose from my media</button>
       </div>
       {bumpers && bumpers.length === 0 && <p className="muted">Nothing here yet. Upload a short video, or choose one you already have. Anything in a Commercials library also appears here.</p>}

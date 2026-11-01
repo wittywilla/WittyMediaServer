@@ -327,6 +327,15 @@ func List(path string) (*Listing, error) {
 	return l.List(path, 0)
 }
 
+// Unpack takes these files out of an archive into a folder, in a worker of its own,
+// writing no more than limit bytes.
+func Unpack(ctx context.Context, path, dst string, want []Want, limit int64) ([]Written, error) {
+	if len(want) == 0 {
+		return nil, nil
+	}
+	return unpackIn(ctx, unpackRequest{Path: path, Dst: dst, Want: want, Limit: limit}, nil)
+}
+
 // unpackIn runs one unpack in a worker. Cancelling ctx kills it.
 func unpackIn(ctx context.Context, req unpackRequest, progress func(int64)) ([]Written, error) {
 	ctx, cancel := context.WithCancel(ctx)

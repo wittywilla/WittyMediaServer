@@ -29,7 +29,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | github.com/andybalholm/brotli, github.com/stangelandcl/ppmd (decompression, for the above) | MIT |
 | github.com/spf13/afero, go4.org/readerutil (used by github.com/bodgit/sevenzip) | Apache-2.0 |
 | github.com/hashicorp/golang-lru (used by github.com/bodgit/sevenzip) | MPL-2.0. Unmodified; its source is at <https://github.com/hashicorp/golang-lru> |
-| github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/text (transitive) | BSD / MIT |
+| github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/text (reading the text encodings of books and subtitles) | BSD / MIT |
 
 Run `go version -m wms` on a binary for the exact module list and versions.
 
@@ -162,3 +162,11 @@ writers.
 
 Not shipped, used only for building or testing it: MinGW GCC, CMake, Ninja and NASM, and a general LGPL FFmpeg
 that makes the tests' short clips.
+
+## Optional programs, not included
+
+These aren't part of this server or its packages. If one is installed on the same machine, the server uses it.
+
+| Program | License | What for |
+|---|---|---|
+| DjVuLibre (`ddjvu`, `djvused`) | GPL-2.0 | Drawing the pages of DjVu books. Without it they're listed and can be downloaded. |

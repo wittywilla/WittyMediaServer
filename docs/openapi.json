@@ -2966,6 +2966,9 @@
           "artist": {
             "type": "string"
           },
+          "audioDirect": {
+            "type": "boolean"
+          },
           "audioLangs": {
             "items": {
               "type": "string"
@@ -3154,6 +3157,9 @@
                 "type": "null"
               }
             ]
+          },
+          "reader": {
+            "type": "string"
           },
           "reading": {
             "type": "string"
@@ -4672,6 +4678,15 @@
               "null"
             ]
           },
+          "fmp4Video": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "hdr": {
             "items": {
               "type": "string"
@@ -4679,6 +4694,16 @@
             "type": [
               "array",
               "null"
+            ]
+          },
+          "hi10pH264": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "hlsAudio": {
@@ -4697,6 +4722,16 @@
             "type": [
               "array",
               "null"
+            ]
+          },
+          "interlaced": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "maxAudioChannels": {
@@ -4729,7 +4764,27 @@
               }
             ]
           },
+          "remux": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sidecarSubtitles": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "switchAudio": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4763,13 +4818,18 @@
           "audioCodecs",
           "containers",
           "embeddedSubtitles",
+          "fmp4Video",
           "hdr",
+          "hi10pH264",
           "hlsAudio",
           "hlsVideo",
+          "interlaced",
           "maxAudioChannels",
           "maxBitrateKbps",
           "maxHeight",
+          "remux",
           "sidecarSubtitles",
+          "switchAudio",
           "tenBit",
           "videoCodecs"
         ],
@@ -4930,6 +4990,9 @@
           "sidecarSubtitles": {
             "type": "boolean"
           },
+          "surroundOutput": {
+            "type": "boolean"
+          },
           "switchAudio": {
             "type": "boolean"
           },
@@ -4965,6 +5028,7 @@
           "name",
           "remux",
           "sidecarSubtitles",
+          "surroundOutput",
           "switchAudio",
           "tenBit",
           "videoCodecs"
@@ -4998,6 +5062,9 @@
                 "type": "null"
               }
             ]
+          },
+          "flatten3d": {
+            "type": "boolean"
           },
           "forceTranscode": {
             "type": "boolean"
@@ -5033,6 +5100,16 @@
           },
           "subtitleLanguage": {
             "type": "string"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5040,13 +5117,15 @@
           "audioLanguage",
           "burnSubtitle",
           "capabilities",
+          "flatten3d",
           "forceTranscode",
           "maxBitrateKbps",
           "maxHeight",
           "profile",
           "startSec",
           "subtitle",
-          "subtitleLanguage"
+          "subtitleLanguage",
+          "video"
         ],
         "type": "object"
       },
@@ -5067,6 +5146,27 @@
           "cdUrl": {
             "type": "string"
           },
+          "chapters": {
+            "items": {
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "container": {
             "type": "string"
           },
@@ -5085,6 +5185,56 @@
           },
           "durationSec": {
             "type": "number"
+          },
+          "explain": {
+            "anyOf": [
+              {
+                "properties": {
+                  "load": {
+                    "type": "string"
+                  },
+                  "picture": {
+                    "type": "string"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sound": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "subtitles": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "load",
+                  "picture",
+                  "reasons",
+                  "sound",
+                  "source",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flattened": {
+            "type": "boolean"
           },
           "intro": {
             "anyOf": [
@@ -5136,6 +5286,9 @@
           "startAtSec": {
             "type": "number"
           },
+          "stereo": {
+            "type": "string"
+          },
           "streamId": {
             "type": "string"
           },
@@ -5165,6 +5318,41 @@
           },
           "url": {
             "type": "string"
+          },
+          "videoIndex": {
+            "type": "integer"
+          },
+          "videos": {
+            "items": {
+              "properties": {
+                "codec": {
+                  "type": "string"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "index": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "codec",
+                "height",
+                "index",
+                "width"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -18714,6 +18902,56 @@
         "summary": "Replace them: a JSON object of 16 KB at most.",
         "tags": [
           "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media-types": {
+      "get": {
+        "operationId": "getMediaTypes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "codecs": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "ffmpeg": {
+                      "type": "string"
+                    },
+                    "formats": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every file type, codec and container the server knows, and which work on this machine.",
+        "tags": [
+          "Playback"
         ],
         "x-wms-auth": "user"
       }

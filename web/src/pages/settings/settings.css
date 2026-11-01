@@ -265,3 +265,20 @@ a.mod-row:hover { background: var(--hover); }
 .form label.set-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 400; color: var(--fg); }
 .set-radio input { width: auto; flex: none; margin-top: 4px; }
 .set-radio b { font-weight: 600; }
+
+/* Supported formats */
+.formats-find { display: block; margin: var(--sp-3, 12px) 0; max-width: 420px; }
+.formats-find input { width: 100%; }
+.formats-missing { padding: var(--sp-2, 8px) var(--sp-3, 12px); border-radius: var(--r-md, var(--radius)); background: var(--warn-soft); }
+.formats-ffmpeg { font-size: var(--text-xs); overflow-wrap: anywhere; }
+.formats-head { margin: 18px 0 6px; font-size: var(--text-base); }
+.formats-table { display: flex; flex-direction: column; }
+.formats-row { display: grid; grid-template-columns: minmax(150px, 1.3fr) minmax(120px, 1.3fr) minmax(110px, 1fr) minmax(110px, 1fr); gap: 10px; padding: var(--sp-2, 8px) 0; border-top: 1px solid var(--border); font-size: var(--text-sm); }
+.formats-title { font-weight: 600; border-top: 0; color: var(--fg-2); font-size: var(--text-xs); }
+.formats-row small { display: block; margin-top: 2px; }
+.formats-exts { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: var(--text-xs); }
+.formats-needs { color: var(--warn); }
+@media (max-width: 720px) {
+  .formats-title { display: none; }
+  .formats-row { grid-template-columns: 1fr; gap: 2px; }
+}

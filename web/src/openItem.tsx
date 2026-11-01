@@ -23,7 +23,7 @@ export function useOpenItem() {
       return it.kind === 'book' ? <IconBook /> : it.kind === 'audio' ? <IconAudio /> : <IconPlay />
     },
     open(it: Item) {
-      if (it.kind === 'book') { nav(['cbz', 'epub', 'pdf'].includes(it.container) ? `/read/${it.id}` : `/item/${it.id}`); return }
+      if (it.kind === 'book') { nav(it.reader ? `/read/${it.id}` : `/item/${it.id}`); return }
       if (it.kind === 'game') { nav(`/game/${it.id}`); return }
       if (it.kind === 'cd-image') { nav(`/cd/${it.id}?play=1`); return }
       if (it.kind === 'audio') {

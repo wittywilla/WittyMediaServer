@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"bytes"
 	"context"
 	"encoding/xml"
@@ -60,8 +61,7 @@ func soleMedia(dir, p string) bool {
 		if e.IsDir() || strings.EqualFold(filepath.Join(dir, e.Name()), p) {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(e.Name()))
-		if videoExts[ext] || ext == ".iso" || ext == ".img" {
+		if mediatypes.IsVideo(e.Name()) || mediatypes.IsDiscImage(e.Name()) {
 			return false
 		}
 	}

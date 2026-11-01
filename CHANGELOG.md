@@ -20,6 +20,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   log over time and more. Add, move and resize widgets by drag or by keyboard, keep several layouts, or go back to stock. Any chart can
   be a table, and any widget opens into more detail with CSV and JSON export. The server only samples while someone is looking, and keeps a
   small history for charts. Apps get the same numbers: see `docs/STATS.md`.
+- **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
+
 - **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
   even inside a compressed `.cso`. A readme called `.md`, a BIOS, a copier's firmware, an update or a music CD no longer becomes a game, and a PlayStation 2 disc in the wrong folder lands in the right console.
 - **Needs a look.** What can't be proven doesn't become a game. It goes on a list on the library's page with its reason and a one-click fix, beside a list of what was left out and why.

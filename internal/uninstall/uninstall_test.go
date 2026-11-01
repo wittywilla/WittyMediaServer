@@ -151,9 +151,9 @@ func (w *winMachine) fill(t *testing.T) {
 	w.sys.answers = map[string]string{
 		"sc.exe qc":                      `BINARY_PATH_NAME : "C:\Program Files\WittyMediaServer\bin\wittymediaserver.exe" serve`,
 		"sc.exe":                         "",
-		"schtasks.exe /Query":            "<Task/>",
+		"schtasks.exe /Query":            "<URI>\\WittyMediaServer</URI>",
 		"schtasks.exe":                   "",
-		"netsh.exe advfirewall firewall": "",
+		"netsh.exe advfirewall firewall": "Rule Name: WittyMediaServer",
 		"msiexec.exe":                    "",
 	}
 	w.sys.reg[`HKLM\`+UninstallKey] = ""

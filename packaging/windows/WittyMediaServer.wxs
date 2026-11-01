@@ -204,13 +204,14 @@
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="ServiceData" Type="string" Value="1" KeyPath="yes" />
       </Component>
 
-      <!-- Only for everyone: lets other devices on the home network connect. -->
+      <!-- Only for everyone: lets other devices on the home network connect. A firewall that
+           refuses, or one that's switched off, doesn't stop the install: Windows just asks later. -->
       <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Firewall" Type="string" Value="1" KeyPath="yes" />
         <fw:FirewallException Id="FirewallTcp" Name="WittyMediaServer" Description="Other devices on your home network connect to your media server."
-                              Port="[PORT]" Protocol="tcp" Scope="any" Profile="private" />
+                              Port="[PORT]" Protocol="tcp" Scope="any" Profile="private" IgnoreFailure="yes" />
         <fw:FirewallException Id="FirewallUdp" Name="WittyMediaServer" Description="Apps on your home network find your media server."
-                              Port="5353,9797" Protocol="udp" Scope="localSubnet" Profile="private" />
+                              Port="5353,9797" Protocol="udp" Scope="localSubnet" Profile="private" IgnoreFailure="yes" />
       </Component>
     </ComponentGroup>
 

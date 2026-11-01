@@ -30,7 +30,11 @@ set -u
 export WINEPREFIX=/root/wine WINEARCH=win64 WINEDEBUG=-all DISPLAY=:99 WINEDLLOVERRIDES=winemenubuilder.exe=d
 Xvfb :99 -screen 0 1024x768x24 >/dev/null 2>&1 &
 sleep 1
-fail() { echo "FAIL: $*"; exit 1; }
+fail() {
+  echo "FAIL: $*"
+  [ -f /root/wine/drive_c/msi.log ] && { echo "--- the end of Windows Installer's log"; tail -n 60 /root/wine/drive_c/msi.log | cut -c1-200; }
+  exit 1
+}
 say() { echo; echo "##### $*"; }
 wineboot -i >/dev/null 2>&1
 wineserver -w
@@ -174,6 +178,8 @@ diff -u /tmp/before.txt /tmp/after.txt | grep -v msi.log > /tmp/d.txt
 if grep -Eq '^[+-][^+-]' /tmp/d.txt; then cat /tmp/d.txt; fail "something was left behind"; fi
 echo "NOTHING LEFT: $(wc -l < /tmp/after.txt) paths and registry keys, before and after the same"
 
+# Wine has no firewall for the installer to talk to, so here it's only proven that the failure
+# doesn't stop the install. The sandbox test sees the rules.
 say "for everyone, with the service and the firewall rule"
 run_msi /i "$msi" /qn ALLUSERS=1 INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART=0 PORT=9797 || fail "machine install exit $code"
 root="$C/Program Files/WittyMediaServer"

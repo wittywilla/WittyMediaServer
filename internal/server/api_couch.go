@@ -59,7 +59,7 @@ func init() {
 	settingDefaults["couchMaxStreams"] = "2"
 }
 
-func (s *Server) couchRoutes(m *http.ServeMux) {
+func (s *Server) couchRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/couch", a(s.handleCouch))
 	m.Handle("GET /api/couch/find", a(s.handleCouchFind))

@@ -1,8 +1,11 @@
 package modules
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -426,4 +429,44 @@ func checkListed(id string, r *release, man *wittymodule.Manifest, want string) 
 		return errors.New("the catalogue and the release's signed list disagree about the archive")
 	}
 	return nil
+}
+
+// maxIconFile is the most a catalogue may say an icon holds.
+const maxIconFile = 256 << 10
+
+var pngStart = []byte("\x89PNG\r\n\x1a\n")
+
+// IconFile is where a module's picture from the catalogue is kept, fetched the first time it's
+// asked for. It's checked against the signed catalogue, so it can't be swapped for anything else.
+func (m *Manager) IconFile(ctx context.Context, id string) (string, error) {
+	m.mu.Lock()
+	e, from := m.mods[id], m.catFrom
+	var icon *wittymodule.CatalogFile
+	if e != nil && e.listed != nil {
+		icon = e.listed.Icon
+	}
+	m.mu.Unlock()
+	if icon == nil {
+		return "", ErrUnknown
+	}
+	p := filepath.Join(m.dir, "icons", id+"-"+icon.SHA256+".png")
+	if _, err := os.Stat(p); err == nil {
+		return p, nil
+	}
+	u, err := wittymodule.ResolveCatalogURL(from, icon.URL)
+	if err != nil {
+		return "", err
+	}
+	b, err := m.small(ctx, u, maxIconFile)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(b)
+	if int64(len(b)) != icon.Size || !strings.EqualFold(hex.EncodeToString(sum[:]), icon.SHA256) || !bytes.HasPrefix(b, pngStart) {
+		return "", fmt.Errorf("%s's picture isn't the one the catalogue lists", id)
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return "", err
+	}
+	return p, writeAtomic(p, b)
 }

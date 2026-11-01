@@ -562,9 +562,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const backToButton = (ver: string) => setTimeout(() => document.getElementById('ver-' + ver)?.focus(), 50)
   const run = async (v: VersionInfo, confirm: boolean) => {
     try {
-      const n = v.builtin
-        ? await api.post<ModuleReport>(`/modules/${m.id}/builtin`)
-        : await api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm })
+      const n = await api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm })
       onReport(n)
       onClose()
     } catch (e: any) {

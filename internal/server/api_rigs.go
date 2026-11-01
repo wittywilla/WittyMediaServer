@@ -41,7 +41,7 @@ const (
 )
 
 // rigRoutes registers the game rigs API.
-func (s *Server) rigRoutes(m *http.ServeMux) {
+func (s *Server) rigRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/rigs", a(s.handleRigs))
 	m.Handle("GET /api/rigs/find", s.requireAdmin(s.handleRigFind))

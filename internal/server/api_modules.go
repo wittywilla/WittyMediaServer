@@ -122,11 +122,6 @@ func (s *Server) handleModuleLatest(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module returning to the latest", 202, func(id string) error { return s.Modules.ToLatest(id) })
 }
 
-// POST /api/modules/{id}/builtin: use the built-in copy, without blaming the version in use.
-func (s *Server) handleModuleUseBuiltin(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module switched to its built-in copy", 200, func(id string) error { return s.Modules.UseBuiltin(id) })
-}
-
 func (s *Server) moduleAction(w http.ResponseWriter, r *http.Request, what string, code int, do func(id string) error) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
@@ -171,7 +166,7 @@ func (s *Server) handleModuleSourceClear(w http.ResponseWriter, r *http.Request)
 
 // POST /api/modules/{id}/add: put a module on this server. Works straight away, offline.
 func (s *Server) handleModuleAdd(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module added", 200, func(id string) error { return s.Modules.AddModule(id) })
+	s.moduleAction(w, r, "module added", 202, func(id string) error { return s.Modules.AddModule(id) })
 }
 
 // POST /api/modules/{id}/remove: take a module off this server. Refused, with their
@@ -429,4 +424,57 @@ func (s *Server) setModuleEnabled(w http.ResponseWriter, r *http.Request, on boo
 		}
 		return s.Modules.SetEnabled(id, on, libs)
 	})
+}
+
+// routes is where a server's routes go: the mux, or the mux behind a check.
+type routes interface {
+	Handle(pattern string, h http.Handler)
+	HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request))
+}
+
+// moduleRoutes are routes that only mean anything with a module, which say so without it.
+type moduleRoutes struct {
+	s  *Server
+	id string
+	m  *http.ServeMux
+}
+
+// needing has what's added to it answer that a module is missing while it is.
+func (s *Server) needing(id string, m *http.ServeMux) routes { return moduleRoutes{s, id, m} }
+
+func (g moduleRoutes) Handle(pattern string, h http.Handler) {
+	// Who isn't signed in learns nothing about what's on this server.
+	missing := g.s.requireUser(func(w http.ResponseWriter, _ *http.Request) {
+		writeModuleMissing(w, g.s.Modules.Missing(g.id))
+	})
+	g.m.Handle(pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if g.s.Modules != nil && !g.s.Modules.Installed(g.id) {
+			missing.ServeHTTP(w, r)
+			return
+		}
+		h.ServeHTTP(w, r)
+	}))
+}
+
+func (g moduleRoutes) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
+	g.Handle(pattern, http.HandlerFunc(h))
+}
+
+// GET /api/modules/{id}/icon: a module's picture from the catalogue, fetched and kept here so no
+// page ever asks anyone else for it.
+func (s *Server) handleModuleIcon(w http.ResponseWriter, r *http.Request) {
+	if s.Modules == nil {
+		writeErr(w, 404, "no picture")
+		return
+	}
+	p, err := s.Modules.IconFile(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeErr(w, 404, "no picture")
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	w.Header().Set("Cache-Control", "private, max-age=86400")
+	http.ServeFile(w, r, p)
 }

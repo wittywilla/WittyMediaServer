@@ -333,7 +333,13 @@ func (m *Manager) SetEnabled(id string, on bool, libraries map[string][]string) 
 			return &ErrInUse{Module: e.builtin.Name, Libraries: using}
 		}
 	}
-	return m.setDisabled(id, e, !on)
+	if err := m.setDisabled(id, e, !on); err != nil {
+		return err
+	}
+	if on {
+		m.ready(id)
+	}
+	return nil
 }
 
 // setDisabled changes it and starts or stops using what's on disk. Call with m.mu held.
@@ -517,4 +523,11 @@ func (m *Manager) requiredBy(id string) []string {
 		}
 	}
 	return out
+}
+
+// ready tells the server a module has arrived. Nothing here waits for what it does about that.
+func (m *Manager) ready(id string) {
+	if m.cfg.OnReady != nil {
+		logging.Go("module ready", func() { m.cfg.OnReady(id) }, "cat", "modules")
+	}
 }

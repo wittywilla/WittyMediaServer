@@ -212,6 +212,8 @@ type Config struct {
 	// Known says to start from the list of modules this server was built knowing about, so a
 	// page can name what's missing before any catalogue has been read.
 	Known bool
+	// OnReady hears when a module has just arrived or been turned back on, off to the side.
+	OnReady func(id string)
 	// CatalogURL is where to look for the signed catalogue. Without it, each module's
 	// releases are read from its own repository, as a fork's are.
 	CatalogURL string

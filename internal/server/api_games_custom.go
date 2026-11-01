@@ -227,6 +227,10 @@ type CoreAudit struct {
 // auditCore writes down something that happened, and also logs it, so it reaches the
 // log files and survives someone clearing the database.
 func (s *Server) auditCore(ctx context.Context, u *auth.User, action, core, detail string) {
+	s.writeAudit(ctx, u, "custom core", action, core, detail)
+}
+
+func (s *Server) writeAudit(ctx context.Context, u *auth.User, kind, action, core, detail string) {
 	name := "the server"
 	if u != nil {
 		name = u.Name
@@ -240,7 +244,7 @@ func (s *Server) auditCore(ctx context.Context, u *auth.User, action, core, deta
 		s.Log.Warn("custom core audit", "err", err)
 	}
 	_, _ = s.DB.ExecContext(bg, `DELETE FROM game_core_audit WHERE id <= (SELECT MAX(id) FROM game_core_audit) - ?`, maxAuditRows)
-	s.Log.Warn("custom core: "+action, "cat", "gaming", "user", name, "core", core, "detail", detail)
+	s.Log.Warn(kind+": "+action, "cat", "gaming", "user", name, "core", core, "detail", detail)
 }
 
 func (s *Server) coreAudit(ctx context.Context, limit int) []CoreAudit {

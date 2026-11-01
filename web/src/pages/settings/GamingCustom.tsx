@@ -652,6 +652,7 @@ function ConsolesPart({ status, onReload }: { status: CustomStatus; onReload: ()
 // ---- the section ----
 
 const auditWords: Record<string, string> = {
+  'module-source': 'Module moved to another publisher:', 'module-older': 'Module went back to an older version:', 'module-rollback': 'Module rolled back:', 'fork-refused': 'Module from another publisher refused:',
   'turned-on': 'Custom cores turned on', 'turned-off': 'Custom cores turned off', added: 'Added', replaced: 'Replaced', changed: 'Changed', removed: 'Removed',
   'add-refused': 'Refused', 'test-load-failed': 'Failed its test-load', 'test-load-passed': 'Passed its test-load', reapproved: 'Approved again', 'reapprove-failed': 'Failed when approving again',
   'rolled-back': 'Went back a version', 'rollback-failed': 'Failed going back a version', 'files-added': 'Files added', 'use-failed': 'Failed during play', 'file-changed': 'File changed!',

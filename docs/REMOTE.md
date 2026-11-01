@@ -452,7 +452,7 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | 🔴 **Trusted reverse proxies**, listed too widely | *Remote Access → Advanced* | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
 | 🔴 **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Remote Access is on, and the switch on the page can't turn it off | Use the switch on the page. See [A rented server](#a-rented-server-vps) |
 | 🔴 **Custom game cores** | `WMS_GAMING_CUSTOM_CORES=1` on the machine, then *Settings → Consoles & cores* | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
-| 🔴 **Modules from someone's fork** | *Settings → Modules* | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules |
+| 🔴 **Modules from someone's fork** | *Settings → Modules* | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules. If this server is someone else's to run, `WMS_NO_MODULE_FORKS=1` keeps forks off |
 | 🟠 **Show profiles outside your home** | *Settings* | Strangers can see who lives in your house, and names help password guessing | Leave it off. People can type their name |
 | 🟠 **Do this automatically** (port mapping) | *Remote Access* | You may forget a port is open | [Forward by hand](#forwarding-a-port-on-your-router), or don't |
 | 🟠 **Game PCs: who may connect, PCs on this server's own network, PCs over the internet** | *Settings → Game PCs* | By default, any adult with no limits can make the server connect to a Sunshine PC on your home network or the internet, and it then handles data from a machine it doesn't control | If you've invited people, allow only admins, and turn off what you don't use |
@@ -528,8 +528,8 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
 - **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you
   visit could otherwise ask a server on your network who its profiles are.
-- **Your password is asked for again** to add an administrator, to remove one, to change another administrator's password, to reset the server and to change where a
-  module comes from, with your two-factor code if you have it on, so a device you left signed in can't do those.
+- **Your password is asked for again** to add an administrator, to remove one, to change another administrator's password, to reset the server, to change where a module
+  comes from and to go back to an older version of one, with your two-factor code if you have it on, so a device you left signed in can't do those.
 - **Password-free Kids and Guest profiles** only work at home, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
   not signed in on the internet.
 

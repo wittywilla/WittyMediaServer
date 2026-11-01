@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymodule"
 )
 
 // A fork of a stock module can take its place: an admin names the fork's repository and
@@ -75,6 +77,46 @@ func Fingerprint(key ed25519.PublicKey) string {
 	return strings.Join(parts, " ")
 }
 
+// LockForks keeps forks out whatever an administrator asks, for whoever runs the machine when
+// that isn't the same person as this server's administrator.
+const LockForks = "WMS_NO_MODULE_FORKS"
+
+// ForkRefusal says why this server takes no fork, or "". A fork is someone else's code, and
+// here it would have nothing to box it in, or whoever runs the machine has said no.
+func ForkRefusal() string {
+	switch {
+	case os.Getenv(LockForks) == "1":
+		return "Whoever runs this machine has kept modules from other publishers off with " + LockForks + "."
+	case !sandboxAvailable:
+		return "This system has no way to box in a module from another publisher, so they can't be used here."
+	}
+	return ""
+}
+
+// OlderThanInUse says a version is older than the one in use. "" means the built-in copy.
+func (m *Manager) OlderThanInUse(id, ver string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil {
+		return false
+	}
+	if ver == "" {
+		ver = e.builtin.Version
+	} else if !wittymodule.Valid(ver) {
+		return false
+	}
+	return wittymodule.Compare(ver, e.man.Version) < 0
+}
+
+// RunningDownload says a module is running a downloaded version, which going back would leave.
+func (m *Manager) RunningDownload(id string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	return e != nil && e.dir != ""
+}
+
 // checkSavedSource refuses a fork in the state file that couldn't have been chosen, so
 // editing that file can't reach what the API refuses. It can't do more than that: someone
 // who can write to the data folder can also change the accounts in the database, so that
@@ -85,7 +127,7 @@ func (m *Manager) checkSavedSource(id string, e *entry) {
 		return
 	}
 	_, keyErr := parseSourceKey(s.Key)
-	if noFork[id] == "" && updatable(e.builtin) && sourceRepoRe.MatchString(s.Repo) && keyErr == nil {
+	if noFork[id] == "" && updatable(e.builtin) && sourceRepoRe.MatchString(s.Repo) && keyErr == nil && os.Getenv(LockForks) != "1" {
 		return
 	}
 	m.log.Error("modules: ignoring a source in the saved state that can't be chosen", "module", id, "repo", s.Repo)

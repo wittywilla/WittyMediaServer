@@ -961,6 +961,27 @@ func TestForkKeyInAnEditedStateFile(t *testing.T) {
 	m.Close()
 }
 
+// Whoever runs the machine can say no to forks after one was chosen too.
+func TestForkLockForgetsASavedFork(t *testing.T) {
+	w := newWorld(t)
+	m := w.manager()
+	defer m.Close()
+	pub, _, _ := ed25519.GenerateKey(rand.Reader)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods["wittyphotos"]
+	e.state.Source = &Source{Repo: "someone/WittyPhotos", Key: base64.StdEncoding.EncodeToString(pub)}
+	m.checkSavedSource("wittyphotos", e)
+	if e.state.Source == nil {
+		t.Fatal("no lock: it stays")
+	}
+	t.Setenv(LockForks, "1")
+	m.checkSavedSource("wittyphotos", e)
+	if e.state.Source != nil {
+		t.Fatal("the fork outlived the lock")
+	}
+}
+
 // WittyTuner holds the line on encrypted broadcasts, and a fork could cross it unseen.
 func TestWittyTunerCantBeForked(t *testing.T) {
 	w := newWorld(t)

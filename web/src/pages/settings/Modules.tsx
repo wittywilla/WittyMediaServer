@@ -5,7 +5,7 @@ import { LIB_TYPES } from '../../components/AddLibrary'
 import { Spinner } from '../../components/common'
 import { IconCheck, IconClose, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
 import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type ModuleStatus, type VersionInfo, type VersionList } from '../../moduleStore'
-import { toast } from '../../state'
+import { toast, useApp } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
@@ -78,6 +78,51 @@ function Confirm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
   )
 }
 
+// Your password, and code if you use one, before a change to which code runs on this server.
+function OwnerFields({ password, code, setPassword, setCode, autoFocus }: { password: string; code: string; setPassword: (s: string) => void; setCode: (s: string) => void; autoFocus?: boolean }) {
+  const { user } = useApp()
+  return (
+    <>
+      <label className="set-field">Your password
+        <input className="input" type="password" autoFocus={autoFocus} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      {user?.twoFactor && <label className="set-field">Code from your authenticator app
+        <input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+      </label>}
+    </>
+  )
+}
+
+type OwnerAsk = { title: string; body: ReactNode; action: string; run: (password: string, code: string) => Promise<void> }
+
+// Stays open on a refusal, so a mistyped password can be typed again.
+function ConfirmOwner({ ask, onClose }: { ask: OwnerAsk; onClose: () => void }) {
+  const { user } = useApp()
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [working, setWorking] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setWorking(true); setErr('')
+    try { await ask.run(password, code); onClose() } catch (x: any) { setErr(x.message); setCode(''); setWorking(false) }
+  }
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="modal set-modal" role="alertdialog" aria-label={ask.title} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h2>{ask.title}</h2>
+        <div className="ms-ask">{ask.body}</div>
+        <OwnerFields autoFocus password={password} code={code} setPassword={setPassword} setCode={setCode} />
+        {err && <p className="error" role="alert">{err}</p>}
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={working || !password || (!!user?.twoFactor && !code)}>{ask.action}</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 export default function ModulesSettings() {
   const [r, setR] = useState<ModuleReport | null>(null)
   const [failed, setFailed] = useState('')
@@ -87,6 +132,7 @@ export default function ModulesSettings() {
   const [open, setOpen] = useState<string | null>(null)
   const [hi, setHi] = useState('')
   const [ask, setAsk] = useState<Ask | null>(null)
+  const [ownerAsk, setOwnerAsk] = useState<OwnerAsk | null>(null)
   const [refused, setRefused] = useState<{ id: string; why: string } | null>(null) // why it couldn't be removed
   const [versionsOf, setVersionsOf] = useState<ModuleStatus | null>(null)
   const [params] = useSearchParams()
@@ -175,10 +221,10 @@ export default function ModulesSettings() {
       else toast(e.message)
     }
   }
-  const rollback = (m: ModuleStatus) => setAsk({
+  const rollback = (m: ModuleStatus) => setOwnerAsk({
     title: `Go back to ${backTo(m)}?`, action: 'Go back',
-    body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.</p>,
-    run: async () => { await act(() => api.post<ModuleReport>(`/modules/${m.id}/rollback`), `${m.name} went back to ${backTo(m)}`); focusRow(m.id) },
+    body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself. An older version may lack security fixes, so this asks for your password.</p>,
+    run: async (password, code) => { setR(await api.post<ModuleReport>(`/modules/${m.id}/rollback`, { password, code })); toast(`${m.name} went back to ${backTo(m)}`); focusRow(m.id) },
   })
   const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? `${m.name} can update again` : `${m.name} stays on this version`)
   const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? `${m.name} can update by itself` : `${m.name} will wait for you to update it`)
@@ -261,6 +307,7 @@ export default function ModulesSettings() {
         </div>
       )}
 
+      {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
       {versionsOf && <VersionsDialog m={r.modules.find((m) => m.id === versionsOf.id) || versionsOf} onClose={() => setVersionsOf(null)} onReport={setR} />}
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
 
@@ -487,6 +534,8 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
   const [trust, setTrust] = useState(false)
   const [err, setErr] = useState('')
   const [working, setWorking] = useState(false)
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
   const warned = useRef<HTMLDivElement>(null)
   const checkBtn = useRef<HTMLButtonElement>(null)
   // The warning comes up where the Check button was: read from its start.
@@ -507,12 +556,13 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
   const confirm = async () => {
     setWorking(true); setErr('')
     try {
-      onReport(await api.put<ModuleReport>(`/modules/${m.id}/source`, { repo, key, confirm: true }))
+      onReport(await api.put<ModuleReport>(`/modules/${m.id}/source`, { repo, key, confirm: true, password, code }))
       toast(`${m.name} now comes from ${repo.trim()}`)
       setTimeout(() => document.getElementById('mod-' + m.id)?.querySelector<HTMLElement>('.ms-head')?.focus(), 50)
     }
-    catch (e: any) { setErr(e.message); setWorking(false) }
+    catch (e: any) { setErr(e.message); setCode(''); setWorking(false) }
   }
+  const { user } = useApp()
   const fingerprint = /fingerprint is ([0-9a-f ]+)\./.exec(warning)?.[1]
   return (
     <form className="ms-fork-form" onSubmit={check}>
@@ -530,8 +580,9 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
           <span>{warning}</span>
           {fingerprint && <span className="ms-print"><span className="muted">Key fingerprint</span><code>{fingerprint}</code></span>}
           <label className="ms-trust"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> I trust this publisher</label>
+          <OwnerFields password={password} code={code} setPassword={setPassword} setCode={setCode} />
           <div className="ms-actions">
-            <button type="button" className="btn sm danger" disabled={!trust || working} onClick={confirm}>{working ? 'Saving…' : 'Confirm'}</button>
+            <button type="button" className="btn sm danger" disabled={!trust || working || !password || (!!user?.twoFactor && !code)} onClick={confirm}>{working ? 'Saving…' : 'Confirm'}</button>
             <button type="button" className="btn sm ghost" disabled={working} onClick={() => { setWarning(''); setTrust(false); setTimeout(() => checkBtn.current?.focus(), 0) }}>Cancel</button>
           </div>
         </div>
@@ -546,6 +597,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const [err, setErr] = useState('')
   const [checking, setChecking] = useState(false)
   const [pending, setPending] = useState<{ v: VersionInfo; warning: string } | null>(null)
+  const [needPassword, setNeedPassword] = useState<VersionInfo | null>(null)
   const load = () => api.get<VersionList>(`/modules/${m.id}/versions`).then((l) => { setList(l); setErr('') }).catch((e) => setErr(e.message))
   useEffect(() => { void load() }, [m.id])
   // Check now is the only thing here that asks GitHub, and someone has to press it.
@@ -560,15 +612,16 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
     } catch (e: any) { setErr(e.message) } finally { setChecking(false) }
   }
   const backToButton = (ver: string) => setTimeout(() => document.getElementById('ver-' + ver)?.focus(), 50)
+  const post = (v: VersionInfo, confirm: boolean, secrets?: { password: string; code: string }) => v.builtin
+    ? api.post<ModuleReport>(`/modules/${m.id}/builtin`, secrets)
+    : api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm, ...secrets })
   const run = async (v: VersionInfo, confirm: boolean) => {
     try {
-      const n = v.builtin
-        ? await api.post<ModuleReport>(`/modules/${m.id}/builtin`)
-        : await api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm })
-      onReport(n)
+      onReport(await post(v, confirm))
       onClose()
     } catch (e: any) {
       if (e instanceof ApiError && e.data?.code === 'confirm') setPending({ v, warning: e.data.warning })
+      else if (e instanceof ApiError && e.data?.code === 'password-needed') setNeedPassword(v)
       else { setErr(e.message); backToButton(v.version) }
     }
   }
@@ -610,6 +663,9 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
       </div>
       {pending && <Confirm ask={{ title: `Use ${m.name} ${pending.v.version}?`, body: <p>{pending.warning}</p>, action: 'Install anyway', run: () => run(pending.v, true) }}
         onClose={() => { setPending(null); backToButton(pending.v.version) }} />}
+      {needPassword && <ConfirmOwner ask={{ title: `Go back to ${m.name} ${needPassword.version}?`, body: <p>An older version may lack security fixes, so this asks for your password.</p>, action: 'Go back',
+        run: async (password, code) => { onReport(await post(needPassword, true, { password, code })); onClose() } }}
+        onClose={() => { setNeedPassword(null); backToButton(needPassword.version) }} />}
     </>
   )
 }

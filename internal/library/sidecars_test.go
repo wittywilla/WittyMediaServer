@@ -149,3 +149,46 @@ func TestFilesCantSayInfinity(t *testing.T) {
 		t.Errorf("the show can't be sent: %v", err)
 	}
 }
+
+// JSON made of {},{},... costs far more once decoded than it does on disk. Nothing here reads
+// the custom field, and no real sidecar has millions of comments or tags.
+func TestALargeInfoJSONCostsLittle(t *testing.T) {
+	dir := t.TempDir()
+	const size = 47 << 20
+	for name, body := range map[string][]string{
+		"custom":   {`{"custom":{"a":[`, `{},`, `{}]}}`},
+		"comments": {`{"comments":[`, `{},`, `{}]}`},
+		"tags":     {`{"tags":[`, `"",`, `""]}`},
+		"genres":   {`{"genres":[`, `"",`, `""]}`},
+	} {
+		p := filepath.Join(dir, name+".info.json")
+		f, err := os.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.WriteString(body[0])
+		block := strings.Repeat(body[1], (1<<20)/len(body[1]))
+		for n := len(body[0]); n+len(block) < size; n += len(block) {
+			_, _ = f.WriteString(block)
+		}
+		_, _ = f.WriteString(body[2])
+		f.Close()
+		var got *videoSidecar
+		used := allocated(func() { got, _ = readSidecar(p) })
+		if got == nil {
+			t.Errorf("%s: not read", name)
+		}
+		if used > 200<<20 {
+			t.Errorf("%s: allocated %d MB", name, used>>20)
+		}
+		_ = os.Remove(p)
+	}
+	p := filepath.Join(dir, "real.info.json")
+	if err := os.WriteFile(p, []byte(`{"title":"Made Up","tags":["a","b"],"comments":[{"author":"x","text":"hi"}],"custom":{"k":1}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	v, _ := readSidecar(p)
+	if v == nil || v.Title != "Made Up" || len(v.Tags) != 2 || len(v.Comments) != 1 || v.Comments[0].Text != "hi" || string(v.Custom) != `{"k":1}` {
+		t.Errorf("%+v", v)
+	}
+}

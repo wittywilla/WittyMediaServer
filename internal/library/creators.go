@@ -1,6 +1,7 @@
 package library
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -65,41 +66,89 @@ func discoverCreatorVideos(root string) ([]candidate, error) {
 // leave beside a file (.info.json), the same in a plain .json, and
 // .metadata.json with the fields of this project.
 type videoSidecar struct {
-	Type          string         `json:"_type"`
-	ID            string         `json:"id"`
-	Title         string         `json:"title"`
-	FullTitle     string         `json:"fulltitle"`
-	Description   string         `json:"description"`
-	Overview      string         `json:"overview"`
-	Uploader      string         `json:"uploader"`
-	UploaderID    string         `json:"uploader_id"`
-	UploaderURL   string         `json:"uploader_url"`
-	Channel       string         `json:"channel"`
-	ChannelID     string         `json:"channel_id"`
-	ChannelURL    string         `json:"channel_url"`
-	Creator       string         `json:"creator"`
-	Artist        string         `json:"artist"`
-	Album         string         `json:"album"`
-	Handle        string         `json:"handle"`
-	Platform      string         `json:"platform"`
-	ExtractorKey  string         `json:"extractor_key"`
-	Extractor     string         `json:"extractor"`
-	URL           string         `json:"url"`
-	WebpageURL    string         `json:"webpage_url"`
-	UploadDate    string         `json:"upload_date"`
-	Date          string         `json:"date"`
-	Timestamp     *float64       `json:"timestamp"`
-	ViewCount     *int64         `json:"view_count"`
-	LikeCount     *int64         `json:"like_count"`
-	Tags          []string       `json:"tags"`
-	Categories    []string       `json:"categories"`
-	Genres        []string       `json:"genres"`
-	AgeLimit      *int           `json:"age_limit"`
-	ContentRating string         `json:"contentRating"`
-	Playlist      string         `json:"playlist"`
-	PlaylistTitle string         `json:"playlist_title"`
-	Comments      []sideComment  `json:"comments"`
-	Custom        map[string]any `json:"custom"`
+	Type          string       `json:"_type"`
+	ID            string       `json:"id"`
+	Title         string       `json:"title"`
+	FullTitle     string       `json:"fulltitle"`
+	Description   string       `json:"description"`
+	Overview      string       `json:"overview"`
+	Uploader      string       `json:"uploader"`
+	UploaderID    string       `json:"uploader_id"`
+	UploaderURL   string       `json:"uploader_url"`
+	Channel       string       `json:"channel"`
+	ChannelID     string       `json:"channel_id"`
+	ChannelURL    string       `json:"channel_url"`
+	Creator       string       `json:"creator"`
+	Artist        string       `json:"artist"`
+	Album         string       `json:"album"`
+	Handle        string       `json:"handle"`
+	Platform      string       `json:"platform"`
+	ExtractorKey  string       `json:"extractor_key"`
+	Extractor     string       `json:"extractor"`
+	URL           string       `json:"url"`
+	WebpageURL    string       `json:"webpage_url"`
+	UploadDate    string       `json:"upload_date"`
+	Date          string       `json:"date"`
+	Timestamp     *float64     `json:"timestamp"`
+	ViewCount     *int64       `json:"view_count"`
+	LikeCount     *int64       `json:"like_count"`
+	Tags          sideWords    `json:"tags"`
+	Categories    sideWords    `json:"categories"`
+	Genres        sideWords    `json:"genres"`
+	AgeLimit      *int         `json:"age_limit"`
+	ContentRating string       `json:"contentRating"`
+	Playlist      string       `json:"playlist"`
+	PlaylistTitle string       `json:"playlist_title"`
+	Comments      sideComments `json:"comments"`
+	Custom        sideCustom   `json:"custom"`
+}
+
+// What a sidecar's lists are read up to. JSON made of {},{},... takes far more room decoded
+// than on disk: a 47 MB file could cost gigabytes.
+const (
+	maxSideWords    = 1000
+	maxSideComments = 50000
+	maxSideCustom   = 16 << 10 // stored only up to this; nothing here reads it
+)
+
+type (
+	sideWords    []string
+	sideComments []sideComment
+	sideCustom   []byte
+)
+
+func (l *sideWords) UnmarshalJSON(b []byte) error {
+	*l = decodeCapped[string](b, maxSideWords)
+	return nil
+}
+
+func (l *sideComments) UnmarshalJSON(b []byte) error {
+	*l = decodeCapped[sideComment](b, maxSideComments)
+	return nil
+}
+
+func (c *sideCustom) UnmarshalJSON(b []byte) error {
+	if len(b) >= 2 && b[0] == '{' && string(b) != "{}" && len(b) <= maxSideCustom {
+		*c = append((*c)[:0], b...)
+	}
+	return nil
+}
+
+// decodeCapped reads a JSON list up to limit values, without looking at the rest.
+func decodeCapped[T any](b []byte, limit int) []T {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
+		return nil
+	}
+	var out []T
+	for len(out) < limit && dec.More() {
+		var v T
+		if dec.Decode(&v) != nil {
+			break
+		}
+		out = append(out, v)
+	}
+	return out
 }
 
 type sideComment struct {
@@ -154,9 +203,6 @@ func sidecarFor(path string) (*videoSidecar, int64) {
 			break
 		}
 		merged := *side
-		ownJSON, _ := json.Marshal(own)
-		var set map[string]any
-		_ = json.Unmarshal(ownJSON, &set)
 		if own.Title != "" {
 			merged.Title = own.Title
 		}
@@ -335,11 +381,7 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 		if vm.Playlist == "" {
 			vm.Playlist = side.Playlist
 		}
-		if len(side.Custom) > 0 {
-			if b, err := json.Marshal(side.Custom); err == nil && len(b) <= 16<<10 {
-				vm.Custom = string(b)
-			}
-		}
+		vm.Custom = string(side.Custom)
 	}
 	if vm.Playlist == "" && side != nil {
 		vm.Playlist = side.Album

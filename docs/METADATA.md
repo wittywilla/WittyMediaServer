@@ -310,7 +310,7 @@ nothing without the owner's agreement. The studios of films and networks of show
 | `GET /api/logos/{id}/image?variant=white\|dark\|original&v={version}` | Signed in | The PNG, or 404 |
 | `GET /api/logos/credits` | Signed in | Every logo with its source, licence and author. An account with limits gets the studios and networks of what it may see |
 | `GET /api/logos/{id}/candidates?q=` | Admin | What the source offers, to choose from. 409 without the owner's agreement |
-| `GET /api/logos/preview?src=` | Admin | A candidate's picture, through this server. Only Wikimedia addresses |
+| `GET /api/logos/preview?src=` | Admin | A candidate's picture, through this server. Only Wikimedia addresses, and 409 until downloads are agreed to |
 | `PUT /api/logos/{id}` `{sourceId, q}` or `{status: "text"\|"pending"}` | Admin | Use a candidate; or the name alone; or look again |
 | `PUT /api/logos/{id}/upload` (the picture as the body) | Admin | Use your own. PNG, JPEG, WebP or GIF, up to 8 MB. Needs no agreement, since nothing is downloaded |
 | `GET /api/brands?library=&kind=studio\|network` | Signed in | The studios or networks of a library, most titles first, counting only what this viewer may see |

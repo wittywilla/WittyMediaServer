@@ -484,7 +484,7 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 | Method and path | Who | What |
 |---|---|---|
 | `GET /api/guide?from&hours&offset&limit&kind&group&favourites&channel` | signed in | Channels and programmes |
-| `GET /api/guide/search?q&days&limit` | signed in | Search what is coming up |
+| `GET /api/guide/search?q&days&limit` | signed in | Search what is coming up. 429 with `Retry-After` when several are running |
 | `GET /api/tv/favourites`, `PUT`/`DELETE /api/tv/favourites/{key}` | signed in | This account's favourite channels |
 | `GET`/`POST /api/tv/reminders`, `DELETE /api/tv/reminders/{id}` | signed in | This account's reminders |
 | `GET`/`POST /api/channels/bumpers`, `POST …/upload`, `DELETE …/item/{id}` | admin | The bumper library |

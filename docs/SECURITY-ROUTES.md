@@ -176,7 +176,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/music/radio/{id}` | Signed-in | limits, on the song and what is suggested. 2 to 200 songs. Paths for admins only |
 | `GET /api/music/loudness/{id}` | Signed-in | limits. An audio item inside a library. Values held to a range |
 | `GET /api/music/extras/{id}` | Signed-in | limits. An audio item inside a library. PDFs and text files, plain files only, 50 at most |
-| `GET /api/music/extras/{id}/file` | Signed-in | limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB. Limit for viewers away from home |
+| `GET /api/music/extras/{id}/file` | Signed-in | limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB, as JSON. A PDF is sent as a PDF for the browser's own viewer, without the script-free policy, within the limit for viewers away from home |
 | `GET /api/music/artist` | Signed-in | limits, in the query. Name of up to 300 characters. Online biography only when the owner turned it on, its credit a Wikipedia address |
 | `GET /api/music/artist-photo` | Signed-in | limits: an artist with a song the account may see. Name of up to 300 characters. Opened inside a library. Pictures only |
 | `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item. own timing. Asks online only when the owner turned it on |

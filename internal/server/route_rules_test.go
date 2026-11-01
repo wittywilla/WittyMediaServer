@@ -144,7 +144,7 @@ var routeRules = map[string]string{
 	"GET /api/music/artist-photo":                    "Signed-in: limits: an artist with a song the account may see. Name of up to 300 characters. Opened inside a library. Pictures only",
 	"GET /api/music/artists":                         "Signed-in: limits, in the query",
 	"GET /api/music/extras/{id}":                     "Signed-in: limits. An audio item inside a library. PDFs and text files, plain files only, 50 at most",
-	"GET /api/music/extras/{id}/file":                "Signed-in: limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB. Limit for viewers away from home",
+	"GET /api/music/extras/{id}/file":                "Signed-in: limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB, as JSON. A PDF is sent as a PDF for the browser's own viewer, without the script-free policy, within the limit for viewers away from home",
 	"GET /api/music/home":                            "Signed-in: limits, in the query. own plays. Paths for admins only",
 	"GET /api/music/likes":                           "Signed-in: own. limits, in the query",
 	"GET /api/music/loudness/{id}":                   "Signed-in: limits. An audio item inside a library. Values held to a range",

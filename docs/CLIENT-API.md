@@ -950,7 +950,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
 | `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. An account with limits gets the studios and networks of what it may see. |
-| `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only. |
+| `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only, and 409 until logo downloads are agreed to. |
 | `GET /logos/{id}/image` | Signed in | A logo as a PNG. variant=white, dark or original. |
 | `GET /logos/{id}/candidates` | Admin | What the source offers for a logo, to choose from. |
 | `PUT /logos/{id}` | Admin | Use a candidate, the name alone, or look again. |
@@ -972,7 +972,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /meta/removed/restore` | Admin | Bring a removed title back. |
 | `POST /meta/undo` | Admin | Undo a group of changes. |
 | `GET /meta/history` | Admin | Recent changes, each of which can be undone. |
-| `POST /meta/bulk` | Admin | Edit up to 500 titles together. |
+| `POST /meta/bulk` | Admin | Edit up to 500 titles together. A picture must be a web address or a file in a library. |
 | `GET /meta/show/{id}/episodes` | Admin | A show's files beside what its source lists. |
 | `PUT /meta/show/{id}/episodes` | Admin | Renumber a show's episodes. |
 | `GET /meta/{target}/{id}` | Admin | Everything the edit dialog needs. target is item or show. |
@@ -1134,7 +1134,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
 | `GET /tv/encrypted-help` | user | Encrypted help. |
-| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. |
+| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
 | `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
@@ -1143,7 +1143,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
 | `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
 | `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
-| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. |
+| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. 507 when the disk is nearly full. |
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
 | `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
 | `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |

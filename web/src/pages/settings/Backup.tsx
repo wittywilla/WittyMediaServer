@@ -431,6 +431,23 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
     void waitForRestart(setWaiting)
   }, [restarting, waiting])
 
+  // On a new server the restart can come and go between two looks at the job, and afterwards this
+  // page may not ask about it any more, as there are accounts now. So while one runs, it watches
+  // the status anyone can read, and starts the app again when the server has been away or is set up.
+  const inProgress = !!view?.job.running
+  useEffect(() => {
+    if (!firstRun || !inProgress) return
+    let wentAway = false
+    const t = setInterval(() => {
+      fetch(serverBase() + '/api/status', { cache: 'no-store' }).then((r) => r.json()).then((st: { setupRequired?: boolean }) => {
+        if (!wentAway && st.setupRequired) return
+        setToken('')
+        window.location.href = '/'
+      }).catch(() => { wentAway = true })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [firstRun, inProgress])
+
   const check = async (name: string, pw: string) => {
     setErr('')
     try {

@@ -554,3 +554,25 @@ func TestSessionFromPath(t *testing.T) {
 		}
 	}
 }
+
+// One account can't push older log lines out by filling the log with its own.
+func TestClientReportsHaveADailyBudget(t *testing.T) {
+	old := clientDailyBytes
+	clientDailyBytes = 4 << 10
+	defer func() { clientDailyBytes = old }()
+	var l clientLogLimiter
+	spent := 0
+	for l.spend(1024) {
+		spent += 1024
+		if spent > 1<<20 {
+			t.Fatal("no limit")
+		}
+	}
+	if spent != 4<<10 {
+		t.Errorf("%d bytes", spent)
+	}
+	l.day = "2000-01-01" // a new day
+	if !l.spend(1024) {
+		t.Error("the budget should start over each day")
+	}
+}

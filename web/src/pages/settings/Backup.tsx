@@ -75,7 +75,7 @@ function upload(file: File, setupCode: string | undefined, onProgress: (done: nu
 }
 
 // Waits for the server to go away and come back, then starts the app again.
-async function waitForRestart(say: (s: string) => void, signOut = true) {
+async function waitForRestart(say: (s: string) => void) {
   const answers = async () => { try { return (await fetch(serverBase() + '/api/status', { cache: 'no-store' })).ok } catch { return false } }
   const started = Date.now()
   let wentAway = false
@@ -84,7 +84,7 @@ async function waitForRestart(say: (s: string) => void, signOut = true) {
     const up = await answers()
     if (!up) { wentAway = true; continue }
     if (wentAway || Date.now() - started > 12000) {
-      if (signOut) setToken('')
+      setToken('')
       window.location.href = '/'
       return
     }
@@ -120,7 +120,13 @@ function JobProgress({ job, onCancel }: { job: Job; onCancel?: () => void }) {
   )
 }
 
-function PartChecks({ parts, chosen, setChosen, legend, sizes }: { parts: Part[]; chosen: Set<string>; setChosen: (s: Set<string>) => void; legend: string; sizes?: Record<string, number> }) {
+// What a part holds, in words: its files and its rows.
+const holds = (p: Part) => {
+  const words = [p.rows ? `${p.rows.toLocaleString()} ${p.rows === 1 ? 'entry' : 'entries'}` : '', p.files ? `${p.files.toLocaleString()} ${p.files === 1 ? 'file' : 'files'}, ${size(p.bytes)}` : ''].filter(Boolean)
+  return words.join(', ') || 'nothing in it'
+}
+
+function PartChecks({ parts, chosen, setChosen, legend, sizes, inside }: { parts: Part[]; chosen: Set<string>; setChosen: (s: Set<string>) => void; legend: string; sizes?: Record<string, number>; inside?: boolean }) {
   const flip = (p: Part, on: boolean) => {
     const n = new Set(chosen)
     if (on) { n.add(p.id); (p.needs || []).forEach((x) => n.add(x)) } else {
@@ -135,12 +141,12 @@ function PartChecks({ parts, chosen, setChosen, legend, sizes }: { parts: Part[]
       <legend className="sr-only">{legend}</legend>
       {parts.map((p) => {
         const needs = (p.needs || []).map((id) => parts.find((x) => x.id === id)?.label).filter(Boolean)
-        const known = sizes?.[p.id] ?? p.bytes
+        const known = sizes?.[p.id]
         return (
           <label key={p.id} className="bk-part">
             <input type="checkbox" checked={chosen.has(p.id)} onChange={(e) => flip(p, e.target.checked)} />
             <span className="bk-part-text">
-              <span className="bk-part-head"><b>{p.label}</b>{known !== undefined && <span className="bk-size">{known > 0 ? `about ${size(known)}` : 'empty'}</span>}</span>
+              <span className="bk-part-head"><b>{p.label}</b>{inside ? <span className="bk-size">{holds(p)}</span> : known !== undefined && <span className="bk-size">{known > 0 ? `about ${size(known)}` : 'empty'}</span>}</span>
               <span className="bk-quiet">{p.desc}{needs.length > 0 && ` Needs ${needs.join(' and ')} too.`}</span>
             </span>
           </label>
@@ -184,6 +190,12 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
   const total = sizes ? [...chosen].reduce((n, id) => n + (sizes[id] || 0), 0) : null
   const job = view.job
   const busy = job.running
+  const answer = useRef<HTMLDivElement>(null)
+  const was = useRef(false)
+  useEffect(() => {
+    if (was.current && !busy) requestAnimationFrame(() => answer.current?.focus())
+    was.current = busy
+  }, [busy])
   const ready = chosen.size > 0 && !busy && (!protect || (password.length >= 8 && password === again))
   const start = async () => {
     setErr('')
@@ -211,7 +223,7 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
       </Section>
       <Section title="Make the backup">
         {busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
-          <>
+          <div ref={answer} tabIndex={-1} className="bk-answer">
             {job.kind === 'create' && job.result && (
               <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>
                 {job.file && <p>It’s below, as <code>{job.file}</code>. A copy on another drive is what saves you if this one fails, so download it.</p>}
@@ -222,7 +234,7 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
             {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
             {busy && <p className="bk-quiet" role="status">Something else is running. This can start when it’s finished.</p>}
             <div className="bk-actions"><Button variant="primary" disabled={!ready} onClick={start}>Make a backup now</Button></div>
-          </>
+          </div>
         )}
       </Section>
     </>
@@ -363,13 +375,18 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
   const [waiting, setWaiting] = useState('')
   const seen = useRef('')
   const fileInput = useRef<HTMLInputElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
   const inspection = view?.job.inspection
   useEffect(() => { onBusy?.(!!uploading || !!view?.job.running || !!waiting) }, [uploading, view?.job.running, waiting, onBusy])
   // A new inspection: everything it holds starts ticked.
   useEffect(() => {
     if (!inspection) return
     const key = inspection.name + inspection.created
-    if (seen.current !== key) { seen.current = key; setChosen(new Set(inspection.parts.map((p) => p.id))) }
+    if (seen.current !== key) {
+      seen.current = key
+      setChosen(new Set(inspection.parts.map((p) => p.id)))
+      requestAnimationFrame(() => heading.current?.focus())
+    }
   }, [inspection])
   useEffect(() => { if (initial) setFile(initial) }, [initial])
   // Stage done: the server restarts, and this waits for it.
@@ -377,8 +394,8 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
   useEffect(() => {
     if (!restarting || waiting) return
     setWaiting('The server is restarting to bring your data in. This can take a minute.')
-    void waitForRestart(setWaiting, !firstRun || true)
-  }, [restarting, waiting, firstRun])
+    void waitForRestart(setWaiting)
+  }, [restarting, waiting])
 
   const check = async (name: string, pw: string) => {
     setErr('')
@@ -448,9 +465,9 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
       {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
       {inspection && !stage && !job.needsPassword && (
         <div className="bk-preview">
-          <h2 className="bk-h">What’s in it</h2>
+          <h2 className="bk-h" ref={heading} tabIndex={-1}>What’s in it</h2>
           <p>A backup from <b>{fmtDateTime(inspection.created)}</b>, made by version {inspection.serverVersion}, {inspection.protected ? 'protected with a password' : 'with no password'}. Every file in it checked out.{inspection.older ? ' It’s from an older version, and is brought up to date as it’s restored.' : ''}</p>
-          <PartChecks parts={inspection.parts} chosen={chosen} setChosen={setChosen} legend="What to bring back" sizes={Object.fromEntries(inspection.parts.map((p) => [p.id, p.bytes || 0]))} />
+          <PartChecks parts={inspection.parts} chosen={chosen} setChosen={setChosen} legend="What to bring back" inside />
           {needs.length > 0 && <Notice tone="warn">Some of what you’ve chosen needs parts you’ve left out.</Notice>}
           <p className="bk-quiet">Anything you untick stays as it is on this server now, unless it depends on something you’re replacing: watch history, say, can’t stay if the library is replaced, as its numbers would point at other titles.</p>
           {inspection.accounts.length > 0 && chosen.has('users') && (

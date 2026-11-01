@@ -396,7 +396,7 @@ func under(p string, roots []string) bool {
 }
 
 // Places a library must never be pointed at, whatever a file says.
-var systemRoots = []string{"/etc", "/proc", "/sys", "/dev", "/boot", "/root", "/run", "/bin", "/sbin", "/lib", "/lib64", "/usr", "/var/lib", "c:/windows", "c:/program files", "c:/program files (x86)", "c:/programdata", "/system", "/library"}
+var systemRoots = []string{"/etc", "/proc", "/sys", "/dev", "/boot", "/root", "/run", "/bin", "/sbin", "/lib", "/lib64", "/usr", "/var/lib", "c:/windows", "c:/program files", "c:/program files (x86)", "c:/programdata", "/System", "/Library"}
 
 func dangerousRoot(p string, f Folders) string {
 	n := normalizePath(p)

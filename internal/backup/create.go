@@ -84,6 +84,9 @@ func Estimate(ctx context.Context, f Folders, live *sql.DB) []PartSize {
 				return nil
 			}
 			seen[abs] = true
+			if src.Prefix == "themes/" && !ownTheme(abs) {
+				return nil
+			}
 			i := idx[src.Part]
 			out[i].Files++
 			out[i].Bytes += fi.Size()
@@ -113,6 +116,13 @@ func Estimate(ctx context.Context, f Folders, live *sql.DB) []PartSize {
 		out[idx[PartLibrary]].Bytes += st.Size()
 	}
 	return out
+}
+
+// ownTheme says whether a theme is someone's own. The built-in ones every server makes for
+// itself, and aren't accepted coming back.
+func ownTheme(p string) bool {
+	b, err := os.ReadFile(p)
+	return err == nil && themes.CheckZip(b) == nil
 }
 
 // newName makes a name for an archive that isn't taken.
@@ -363,10 +373,8 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 			if err := src.Check(rel, head); err != nil {
 				return nil
 			}
-			if src.Prefix == "themes/" {
-				if b, rerr := os.ReadFile(abs); rerr != nil || themes.CheckZip(b) != nil {
-					return nil // a built-in one, which every server makes for itself
-				}
+			if src.Prefix == "themes/" && !ownTheme(abs) {
+				return nil
 			}
 			if unsafeName(src.Prefix+rel) != "" {
 				if o.Problem != nil {

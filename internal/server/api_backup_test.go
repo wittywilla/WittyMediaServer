@@ -3,6 +3,7 @@ package server
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -327,4 +328,69 @@ func TestNextBackupTime(t *testing.T) {
 	if at != time.Date(2026, 11, 6, 12, 0, 0, 0, loc) {
 		t.Errorf("weekly: %v", at)
 	}
+}
+
+// A schedule that's due makes a backup by itself, and keeps only the newest.
+func TestScheduledBackupRuns(t *testing.T) {
+	b := newBackupServer(t)
+	old := backupSoonest
+	backupSoonest = 10 * time.Millisecond
+	defer func() { backupSoonest = old }()
+	f := b.backupFolders()
+	if err := os.MkdirAll(f.Dir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"wms-backup-auto-20200101-000000.zip", "wms-backup-auto-20200102-000000.zip"} {
+		if err := os.WriteFile(filepath.Join(f.Dir(), name), []byte("old"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		at := time.Now().Add(-30 * 24 * time.Hour)
+		_ = os.Chtimes(filepath.Join(f.Dir(), name), at, at)
+	}
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": "short"}); w.Code != 400 {
+		t.Fatalf("a short password: %d", w.Code)
+	}
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": backupPassword}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	// The key isn't the password, and neither is shown.
+	if v := b.DB.GetSetting(t.Context(), backupKeySetting, ""); v == "" || strings.Contains(v, backupPassword) {
+		t.Fatalf("the saved key: %q", v)
+	}
+	if w := b.call("GET", "/api/settings", b.admin, nil); strings.Contains(w.Body.String(), "memoryKiB") {
+		t.Error("the key shows in the settings")
+	}
+	if err := b.DB.SetSetting(t.Context(), backupLastSetting, "1000"); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	b.StartBackupSchedule(ctx)
+	deadline := time.Now().Add(30 * time.Second)
+	var found []backup.Info
+	for time.Now().Before(deadline) {
+		found = nil
+		for _, i := range backup.List(f) {
+			if i.Auto {
+				found = append(found, i)
+			}
+		}
+		if len(found) == 1 && !strings.Contains(found[0].Name, "2020") && found[0].Protected {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if len(found) != 1 || strings.Contains(found[0].Name, "2020") || !found[0].Protected {
+		t.Fatalf("%+v", found)
+	}
+	// It opens with the password it was set up with.
+	p, err := f.PathOf(found[0].Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in, err := backup.Inspect(t.Context(), p, backupPassword, f, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in.Close()
 }

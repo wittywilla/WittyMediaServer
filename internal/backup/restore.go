@@ -930,8 +930,9 @@ func targetsAllowed(f Folders, swaps []swap) bool {
 	return true
 }
 
-// cleanLeftovers removes what a backup or check that was cut off left behind. A day's
-// grace, in case the command line is making one right now.
+// cleanLeftovers removes what a backup or check that was cut off left behind, which can
+// be a decrypted copy, so it doesn't wait about. The grace is in case the command line is
+// making one right now.
 func cleanLeftovers(f Folders) {
 	entries, err := os.ReadDir(f.Dir())
 	if err != nil {
@@ -942,7 +943,7 @@ func cleanLeftovers(f Folders) {
 		if !strings.HasPrefix(n, ".backup-") && !strings.HasPrefix(n, ".restore-check-") {
 			continue
 		}
-		if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > 24*time.Hour {
+		if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > 10*time.Minute {
 			_ = os.RemoveAll(filepath.Join(f.Dir(), n))
 		}
 	}

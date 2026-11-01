@@ -18,6 +18,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/backup"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
@@ -35,6 +36,7 @@ const (
 	backupLastErrSetting  = "backupLastError"
 	backupLinkLife        = 10 * time.Minute
 	inspectionLife        = time.Hour
+	uploadPrefix          = "wms-backup-upload-"
 )
 
 // backupState is the job going, and what checking an archive found.
@@ -304,6 +306,9 @@ func (s *Server) setBackupSetting(key, value string) {
 
 var errBackupBusy = errors.New("a backup or restore is already running")
 
+// backupSoonest is how long a backup that's already due waits after a start or a change.
+var backupSoonest = time.Minute
+
 // POST /api/backup/create {parts, password}
 func (s *Server) handleBackupCreate(w http.ResponseWriter, r *http.Request) {
 	var b struct {
@@ -531,8 +536,8 @@ func (s *Server) StartBackupSchedule(ctx context.Context) {
 			var wait <-chan time.Time
 			if on {
 				d := time.Until(due)
-				if d < time.Minute {
-					d = time.Minute // not all at once as the server starts
+				if d < backupSoonest {
+					d = backupSoonest // not all at once as the server starts
 				}
 				wait = time.After(d)
 			}
@@ -578,7 +583,11 @@ func (s *Server) handleBackupUpload(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	name := "wms-backup-upload-" + time.Now().Format("20060102-150405") + ".zip"
+	if free := sysinfo.FreeBytes(f.Dir()); free > 0 && r.ContentLength > free {
+		writeErr(w, 507, fmt.Sprintf("there isn't room for this file: it's %d MB, and the drive has %d MB free", r.ContentLength>>20, free>>20))
+		return
+	}
+	name := uploadPrefix + time.Now().Format("20060102-150405") + ".zip"
 	dst := filepath.Join(f.Dir(), name)
 	tmp, err := os.CreateTemp(f.Dir(), ".backup-upload-*.tmp")
 	if err != nil {
@@ -644,6 +653,12 @@ func (s *Server) handleBackupInspect(w http.ResponseWriter, r *http.Request) {
 			needs := backup.IsWrongPassword(err)
 			if refused {
 				s.Log.Warn("a backup was refused", "cat", "server", "file", b.File, "why", err.Error())
+				// What was only just uploaded to be checked doesn't stay on this server.
+				if strings.HasPrefix(b.File, uploadPrefix) {
+					if rerr := backup.Delete(f, b.File); rerr != nil {
+						s.Log.Warn("could not remove a refused upload", "cat", "server", "file", b.File, "err", rerr)
+					}
+				}
 			}
 			t.Finish(err)
 			s.endBackup(func(j *backupJob) {

@@ -3,36 +3,20 @@
   "radius": 2,
   "raw-colour": 10
  },
- "components/AddLibrary.tsx": {
-  "input-label": 1
- },
- "components/ArtworkPicker.tsx": {
-  "input-label": 1
- },
- "creators.css": {
-  "raw-colour": 23
- },
  "gallery.css": {
   "blur": 1,
   "radius": 1,
-  "raw-colour": 18
+  "raw-colour": 2
  },
  "oobe.css": {
   "radius": 2,
   "raw-colour": 11
  },
- "pages/DiscSections.tsx": {
-  "input-label": 3
- },
  "pages/GameMeta.tsx": {
-  "input-label": 1,
   "native-dialog": 1
  },
  "pages/ShowPage.tsx": {
   "click-div": 1
- },
- "pages/TranscodeSettings.tsx": {
-  "input-label": 3
  },
  "pages/creators/ShortsLibrary.tsx": {
   "click-div": 1
@@ -42,15 +26,6 @@
   "radius": 3,
   "raw-colour": 4
  },
- "pages/settings/GamingCustom.tsx": {
-  "native-dialog": 1
- },
- "pages/settings/Metadata.tsx": {
-  "input-label": 2
- },
- "pages/settings/Playback.tsx": {
-  "input-label": 1
- },
  "pages/tv/BumperEditor.tsx": {
   "native-dialog": 1
  },
@@ -59,9 +34,6 @@
  },
  "pages/tv/RecordingsPage.tsx": {
   "native-dialog": 1
- },
- "pages/tv/SearchPanel.tsx": {
-  "input-label": 2
  },
  "pages/tv/TvPlayer.tsx": {
   "click-div": 1
@@ -98,9 +70,6 @@
   "radius": 10,
   "raw-colour": 107,
   "z-index": 3
- },
- "player/CdPlayer.tsx": {
-  "input-label": 1
  },
  "player/Controls.tsx": {
   "click-div": 1,

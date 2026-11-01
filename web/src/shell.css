@@ -161,6 +161,7 @@
 .theme-maker-preview .theme-scene { height: 12rem; border-radius: var(--r-md); border: 1px solid var(--border-strong); }
 @media (max-width: 700px) { .theme-maker { grid-template-columns: minmax(0, 1fr); } .theme-maker-preview { position: static; order: -1; } }
 .block { display: block; }
+.seg-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); }
 
 /* ---------------------------------------------------------------- moving posters (ui/tilt.ts) */
 html.tilt-on .card:not(.square) .poster { transform-style: preserve-3d; }

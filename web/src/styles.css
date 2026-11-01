@@ -47,6 +47,7 @@
   --focus-scale: 1;
   --on-image: #fff;                                         /* text and icons over artwork */
   --scrim: rgb(0 0 0 / .68);                                /* the plate behind them */
+  --picture-bg: #000;                                       /* behind video and photos: never themed */
 
   /* ---- type: one scale; sizes in rem so they follow the reader's setting ---- */
   --text-2xs: .6875rem;  /* 11  labels, badges */

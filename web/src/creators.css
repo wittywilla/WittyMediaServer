@@ -1,7 +1,7 @@
 /* WittyShorts and WittyChannels. Colours come from the theme's variables. */
 
 .cr-avatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; object-fit: cover; background: var(--bg-4); }
-.cr-avatar.ph { color: #fff; font-weight: 700; }
+.cr-avatar.ph { color: var(--on-image); font-weight: 700; }
 
 /* Tiles */
 .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 16px; margin-bottom: 24px; }
@@ -12,9 +12,9 @@
 .cr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .18s; }
 .cr-tile:hover .cr-thumb img { transform: scale(1.03); }
 .cr-tile:focus-visible .cr-thumb { outline: 3px solid var(--accent); outline-offset: 2px; }
-.cr-dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 6px; font-size: var(--text-xs); font-weight: 600; color: #fff; background: rgba(0,0,0,.78); border-radius: var(--r-xs); font-variant-numeric: tabular-nums; }
-.cr-seen { position: absolute; left: 6px; top: 6px; width: 22px; height: 22px; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.7); border-radius: 50%; }
-.cr-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.3); }
+.cr-dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 6px; font-size: var(--text-xs); font-weight: 600; color: var(--on-image); background: var(--scrim); border-radius: var(--r-xs); font-variant-numeric: tabular-nums; }
+.cr-seen { position: absolute; left: 6px; top: 6px; width: 22px; height: 22px; display: grid; place-items: center; color: var(--on-image); background: var(--scrim); border-radius: 50%; }
+.cr-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: color-mix(in srgb, var(--on-image) 30%, transparent); }
 .cr-prog i { display: block; height: 100%; background: var(--accent); }
 .cr-meta { display: flex; gap: 10px; min-width: 0; }
 .cr-text { display: grid; gap: 1px; min-width: 0; }
@@ -55,26 +55,26 @@
 .sh-feed::-webkit-scrollbar { display: none; }
 .sh-slide { position: relative; height: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; padding: 8px 6px; scroll-snap-align: start; scroll-snap-stop: always; outline: none; box-sizing: border-box; }
 .sh-slide:focus-visible .sh-stage { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sh-stage { position: relative; height: 100%; aspect-ratio: 9 / 16; max-width: min(100%, calc(100vw - 96px)); border-radius: var(--r-lg); overflow: hidden; background: #000; color: #fff; }
+.sh-stage { position: relative; height: 100%; aspect-ratio: 9 / 16; max-width: min(100%, calc(100vw - 96px)); border-radius: var(--r-lg); overflow: hidden; background: var(--picture-bg); color: var(--on-image); }
 .sh-slide.wide .sh-stage { aspect-ratio: 16 / 9; height: auto; width: min(100%, calc(100vw - 96px), 1100px); }
 .sh-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.sh-poster.blank { background: #000; }
+.sh-poster.blank { background: var(--picture-bg); }
 .sh-video { position: absolute; inset: 0; }
-.sh-video video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-.sh-paused { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 86px; height: 86px; display: grid; place-items: center; background: rgba(0,0,0,.5); border-radius: 50%; pointer-events: none; }
-.sh-paused svg { fill: #fff; }
-.sh-mute, .sh-play { position: absolute; top: 10px; width: 40px; height: 40px; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.45); border: 0; border-radius: 50%; }
+.sh-video video { width: 100%; height: 100%; object-fit: contain; display: block; background: var(--picture-bg); }
+.sh-paused { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 86px; height: 86px; display: grid; place-items: center; background: color-mix(in srgb, var(--scrim) 74%, transparent); border-radius: 50%; pointer-events: none; }
+.sh-paused svg { fill: var(--on-image); }
+.sh-mute, .sh-play { position: absolute; top: 10px; width: 40px; height: 40px; display: grid; place-items: center; color: var(--on-image); background: color-mix(in srgb, var(--scrim) 66%, transparent); border: 0; border-radius: 50%; }
 .sh-mute { right: 10px; } .sh-play { right: 56px; }
-.sh-mute:hover, .sh-play:hover { background: rgba(0,0,0,.7); }
+.sh-mute:hover, .sh-play:hover { background: var(--scrim); }
 .sh-mute svg, .sh-play svg { width: 22px; height: 22px; fill: currentColor; }
-.sh-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.25); }
+.sh-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--on-image) 25%, transparent); }
 .sh-bar i { display: block; height: 100%; background: var(--accent); }
-.sh-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 14px 14px; background: linear-gradient(0deg, rgba(0,0,0,.72), transparent); pointer-events: none; }
+.sh-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 14px 14px; background: linear-gradient(0deg, var(--scrim), transparent); pointer-events: none; }
 .sh-caption a { pointer-events: auto; }
-.sh-who { display: inline-flex; align-items: center; gap: 8px; color: #fff; }
+.sh-who { display: inline-flex; align-items: center; gap: 8px; color: var(--on-image); }
 .sh-caption p { margin: 6px 0 2px; font-size: var(--text-md); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.sh-tags { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--text-xs); color: rgba(255,255,255,.9); }
-.sh-why { font-size: var(--text-xs); color: rgba(255,255,255,.75); margin-top: 3px; }
+.sh-tags { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--text-xs); color: color-mix(in srgb, var(--on-image) 90%, transparent); }
+.sh-why { font-size: var(--text-xs); color: color-mix(in srgb, var(--on-image) 75%, transparent); margin-top: 3px; }
 .sh-rail { display: flex; flex-direction: column; gap: 10px; align-self: flex-end; padding-bottom: 8px; flex: none; }
 .sh-act { position: relative; display: grid; justify-items: center; gap: 2px; width: 56px; padding: 6px 0; background: none; border: 0; border-radius: var(--r-md); color: var(--fg); font-size: var(--text-2xs); font-weight: 600; cursor: pointer; }
 .sh-act i { font-style: normal; font-size: var(--text-xl); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--bg-3); }
@@ -101,8 +101,8 @@
   .sh-slide.wide .sh-stage { width: 100%; height: 100%; aspect-ratio: auto; }
   .sh-video video { object-fit: contain; }
   .sh-rail { position: absolute; right: 4px; bottom: 90px; z-index: 3; padding: 0; gap: 4px; }
-  .sh-act { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
-  .sh-act i { background: rgba(0,0,0,.42); }
+  .sh-act { color: var(--on-image); text-shadow: 0 1px 3px var(--scrim); }
+  .sh-act i { background: color-mix(in srgb, var(--scrim) 62%, transparent); }
   .sh-caption { padding-right: 70px; }
 }
 

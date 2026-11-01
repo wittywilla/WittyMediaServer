@@ -39,7 +39,7 @@ export default function ArtworkPicker({ base, onPick, onClose }: { base: string;
           </div>
         )}
         <div className="field-row" style={{ marginTop: 14 }}>
-          <input className="input" placeholder="…or paste an image URL / file path" value={url} onChange={(e) => setUrl(e.target.value)} />
+          <input className="input" aria-label="Image address or file path" placeholder="…or paste an image URL / file path" value={url} onChange={(e) => setUrl(e.target.value)} />
           <button className="btn" disabled={!url || saving} onClick={() => pick(url)}>Use</button>
         </div>
         <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>The chosen image is saved next to the media (poster.jpg / fanart.jpg or &lt;name&gt;-poster.jpg) so other media software picks it up too.</p>

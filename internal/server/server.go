@@ -29,6 +29,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
@@ -58,9 +59,15 @@ type Server struct {
 	Tasks       *tasks.Registry
 	taskStore   *tasks.SQLStore
 	taskStreams taskStreamCounts
-	Logs        *logging.Logger
-	Crashes     *logging.CrashGuard // crash reports; nil when they can't be kept
-	logMods     logModules          // how each module is logged
+	// Metrics watches the machine; see api_metrics.go. Made in Handler.
+	Metrics       *metrics.Collector
+	gpus          metrics.GPUReader
+	streams       streamTracker
+	metricStreams taskStreamCounts
+	reports       reportCache
+	Logs          *logging.Logger
+	Crashes       *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods       logModules          // how each module is logged
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -137,6 +144,7 @@ func tokenFrom(r *http.Request) string {
 // StartMetadata wakes the services that follow scans, and brings in anything added
 // before they existed. The server's own start calls it once.
 func (s *Server) StartMetadata() {
+	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
@@ -403,6 +411,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
 	s.remoteRoutes(m)
 	s.taskRoutes(m)
+	s.streams.init(s)
+	s.metricsRoutes(m)
 
 	// WittyPhotos
 	m.Handle("GET /api/photos/months", a(s.handlePhotoMonths))

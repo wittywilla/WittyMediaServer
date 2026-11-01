@@ -2948,6 +2948,68 @@
         ],
         "type": "object"
       },
+      "GameView": {
+        "properties": {
+          "core": {
+            "type": "string"
+          },
+          "droppedFrames": {
+            "type": "integer"
+          },
+          "encodeMs": {
+            "type": "number"
+          },
+          "encoder": {
+            "type": "string"
+          },
+          "gameFps": {
+            "type": "number"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kbps": {
+            "type": "number"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "sentFps": {
+            "type": "number"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "droppedFrames",
+          "encodeMs",
+          "gameFps",
+          "id",
+          "kbps",
+          "sentFps",
+          "startedAt",
+          "title",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
       "Item": {
         "properties": {
           "addedAt": {
@@ -3880,6 +3942,717 @@
         ],
         "type": "object"
       },
+      "MetricSection": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "full": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "MetricsAccess": {
+        "properties": {
+          "full": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "full",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "MetricsCPU": {
+        "properties": {
+          "cores": {
+            "items": {
+              "type": "number"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "percent": {
+            "type": "number"
+          },
+          "temps": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsTemp"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "cores",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "MetricsCatalog": {
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/MetricsAccess"
+          },
+          "everySec": {
+            "type": "integer"
+          },
+          "ranges": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSection"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "series": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "access",
+          "everySec",
+          "ranges",
+          "sections",
+          "series"
+        ],
+        "type": "object"
+      },
+      "MetricsDisk": {
+        "properties": {
+          "busyPercent": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readRate": {
+            "type": "number"
+          },
+          "writeRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "readRate",
+          "writeRate"
+        ],
+        "type": "object"
+      },
+      "MetricsGPU": {
+        "properties": {
+          "celsius": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderFps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderSessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryUsed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsHistory": {
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "peak": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "stepSec": {
+            "type": "integer"
+          },
+          "times": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "to": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "series",
+          "stepSec",
+          "times",
+          "to"
+        ],
+        "type": "object"
+      },
+      "MetricsMemory": {
+        "properties": {
+          "available": {
+            "type": "integer"
+          },
+          "swapTotal": {
+            "type": "integer"
+          },
+          "swapUsed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "used": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "swapTotal",
+          "swapUsed",
+          "total",
+          "used"
+        ],
+        "type": "object"
+      },
+      "MetricsNet": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rxBytes": {
+            "type": "integer"
+          },
+          "rxErrs": {
+            "type": "integer"
+          },
+          "rxRate": {
+            "type": "number"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "txBytes": {
+            "type": "integer"
+          },
+          "txErrs": {
+            "type": "integer"
+          },
+          "txRate": {
+            "type": "number"
+          },
+          "up": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "rxBytes",
+          "rxErrs",
+          "rxRate",
+          "txBytes",
+          "txErrs",
+          "txRate",
+          "up"
+        ],
+        "type": "object"
+      },
+      "MetricsNow": {
+        "properties": {
+          "cpu": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsCPU"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disks": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsDisk"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/GameView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "gpu": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsGPU"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsMemory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleNow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "net": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsNet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "process": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsProcess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "server": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServerNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/StreamView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tasks": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "time": {
+            "type": "integer"
+          },
+          "transcodes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranscodeNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsVolume"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "time"
+        ],
+        "type": "object"
+      },
+      "MetricsProcess": {
+        "properties": {
+          "cpuPercent": {
+            "type": "number"
+          },
+          "gcPauseMs": {
+            "type": "number"
+          },
+          "goroutines": {
+            "type": "integer"
+          },
+          "handles": {
+            "type": "integer"
+          },
+          "heapAlloc": {
+            "type": "integer"
+          },
+          "heapSys": {
+            "type": "integer"
+          },
+          "numGC": {
+            "type": "integer"
+          },
+          "rss": {
+            "type": "integer"
+          },
+          "threads": {
+            "type": "integer"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpuPercent",
+          "gcPauseMs",
+          "goroutines",
+          "heapAlloc",
+          "heapSys",
+          "numGC",
+          "rss",
+          "uptimeSec"
+        ],
+        "type": "object"
+      },
+      "MetricsReport": {
+        "properties": {
+          "bandwidth": {
+            "items": {
+              "$ref": "#/components/schemas/ReportBandwidth"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "byType": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "caches": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCache"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "codecs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "database": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDatabase"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duplicates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDuplicates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generatedAt": {
+            "type": "integer"
+          },
+          "libraries": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLibrary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLogHour"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mostWatched": {
+            "items": {
+              "$ref": "#/components/schemas/ReportWatched"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "peak": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportPeak"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "savings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportSavings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scans": {
+            "items": {
+              "$ref": "#/components/schemas/ReportScan"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "byType",
+          "codecs",
+          "generatedAt",
+          "libraries",
+          "mostWatched",
+          "resolutions"
+        ],
+        "type": "object"
+      },
+      "MetricsTemp": {
+        "properties": {
+          "celsius": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "celsius",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsVolume": {
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "free": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "mount": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "free",
+          "kind",
+          "mount",
+          "total"
+        ],
+        "type": "object"
+      },
       "ModuleEvent": {
         "properties": {
           "at": {
@@ -3955,6 +4728,38 @@
           "available",
           "modules",
           "type"
+        ],
+        "type": "object"
+      },
+      "ModuleNow": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "latest": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "installed",
+          "name",
+          "version"
         ],
         "type": "object"
       },
@@ -5488,6 +6293,282 @@
         ],
         "type": "object"
       },
+      "ReportBandwidth": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "ReportCache": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bytes",
+          "files",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportCount": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "items",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportDatabase": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "walBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "walBytes"
+        ],
+        "type": "object"
+      },
+      "ReportDupe": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "copies": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "wasted": {
+            "type": "integer"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bytes",
+          "copies",
+          "title",
+          "wasted"
+        ],
+        "type": "object"
+      },
+      "ReportDuplicates": {
+        "properties": {
+          "groups": {
+            "type": "integer"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDupe"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "wastedBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "groups",
+          "top",
+          "wastedBytes"
+        ],
+        "type": "object"
+      },
+      "ReportLibrary": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "lastScanAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "id",
+          "items",
+          "missing",
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReportLogHour": {
+        "properties": {
+          "errors": {
+            "type": "integer"
+          },
+          "hour": {
+            "type": "integer"
+          },
+          "warnings": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "errors",
+          "hour",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ReportPeak": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "streams": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "type": "object"
+      },
+      "ReportSavings": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "estimatedSaved": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "estimatedSaved",
+          "items"
+        ],
+        "type": "object"
+      },
+      "ReportScan": {
+        "properties": {
+          "files": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "type": "integer"
+          },
+          "library": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "tookSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "files",
+          "finishedAt",
+          "library",
+          "state",
+          "tookSec"
+        ],
+        "type": "object"
+      },
+      "ReportWatched": {
+        "properties": {
+          "itemId": {
+            "type": "integer"
+          },
+          "people": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "people",
+          "seconds",
+          "title"
+        ],
+        "type": "object"
+      },
       "ResetCopy": {
         "properties": {
           "at": {
@@ -5690,6 +6771,35 @@
         ],
         "type": "object"
       },
+      "ServerNow": {
+        "properties": {
+          "arch": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "updateAvailable": {
+            "type": "string"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "os",
+          "uptimeSec",
+          "version"
+        ],
+        "type": "object"
+      },
       "Show": {
         "properties": {
           "addedAt": {
@@ -5826,6 +6936,72 @@
           "updatedAt",
           "view",
           "year"
+        ],
+        "type": "object"
+      },
+      "StreamView": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "fileKbps": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sendingKbps": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "where": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "decision",
+          "id",
+          "reasons",
+          "sendingKbps",
+          "startedAt",
+          "user",
+          "userId"
         ],
         "type": "object"
       },
@@ -6482,6 +7658,21 @@
         ],
         "type": "object"
       },
+      "TranscodeNow": {
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "max": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "max"
+        ],
+        "type": "object"
+      },
       "UpdateInfo": {
         "properties": {
           "notes": {
@@ -6673,7 +7864,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.6.0"
+    "version": "1.7.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -28851,6 +30042,204 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/system/metrics": {
+      "get": {
+        "operationId": "getSystemMetrics",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsCatalog"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What statistics this server can show, and what this account may see.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/history": {
+      "get": {
+        "operationId": "getSystemMetricsHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "series",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsHistory"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Charts' worth of numbers. Administrators only, whichever the account's sign-in.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/now": {
+      "get": {
+        "operationId": "getSystemMetricsNow",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsNow"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One reading of the statistics.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/report": {
+      "get": {
+        "operationId": "getSystemMetricsReport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "fresh",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Libraries, what's in them, and what's gone on.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/stream": {
+      "get": {
+        "operationId": "streamSystemMetrics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "An event stream."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events: a reading every two seconds. See STATS.md.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     }
   },

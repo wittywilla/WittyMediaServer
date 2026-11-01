@@ -421,6 +421,13 @@ var migrations = []string{
 	   problem_count INTEGER NOT NULL DEFAULT 0, problems TEXT NOT NULL DEFAULT '', retry_key TEXT NOT NULL DEFAULT '',
 	   private INTEGER NOT NULL DEFAULT 0, admin_only INTEGER NOT NULL DEFAULT 0);
 	 CREATE INDEX IF NOT EXISTS task_history_finished ON task_history(finished_at);`,
+	// 26: the statistics: an hour's summary of each number, kept for 90 days, and how much
+	// each person has been sent each day.
+	`CREATE TABLE IF NOT EXISTS metrics_hourly (
+	   hour INTEGER NOT NULL, name TEXT NOT NULL, avg REAL NOT NULL, peak REAL NOT NULL, PRIMARY KEY(hour, name));
+	 CREATE TABLE IF NOT EXISTS stream_bytes (
+	   day INTEGER NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, bytes INTEGER NOT NULL,
+	   PRIMARY KEY(day, user_id));`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

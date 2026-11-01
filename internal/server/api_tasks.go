@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -221,24 +220,8 @@ func (s *Server) handleTaskStream(w http.ResponseWriter, r *http.Request) {
 	}
 	defer s.taskStreams.give(u.ID)
 	tok := tokenFrom(r)
-	rc := http.NewResponseController(w)
-	h := w.Header()
-	h.Set("Content-Type", "text/event-stream; charset=utf-8")
-	h.Set("Cache-Control", "no-store")
-	h.Set("X-Accel-Buffering", "no") // a proxy mustn't hold it back
-	w.WriteHeader(200)
-
-	send := func(event string, v any) bool {
-		_ = rc.SetWriteDeadline(time.Now().Add(taskStreamWrite))
-		b, err := json.Marshal(v)
-		if err != nil {
-			return false
-		}
-		if _, err := w.Write(append(append(append(append([]byte("event: "), event...), "\ndata: "...), b...), "\n\n"...)); err != nil {
-			return false
-		}
-		return rc.Flush() == nil
-	}
+	es := newEventStream(w)
+	send := es.send
 
 	sub := s.Tasks.Subscribe()
 	defer sub.Close()
@@ -256,8 +239,7 @@ func (s *Server) handleTaskStream(w http.ResponseWriter, r *http.Request) {
 			if !s.taskStreamStillAllowed(r, tok, u) {
 				return
 			}
-			_ = rc.SetWriteDeadline(time.Now().Add(taskStreamWrite))
-			if _, err := w.Write([]byte(": still here\n\n")); err != nil || rc.Flush() != nil {
+			if !es.raw([]byte(": still here\n\n")) {
 				return
 			}
 		case <-sub.C():

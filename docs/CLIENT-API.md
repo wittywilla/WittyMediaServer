@@ -776,6 +776,11 @@ up to date, with no polling. [TASKS.md](TASKS.md#the-api) has the fields, the st
 decides what each account may see: follow `access` in the answer. If `access.visible` is false, show nothing. If
 `access.readOnly` is true, show no controls.
 
+The server's statistics are in [STATS.md](STATS.md): the processor, memory, disks, network, streams, libraries and more, with
+history for charts. `GET /system/metrics` says what this server can show and what this account may see, and a section a system
+can't provide is left out rather than sent as zero. Keep `GET /system/metrics/stream` open only while it's on screen, as that's
+what keeps the sampling going.
+
 ## Adding to the API
 
 For anyone adding a feature (a new library, channels, games):
@@ -1420,6 +1425,16 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /system/tasks/{id}/resume` | admin | Lets a paused task carry on |
 | `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
+
+### Server statistics
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /system/metrics` | user | What statistics this server can show, and what this account may see |
+| `GET /system/metrics/now` | user | One reading |
+| `GET /system/metrics/stream` | user | Server-sent events: a reading every two seconds, while it's open |
+| `GET /system/metrics/history` | user | Charts' worth of numbers, for administrators |
+| `GET /system/metrics/report` | user | Libraries, what's in them, and what's gone on |
 
 ### More server routes
 

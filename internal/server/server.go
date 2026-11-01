@@ -32,6 +32,7 @@ import (
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 )
@@ -53,9 +54,13 @@ type Server struct {
 	Themes   *themes.Manager
 	Web      fs.FS
 	Version  string
-	Logs     *logging.Logger
-	Crashes  *logging.CrashGuard // crash reports; nil when they can't be kept
-	logMods  logModules          // how each module is logged
+	// Tasks is every background job; see api_tasks.go. Made in Handler.
+	Tasks       *tasks.Registry
+	taskStore   *tasks.SQLStore
+	taskStreams taskStreamCounts
+	Logs        *logging.Logger
+	Crashes     *logging.CrashGuard // crash reports; nil when they can't be kept
+	logMods     logModules          // how each module is logged
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -397,6 +402,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/modules/{id}/web/{version}/{path...}", s.requireUser(s.handleModuleWebFile))
 	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
 	s.remoteRoutes(m)
+	s.taskRoutes(m)
 
 	// WittyPhotos
 	m.Handle("GET /api/photos/months", a(s.handlePhotoMonths))

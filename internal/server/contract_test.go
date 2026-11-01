@@ -29,6 +29,7 @@ import (
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
@@ -400,6 +401,7 @@ func schemaTypes() map[string]reflect.Type {
 		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
 		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),
 		"CoreBinary": ty(cores.Binary{}), "CoreFirmware": ty(cores.Firmware{}), "CoreFileState": ty(cores.CoreFileState{}), "PlacedCoreFile": ty(cores.PlacedFile{}),
+		"Task": ty(tasks.Task{}), "TaskProblem": ty(tasks.Problem{}), "TaskSummary": ty(tasks.Summary{}), "TaskList": ty(TaskList{}), "TaskUpdate": ty(taskUpdate{}), "ActivityAccess": ty(activityAccess{}),
 		"ModuleEvent": ty(modmgr.Event{}), "ModuleVersionList": ty(modmgr.VersionList{}), "ModuleVersion": ty(modmgr.VersionInfo{}), "ModuleWithdrawn": ty(wittymodule.Withdrawn{}),
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),

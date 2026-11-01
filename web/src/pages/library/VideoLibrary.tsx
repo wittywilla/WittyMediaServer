@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import BrandLogo from '../../components/BrandLogo'
-import { CardRow, EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Spinner, artHue } from '../../components/common'
+import { EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Spinner, artHue } from '../../components/common'
 import { Button, LinkButton, Notice, Shelf as ShelfRow } from '../../ui'
 import LegalNote from '../../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
@@ -301,41 +301,28 @@ function Shelf({ lib, shelves, listing, isAdmin }: { lib: Library; shelves: Shel
   return (
     <>
       {shelves.categories.length > 0 && (
-        <section className="lib-shelf" aria-label="Categories">
-          <div className="lib-shelf-head"><h2>Categories</h2></div>
-          <CardRow>
-            {shelves.categories.map((c) => <CategoryCard key={c.key} c={c} to={`${here}?genre=${encodeURIComponent(c.name)}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
-          </CardRow>
-        </section>
+        <ShelfRow title="Categories">
+          {shelves.categories.map((c) => <CategoryCard key={c.key} c={c} to={`${here}?genre=${encodeURIComponent(c.name)}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
+        </ShelfRow>
       )}
-      <LazyShelf title="Recently added" query={q('sort=added&desc=1')} seeAll={`${here}?sort=added&desc=1`} />
       {shelves.collections.length > 0 && (
-        <section className="lib-shelf" aria-label="Collections">
-          <div className="lib-shelf-head"><h2>Collections</h2><Link to="/collections">See all</Link></div>
-          <CardRow>
-            {shelves.collections.map((c) => <CategoryCard key={c.key || c.id} c={c} to={c.key ? `${here}?series=${encodeURIComponent(c.name)}` : `/collections/${c.id}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
-          </CardRow>
-        </section>
+        <ShelfRow title="Collections" to="/collections">
+          {shelves.collections.map((c) => <CategoryCard key={c.key || c.id} c={c} to={c.key ? `${here}?series=${encodeURIComponent(c.name)}` : `/collections/${c.id}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
+        </ShelfRow>
       )}
       {shelves.studios.length > 0 && (
-        <section className="lib-shelf" aria-label="Studios">
-          <div className="lib-shelf-head"><h2>Studios</h2></div>
-          <CardRow>{shelves.studios.slice(0, 40).map((b) => <LogoCard key={b.key} kind="studio" name={b.name} to={brandTo('studio', b.name)} count={b.count} />)}</CardRow>
-        </section>
+        <ShelfRow title="Studios">{shelves.studios.slice(0, 40).map((b) => <LogoCard key={b.key} kind="studio" name={b.name} to={brandTo('studio', b.name)} count={b.count} />)}</ShelfRow>
       )}
       {shelves.networks.length > 0 && (
-        <section className="lib-shelf" aria-label="Networks">
-          <div className="lib-shelf-head"><h2>Networks</h2></div>
-          <CardRow>{shelves.networks.slice(0, 40).map((b) => <LogoCard key={b.key} kind="network" name={b.name} to={brandTo('network', b.name)} count={b.count} />)}</CardRow>
-        </section>
+        <ShelfRow title="Networks">{shelves.networks.slice(0, 40).map((b) => <LogoCard key={b.key} kind="network" name={b.name} to={brandTo('network', b.name)} count={b.count} />)}</ShelfRow>
       )}
       {listing?.enabled && shelves.platforms.length > 0 && (
-        <section className="lib-shelf" aria-label="Also listed on streaming services">
-          <div className="lib-shelf-head"><h2>Also listed on</h2></div>
-          <CardRow>{shelves.platforms.map((p) => <LogoCard key={p.key} kind="platform" name={p.name} to={`${here}?platform=${encodeURIComponent(p.key)}`} count={p.count} />)}</CardRow>
+        <>
+          <ShelfRow title="Also listed on">{shelves.platforms.map((p) => <LogoCard key={p.key} kind="platform" name={p.name} to={`${here}?platform=${encodeURIComponent(p.key)}`} count={p.count} />)}</ShelfRow>
           <ListingNote s={listing} />
-        </section>
+        </>
       )}
+      <LazyShelf title="Recently added" query={q('sort=added&desc=1')} seeAll={`${here}?sort=added&desc=1`} />
       <LazyShelf title="Highest rated" query={q('sort=rating&desc=1&minRating=6')} seeAll={`${here}?sort=rating&desc=1`} />
       {shelves.categories.slice(0, 12).map((c) => (
         <LazyShelf key={c.key} title={c.name} query={q(`genre=${encodeURIComponent(c.name)}&sort=rating&desc=1`)} seeAll={`${here}?genre=${encodeURIComponent(c.name)}`} count={c.count} />

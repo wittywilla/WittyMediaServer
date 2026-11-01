@@ -205,6 +205,8 @@ Choosing a title finds suggestions, one request per source; **Find suggestions f
 | `/` | Search |
 | `U` | Undo |
 
+The arrow keys and a remote reach everything on the list and in the edit dialog: moving down the list follows along in the panel beside it, and OK on a title goes to its first suggestion. A year you typed, or one kept from before, counts when scoring, so an exact name and year comes to 100%. **Choose the 4 that are 90% sure** ticks those at once, for you to accept.
+
 With several chosen, **Accept their best suggestions** or **Edit together**, which adds or takes away genres and tags, sets a year or a rating, and locks or unlocks. **Renumber episodes** shows each file beside what the source calls that number, with ways to move a whole season. Numbers you change are locked, so a scan keeps them.
 
 ## Names that say what a file is
@@ -215,9 +217,11 @@ A folder with a naming of its own can have **rules**, under *Fix matches → Nam
 
 ## Categories, studios and browsing
 
-A film or TV library opens on **shelves**: categories, recently added, collections, studios, networks, highest rated, and a row for each category. Each row asks for its titles only as it comes near the screen. Choosing a sort, a filter or a card turns it into a grid, and the address holds the whole state, so any view can be bookmarked.
+A film or TV library opens on **shelves**: categories, collections, studios, networks, recently added, highest rated, and a row for each category. Each row asks for its titles only as it comes near the screen. Choosing a sort, a filter or a card turns it into a grid, and the address holds the whole state, so any view can be bookmarked.
 
 **Categories** are made from genres, one library at a time, with the art of what's in them. Different spellings of a genre are put together (*Sci-Fi* and *Science Fiction*), and combined ones split (*Action & Adventure*). **Categories** on the page lets an administrator rename, hide, reorder and merge them. Only the changes are kept, so new genres appear by themselves, and *Start again* forgets them.
+
+**Collections from film series** appear by themselves. When a source says a film is part of a series, and two or more films in a library share it, they show as a card under *Collections*. The **Collection** field in *Edit details* changes or clears it. Nothing is created in the *Collections* side menu.
 
 **Studios and networks** come from metadata, every studio a source names. A card opens everything from that studio, across libraries. Kids and Guest profiles see neither the titles they can't watch nor a studio or category only those titles are in.
 
@@ -235,7 +239,8 @@ Optional, and off until an administrator accepts each statement of what it means
 | **Needs** | Your own free TMDB key. Without one it stays off, because no source of this data works without a key and allows this use |
 | **Sent** | The TMDB id of each title in your film and TV libraries, or its name and year to find that id, about once every two weeks. A title that can't be found with near certainty isn't listed, because a wrong guess would say something is on a service when it isn't |
 | **What counts** | Included with a subscription, free, or free with adverts. Rentals and purchases aren't what's on a service |
-| **Region** | Your choice, as listings differ by country |
+| **Region** | Your choice, as listings differ by country. Changing it looks them up for that country |
+| **Kept up to date** | A title you match, rematch or unmatch is looked at again straight away, and its old listings go. **Check now** looks at everything again |
 | **Names and logos** | Plain text unless you've agreed to logos too |
 
 Turning it off forgets everything it fetched.

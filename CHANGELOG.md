@@ -37,6 +37,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Categories:** made from genres per library, with spellings of the same genre put together, and they can be hidden, reordered, renamed and merged, with art from what's in them.
 - **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
 - **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
+- **Collections from film series:** when a source says films belong to a series, a library shows them as a collection by itself, and the Collection field changes it.
+- **A library's header stays in view** as you scroll, with its name, sort and Filters.
+- **Arrow keys and a remote reach everything** in the edit dialog, Fix matches and Pick in player, and carry on from nearby when the button you pressed goes away.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
 ### Music
 

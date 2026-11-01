@@ -279,6 +279,10 @@ theme; `--check` (in CI) fails when the files are out of date. Don't edit them b
   row; a remote moves card by card.
 - **Focus is always obvious**: a 3px ring and a slightly larger poster, in a colour that reads on
   every surface. Exactly one thing has it. Moving it must never scroll it out of sight or clip it.
+  From outside a scrolling list, only what can be seen in that list can be landed on. When the focused
+  control goes away, such as a button that removes its own row, the next arrow lands on what's closest
+  to where it was. A bar inside the player has to be added to `PLAYER_CONTROLS` in `tv.ts`, or a remote
+  can't reach it.
 - **Large targets**: at least 48 at ten feet, and spaced so that focus moves predictably.
 - **Readable from the sofa**: the base text grows by a quarter, and no text below `--text-2xs` at
   that scale. Keep lines short; long passages are for the small screen.

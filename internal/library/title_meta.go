@@ -132,6 +132,8 @@ type Title struct {
 	Show    *Show
 	Meta    *TitleMeta
 	Studios []string
+	// Series is the film series it belongs to, which makes a collection by itself.
+	Series string
 }
 
 // LoadTitle reads a title, whichever kind it is.
@@ -157,6 +159,9 @@ func (s *Store) LoadTitle(ctx context.Context, target string, id int64) (*Title,
 	t.Studios = s.TitleBrands(ctx, target, id, LogoStudio)
 	if len(t.Studios) == 0 && t.Item != nil && t.Item.Studio != "" {
 		t.Studios = []string{t.Item.Studio}
+	}
+	if list := s.TitleBrands(ctx, target, id, BrandSeries); len(list) > 0 {
+		t.Series = list[0]
 	}
 	return t, nil
 }
@@ -203,7 +208,7 @@ func (t *Title) Path() string {
 
 // The fields a person can see and edit, in the order the edit dialog shows them.
 var (
-	titleItemFields = []string{"title", "sortTitle", "year", "director", "edition", "tagline", "overview", "genres", "tags", "contentRating", "rating", "studios", "poster", "backdrop", "banner", "logo", "introEnd"}
+	titleItemFields = []string{"title", "sortTitle", "year", "director", "edition", "series", "tagline", "overview", "genres", "tags", "contentRating", "rating", "studios", "poster", "backdrop", "banner", "logo", "introEnd"}
 	titleShowFields = []string{"title", "sortTitle", "year", "director", "overview", "genres", "tags", "contentRating", "rating", "network", "studios", "status", "poster", "backdrop", "banner", "logo", "introStart", "introEnd"}
 	// A season and episode number belong to an episode alone.
 	titleEpisodeFields = []string{"title", "sortTitle", "overview", "contentRating", "rating", "poster", "season", "episode", "episodeEnd", "aired", "introStart", "introEnd"}
@@ -259,6 +264,8 @@ func (t *Title) Field(f string) string {
 		return m.Logo
 	case "studios":
 		return joinList(t.Studios)
+	case "series":
+		return t.Series
 	}
 	if it := t.Item; it != nil {
 		switch f {
@@ -406,6 +413,9 @@ func (t *Title) SetField(f, v string) error {
 		return nil
 	case "tags":
 		m.Tags = list(50, 60)
+		return nil
+	case "series":
+		t.Series = text(120)
 		return nil
 	case "banner":
 		m.Banner = text(2000)
@@ -572,6 +582,9 @@ func (s *Store) SaveTitle(ctx context.Context, t *Title) error {
 		err = s.upsertItem(ctx, t.Item)
 		if err == nil && t.Item.ShowID == nil {
 			err = s.setTitleBrands(ctx, TargetItem, t.ID, t.Item.LibraryID, LogoStudio, t.Studios)
+		}
+		if err == nil && t.Item.ShowID == nil {
+			err = s.setTitleBrands(ctx, TargetItem, t.ID, t.Item.LibraryID, BrandSeries, []string{t.Series})
 		}
 	} else {
 		err = s.UpsertShow(ctx, t.Show)

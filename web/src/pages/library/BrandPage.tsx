@@ -8,6 +8,7 @@ import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
 import LogoChooser from '../../components/edit/LogoChooser'
 import type { BrowseResult, BrowseRow } from '../../metadata'
 import { useApp } from '../../state'
+import { Button } from '../../ui'
 import { RowCard } from './VideoLibrary'
 import './library.css'
 
@@ -70,8 +71,8 @@ export default function BrandPage() {
         onSort={(s, d) => { const p = new URLSearchParams(params); p.set('sort', s); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p, { replace: true }) }}
         onDirection={sort !== 'newest' && sort !== 'oldest' ? (d) => { const p = new URLSearchParams(params); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p, { replace: true }) } : undefined}
         actions={<>
-          {lib && <button type="button" className="btn ghost" onClick={() => { const p = new URLSearchParams(params); p.delete('library'); setParams(p, { replace: true }) }}>All libraries</button>}
-          {user?.isAdmin && logo?.id && <button type="button" className="btn ghost" onClick={() => setChanging(logo)}>Change logo</button>}
+          {lib && <Button variant="ghost" onClick={() => { const p = new URLSearchParams(params); p.delete('library'); setParams(p, { replace: true }) }}>All libraries</Button>}
+          {user?.isAdmin && logo?.id && <Button variant="ghost" onClick={() => setChanging(logo)}>Change logo</Button>}
         </>}
       />
       {!rows ? (failed ? <LoadError what="This page" /> : <SkeletonGrid />) : rows.length === 0 ? <EmptyState title="Nothing here" text="Nothing on this server has this name any more." />

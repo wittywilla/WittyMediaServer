@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, langName } from '../../api'
-import { IconClose } from '../../icons'
 import type { Facet, Facets, SavedView } from '../../metadata'
+import { Button, Chip, Chips, Dialog, Field, Input, Sheet } from '../../ui'
 
 // Everything a library can be narrowed down by. What's chosen lives in the address.
 
-export const FILTER_KEYS = ['genre', 'studio', 'network', 'kind', 'disc', 'decade', 'year', 'content', 'minRating', 'resolution', 'audio', 'subtitle', 'format', 'tag', 'edition', 'watched', 'platform', 'search']
+export const FILTER_KEYS = ['genre', 'studio', 'network', 'kind', 'disc', 'decade', 'year', 'content', 'minRating', 'resolution', 'audio', 'subtitle', 'format', 'tag', 'edition', 'series', 'watched', 'platform', 'search']
 
 const LABELS: Record<string, string> = {
   genre: 'Category', studio: 'Studio', network: 'Network', kind: 'Type', disc: 'On disc', decade: 'Decade', year: 'Year', content: 'Age rating', minRating: 'Score', resolution: 'Picture',
-  audio: 'Audio language', subtitle: 'Subtitles', format: 'Sound', tag: 'Tag', edition: 'Edition', watched: 'Watched', platform: 'Listed on', search: 'Words',
+  audio: 'Audio language', subtitle: 'Subtitles', format: 'Sound', tag: 'Tag', edition: 'Edition', series: 'Collection', watched: 'Watched', platform: 'Listed on', search: 'Words',
 }
 
 const friendly = (k: string, v: string) => {
@@ -28,15 +28,14 @@ export function ActiveFilters({ params, setParam, onSave, onClear }: { params: U
   const on = FILTER_KEYS.filter((k) => params.get(k))
   if (on.length === 0) return null
   return (
-    <div className="lib-active" role="group" aria-label="Filters">
+    <div className="lib-active" role="group" aria-label="Filters" data-nav-group>
       {on.map((k) => (
-        <span key={k} className="chip tag lib-active-chip">
+        <Chip key={k} onRemove={() => setParam(k, '')} removeLabel={`Take off ${LABELS[k]} ${friendly(k, params.get(k)!)}`}>
           <span className="muted">{LABELS[k]}:</span>&nbsp;{friendly(k, params.get(k)!)}
-          <button type="button" aria-label={`Take off ${LABELS[k]} ${friendly(k, params.get(k)!)}`} onClick={() => setParam(k, '')}><IconClose size={14} /></button>
-        </span>
+        </Chip>
       ))}
-      <button type="button" className="btn sm ghost" onClick={onSave}>Save this view</button>
-      {on.length > 1 && <button type="button" className="btn sm ghost" onClick={onClear}>Clear all</button>}
+      <Button size="sm" variant="ghost" onClick={onSave}>Save this view</Button>
+      {on.length > 1 && <Button size="sm" variant="ghost" onClick={onClear}>Clear all</Button>}
     </div>
   )
 }
@@ -49,17 +48,17 @@ function FacetGroup({ k, title, list, label, params, setParam, limit = 24 }: { k
   return (
     <section className="lib-facet" aria-label={title}>
       <h3>{title}</h3>
-      <div className="chips">
+      <Chips label={title}>
         {shown.map((f) => {
           const on = cur.toLowerCase() === f.value.toLowerCase()
           return (
-            <button key={f.value} type="button" className={'chip' + (on ? ' active' : '')} aria-pressed={on} onClick={() => setParam(k, on ? '' : f.value)}>
+            <Chip key={f.value} selected={on} onClick={() => setParam(k, on ? '' : f.value)}>
               {label ? label(f) : f.label || friendly(k, f.value)}<span className="lib-facet-n" aria-label={`, ${f.count} ${f.count === 1 ? 'title' : 'titles'}`}>{f.count}</span>
-            </button>
+            </Chip>
           )
         })}
-        {!all && list.length > limit && <button type="button" className="chip" onClick={() => setAll(true)}>{list.length - limit} more</button>}
-      </div>
+        {!all && list.length > limit && <Chip onClick={() => setAll(true)}>{list.length - limit} more</Chip>}
+      </Chips>
     </section>
   )
 }
@@ -69,19 +68,17 @@ export function FilterPanel({ library, params, setParam, onClear, onSave, onClos
   const [err, setErr] = useState('')
   const [search, setSearch] = useState(params.get('search') || '')
   useEffect(() => { api.get<Facets>(`/browse/facets?library=${library}`).then(setF).catch((e) => setErr(e.message)) }, [library])
-  const pressed = useRef(false)
   const g = { params, setParam }
   return (
-    <div className="modal-backdrop lib-filter-back" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
-      <div className="modal lib-filter" role="dialog" aria-modal="true" aria-labelledby="flt-h">
-        <header className="lib-filter-head">
-          <h2 id="flt-h">Filters</h2>
-          <button type="button" className="btn ghost square" aria-label="Close" onClick={onClose}><IconClose /></button>
-        </header>
-        <div className="lib-filter-body">
+    <Sheet title="Filters" className="lib-filter" onClose={onClose}
+      actions={<>
+        <Button variant="ghost" onClick={onClear}>Clear all</Button>
+        <Button variant="ghost" disabled={!FILTER_KEYS.some((k) => params.get(k))} onClick={onSave}>Save this view</Button>
+        <Button variant="primary" onClick={onClose}>Done</Button>
+      </>}>
           <form className="field-row" onSubmit={(e) => { e.preventDefault(); setParam('search', search.trim()) }}>
-            <input className="input" aria-label="Words in the title" placeholder="Words in the title" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <button type="submit" className="btn">Find</button>
+            <Input aria-label="Words in the title" placeholder="Words in the title" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Button type="submit">Find</Button>
           </form>
           {err && <div className="error" role="alert">{err}</div>}
           {!f && !err && <div className="loading-box"><div className="spinner" /></div>}
@@ -97,21 +94,21 @@ export function FilterPanel({ library, params, setParam, onClear, onSave, onClos
               <FacetGroup k="content" title="Age rating" list={f.content} {...g} />
               <section className="lib-facet" aria-label="Score">
                 <h3>Score</h3>
-                <div className="chips">
+                <Chips label="Score">
                   {['9', '8', '7', '6'].map((n) => {
                     const on = params.get('minRating') === n
-                    return <button key={n} type="button" className={'chip' + (on ? ' active' : '')} aria-pressed={on} onClick={() => setParam('minRating', on ? '' : n)}>{n} or more</button>
+                    return <Chip key={n} selected={on} onClick={() => setParam('minRating', on ? '' : n)}>{n} or more</Chip>
                   })}
-                </div>
+                </Chips>
               </section>
               <section className="lib-facet" aria-label="Watched">
                 <h3>Watched</h3>
-                <div className="chips">
+                <Chips label="Watched">
                   {[['no', 'Not watched yet'], ['yes', 'Watched']].map(([v, l]) => {
                     const on = params.get('watched') === v
-                    return <button key={v} type="button" className={'chip' + (on ? ' active' : '')} aria-pressed={on} onClick={() => setParam('watched', on ? '' : v)}>{l}</button>
+                    return <Chip key={v} selected={on} onClick={() => setParam('watched', on ? '' : v)}>{l}</Chip>
                   })}
-                </div>
+                </Chips>
               </section>
               <FacetGroup k="resolution" title="Picture" list={f.resolutions} {...g} />
               <FacetGroup k="format" title="Sound" list={f.formats.filter((x) => x.value !== 'none')} {...g} />
@@ -121,14 +118,7 @@ export function FilterPanel({ library, params, setParam, onClear, onSave, onClos
               <FacetGroup k="tag" title="Tags" list={f.tags} {...g} />
             </>
           )}
-        </div>
-        <footer className="lib-filter-foot">
-          <button type="button" className="btn ghost" onClick={onClear}>Clear all</button>
-          <button type="button" className="btn ghost" disabled={!FILTER_KEYS.some((k) => params.get(k))} onClick={onSave}>Save this view</button>
-          <button type="button" className="btn primary" onClick={onClose}>Done</button>
-        </footer>
-      </div>
-    </div>
+    </Sheet>
   )
 }
 
@@ -144,22 +134,18 @@ export function SaveViewDialog({ library, params, onClose, onSaved }: { library:
     for (const k of ['sort', 'desc']) { const v = params.get(k); if (v) q.set(k, v) }
     try { await api.post<SavedView>('/views', { libraryId: library, name, query: q.toString(), pinned }); onSaved() } catch (e: any) { setErr(e.message) }
   }
-  const pressed = useRef(false)
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="sv-h">
-        <h2 id="sv-h">Save this view</h2>
-        <form className="form full" onSubmit={(e) => { e.preventDefault(); save() }}>
-          <label>Name<input className="input" autoFocus value={name} maxLength={60} onChange={(e) => setName(e.target.value)} /></label>
-          <label className="lib-check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pin it to Home</label>
-          <p className="hint">It's yours alone, and it keeps itself up to date as your library changes.</p>
-          {err && <div className="error" role="alert">{err}</div>}
-          <div className="actions">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn primary" disabled={!name.trim()}>Save</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog title="Save this view" size="sm" onClose={onClose}
+      description="It's yours alone, and it keeps itself up to date as your library changes."
+      actions={<>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" disabled={!name.trim()} onClick={save}>Save</Button>
+      </>}>
+      <form className="form full" onSubmit={(e) => { e.preventDefault(); save() }}>
+        <Field label="Name"><Input autoFocus value={name} maxLength={60} onChange={(e) => setName(e.target.value)} /></Field>
+        <label className="lib-check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pin it to Home</label>
+        {err && <div className="error" role="alert">{err}</div>}
+      </form>
+    </Dialog>
   )
 }

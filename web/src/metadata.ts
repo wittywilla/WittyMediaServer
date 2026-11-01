@@ -43,7 +43,7 @@ export type CategoryArt = { type: 'item' | 'show'; id: number; v: number }
 export type Category = { key: string; name: string; genre: string; count: number; hidden: boolean; position: number; merged?: string[]; art: CategoryArt[] }
 export type Brand = { kind: 'studio' | 'network'; name: string; key: string; count: number }
 export type Platform = { key: string; name: string; count: number }
-export type Shelves = { categories: Category[]; studios: Brand[]; networks: Brand[]; collections: { id: number; name: string; count: number; art: CategoryArt[] }[]; platforms: Platform[] }
+export type Shelves = { categories: Category[]; studios: Brand[]; networks: Brand[]; collections: { id: number; key?: string; name: string; count: number; art: CategoryArt[] }[]; platforms: Platform[] }
 export type SavedView = { id: number; libraryId: number; name: string; query: string; pinned: boolean; position: number }
 export type ListingStatus = {
   enabled: boolean; region: string; asOf: number; newest: number; hasKey: boolean; titles: number; listed: number; running: boolean; done: number; total: number

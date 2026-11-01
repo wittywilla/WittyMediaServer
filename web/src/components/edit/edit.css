@@ -1,10 +1,11 @@
 /* The edit dialog. It can run long, so it's a head, a body that scrolls and a foot that doesn't. */
-.ed-dialog { max-width: 960px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
-.ed-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6) var(--sp-3); border-bottom: 1px solid var(--border); }
-.ed-head-text { min-width: 0; }
-.ed-dialog h2 { margin: 0; }
-.ed-file { margin: var(--sp-1) 0 0; font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal.ed-dialog { max-width: 960px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.ed-dialog > .ui-dialog-head { margin: 0; padding: var(--sp-5) var(--sp-6) var(--sp-3); }
+.ed-dialog > .ui-dialog-desc { margin: calc(-1 * var(--sp-2)) 0 0; padding: 0 var(--sp-6) var(--sp-3); font-size: var(--text-xs); max-width: none; overflow-wrap: anywhere; border-bottom: 1px solid var(--border); }
+.ed-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ed-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 148px minmax(0, 1fr); }
+.ed-dialog > .actions { margin: 0; padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--border); background: var(--bg-2); }
+.ed-dialog > .actions .ed-delete { margin-right: auto; color: var(--danger); }
 .ed-nav { scrollbar-width: none; display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-2) var(--sp-4) var(--sp-4); border-right: 1px solid var(--border); overflow: auto; }
 .ed-nav a { display: block; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
 .ed-nav a:hover, .ed-nav a:focus-visible { background: var(--hover); color: var(--fg); }
@@ -35,9 +36,8 @@
 .ed-field-head label { font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
 .ed-field-tools { margin-left: auto; display: flex; align-items: center; gap: var(--sp-1); }
 .ed-revert { min-height: 28px; }
-.ed-lock { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--r-sm); background: transparent; border: 1px solid transparent; color: var(--fg-3); cursor: pointer; }
-.ed-lock:hover { background: var(--hover); color: var(--fg); }
-.ed-lock.on { color: var(--fg); background: var(--bg-3); border-color: var(--border-strong); }
+.ed-lock { color: var(--fg-3); }
+.ed-lock.on { color: var(--fg); background: var(--bg-3); }
 .ed-field .input, .ed-field textarea.input { width: 100%; }
 .ed-tokens { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; min-height: var(--control-h); padding: var(--sp-1) var(--sp-2); border: 1px solid var(--control-line); border-radius: var(--r-md); background: var(--bg-3); }
 .ed-tokens:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
@@ -67,15 +67,7 @@
 .ed-result-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1); padding: var(--sp-2); }
 .ed-why { background: none; border: 0; padding: var(--sp-1); color: var(--fg-2); font: inherit; font-size: var(--text-xs); text-decoration: underline; cursor: pointer; }
 .ed-why-list { grid-column: 1 / -1; margin: 0 0 var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-6); font-size: var(--text-sm); color: var(--fg-2); }
-.ed-conf { display: inline-flex; align-items: center; gap: var(--sp-2); position: relative; min-width: 96px; height: 20px; }
-.ed-conf::before { content: ''; flex: 1; height: 6px; border-radius: var(--r-full); background: var(--bg-4); }
-.ed-conf i { position: absolute; left: 0; top: 7px; height: 6px; max-width: calc(100% - 40px); border-radius: var(--r-full); background: var(--fg-3); }
-.ed-conf.good i { background: var(--ok); }
-.ed-conf.mid i { background: var(--warn); }
-.ed-conf.low i { background: var(--danger); }
-.ed-conf b { font-size: var(--text-xs); min-width: 32px; text-align: right; }
-.ed-warn { background: var(--warn-soft); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); margin: var(--sp-2) 0; }
-.ed-warn-line { color: var(--warn); font-size: var(--text-sm); }
+.ed-conf { display: inline-block; width: 112px; }
 
 /* What would change */
 .ed-preview { margin-top: var(--sp-4); }
@@ -141,11 +133,6 @@
 .ed-logo-sample { display: flex; align-items: center; justify-content: center; height: 80px; border-radius: var(--r-sm); background: #fff; padding: var(--sp-2); } /* design-ok: a logo's own colours are drawn for a white page */
 .ed-logo-sample img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-/* Always in view */
-.ed-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--border); background: var(--bg-2); }
-.ed-foot-right { display: flex; gap: var(--sp-2); margin-left: auto; flex-wrap: wrap; }
-.ed-delete { color: var(--danger); }
-.ed-confirm > span { flex: 1; min-width: 220px; font-size: var(--text-sm); }
 .ed-undo { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-6); background: var(--accent-soft); font-size: var(--text-sm); }
 .ed-undo > span { flex: 1; min-width: 0; }
 .ed-err { margin: 0; border-radius: 0; padding: var(--sp-2) var(--sp-6); }
@@ -155,7 +142,8 @@
   .ed-nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: var(--sp-2) var(--sp-4); position: sticky; top: 0; background: var(--bg-2); z-index: 2; }
   .ed-nav a { white-space: nowrap; }
   .ed-scroll { overflow: visible; padding: var(--sp-4); }
-  .ed-head, .ed-foot { padding-inline: var(--sp-4); }
+  .ed-dialog > .ui-dialog-head, .ed-dialog > .ui-dialog-desc, .ed-dialog > .actions { padding-inline: var(--sp-4); }
+  .ed-body { overflow: auto; }
   .ed-fields, .ed-art-grid { grid-template-columns: minmax(0, 1fr); }
   .ed-art.tall { grid-row: auto; }
   .ed-art.tall .ed-art-pic { max-height: 320px; }
@@ -163,6 +151,5 @@
   .ed-result-side { flex-direction: row; justify-content: space-between; align-items: center; padding-top: 0; }
   .ed-change-vals { grid-template-columns: minmax(0, 1fr); }
   .ed-undo, .ed-err { padding-inline: var(--sp-4); }
-  .ed-lock { width: 44px; height: 44px; }
   .ed-logo-plate.big { width: 100%; }
 }

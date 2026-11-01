@@ -213,6 +213,9 @@ func (t *tmdbMovies) Details(ctx context.Context, id string) (*MatchDetails, err
 		}
 	}
 	d.Director = strings.Join(directors, ", ")
+	if m.Collection != nil {
+		d.Series = m.Collection.Name
+	}
 	for _, r := range m.ReleaseDates.Results {
 		if r.ISO == "US" {
 			for _, rd := range r.Dates {
@@ -552,7 +555,7 @@ func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails,
 	// Other items are named in a second request, in one go.
 	refs := map[string][]string{}
 	var all []string
-	for _, p := range []string{wdGenre, wdDirector, wdStudio, wdNetwork, wdMPARating} {
+	for _, p := range []string{wdGenre, wdDirector, wdStudio, wdNetwork, wdMPARating, wdPartOfSeries} {
 		for i, c := range e.Claims[p] {
 			if i == 12 {
 				break
@@ -592,6 +595,9 @@ func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails,
 			}
 			if r := refs[wdMPARating]; len(r) > 0 {
 				d.ContentRating = strings.TrimSuffix(label(r[0]), " rating")
+			}
+			if r := refs[wdPartOfSeries]; len(r) > 0 {
+				d.Series = collectionName(label(r[0]))
 			}
 		}
 	}

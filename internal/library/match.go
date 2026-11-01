@@ -52,6 +52,7 @@ type MatchDetails struct {
 	Studios       []string
 	Network       string
 	Director      string
+	Series        string
 	Status        string
 	RuntimeMin    int
 
@@ -144,6 +145,7 @@ func cleanDetails(d *MatchDetails) *MatchDetails {
 	d.Studios = cleanList(d.Studios, 12, 120)
 	d.Network = cleanText(d.Network, 120, false)
 	d.Director = cleanText(d.Director, 300, false)
+	d.Series = cleanText(d.Series, 120, false)
 	d.Status = cleanText(d.Status, 40, false)
 	d.ContentRating = cleanText(d.ContentRating, 20, false)
 	if d.Rating != nil && (*d.Rating < 0 || *d.Rating > 10 || *d.Rating != *d.Rating) {
@@ -824,7 +826,7 @@ type FieldChange struct {
 	Note   string `json:"note,omitempty"`
 }
 
-var fieldLabels = map[string]string{"title": "Title", "sortTitle": "Sort name", "year": "Year", "director": "Director", "edition": "Edition", "tagline": "Tagline", "overview": "Overview",
+var fieldLabels = map[string]string{"title": "Title", "sortTitle": "Sort name", "year": "Year", "director": "Director", "edition": "Edition", "series": "Collection", "tagline": "Tagline", "overview": "Overview",
 	"genres": "Genres", "tags": "Tags", "contentRating": "Content rating", "rating": "Rating", "studios": "Studios", "network": "Network", "status": "Status",
 	"poster": "Poster", "backdrop": "Backdrop", "banner": "Banner", "logo": "Logo", "introStart": "Intro starts", "introEnd": "Intro ends", "season": "Season", "episode": "Episode", "episodeEnd": "Last episode", "aired": "Aired"}
 
@@ -834,7 +836,7 @@ func FieldLabel(f string) string { return fieldLabels[f] }
 func (d *MatchDetails) fields() map[string]string {
 	m := map[string]string{
 		"title": d.Title, "overview": d.Overview, "tagline": d.Tagline, "genres": joinList(d.Genres), "contentRating": d.ContentRating, "rating": floatStr(d.Rating),
-		"studios": joinList(d.Studios), "network": d.Network, "director": d.Director, "status": d.Status, "year": intStr(d.Year),
+		"studios": joinList(d.Studios), "network": d.Network, "director": d.Director, "series": d.Series, "status": d.Status, "year": intStr(d.Year),
 		"poster": d.Poster, "backdrop": d.Backdrop, "banner": d.Banner, "logo": d.Logo,
 	}
 	if d.Title != "" {

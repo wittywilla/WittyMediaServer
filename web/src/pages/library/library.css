@@ -4,6 +4,7 @@
 .lib-shelf-head h2 { margin: 0; font-size: var(--text-xl); letter-spacing: var(--tracking-heading); }
 .lib-shelf-head a { font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); padding: var(--sp-2); white-space: nowrap; }
 .lib-shelf-head a:hover { color: var(--fg); }
+.lib-lazy { min-height: 80px; }
 .lib-shelf-wait { height: 240px; }
 .lib-views { margin-top: 0; }
 .lib-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 var(--sp-1); margin-left: var(--sp-1); border-radius: var(--r-full); background: var(--fg); color: var(--bg); font-size: var(--text-2xs); font-weight: 700; }
@@ -29,17 +30,7 @@
 
 /* Filters on show */
 .lib-active { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-.lib-active-chip { padding-right: var(--sp-1); }
-.lib-active-chip button { display: inline-flex; margin-left: var(--sp-1); padding: var(--sp-1); border: 0; background: none; color: inherit; border-radius: var(--r-full); cursor: pointer; }
-.lib-active-chip button:hover { background: var(--hover); }
 
-/* The filter panel slides in at the side on a wide screen. */
-.lib-filter-back { place-items: stretch end; padding: 0; }
-.lib-filter { display: flex; flex-direction: column; width: min(460px, 100%); height: 100%; max-height: none; padding: 0; border-radius: var(--r-xl) 0 0 var(--r-xl); overflow: hidden; }
-.lib-filter-head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border); }
-.lib-filter-head h2 { margin: 0; }
-.lib-filter-body { flex: 1; overflow: auto; padding: var(--sp-4) var(--sp-5); }
-.lib-filter-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--border); }
 .lib-facet { margin-top: var(--sp-5); }
 .lib-facet h3 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
 .lib-facet .chips { margin: 0; flex-wrap: wrap; overflow: visible; padding: 0; }
@@ -48,10 +39,8 @@
 
 /* Choosing titles */
 .lib-pick { position: relative; display: block; cursor: pointer; }
-.lib-pick input { position: absolute; left: var(--sp-2); top: var(--sp-2); width: 24px; height: 24px; opacity: 0; z-index: 2; }
-.lib-pick-mark { position: absolute; left: var(--sp-2); top: var(--sp-2); z-index: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--r-full); background: var(--scrim); color: transparent; border: 2px solid var(--on-image); }
-.lib-pick.on .lib-pick-mark { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.lib-pick input:focus-visible ~ .lib-pick-mark { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* The box itself, not a drawing of one, so a remote can land on it. */
+.lib-pick input { position: absolute; left: var(--sp-2); top: var(--sp-2); width: 28px; height: 28px; z-index: 2; accent-color: var(--accent); }
 .lib-pick-card { display: block; pointer-events: none; }
 .lib-pick.on .lib-pick-card .poster { outline: 3px solid var(--fg); outline-offset: 2px; }
 .lib-bulk { position: sticky; bottom: var(--sp-4); z-index: 5; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; width: fit-content; max-width: 100%; margin: var(--sp-4) auto 0; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-5); background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); box-shadow: var(--e-3); }
@@ -66,11 +55,5 @@
 .lib-cat-count { min-width: 28px; text-align: right; font-size: var(--text-sm); }
 
 /* What streaming listings are, every time they're shown. */
-.lib-listing-note { margin-top: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--warn-soft); font-size: var(--text-sm); }
-.lib-listing-note p { margin: 0 0 var(--sp-1); }
-.lib-listing-note p:last-child { margin: 0; font-size: var(--text-xs); }
-
-@media (max-width: 600px) {
-  .lib-filter { border-radius: var(--r-xl) var(--r-xl) 0 0; }
-  .lib-filter-back { place-items: end stretch; }
-}
+.lib-listing-note { margin-top: var(--sp-3); font-size: var(--text-sm); }
+.lib-filter .ui-sheet-body { padding: 0 var(--sp-1) var(--sp-2); }

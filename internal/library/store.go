@@ -103,6 +103,7 @@ type Item struct {
 	Progress *Progress `json:"progress,omitempty"`
 	// What a scan found beyond the row itself, kept by upsertItem and recordScan.
 	studios     []string
+	series      string
 	director    string
 	audioFormat string
 }
@@ -752,7 +753,15 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 
 // saveScanBrands keeps every studio a source named; the row holds only the first.
 func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
-	if it.studios == nil || it.ShowID != nil {
+	if it.ShowID != nil {
+		return nil
+	}
+	if it.series != "" {
+		if err := s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, BrandSeries, []string{it.series}); err != nil {
+			return err
+		}
+	}
+	if it.studios == nil {
 		return nil
 	}
 	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)

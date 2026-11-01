@@ -20,6 +20,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   words in place of the button to add it, and so does anything built on it. WittyCouch Host has no FreeBSD build yet, so WittyCouch
   says that on FreeBSD.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Games:** far less delay. From a press to the screen went from 75 to 270 ms to 11 to 31 ms, or about 50 on PlayStation 2, measured with the server and browser on one machine. Bands and a grid in some PlayStation 2 games are gone, colours are right, and streams come back by themselves from a dropped network or a stuck encoder. The on-screen numbers show where the delay goes.
 - **Real installers, on every system.** Windows gets a normal `.msi` setup: just for you or for everyone, Start menu entry, optional background service,
   firewall rule, start at sign-in, desktop shortcut and command line, each asked for in plain words, with silent flags for admins, and updating in place.
   macOS gets a `.pkg` with a background service. Linux gets a `.deb` and an `.rpm` with a systemd service and a layout ready for a package repository. Each

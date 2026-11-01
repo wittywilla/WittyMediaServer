@@ -306,7 +306,7 @@ function Shelf({ lib, shelves, listing, isAdmin }: { lib: Library; shelves: Shel
         </ShelfRow>
       )}
       {shelves.collections.length > 0 && (
-        <ShelfRow title="Collections" to="/collections">
+        <ShelfRow title="Collections" to={shelves.collections.some((c) => !c.key) ? '/collections' : undefined}>
           {shelves.collections.map((c) => <CategoryCard key={c.key || c.id} c={c} to={c.key ? `${here}?series=${encodeURIComponent(c.name)}` : `/collections/${c.id}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
         </ShelfRow>
       )}

@@ -257,11 +257,20 @@ func (s *Store) GamePatches(ctx context.Context, userID, itemID int64) ([]GamePa
 	return out, rows.Err()
 }
 
-// AddGamePatch records one, turned on, and says its number.
-func (s *Store) AddGamePatch(ctx context.Context, userID, itemID int64, p GamePatch) (int64, error) {
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO wittyplay_patches(user_id, item_id, name, kind, size, enabled, created_at) VALUES(?,?,?,?,?,1,?)`, userID, itemID, p.Name, p.Kind, p.Size, db.Now())
+// ErrTooManyPatches: a game has all the patches it may have.
+var ErrTooManyPatches = errors.New("too many patches")
+
+// AddGamePatch records one, turned on, and says its number. The count and the adding are
+// one statement, so requests arriving together can't all fit in the last place.
+func (s *Store) AddGamePatch(ctx context.Context, userID, itemID int64, p GamePatch, most int) (int64, error) {
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO wittyplay_patches(user_id, item_id, name, kind, size, enabled, created_at)
+		SELECT ?,?,?,?,?,1,? WHERE (SELECT COUNT(*) FROM wittyplay_patches WHERE user_id = ? AND item_id = ?) < ?`,
+		userID, itemID, p.Name, p.Kind, p.Size, db.Now(), userID, itemID, most)
 	if err != nil {
 		return 0, err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return 0, ErrTooManyPatches
 	}
 	return res.LastInsertId()
 }

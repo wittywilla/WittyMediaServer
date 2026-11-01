@@ -119,6 +119,11 @@ func openStationOnce(ctx context.Context, raw string) (*StationStream, string, e
 	if err != nil {
 		timer.Stop()
 		cancel()
+		// Without the address the client's error quotes: it can hold a private key, and this is logged.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
 		return nil, "", fmt.Errorf("can't be reached: %w", err)
 	}
 	finish := func() {

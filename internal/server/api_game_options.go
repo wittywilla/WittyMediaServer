@@ -12,6 +12,7 @@ import (
 	_ "image/jpeg" // the formats a person's own image may be in
 	"image/png"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -500,6 +501,7 @@ func (s *Server) handleGamesRecent(w http.ResponseWriter, r *http.Request) {
 		if err != nil || it.Kind != "game" {
 			continue // no longer theirs to see
 		}
+		s.forViewer(r, it)
 		out = append(out, entry{it, e.Favourite, e.Plays, e.LastPlayed})
 	}
 	writeJSON(w, 200, out)
@@ -690,6 +692,10 @@ func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, fmt.Sprintf("a game can have %d patches at most; remove one first", maxGamePatches))
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, patch.MaxPatch))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this patch is too large: %d MB at most", patch.MaxPatch>>20))
@@ -700,13 +706,20 @@ func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	if !s.accountRoom(w, id, int64(len(b))) {
+		return
+	}
 	name := cleanUploadName(r.URL.Query().Get("name"), "patch."+kind)
 	dir := s.games().patchDir(id, it.ID)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	pid, err := s.Store.AddGamePatch(ctx, id, it.ID, library.GamePatch{Name: name, Kind: kind, Size: int64(len(b))})
+	pid, err := s.Store.AddGamePatch(ctx, id, it.ID, library.GamePatch{Name: name, Kind: kind, Size: int64(len(b))}, maxGamePatches)
+	if errors.Is(err, library.ErrTooManyPatches) {
+		writeErr(w, 409, fmt.Sprintf("a game can have %d patches at most; remove one first", maxGamePatches))
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -1003,7 +1016,46 @@ const (
 	maxImportState = 256 << 20
 	maxImportSRM   = 64 << 20
 	maxStateHeader = 4 << 10
+	// importsAtOnce: each is held in memory while it's checked.
+	importsAtOnce = 2
 )
+
+// maxAccountGameBytes is what one account's imports and patches can bring the saves it
+// keeps up to, across all its games. A game's own saving is limited for each game instead.
+var maxAccountGameBytes int64 = 10 << 30
+
+var importSlots = make(chan struct{}, importsAtOnce)
+
+// takeImportSlot answers the request itself when too many are arriving already.
+func takeImportSlot(w http.ResponseWriter) bool {
+	select {
+	case importSlots <- struct{}{}:
+		return true
+	default:
+		w.Header().Set("Retry-After", "10")
+		writeErr(w, 503, "other files are being imported right now. Try again in a moment")
+		return false
+	}
+}
+
+// accountRoom says whether this much more fits in what an account may keep, and
+// answers the request itself when it doesn't.
+func (s *Server) accountRoom(w http.ResponseWriter, userID, size int64) bool {
+	n := size
+	_ = filepath.WalkDir(filepath.Join(s.games().dir, "saves", "u"+strconv.FormatInt(userID, 10)), func(_ string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			if info, ierr := d.Info(); ierr == nil {
+				n += info.Size()
+			}
+		}
+		return nil
+	})
+	if n <= maxAccountGameBytes {
+		return true
+	}
+	writeErr(w, 409, fmt.Sprintf("your saved games and patches have reached the %d GB this server allows for each person. Delete some first", maxAccountGameBytes>>30))
+	return false
+}
 
 type stateHeader struct {
 	Console string `json:"console"`
@@ -1134,6 +1186,10 @@ func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name, _ := stream.SlotName(slot)
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxImportState))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this file is too large: %d MB at most", maxImportState>>20))
@@ -1164,6 +1220,9 @@ func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
 	}
 	if !saveRoom(dir, int64(len(body))) {
 		writeErr(w, 409, stream.ErrSaveFull.Error())
+		return
+	}
+	if !s.accountRoom(w, userFrom(r).ID, int64(len(body))) {
 		return
 	}
 	if err := writeFileAtomic(filepath.Join(dir, name+".state"), body); err != nil {
@@ -1218,6 +1277,10 @@ func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "leave the game first: it would write over this")
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxImportSRM))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this file is too large: %d MB at most", maxImportSRM>>20))
@@ -1234,6 +1297,9 @@ func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
 	}
 	if !saveRoom(dir, int64(len(b))) {
 		writeErr(w, 409, stream.ErrSaveFull.Error())
+		return
+	}
+	if !s.accountRoom(w, id, int64(len(b))) {
 		return
 	}
 	path := filepath.Join(dir, "save.srm")

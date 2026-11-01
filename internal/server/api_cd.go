@@ -235,6 +235,9 @@ func (s *Server) cdViewOf(r *http.Request, it *library.Item, d *wittycd.Disc) (*
 		DiscID: toc.MusicBrainzID(), CDDBID: toc.CDDBID(), TOC: toc.LookupString(), Sessions: d.Sessions, Samples: st.Samples(), DurationSec: d.DurationSec(),
 		Tracks: []cdTrackView{}, HiddenTrack: d.HiddenTrack, HasGraphics: d.HasGraphics, Problem: d.Problem, Warnings: d.Warnings,
 		Formats: []string{"flac", "wav"}, Suggested: "flac"}
+	if !userFrom(r).IsAdmin {
+		v.Poster = artForViewer(v.Poster)
+	}
 	if v.Warnings == nil {
 		v.Warnings = []wittycd.Warning{}
 	}

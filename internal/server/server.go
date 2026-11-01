@@ -571,14 +571,15 @@ func (w *statusWriter) Flush() {
 // people attach to bug reports, never hold a working login.
 func redactQuery(q string) string {
 	// "%" too: %74oken=... decodes to the same parameter when signing in.
-	if !strings.Contains(q, "token") && !strings.Contains(q, "st=") && !strings.Contains(q, "%") {
+	if !strings.Contains(q, "token") && !strings.Contains(q, "st=") && !strings.Contains(q, "u=") && !strings.Contains(q, "%") {
 		return q
 	}
 	v, err := url.ParseQuery(q)
 	if err != nil {
 		return "(unreadable)"
 	}
-	for _, k := range []string{"token", "st"} {
+	// u: a part of a radio station. Sealed, but long, and of no use to anyone reading.
+	for _, k := range []string{"token", "st", "u"} {
 		if v.Has(k) {
 			v.Set(k, "REDACTED")
 		}

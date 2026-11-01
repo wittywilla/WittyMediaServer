@@ -20738,15 +20738,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "description": "From the playlist.",
-            "in": "query",
-            "name": "s",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {

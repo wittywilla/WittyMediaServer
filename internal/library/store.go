@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 type Library struct {
@@ -51,6 +52,11 @@ type Item struct {
 	Backdrop      string    `json:"backdrop"` // cache-relative path or URL
 	Container     string    `json:"container"`
 	VideoCodec    string    `json:"videoCodec"`
+	// AudioDirect: sound files a browser plays as they are. Reader: books, which
+	// reader opens it (epub, cbz or pdf), "" when none does. Both are worked out here,
+	// from the registry, so no client keeps a list of its own.
+	AudioDirect bool   `json:"audioDirect,omitempty"`
+	Reader      string `json:"reader,omitempty"`
 	Width         int       `json:"width"`
 	Height        int       `json:"height"`
 	AudioLangs    []string  `json:"audioLangs"`
@@ -103,6 +109,7 @@ type Item struct {
 	Progress *Progress `json:"progress,omitempty"`
 	// What a scan found beyond the row itself, kept by upsertItem and recordScan.
 	studios     []string
+	series      string
 	director    string
 	audioFormat string
 }
@@ -414,6 +421,12 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	}
 	it.Overview, it.Tagline, it.ContentRating, it.Studio = overview.String, tagline.String, contentRating.String, studio.String
 	it.Poster, it.Backdrop, it.Container, it.VideoCodec = poster.String, backdrop.String, container.String, vcodec.String
+	switch it.Kind {
+	case "audio":
+		it.AudioDirect = audioPlaysDirect(&it)
+	case "book":
+		it.Reader = mediatypes.ReaderFor(it.Container)
+	}
 	it.Provider, it.ProviderID = provider.String, providerID.String
 	it.RuntimeSec = runtime.Float64
 	it.Width, it.Height = int(width.Int64), int(height.Int64)
@@ -752,7 +765,15 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 
 // saveScanBrands keeps every studio a source named; the row holds only the first.
 func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
-	if it.studios == nil || it.ShowID != nil {
+	if it.ShowID != nil {
+		return nil
+	}
+	if it.series != "" {
+		if err := s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, BrandSeries, []string{it.series}); err != nil {
+			return err
+		}
+	}
+	if it.studios == nil {
 		return nil
 	}
 	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)

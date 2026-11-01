@@ -138,3 +138,6 @@
 .ds-states { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--sp-4); }
 .ds-page .card.wide { width: var(--card-wide-w); }
 .ds-page .card.square { width: var(--card-w); }
+
+/* A form that fills a dialog: its buttons are in the dialog's foot, tied to it with form="id". */
+.ui-dialog-form { display: grid; gap: var(--sp-3); min-width: 0; }

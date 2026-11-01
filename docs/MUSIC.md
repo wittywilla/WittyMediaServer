@@ -241,3 +241,5 @@ connect to itself or to devices on your local network on a feed's behalf.
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+Every sound format this library takes, and which of them play as they are, is in [Supported formats](SUPPORTED-FORMATS.md).

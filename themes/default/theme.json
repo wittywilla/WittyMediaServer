@@ -1,9 +1,9 @@
 {
   "id": "default",
-  "name": "WittyMediaServer",
-  "description": "The original look: deep slate with a violet accent.",
+  "name": "Witty",
+  "description": "The house look: deep slate with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "4",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {

@@ -21,21 +21,16 @@ const visible = (e: Element) => (e as HTMLElement).offsetParent !== null || getC
 export function useDialogs() {
   useEffect(() => {
     const opened = new Map<Element, HTMLElement | null>()
-    const top = () => [...opened.keys()].filter((d) => d.isConnected).pop() as HTMLElement | undefined
-    // A dialog whose button has autoFocus already holds the focus when it's seen here, so what
-    // opened it has to come from what had the focus just before.
-    const recent: HTMLElement[] = []
-    const noteFocus = (e: FocusEvent) => { if (e.target instanceof HTMLElement) { recent.push(e.target); if (recent.length > 8) recent.shift() } }
-    document.addEventListener('focusin', noteFocus)
-    const opener = (d: HTMLElement) => {
-      const now = document.activeElement as HTMLElement | null
-      if (!now || !d.contains(now)) return now
-      for (let i = recent.length - 1; i >= 0; i--) if (!d.contains(recent[i]) && recent[i].isConnected) return recent[i]
-      return null
-    }
+    // What had focus outside any dialog: a dialog that focuses a field of its own as
+    // it appears has already taken it by the time it's noticed here.
+    let outside: HTMLElement | null = null
+    const noteFocus = (e: FocusEvent) => { const t = e.target as HTMLElement; if (t?.closest && !t.closest(DIALOGS)) outside = t }
+    window.addEventListener('focusin', noteFocus, { passive: true })
+    const top = () => [...opened.keys()].filter((d) => d.isConnected && d.matches(DIALOGS)).pop() as HTMLElement | undefined
     const prepare = (d: HTMLElement) => {
       if (opened.has(d)) return
-      opened.set(d, opener(d))
+      const active = document.activeElement as HTMLElement | null
+      opened.set(d, active && d.contains(active) ? outside : active)
       if (!d.getAttribute('role')) d.setAttribute('role', 'dialog')
       if (!d.hasAttribute('aria-modal')) d.setAttribute('aria-modal', 'true')
       if (!d.hasAttribute('aria-label') && !d.hasAttribute('aria-labelledby')) {
@@ -52,13 +47,14 @@ export function useDialogs() {
     const sweep = () => {
       document.querySelectorAll<HTMLElement>(DIALOGS).forEach((d) => { if (!d.parentElement?.closest(DIALOGS)) prepare(d) })
       for (const [d, back] of opened) {
-        if (d.isConnected) continue
+        if (d.isConnected && d.matches(DIALOGS)) continue
         opened.delete(d)
         if (back?.isConnected && !top()) back.focus({ preventScroll: true })
       }
     }
     const mo = new MutationObserver(sweep)
-    mo.observe(document.body, { childList: true, subtree: true })
+    // The side drawer stays in the page and only takes the role of a dialog while it's open.
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['role'] })
     sweep()
     const keys = (e: KeyboardEvent) => {
       const d = top()
@@ -82,7 +78,7 @@ export function useDialogs() {
       }
     }
     window.addEventListener('keydown', keys)
-    return () => { mo.disconnect(); window.removeEventListener('keydown', keys); document.removeEventListener('focusin', noteFocus) }
+    return () => { mo.disconnect(); window.removeEventListener('keydown', keys); window.removeEventListener('focusin', noteFocus) }
   }, [])
 }
 

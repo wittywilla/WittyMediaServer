@@ -66,6 +66,10 @@ var ErrNoEngine = errors.New("WittyCD isn't on this server")
 // Open opens a CD image through the WittyCD version in use. The server sets it as it starts.
 var Open = func(string) (*Disc, error) { return nil, ErrNoEngine }
 
+// ForeignAudio, when set, makes a FLAC file of CD audio for a sound file WittyCD doesn't read itself,
+// so that a cue sheet can split it. It's here since the server has FFmpeg, and WittyCD asks for it.
+var ForeignAudio func(path string) (flac string, err error)
+
 // NewStream makes a program. tracks is nil for the whole disc as laid out.
 func (d *Disc) NewStream(tracks []int, loops int, deemphasis bool) (Stream, error) {
 	return d.Engine.NewStream(tracks, loops, deemphasis)

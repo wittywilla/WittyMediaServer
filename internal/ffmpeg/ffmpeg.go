@@ -176,13 +176,46 @@ func (p *Probe) Duration() float64 {
 	return d
 }
 
+// Video is the file's picture: its first video stream that really is one. A file may
+// also carry cover art, stored as a one-frame video stream, ahead of it.
 func (p *Probe) Video() *Stream {
 	for i := range p.Streams {
-		if p.Streams[i].CodecType == "video" && p.Streams[i].Disposition["attached_pic"] == 0 {
+		if p.Streams[i].CodecType == "video" && !p.Streams[i].stillPicture() {
 			return &p.Streams[i]
 		}
 	}
 	return nil
+}
+
+func (s *Stream) stillPicture() bool {
+	return s.Disposition["attached_pic"] == 1 || s.Disposition["still_image"] == 1 || s.Disposition["timed_thumbnails"] == 1
+}
+
+// VideoIndex is the number among the file's video streams (v:N) of the one Video
+// returns. Picking "the first video stream" would pick the cover art of some files.
+func (p *Probe) VideoIndex() int {
+	n := 0
+	for i := range p.Streams {
+		if p.Streams[i].CodecType != "video" {
+			continue
+		}
+		if !p.Streams[i].stillPicture() {
+			return n
+		}
+		n++
+	}
+	return 0
+}
+
+// VideoStreams lists the streams that are pictures, without cover art.
+func (p *Probe) VideoStreams() []Stream {
+	var out []Stream
+	for i := range p.Streams {
+		if p.Streams[i].CodecType == "video" && !p.Streams[i].stillPicture() {
+			out = append(out, p.Streams[i])
+		}
+	}
+	return out
 }
 
 func (p *Probe) Audio() []Stream {
@@ -246,6 +279,82 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	return &p, nil
 }
 
+// KeyframeNear finds where a copy that starts at this time really starts: the first
+// keyframe FFmpeg reaches after seeking there. No keyframe found says so.
+func (t *Tools) KeyframeNear(ctx context.Context, path string, videoIndex int, sec float64) (float64, bool) {
+	args := []string{"-v", "error", "-select_streams", "v:" + strconv.Itoa(videoIndex), "-read_intervals", strconv.FormatFloat(sec, 'f', 3, 64) + "%+#600",
+		"-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
+	args = append(args, FileInput(path)...)
+	out, _, err := Run(ctx, t.FFprobe, args)
+	if err != nil {
+		return 0, false
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		pts, flags, ok := strings.Cut(strings.TrimSpace(line), ",")
+		if !ok || !strings.HasPrefix(flags, "K") {
+			continue
+		}
+		if v, err := strconv.ParseFloat(pts, 64); err == nil && v >= 0 {
+			return v, true
+		}
+	}
+	return 0, false
+}
+
+// measureTime finds FFmpeg's last report of where it had got to.
+var measureTime = regexp.MustCompile(`time=(\d+):(\d+):(\d+(?:\.\d+)?)`)
+
+// MeasureDuration reads a file through without decoding it, for what doesn't say how
+// long it is: a bare stream with no container. 0 means it couldn't be found out.
+func (t *Tools) MeasureDuration(ctx context.Context, path string) float64 {
+	args := append([]string{"-hide_banner", "-nostdin", "-stats"}, FileInput(path)...)
+	args = append(args, "-map", "0:v:0?", "-map", "0:a:0?", "-c", "copy", "-f", "null", "-")
+	cmd := Command(ctx, t.FFmpeg, args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &limitWriter{w: &stderr, n: 1 << 20}
+	if err := cmd.Run(); err != nil {
+		return 0
+	}
+	if all := measureTime.FindAllStringSubmatch(stderr.String(), -1); len(all) > 0 {
+		m := all[len(all)-1]
+		h, _ := strconv.ParseFloat(m[1], 64)
+		mi, _ := strconv.ParseFloat(m[2], 64)
+		sec, _ := strconv.ParseFloat(m[3], 64)
+		return h*3600 + mi*60 + sec
+	}
+	// A raw stream has no times at all. Its frames and frame rate say the same.
+	if m := measureFrames.FindAllStringSubmatch(stderr.String(), -1); len(m) > 0 {
+		frames, _ := strconv.ParseFloat(m[len(m)-1][1], 64)
+		if rate := measureRate.FindStringSubmatch(stderr.String()); rate != nil {
+			if fps, _ := strconv.ParseFloat(rate[1], 64); fps > 0 && fps < 1000 {
+				return frames / fps
+			}
+		}
+	}
+	return 0
+}
+
+var (
+	measureFrames = regexp.MustCompile(`frame=\s*(\d+)`)
+	measureRate   = regexp.MustCompile(`([0-9.]+) fps`)
+)
+
+// limitWriter keeps the last part of what's written to it, up to n bytes in all.
+type limitWriter struct {
+	w *bytes.Buffer
+	n int
+}
+
+func (l *limitWriter) Write(b []byte) (int, error) {
+	if l.w.Len()+len(b) > l.n {
+		rest := l.w.Bytes()
+		keep := rest[min(len(rest), len(b)):]
+		l.w = bytes.NewBuffer(append(append(make([]byte, 0, l.n), keep...), b...))
+		return len(b), nil
+	}
+	return l.w.Write(b)
+}
+
 // ---------------------------------------------------------------------------
 // Disc inputs: ffconcat lists of subfile byte ranges
 // ---------------------------------------------------------------------------
@@ -306,7 +415,7 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 		}
 		pieces := splitExtents(s.Extents)
 		var url string
-		if len(pieces) == 1 {
+		if len(pieces) == 1 && !misleadingName(pieces[0].File) {
 			url = SubfileURL(pieces[0])
 		} else {
 			side := filepath.Join(dir, fmt.Sprintf("%s-seg%d.txt", name, i+1))
@@ -337,6 +446,11 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 	return p, os.WriteFile(p, []byte(b.String()), 0o644)
 }
 
+// misleadingName: FFmpeg picks how to read an input partly from the name of the file.
+// To it an .img is a GEM picture, so a disc image of that name goes through a list of
+// addresses, whose own name says nothing.
+func misleadingName(p string) bool { return strings.EqualFold(filepath.Ext(p), ".img") }
+
 // maxSubfile is the most one subfile address reads. Past 2 GiB in one FFmpeg
 // misjudges a program stream's end, and then loses about a second of its start.
 const maxSubfile = 1 << 30
@@ -353,6 +467,31 @@ func splitExtents(ext []dvd.FileExtent) []dvd.FileExtent {
 		out = append(out, e)
 	}
 	return out
+}
+
+// PartsInput opens the files of a split film as one input. Only files can be read,
+// and the list is written here from names that were checked.
+func PartsInput(dir, name string, parts []string) ([]string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+	var b strings.Builder
+	b.WriteString("ffconcat version 1.0\n")
+	for _, p := range parts {
+		abs, err := filepath.Abs(p)
+		if err != nil {
+			return nil, err
+		}
+		if strings.ContainsAny(abs, "\n\r\x00") {
+			return nil, fmt.Errorf("unusable file name: %q", p)
+		}
+		fmt.Fprintf(&b, "file %s\n", quoteConcat(filepath.ToSlash(abs)))
+	}
+	list := filepath.Join(dir, name+".ffconcat")
+	if err := os.WriteFile(list, []byte(b.String()), 0o644); err != nil {
+		return nil, err
+	}
+	return []string{"-f", "concat", "-safe", "0", "-protocol_whitelist", "file,pipe", "-i", filepath.ToSlash(list)}, nil
 }
 
 // ConcatInputArgs are the ffmpeg input flags for an ffconcat list of subfiles.

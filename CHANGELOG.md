@@ -32,6 +32,39 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Every format, everywhere.** One list of file types now drives scanning, playback, serving, the file browser and the
+  docs. It covers over 200 extensions: every common video container, codec and raw stream, FLAC to DSD to tracker and game
+  music, MIDI through a synthesiser of the server's own, RAW from every major camera, Kindle, FictionBook, Word, Rich Text and
+  Markdown in the reader, and RAR, 7-Zip and TAR comics. See **Settings, About, Supported formats**.
+- **A file's content decides.** A file with a wrong or missing extension is recognised from its first bytes; a program
+  called `film.mkv` is left out and the log says why; a `.cbz` that's really a RAR still opens.
+- **Nothing is converted that needn't be.** Browsers now get rewrapped streams, and streams with only the sound converted, so
+  an H.264 MKV costs the server next to nothing. The browser says what it really decodes, so HEVC plays directly where it can.
+  The new **ⓘ** in the player says how a file is playing, and why.
+- **Subtitles beside a video** are found by themselves: SRT, ASS, SSA, WebVTT, MicroDVD, SubViewer, SBV, TTML, DFXP, SAMI,
+  LRC, MKS, SCC and more as text, whatever encoding they're in, and VobSub and PGS drawn into the picture. Text no longer forces
+  a conversion. ASS can still be drawn in, to keep its styling.
+- **Films split across files** (`CD1`, `part2`) are one title. **Cue sheets** split any sound file into tracks, not only WAV
+  and FLAC. **Playlists** in a music library (M3U, PLS, XSPF, ASX) become collections.
+- **Motion photos** with their clip inside the picture play it. **SVG pictures** are shown, with anything active taken out first.
+- Cover art at the front of a video no longer gets taken for the picture. Mono sound that FFmpeg's AAC encoder refused now
+  converts. DVDs in `.img` files, which FFmpeg took for pictures, get their thumbnails and play.
+### A new look, the same everywhere
+
+- **Design standards**: `docs/DESIGN.md` now covers every colour, size, part, pattern and rule, and a check in CI keeps the interface to it. Administrators can see every part at `/design`.
+- **Shared parts** for buttons, fields, menus, dialogs, toasts, tooltips, cards and tables, which all work with a keyboard, a remote and a screen reader. Settings and the pages around it moved onto them, and "are you sure?" questions are now the app's own instead of the browser's.
+- **Themes**: eight well-made themes in place of twenty colour variations, each shown as a small live piece of the app. If you were using one of the old ones, you've been moved to the closest. **Make a theme** builds a whole readable theme from a few choices, with no code. `docs/THEMES.md` is rewritten for someone who has never written CSS.
+- **The top bar stays manageable**: what doesn't fit goes under **More**, and you can see the page you're on even when it's in there. Drag or use the keyboard to reorder, hide what you don't use, and group into Watch, Listen, Read and Play. The side menu folds to a rail of icons. Everyone can have their own arrangement, and the owner can set the default.
+- **Phones** get a row of sections along the top and a floating bar at the bottom.
+- **Remote and keyboard**: arrow keys reach everything, coming back to a row lands where you left it, and Back returns to the control you left. **Big screen mode** in Appearance, or `?tv=1`, keeps the larger text and stronger focus on for a TV.
+- **Moving posters**: movie and show posters lean toward the pointer with a soft moving light, or settle in as a remote reaches them. Turn it off in Appearance; it also stays off on modest devices and when a device asks for less motion.
+- **Profile names and usernames can differ**: you sign in with a unique username, and everyone else sees a profile name anyone can choose. Each person picks which one shows at the top right. Usernames now count as taken whatever their case, and can't contain invisible characters.
+
+### Fixed
+
+- In Settings, scrolling with the pointer over the menu moved the page beside it. The menu now scrolls by itself.
+- With internet radio or music playing, the account menu could open behind the audio bar, and the mini player could cover dialogs. Everything over the page now has one stacking order.
+
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
@@ -51,7 +84,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   programme, between commercials, or a break every so many minutes, mandatory or only for particular films, shows,
   genres or collections.
 - **WittyTV timetable:** "cut commercials short" keeps programmes starting on time, with clear choices about what may give
-  way, and the editor shows the whole day with what was cut.
+  way, and the editor shows the whole day with what was cut. Commercial breaks can now come inside a programme, and give
+  way the same way.
+- **WittyTV logos:** channels wear their network's or studio's logo from the logo service, or one you pick, and the modern
+  look shows a title's own logo art.
+- **Fixed:** uploaded bumpers keep playing when the data folder moves, as after restoring a backup somewhere else.
 - **WittyTV channels:** one click for studios and your collections as well as genres, decades and networks, with *Add all*.
   Holiday seasons and marathon blocks. Channels you already have carry on as they were.
 - **Edit details:** one dialog for a film, an episode or a show, in sections, with Delete, Cancel and Save always in view. Every field says where its value came from, can be locked so nothing changes it (no scan, refresh, new match, NFO or file beside it, matched or not), and can go back to what its source said. It also has artwork from every source with your own uploads, banners and title logos, where the intro ends (typed, or picked in the player), bonus features, versions, moving to another library, and logos.
@@ -62,6 +99,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Categories:** made from genres per library, with spellings of the same genre put together, and they can be hidden, reordered, renamed and merged, with art from what's in them.
 - **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
 - **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
+- **Collections from film series:** when a source says films belong to a series, a library shows them as a collection by itself, and the Collection field changes it.
+- **A library's header stays in view** as you scroll, with its name, sort and Filters.
+- **Arrow keys and a remote reach everything** in the edit dialog, Fix matches and Pick in player, and carry on from nearby when the button you pressed goes away.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
 ### Music
 

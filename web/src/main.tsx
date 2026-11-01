@@ -11,9 +11,11 @@ import './ui/ui.css'
 import './audio.css'
 import './pages/settings/settings.css'
 import { installTVInput } from './tv'
+import { installTenFoot } from './ui/tenFoot'
 import { installErrorReporter } from './errorReport'
 
 installTVInput()
+installTenFoot()
 installErrorReporter()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -4,6 +4,7 @@ import { api } from '../api'
 import { EmptyState, Spinner } from '../components/common'
 import { toast } from '../state'
 import '../gallery.css'
+import { ask } from '../ui/Overlay'
 
 // Year in review: this profile's year, added up on this server from its own
 // record. Nobody else sees it, and nothing is sent anywhere (docs/REVIEW.md).
@@ -59,7 +60,7 @@ export default function ReviewPage() {
   if (!r) return <Spinner />
   const peak = Math.max(1, ...r.byMonth)
   const clear = async () => {
-    if (!confirm('Forget what this profile watched and listened to? Your year in review, the numbers behind For You and your history start again from nothing. Your places in videos and books stay.')) return
+    if (!await ask({ title: 'Forget what this profile watched and listened to?', body: 'Your year in review, the numbers behind For You and your history start again from nothing. Your places in videos and books stay.', confirm: 'Forget it all', danger: true })) return
     try { await api.del('/me/history'); load(); toast('History cleared') } catch (e: any) { toast(e.message) }
   }
   return (

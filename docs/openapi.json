@@ -2946,6 +2946,9 @@
           "artist": {
             "type": "string"
           },
+          "audioDirect": {
+            "type": "boolean"
+          },
           "audioLangs": {
             "items": {
               "type": "string"
@@ -3134,6 +3137,9 @@
                 "type": "null"
               }
             ]
+          },
+          "reader": {
+            "type": "string"
           },
           "reading": {
             "type": "string"
@@ -4652,6 +4658,15 @@
               "null"
             ]
           },
+          "fmp4Video": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "hdr": {
             "items": {
               "type": "string"
@@ -4659,6 +4674,16 @@
             "type": [
               "array",
               "null"
+            ]
+          },
+          "hi10pH264": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "hlsAudio": {
@@ -4677,6 +4702,16 @@
             "type": [
               "array",
               "null"
+            ]
+          },
+          "interlaced": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "maxAudioChannels": {
@@ -4709,7 +4744,27 @@
               }
             ]
           },
+          "remux": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sidecarSubtitles": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "switchAudio": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4743,13 +4798,18 @@
           "audioCodecs",
           "containers",
           "embeddedSubtitles",
+          "fmp4Video",
           "hdr",
+          "hi10pH264",
           "hlsAudio",
           "hlsVideo",
+          "interlaced",
           "maxAudioChannels",
           "maxBitrateKbps",
           "maxHeight",
+          "remux",
           "sidecarSubtitles",
+          "switchAudio",
           "tenBit",
           "videoCodecs"
         ],
@@ -4910,6 +4970,9 @@
           "sidecarSubtitles": {
             "type": "boolean"
           },
+          "surroundOutput": {
+            "type": "boolean"
+          },
           "switchAudio": {
             "type": "boolean"
           },
@@ -4945,6 +5008,7 @@
           "name",
           "remux",
           "sidecarSubtitles",
+          "surroundOutput",
           "switchAudio",
           "tenBit",
           "videoCodecs"
@@ -4978,6 +5042,9 @@
                 "type": "null"
               }
             ]
+          },
+          "flatten3d": {
+            "type": "boolean"
           },
           "forceTranscode": {
             "type": "boolean"
@@ -5013,6 +5080,16 @@
           },
           "subtitleLanguage": {
             "type": "string"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5020,13 +5097,15 @@
           "audioLanguage",
           "burnSubtitle",
           "capabilities",
+          "flatten3d",
           "forceTranscode",
           "maxBitrateKbps",
           "maxHeight",
           "profile",
           "startSec",
           "subtitle",
-          "subtitleLanguage"
+          "subtitleLanguage",
+          "video"
         ],
         "type": "object"
       },
@@ -5047,6 +5126,27 @@
           "cdUrl": {
             "type": "string"
           },
+          "chapters": {
+            "items": {
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "container": {
             "type": "string"
           },
@@ -5065,6 +5165,56 @@
           },
           "durationSec": {
             "type": "number"
+          },
+          "explain": {
+            "anyOf": [
+              {
+                "properties": {
+                  "load": {
+                    "type": "string"
+                  },
+                  "picture": {
+                    "type": "string"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sound": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "subtitles": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "load",
+                  "picture",
+                  "reasons",
+                  "sound",
+                  "source",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flattened": {
+            "type": "boolean"
           },
           "intro": {
             "anyOf": [
@@ -5116,6 +5266,9 @@
           "startAtSec": {
             "type": "number"
           },
+          "stereo": {
+            "type": "string"
+          },
           "streamId": {
             "type": "string"
           },
@@ -5145,6 +5298,41 @@
           },
           "url": {
             "type": "string"
+          },
+          "videoIndex": {
+            "type": "integer"
+          },
+          "videos": {
+            "items": {
+              "properties": {
+                "codec": {
+                  "type": "string"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "index": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "codec",
+                "height",
+                "index",
+                "width"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -6101,6 +6289,12 @@
           "builtin": {
             "type": "boolean"
           },
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "description": {
             "type": "string"
           },
@@ -6129,6 +6323,9 @@
               }
             },
             "type": "object"
+          },
+          "radius": {
+            "type": "number"
           },
           "scheme": {
             "type": "string"
@@ -6323,6 +6520,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -6338,17 +6538,22 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
         },
         "required": [
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -6368,6 +6573,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -6383,6 +6591,9 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
@@ -6390,11 +6601,13 @@
         "required": [
           "access",
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -6889,6 +7102,156 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/brands": {
+      "get": {
+        "operationId": "getBrands",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The studios or networks of a library, most titles first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse": {
+      "get": {
+        "operationId": "getBrowse",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Films and shows as one list, by any filter and sort.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse/categories": {
+      "put": {
+        "operationId": "putBrowseCategories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename, hide, merge or reorder a library's categories, or start again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/browse/facets": {
+      "get": {
+        "operationId": "getBrowseFacets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything a library can be filtered by, with counts.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse/shelves": {
+      "get": {
+        "operationId": "getBrowseShelves",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library page in one answer: categories, studios, networks, collections and streaming services.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/capabilities": {
@@ -16737,6 +17100,96 @@
         "x-wms-auth": "user"
       }
     },
+    "/listings/refresh": {
+      "post": {
+        "operationId": "postListingsRefresh",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check listings again now.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/listings/settings": {
+      "put": {
+        "operationId": "putListingsSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn streaming listings on, after accepting every statement, or off, which forgets them.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/listings/status": {
+      "get": {
+        "operationId": "getListingsStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether streaming listings are on, for which region, and how old they are.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/login": {
       "post": {
         "operationId": "postLogin",
@@ -16790,6 +17243,316 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/logos/consent": {
+      "put": {
+        "operationId": "putLogosConsent",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agree or decline logo downloads, and optionally remove what was downloaded.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/credits": {
+      "get": {
+        "operationId": "getLogosCredits",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where every logo came from: source, licence and author.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/lookup": {
+      "post": {
+        "operationId": "postLogosLookup",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What to show for up to 200 names: a logo, or the name.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/preview": {
+      "get": {
+        "operationId": "getLogosPreview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A candidate logo, through this server. Wikimedia addresses only.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/status": {
+      "get": {
+        "operationId": "getLogosStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether logo downloads are agreed to, and how far they have got.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/{id}": {
+      "put": {
+        "operationId": "putLogosId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use a candidate, the name alone, or look again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/{id}/candidates": {
+      "get": {
+        "operationId": "getLogosIdCandidates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the source offers for a logo, to choose from.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/{id}/image": {
+      "get": {
+        "operationId": "getLogosIdImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A logo as a PNG. variant=white, dark or original.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/{id}/upload": {
+      "put": {
+        "operationId": "putLogosIdUpload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use your own picture as a logo. The picture is the body.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/logout": {
@@ -17525,6 +18288,240 @@
         "x-wms-auth": "admin"
       }
     },
+    "/match/accept": {
+      "post": {
+        "operationId": "postMatchAccept",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose results for up to 100 titles at once.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/queue": {
+      "get": {
+        "operationId": "getMatchQueue",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Titles worst first, with how sure each match is and why.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/rules": {
+      "get": {
+        "operationId": "getMatchRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library's naming rules.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMatchRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a library's naming rules.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/rules/try": {
+      "post": {
+        "operationId": "postMatchRulesTry",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What some rules would do to a library's files. Changes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/suggest-all": {
+      "delete": {
+        "operationId": "deleteMatchSuggestAll",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop it.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMatchSuggestAll",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How that is going.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postMatchSuggestAll",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Find suggestions for everything that needs a look, in the background.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/me": {
       "get": {
         "operationId": "getMe",
@@ -17838,6 +18835,1202 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/media-types": {
+      "get": {
+        "operationId": "getMediaTypes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "codecs": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "ffmpeg": {
+                      "type": "string"
+                    },
+                    "formats": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every file type, codec and container the server knows, and which work on this machine.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/meta/bulk": {
+      "post": {
+        "operationId": "postMetaBulk",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit up to 500 titles together.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/history": {
+      "get": {
+        "operationId": "getMetaHistory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent changes, each of which can be undone.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/removed": {
+      "get": {
+        "operationId": "getMetaRemoved",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Titles taken out of libraries.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/removed/restore": {
+      "post": {
+        "operationId": "postMetaRemovedRestore",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bring a removed title back.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/show/{id}/episodes": {
+      "get": {
+        "operationId": "getMetaShowIdEpisodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A show's files beside what its source lists.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMetaShowIdEpisodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Renumber a show's episodes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/undo": {
+      "post": {
+        "operationId": "postMetaUndo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Undo a group of changes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}": {
+      "delete": {
+        "operationId": "deleteMetaTargetId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a title out of its library. Its files stay.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMetaTargetId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything the edit dialog needs. target is item or show.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMetaTargetId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change fields and locks.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/art/{kind}": {
+      "get": {
+        "operationId": "getMetaTargetIdArtKind",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A title's banner or logo.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMetaTargetIdArtKind",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a poster, backdrop, banner or logo. The picture is the body.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/artwork": {
+      "get": {
+        "operationId": "getMetaTargetIdArtwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every picture every source has for a title.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/attached": {
+      "get": {
+        "operationId": "getMetaTargetIdAttached",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A title's extras, versions, studios and other details beyond its row.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/meta/{target}/{id}/leave": {
+      "post": {
+        "operationId": "postMetaTargetIdLeave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "It has no match, or is right as it is: stop asking.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/link": {
+      "delete": {
+        "operationId": "deleteMetaTargetIdLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an attached item a title of its own again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postMetaTargetIdLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an item a bonus feature or another version of something.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/listings": {
+      "get": {
+        "operationId": "getMetaTargetIdListings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which streaming services list a title, with its date and credit.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/meta/{target}/{id}/match": {
+      "delete": {
+        "operationId": "deleteMetaTargetIdMatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a match and keep only what was typed.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postMetaTargetIdMatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose a result. It stays chosen through scans and refreshes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/move": {
+      "post": {
+        "operationId": "postMetaTargetIdMove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a title in another library. Its files stay.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/preview": {
+      "post": {
+        "operationId": "postMetaTargetIdPreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What choosing a result, or refreshing, would change. Changes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/refresh": {
+      "post": {
+        "operationId": "postMetaTargetIdRefresh",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look a title up again, keeping its match and its locks.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/revert": {
+      "post": {
+        "operationId": "postMetaTargetIdRevert",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a field back to what its source said, and unlock it.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/search": {
+      "post": {
+        "operationId": "postMetaTargetIdSearch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search every source, or find an id or address.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/suggest": {
+      "post": {
+        "operationId": "postMetaTargetIdSuggest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search for a title and keep the best results.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/metadata/test": {
@@ -25039,6 +27232,69 @@
         "x-wms-auth": "admin"
       }
     },
+    "/themes/custom": {
+      "post": {
+        "operationId": "postThemesCustom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "colors": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "CSS variable name without the dashes, to a colour like #336699.",
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "radius": {
+                    "description": "Corners, 0 to 24 pixels.",
+                    "type": "integer"
+                  },
+                  "scheme": {
+                    "enum": [
+                      "dark",
+                      "light"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeMeta"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a theme from the theme maker: colours and corners, no files.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/themes/{id}": {
       "delete": {
         "operationId": "deleteThemesById",
@@ -25703,44 +27959,6 @@
       }
     },
     "/tv/favourites/{key}": {
-      "put": {
-        "operationId": "putTvFavouritesKey",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Star a channel."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add a favourite channel.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "user"
-      },
       "delete": {
         "operationId": "deleteTvFavouritesKey",
         "parameters": [
@@ -25774,6 +27992,44 @@
           }
         ],
         "summary": "Remove a favourite channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putTvFavouritesKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Star a channel."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a favourite channel.",
         "tags": [
           "Channels and live TV"
         ],
@@ -26533,6 +28789,70 @@
         "x-wms-auth": "user"
       }
     },
+    "/users/{id}/profile": {
+      "put": {
+        "operationId": "putUsersProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "displayName": {
+                    "description": "The profile name, free for anyone to choose. Empty goes back to the username.",
+                    "type": "string"
+                  },
+                  "showUsername": {
+                    "description": "Show the username in the corner of the screen, not the profile name.",
+                    "type": "boolean"
+                  },
+                  "username": {
+                    "description": "The name to sign in with. Unique, ignoring case.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change what an account is called, and which name its corner shows.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/videos": {
       "get": {
         "operationId": "getVideos",
@@ -26744,6 +29064,182 @@
         "x-wms-auth": "user"
       }
     },
+    "/views": {
+      "get": {
+        "operationId": "getViews",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's saved views.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postViews",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a view.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/views/{id}": {
+      "delete": {
+        "operationId": "deleteViewsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a saved view.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putViewsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a saved view, or pin it to Home.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/views/{id}/titles": {
+      "get": {
+        "operationId": "getViewsIdTitles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a saved view finds now.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/wittyrigs": {
       "get": {
         "operationId": "getSunshine",
@@ -26800,2112 +29296,6 @@
         "summary": "Turn WittyRigs on or off.",
         "tags": [
           "Game PCs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/status": {
-      "get": {
-        "operationId": "getLogosStatus",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether logo downloads are agreed to, and how far they have got.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/consent": {
-      "put": {
-        "operationId": "putLogosConsent",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Agree or decline logo downloads, and optionally remove what was downloaded.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/lookup": {
-      "post": {
-        "operationId": "postLogosLookup",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What to show for up to 200 names: a logo, or the name.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/credits": {
-      "get": {
-        "operationId": "getLogosCredits",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Where every logo came from: source, licence and author.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/preview": {
-      "get": {
-        "operationId": "getLogosPreview",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A candidate logo, through this server. Wikimedia addresses only.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/{id}/image": {
-      "get": {
-        "operationId": "getLogosIdImage",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A logo as a PNG. variant=white, dark or original.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}/candidates": {
-      "get": {
-        "operationId": "getLogosIdCandidates",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What the source offers for a logo, to choose from.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}": {
-      "put": {
-        "operationId": "putLogosId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Use a candidate, the name alone, or look again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}/upload": {
-      "put": {
-        "operationId": "putLogosIdUpload",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Use your own picture as a logo. The picture is the body.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/brands": {
-      "get": {
-        "operationId": "getBrands",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The studios or networks of a library, most titles first.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse": {
-      "get": {
-        "operationId": "getBrowse",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Films and shows as one list, by any filter and sort.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/facets": {
-      "get": {
-        "operationId": "getBrowseFacets",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Everything a library can be filtered by, with counts.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/shelves": {
-      "get": {
-        "operationId": "getBrowseShelves",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A library page in one answer: categories, studios, networks, collections and streaming services.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/categories": {
-      "put": {
-        "operationId": "putBrowseCategories",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Rename, hide, merge or reorder a library's categories, or start again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/views": {
-      "get": {
-        "operationId": "getViews",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This account's saved views.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postViews",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Save a view.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/views/{id}": {
-      "put": {
-        "operationId": "putViewsId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Change a saved view, or pin it to Home.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteViewsId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remove a saved view.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/views/{id}/titles": {
-      "get": {
-        "operationId": "getViewsIdTitles",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What a saved view finds now.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/listings/status": {
-      "get": {
-        "operationId": "getListingsStatus",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether streaming listings are on, for which region, and how old they are.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/listings/settings": {
-      "put": {
-        "operationId": "putListingsSettings",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Turn streaming listings on, after accepting every statement, or off, which forgets them.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/listings/refresh": {
-      "post": {
-        "operationId": "postListingsRefresh",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check listings again now.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/removed": {
-      "get": {
-        "operationId": "getMetaRemoved",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Titles taken out of libraries.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/removed/restore": {
-      "post": {
-        "operationId": "postMetaRemovedRestore",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Bring a removed title back.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/undo": {
-      "post": {
-        "operationId": "postMetaUndo",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Undo a group of changes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/history": {
-      "get": {
-        "operationId": "getMetaHistory",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Recent changes, each of which can be undone.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/bulk": {
-      "post": {
-        "operationId": "postMetaBulk",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Edit up to 500 titles together.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/show/{id}/episodes": {
-      "get": {
-        "operationId": "getMetaShowIdEpisodes",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A show's files beside what its source lists.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "put": {
-        "operationId": "putMetaShowIdEpisodes",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Renumber a show's episodes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}": {
-      "get": {
-        "operationId": "getMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Everything the edit dialog needs. target is item or show.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "put": {
-        "operationId": "putMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Change fields and locks.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Take a title out of its library. Its files stay.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/revert": {
-      "post": {
-        "operationId": "postMetaTargetIdRevert",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Put a field back to what its source said, and unlock it.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/search": {
-      "post": {
-        "operationId": "postMetaTargetIdSearch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search every source, or find an id or address.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/preview": {
-      "post": {
-        "operationId": "postMetaTargetIdPreview",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What choosing a result, or refreshing, would change. Changes nothing.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/match": {
-      "post": {
-        "operationId": "postMetaTargetIdMatch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Choose a result. It stays chosen through scans and refreshes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetIdMatch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remove a match and keep only what was typed.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/refresh": {
-      "post": {
-        "operationId": "postMetaTargetIdRefresh",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Look a title up again, keeping its match and its locks.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/suggest": {
-      "post": {
-        "operationId": "postMetaTargetIdSuggest",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search for a title and keep the best results.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/leave": {
-      "post": {
-        "operationId": "postMetaTargetIdLeave",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "It has no match, or is right as it is: stop asking.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/artwork": {
-      "get": {
-        "operationId": "getMetaTargetIdArtwork",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Every picture every source has for a title.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/art/{kind}": {
-      "put": {
-        "operationId": "putMetaTargetIdArtKind",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Upload a poster, backdrop, banner or logo. The picture is the body.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "get": {
-        "operationId": "getMetaTargetIdArtKind",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A title's banner or logo.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/link": {
-      "post": {
-        "operationId": "postMetaTargetIdLink",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Make an item a bonus feature or another version of something.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetIdLink",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Make an attached item a title of its own again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/move": {
-      "post": {
-        "operationId": "postMetaTargetIdMove",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Put a title in another library. Its files stay.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/listings": {
-      "get": {
-        "operationId": "getMetaTargetIdListings",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which streaming services list a title, with its date and credit.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/attached": {
-      "get": {
-        "operationId": "getMetaTargetIdAttached",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A title's extras, versions, studios and other details beyond its row.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/match/queue": {
-      "get": {
-        "operationId": "getMatchQueue",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Titles worst first, with how sure each match is and why.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/accept": {
-      "post": {
-        "operationId": "postMatchAccept",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Choose results for up to 100 titles at once.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/suggest-all": {
-      "post": {
-        "operationId": "postMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Find suggestions for everything that needs a look, in the background.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "get": {
-        "operationId": "getMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How that is going.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "delete": {
-        "operationId": "deleteMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Stop it.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/rules": {
-      "get": {
-        "operationId": "getMatchRules",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A library's naming rules.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putMatchRules",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Replace a library's naming rules.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/rules/try": {
-      "post": {
-        "operationId": "postMatchRulesTry",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What some rules would do to a library's files. Changes nothing.",
-        "tags": [
-          "Metadata"
         ],
         "x-wms-auth": "admin"
       }
@@ -28975,8 +29365,8 @@
       "name": "Game rigs"
     },
     {
-      "name": "Metadata",
-      "description": "Editing titles, fixing matches, browsing by anything, logos and streaming listings. See METADATA.md."
+      "description": "Editing titles, fixing matches, browsing by anything, logos and streaming listings. See METADATA.md.",
+      "name": "Metadata"
     }
   ]
 }

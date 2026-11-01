@@ -211,6 +211,10 @@ type Filler struct {
 	Between int `json:"between,omitempty"`
 	// MaxSeconds keeps longer files out of the filler (0 = no limit).
 	MaxSeconds int `json:"maxSeconds,omitempty"`
+	// BreakEveryMin puts a commercial break inside a programme every so many
+	// minutes (0 = none), of BreakAds commercials. They give way like any others.
+	BreakEveryMin int `json:"breakEveryMin,omitempty"`
+	BreakAds      int `json:"breakAds,omitempty"`
 	// Commercials are libraries of commercials this channel uses: any number
 	// of them, each whole or only the videos chosen here.
 	Commercials []CommercialPick `json:"commercials,omitempty"`
@@ -328,6 +332,12 @@ func (d *Definition) Validate() error {
 	}
 	if d.Filler.Between < 0 || d.Filler.Between > 5 || d.Filler.MaxSeconds < 0 {
 		return errors.New("filler: between 0 and 5 bumpers")
+	}
+	if d.Filler.BreakEveryMin != 0 && (d.Filler.BreakEveryMin < 5 || d.Filler.BreakEveryMin > 240) {
+		return errors.New("commercial breaks can come every 5 to 240 minutes")
+	}
+	if d.Filler.BreakAds < 0 || d.Filler.BreakAds > 5 {
+		return errors.New("from 0 to 5 commercials in a break")
 	}
 	if len(d.Filler.Commercials) > 100 {
 		return errors.New("too many commercials libraries")

@@ -4,6 +4,7 @@ import DownloadButton from '../../../components/DownloadButton'
 import { Spinner } from '../../../components/common'
 import { Row, Section, Switch } from '../ui'
 import { fmtSize, scrollKeys, type BundlePreview } from './types'
+import { Segmented } from '../../../ui/Choice'
 
 const DAYS = [1, 3, 7, 14]
 const SAMPLE_LINES = 8
@@ -25,11 +26,7 @@ export default function Bundle() {
     <Section title="Support bundle" desc="One file for someone helping you: recent logs, crash reports and a summary of this server. Passwords, tokens and API keys are always taken out.">
       <p className="lg-nothing"><b>Nothing is uploaded.</b> The bundle is made on this server and comes to you as a download. You decide who sees it.</p>
       <Row label="How far back">
-        <div className="seg" role="radiogroup" aria-label="How far back">
-          {DAYS.map((d) => (
-            <button key={d} type="button" role="radio" aria-checked={days === d} className={days === d ? 'active' : ''} onClick={() => setDays(d)}>{d} {d === 1 ? 'day' : 'days'}</button>
-          ))}
-        </div>
+        <Segmented label="How far back" value={String(days)} onChange={(d) => setDays(Number(d) as typeof days)} options={DAYS.map((d) => ({ value: String(d), label: `${d} ${d === 1 ? 'day' : 'days'}` }))} />
       </Row>
       <Row label="Hide titles and file paths" desc="Best if you’ll share the file. What you watch and how your folders are named are replaced with placeholders.">
         <Switch checked={redact} onChange={setRedact} label="Hide titles and file paths" />

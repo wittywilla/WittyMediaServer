@@ -40,6 +40,19 @@ export function ranked<T>(from: Box, candidates: T[], box: (c: T) => Box, dir: D
   return scored.sort((x, y) => x[0] - y[0]).map((x) => x[1])
 }
 
+// nearest: whichever candidate is closest to a place, in any direction. For when what had
+// the focus has gone, so there's no direction to go in.
+export function nearest<T>(from: Box, candidates: T[], box: (c: T) => Box): T | undefined {
+  const ax = (from.left + from.right) / 2, ay = (from.top + from.bottom) / 2
+  let best: T | undefined, bestDist = Infinity
+  for (const c of candidates) {
+    const b = box(c)
+    const d = Math.hypot((b.left + b.right) / 2 - ax, (b.top + b.bottom) / 2 - ay)
+    if (d < bestDist) { best = c; bestDist = d }
+  }
+  return best
+}
+
 // The Back button, as each kind of remote reports it. webOS and Tizen TVs send a
 // key code with no name for it.
 export const isBackKey = (e: { key: string; keyCode?: number }) => e.key === 'GoBack' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009

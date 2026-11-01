@@ -33,6 +33,7 @@ type BrowseFilter struct {
 	Format     string // an audio format such as "AC3 5.1"
 	Tag        string
 	Edition    string
+	Series     string // a film series, which is a collection made from metadata
 	Kind       string // video | dvd | bluray | disc | show
 	Disc       string // what a disc holds: movie | tv | music
 	// AnimeOf: this anime library's shows and the anime of every TV library; HideAnime: a
@@ -55,7 +56,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 	}
 	f := BrowseFilter{Library: int64(n("library")), Search: clip(q.Get("search"), 200), Genre: clip(q.Get("genre"), 100), Studio: clip(q.Get("studio"), 120), Network: clip(q.Get("network"), 120),
 		Year: n("year"), Decade: n("decade"), Content: clip(q.Get("content"), 20), Resolution: q.Get("resolution"), Audio: clip(q.Get("audio"), 12), Subtitle: clip(q.Get("subtitle"), 12), Format: clip(q.Get("format"), 40),
-		Tag: clip(q.Get("tag"), 60), Edition: clip(q.Get("edition"), 60), Kind: q.Get("kind"), Disc: q.Get("disc"), Watched: q.Get("watched"), Platform: clip(q.Get("platform"), 80), Sort: q.Get("sort"), Desc: q.Get("desc") == "1",
+		Tag: clip(q.Get("tag"), 60), Edition: clip(q.Get("edition"), 60), Series: clip(q.Get("series"), 120), Kind: q.Get("kind"), Disc: q.Get("disc"), Watched: q.Get("watched"), Platform: clip(q.Get("platform"), 80), Sort: q.Get("sort"), Desc: q.Get("desc") == "1",
 		Seed: n("seed"), Limit: n("limit"), Offset: n("offset")}
 	if v, err := strconv.ParseFloat(q.Get("minRating"), 64); err == nil && v > 0 && v <= 10 {
 		f.MinRating = v
@@ -64,7 +65,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 }
 
 // browseKeys are what a saved view can hold.
-var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "kind", "disc", "watched", "platform", "sort", "desc", "search"}
+var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "series", "kind", "disc", "watched", "platform", "sort", "desc", "search"}
 
 // CleanViewQuery keeps only what a saved view can hold, for storing.
 func CleanViewQuery(q url.Values) url.Values {
@@ -223,6 +224,11 @@ func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access
 		noShows = true
 		iw = append(iw, "EXISTS (SELECT 1 FROM title_meta m WHERE m.target = 'item' AND m.target_id = i.id AND ('|' || m.edition || '|') LIKE ?)")
 		iargs = append(iargs, "%|"+likeEscape(f.Edition)+"|%")
+	}
+	if f.Series != "" {
+		noShows = true
+		iw = append(iw, "EXISTS (SELECT 1 FROM title_brands b WHERE b.kind = '"+BrandSeries+"' AND b.key = ? AND b.item_id = i.id)")
+		iargs = append(iargs, BrandKey(f.Series))
 	}
 	switch f.Kind {
 	case "video":
@@ -1020,9 +1026,76 @@ func (s *Store) ResetCategories(ctx context.Context, libraryID int64) error {
 	return err
 }
 
+// collectionName names a series the way a collection reads.
+func collectionName(series string) string {
+	l := strings.ToLower(series)
+	if containsAny(l, "collection", "series", "trilogy", "saga", "franchise") {
+		return series
+	}
+	return series + " Collection"
+}
+
+// pickSeries chooses which of the series a source names to collect a film under. Some films
+// have several, and some of those are only lists of a studio's films, so the one that shares
+// a word with the film's title comes first, and a list is never a series.
+func pickSeries(names []string, title string) string {
+	inTitle := map[string]bool{}
+	for _, w := range strings.Fields(strings.ToLower(title)) {
+		if len(w) > 3 {
+			inTitle[w] = true
+		}
+	}
+	first := ""
+	for _, name := range names {
+		l := strings.ToLower(name)
+		if name == "" || containsAny(l, "list of", "filmography", "feature film") || strings.HasSuffix(l, " films") {
+			continue
+		}
+		for _, w := range strings.Fields(l) {
+			if inTitle[w] {
+				return collectionName(name)
+			}
+		}
+		if first == "" {
+			first = name
+		}
+	}
+	if first == "" {
+		return ""
+	}
+	return collectionName(first)
+}
+
+// SeriesInLibrary lists the film series a library has at least two of, each with the art
+// of its best-rated member: collections nobody had to make.
+func (s *Store) SeriesInLibrary(ctx context.Context, libraryID int64, access *Access) ([]LibraryCollection, error) {
+	ic, ia := access.ItemClause()
+	rows, err := s.DB.QueryContext(ctx, `SELECT b.key, MIN(b.name), COUNT(*), i.id, i.updated_at, MAX(IFNULL(i.rating, 0)) FROM title_brands b JOIN items i ON i.id = b.item_id
+		WHERE b.kind = ? AND (? = 0 OR b.library_id = ?) AND i.missing = 0 AND `+hideLinked+` AND `+ic+`
+		GROUP BY b.key HAVING COUNT(*) >= 2 ORDER BY MIN(b.name) COLLATE NOCASE`, append([]any{BrandSeries, libraryID, libraryID}, ia...)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []LibraryCollection{}
+	for rows.Next() {
+		var c LibraryCollection
+		var id, v int64
+		var best float64
+		if err := rows.Scan(&c.Key, &c.Name, &c.Count, &id, &v, &best); err != nil {
+			return nil, err
+		}
+		c.Art = []CategoryArt{{"item", id, v}}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 // LibraryCollections lists collections holding anything from a library, for a shelf.
 type LibraryCollection struct {
-	ID    int64         `json:"id"`
+	ID int64 `json:"id"`
+	// Key: a series, made from metadata, rather than a collection someone made.
+	Key   string        `json:"key,omitempty"`
 	Name  string        `json:"name"`
 	Count int           `json:"count"`
 	Art   []CategoryArt `json:"art"`

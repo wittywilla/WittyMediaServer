@@ -1,6 +1,8 @@
 package modules
 
 import (
+	"strings"
+	"path/filepath"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -37,9 +39,9 @@ func (c CDs) Open(path string) (*cd.Disc, error) {
 		return nil, c.M.Missing(cdID)
 	}
 	var d cd.Disc
-	if _, err := a.Call("open", pathParams{path}, &d); err != nil {
+	if err := openCD(a, path, &d); err != nil {
 		a.Close()
-		return nil, cdError(err)
+		return nil, err
 	}
 	if err := checkCD(&d); err != nil {
 		a.Close()
@@ -48,6 +50,47 @@ func (c CDs) Open(path string) (*cd.Disc, error) {
 	}
 	d.Engine = &cdDisc{a: a}
 	return &d, nil
+}
+
+// openCD opens an image. A cue sheet over a sound file WittyCD can't read comes back naming it, and
+// it's asked again with FLAC made here, where FFmpeg is. It may only name files beside the sheet.
+func openCD(a *Attached, path string, d *cd.Disc) error {
+	foreign := map[string]string{}
+	for {
+		_, err := a.Call("open", cdOpen{Path: path, Foreign: foreign}, d)
+		var ce *wittymodule.CallError
+		if err == nil || !errors.As(err, &ce) || ce.Code != "needs-flac" {
+			return cdError(err)
+		}
+		if cd.ForeignAudio == nil || len(foreign) >= maxForeign {
+			return fmt.Errorf("%w: its audio is in a format this server can't convert", cd.ErrUnsupported)
+		}
+		asked := strings.Split(ce.Message, "\n")
+		for _, f := range asked {
+			if _, done := foreign[f]; done || len(foreign) >= maxForeign || !besideSheet(path, f) {
+				return fmt.Errorf("%w: it asked for a file it can't have", cd.ErrUnsupported)
+			}
+			flac, err := cd.ForeignAudio(f)
+			if err != nil {
+				return fmt.Errorf("%w: its audio can't be read: %v", cd.ErrUnsupported, err)
+			}
+			foreign[f] = flac
+		}
+	}
+}
+
+// maxForeign is more sound files than a sheet has any use for.
+const maxForeign = 256
+
+type cdOpen struct {
+	Path    string            `json:"path"`
+	Foreign map[string]string `json:"foreign,omitempty"`
+}
+
+// besideSheet: a file in the sheet's own folder, or below it.
+func besideSheet(sheet, f string) bool {
+	rel, err := filepath.Rel(filepath.Dir(sheet), f)
+	return err == nil && filepath.IsAbs(f) && filepath.IsLocal(rel)
 }
 
 // cdError puts back the errors the server acts on.

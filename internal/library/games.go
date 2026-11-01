@@ -16,6 +16,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -275,7 +276,7 @@ func gameBaseName(name string) string {
 func gameArt(dir, base string) string {
 	for _, d := range []string{dir, filepath.Join(dir, "boxart"), filepath.Join(dir, "covers"), filepath.Join(dir, "images"), filepath.Join(dir, "media", "box2d")} {
 		for _, n := range []string{base + "-cover", base + "-poster", base} {
-			for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+			for _, ext := range mediatypes.ArtworkExts {
 				p := filepath.Join(d, n+ext)
 				if st, err := os.Stat(p); err == nil && !st.IsDir() {
 					return p
@@ -289,7 +290,7 @@ func gameArt(dir, base string) string {
 // gameBackdrop finds a wide picture for a game beside it, under the name saving
 // metadata uses.
 func gameBackdrop(dir, base string) string {
-	for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+	for _, ext := range mediatypes.ArtworkExts {
 		p := filepath.Join(dir, base+"-fanart"+ext)
 		if st, err := os.Stat(p); err == nil && !st.IsDir() {
 			return p

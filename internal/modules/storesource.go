@@ -35,6 +35,12 @@ func (r *storeRoutes) get(raw string) *storeFetcher {
 	return r.by[raw]
 }
 
+// fromStore says this module's versions come from a store's catalogue, not from asking GitHub.
+func fromStore(e *entry) bool { return e.state.Source != nil && e.state.Source.Store != "" }
+
+// CheckEnabled says whether the owner allows looking for updates.
+func (m *Manager) CheckEnabled() bool { return m.cfg.CheckEnabled != nil && m.cfg.CheckEnabled() }
+
 // routeSmall and routeOpen answer for an address a store listed; ok is false for any other.
 func (m *Manager) routeSmall(ctx context.Context, raw string, limit int64) (b []byte, ok bool, err error) {
 	f := m.routes.get(raw)

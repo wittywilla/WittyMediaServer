@@ -156,7 +156,7 @@ func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 		return Fit{Kind: FitTooNew, Why: sentence(err.Error())}
 	}
 	for _, p := range v.Permissions {
-		if p != wittymodule.PermissionNetwork {
+		if !knownPermission(p) {
 			return Fit{Kind: FitTooNew, Why: fmt.Sprintf("%s %s asks for %q, which this server doesn't know of. A newer server may.", name, v.Version, p)}
 		}
 	}
@@ -249,7 +249,10 @@ func (s *Stores) View() StoreView {
 	}
 
 	s.mu.Lock()
-	entries := append([]*storeEntry(nil), s.list...)
+	entries := make([]storeEntry, 0, len(s.list))
+	for _, e := range s.list {
+		entries = append(entries, *e)
+	}
 	s.mu.Unlock()
 	known := map[string]bool{}
 	for _, st := range rep.Modules {
@@ -257,12 +260,13 @@ func (s *Stores) View() StoreView {
 			known[st.ID] = true
 		}
 	}
-	for _, e := range entries {
+	for i := range entries {
+		e := &entries[i]
 		if !e.Enabled || e.cat == nil {
 			continue
 		}
-		for i := range e.cat.Modules {
-			v.Items = append(v.Items, s.thirdPartyItem(e, &e.cat.Modules[i], known, names, statuses))
+		for j := range e.cat.Modules {
+			v.Items = append(v.Items, s.thirdPartyItem(e, &e.cat.Modules[j], known, names, statuses))
 		}
 	}
 	return v
@@ -326,10 +330,25 @@ func (s *Stores) thirdPartyItem(e *storeEntry, mod *wittymodule.CatalogModule, k
 	return it
 }
 
+func knownPermission(p string) bool {
+	switch p {
+	case wittymodule.PermissionNetwork, wittymodule.PermissionPrograms, wittymodule.PermissionDevices, wittymodule.PermissionData:
+		return true
+	}
+	return false
+}
+
 // PermissionWords says what a permission means, for a person.
 func PermissionWords(p string) (name, words string) {
-	if p == wittymodule.PermissionNetwork {
+	switch p {
+	case wittymodule.PermissionNetwork:
 		return "The network", "It can connect to other computers, on your network or the internet."
+	case wittymodule.PermissionPrograms:
+		return "Other programs", "It can start other programs on this server, such as FFmpeg."
+	case wittymodule.PermissionDevices:
+		return "This machine's devices", "It can open hardware such as a TV tuner or a graphics card."
+	case wittymodule.PermissionData:
+		return "A folder of its own", "It can write to one folder this server gives it, to keep what it needs."
 	}
 	return cleanText(p), "This server doesn't know what this means, so it won't run a version that asks for it."
 }
@@ -387,9 +406,7 @@ func (s *Stores) Detail(store, id string) (*ItemDetail, error) {
 			d.Fingerprint = it.Status.Source.Fingerprint
 		}
 	} else {
-		s.mu.Lock()
-		e := s.find(store)
-		s.mu.Unlock()
+		e := s.snapshot(store)
 		if e == nil || e.cat == nil {
 			return nil, ErrUnknownStore
 		}
@@ -423,9 +440,7 @@ func (s *Stores) Detail(store, id string) (*ItemDetail, error) {
 // with its warning, and then the newest version that fits, which also has its own signature and
 // manifest to pass. Without confirm it answers *ErrNeedsConfirm and changes nothing.
 func (s *Stores) UseFork(store, id, by string, confirm bool) error {
-	s.mu.Lock()
-	e := s.find(store)
-	s.mu.Unlock()
+	e := s.snapshot(store)
 	switch {
 	case e == nil:
 		return ErrUnknownStore
@@ -469,9 +484,7 @@ func (s *Stores) UseFork(store, id, by string, confirm bool) error {
 
 // applyFork tells the manager what a store now offers for the modules that use it.
 func (s *Stores) applyFork(store string) {
-	s.mu.Lock()
-	e := s.find(store)
-	s.mu.Unlock()
+	e := s.snapshot(store)
 	if e == nil || e.cat == nil || s.m == nil {
 		return
 	}
@@ -521,9 +534,7 @@ func (s *Stores) Media(ctx context.Context, store, sha string) (path, contentTyp
 		find(cat)
 		base, small = from, s.m.small
 	} else {
-		s.mu.Lock()
-		e := s.find(store)
-		s.mu.Unlock()
+		e := s.snapshot(store)
 		if e == nil || e.cat == nil || !e.Enabled {
 			return "", "", ErrUnknown
 		}

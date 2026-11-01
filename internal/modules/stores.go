@@ -180,6 +180,9 @@ func NewStores(cfg StoresConfig) *Stores {
 		s.list = append(s.list, e)
 	}
 	s.loadRun()
+	for _, e := range s.list { // modules using a store get its versions back
+		s.applyFork(e.ID)
+	}
 	return s
 }
 
@@ -232,6 +235,19 @@ func (s *Stores) readKept(e *storeEntry) (*wittymodule.Catalog, error) {
 	return c, nil
 }
 
+// snapshot is a copy of a store as it is now, for reading without the lock.
+func (s *Stores) snapshot(id string) *storeEntry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e := s.find(id)
+	if e == nil {
+		return nil
+	}
+	c := *e
+	return &c
+}
+
+// find looks a store up. Call with s.mu held.
 func (s *Stores) find(id string) *storeEntry {
 	for _, e := range s.list {
 		if e.ID == id {
@@ -445,9 +461,9 @@ func (s *Stores) Refresh(ctx context.Context, id string) error {
 	problem, c, cat, sig := s.look(ctx, &rec)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	e = s.find(id)
 	if e == nil {
+		s.mu.Unlock()
 		return ErrUnknownStore
 	}
 	e.CheckedAt = time.Now().UnixMilli()
@@ -463,6 +479,7 @@ func (s *Stores) Refresh(ctx context.Context, id string) error {
 	if err := s.save(); err != nil {
 		s.log.Warn("modules: saving the list of stores", "err", err)
 	}
+	s.mu.Unlock()
 	if problem != nil {
 		s.log.Warn("modules: a store's check failed", "store", id, "kind", problem.Kind, "detail", problem.Detail)
 		return errors.New(problem.Title)
@@ -582,9 +599,7 @@ func (s *Stores) SetEnabled(id string, on bool, by string) error {
 // Remove forgets a store and what was kept of it. Any module using it goes back to the official
 // version first, so nothing keeps running on trust nobody holds any more.
 func (s *Stores) Remove(id, by string) error {
-	s.mu.Lock()
-	e := s.find(id)
-	s.mu.Unlock()
+	e := s.snapshot(id)
 	if e == nil {
 		return ErrUnknownStore
 	}

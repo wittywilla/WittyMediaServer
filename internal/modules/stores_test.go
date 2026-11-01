@@ -666,6 +666,109 @@ func TestInstallAndUpdateAll(t *testing.T) {
 	}
 }
 
+// A store's version of a module, from the warning to the module running, and back again.
+func TestAForkFromAStore(t *testing.T) {
+	w := newStoresWorld(t, listedModule("wittycomics", "WittyComics"))
+	pub, key := testKey(t)
+	release := filepath.Join(t.TempDir(), "release")
+	good := webRelease(t, release, key, "wittycomics", "WittyComics", "someone/wittycomics", "0.9.0")
+	// Signed by someone else, though the store lists it: the store's key is what counts.
+	_, thief := testKey(t)
+	stolen := webRelease(t, release, thief, "wittycomics", "WittyComics", "someone/wittycomics", "0.9.1")
+	const base = "https://store.example/modules/"
+	for _, v := range []wittymodule.CatalogVersion{good, stolen} {
+		for _, rel := range []string{v.Sums, v.Sig, v.Manifest, v.Platforms[wittymodule.PlatformAll].URL} {
+			b, err := os.ReadFile(filepath.Join(release, filepath.FromSlash(rel)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.net.put(base+rel, b)
+		}
+	}
+	mod := listedModule("wittycomics", "WittyComics")
+	mod.Versions = []wittymodule.CatalogVersion{good}
+	publishStore(w.net, key, pub, 1, mod)
+	ctx := context.Background()
+	if _, err := w.s.Add(ctx, storeURL, pub, false, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	store := w.s.List()[0].ID
+
+	waitPhase := func() Status {
+		t.Helper()
+		for i := 0; i < 500; i++ {
+			st, _ := w.s.statusOf("wittycomics")
+			if st.Phase == PhaseIdle || st.Phase == PhaseFailed {
+				return st
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		t.Fatal("it never finished")
+		return Status{}
+	}
+	if err := w.s.UseFork(store, "wittycomics", "admin", true); err != nil {
+		t.Fatal(err)
+	}
+	st := waitPhase()
+	if st.Version != "0.9.0" || st.Source == nil || st.Source.Store != store || st.Error != "" {
+		t.Fatalf("the fork: %+v", st)
+	}
+	if st.AutoUpdate {
+		t.Fatal("a store's module must not update by itself")
+	}
+	var item *StoreItem
+	for _, it := range w.s.View().Items {
+		if it.Store == store && it.ID == "wittycomics" {
+			it := it
+			item = &it
+		}
+	}
+	if item == nil || item.Status == nil || item.Official {
+		t.Fatalf("it should be listed as the store's, in use: %+v", item)
+	}
+
+	// The store offers an update that isn't signed with its key: refused, and nothing changes.
+	mod.Versions = []wittymodule.CatalogVersion{stolen, good}
+	publishStore(w.net, key, pub, 2, mod)
+	if err := w.s.Refresh(ctx, store); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := w.s.statusOf("wittycomics"); st.Latest == nil || st.Latest.Version != "0.9.1" {
+		t.Fatalf("the new version should be offered: %+v", st.Latest)
+	}
+	if err := w.m.InstallVersion("wittycomics", "0.9.1", true); err != nil {
+		t.Fatal(err)
+	}
+	st = waitPhase()
+	if st.Version != "0.9.0" || st.Phase != PhaseFailed || !strings.Contains(strings.ToLower(st.Error), "signature") {
+		t.Fatalf("a release its key didn't sign: %+v", st)
+	}
+	if f := failureFor(&st); f == nil || f.Kind != FailSignature {
+		t.Fatalf("explained as: %+v", f)
+	}
+	// Update All leaves it alone: an admin chooses each of its versions.
+	for _, it := range w.s.updatePlan() {
+		if it.ID == "wittycomics" && it.State != RunSkipped {
+			t.Fatalf("Update All would change it: %+v", it)
+		}
+	}
+
+	// A restart brings its versions back from the kept catalogue.
+	again := NewStores(StoresConfig{Manager: w.m, Dir: w.dir, Transport: w.net})
+	if l, err := w.m.Versions("wittycomics"); err != nil || len(l.Versions) == 0 {
+		t.Fatalf("versions after a restart: %+v %v", l, err)
+	}
+
+	// Removing the store puts the module back, and asks nothing of a store that's gone.
+	if err := again.Remove(store, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	st, _ = again.statusOf("wittycomics")
+	if st.Source != nil || st.Installed {
+		t.Fatalf("after removing the store: %+v", st)
+	}
+}
+
 func pngOf(t *testing.T) []byte {
 	t.Helper()
 	var buf bytes.Buffer

@@ -7,6 +7,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **The module store:** search by name, description or category, browse by category, and filter by installed, updates,
+  publisher and platform, with a page for each module: what it does, screenshots, what's new, what it asks for, what it's
+  built on and which servers it fits. In Settings, Modules, and at `/settings/modules/store`.
+- **Update All Modules:** updates everything in order of what's built on what. One failure doesn't stop the rest. Each
+  module shows its progress, the run ends with a summary, and it can all be taken back.
+- **Errors a person can follow:** every failed install or update says what happened and what to try, with Show details,
+  the module's own log lines, a copy button and a link to the repair tools. Each module has its own log view.
+- **What's new:** the latest changes from your modules on the Modules page and each module's page, and a plain line when
+  there's nothing to report.
+- **Other stores:** add a store run by someone else, after a plain warning about what a module can do, who holds its key
+  and that nobody here reviewed it. Its key is pinned, and a change is refused loudly. Everything from one is labelled, and
+  it can be turned off or removed.
+- **Which modules run:** modules start with this release. One built for an older server can't run, and the store and the
+  installed list say why and offer the current version. Later servers may keep running a module built for this release or
+  after, as a limited courtesy that isn't promised until the beta.
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`

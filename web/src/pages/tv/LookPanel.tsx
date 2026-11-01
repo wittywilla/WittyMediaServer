@@ -78,7 +78,7 @@ function ThemeCards({ look }: { look: Look }) {
             <ThemePicture shape={shape} tokens={themeTokens(t.id, mine, app)} />
             <b>{t.name}</b>
             <small>{t.blurb}</small>
-            {t.follows && <small className="ctv-pic-tag">Takes its colours from your app theme</small>}
+            {t.follows && !(on && Object.keys(look.colours).length) && <small className="ctv-pic-tag">Takes its colours from your app theme</small>}
             {on && <span className="ctv-themecard-check"><IconCheck size={14} /></span>}
           </button>
         )

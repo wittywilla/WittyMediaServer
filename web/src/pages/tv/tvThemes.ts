@@ -34,11 +34,11 @@ export type ShapeInfo = {
 }
 
 export const SHAPES: Record<Shape, ShapeInfo> = {
-  box: { name: 'Cable box', rows: [56, 64, 84], preview: 0.3, side: 'right', art: false, details: false, rowHighlight: false },
+  box: { name: 'Cable box', rows: [56, 64, 84], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
   modern: { name: 'Modern', rows: [64, 76, 92], preview: 0.38, side: 'right', art: true, details: true, rowHighlight: true },
-  receiver: { name: 'Receiver', rows: [56, 58, 80], preview: 0.3, side: 'right', art: false, details: false, rowHighlight: false },
-  teletext: { name: 'Teletext', rows: [52, 50, 72], preview: 0.3, side: 'right', art: false, details: false, rowHighlight: false },
-  listings: { name: 'Newspaper', rows: [60, 62, 84], preview: 0.3, side: 'right', art: false, details: false, rowHighlight: false },
+  receiver: { name: 'Receiver', rows: [56, 58, 80], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  teletext: { name: 'Teletext', rows: [52, 50, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  listings: { name: 'Newspaper', rows: [60, 62, 84], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
   cinema: { name: 'Big picture', rows: [56, 54, 72], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
   outline: { name: 'Outline', rows: [60, 66, 86], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false },
   compact: { name: 'Compact', rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false },

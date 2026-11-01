@@ -467,8 +467,10 @@ export default function GuidePage() {
         <button className="ctv-key c" onClick={cycleKind}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
         <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info</span>
       </footer>
-      <LegalNote kind="tv" className="ctv-legal" />
-      {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
+      <div className="ctv-legals">
+        <LegalNote kind="tv" className="ctv-legal" />
+        {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
+      </div>
 
       {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}

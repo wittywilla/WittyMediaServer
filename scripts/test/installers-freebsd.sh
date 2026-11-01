@@ -61,7 +61,10 @@ up() {
 }
 
 say "getting ready: FFmpeg comes from FreeBSD's packages in this test"
-pkg bootstrap -y >/dev/null 2>&1; pkg install -y ffmpeg >/dev/null 2>&1 || fail "no ffmpeg"
+ifconfig | grep -E 'flags=|inet ' | head -6; cat /etc/resolv.conf
+if ! ping -c1 -t5 pkg.freebsd.org >/dev/null 2>&1; then dhclient vtnet0 >/dev/null 2>&1; fi
+pkg bootstrap -y 2>&1 | tail -n 3
+pkg install -y ffmpeg > /tmp/pkg.txt 2>&1 || { tail -n 15 /tmp/pkg.txt; fail "no ffmpeg"; }
 ffmpeg -version | head -1
 pkg info -e curl || true
 mkdir -p /root/stage /root/stage2 /root/out /root/out2

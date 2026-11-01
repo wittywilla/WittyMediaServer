@@ -58,6 +58,9 @@ const (
 
 // GET /api/guide/search?q=word&days=7: what is coming up that matches, soonest
 // first, on the channels this account can see.
+// Each search works out every channel's schedule for up to two weeks, so only a few run at once.
+var guideSearchSlots = make(chan struct{}, 4)
+
 func (s *Server) handleGuideSearch(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if len(q) < 2 || len(q) > 100 {
@@ -72,6 +75,14 @@ func (s *Server) handleGuideSearch(w http.ResponseWriter, r *http.Request) {
 	limit := qInt(r, "limit", 50)
 	if limit < 1 || limit > maxSearchHits {
 		limit = 50
+	}
+	select {
+	case guideSearchSlots <- struct{}{}:
+		defer func() { <-guideSearchSlots }()
+	default:
+		w.Header().Set("Retry-After", "2")
+		writeErr(w, 429, "the guide is busy: try again in a moment")
+		return
 	}
 	ctx := r.Context()
 	now := time.Now()

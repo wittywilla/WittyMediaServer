@@ -149,6 +149,7 @@ type Session struct {
 
 // Manager owns sessions and the temp directory.
 type Manager struct {
+	dirSeq  uint64 // numbers the sessions' folders; guarded by mu
 	tools   *ffmpeg.Tools
 	root    string
 	log     *slog.Logger
@@ -319,7 +320,9 @@ func (m *Manager) ensure(spec Spec) (s *Session, created bool) {
 	if logID == "" {
 		logID = spec.ID
 	}
-	s = &Session{Spec: spec, Dir: filepath.Join(m.root, spec.ID), lastUsed: time.Now(), tools: m.tools, log: m.sessionLog(logID), logID: logID, m: m, viewers: map[string]time.Time{}}
+	// Its own folder, never the one a stopped stream with this ID may still be clearing.
+	m.dirSeq++
+	s = &Session{Spec: spec, Dir: filepath.Join(m.root, fmt.Sprintf("%s-r%d", spec.ID, m.dirSeq)), lastUsed: time.Now(), tools: m.tools, log: m.sessionLog(logID), logID: logID, m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
 	_ = os.MkdirAll(s.Dir, 0o755) // tried again before FFmpeg starts, which logs a failure
 	if spec.Growing {

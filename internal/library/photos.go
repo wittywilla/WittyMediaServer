@@ -793,7 +793,8 @@ func (s *Scanner) IndexUploaded(ctx context.Context, lib *Library, path string) 
 		case "photos":
 			return s.indexPhoto(ctx, lib, c)
 		case CommercialsType:
-			return s.index(ctx, lib, c)
+			// The library's matching rules, as a scan has them.
+			return s.index(context.WithValue(ctx, rulesKey{}, s.Store.loadRuleSet(ctx, lib)), lib, c)
 		default:
 			return s.indexCreatorVideo(ctx, lib, c, newCreatorScan())
 		}

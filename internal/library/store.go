@@ -109,6 +109,7 @@ type Item struct {
 	Progress *Progress `json:"progress,omitempty"`
 	// What a scan found beyond the row itself, kept by upsertItem and recordScan.
 	studios     []string
+	series      string
 	director    string
 	audioFormat string
 }
@@ -478,12 +479,13 @@ const hideLinked = "i.id NOT IN (SELECT item_id FROM item_links)"
 type ItemQuery struct {
 	LibraryID int64
 	Search    string
-	Sort      string // title | added | year | rating | runtime
+	Sort      string // title | added | year | rating | runtime | popular | newest | oldest
 	Desc      bool
 	Limit     int
 	Offset    int
 	Genre     string
 	Kind      string // an item kind, or "disc" for every DVD and Blu-ray
+	Series    string // games: only this franchise
 	// DiscContent: "movie" or "tv", discs holding films or TV episodes.
 	DiscContent string
 	ShowID      int64
@@ -627,6 +629,10 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Unmatched {
 		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE match_source = '' AND status = 'done')")
 	}
+	if q.Series != "" {
+		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE franchise = ?)")
+		args = append(args, q.Series)
+	}
 	if q.PlayedBy != 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")
 		args = append(args, q.PlayedBy)
@@ -648,7 +654,18 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		args = append(args, *q.AlbumArtist)
 	}
 	order := "i.sort_title COLLATE NOCASE"
+	from := "items i"
 	switch q.Sort {
+	case "popular":
+		// Games: how often anyone on this server played it, then how well it's rated.
+		// A join, so a large library doesn't look through the plays once per game.
+		from = "items i LEFT JOIN (SELECT item_id, SUM(plays) AS plays FROM wittyplay_game_meta GROUP BY item_id) pop ON pop.item_id = i.id"
+		order = "IFNULL(pop.plays, 0) DESC, IFNULL(i.rating, 0) DESC, i.sort_title COLLATE NOCASE"
+	case "newest":
+		// Anything with no known year goes last either way.
+		order = "i.year IS NULL, i.year DESC, i.sort_title COLLATE NOCASE"
+	case "oldest":
+		order = "i.year IS NULL, i.year, i.sort_title COLLATE NOCASE"
 	case "added":
 		order = "i.added_at"
 	case "year":
@@ -687,7 +704,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Brief {
 		cols = itemColsBrief
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM `+from+` WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -764,7 +781,15 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 
 // saveScanBrands keeps every studio a source named; the row holds only the first.
 func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
-	if it.studios == nil || it.ShowID != nil {
+	if it.ShowID != nil {
+		return nil
+	}
+	if it.series != "" {
+		if err := s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, BrandSeries, []string{it.series}); err != nil {
+			return err
+		}
+	}
+	if it.studios == nil {
 		return nil
 	}
 	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)

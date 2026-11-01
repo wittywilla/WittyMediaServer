@@ -354,6 +354,9 @@ type tmdbMovie struct {
 	ProductionCompanies []struct {
 		Name string `json:"name"`
 	} `json:"production_companies"`
+	Collection *struct {
+		Name string `json:"name"`
+	} `json:"belongs_to_collection"`
 	ReleaseDates struct {
 		Results []struct {
 			ISO   string `json:"iso_3166_1"`
@@ -501,6 +504,9 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		}
 	}
 	it.director = strings.Join(directors, ", ")
+	if m.Collection != nil {
+		it.series = m.Collection.Name
+	}
 	it.Provider, it.ProviderID = "tmdb", id
 	if it.Title == "" || it.Provider == "tmdb" {
 		it.Title = m.Title

@@ -7,6 +7,7 @@ import { ConfidenceMeter, PreviewTable, ResultRow } from '../components/edit/Mat
 import { EmptyState, LoadError, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconCheck, IconPlus, IconTrash } from '../icons'
+import { Button, Card, Chip, Chips, Dialog, IconButton, Notice, Select, Tabs } from '../ui'
 import { undoBatch, type EpisodeMap, type EpisodeRow, type HistoryEntry, type MatchCandidate, type MatchPreview, type MatchRule, type QueueResult, type QueueRow, type RuleTry, type SearchResult, type Target } from '../metadata'
 import { toast, useApp } from '../state'
 import BulkEdit from './library/BulkEdit'
@@ -31,16 +32,10 @@ export default function FixMatches() {
     <div className="fm">
       <div className="toolbar">
         <h1>Fix matches</h1>
-        <div className="seg" role="tablist" aria-label="Fix matches">
-          {[['review', 'Review'], ['rules', 'Naming rules'], ['history', 'History']].map(([k, l]) => (
-            <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'active' : ''} onClick={() => set('page', k === 'review' ? '' : k)}>{l}</button>
-          ))}
-        </div>
+        <Tabs label="Fix matches" value={page} onChange={(k) => set('page', k === 'review' ? '' : k)} items={[{ value: 'review', label: 'Review' }, { value: 'rules', label: 'Naming rules' }, { value: 'history', label: 'History' }]} />
         <div className="grow" />
-        <select className="select" aria-label="Library" value={params.get('library') || ''} onChange={(e) => set('library', e.target.value)}>
-          <option value="">{page === 'rules' ? 'Choose a library' : 'All libraries'}</option>
-          {matchable.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
+        <Select aria-label="Library" value={params.get('library') || ''} onChange={(e) => set('library', e.target.value)}
+          options={[{ value: '', label: page === 'rules' ? 'Choose a library' : 'All libraries' }, ...matchable.map((l) => ({ value: String(l.id), label: l.name }))]} />
       </div>
       {page === 'rules' ? <RulesPage library={Number(params.get('library') || 0)} />
         : page === 'history' ? <HistoryPage />
@@ -72,7 +67,12 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
   // While suggestions are being found, and only then, look in on them.
   useEffect(() => {
     if (!job?.running) return
-    const t = setTimeout(() => api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => { setJob(j); if (!j.running) setTick((n) => n + 1) }).catch(() => {}), 2000)
+    const t = setTimeout(() => api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => {
+      setJob(j)
+      if (j.running) return
+      if (j.total === 0) toast('They all have suggestions already')
+      setTick((n) => n + 1)
+    }).catch(() => {}), 2000)
     return () => clearTimeout(t)
   }, [job])
   useEffect(() => { api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => { if (j.running) setJob(j) }).catch(() => {}) }, [])
@@ -149,32 +149,40 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
   const sure = rows.filter((r) => (r.suggestions?.[0]?.score ?? 0) >= 90)
   return (
     <>
-      <div className="fm-tabs chips" role="tablist" aria-label="Which titles">
-        {TABS.map(([k, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={'chip' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>{l}{q && k !== 'removed' && q.counts[k] != null ? ` ${q.counts[k]}` : ''}</button>
-        ))}
-      </div>
+      <Chips label="Which titles" className="fm-tabs">
+        {TABS.map(([k, l]) => <Chip key={k} selected={tab === k} onClick={() => setTab(k)}>{l}{q && k !== 'removed' && q.counts[k] != null ? ` ${q.counts[k]}` : ''}</Chip>)}
+      </Chips>
       {tab === 'removed' ? <RemovedList library={library} /> : (
         <>
           <div className="fm-actions">
             <input className="input fm-search" aria-label="Find a title in this list" placeholder="Find a title" value={search} onChange={(e) => setSearch(e.target.value)} />
             {job?.running
               ? <span className="fm-job" role="status">Finding suggestions: {job.done} of {job.total}{job.current ? `, ${job.current}` : ''}
-                  <button type="button" className="btn sm ghost" onClick={() => api.del('/match/suggest-all').then(() => setJob(null))}>Stop</button></span>
-              : <button type="button" className="btn" onClick={() => api.post<{ job: NonNullable<typeof job> }>('/match/suggest-all', { library }).then((r) => setJob(r.job)).catch((e) => toast(e.message))}>Find suggestions for all</button>}
-            {sure.length > 1 && <button type="button" className="btn" onClick={() => { setChecked(new Set(sure.map(keyOf))) }}>Choose the {sure.length} that are 90% sure</button>}
+                  <Button size="sm" variant="ghost" onClick={() => api.del('/match/suggest-all').then(() => setJob(null))}>Stop</Button></span>
+              : <Button onClick={() => api.post<{ job: NonNullable<typeof job> }>('/match/suggest-all', { library }).then((r) => setJob(r.job)).catch((e) => toast(e.message))}>Find suggestions for all</Button>}
+            {sure.length > 1 && <Button onClick={() => { setChecked(new Set(sure.map(keyOf))) }}>Choose the {sure.length} that are 90% sure</Button>}
           </div>
           {!q ? (failed ? <LoadError what="The list" onRetry={load} /> : <Spinner />) : rows.length === 0 ? (
             <EmptyState icon={<IconCheck />} title={tab === 'review' ? 'Nothing needs a look' : 'Nothing here'} text={tab === 'review' ? 'Everything here is matched, and matched well. A new scan may add more.' : undefined} />
           ) : (
             <div className="fm-split">
-              <ul className="fm-list" ref={list} aria-label="Titles" >
+              <ul className="fm-list" ref={list} aria-label="Titles" data-nav-group>
                 {rows.map((r, i) => {
                   const on = i === Math.min(sel, rows.length - 1)
                   return (
                     <li key={keyOf(r)} className={'fm-row' + (on ? ' on' : '')}>
-                      <input type="checkbox" aria-label={`Choose ${r.title}`} checked={checked.has(keyOf(r))} onChange={() => setChecked((c) => { const n = new Set(c); if (n.has(keyOf(r))) n.delete(keyOf(r)); else n.add(keyOf(r)); return n })} />
-                      <button type="button" className="fm-row-main" aria-current={on} onClick={() => { setSel(i); requestAnimationFrame(() => detail.current?.scrollIntoView({ block: 'nearest' })) }}>
+                      <label className="fm-row-tick"><input type="checkbox" aria-label={`Choose ${r.title}`} checked={checked.has(keyOf(r))} onChange={() => setChecked((c) => { const n = new Set(c); if (n.has(keyOf(r))) n.delete(keyOf(r)); else n.add(keyOf(r)); return n })} /></label>
+                      <button type="button" className="fm-row-main" aria-current={on}
+                        // Moving along the list with a remote or the keyboard shows each title as it goes.
+                        onFocus={() => setSel(i)}
+                        onClick={(e) => {
+                          setSel(i)
+                          requestAnimationFrame(() => {
+                            detail.current?.scrollIntoView({ block: 'nearest' })
+                            // OK on a remote or Enter moves on to what can be done with it.
+                            if (e.detail === 0) detail.current?.querySelector<HTMLElement>('.fm-sugg .btn, button')?.focus()
+                          })
+                        }}>
                         <span className="fm-row-pic">{r.poster ? <img src={artPreviewUrl(r.poster)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}</span>
                         <span className="fm-row-text">
                           <b>{r.title}{r.year ? ` (${r.year})` : ''}</b>
@@ -195,13 +203,13 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
             <div className="lib-bulk fm-bar" role="region" aria-label="Actions">
               {chosen.length > 0 && <>
                 <span>{chosen.length} chosen</span>
-                <button type="button" className="btn primary" onClick={acceptChosen}>Accept their best suggestions</button>
-                <button type="button" className="btn" onClick={() => setBulk(true)}>Edit together</button>
-                <button type="button" className="btn ghost" onClick={() => setChecked(new Set())}>Clear</button>
+                <Button variant="primary" onClick={acceptChosen}>Accept their best suggestions</Button>
+                <Button onClick={() => setBulk(true)}>Edit together</Button>
+                <Button variant="ghost" onClick={() => setChecked(new Set())}>Clear</Button>
               </>}
               {lastUndo && <>
                 <span className="fm-bar-what">{lastUndo.what}</span>
-                <button type="button" className="btn" onClick={undo}>Undo</button>
+                <Button onClick={undo}>Undo</Button>
               </>}
             </div>
           )}
@@ -232,11 +240,14 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
     if (known || r.state === 'manual' || r.state === 'none') return
     let on = true
     setBusy(true); setErr('')
-    api.post<{ suggestions: MatchCandidate[] }>(`/meta/${r.target}/${r.id}/suggest`)
-      .then((out) => { if (on) setTopFor((m) => ({ ...m, [k]: out.suggestions })) })
-      .catch((e) => { if (on) setErr(e.message) })
-      .finally(() => { if (on) setBusy(false) })
-    return () => { on = false }
+    // Going down the list with a remote passes over titles: only one it stays on asks anybody.
+    const t = setTimeout(() => {
+      api.post<{ suggestions: MatchCandidate[] }>(`/meta/${r.target}/${r.id}/suggest`)
+        .then((out) => { if (on) setTopFor((m) => ({ ...m, [k]: out.suggestions })) })
+        .catch((e) => { if (on) setErr(e.message) })
+        .finally(() => { if (on) setBusy(false) })
+    }, 400)
+    return () => { on = false; clearTimeout(t) }
     // Once for each title.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [k])
@@ -268,9 +279,9 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
           <p className="muted fm-file" title={r.file}>{r.file}</p>
         </div>
         <div className="fm-detail-btns">
-          <button type="button" className="btn" onClick={onEdit}>Edit details</button>
-          {r.target === 'show' && <button type="button" className="btn" onClick={onRenumber}>Renumber episodes</button>}
-          {(r.state === 'unmatched' || r.state === 'low') && <button type="button" className="btn ghost" onClick={() => onLeave(r, r.state === 'low')} title={r.state === 'low' ? 'It\'s right: stop asking' : 'It has no match'}>{r.state === 'low' ? 'It\'s right' : 'It has no match'}</button>}
+          <Button onClick={onEdit}>Edit details</Button>
+          {r.target === 'show' && <Button onClick={onRenumber}>Renumber episodes</Button>}
+          {(r.state === 'unmatched' || r.state === 'low') && <Button variant="ghost" onClick={() => onLeave(r, r.state === 'low')}>{r.state === 'low' ? 'It\'s right: stop asking' : 'It has no match'}</Button>}
         </div>
       </header>
       <div className="fm-why">
@@ -279,22 +290,22 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
       </div>
       <form className="field-row fm-find" onSubmit={(e) => { e.preventDefault(); search() }}>
         <input className="input" aria-label="Search for the right title, or paste an id or address" placeholder="A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button type="submit" className="btn" disabled={busy}>Search</button>
+        <Button type="submit" disabled={busy}>Search</Button>
       </form>
       {err && <div className="error" role="alert">{err}</div>}
-      {results?.warnings.map((w) => <p key={w} className="ed-warn-line" role="alert">{w}</p>)}
+      {results?.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
       {busy && <Spinner />}
       {preview ? (
         <PreviewTable p={preview.p} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} />
       ) : (
         <>
           {list.length > 0 && <h3 className="fm-sugg-h">{results ? 'Results' : 'Suggestions'}</h3>}
-          <ol className="fm-sugg">
+          <ol className="fm-sugg" data-nav-group>
             {list.map((c, i) => (
               <li key={c.source + c.id}>
                 <span className="fm-num" aria-hidden="true">{i < 6 ? i + 1 : ''}</span>
                 <ResultRow c={c} onChoose={() => look(c)} />
-                <button type="button" className="btn sm" onClick={() => onAccept(r, c)} aria-label={`Accept ${c.title}`}>Accept</button>
+                <Button size="sm" onClick={() => onAccept(r, c)} aria-label={`Accept ${c.title}`}>Accept</Button>
               </li>
             ))}
           </ol>
@@ -316,7 +327,7 @@ function RemovedList({ library }: { library: number }) {
       {list.map((r) => (
         <li key={r.path}>
           <div><b>{r.title}</b><div className="muted fm-file">{r.path}</div></div>
-          <button type="button" className="btn" onClick={() => api.post('/meta/removed/restore', { path: r.path }).then(() => { toast('Back in its library'); load() }).catch((e) => toast(e.message))}>Bring it back</button>
+          <Button onClick={() => api.post('/meta/removed/restore', { path: r.path }).then(() => { toast('Back in its library'); load() }).catch((e) => toast(e.message))}>Bring it back</Button>
         </li>
       ))}
     </ul>
@@ -334,7 +345,7 @@ function HistoryPage() {
       {list.map((h) => (
         <li key={h.batch}>
           <div><b>{h.action}</b>: {h.title}{h.count > 1 ? ` and ${h.count - 1} more` : ''}<div className="muted fm-file">{new Date(h.at * 1000).toLocaleString()}{h.user ? ` by ${h.user}` : ''}</div></div>
-          {h.undone ? <span className="muted">Undone</span> : <button type="button" className="btn" onClick={() => undoBatch(h.batch).then(() => { toast('Undone'); load() }).catch((e) => toast(e.message))}>Undo</button>}
+          {h.undone ? <span className="muted">Undone</span> : <Button onClick={() => undoBatch(h.batch).then(() => { toast('Undone'); load() }).catch((e) => toast(e.message))}>Undo</Button>}
         </li>
       ))}
     </ul>
@@ -363,14 +374,9 @@ function RulesPage({ library }: { library: number }) {
   }
   return (
     <div className="fm-rules">
-      <section className="panel">
-        <h2>Names that say what a file is</h2>
-        <p className="panel-note">An id in a file or folder's name always wins over a search, and doesn't appear in the title: <code>My Film (2001) [tmdbid-123].mkv</code>, <code>{'{imdb-tt0000123}'}</code>, <code>[tvdb-456]</code>, <code>[tvmaze-78]</code>.</p>
-      </section>
+      <Card title="Names that say what a file is" desc={<>An id in a file or folder's name always wins over a search, and doesn't appear in the title: <code>My Film (2001) [tmdbid-123].mkv</code>, <code>{'{imdb-tt0000123}'}</code>, <code>[tvdb-456]</code>, <code>[tvmaze-78]</code>.</>} />
       {!library ? <EmptyState title="Choose a library" text="Each library has its own rules." /> : !rules ? (err ? <div className="error" role="alert">{err}</div> : <Spinner />) : (
-        <section className="panel">
-          <h2>This library's rules</h2>
-          <p className="panel-note">For folders with a naming of their own. The first rule that fits a file decides. Use <code>{'{title}'}</code>, <code>{'{year}'}</code>, <code>{'{edition}'}</code>, <code>{'{tmdb}'}</code>, <code>{'{imdb}'}</code>, <code>{'{tvdb}'}</code>, <code>{'{any}'}</code>, and <code>*</code> for anything within a folder's name. For example, <code>Ghibli/{'{year}'} - {'{title}'}</code>.</p>
+        <Card title="This library's rules" desc={<>For folders with a naming of their own. The first rule that fits a file decides. Use <code>{'{title}'}</code>, <code>{'{year}'}</code>, <code>{'{edition}'}</code>, <code>{'{tmdb}'}</code>, <code>{'{imdb}'}</code>, <code>{'{tvdb}'}</code>, <code>{'{any}'}</code>, and <code>*</code> for anything within a folder's name. For example, <code>Harbour Studio/{'{year}'} - {'{title}'}</code>.</>}>
           {rules.length === 0 && <p className="muted">No rules yet.</p>}
           <ol className="fm-rule-list">
             {rules.map((r, i) => (
@@ -391,15 +397,15 @@ function RulesPage({ library }: { library: number }) {
                   </select>
                 </label>
                 <label className="lib-check"><input type="checkbox" checked={r.enabled} onChange={(e) => up(i, { enabled: e.target.checked })} /> On</label>
-                <button type="button" className="btn sm ghost square danger-hover" aria-label={`Remove the rule ${r.pattern}`} onClick={() => { setRules(rules.filter((_, j) => j !== i)); setSaved(false) }}><IconTrash /></button>
+                <IconButton size="sm" className="danger-hover" label={`Remove the rule ${r.pattern}`} onClick={() => { setRules(rules.filter((_, j) => j !== i)); setSaved(false) }}><IconTrash /></IconButton>
               </li>
             ))}
           </ol>
           {err && <div className="error" role="alert">{err}</div>}
           <div className="panel-actions">
-            <button type="button" className="btn" onClick={() => { setRules([...rules, { pattern: '', lookup: 'auto', tags: [], extra: '', enabled: true }]); setSaved(false) }}><IconPlus /> Add a rule</button>
-            <button type="button" className="btn" disabled={rules.length === 0 || rules.some((r) => !r.pattern.trim())} onClick={tryThem}>Try them</button>
-            <button type="button" className="btn primary" disabled={saved || rules.some((r) => !r.pattern.trim())} onClick={save}>Save</button>
+            <Button icon={<IconPlus />} onClick={() => { setRules([...rules, { pattern: '', lookup: 'auto', tags: [], extra: '', enabled: true }]); setSaved(false) }}>Add a rule</Button>
+            <Button disabled={rules.length === 0 || rules.some((r) => !r.pattern.trim())} onClick={tryThem}>Try them</Button>
+            <Button variant="primary" disabled={saved || rules.some((r) => !r.pattern.trim())} onClick={save}>Save</Button>
           </div>
           {tried && (
             <div className="fm-try">
@@ -410,7 +416,7 @@ function RulesPage({ library }: { library: number }) {
               ))}</ul>
             </div>
           )}
-        </section>
+        </Card>
       )}
       <p className="muted">Back to <Link to="/fix-matches">the review list</Link>.</p>
     </div>
@@ -438,12 +444,13 @@ function RenumberDialog({ showId, title, onClose, onDone }: { showId: number; ti
       onDone(r.batch)
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
-  const pressed = useRef(false)
   const unknown = rows.filter((r) => r.season != null && r.episode != null && !names.has(`${r.season}|${r.episode}`)).length
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
-      <div className="modal wide fm-renumber" role="dialog" aria-modal="true" aria-labelledby="ren-h">
-        <h2 id="ren-h">Renumber {title}</h2>
+    <Dialog title={`Renumber ${title}`} size="wide" className="fm-renumber" onClose={onClose}
+      actions={<>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" busy={busy} disabled={!map} onClick={save}>Save</Button>
+      </>}>
         {!map ? (err ? <div className="error" role="alert">{err}</div> : <Spinner />) : (
           <>
             {map.note ? <p className="muted">{map.note}</p> : <p className="muted">Each file beside what {map.sourceLabel} calls that number{unknown ? `. ${unknown} ${unknown === 1 ? 'number isn\'t' : 'numbers aren\'t'} listed there` : ''}. Numbers you change are locked, so a scan keeps them.</p>}
@@ -457,9 +464,9 @@ function RenumberDialog({ showId, title, onClose, onDone }: { showId: number; ti
               <label>Move episodes by
                 <input className="input" inputMode="numeric" value={shift} onChange={(e) => setShift(e.target.value)} />
               </label>
-              <button type="button" className="btn" onClick={() => setRows(rows.map((r) => (inScope(r) && r.episode != null ? { ...r, episode: Math.max(0, r.episode + Number(shift || 0)), episodeEnd: r.episodeEnd != null ? Math.max(0, r.episodeEnd + Number(shift || 0)) : r.episodeEnd } : r)))}>Move them</button>
-              <button type="button" className="btn" onClick={() => setRows(rows.map((r) => (inScope(r) && r.season != null ? { ...r, season: Math.max(0, r.season + Number(shift || 0)) } : r)))}>Move seasons instead</button>
-              <button type="button" className="btn ghost" onClick={() => { let n = 0; setRows(rows.map((r) => (inScope(r) ? { ...r, episode: ++n } : r))) }}>Number them in order</button>
+              <Button onClick={() => setRows(rows.map((r) => (inScope(r) && r.episode != null ? { ...r, episode: Math.max(0, r.episode + Number(shift || 0)), episodeEnd: r.episodeEnd != null ? Math.max(0, r.episodeEnd + Number(shift || 0)) : r.episodeEnd } : r)))}>Move them</Button>
+              <Button onClick={() => setRows(rows.map((r) => (inScope(r) && r.season != null ? { ...r, season: Math.max(0, r.season + Number(shift || 0)) } : r)))}>Move seasons instead</Button>
+              <Button variant="ghost" onClick={() => { let n = 0; setRows(rows.map((r) => (inScope(r) ? { ...r, episode: ++n } : r))) }}>Number them in order</Button>
             </div>
             <div className="fm-ep-wrap">
               <table className="titles-table fm-eps">
@@ -479,11 +486,6 @@ function RenumberDialog({ showId, title, onClose, onDone }: { showId: number; ti
           </>
         )}
         {map && err && <div className="error" role="alert">{err}</div>}
-        <div className="actions">
-          <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn primary" disabled={busy || !map} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

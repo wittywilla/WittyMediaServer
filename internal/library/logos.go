@@ -54,6 +54,9 @@ const (
 	LogoText    = "text"    // someone chose the name alone
 )
 
+// BrandSeries is the kind of row in title_brands for a film series. It has no logo.
+const BrandSeries = "series"
+
 // LogoConsentVersion goes up if what the owner agreed to changes enough to ask again.
 const LogoConsentVersion = "1"
 
@@ -368,7 +371,7 @@ func (l *Logos) work(ctx context.Context) {
 		gap = time.Second
 	}
 	for l.Store.LogoConsent(ctx) == "yes" {
-		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY id LIMIT 1`, LogoPending))
+		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
 		if err != nil {
 			return
 		}
@@ -810,8 +813,10 @@ func (s *Store) setTitleBrands(ctx context.Context, target string, id, libraryID
 		if _, err := s.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, `+col+`) VALUES(?,?,?,?,?)`, kind, k, n, libraryID, id); err != nil {
 			return err
 		}
-		if _, err := s.EnsureLogo(ctx, kind, n); err != nil {
-			return err
+		if ValidLogoKind(kind) {
+			if _, err := s.EnsureLogo(ctx, kind, n); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

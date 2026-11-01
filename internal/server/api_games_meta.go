@@ -63,7 +63,8 @@ func (s *Server) handleGameMetadata(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !userFrom(r).IsAdmin {
-		d.CRCs, d.Serial = "", ""
+		d.CRCs, d.Serial, d.DetectedBy, d.DetectWhy, d.Entry = "", "", "", "", ""
+		d.DetectSure = 0
 	}
 	writeJSON(w, 200, d)
 }

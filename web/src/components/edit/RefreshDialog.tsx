@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { undoBatch, type MatchPreview, type Target, type TitleEditor } from '../../metadata'
 import { toast } from '../../state'
+import { Button, Dialog } from '../../ui'
 import LegalNote from '../LegalNote'
 import { PreviewTable } from './MatchPanel'
 import './edit.css'
@@ -28,29 +29,21 @@ export default function RefreshDialog({ target, id, onClose, onChanged }: { targ
       setP(null)
     } catch (e: any) { setErr(e.message) }
   }
-  const pressed = useRef(false)
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
-      <div className="modal wide" role="dialog" aria-modal="true" aria-labelledby="refresh-h">
-        <h2 id="refresh-h">Refresh details</h2>
-        {err && <div className="error" role="alert">{err}</div>}
-        {undo ? (
-          <>
-            <p role="status">Updated.</p>
-            <div className="actions">
-              <button type="button" className="btn ghost" onClick={() => undoBatch(undo).then(() => { toast('Undone'); onChanged(); onClose() }).catch((e) => setErr(e.message))}>Undo</button>
-              <button type="button" className="btn primary" autoFocus onClick={onClose}>Done</button>
-            </div>
+    <Dialog title="Refresh details" size="wide" onClose={onClose}
+      actions={undo
+        ? <>
+            <Button variant="ghost" onClick={() => undoBatch(undo).then(() => { toast('Undone'); onChanged(); onClose() }).catch((e) => setErr(e.message))}>Undo</Button>
+            <Button variant="primary" autoFocus onClick={onClose}>Done</Button>
           </>
-        ) : !p ? (
-          err ? <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Close</button></div> : <div className="loading-box"><div className="spinner" /></div>
-        ) : (
-          <>
+        : !p && err ? <Button variant="ghost" onClick={onClose}>Close</Button> : undefined}>
+      {err && <div className="error" role="alert">{err}</div>}
+      {undo ? <p role="status">Updated.</p>
+        : !p ? (err ? null : <div className="loading-box"><div className="spinner" /></div>)
+        : <>
             <PreviewTable p={p} picked={picked} setPicked={setPicked} onApply={apply} onBack={onClose} applyLabel={p.changes.length ? 'Update it' : 'Look again anyway'} />
             <LegalNote kind="webResults" />
-          </>
-        )}
-      </div>
-    </div>
+          </>}
+    </Dialog>
   )
 }

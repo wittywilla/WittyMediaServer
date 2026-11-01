@@ -20,8 +20,11 @@ export type GuideChannel = {
   key: string; kind: 'library' | 'tuner'; id: number; number: string; name: string; group?: string; logo?: string
   hd?: boolean; radio?: boolean; encrypted?: string; canRecord?: boolean; noRecord?: string; atsc3?: boolean
   security?: Security; alternative?: Alternative; notices?: string[]; programmes: Programme[]
-  description?: string; categories?: string[]; accent?: string; favourite?: boolean
+  description?: string; categories?: string[]; accent?: string; favourite?: boolean; brand?: ChannelBrand
 }
+// The name a channel's logo goes by in the logo service.
+export type ChannelBrand = { kind: 'network' | 'studio'; name: string }
+export type ChannelLook = { accent?: string; logoKind?: '' | 'network' | 'studio' | 'none'; logoName?: string }
 export type EncryptedHelpPage = {
   title: string; sections: { heading: string; paragraphs?: string[]; bullets?: string[] }[]
   devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
@@ -30,7 +33,7 @@ export type GuidePage = { now: number; from: number; to: number; total: number; 
 export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
-  now: Programme | null; next: Programme | null; playing?: Programme; description?: string; accent?: string; positionSec: number; serverTime: number
+  now: Programme | null; next: Programme | null; playing?: Programme; description?: string; accent?: string; brand?: ChannelBrand; positionSec: number; serverTime: number
   countProgress: boolean; canRecord: boolean; bufferSec: number
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
 }
@@ -51,14 +54,14 @@ export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKe
 export type BumperPlan = { rules?: BumperRule[]; trim?: Trim }
 export type Definition = {
   mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
-  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[] }; alignMin: number
+  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; breakEveryMin?: number; breakAds?: number }; alignMin: number
   bumpers?: BumperPlan
 }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
 export type Visibility = { mode: '' | 'adults' | 'only'; users?: number[] }
 export type Channel = {
   id: number; number: string; name: string; description: string; enabled: boolean; definition: Definition
-  rev: number; logo: string; visibility: Visibility; countProgress: boolean; updatedAt: number; categories: string[]; look: { accent?: string }
+  rev: number; logo: string; visibility: Visibility; countProgress: boolean; updatedAt: number; categories: string[]; look: ChannelLook
 }
 export type PoolStats = { titles: number; shows: number; seconds: number }
 export type Suggestion = { key: string; group: 'network' | 'era' | 'genre' | 'studio' | 'collection' | 'show' | 'classic'; name: string; description: string; definition: Definition; stats: PoolStats; exists: boolean }
@@ -81,6 +84,16 @@ export type Found = { driver: string; name: string; detail?: string; options: Re
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }
 export type Recording = { id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number }
 export type RecordingRule = { id: number; channelId: number; channel: string; title: string }
+
+// Whose logo a channel wears when nobody chose: the one network or studio it plays.
+export function brandOf(def: Definition, look?: ChannelLook): ChannelBrand | undefined {
+  if (look?.logoKind === 'none') return undefined
+  if (look?.logoName && (look.logoKind === 'network' || look.logoKind === 'studio')) return { kind: look.logoKind, name: look.logoName }
+  const r = def.rules
+  if (r.networks?.length === 1 && !r.studios?.length) return { kind: 'network', name: r.networks[0] }
+  if (r.studios?.length === 1 && !r.networks?.length) return { kind: 'studio', name: r.studios[0] }
+  return undefined
+}
 
 export const emptyDefinition = (): Definition => ({ mode: 'simple', rules: {}, order: { mode: 'rotate' }, blocks: [], filler: {}, alignMin: 30 })
 

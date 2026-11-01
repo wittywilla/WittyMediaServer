@@ -7,6 +7,9 @@ import { canPost, type Collection, type CollectionRule } from '../gallery'
 import { IconClose, IconEdit, IconLibrary, IconPlay, IconPlus, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
+import { Dialog, ask } from '../ui/Overlay'
+import { Button } from '../ui/Button'
+import { Segmented } from '../ui/Choice'
 
 // Collections and smart playlists, across every library. A smart playlist is a
 // saved rule the server works out each time (docs/COLLECTIONS.md); this page
@@ -73,7 +76,7 @@ export function CollectionPage() {
     if (first) nav(`/play/${first.id}?collection=${c.id}`)
   }
   const remove = async () => {
-    if (!confirm(`Delete “${c.name}”? What's in it stays in its library.`)) return
+    if (!await ask({ title: `Delete “${c.name}”?`, body: 'What’s in it stays in its library.', confirm: 'Delete', danger: true })) return
     await api.del(`/collections/${c.id}`)
     nav('/collections', { replace: true })
   }
@@ -138,16 +141,13 @@ function CollectionDialog({ collection, onClose, onSaved }: { collection?: Colle
   }
   const num = (v: string) => (v === '' ? undefined : Number(v))
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal wide col-dialog" role="dialog" aria-modal="true" aria-labelledby="col-h" onClick={(e) => e.stopPropagation()} onSubmit={save}>
-        <h2 id="col-h">{collection ? 'Edit collection' : 'New collection'}</h2>
+    <Dialog title={collection ? 'Edit collection' : 'New collection'} size="wide" className="col-dialog" onClose={onClose}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="col-form">{collection ? 'Save' : 'Make it'}</Button></>}>
+      <form id="col-form" className="ui-dialog-form" onSubmit={save}>
         <label className="oobe-field">Name<input className="input" autoFocus required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label className="oobe-field">Description<input className="input" maxLength={4000} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
         {!collection && (
-          <div className="seg" role="radiogroup" aria-label="Kind">
-            <button type="button" role="radio" aria-checked={kind === 'manual'} className={kind === 'manual' ? 'active' : ''} onClick={() => setKind('manual')}>A list you fill</button>
-            <button type="button" role="radio" aria-checked={kind === 'smart'} className={kind === 'smart' ? 'active' : ''} onClick={() => setKind('smart')}>Smart playlist</button>
-          </div>
+          <Segmented label="Kind" value={kind} onChange={setKind} options={[{ value: 'manual', label: 'A list you fill' }, { value: 'smart', label: 'Smart playlist' }]} />
         )}
         {kind === 'smart' && (
           <fieldset className="col-rule">
@@ -183,8 +183,7 @@ function CollectionDialog({ collection, onClose, onSaved }: { collection?: Colle
         )}
         {!collection?.system && <label className="share-check"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> Share with the other profiles; each sees what their own limits allow</label>}
         {err && <div className="error" role="alert">{err}</div>}
-        <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary">{collection ? 'Save' : 'Make it'}</button></div>
       </form>
-    </div>
+    </Dialog>
   )
 }

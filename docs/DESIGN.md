@@ -1,43 +1,83 @@
-# The design system
+# Design standards
 
-How the WittyMediaServer interface is put together: the rules behind it, the tokens that carry
-them, the shared parts, and how to add a page that fits. If you only read one section, read
-[Adding a page](#adding-a-page).
+The WittyMediaServer interface, in one place: what it's trying to be, the values it's built from,
+every shared part and its states, the patterns for whole pages, how we write, and what makes it
+work on a phone, a keyboard, a screen reader and a TV across the room.
 
-All of it lives in `web/src/styles.css` (tokens first, then shared parts). Page-specific CSS is in
-`shell.css`, `audio.css`, `player.css`, `oobe.css` and `pages/settings/settings.css`.
+These are rules, not suggestions, and a script holds us to the checkable ones: see
+[Keeping to it](#keeping-to-it). See the parts working at `/design` when signed in as an
+administrator.
+
+**New here?** Read [Principles](#principles), then [Adding a page](#adding-a-page).
 
 - [Principles](#principles)
-- [Tokens](#tokens)
-- [Shared parts](#shared-parts)
-- [States](#states)
-- [Motion](#motion)
-- [Keeping it fast](#keeping-it-fast)
+- [Foundations](#foundations): [colour](#colour), [type](#type), [space](#space), [shape](#shape), [depth and layers](#depth-and-layers), [motion](#motion), [icons](#icons)
+- [Components](#components)
+- [Patterns](#patterns): [pages](#pages), [navigation](#navigation), [dialogs and sheets](#dialogs-and-sheets), [forms](#forms), [loading, empty and error](#loading-empty-and-error)
+- [Writing](#writing)
 - [Accessibility](#accessibility)
-- [Screens and input](#screens-and-input)
-- [Adding a page](#adding-a-page)
+- [Remote and keyboard](#remote-and-keyboard)
 - [Native apps and ten feet](#native-apps-and-ten-feet)
-- [What the audit found](#what-the-audit-found)
+- [Keeping it fast](#keeping-it-fast)
+- [Keeping to it](#keeping-to-it)
+- [Adding a page](#adding-a-page)
 
 ## Principles
 
-1. **The artwork is the loudest thing.** Everything around a poster stays quiet: labels sit on dark
-   plates, surfaces are close in tone, and only one thing per view is in the accent colour.
+1. **The artwork is the loudest thing.** Everything around a poster stays quiet: surfaces are close
+   in tone, labels sit on dark plates, and only one thing in a view is in the accent colour.
 2. **The accent means "do this next".** Primary buttons, progress and focus use it. Something merely
    *selected* (a chip, a segment, a top-bar link) is inverted instead, in every theme.
 3. **One of everything.** One type scale, one spacing grid, one button, one dialog. A new look for an
    old job needs a very good reason.
-4. **Low-end devices first.** If an effect costs a frame on a cheap TV, it doesn't ship.
-5. **Works from a theme of four colours.** Themes set a few colours; hover, selected, tinted and
-   outline colours are worked out from them, so a theme can't forget a state.
+4. **Every input is a first-class input.** Mouse, touch, keyboard, remote, game controller and screen
+   reader all get the whole app. Nothing depends on hover. Nothing is reachable by pointer alone.
+5. **Modest hardware first.** If an effect costs a frame on a cheap TV, it doesn't ship, or it turns
+   itself off there.
+6. **People choose; the owner sets the default.** A person's own choice beats the owner's default,
+   which beats ours. One clear step takes you back.
 
-## Tokens
+## Foundations
 
-Use a token, not a number. If no token fits, that's usually the design saying "don't".
+All values are CSS custom properties in `web/src/styles.css`. Use a token, not a number. If no token
+fits, that's usually the design saying "don't". `scripts/design-tokens.py` writes them out as data for
+the native apps.
+
+### Colour
+
+Themes set a few colours; everything else is worked out from them, so a theme can't forget a state.
+
+| Surface | Use |
+|---|---|
+| `--bg` | the page |
+| `--bg-2` | panels, dialogs, side menu: one step up |
+| `--bg-3` | things inside those: fields, buttons, rows |
+| `--bg-4` | hover on `--bg-3` |
+
+| Text | Use |
+|---|---|
+| `--fg` | the content |
+| `--fg-2` | supporting sentences |
+| `--fg-3` | captions and labels (still 4.5:1) |
+| `--accent-text` | links and the accent as words. Never `--accent`, which may be too dark to read |
+
+| Other | Use |
+|---|---|
+| `--accent`, `--accent-2`, `--accent-fg` | the main action, its hover, and the words on it |
+| `--danger`, `--ok`, `--warn` | status, and always with words or an icon as well |
+| `--border`, `--border-strong`, `--control-line` | hairlines, emphasised lines, outlines of fields (3:1) |
+| `--hover`, `--pressed` | states that work on any surface |
+| `--accent-soft`, `--accent-line`, `--ok-soft`, `--warn-soft`, `--danger-soft` | tinted backgrounds |
+| `--focus` | the focus ring: 4.5:1 on every surface |
+| `--on-image`, `--scrim`, `--picture-bg` | words on artwork, the plate behind them, and what's behind a picture or video (these never change with the theme) |
+
+The player is always dark, whatever the theme: `.player` sets its own colours.
 
 ### Type
 
-Sizes are in `rem`, so they follow the reader's browser setting and grow for controllers.
+Sizes are in `rem`, so they follow the reader's browser setting and grow for controllers. The font is
+the system's own (`--font`): no download, sharp on every screen, and it has every alphabet a title
+might use.
 
 | Token | Size | For |
 |---|---|---|
@@ -46,17 +86,14 @@ Sizes are in `rem`, so they follow the reader's browser setting and grow for con
 | `--text-sm` | 13 | secondary text, small buttons, chips |
 | `--text-md` | 14 | controls, card titles, dense text |
 | `--text-base` | 15 | body |
-| `--text-lg` | 17 | panel headings, sub-headings |
+| `--text-lg` | 17 | panel headings |
 | `--text-xl` | 20 | section headings, dialog titles |
 | `--text-2xl` to `--text-5xl` | 24, 30, 38, 48 | large artwork text |
 | `--page-title` | 24 to 30 | the `h1` of a normal page |
-| `--display` | 30 to 48 | the title over a backdrop |
+| `--display` | 30 to 48 | a title over a backdrop |
 
-Also `--leading-tight`, `--leading-snug`, `--leading-body`; `--tracking-display`,
-`--tracking-heading`, `--tracking-label` (uppercase labels); `--weight-heading`; `--font-mono`.
-
-The font is the system's own (`--font`): no download, sharp on every screen, and it has every
-alphabet a media title might use. Inter is used if it is installed.
+Also `--leading-tight`, `--leading-snug`, `--leading-body`; `--tracking-display`, `--tracking-heading`,
+`--tracking-label`; `--weight-heading`; `--font-mono`.
 
 ### Space
 
@@ -67,7 +104,10 @@ A 4px grid: `--sp-1` 4, `--sp-2` 8, `--sp-3` 12, `--sp-4` 16, `--sp-5` 20, `--sp
 |---|---|
 | `--gutter` | the page's side margin (16 to 40, by width) |
 | `--section-gap` | between sections of a page |
-| `--topbar-h` | the top bar's height, for anything that sticks under it |
+| `--topbar-h`, `--tabbar-h`, `--rail`, `--sidebar` | the frame's sizes, for anything placed against it |
+| `--dock-space`, `--tabbar-space` | room to keep clear at the bottom. They're `0` unless the audio bar, mini player or phone bar is there |
+
+Anything floating at the foot of the page: `bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space))`.
 
 ### Shape
 
@@ -75,89 +115,28 @@ Radii follow the theme's `--radius` (10 by default), so `--radius: 0` makes the 
 square: `--r-xs` 4 (badges), `--r-sm` 6, `--r-md` 10 (buttons, fields, posters), `--r-lg` 14 (panels),
 `--r-xl` 20 (dialogs), `--r-full` (pills).
 
-### Colour
+### Depth and layers
 
-Set by themes (see [THEMES.md](THEMES.md)): `--bg`, `--bg-2`, `--bg-3`, `--bg-4`, `--fg`, `--fg-2`,
-`--fg-3`, `--accent`, `--accent-2`, `--accent-fg`, `--accent-text`, `--danger`, `--ok`, `--warn`,
-`--border`, `--control-line`.
+Three shadows: `--e-1` resting artwork, `--e-2` a lifted card, `--e-3` anything over the page. Panels
+on the page have a hairline, not a shadow.
 
-| Surface | Use |
-|---|---|
-| `--bg` | the page |
-| `--bg-2` | panels, dialogs, sidebar: one step up |
-| `--bg-3` | things inside those: fields, buttons, list rows |
-| `--bg-4` | hover on `--bg-3` |
+One stacking order. Use these names, never a number above 9:
 
-| Text | Use |
-|---|---|
-| `--fg` | the content |
-| `--fg-2` | supporting sentences |
-| `--fg-3` | captions and labels (still 4.5:1) |
-| `--accent-text` | links and the accent as words; never `--accent`, which may be too dark |
-
-Worked out for you: `--hover` and `--pressed` (work on any surface), `--accent-soft` (a selected
-row), `--accent-line`, `--ok-soft`, `--warn-soft`, `--danger-soft`, `--border-strong`, `--focus`,
-`--on-image` and `--scrim` (text on artwork and the plate behind it).
-
-The player is always dark, whatever the theme: `.player` sets its own colours.
-
-### Depth
-
-Three steps: `--e-1` resting artwork, `--e-2` a lifted card, `--e-3` anything over the page (menus,
-dialogs). Panels on the page have a hairline, not a shadow.
-
-### Size
-
-`--control-h`, `--control-h-sm`, `--control-h-lg` are the heights of every control (40, 32, 46).
-They grow by themselves on touch screens (44, 36, 50). `--card-w` and `--card-wide-w` are the width
-of a poster and of a wide episode card; they change with the screen.
-
-## Shared parts
-
-| Part | Class or component | Notes |
+| Layer | Value | What |
 |---|---|---|
-| Button | `.btn` + `.primary`, `.ghost`, `.danger`; `.sm`, `.big`; `.square`, `.icon` | One `.primary` per view |
-| Icon button on video | `.ibtn` | 44px target |
-| Field | `.input`, `.select`, `textarea.input` | Outline is 3:1 on every surface |
-| Form | `.form` (`.full` for no width limit), `.row2`, `.field-row`, `.hint` | |
-| Slider | `.range`, set `--pct` in `style` | |
-| Switch | `.set-switch` (settings), `.switch` (player) | |
-| Choice of a few | `.seg` with `button.active` | |
-| Filter | `.chips`, `.chip`, `.chip.active` | `.chip.tag` can be removed |
-| Tabs | `.tabs` | |
-| Rating and small labels | `.pill` | |
-| Line of facts | `.meta` | Dots between items are automatic and never start a line |
-| Poster | `ItemCard`, `ShowCard`; `.card` + `.wide`, `.square` | |
-| Label on artwork | `.badge`; `SeenBadge` | |
-| Art for something with no picture | `Placeholder` with `title`, `label` | A colour from the title. The title is printed under the card, so never on the art; `label` is one short word, such as a console |
-| Look through a library again | `ScanButton` | For administrators; shows nothing to anyone else |
-| Grid and row of cards | `.grid`; `CardRow` | The row has arrows for mouse users |
-| Panel | `.panel` with `h2` and `.panel-note`, `.panel-actions`; in Settings `Section`, `Row` | |
-| Dialog | `.modal-backdrop` > `.modal` with `h2`, `.actions` | A bottom sheet on phones; `a11y.tsx` handles the keyboard |
-| Empty page | `EmptyState` with `icon`, `title`, `text`, `action` | |
-| Loading | `SkeletonGrid` for grids; `Spinner` for the rest | Both wait 0.2s, so fast loads show nothing |
-| Message | `.error`, `.warn-box`; `toast()` | |
-| Back | `BackLink` | |
-| Icons | `web/src/icons.tsx` | 24 grid, filled, `currentColor`. Never a text character as an icon |
+| `--z-sticky` | 10 | sticky headers and save bars inside a page |
+| `--z-tabbar` | 25 | the phone's bottom bar |
+| `--z-dock` | 45 | audio bar, mini player |
+| `--z-topbar` | 55 | the top bar, above the dock, so what opens from it is never behind |
+| `--z-scrim`, `--z-drawer` | 56, 57 | the side drawer and the dim behind it |
+| `--z-modal` | 60 | dialogs and sheets |
+| `--z-fullscreen` | 70 | the full-screen music player |
+| `--z-popover` | 80 | menus and popovers, which can open from any of these |
+| `--z-toast` | 100 | toasts and tooltips |
 
-Class names are part of the theme contract (see the selector reference in
-[THEMES.md](THEMES.md)): rename one only if you also update that list.
+Overlays render into `<body>` through a portal, so nothing around them can clip or cover them.
 
-## States
-
-Every interactive thing needs all of these, and they come free with the shared parts:
-
-- **Hover** darkens or lightens the surface with `--bg-4` or `--hover`. Only in
-  `@media (hover: hover)` if it moves or reveals anything, so nothing sticks after a tap.
-- **Pressed**: `transform: scale(.975)` on buttons.
-- **Focus**: the ring below; never remove it without replacing it.
-- **Disabled**: `opacity: .45` and no hover.
-- **Selected**: inverted (`--fg` on `--bg`) for small controls, `--accent-soft` for rows and tiles.
-
-A page has three more: **loading** (shapes, not a blank), **empty** (says why, and what to do) and
-**error** (says what happened, with a way forward).
-
-## Motion
+### Motion
 
 | Token | Time | For |
 |---|---|---|
@@ -167,67 +146,272 @@ A page has three more: **loading** (shapes, not a blank), **empty** (says why, a
 | `--dur-4` | 420ms | a backdrop changes |
 
 `--ease-out` for things arriving, `--ease-standard` for things that change in place. Things appear;
-they don't bounce or fly. Animate `transform` and `opacity` only (colours on hover are fine).
+they don't bounce or fly. Animate `transform` and `opacity` only (colours on hover are fine), and never
+`transition: all`.
 
-`prefers-reduced-motion` turns transitions and animations off globally. The featured banner also
-stops turning by itself; it can be paused anyway, and stops under the pointer or keyboard.
+`prefers-reduced-motion` turns transitions and animations off globally.
+
+**Moving posters** (`ui/tilt.ts`): movie and show posters lean toward the pointer, up to `--tilt-max`
+degrees at `--tilt-scale`, with a soft light that follows. A remote gets it as a settle from the
+direction it moved. Square covers don't move. Each person can turn it off, and it stays off when the
+device asks for reduced motion or less data, or has two cores or 2 GB or less.
+
+### Icons
+
+`web/src/icons.tsx`: a 24 grid, filled, in `currentColor`, sized by the context (16 in dense controls,
+20 by default, 24 on the phone bar). Never a text character as an icon, which looks different on every
+platform. An icon on its own needs a name: `IconButton`'s `label` is required for this reason. Icons
+are decoration beside words, so they carry `aria-hidden`.
+
+## Components
+
+Import from `web/src/ui`. Each is on `/design`. Older pages may use the class directly: classes are part
+of the theme contract (see [THEMES.md](THEMES.md)) and keep working.
+
+Every interactive part has these states, which come free:
+
+| State | Looks like |
+|---|---|
+| Hover | the surface shifts with `--bg-4` or `--hover`. Only in `@media (hover: hover)` if it moves or reveals anything |
+| Pressed | `scale(.975)` on buttons |
+| Focus | the ring in `--focus`, on `:focus-visible` |
+| Disabled | `opacity: .45`, no hover, not reachable if the control itself is disabled |
+| Selected | inverted (`--fg` on `--bg`) for small controls, `--accent-soft` for rows and tiles |
+| Busy | `aria-busy`, with a spinner in place of the icon |
+
+| Part | Use it for | Notes |
+|---|---|---|
+| `Button` | an action. `variant`: `primary` (one per view), `ghost`, `danger`. `size`: `sm`, `big`. `icon`, `busy` | Says what happens: "Remove profile", not "OK" |
+| `LinkButton` | navigation that looks like a button | A real link: it opens in a new tab |
+| `IconButton` | an action with just an icon. `label` required | The label is the screen reader's name and the tooltip |
+| `Tooltip` | a short hint | Never holds anything you need: touch doesn't show it. Escape dismisses it |
+| `Field` | a label, hint and error around one control | Wires up `id`, `aria-describedby` and `aria-invalid` for you |
+| `Input`, `Textarea`, `Select` | text and lists | `Select` is the browser's own list, which every device shows well |
+| `Switch` | on or off, taking effect at once | `label` or `labelledBy`. Use a checkbox in a form that has a Save button |
+| `Segmented` | one of two to four short choices | A radio group: Tab is one stop, arrows move |
+| `Tabs` | sections of a page | `to` makes each a link; otherwise `panelId` ties them to a panel |
+| `Chips`, `Chip` | filters that can be on or off | `onRemove` adds a named remove button |
+| `Dialog` | something that needs an answer or a focused job | See [dialogs](#dialogs-and-sheets) |
+| `Sheet` | things beside the page | From the side on wide screens, from the bottom on phones |
+| `ask()` | "are you sure?" | Replaces `confirm()`, which a remote can't always answer. `await ask({ title, body, confirm: 'Remove', danger: true })` |
+| `Menu` | a short list of actions from a button | Arrows, Home, End, typing a letter, Enter, Escape or Back. Opens upward if it must |
+| `toast()` | a short note that something happened | `tone`: `ok`, `warn`, `danger`. `action` adds one button. Pauses under the pointer or focus |
+| `Card` | a surface holding related things | |
+| `PosterCard` | a title with artwork | `shape`: `wide`, `square`. The `ItemCard` and `ShowCard` the libraries use render the same classes |
+| `Shelf`, `CardRow` | a titled row of cards | The arrows are the mouse's extra way along; a remote moves card by card |
+| `Skeleton`, `SkeletonGrid`, `Spinner` | loading | They wait a moment, so a fast load shows nothing |
+| `EmptyState` | nothing here | Says why, and what to do |
+| `LoadError` | it couldn't load | With a retry |
+| `Notice` | something to know, in the page | `tone` as for toasts |
+| `Progress`, `ProgressRing` | how far along | `label` required. No `value` means "working on it" |
+| `DataTable` | sortable rows | Real table semantics, `aria-sort`, stacks into labelled rows on phones |
+
+Also: `.pill` (rating and small labels), `.meta` (a line of facts, dots between them automatically),
+`.badge` on artwork, `Placeholder` (art for something with no picture), `BackLink`, `ScanButton`, and
+in Settings `PageHead`, `Section`, `Row` and `SaveBar`.
+
+## Patterns
+
+### Pages
+
+A page has one `h1`, which the announcer reads aloud on every page change: `.toolbar` with an `h1`, or
+`PageHead` in Settings. One main action gets the `primary` button. A page over a backdrop is
+`.detail-hero` + `.detail`; the top bar runs over it by itself.
+
+### Navigation
+
+- **Wide screens**: a side menu, a top bar, or both, chosen per device under *Settings, Appearance*.
+- **Top bar**: what doesn't fit goes under **More** by measuring, and the page you're on moves its name
+  onto that button, so you can always see where you are. Someone can choose to scroll sideways instead.
+- **Side menu**: folds to a rail of icons, or away, and remembers that on this device.
+- **Arranging**: drag by the handle, use the arrow keys on it, or the Move buttons (what a remote has).
+  Hide anything; group into Watch, Listen, Read and Play dropdowns. A new library joins at the end.
+- **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
+- **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
+  TV, Search, the drawer and You.
+- **Reserved**: `components/ActivitySlot.tsx`, left of the account menu, for one `IconButton`.
+
+### Dialogs and sheets
+
+A title that says what it's for. The safest answer comes first in the row of buttons. `alert` means it
+needs an answer: it's read out at once, and a click outside doesn't dismiss it. A form fills the
+dialog and ties its submit button to it with `form="id"`. Don't stack dialogs. Keep it to a dialog's
+worth: a long job gets a page.
+
+Focus moves in, Tab stays in, Escape or Back closes, and focus returns to what opened it. All of that
+is `a11y.tsx`, for anything with `role=dialog`.
+
+### Forms
+
+A visible label on every field, above it. Hints say what makes a good answer before there's a wrong
+one. Errors say what's wrong and how to fix it, beside the field. Settings that take effect at once use
+`Switch` with no Save button; a group that's saved together uses `SaveBar`, which stays in view while
+there's something to save.
+
+### Loading, empty and error
+
+Every page has all three.
+
+- **Loading**: shapes where the content will be, after a short wait. Never a blank.
+- **Empty**: says why it's empty, and offers the next step.
+- **Error**: says what happened in plain words, with a way forward. Never a code alone.
+
+## Writing
+
+- **Plain and short.** "Remove profile", not "Delete user account entity". Say it as you would to a
+  friend who isn't technical.
+- **Say what will happen.** Buttons name their action. A question names the consequence: "Your files
+  stay where they are."
+- **Sentence case** for everything: buttons, headings, menus.
+- **"You" and "your".** Not "the user".
+- **No blame.** "That name is taken", not "Invalid input".
+- **Punctuation**: curly quotes and apostrophes. An ellipsis in a label means more is coming
+  ("Rename…"). No exclamation marks.
+- **Names people choose are data**, shown exactly as written and always escaped.
+
+## Accessibility
+
+The bar is WCAG 2.2 AA, on every screen.
+
+- **Contrast**: 4.5:1 for text on every surface, 3:1 for outlines. `scripts/theme-contrast.py` checks
+  every built-in theme and fails CI; the theme maker can't produce one that falls short.
+- **Keyboard**: everything works, in a logical order, with no traps. Escape closes what opened.
+- **Focus**: always visible. `:focus-visible` gets a ring in `--focus`; cards ring the poster.
+  `scroll-padding` keeps the focused thing clear of the bars.
+- **Names**: real roles and labels. Icon buttons have names, fields have labels, images have `alt`
+  (`alt=""` for decoration).
+- **Live regions**: `announce()` for things that change without focus moving, and page changes are
+  announced for you. Toasts are read out.
+- **Targets**: 24px at least everywhere (2.5.8), 44px on touch, 48 at ten feet. A small mark gets an
+  invisible bigger box around it.
+- **Colour is never alone**: selected things change shape or fill, status has words.
+- **Motion**: `prefers-reduced-motion` is respected everywhere. Nothing moves by itself without a way
+  to stop it. `prefers-contrast: more` and `forced-colors` are handled.
+- **Phones**: a 16px gutter, no sideways page scroll.
+
+## Remote and keyboard
+
+Arrow keys alone reach everything, with no extra code in most pages. The rule for which control is
+next is in `web/src/ui/spatial.ts`, pure and tested, and the same rule should be ported to any client
+without a platform focus engine. `web/src/tv.ts` applies it, and `web/src/a11y.tsx` handles Back and
+focus restoration.
+
+**The contract for a page:**
+
+- Use real `a`, `button` and `input` elements. A click handler on a `div` can't be reached.
+- Nothing is hover-only: what hover reveals also appears on `:focus-visible`, or isn't needed.
+- `data-nav-group` on a set of controls that belong together makes coming back land where you left.
+  Rows, the top bar, the side menu and the phone bars already are groups.
+- `data-focus-key="..."` on a control with no `href` lets Back return to it.
+- If you handle arrows yourself, call `preventDefault`, and leave them alone at the ends, so a remote
+  can move on. `Segmented`, `Tabs` and `Menu` show how.
+- Text fields give up the arrows at the ends of the text. Selects open on OK. Sliders keep only the
+  arrows along their length.
+
+**How the next control is chosen** (`score` in `spatial.ts`, port this): only controls whose centre is
+past the current one in that direction count. The distance along the direction counts in full; the
+distance across it is penalised heavily, and more for left and right, so a far card on this row beats a
+near one on the next. Lowest score wins. On entering a group, the last focused control in it wins if
+it's also that way.
+
+**Back**: `GoBack`, `BrowserBack`, keyCode 461 and 10009, and Backspace outside a text field, close the
+top dialog or menu, or else go back a page. Going back returns focus to the control you left, per
+history entry. A pointer has no such place to return to, so this is only for keyboard and remote use.
+
+`data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
+highlighted one, so it's one stop however many cells are drawn.
+
+From outside a scrolling list, only what can be seen in that list can be landed on. When the focused
+control goes away, such as a button that removes its own row, the next arrow lands on what's closest
+to where it was. A bar inside the player has to be added to `PLAYER_CONTROLS` in `tv.ts`, or a remote
+can't reach it.
+
+**Scope**: inside a dialog, menu or the full-screen player, arrows stay in it.
+
+## Native apps and ten feet
+
+The Apple TV and Android TV apps use this design. `python scripts/design-tokens.py` writes it out, and
+`--check` (in CI) fails when the files are out of date. Don't edit them by hand.
+
+| File | Holds |
+|---|---|
+| `themes/tokens.json` | type, space, shape, depth, layers, motion, control and card sizes, focus, poster tilt, the ten-foot rules |
+| `themes/<id>/theme.json` | `colors`: every colour of that theme as `#rrggbb` or `#rrggbbaa`; `radius` |
+
+Sizes are CSS pixels at normal scale: use them as dp or pt. Times are milliseconds, tracking is in em,
+and radii are multiples of the theme's `radius`.
+
+| Here | Apple TV (SwiftUI) | Android TV (Compose for TV) |
+|---|---|---|
+| Spacing, type and radius tokens | a constants file generated from `tokens.json` | the same |
+| `theme.json` `colors` | `Color` assets | `ColorScheme` |
+| `Button` | `Button` with a custom `ButtonStyle` | `Button` |
+| `PosterCard` and moving posters | `.buttonStyle(.card)`: the platform's own parallax is the same idea, so use it | `Card` with `CardDefaults.scale` |
+| `Shelf`, `CardRow` | `ScrollView(.horizontal)` with `.focusSection()` | `TvLazyRow` |
+| `data-nav-group` | `.focusSection()` | `focusRestorer()` |
+| `spatial.ts` | the platform's focus engine: don't reimplement it | the same |
+| `Dialog`, `ask()` | `.alert`, `.sheet` | `AlertDialog` |
+| `Menu` | `Menu` | `DropdownMenu` |
+| Side rail | `TabView(.sidebarAdaptable)` | `NavigationDrawer` |
+| Back | the Menu button, `.onExitCommand` | `BackHandler` |
+
+**The ten-foot rules**, on any client:
+
+- **Everything can be reached and used with a D-pad.** No action needs a pointer.
+- **Focus is always obvious**: a 3px ring in `--fg` and a slightly larger poster. Exactly one thing has
+  it, and moving it never scrolls it out of sight or clips it.
+- **Large targets**: at least 48, spaced so focus moves predictably.
+- **Readable from the sofa**: base text grows by a quarter, and no text below `--text-2xs` at that
+  scale. Keep lines short.
+- **Clear of the edge**: the side margin grows, because TVs can crop the picture.
+- **Back always works**: every view has a way out with the Back button.
+
+In the web app these apply through `html.using-controller` (a controller in use), `@media (pointer:
+none)` (a device with no pointer) and `html.ten-foot` (*Big screen mode* in Appearance, or `?tv=1` in the
+address, which keeps them on).
 
 ## Keeping it fast
 
 - **No blur on anything that scrolls or covers video.** `backdrop-filter` and `filter: blur` repaint
   every frame. Use a solid or nearly solid colour.
-- **No per-card effects.** A filter on one card is nothing; on 2,000 it is a slideshow. Generated
-  artwork is a frame on a gradient, not a blurred copy of itself.
-- **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do. Copy it for anything
-  that can run to hundreds of rows.
+- **No per-card effects.** One listener and one element can serve a library of thousands, as moving
+  posters do. A filter on each of 2,000 cards is a slideshow.
+- **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do.
 - **Lazy images**: `loading="lazy"` on everything in a list.
-- **No React state for scrolling or dragging.** `CardRow` writes to the DOM directly.
+- **Lazy pages**: routes load when they're opened.
+- **Lists that can run to thousands are windowed**: `pages/games/VirtualGames.tsx` draws only the rows near the screen and asks for only the pages of results those rows need. The page itself still scrolls.
+- **No React state for scrolling or dragging.**
+- **No polling where an event will do.**
 - **No new UI libraries.** Every icon is a path in `icons.tsx`.
-- Watch the build's CSS and JS sizes in `npm run build`.
+- Watch the CSS and JS sizes in `npm run build`.
 
-The bar over a backdrop (it turns solid as you scroll) is the one scroll-linked effect. It animates
-opacity on the compositor, and browsers without it get a plain solid bar.
+## Keeping to it
 
-## Accessibility
+CI runs these, and fails on a problem. Run them from the repository root.
 
-The bar is WCAG 2.2 AA.
-
-- **Contrast**: `python scripts/theme-contrast.py` checks every built-in theme: text 4.5:1 on all
-  surfaces (`--fg`, `--fg-2`, `--fg-3`, `--accent-text`, `--danger`, `--ok`, `--warn`), `--accent-fg` on
-  `--accent`, and `--control-line` 3:1. Run it after changing a theme, use `--fix` to correct one, and
-  bump the theme's version in `theme.json`.
-- **Focus**: `:focus-visible` gets a ring in `--focus`, 2px wide, 3px at ten feet. Cards ring the
-  poster, not the text. `scroll-padding` keeps a focused thing clear of the bars.
-- **Targets** are at least 24px (WCAG 2.5.8); a small mark gets an invisible bigger box around it
-  (see `.hero .dots button` and `.tip`).
-- **Colour is never alone**: links in sentences are underlined, selected things change shape or fill.
-- **Keyboard and screen readers**: `web/src/a11y.tsx` gives every `.modal` focus handling, Escape and
-  a name from its first heading, and announces page changes through the live region. Name icon
-  buttons with `aria-label`.
-- `prefers-contrast: more` and `forced-colors` are handled in `styles.css`.
-
-## Screens and input
-
-| Width | What changes |
+| Command | Checks |
 |---|---|
-| up to 520 | three posters across; dialogs are bottom sheets (up to 600) |
-| up to 700 | bottom tab bar, compact audio bar |
-| up to 900 | the sidebar is a drawer |
-| 1100, 1700 and up | bigger posters |
-| 2200 and up | everything zoomed 1.25 (4K TVs) |
+| `python scripts/design-check.py` | raw colours, one-off font sizes and radii, z-index numbers, `transition: all`, blur, unnamed icon buttons, unlabelled fields, images without `alt`, click handlers on a `div`, `confirm()` |
+| `python scripts/theme-contrast.py` | every built-in theme against [Accessibility](#accessibility) |
+| `python scripts/design-tokens.py --check` | the data files match the CSS |
+| `node --experimental-strip-types --test web/src/ui/*.test.mjs web/src/shell/*.test.mjs` | the navigation rule, the menu's arithmetic, the theme maker's colours |
 
-Touch makes every control taller automatically. [Ten feet](#native-apps-and-ten-feet) has its own rules.
+Older code that hasn't been moved over yet is listed file by file in
+`scripts/design-check-baseline.json`. Counts may go down, never up, and a file that isn't listed must be
+clean. After clearing some, `python scripts/design-check.py --update` lowers the baseline, and
+`--list <file>` shows a file's problems. If something really must stay, say why on the line with
+`design-ok`:
 
-Check a new page at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in one dark and one
-light theme.
+```css
+mask-image: linear-gradient(#000 80%, transparent); /* design-ok: a mask only reads how solid it is */
+```
 
 ## Adding a page
 
-1. **Start from the page's job.** What is the one main action? That gets the `.primary` button.
-2. **Use the frame.** Routes in `App.tsx` already get the sidebar, top bar and gutter.
-3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`). Keep exactly one `h1`: the
-   announcer reads it aloud on every page change.
-4. **Build from [shared parts](#shared-parts).** A grid of things:
+1. **Start from the page's job.** What is the one main action? That gets the `primary` button.
+2. **Use the frame.** Routes in `App.tsx` already get the side menu, top bar and gutter.
+3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`). Exactly one `h1`.
+4. **Build from [shared parts](#components).** A grid of things:
 
    ```tsx
    export default function GamesPage() {
@@ -238,75 +422,16 @@ light theme.
          <div className="toolbar"><h1>Games</h1><span className="count">{games?.length ?? ''}</span></div>
          {!games ? <SkeletonGrid />
            : games.length === 0 ? <EmptyState icon={<IconGame />} title="No games yet" text="Add a folder of games in Settings." />
-           : <div className="grid">{games.map((g) => <GameCard key={g.id} game={g} />)}</div>}
+           : <div className="grid">{games.map((g) => <PosterCard key={g.id} to={`/game/${g.id}`} title={g.title} art={g.poster} />)}</div>}
        </>
      )
    }
    ```
 
-   A card is `.card` > `.poster` + `.title` + `.sub`. A backdrop page is `.detail-hero` + `.detail`
-   (the top bar runs over it by itself). A settings page is `PageHead` + `Section` + `Row`.
-5. **Add CSS only for what is really new**, in a file of its own imported by the page, using tokens
-   only: no raw `px` font sizes, colours or radii. Name classes with a short prefix (`gm-row`).
-6. **Do the three page states** (loading, empty, error) and the five control states.
-7. **Name things**: `aria-label` on icon buttons, a `.modal` with an `h2` for any dialog.
-8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so
-   the native apps get the same behaviour; components only lay it out.
-9. **Check** it at four widths, with the keyboard, in a dark and a light theme. `npm run build` must
-   stay green.
-
-## Native apps and ten feet
-
-The Apple TV and Android TV apps use the same design. The CSS is the single source, and
-`python scripts/design-tokens.py` writes it out as plain data for them:
-
-| File | Holds |
-|---|---|
-| `themes/tokens.json` | type scale, spacing, shape, depth, motion, control and card sizes, focus, the ten-foot rules |
-| `themes/<id>/theme.json` | `colors`: every colour of that theme, already worked out, as `#rrggbb` or `#rrggbbaa`; `radius` |
-
-Sizes are CSS pixels at normal scale: use them as dp or pt. Times are milliseconds, tracking is in em,
-and radii are multiples of the theme's `radius`. Run the script after changing `styles.css` or a
-theme; `--check` (in CI) fails when the files are out of date. Don't edit them by hand.
-
-**The ten-foot rules**, which apply to every screen, on any client:
-
-- **Everything can be reached and used with a D-pad.** Up, down, left, right and OK: no action needs
-  a pointer. Build with real `a`, `button` and `input` elements, so `tv.ts` can move between them; a
-  click handler on a `div` can't be reached.
-- **Nothing is hover-only.** Hover may decorate, but the thing it reveals must also appear on focus
-  (`:focus-visible` beside `:hover`), or not be needed. Row arrows are the mouse's extra way along a
-  row; a remote moves card by card.
-- **Focus is always obvious**: a 3px ring and a slightly larger poster, in a colour that reads on
-  every surface. Exactly one thing has it. Moving it must never scroll it out of sight or clip it.
-- **Large targets**: at least 48 at ten feet, and spaced so that focus moves predictably.
-- **Readable from the sofa**: the base text grows by a quarter, and no text below `--text-2xs` at
-  that scale. Keep lines short; long passages are for the small screen.
-- **Clear of the edge**: the side margin grows, because TVs can crop the picture's edge.
-- **Back always works**: every view has a way out with the Back button, and dialogs close with it.
-
-In the web app these apply through `html.using-controller` (a controller in use, set in `tv.ts`) and
-`@media (pointer: none)` (a device with no pointer, like a TV browser). To try it, connect a controller, or
-add the class in the browser's developer tools.
-
-## What the audit found
-
-The state of the interface before this system, kept here as a record of what to avoid going back to:
-
-- **Type**: 30-odd font sizes, including 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, in `px`.
-- **Spacing**: no grid; hero text 48px from the edge above content 28px from it.
-- **Colour**: the accent on everything, selected or not; hard-coded greens, reds and oranges beside
-  the theme's own; hairlines darker than the page, so invisible on dark themes and OLED.
-- **Shape and depth**: 20 radii, a dozen one-off shadows, `--radius` declared but unused.
-- **Icons**: text characters as icons (play, tick, arrows, plus, grip), which look different on every
-  platform; the same icon for music and podcasts, books and audiobooks; a clipped search icon.
-- **Motion**: no shared timing; `transition: all`; hover effects that stuck after a tap.
-- **States**: a spinner or nothing while loading, plain text for errors, empty states with no way forward.
-- **Performance**: `backdrop-filter` on the top bar, tab bar, audio bar, reader bars and panels over
-  video; a blur filter on every generated poster.
-- **Accessibility**: an auto-turning banner with no pause (2.2.2); 8px dots and 22px buttons as
-  targets (2.5.8); field outlines and switches under 3:1 (1.4.11); white letters on yellow avatars;
-  sticky bars able to cover the focused thing (2.4.11).
-- **Content**: rows repeating one album per song, books showing "0 min", titles twice on generated posters.
-- **Duplicates**: rules for `.chip`, `.crumbs` and `.modal.wide` in two files that overrode each other,
-  which gave genre filters the wrong padding.
+5. **Add CSS only for what's really new**, in a file of its own imported by the page, using tokens
+   only. Name classes with a short prefix (`gm-row`).
+6. **Do the three page states** (loading, empty, error).
+7. **Name things**: icon buttons, fields, images.
+8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so the
+   native apps get the same behaviour.
+9. **Check it** at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in a dark and a light theme.

@@ -7,6 +7,7 @@ import { ChooseFolderButton } from './FolderPicker'
 import { BiosHint, ConsolePicker } from '../pages/Games'
 import { libraryKinds, missingKind, orList, type LibraryKind, type ModuleRef, kindTitle } from '../moduleStore'
 import { Spinner } from './common'
+import { Segmented } from '../ui/Choice'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
 // folder it's in. Used by the setup wizard and the empty home page. Kinds whose
@@ -282,12 +283,7 @@ export function GroupingChoice({ value, onChange }: { value: Grouping; onChange:
   return (
     <div className="lib-grouping">
       <span className="muted">Another folder of a kind you already have:</span>
-      <div className="seg" role="radiogroup" aria-label="Another folder of the same kind">
-        <button type="button" role="radio" aria-checked={value === 'combine'} className={value === 'combine' ? 'active' : ''} onClick={() => onChange('combine')}
-          title="For example, every movies folder goes into one Movies library">Combine into one library</button>
-        <button type="button" role="radio" aria-checked={value === 'separate'} className={value === 'separate' ? 'active' : ''} onClick={() => onChange('separate')}
-          title="Each folder becomes its own library with its own name">Keep separate, with own names</button>
-      </div>
+      <Segmented label="Another folder of the same kind" value={value} onChange={onChange} options={[{ value: 'combine', label: 'Combine into one library' }, { value: 'separate', label: 'Keep separate, with own names' }]} />
     </div>
   )
 }

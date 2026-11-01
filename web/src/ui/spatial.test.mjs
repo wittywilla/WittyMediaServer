@@ -1,7 +1,7 @@
 // node --experimental-strip-types --test web/src/ui/spatial.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isBackKey, ranked, score } from './spatial.ts'
+import { isBackKey, nearest, ranked, score } from './spatial.ts'
 
 const box = (left, top, w = 100, h = 150) => ({ left, top, right: left + w, bottom: top + h })
 const best = (from, all, dir) => ranked(from, all, (b) => b, dir)[0]
@@ -10,6 +10,13 @@ const best = (from, all, dir) => ranked(from, all, (b) => b, dir)[0]
 const grid = []
 for (let y = 0; y < 3; y++) for (let x = 0; x < 6; x++) grid.push(box(x * 120, y * 180))
 const at = (x, y) => grid[y * 6 + x]
+
+test('when the focus has gone, the closest thing to where it was', () => {
+  const b = (left, top) => ({ left, top, right: left + 100, bottom: top + 40 })
+  const items = [b(0, 0), b(300, 410), b(0, 900)]
+  assert.equal(nearest(b(300, 400), items, (x) => x), items[1])
+  assert.equal(nearest(b(0, 0), [], (x) => x), undefined)
+})
 
 test('along a row it stays on the row', () => {
   assert.equal(best(at(2, 1), grid, 'right'), at(3, 1))

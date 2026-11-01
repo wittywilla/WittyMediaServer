@@ -67,7 +67,15 @@ var serverFeatures = []string{
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics",
 	"game-controller-profiles", "game-settings", "custom-game-cores", "game-rigs",
+	"channels", "live-tv", "live-tv-stream-tokens", "tv-favourites", "tv-reminders", "recordings",
+	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
+	"music-home", "music-radio", "lyrics", "min-client-versions",
 }
+
+// minClientVersions names the oldest version of each app this server still works with, by
+// the kind of app. An app older than this says it needs updating instead of failing in odd
+// ways. Only raised when the API itself leaves an app behind, which within v1 it shouldn't.
+var minClientVersions = map[string]string{"android": "0.1.0", "apple": "0.1.0", "desktop": "0.1.0"}
 
 // GET /api/capabilities (public): what this server is and can do, the first
 // thing an app asks. Nothing here is private: /api/status tells the version too.
@@ -83,18 +91,19 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{
-		"server":        "WittyMediaServer",
-		"serverId":      id.ID,
-		"serverName":    s.ServerName(ctx),
-		"publicKey":     id.PublicKey(),
-		"fingerprint":   id.Fingerprint(),
-		"version":       s.Version,
-		"apiVersion":    apiVersion,
-		"apiRevision":   apiRevision,
-		"apiVersions":   []int{apiVersion},
-		"apiBase":       strings.TrimSuffix(apiPrefix, "/"),
-		"setupRequired": s.Auth.UserCount(ctx) == 0,
-		"features":      serverFeatures,
+		"server":            "WittyMediaServer",
+		"serverId":          id.ID,
+		"serverName":        s.ServerName(ctx),
+		"publicKey":         id.PublicKey(),
+		"fingerprint":       id.Fingerprint(),
+		"version":           s.Version,
+		"apiVersion":        apiVersion,
+		"apiRevision":       apiRevision,
+		"apiVersions":       []int{apiVersion},
+		"apiBase":           strings.TrimSuffix(apiPrefix, "/"),
+		"setupRequired":     s.Auth.UserCount(ctx) == 0,
+		"features":          serverFeatures,
+		"minClientVersions": minClientVersions,
 		"auth": map[string]any{
 			"password":         true,
 			"pairing":          true,
@@ -114,8 +123,8 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 			},
 			"directPlay": s.DB.GetSetting(ctx, "directPlay", "1") == "1",
 		},
-		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "radio"},
-		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "cd-image", "audio", "book", "radio"},
+		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "radio", "games", "photos"},
+		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "cd-image", "audio", "book", "radio", "game", "photo"},
 	})
 }
 

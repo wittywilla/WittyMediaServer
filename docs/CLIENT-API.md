@@ -19,6 +19,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [What each TV plays](#what-each-tv-plays)
 - [Subtitles](#subtitles)
 - [Rules every client shares](#rules-every-client-shares)
+- [Live channels](#live-channels)
 - [Discs and their menus](#discs-and-their-menus)
 - [Themes and design data](#themes-and-design-data)
 - [Choices that follow the account](#choices-that-follow-the-account)
@@ -51,6 +52,19 @@ in `/capabilities` counts additions, and `features` names them: look for a featu
 comparing server version numbers. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
+
+**Which app works with which server.** Every client checks this at the address step, in this order, and
+never by comparing server version numbers:
+
+| Check | If it fails | Says |
+|---|---|---|
+| `apiVersions` has 1 | The app can't talk to it at all | "This server needs a newer version of the app" |
+| `apiRevision` is at least what this app needs (each app holds this as a constant) | The server is older than the app | "Update this server" |
+| This app's version is at least `minClientVersions[kind]`, for `android`, `apple` or `desktop` | The server has left this app behind | "This server needs a newer version of the app" |
+| Something optional: its name is in `features` | Only that part is hidden | Nothing: the app simply doesn't offer it |
+
+A missing `minClientVersions` or a kind not listed means fine. Within v1 the server should have no reason
+to raise these numbers, so they are a way out and not a habit.
 
 **Addresses in answers** (`url`, `overlayUrl`, `openUrl`...) start with `/api/`: put the server's
 address in front and don't change them otherwise. They are not part of what a version promises to
@@ -233,8 +247,9 @@ TV                              server                         phone or computer
 
 - `POST /pair/start {device, platform}`: `device` is a name people will recognise ("Living room Apple
   TV"), `platform` is `tvOS` or `Android TV`. It answers `code` to show, `deviceSecret` to keep (never
-  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path: put
-  the server's address in front for a QR code; the page still asks before doing anything).
+  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path with
+  the code in it: put the server's address in front for a QR code; the page still asks before doing
+  anything). `approvePath` is the same page without the code, to show as text to type.
 - `POST /pair/poll {deviceSecret}`, every `intervalSec`:
 
   | Status | `status` | Meaning |
@@ -467,6 +482,22 @@ numbers are also in `/capabilities`, under `playback.rules`.
 A few are for the app to carry out, with these values, so it feels the same everywhere: show **Watch
 next** 30 seconds before the end; count down **8 seconds** into the next episode; report progress every
 **10 seconds** and on stopping, but not in the first **5 seconds**.
+
+## Live channels
+
+Channels and tuners aren't items, so they don't go through `/playback`. `GET /guide` lists them and their
+programmes, with a `key` for each channel.
+
+`GET /tv/{key}/tune?streamToken=1` starts the shared stream and answers what is on (`now`, `next`,
+`positionSec`), the `url` of its playlist, and for a player that can't set headers, `streamUrl`: the same
+address with a stream token for that channel alone. AVPlayer always needs that one. Add `?viewer=<a random
+name>` to the address so the server can tell viewers apart, and send `POST /tv/{key}/leave?viewer=<name>`
+when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
+is made, which is what the web player does.
+
+Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
+that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
+server never decrypts one.
 
 ## Discs and their menus
 
@@ -856,8 +887,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
-| `GET /logs/bundle` | admin | The support bundle, a zip made on request: `days`, `redact=1` hides titles and paths. Nothing is uploaded anywhere. |
-| `GET /logs/bundle/preview` | admin | What the support bundle would hold. |
+| `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
+| `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
 | `GET /diagnose/browse` | admin | Folders and disc images inside the libraries and data folders only. |
 | `POST /diagnose/disc` | admin | Start checking a disc: `{path, crawl, damage}`. 202 with the job; 429 when too many wait. Read-only. |
@@ -871,6 +902,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
+| `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
+| `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
+| `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
+| `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
@@ -1015,6 +1051,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /match/rules` | Admin | A library's naming rules. |
 | `PUT /match/rules` | Admin | Replace a library's naming rules. |
 | `POST /match/rules/try` | Admin | What some rules would do to a library's files. Changes nothing. |
+| `GET /metadata-folder` | admin | The [editable metadata folder](FIXING-METADATA.md): `{path, files, pictures, layout, job}`. `job` is the export's progress and result. No route here takes a path. |
+| `POST /metadata-folder/export` | admin | `{library}` (0 or left out for all): write the files, in the background. 202 with the job; 409 if the folder is busy. Never deletes, and never writes over edits not applied. |
+| `GET /metadata-folder/preview` | admin | What applying would change: `{files, unchanged, total, listed, changes: [{file, target, id, name, fields: [{field, label, old, new, line}]}], problems: [{file, line, field, msg, severity}]}`. Writes nothing. |
+| `POST /metadata-folder/apply` | admin | Makes those changes in one batch: `{batch, applied, fields, skipped, changes, problems}`. A bad file is listed and left out. `POST /meta/undo` with the batch takes it back. |
 
 ### Playback
 
@@ -1122,11 +1162,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Guide. |
-| `GET /tv/{key}/tune` | user | Tune. |
-| `GET /tv/{key}/live/playlist.m3u8` | user | Live playlist. |
-| `GET /tv/{key}/live/seg/{name}` | user | Live segment. |
-| `POST /tv/{key}/leave` | user | Live leave. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. |
+| `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
+| `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
+| `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
+| `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
@@ -1501,3 +1541,23 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+## Backup
+
+The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a refused one answers with the reason in the job's `error`, and `refused` is true. While a server has no accounts, the routes marked for first-time setup follow the rule for making the first account: on the home network, or with the setup code in `X-Setup-Code`.
+
+| Route | |
+|---|---|
+| `GET /backup` | What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet. |
+| `GET /backup/estimate` | About how large each part of a backup is, before compression. |
+| `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
+| `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
+| `POST /backup/files/{name}/link` | A short-lived address to download a backup. |
+| `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
+| `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |
+| `POST /backup/restore/inspect` | Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup. |
+| `POST /backup/restore/start` | Bring a checked archive back: `{parts, confirm: "RESTORE", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for. |
+| `DELETE /backup/restore/request` | Take back a restore that's waiting for the next start. |
+| `POST /backup/undo` | Put back what the last restore replaced: `{copy, password, code}`. The server restarts. |

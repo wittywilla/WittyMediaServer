@@ -74,8 +74,6 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
     const t = setTimeout(() => { void loadMeta(); reload?.() }, 6000)
     return () => clearTimeout(t)
   }, [meta]) // eslint-disable-line react-hooks/exhaustive-deps
-  // The Play button is where the eye and the controller land.
-  useEffect(() => { if (input.kind !== 'pointer') document.querySelector<HTMLElement>('.gm-game-actions .primary')?.focus({ preventScroll: true }) }, [it.id, input.kind === 'pointer']) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tint = useCoverTint(it.poster ? heroCover(it) : null)
   const settingsHost = useSettingsHost(!!user?.isAdmin)
@@ -87,6 +85,10 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const ready = (check ? check.ready : c?.ready ?? false) && !meta?.problem
   const startsResumed = !!auto && resumeMode === 'always'
   const offerResume = !!auto && resumeMode === 'ask'
+  // The Play button is where the eye and the controller land, once it's there, and again if
+  // it changes to Resume under the focus. Not if someone's already somewhere else on the page.
+  const resumes = offerResume || startsResumed
+  useEffect(() => { if (input.kind !== 'pointer' && (!document.activeElement || document.activeElement === document.body)) document.querySelector<HTMLElement>('.gm-game-actions .primary')?.focus({ preventScroll: true }) }, [it.id, input.kind === 'pointer', ready, resumes]) // eslint-disable-line react-hooks/exhaustive-deps
   const played = it.progress?.positionSec || 0
   const lib = libraries.find((l) => l.id === it.libraryId)
   const back = backdropUrl(it)
@@ -163,7 +165,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           )}
           {meta && <GameProblem d={meta} />}
           <div className="gm-game-actions">
-            {ready && (offerResume || startsResumed)
+            {ready && resumes
               ? <Link className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
               : ready && <Link className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
             {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
@@ -218,7 +220,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </div>
 
       {!user?.isAdmin && <GameVersionLinks it={it} />}
-      {meta && meta.art.length > 0 && <div className="gm-section" data-gm-section><GameShots d={meta} title={it.title} /></div>}
+      {meta && meta.art.length > 0 && <div className="gm-section gm-pictures" data-gm-section><GameShots d={meta} title={it.title} /></div>}
 
       {saves.length > 0 && (
         <section className="hub gm-section" data-gm-section aria-labelledby="gm-saves-h">

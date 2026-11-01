@@ -148,6 +148,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
 | 📡 | [Channels and live TV](docs/CHANNELS.md) | channels from your library, the guide, tuners, IPTV, recording |
 | 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |
+| ✏️ | [Fixing metadata by hand](docs/FIXING-METADATA.md) | a folder of plain text files, one for each title, with worked examples |
 | 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
 | 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
 | 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |
@@ -158,6 +159,8 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |
 | 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |
 | 📡 | [Client API](docs/CLIENT-API.md) · [OpenAPI](docs/openapi.json) | for apps and tools: TV sign-in, playback profiles, stream tokens, disc menus |
+| 💾 | [Backup and restore](docs/BACKUP.md) | one ZIP of your data and metadata, and bringing it back after a reset or a move |
+| 🔧 | [Repair](docs/REPAIR.md) | finding and fixing problems with metadata, the database, modules and the install |
 | ❓ | [Troubleshooting](docs/TROUBLESHOOTING.md) | the common problems and their fixes |
 | ⚖️ | [Legal notices](docs/LEGAL-NOTICES-CHECKLIST.md) | which notice goes where |
 | 🧩 | [Modules & apps](docs/MODULES.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) | how the pieces fit, and what's next |

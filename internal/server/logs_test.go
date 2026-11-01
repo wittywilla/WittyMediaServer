@@ -344,6 +344,91 @@ func TestSummaryAndBundleHoldNoSecrets(t *testing.T) {
 	}
 }
 
+// A bundle is sanitized unless someone asks otherwise, with the names this server knows
+// taken out, wherever they turn up.
+func TestBundleIsSanitizedByDefault(t *testing.T) {
+	ts, admin := logServer(t)
+	ctx := context.Background()
+	const account, library, title, folder = "plantedperson", "Attic Cinema", "A Very Secret Movie Title", "/srv/planted-films"
+	ts.user(t, account, "adult", false, "")
+	res, err := ts.DB.ExecContext(ctx, `INSERT INTO libraries (name, type, created_at) VALUES (?, 'movies', 1)`, library)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lib, _ := res.LastInsertId()
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO library_paths (library_id, path) VALUES (?, ?)`, lib, folder); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO items (library_id, title, sort_title, path, kind, added_at, updated_at) VALUES (?, ?, ?, ?, 'video', 1, 1)`, lib, title, title, folder+"/x.mkv"); err != nil {
+		t.Fatal(err)
+	}
+	ts.Log.Warn("a step failed", "err", "played "+title+" from "+folder+"/x.mkv for "+account+" in "+library+" at 192.168.40.17")
+	secrets := []string{account, library, title, folder, "planted-films", "192.168.40.17"}
+	get := func(path string) (string, *httptest.ResponseRecorder) {
+		w := ts.do(t, "GET", path, admin, nil)
+		if w.Code != 200 {
+			t.Fatalf("%s: %d %s", path, w.Code, w.Body)
+		}
+		zr, err := zip.NewReader(bytes.NewReader(w.Body.Bytes()), int64(w.Body.Len()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var all strings.Builder
+		for _, f := range zr.File {
+			rc, err := f.Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			b, _ := io.ReadAll(rc)
+			rc.Close()
+			all.Write(b)
+		}
+		return all.String(), w
+	}
+	for _, path := range []string{"/api/logs/bundle?days=1", "/api/logs/bundle?days=1&sanitize=1", "/api/logs/bundle?days=1&redact=1"} {
+		text, w := get(path)
+		if !strings.Contains(w.Header().Get("Content-Disposition"), "sanitized") {
+			t.Errorf("%s: %s", path, w.Header().Get("Content-Disposition"))
+		}
+		for _, v := range secrets {
+			if strings.Contains(text, v) {
+				t.Errorf("%s: %q survived:\n%s", path, v, text)
+			}
+		}
+		if !strings.Contains(text, "SANITIZED") || !strings.Contains(text, "[title-") || !strings.Contains(text, "a step failed") {
+			t.Errorf("%s:\n%s", path, text)
+		}
+	}
+	for _, path := range []string{"/api/logs/bundle?days=1&sanitize=0", "/api/logs/bundle?days=1&redact=0"} {
+		if text, _ := get(path); !strings.Contains(text, title) || !strings.Contains(text, "NOT sanitized") {
+			t.Errorf("%s should be the plain logs:\n%s", path, text)
+		}
+	}
+	w := ts.do(t, "GET", "/api/logs/bundle/preview?days=1", admin, nil)
+	var p logging.BundlePreview
+	if err := json.Unmarshal(w.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	if !p.Sanitize || p.Replaced["title"] == 0 || p.Replaced["ip"] == 0 || len(p.Changed) == 0 {
+		t.Errorf("%+v", p)
+	}
+	for _, line := range p.Sample {
+		if strings.Contains(line, title) {
+			t.Errorf("the sample shows the title: %s", line)
+		}
+	}
+	// Administrators' alone.
+	_, kid := ts.user(t, "small", "kids", false, "")
+	for _, path := range []string{"/api/logs/bundle", "/api/logs/bundle/preview"} {
+		if w := ts.do(t, "GET", path, kid, nil); w.Code != 403 {
+			t.Errorf("%s: %d", path, w.Code)
+		}
+		if w := ts.do(t, "GET", path, "", nil); w.Code != 401 {
+			t.Errorf("%s: %d", path, w.Code)
+		}
+	}
+}
+
 func TestCrashRoutes(t *testing.T) {
 	ts, admin := logServer(t)
 	ts.mux.HandleFunc("GET /api/test-panic", func(http.ResponseWriter, *http.Request) { panic("boom") })

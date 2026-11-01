@@ -63,7 +63,11 @@ const measure = `(() => {
     const b = r.getBoundingClientRect()
     if (!b.width || b.bottom <= pr.top || b.top >= pr.bottom) continue
     if (b.top < top) { top = b.top; first = n.textContent.trim().slice(0, 24) }
-    if (!n.parentElement.closest('.ctv-grid, .ctv-bar, .ctv-hero-actions')) { left = Math.min(left, b.left); right = Math.max(right, b.right) }
+    if (n.parentElement.closest('.ctv-grid, .ctv-bar, .ctv-hero-actions')) continue
+    // What's cut off with an ellipsis stops where it's cut.
+    let edge = b.right
+    for (let e = n.parentElement; e && e !== page; e = e.parentElement) if (getComputedStyle(e).overflowX !== 'visible') edge = Math.min(edge, e.getBoundingClientRect().right)
+    left = Math.min(left, b.left); right = Math.max(right, edge)
   }
   const prev = document.querySelector('.ctv-preview')?.getBoundingClientRect()
   return { top: Math.round(top - pr.top), first, left: Math.round(left - pr.left), right: Math.round(pr.right - right), sideways: document.documentElement.scrollWidth - innerWidth, inner: page.scrollWidth - page.clientWidth, preview: prev ? Math.round(prev.width) : 0, previewTop: prev ? Math.round(prev.top - pr.top) : 0, pageH: Math.round(pr.height) }

@@ -336,6 +336,27 @@
       },
       "BundlePreview": {
         "properties": {
+          "changed": {
+            "items": {
+              "properties": {
+                "after": {
+                  "type": "string"
+                },
+                "before": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "after",
+                "before"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "days": {
             "type": "integer"
           },
@@ -367,6 +388,12 @@
           "redact": {
             "type": "boolean"
           },
+          "replaced": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
           "sample": {
             "items": {
               "type": "string"
@@ -375,6 +402,12 @@
               "array",
               "null"
             ]
+          },
+          "sanitize": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer"
           },
           "total": {
             "type": "integer"
@@ -385,6 +418,8 @@
           "parts",
           "redact",
           "sample",
+          "sanitize",
+          "scanned",
           "total"
         ],
         "type": "object"

@@ -46,7 +46,7 @@ export default defineConfig({
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
   server: {
     port: 5173,
-    proxy: { '/api': { target: 'http://127.0.0.1:9797', changeOrigin: false } },
+    proxy: { '/api': { target: process.env.WMS_API || 'http://127.0.0.1:9797', changeOrigin: false } },
     fs: { allow: ['..', ...readdirSync(modulesDir).map((d) => realpathSync(modulesDir + d))] }, // the modules' repositories
   },
 })

@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../../icons'
 import { toast } from '../../state'
 import { GameSourcesSettings } from '../GameMeta'
+import { MusicOnlineSettings } from '../MusicOnline'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
@@ -52,6 +53,8 @@ export default function MetadataSettings() {
         <KeyRow provider="tvdb" label="TheTVDB" desc={<>Detailed TV episode information. Get a key at <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">thetvdb.com</a>. Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>.</>}
           value={s.tvdbKey || ''} onChange={(v) => set('tvdbKey', v)} placeholder="API key (v4)" pin={s.tvdbPin || ''} onPin={(v) => set('tvdbPin', v)} />
       </Section>
+
+      <MusicOnlineSettings s={s} set={set} on={on} />
 
       <GameSourcesSettings />
 

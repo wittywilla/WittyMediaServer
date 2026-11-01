@@ -38,6 +38,18 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
 - **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+### Music
+
+- **A new front page for music, audiobooks and podcasts:** covers to flip through with their reflections, artists as round photos, albums and songs as shelves with **See all**, and colours taken from the artwork. **Play my music** shuffles it all.
+- **Full-screen player:** artwork with a visualizer behind it, the full transport, and volume, playlists, a sleep timer, the queue and likes along the top. Keys for everything, and arrows alone reach every control.
+- **The bar along the bottom** is new: floating, with shuffle, repeat, like, volume and the queue, and it collapses to a small button. It leaves room under the page, and steps behind the account menu.
+- **Lyrics that follow the music.** From a `.lrc` file beside the song, the song's own tags, or, if the owner agrees, LRCLIB, which is free and needs no key. A paid Musixmatch key or your own LRCLIB server can be added. Press a line to go to it, nudge the timing for yourself, or correct it for everyone with **Tap along**.
+- **Karaoke:** big words that fill in as they're sung, a count-in, the next line waiting, the voice turned down, and the key moved up or down. The screen says what the voice reduction can and can't do.
+- **Visualizer:** Bars, Waves and Drift are on behind the artwork in the full-screen player, with a large button and a **Slow** switch. **It no longer changes effect by itself** unless you choose an interval, now up to every 10 minutes.
+- **Sound:** no gaps between songs, crossfade, ReplayGain and a ten-band equaliser.
+- **The queue can be edited as it plays,** and saved as a playlist. Shuffle now really reorders it. **Liked songs, Most played, Played lately** and **stations** made from a song.
+- **Artist pages,** with discography, and a biography and photo from Wikipedia if the owner agrees. An `artist.jpg` in their folder comes first. Multi-disc albums are divided by disc, with other versions of an album offered below it.
+- **Read:** a booklet or text file beside an album, from the full-screen player.
 
 ## 0.5.2-alpha
 

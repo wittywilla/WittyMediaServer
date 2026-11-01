@@ -217,9 +217,10 @@ if [ -n "$old" ]; then
   for _ in $(seq 1 30); do [ -f "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] && break; sleep 2; done
   [ -f "$oldroot/wms.exe" ] || fail "the old setup didn't install"
   [ -f "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] || fail "the old copy didn't start"
-  reg_has 'wms-setup.exe' || fail "the old setup left no Installed apps entry"
   echo kept > "$USERDIR/AppData/Local/WittyMediaServer/my-own-notes.txt"
   wine taskkill /f /im WittyMediaServer.exe >/dev/null 2>&1; wine taskkill /f /im wms.exe >/dev/null 2>&1
+  wineserver -w  # Wine writes its registry out once everything has stopped
+  reg_has 'wms-setup.exe' || fail "the old setup left no Installed apps entry"
   run_msi /i "$msi" /qn "$JUST_ME" || fail "install over the old copy exit $code"
   [ ! -e "$oldroot/wms.exe" ] || fail "the old program stayed"
   [ ! -e "$oldroot/wms-setup.exe" ] || fail "the old setup stayed"

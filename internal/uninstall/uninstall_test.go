@@ -23,10 +23,15 @@ type fakeSys struct {
 func (f *fakeSys) Run(name string, args ...string) (string, error) {
 	call := filepath.Base(name) + " " + strings.Join(args, " ")
 	f.calls = append(f.calls, call)
-	for k, v := range f.answers {
-		if strings.HasPrefix(call, k) {
-			return v, nil
+	// The most particular answer: "x /Query" before "x".
+	best, found := "", false
+	for k := range f.answers {
+		if strings.HasPrefix(call, k) && (!found || len(k) > len(best)) {
+			best, found = k, true
 		}
+	}
+	if found {
+		return f.answers[best], nil
 	}
 	return "", errors.New("exit status 1")
 }

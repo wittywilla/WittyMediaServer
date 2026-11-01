@@ -84,6 +84,9 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	if isBluray(it) {
 		sess, err := s.BD.Open(it.ID, it.Path, prefs)
+		if writeModuleMissing(w, err) {
+			return
+		}
 		if err != nil {
 			writeErr(w, 500, err.Error())
 			return
@@ -102,6 +105,9 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, err := s.DVD.Open(it.ID, it.Path, prefs)
+	if writeModuleMissing(w, err) {
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

@@ -1,7 +1,12 @@
 package library
 
 import (
+	"bytes"
+	"encoding/json"
+	"image"
+	"image/png"
 	"math"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -111,5 +116,77 @@ func FuzzSidecars(f *testing.F) {
 			readMusicVideoNFO(p)
 			referencedFiles(p)
 		})
+	})
+}
+
+// A rule is typed by an administrator, and the paths it's tried on are whatever files are called.
+func FuzzMatchRules(f *testing.F) {
+	for _, s := range [][2]string{
+		{"{title} ({year})", "Some Film (1999)"}, {"*/{title} [{tmdb}]/*", "a/Some Film [123]/b"}, {"{nope}", "x"}, {"{any}{any}{any}*{title}*{title}", "aaaa"},
+		{"(((", "Film [tmdbid-1] {imdb-tt123} (tvdb=9)"}, {"\\\\{edition}", "\xff\xfe"},
+	} {
+		f.Add(s[0], s[1])
+	}
+	f.Fuzz(func(t *testing.T, pattern, path string) {
+		inTime(t, 5*time.Second, func() {
+			if re, err := compileRule(pattern); err == nil {
+				applyRule(&MatchRule{}, re, path)
+			}
+			IDTag(path)
+			stripIDTags(path)
+			ParseMatchRef(path)
+		})
+	})
+}
+
+// A saved view keeps a query someone wrote, and it's read again whenever the view is opened.
+func FuzzBrowseQuery(f *testing.F) {
+	for _, s := range []string{"genre=a&genre=b&year=1999&minRating=7.5", "limit=-1&offset=99999999999999999999&seed=x", "%zz=%zz", "decade=1&resolution=4k&sort=random&desc=1", "studio=%00%ff&content=x"} {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		q, err := url.ParseQuery(s)
+		if err != nil {
+			return
+		}
+		inTime(t, 5*time.Second, func() {
+			ParseBrowseFilter(q)
+			if _, err := url.ParseQuery(CleanViewQuery(q).Encode()); err != nil {
+				t.Fatalf("a cleaned query can't be read again: %v", err)
+			}
+			BrandKey(s)
+			cleanBrandName(s)
+		})
+	})
+}
+
+// What a metadata source answers is kept and shown, so it's cleaned first.
+func FuzzMatchAnswers(f *testing.F) {
+	for _, s := range []string{`{"title":"a","year":1999,"genres":["x"],"cast":[{"name":"y"}]}`, `{"title":"\u0000\ud800","overview":"<script>"}`, `{}`, `[]`} {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		var d MatchDetails
+		if json.Unmarshal([]byte(s), &d) == nil {
+			cleanDetails(&d)
+		}
+		var c MatchCandidate
+		if json.Unmarshal([]byte(s), &c) == nil {
+			cleanCandidate(&c)
+		}
+	})
+}
+
+// A logo comes from a source or an upload, and only ever leaves as a new picture.
+func FuzzLogoPicture(f *testing.F) {
+	var b bytes.Buffer
+	if err := png.Encode(&b, image.NewNRGBA(image.Rect(0, 0, 8, 8))); err != nil {
+		f.Fatal(err)
+	}
+	f.Add(b.Bytes())
+	f.Add([]byte("<svg xmlns='http://www.w3.org/2000/svg' width='99999' height='99999'/>"))
+	f.Add([]byte("\x89PNG\r\n\x1a\n"))
+	f.Fuzz(func(t *testing.T, in []byte) {
+		inTime(t, 20*time.Second, func() { _, _ = makeLogoVariants(in) })
 	})
 }

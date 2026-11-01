@@ -127,6 +127,16 @@ func catalogClient(timeout time.Duration) *http.Client {
 // maxAnswer caps what is read from a catalogue's answer.
 const maxAnswer = 32 << 20
 
+// WithoutAddress is an HTTP client's error without the address it quotes: a private
+// feed's address is a password, and these errors end up in the log.
+func WithoutAddress(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
+	}
+	return err
+}
+
 // webURL keeps a feed's address only when it is a web address: a feed must
 // not point the server at a file on this machine.
 func webURL(s string) string {
@@ -191,7 +201,7 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, WithoutAddress(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -461,7 +471,7 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
-		return err
+		return WithoutAddress(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {

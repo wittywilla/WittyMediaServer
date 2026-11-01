@@ -200,14 +200,14 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 	res, err := library.SafeClient.Do(req)
 	if err != nil {
 		if r.Context().Err() == nil {
-			s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "err", err)
+			s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "err", library.WithoutAddress(err))
 		}
 		writeErr(w, 502, "the podcast server did not answer")
 		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 && res.StatusCode != 206 && res.StatusCode != 416 {
-		s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "status", res.StatusCode)
+		s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "status", res.StatusCode)
 		writeErr(w, 502, "the podcast server answered "+res.Status)
 		return
 	}

@@ -51,6 +51,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Karaoke:** big words that fill in as they're sung, a count-in, the next line waiting, the voice turned down, and the key moved up or down. The screen says what the voice reduction can and can't do.
 - **Visualizer:** Bars, Waves and Drift are on behind the artwork in the full-screen player, with a large button and a **Slow** switch. **It no longer changes effect by itself** unless you choose an interval, now up to every 10 minutes.
 - **Sound:** no gaps between songs, crossfade, ReplayGain and a ten-band equaliser.
+- **What's playing comes back after a reload,** stopped where it was, with the queue, shuffle and repeat, and it waits to be asked before fetching anything.
 - **The queue can be edited as it plays,** and saved as a playlist. Shuffle now really reorders it. **Liked songs, Most played, Played lately** and **stations** made from a song.
 - **Artist pages,** with discography, and a biography and photo from Wikipedia if the owner agrees. An `artist.jpg` in their folder comes first. Multi-disc albums are divided by disc, with other versions of an album offered below it.
 - **Read:** a booklet or text file beside an album, from the full-screen player.

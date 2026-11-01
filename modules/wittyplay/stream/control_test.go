@@ -215,7 +215,7 @@ func TestRewindNeedsTurningOnFirst(t *testing.T) {
 func TestCoreOptionsArriveAndStartValuesTakeEffect(t *testing.T) {
 	m := controlManager(t)
 	got := make(chan []ipc.Option, 1)
-	s := controlGame(t, m, t.TempDir(), Options{CoreOptions: map[string]string{"test_colours": "inverted", "test_speed": "../../etc/passwd", "no_such": "x"}, OnCoreOptions: func(l []ipc.Option) { got <- l }})
+	s := controlGame(t, m, t.TempDir(), Options{CoreOptions: map[string]string{"test_colours": "inverted", "test_speed": "../../etc/passwd", "no_such": "x"}, OnCoreOptions: func(_ string, l []ipc.Option) { got <- l }})
 	select {
 	case <-got:
 	case <-time.After(5 * time.Second):

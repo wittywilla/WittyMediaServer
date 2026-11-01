@@ -41,6 +41,7 @@ func ProbeGPU(runner, dir string, log *slog.Logger) GPUProbe {
 	var out, errOut bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errOut
 	prepareSandbox(cmd, dir, log)
+	defer sandboxStarted(cmd)
 	if err := cmd.Run(); err != nil {
 		log.Warn("checking for a graphics card", "err", err, "stderr", truncate(errOut.String(), 500))
 		return GPUProbe{Error: "the runner could not check: " + err.Error(), Again: true}

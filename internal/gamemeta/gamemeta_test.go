@@ -908,11 +908,11 @@ func TestTGDB(t *testing.T) {
 		case "/v1.1/Games/ByGameName":
 			fmt.Fprint(w, `{"code":200,"data":{"games":[{"id":4,"game_title":"Other Name","alternates":["Plain Game"]}]},`+tail)
 		case "/v1/Developers":
-			fmt.Fprint(w, `{"code":200,"data":{"developers":{"1":{"name":"Maker"}}},`+tail)
+			fmt.Fprint(w, `{"code":200,"data":{"count":1,"developers":{"1":{"name":"Maker"}}},`+tail)
 		case "/v1/Publishers":
-			fmt.Fprint(w, `{"code":200,"data":{"publishers":{"2":{"name":"Seller"}}},`+tail)
+			fmt.Fprint(w, `{"code":200,"data":{"count":1,"publishers":{"2":{"name":"Seller"}}},`+tail)
 		case "/v1/Genres":
-			fmt.Fprint(w, `{"code":200,"data":{"genres":{"3":{"name":"Action"}}},`+tail)
+			fmt.Fprint(w, `{"code":200,"data":{"count":1,"genres":{"3":{"name":"Action"}}},`+tail)
 		case "/v1/API/Limit":
 			fmt.Fprint(w, `{"remaining_monthly_allowance":12,"extra_allowance":3}`)
 		}

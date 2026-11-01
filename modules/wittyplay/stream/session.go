@@ -71,22 +71,24 @@ type Options struct {
 	// that one core refuses often play on another, and nobody should have to know.
 	Fallbacks []CoreChoice
 
-	Control       *ipc.Control            // how the game runs from the first frame
-	Cheats        []ipc.Cheat             // given to the core before the first frame
-	MaxSpeed      float64                 // the fastest it may be made to run; 0 means normal speed only
-	NoAutoSave    bool                    // leaving doesn't write the resume state
-	SafeMode      bool                    // started with defaults; settings aren't applied while it runs
-	Notices       []string                // things to tell whoever started it
-	OnCoreOptions func(list []ipc.Option) // the core has said what it offers
+	Control       *ipc.Control                           // how the game runs from the first frame
+	Cheats        []ipc.Cheat                            // given to the core before the first frame
+	MaxSpeed      float64                                // the fastest it may be made to run; 0 means normal speed only
+	NoAutoSave    bool                                   // leaving doesn't write the resume state
+	SafeMode      bool                                   // started with defaults; settings aren't applied while it runs
+	Notices       []string                               // things to tell whoever started it
+	OnCoreOptions func(coreID string, list []ipc.Option) // a core has said what it offers
 
 	keep *keptCleanup
 }
 
 // CoreChoice is a core and the settings it starts with.
 type CoreChoice struct {
-	Core    string
-	GPU     bool
-	Options map[string]string
+	Core       string
+	GPU        bool
+	Options    map[string]string
+	RunnerArgs []string // what this core asks of its runner: see wittyplay.RunnerArgs
+	CoreID     string
 }
 
 // Info is what a browser needs to know about a session.
@@ -123,6 +125,9 @@ var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
 	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
 	ErrStopped = errors.New("the game has stopped")
+	// ErrReplaced: the game was stopped while it loaded, by another being started or by
+	// the server closing. No other core gets a turn, and nothing's wrong with this one.
+	ErrReplaced = errors.New("this game was stopped before it finished loading")
 	// ErrRunnerDied is behind the plain words for a runner that ended by itself.
 	ErrRunnerDied = errors.New("the game runner ended by itself")
 	ErrNoSlot     = errors.New("there is no such save slot")
@@ -240,17 +245,24 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	if err == nil || errors.Is(err, ErrBusy) || errors.Is(err, ErrGPUBusy) {
 		return s, err
 	}
+	if errors.Is(err, ErrReplaced) {
+		if len(opt.Fallbacks) > 0 && opt.Cleanup != nil {
+			opt.Cleanup() // held back for a next core that won't have a turn
+		}
+		return nil, err
+	}
 	// What the core they would have chosen said is the error worth showing.
 	first := err
 	for i, next := range opt.Fallbacks {
 		m.log.Info("the game would not load; trying the next core", "game", opt.Title, "err", err)
 		try := opt
 		try.Core, try.CoreOptions, try.GPU = next.Core, next.Options, next.GPU
+		try.RunnerArgs, try.CoreID = next.RunnerArgs, next.CoreID
 		last := i == len(opt.Fallbacks)-1
 		if s, err = m.startOn(try, !last); err == nil {
 			return s, nil
 		}
-		if errors.Is(err, ErrBusy) || errors.Is(err, ErrGPUBusy) {
+		if errors.Is(err, ErrBusy) || errors.Is(err, ErrGPUBusy) || errors.Is(err, ErrReplaced) {
 			if !last && opt.Cleanup != nil {
 				opt.Cleanup()
 			}
@@ -293,13 +305,16 @@ func (m *Manager) startOn(opt Options, moreToTry bool) (*Session, error) {
 	}
 	id := newID()
 	s := &Session{id: id, runnerSaid: tailWriter{max: 16 << 10}, m: m, opt: opt, cfg: cfg, log: m.log.With("game", opt.Title, "session", id), done: make(chan struct{}), paused: true, controlState: controlState{speed: 1, optionsSet: make(chan struct{})},
-		viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
+		spawned: make(chan struct{}), viewers: map[*viewer]bool{}, stateWait: map[uint32]chan []byte{}, frameReady: make(chan struct{}, 1), lastInput: time.Now(), noViewerSince: time.Now(),
 		audioCh: make(chan []byte, 32), stderr: &tailWriter{max: 1 << 16}}
 	m.sessions[id] = s
 	m.mu.Unlock()
 	if err := s.start(); err != nil {
 		m.remove(s)
 		s.cleanup()
+		if s.stopAsked.Load() {
+			return nil, ErrReplaced
+		}
 		return nil, err
 	}
 	if opt.keep != nil {
@@ -386,12 +401,18 @@ type Session struct {
 	cfg Config
 	log *slog.Logger
 
+	spawned chan struct{} // closed once the fields below are set, or there won't be any
 	cmd     *exec.Cmd
 	box     func() // releases the process's sandbox resources
 	stdinMu sync.Mutex
 	stdin   io.WriteCloser
+	pipes   []io.Closer // what the runner's output is read from
 	info    ipc.Ready
-	resumed bool
+	resumed atomic.Bool // the game started from the resume state, which it took
+	loaded  atomic.Bool // the game has loaded, and from here nobody watching counts
+
+	dropPipes sync.Once
+	stopAsked atomic.Bool // Stop was called, by whatever replaced this game
 
 	done      chan struct{} // closed when the runner has exited
 	stopOnce  sync.Once
@@ -420,6 +441,7 @@ type Session struct {
 	opus          *audioEncoder
 	jpeg          *jpegEncoder
 	encName       string
+	encLost       map[string]int // how many times each has gone away during this game
 	audioCh       chan []byte
 	rate          float64
 	turns         int
@@ -461,13 +483,19 @@ func (s *Session) Info() Info {
 		width, height = frame.Width, frame.Height
 	}
 	return Info{ID: s.id, ItemID: s.opt.ItemID, Title: s.opt.Title, Console: s.opt.Console, Modes: s.m.Modes(ClientNative), Core: s.info.Name, Width: width, Height: height,
-		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed, Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer, Devices: s.info.Devices,
+		Aspect: s.info.Aspect, FPS: s.info.FPS, SampleRate: s.rate, Resumed: s.resumed.Load(), Encoder: s.encName, Turns: s.turns, Disc: s.info.Disc, Discs: s.info.Discs, Renderer: s.info.Renderer, Devices: s.info.Devices,
 		SafeMode: s.opt.SafeMode, MaxSpeed: s.maxSpeed(), Notices: s.opt.Notices}
 }
 
 func (s *Session) start() error {
-	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
+	// With no runner, anyone stopping this has nothing to wait for.
+	noRunner := func(err error) error {
+		close(s.spawned)
+		close(s.done)
 		return err
+	}
+	if err := os.MkdirAll(s.opt.SaveDir, 0o700); err != nil {
+		return noRunner(err)
 	}
 	args, memory := append(append([]string(nil), s.cfg.RunnerArgs...), s.opt.RunnerArgs...), s.cfg.MemoryMB
 	if s.opt.GPU {
@@ -476,10 +504,12 @@ func (s *Session) start() error {
 	}
 	rn, err := StartRunner(s.cfg.Runner, args, s.opt.SaveDir, memory, s.log)
 	if err != nil {
-		return err
+		return noRunner(err)
 	}
 	cmd, stdout, stderr := rn.Cmd, rn.Stdout, rn.Stderr
 	s.cmd, s.stdin, s.box = cmd, rn.Stdin, rn.Release // boxed in before any core is loaded
+	s.pipes = []io.Closer{stdout, stderr}
+	close(s.spawned)
 	s.wrote.Add(2)
 	started := time.Now()
 	go s.logStderr(stderr)
@@ -544,14 +574,19 @@ func (s *Session) start() error {
 	}
 
 	s.log.Info("game loaded", "seconds", time.Since(began).Seconds())
+	// However long that took, whoever started it has only now got a game to watch.
+	s.viewMu.Lock()
+	s.noViewerSince = time.Now()
+	s.viewMu.Unlock()
+	s.loaded.Store(true)
 	// Everything is restored before the first frame: the runner waits, paused.
 	if b, err := os.ReadFile(filepath.Join(s.opt.SaveDir, "save.srm")); err == nil && len(b) > 0 {
 		_ = s.command(ipc.CmdSaveRAM, b)
 	}
 	if s.opt.Resume {
 		if b, err := readLimited(filepath.Join(s.opt.SaveDir, "auto.state")); err == nil && len(b) > 0 {
+			s.resumed.Store(true) // first: a core that can't take it says so straight away
 			_ = s.command(ipc.CmdState, b)
-			s.resumed = true
 		}
 	}
 	s.sendStart()
@@ -638,6 +673,9 @@ func (s *Session) readRunner(r io.Reader, ready chan<- error) {
 		}
 		switch t {
 		case ipc.MsgReady:
+			if isReady {
+				continue // once is what it's for; the channel only holds one
+			}
 			var info ipc.Ready
 			if err := json.Unmarshal(p, &info); err != nil || info.FPS <= 0 || info.FPS > 240 || info.SampleRate < 0 || info.SampleRate > 384000 {
 				fail(errors.New("the runner described the game in a way that makes no sense"))
@@ -980,21 +1018,32 @@ func (s *Session) deliverState(id uint32, b []byte) {
 	ch := s.stateWait[id]
 	s.stateMu.Unlock()
 	if ch != nil {
-		ch <- append([]byte(nil), b...)
+		select {
+		case ch <- append([]byte(nil), b...):
+		default: // already answered, and reading the runner mustn't stop here
+		}
 	}
 }
 
 // Stop saves the game and ends it. It returns once everything is written.
 func (s *Session) Stop() {
 	s.stopOnce.Do(func() {
+		s.stopAsked.Store(true)
 		s.stopping.Store(true)
+		<-s.spawned // a runner may be on its way, and this needs its pipes
+		if s.cmd == nil {
+			return // there never was one
+		}
 		keep := byte(1)
 		if s.noAutoSave.Load() {
 			keep = 0
 		}
-		if err := s.command(ipc.CmdQuit, []byte{keep}); err != nil {
-			s.kill()
-		}
+		// Not waited for: a runner that has stopped reading would hold this forever.
+		go func() {
+			if err := s.command(ipc.CmdQuit, []byte{keep}); err != nil {
+				s.kill()
+			}
+		}()
 		// The larger consoles have more to save, and a save is worth waiting for.
 		limit := 15 * time.Second
 		if s.opt.GPU {
@@ -1011,9 +1060,26 @@ func (s *Session) Stop() {
 	<-s.done
 }
 
+// pipesGrace is how long what a killed runner already wrote gets to be read. Past that,
+// anything still holding its pipes open is a child that outlived it, and nothing will
+// ever arrive: the readers are told to stop, or the session would never end.
+var pipesGrace = 5 * time.Second
+
 func (s *Session) kill() {
+	select {
+	case <-s.done:
+		return // its number may already be another program's
+	default:
+	}
 	if s.cmd != nil && s.cmd.Process != nil {
-		_ = s.cmd.Process.Kill()
+		killRunner(s.cmd)
+		s.dropPipes.Do(func() {
+			time.AfterFunc(pipesGrace, func() {
+				for _, p := range s.pipes {
+					_ = p.Close()
+				}
+			})
+		})
 	}
 }
 
@@ -1062,14 +1128,17 @@ func (s *Session) stuck() bool {
 	s.viewMu.Lock()
 	paused := s.paused
 	s.viewMu.Unlock()
-	if paused {
-		return false
+	if paused || s.rewinding.Load() {
+		return false // held at the start of what's kept, a rewind shows the same picture
 	}
 	last := s.lastFrame.Load()
 	return last != 0 && time.Since(time.Unix(0, last)) > stuckLimit
 }
 
 func (s *Session) idleTooLong() bool {
+	if !s.loaded.Load() {
+		return false // nobody can be watching yet, and loading has its own limit
+	}
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
 	if len(s.viewers) == 0 {

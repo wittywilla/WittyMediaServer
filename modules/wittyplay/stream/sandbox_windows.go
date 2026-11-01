@@ -45,6 +45,17 @@ func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
 	attr.Token = syscall.Token(tok)
 }
 
+// sandboxStarted lets go of what starting the program needed: it has its own copy.
+func sandboxStarted(cmd *exec.Cmd) {
+	if a := cmd.SysProcAttr; a != nil && a.Token != 0 {
+		_ = windows.Token(a.Token).Close()
+		a.Token = 0
+	}
+}
+
+// killRunner ends the runner. Its job takes anything it started with it.
+func killRunner(cmd *exec.Cmd) { _ = cmd.Process.Kill() }
+
 func labelLowIntegrity(path string) error {
 	sd, err := windows.SecurityDescriptorFromString("S:(ML;OICI;NW;;;LW)")
 	if err != nil {

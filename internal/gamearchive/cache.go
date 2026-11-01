@@ -48,6 +48,9 @@ const (
 	abandonAfter = 2 * time.Minute
 )
 
+// diskFree is how much room there is. Tests have less than they really do.
+var diskFree = freeBytes
+
 // Status says how preparing a game is going.
 type Status struct {
 	State string `json:"state"` // ready, waiting, reading, unpacking or failed
@@ -352,8 +355,15 @@ func (c *Cache) build(ctx context.Context, j *job) error {
 		return fmt.Errorf("this game needs %.1f GB unpacked, and the space for unpacked games is %.1f GB. An admin can raise that in Settings, Gaming", gib(plan.Size), gib(limit))
 	}
 	c.makeRoom(plan.Size, j.key)
-	if free := freeBytes(c.Dir); free >= 0 && free-freeReserve < plan.Size {
+	free := diskFree(c.Dir)
+	if free >= 0 && free-freeReserve < plan.Size {
 		return ErrNoSpace
+	}
+	// An archive may not say how large a file is, or may not tell the truth, so the
+	// reserve holds while unpacking too.
+	spaceLimited := free >= 0 && free-freeReserve < limit
+	if spaceLimited {
+		limit = free - freeReserve
 	}
 	tmp, err := os.MkdirTemp(c.Dir, tmpPrefix+j.key+"-")
 	if err != nil {
@@ -369,6 +379,9 @@ func (c *Cache) build(ctx context.Context, j *job) error {
 		j.set(func() { j.written = n })
 	})
 	if err != nil {
+		if spaceLimited && errors.Is(err, ErrTooBig) {
+			return ErrNoSpace
+		}
 		return err
 	}
 	return c.finish(j, plan, tmp, game, written)

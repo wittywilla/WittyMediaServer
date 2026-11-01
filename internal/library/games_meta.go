@@ -284,10 +284,18 @@ func (s *Store) nextGames(ctx context.Context, n int) ([]gameJob, error) {
 // EnqueueGame puts a game in the queue, because it's new or its file changed. A locked
 // match stays as it is; what the file is may still need working out again.
 func (s *Store) enqueueGame(ctx context.Context, it *Item, local []string) error {
+	// Added to what's there: what someone typed by hand stays theirs whatever else is
+	// found beside the file.
+	var was string
+	_ = s.DB.QueryRowContext(ctx, `SELECT edited FROM game_meta WHERE item_id = ?`, it.ID).Scan(&was)
+	edited := setOf(was)
+	for _, f := range local {
+		edited[f] = true
+	}
 	_, err := s.DB.ExecContext(ctx, `INSERT INTO game_meta(item_id, library_id, edited) VALUES(?,?,?)
 		ON CONFLICT(item_id) DO UPDATE SET status = CASE WHEN locked = 1 THEN status ELSE 'pending' END, next_try = 0, tries = 0,
-		  edited = CASE WHEN excluded.edited = '' THEN edited ELSE excluded.edited END`,
-		it.ID, it.LibraryID, strings.Join(local, ","))
+		  edited = excluded.edited`,
+		it.ID, it.LibraryID, listOf(edited))
 	if err != nil {
 		return err
 	}
@@ -295,6 +303,12 @@ func (s *Store) enqueueGame(ctx context.Context, it *Item, local []string) error
 		return err
 	}
 	return nil
+}
+
+// gameFieldEdited says someone, or the owner's own files, set this field of a game.
+func (s *Store) gameFieldEdited(ctx context.Context, id int64, field string) bool {
+	r, err := s.gameRow(ctx, id)
+	return err == nil && r.Edited[field]
 }
 
 // MarkGameEdited: someone changed these fields by hand, so sources leave them alone.
@@ -411,6 +425,10 @@ func (g *GameMeta) askLocal(ctx context.Context, j *gameJob, set *sourceSet) (ga
 func (g *GameMeta) identify(ctx context.Context, j *gameJob) {
 	it, r := j.it, &j.meta
 	title, tags := gamemeta.CleanName(gameBaseName(filepath.Base(it.Path)))
+	if it.Console == RigConsole {
+		// Its "file" is the PC's number for the game, which means nothing to anyone else.
+		title, tags = gamemeta.CleanName(it.Title)
+	}
 	if r.FileSize != it.SizeBytes || r.FileMTime != it.MTime {
 		id := g.id.Identify(it.Path, it.Console)
 		r.CRCs, r.CRCSize, r.Serial = id.CRCs, id.Size, id.Serial
@@ -939,7 +957,14 @@ func (g *GameMeta) itemPictures(ctx context.Context, id int64) {
 	r.PosterRef = get("poster", it.Poster, r.PosterRefs, r.PosterRef, func(c string) { it.Poster = c })
 	r.BackdropRef = get("backdrop", it.Backdrop, r.BackRefs, r.BackdropRef, func(c string) { it.Backdrop = c })
 	if changed {
-		if err := g.Store.upsertItem(ctx, it); err != nil {
+		// Only the pictures: the download took a while, and anything else in this copy may
+		// have changed since. A picture chosen by hand meanwhile stays.
+		fresh, err := g.Store.gameRow(ctx, id)
+		if err != nil {
+			return
+		}
+		if _, err := g.Store.DB.ExecContext(ctx, `UPDATE items SET poster = CASE WHEN ? THEN poster ELSE ? END, backdrop = CASE WHEN ? THEN backdrop ELSE ? END WHERE id = ?`,
+			fresh.Edited["poster"], it.Poster, fresh.Edited["backdrop"], it.Backdrop, id); err != nil {
 			return
 		}
 	}
@@ -1240,7 +1265,7 @@ func (g *GameMeta) Refresh(ctx context.Context, it *Item) error {
 	}
 	var source, id string
 	var locked int
-	_ = g.Store.DB.QueryRowContext(ctx, `SELECT s.source, s.source_id, m.locked FROM game_meta m LEFT JOIN game_meta_sources s ON s.item_id = m.item_id AND s.method = 'manual' WHERE m.item_id = ?`, it.ID).Scan(&source, &id, &locked)
+	_ = g.Store.DB.QueryRowContext(ctx, `SELECT IFNULL(s.source, ''), IFNULL(s.source_id, ''), m.locked FROM game_meta m LEFT JOIN game_meta_sources s ON s.item_id = m.item_id AND s.method = 'manual' WHERE m.item_id = ?`, it.ID).Scan(&source, &id, &locked)
 	if source != "" && id != "" {
 		if src := g.sources(ctx).all[source]; src != nil {
 			in, err := src.Fetch(ctx, it.Console, id)

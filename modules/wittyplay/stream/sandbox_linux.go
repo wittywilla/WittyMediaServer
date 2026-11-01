@@ -17,7 +17,8 @@ func runnerEnv() []string { return []string{"PATH=/usr/bin:/bin", "HOME=/nonexis
 // refuse, so availability is checked rather than assumed. The host then adds
 // seccomp and Landlock to itself (hostsandbox).
 func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
-	attr := &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
+	// In a group of its own, so that killing it reaches any children it made.
+	attr := &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL, Setpgid: true}
 	cmd.SysProcAttr = attr
 	if !userNamespacesAllowed() {
 		log.Info("sandbox: user namespaces are unavailable here; relying on seccomp and Landlock")
@@ -45,6 +46,14 @@ func userNamespacesAllowed() bool {
 }
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
+
+func sandboxStarted(cmd *exec.Cmd) {}
+
+// killRunner ends the runner and anything it started.
+func killRunner(cmd *exec.Cmd) {
+	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	_ = cmd.Process.Kill()
+}
 
 // SandboxStrength says what boxes a core in on this platform, for people deciding
 // whether to allow custom cores.

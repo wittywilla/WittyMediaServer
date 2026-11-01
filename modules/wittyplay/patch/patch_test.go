@@ -47,6 +47,18 @@ func TestIPSCanCut(t *testing.T) {
 	}
 }
 
+// Runs that keep writing the same place cost far more than their size.
+func TestIPSThatKeepsWritingIsRefused(t *testing.T) {
+	run := []byte{0, 0, 0, 0, 0, 0xff, 0xff, 'z'}
+	p := ips(bytes.Repeat(run, maxIPSWork/0xffff+1))
+	if _, err := Detect(p); err == nil {
+		t.Error("Detect accepted it")
+	}
+	if _, err := Apply([]byte("0123456789"), p); err == nil {
+		t.Error("Apply accepted it")
+	}
+}
+
 func TestIPSRefusesDamage(t *testing.T) {
 	good := ips(rec(2, 'a', 'b'))
 	for name, p := range map[string][]byte{

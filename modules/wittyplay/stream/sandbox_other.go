@@ -19,6 +19,10 @@ func prepareSandbox(cmd *exec.Cmd, saveDir string, log *slog.Logger) {
 
 func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
 
+func sandboxStarted(cmd *exec.Cmd) {}
+
+func killRunner(cmd *exec.Cmd) { _ = cmd.Process.Kill() }
+
 // SandboxStrength says what boxes a core in on this platform, for people deciding
 // whether to allow custom cores. Resource limits do not stop a program doing harm.
 func SandboxStrength() (string, bool) { return "resource limits only", false }

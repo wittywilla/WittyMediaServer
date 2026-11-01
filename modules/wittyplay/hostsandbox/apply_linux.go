@@ -106,10 +106,17 @@ const (
 	accessFSMakeFifo   = 1 << 10
 	accessFSMakeBlock  = 1 << 11
 	accessFSMakeSym    = 1 << 12
+	accessFSTruncate   = 1 << 14 // since Landlock's third version
+
+	landlockCreateRulesetVersion = 1
 
 	writeAccess = accessFSWriteFile | accessFSRemoveDir | accessFSRemoveFile | accessFSMakeChar | accessFSMakeDir |
 		accessFSMakeReg | accessFSMakeSock | accessFSMakeFifo | accessFSMakeBlock | accessFSMakeSym
 )
+
+// truncateLimited says Landlock stops truncating outside the save folder here. The
+// syscall filter makes up for it if not.
+var truncateLimited bool
 
 // gpuDevices are the only things a graphics driver opens for writing that
 // Landlock would otherwise refuse. Opening them is how every driver talks to its
@@ -120,7 +127,14 @@ var gpuDevices = []string{"/dev/dri", "/dev/dxg", "/dev/kfd", "/dev/nvidiactl", 
 // limits writing to the save folder, and to the graphics devices for a game that
 // draws on one.
 func landlock(saveDir string, gpu bool) error {
-	attr := struct{ handled uint64 }{handled: writeAccess}
+	access, deviceAccess := uint64(writeAccess), uint64(accessFSWriteFile)
+	// A kernel refuses a right newer than it knows of, so it's asked which version it has.
+	if v, _, e := syscall.Syscall(sysLandlockCreateRuleset, 0, 0, landlockCreateRulesetVersion); e == 0 && v >= 3 {
+		access |= accessFSTruncate
+		deviceAccess |= accessFSTruncate
+		truncateLimited = true
+	}
+	attr := struct{ handled uint64 }{handled: access}
 	fd, _, e := syscall.Syscall(sysLandlockCreateRuleset, uintptr(unsafe.Pointer(&attr)), unsafe.Sizeof(attr), 0)
 	if e != 0 {
 		return e
@@ -134,7 +148,7 @@ func landlock(saveDir string, gpu bool) error {
 		defer unix.Close(dir)
 		// struct landlock_path_beneath_attr is packed: u64 then s32.
 		var rule [12]byte
-		*(*uint64)(unsafe.Pointer(&rule[0])) = writeAccess
+		*(*uint64)(unsafe.Pointer(&rule[0])) = access
 		*(*int32)(unsafe.Pointer(&rule[8])) = int32(dir)
 		if _, _, e := syscall.Syscall6(sysLandlockAddRule, fd, landlockRulePathBeneath, uintptr(unsafe.Pointer(&rule[0])), 0, 0, 0); e != 0 {
 			return e
@@ -147,7 +161,7 @@ func landlock(saveDir string, gpu bool) error {
 				continue
 			}
 			var rule [12]byte
-			*(*uint64)(unsafe.Pointer(&rule[0])) = accessFSWriteFile
+			*(*uint64)(unsafe.Pointer(&rule[0])) = deviceAccess
 			*(*int32)(unsafe.Pointer(&rule[8])) = int32(d)
 			_, _, e := syscall.Syscall6(sysLandlockAddRule, fd, landlockRulePathBeneath, uintptr(unsafe.Pointer(&rule[0])), 0, 0, 0)
 			unix.Close(d)

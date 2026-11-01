@@ -327,7 +327,7 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	}
 	if existing != nil {
 		// Scans never take away what someone chose or a source already found.
-		if existing.Provider != "" && !slices.Contains(local, "title") {
+		if (existing.Provider != "" || s.Store.gameFieldEdited(ctx, existing.ID, "title")) && !slices.Contains(local, "title") {
 			it.Title, it.SortTitle = existing.Title, existing.SortTitle
 		}
 		if it.Poster == "" {

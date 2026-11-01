@@ -15,6 +15,9 @@ import (
 const (
 	MaxPatch  = 64 << 20  // the patch file
 	MaxOutput = 512 << 20 // the game it produces
+	// maxIPSWork is how much an IPS patch may write, counting a place each time. No real
+	// patch comes close, and records that write the same place again could take minutes.
+	maxIPSWork = 2 * MaxOutput
 )
 
 // Kinds of patch.
@@ -69,9 +72,13 @@ func applyIPS(game, p []byte, dry bool) ([]byte, error) {
 	if !dry {
 		out = append(make([]byte, 0, len(game)), game...)
 	}
-	grow := func(end int) error {
+	work := 0
+	grow := func(end, n int) error {
 		if end > MaxOutput {
 			return errors.New("this patch would make the game too large")
+		}
+		if work += n; work > maxIPSWork {
+			return errors.New("this patch writes far more than a game holds, so it isn't one to trust")
 		}
 		if !dry && end > len(out) {
 			out = append(out, make([]byte, end-len(out))...)
@@ -102,7 +109,7 @@ func applyIPS(game, p []byte, dry bool) ([]byte, error) {
 			if run == 0 {
 				return nil, bad
 			}
-			if err := grow(off + run); err != nil {
+			if err := grow(off+run, run); err != nil {
 				return nil, err
 			}
 			if !dry {
@@ -115,7 +122,7 @@ func applyIPS(game, p []byte, dry bool) ([]byte, error) {
 		if i+n > len(p) {
 			return nil, bad
 		}
-		if err := grow(off + n); err != nil {
+		if err := grow(off+n, n); err != nil {
 			return nil, err
 		}
 		if !dry {

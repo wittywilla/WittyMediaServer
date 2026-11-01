@@ -94,7 +94,9 @@ func Probe(ctx context.Context, opt ProbeOptions) (*ProbeResult, error) {
 	cmd.Stderr = stderr
 	prepareSandbox(cmd, opt.WorkDir, opt.Log)
 	probePriority(cmd)
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	sandboxStarted(cmd)
+	if err != nil {
 		return nil, &ProbeError{ProbeRunner, "the game runner couldn't start: " + err.Error()}
 	}
 	release := lockDown(cmd, opt.MemoryMB, opt.Log) // before any core is loaded

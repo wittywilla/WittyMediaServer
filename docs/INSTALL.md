@@ -138,7 +138,7 @@ until you enable it.
 | Change the account, data folder or port | `sysrc wittymediaserver_user=…`, `wittymediaserver_data=…`, `wittymediaserver_listen=:8080` |
 | A settings file | `/usr/local/etc/wittymediaserver/wms.json` |
 
-`pkg add -f` with a newer package updates it in place. It takes over from what `install.sh` installed, keeping
+`pkg add -f` with a newer package updates it in place, and `service wittymediaserver start` brings it back. It takes over from what `install.sh` installed, keeping
 its data folder, port and account. A package made for FreeBSD 14 needs `env IGNORE_OSVERSION=yes pkg add …` on 15.
 
 Prefer not to use a package? Unpack the `.tar.gz` and run `./install.sh`, with the same options as on Linux. It keeps

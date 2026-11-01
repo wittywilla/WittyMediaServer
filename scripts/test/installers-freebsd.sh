@@ -114,7 +114,7 @@ pkill -f 'bin/wittymediaserver serve'; sleep 6; up
 say "upgrade: $PKG2"
 echo mine > /var/db/wittymediaserver/my-own-notes.txt
 pkg add -f "$PKG2" || fail "the upgrade"
-sleep 2; up
+service wittymediaserver start; up
 wittymediaserver version | tee /tmp/v; grep -q "$V2" /tmp/v || fail "still the old version"
 [ -f /var/db/wittymediaserver/wms.db ] || fail "the upgrade lost the database"
 [ -f /var/db/wittymediaserver/my-own-notes.txt ] || fail "the upgrade lost a file"

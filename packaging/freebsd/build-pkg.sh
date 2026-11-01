@@ -63,6 +63,10 @@ message: [
     type: install
   },
   {
+    message: "WittyMediaServer is updated. Start it again: service wittymediaserver start\n",
+    type: upgrade
+  },
+  {
     message: "Your library, accounts and settings are still in /var/db/wittymediaserver. To remove those too, run the uninstall again from a new copy, or delete that folder and then: pw userdel wms\n",
     type: remove
   }

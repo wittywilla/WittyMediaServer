@@ -200,7 +200,7 @@ input[type=range] { accent-color: var(--accent); }
 /* A server can have a long name of its own: it wraps here rather than being cut off. */
 .sidebar .brand .nav-text { min-width: 0; }
 .sidebar .brand img { flex: none; }
-.sidebar .brand .brand-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-tight); }
+.sidebar .brand .brand-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-tight); }
 .brand { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); margin-bottom: var(--sp-3); font-weight: 700; font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
 .brand img { width: 28px; height: 28px; }
 .brand span { color: var(--fg); }

@@ -131,8 +131,8 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
           </div>
         )}
         <div className="mh-hero-actions">
-          {!books && !pods && <button className="btn mh-play-all" onClick={() => void playAll()}><IconPlay /> Play my music</button>}
-          {hero && <button className={'btn ' + (books || pods ? 'mh-play-all' : 'mh-play-album')} onClick={() => void playAlbum(hero)}><IconPlay /> {books ? 'Play this book' : pods ? 'Play this show' : 'Play this album'}</button>}
+          {!books && !pods && <button data-tv-first className="btn mh-play-all" onClick={() => void playAll()}><IconPlay /> Play my music</button>}
+          {hero && <button data-tv-first={books || pods || undefined} className={'btn ' + (books || pods ? 'mh-play-all' : 'mh-play-album')} onClick={() => void playAlbum(hero)}><IconPlay /> {books ? 'Play this book' : pods ? 'Play this show' : 'Play this album'}</button>}
         </div>
       </div>
 

@@ -132,7 +132,8 @@ export function Announcer() {
   }, [])
   useEffect(() => {
     // Across the room, somewhere to start from. The page may still be loading, so look a few times.
-    const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage()) settled.current = loc.key }, ms)
+    const arrived = performance.now()
+    const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage(arrived, ms >= 1500)) settled.current = loc.key }, ms)
     if (first.current) {
       first.current = false
       const opening = [400, 800, 1500, 2500].map(land)

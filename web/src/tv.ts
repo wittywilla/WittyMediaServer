@@ -122,8 +122,10 @@ function focusGoneFrom(scope: Node): DOMRect | null {
 // What a page offers first from across the room: whatever it marks as its main action (Play on
 // an item), and otherwise the first thing in it, passing over the links in the headings of rows.
 const ROW_HEAD = '.hub-head, .mh-shelf-head'
+const PAGE_NOTES = '.legal-foot, .page-foot, .legal-note'
 function firstOnPage(all: HTMLElement[], ok: (el: HTMLElement) => boolean): HTMLElement | undefined {
-  const inPage = all.filter((el) => el.closest('.content') && ok(el))
+  // The notes at the foot are there before the page has loaded, and are no place to start.
+  const inPage = all.filter((el) => el.closest('.content') && !el.closest(PAGE_NOTES) && ok(el))
   return inPage.find((el) => el.matches('[data-tv-first]')) || inPage.find((el) => !el.closest(ROW_HEAD))
 }
 
@@ -137,20 +139,22 @@ function fromRowHead(cur: HTMLElement, others: HTMLElement[], dir: Dir, box: (el
 }
 
 // Someone arriving at a page with a remote has nothing to tell them where they are, and their first
-// press would only put them somewhere. Answers whether focus has somewhere to be now; a page still
-// loading says no, to be asked again.
-export function landOnPage(): boolean {
+// press would only put them somewhere. Answers whether focus has somewhere to be now; a page that may
+// still be loading says no, to be asked again, until it's the last time of asking.
+export function landOnPage(arrived: number, lastLook = true): boolean {
   const html = document.documentElement
   if (!html.classList.contains('ten-foot') && !html.classList.contains('using-controller') && !matchMedia('(pointer: none)').matches) return true
+  if (lastKeyAt > arrived) return true // they're on their way somewhere already
+  // A TV's web view gives focus to some link of its own choosing when it opens. That wasn't anyone's decision.
   const active = document.activeElement
-  if (active && active !== document.body && active.id !== 'main') return true
+  if (active && active !== document.body && active.id !== 'main' && !active.closest(`${PAGE_NOTES}, .sidebar, .topbar`)) return true
   if (document.querySelector('[role=dialog], [role=alertdialog], .modal, .picker-backdrop, [role=menu]')) return true
   const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE))
   const first = firstOnPage(all, (el) => {
     const r = el.getBoundingClientRect()
     return visible(el, r) && r.top < window.innerHeight
   })
-  if (!first) return false
+  if (!first || (!lastLook && !first.matches('[data-tv-first]'))) return false
   focus(first)
   return true
 }
@@ -177,7 +181,10 @@ function move(dir: Dir): boolean {
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
-  const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
+  // Up and down stay on their own side of the side menu, however close it is: Left is the way in.
+  const inMenu = !!cur.closest('.sidebar')
+  const sameSide = (el: HTMLElement) => dir === 'left' || dir === 'right' || !!el.closest('.sidebar') === inMenu
+  const can = (el: HTMLElement) => sameSide(el) && visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
   let best = fromRowHead(cur, others, dir, (el) => boxes.get(el)!, can) || ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
@@ -219,7 +226,9 @@ export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
 // normal navigation again.
 const inGame = () => !!document.querySelector('.wp-playing, .wp-capture')
 
+let lastKeyAt = -1
 function onKey(e: KeyboardEvent) {
+  lastKeyAt = performance.now()
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return
   const target = e.target as Element | null
   if (e.key === 'Enter' && target) {

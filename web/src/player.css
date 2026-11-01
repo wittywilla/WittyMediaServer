@@ -245,7 +245,7 @@
 
 /* ---------------------------------------------------------------- version tag */
 .version-tag { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
-.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
+.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: color-mix(in srgb, var(--accent-text) 80%, var(--fg)); font-weight: 700; }
 .auth-version { text-align: center; color: var(--fg-3); font-size: var(--text-xs); }
 
 .episode-table td.thumb-cell { width: 84px; padding-right: 0; }
@@ -413,3 +413,4 @@ kbd { display: inline-block; padding: 1px var(--sp-2); border-radius: var(--r-sm
 @media (max-width: 520px) { .kbd-list > div { grid-template-columns: 1fr; gap: 4px; } }
 /* Controls stay visible while keyboard focus is on them. */
 .player.controls-hidden .top:focus-within, .player.controls-hidden .bottom:focus-within { opacity: 1; pointer-events: auto; }
+.swatch-auto { background: linear-gradient(135deg, #14161d 50%, #f4f5f8 50%); }

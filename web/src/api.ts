@@ -147,6 +147,9 @@ export function normalizeServer(input: string): string {
   return (/^[\d.]+(:\d+)?$|^\[|^localhost\b|:\d+$/i.test(v) ? 'http://' : 'https://') + v
 }
 
+// A date and time for people, the same everywhere: Oct 31, 2026, 8:00 PM.
+export const fmtDateTime = (t: number | string | Date) => new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+
 export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) { super(message) }
 }

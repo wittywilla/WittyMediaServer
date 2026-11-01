@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type GameConsole, type GameCore } from '../../api'
-import { Spinner } from '../../components/common'
+import { LoadError, Spinner } from '../../components/common'
 import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import CustomCoresSection, { ConsoleCoreSelect, licenseText } from './GamingCustom'
 import { PageHead, Section } from './ui'
 import LegalNote from '../../components/LegalNote'
 
-// Settings, Gaming: which cores this server has, and how games reach players.
+// Settings, Consoles & cores: which cores this server has, and how games reach players.
 // A core is someone else's program, so nothing is installed without being asked
 // for, with its licence in view first.
 
@@ -22,7 +22,8 @@ export default function GamingSettings() {
   const [busy, setBusy] = useState('')
   const [confirm, setConfirm] = useState<{ id: string; name: string; license: string } | null>(null)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
-  const load = () => api.get<Status>('/gaming').then(setSt).catch((e) => toast(e.message))
+  const [failed, setFailed] = useState(false)
+  const load = () => api.get<Status>('/gaming').then(setSt).catch(() => setFailed(true))
   useEffect(() => { load(); api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {}) }, [])
   const emptyUnpacked = async () => {
     setBusy('unpacked')
@@ -58,6 +59,7 @@ export default function GamingSettings() {
   const put = async (patch: Record<string, string>) => {
     try { setSettings(await api.put<Record<string, string>>('/settings', patch)); toast('Saved') } catch (e: any) { toast(e.message) }
   }
+  if (failed && !st) return <LoadError what="This page" onRetry={() => { setFailed(false); load() }} />
   if (!st) return <Spinner />
   const installed = new Map(st.cores.map((c) => [c.id, c]))
   const known = new Set(st.consoles.flatMap((c) => c.cores.map((x) => x.id)))
@@ -66,7 +68,7 @@ export default function GamingSettings() {
   const refresh = async () => { await load(); await getConsoles(true) }
   return (
     <>
-      <PageHead title="Gaming" desc="Games run on this server, one separate boxed-in program for each game, and stream to the browser." />
+      <PageHead title="Consoles & cores" desc="Games run on this server, one separate boxed-in program for each game, and stream to the browser." />
       <Section title="This server">
         <dl className="gaming-facts">
           <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see the gaming guide).</span></>}</dd>
@@ -79,7 +81,6 @@ export default function GamingSettings() {
         <p className="muted gaming-bios">Where BIOS files go: the easy way is a folder named <code>{st.biosFolder}</code> inside a console’s games folder, such as <code>PS2/{st.biosFolder}</code>. Folders inside it are fine, it’s never listed as a game, and the server copies what it needs to the BIOS folder above when you press Play. You can also put files straight into that folder: a PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it. BIOS files are never downloaded for you.</p>
       </Section>
       <Section title="Consoles and cores" desc="A core is the program that emulates a console. Each has its own license and comes from the libretro project’s build server when you ask for it. Games and BIOS files are never downloaded: you supply your own, legally obtained." actions={<a className="btn sm ghost" href="#custom-cores">Add your own</a>}>
-        <LegalNote kind="cores" />
         {!st.canDownload && <p className="muted">There are no prebuilt cores for this platform. Install them with your system’s packages, or place them in the cores folder.</p>}
         <div className="gaming-consoles">
           {st.consoles.map((c) => (
@@ -198,6 +199,7 @@ export default function GamingSettings() {
       <Section title="What everyone starts with" desc="Set a picture, shortcuts or anything else as the starting point for everyone on this server. People can still change anything for themselves.">
         <p><Link to="/settings/games">Open game settings</Link>, then choose <b>Everyone</b> at the top of a panel.</p>
       </Section>
+      <LegalNote kind="cores" className="set-legal" />
       {confirm && (
         <div className="modal-backdrop" onClick={() => setConfirm(null)}>
           <div className="modal" role="dialog" aria-label={`Install ${confirm.name}`} onClick={(e) => e.stopPropagation()}>

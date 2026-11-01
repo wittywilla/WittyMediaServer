@@ -4,7 +4,7 @@ import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
-import { applyTheme, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
+import { applyTheme, AUTO_THEME, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 
 const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
@@ -63,6 +63,17 @@ export default function AppearanceSettings() {
           </span>
         </div>
         <div className="theme-grid" role="radiogroup" aria-label="Themes">
+          <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')} onClick={() => useHere(AUTO_THEME)}>
+            <button type="button" className="swatch swatch-auto" role="radio" aria-checked={mine === AUTO_THEME} aria-label="Automatic theme" title="Follow this device’s light or dark setting"
+              onClick={(e) => { e.stopPropagation(); useHere(AUTO_THEME) }} />
+            <div className="theme-info">
+              <div className="t"><span>Automatic</span></div>
+              <div className="muted">Follows this device’s light or dark setting.</div>
+              <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
+                <button className="btn sm" onClick={() => useHere(AUTO_THEME)} disabled={mine === AUTO_THEME}>{mine === AUTO_THEME ? 'In use here' : 'Use here'}</button>
+              </div>
+            </div>
+          </div>
           {shown.map((t) => (
             // The whole card picks the theme; its own buttons stop the click.
             <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')} onClick={() => useHere(t.id)}>

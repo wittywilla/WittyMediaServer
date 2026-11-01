@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
-import { IconCheck, IconFilm, IconLeft, IconPlay, IconRefresh, IconRight } from '../icons'
+import { IconCheck, IconFilm, IconInfo, IconLeft, IconPlay, IconRefresh, IconRight } from '../icons'
 
 // The way back up: the library (or show) a page belongs to.
 export function BackLink({ to, label }: { to: string; label: string }) {
@@ -121,6 +121,18 @@ export function CardRow({ children }: { children: React.ReactNode }) {
       <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
       <div className="row" ref={row}>{children}</div>
       <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
+    </div>
+  )
+}
+
+// A page that couldn't load, which is not the same as having nothing to show.
+export function LoadError({ what, onRetry }: { what: string; onRetry?: () => void }) {
+  return (
+    <div className="empty" role="alert">
+      <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
+      <h3>{what} couldn’t be loaded</h3>
+      <p>The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.</p>
+      {onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
     </div>
   )
 }

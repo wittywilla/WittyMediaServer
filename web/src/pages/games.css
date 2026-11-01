@@ -30,8 +30,9 @@
 .game-bios-hint { margin: 8px 0 0; font-size: .875rem; overflow-wrap: anywhere; }
 .gaming-bios { margin-top: 8px !important; overflow-wrap: anywhere; }
 .gaming-extra { list-style: none; margin: 0; padding: 0; }
-.gaming-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.gaming-form label { display: flex; flex-direction: column; gap: 4px; }
+.gaming-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.gaming-form label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gaming-form .select { width: 100%; }
 .gaming-form small { font-size: 12px; }
 /* The library page: search beside the title, and what a scan left out. */
 .gm-search { width: min(280px, 100%); }
@@ -103,7 +104,7 @@
 .gm-tally th { text-align: left; color: var(--fg-2); font-weight: 600; padding: var(--sp-1) var(--sp-3) var(--sp-1) 0; }
 .gm-tally td { padding: var(--sp-1) var(--sp-3) var(--sp-1) 0; border-top: 1px solid var(--border); }
 @media (max-width: 600px) { .gm-filters .select { flex: 1 1 42%; } }
-/* Settings, Gaming: custom cores. */
+/* Settings, Consoles & cores: custom cores. */
 .custom-warning { margin: var(--sp-3) 0; padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--warn); background: var(--warn-soft); font-size: var(--text-sm); line-height: 1.5; }
 .custom-fail { margin: var(--sp-3) 0; padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--danger); background: var(--danger-soft); font-size: var(--text-sm); line-height: 1.5; overflow-wrap: anywhere; }
 .custom-ok { color: var(--ok); font-weight: 600; }
@@ -164,3 +165,10 @@
 .custom-gamecore summary { cursor: pointer; color: var(--fg-2); min-height: 32px; }
 .custom-gamecore-stats { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent-text); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* A game's less common actions. */
+.game-more { position: relative; }
+.game-more > summary { list-style: none; cursor: pointer; }
+.game-more > summary::-webkit-details-marker { display: none; }
+.game-more-list { position: absolute; z-index: 5; left: 0; top: calc(100% + var(--sp-1)); display: grid; gap: var(--sp-1); min-width: max-content; padding: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); box-shadow: var(--e-3); }
+.game-more-list .btn { justify-content: flex-start; }

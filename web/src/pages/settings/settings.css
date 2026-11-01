@@ -25,6 +25,8 @@
 /* A crash report waiting to be looked at. */
 .set-notice { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); min-height: var(--control-h); border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent); background: var(--danger-soft); color: var(--fg); font-size: var(--text-md); font-weight: 600; }
 .set-notice svg { flex: none; width: 18px; height: 18px; }
+.set-notice-row { display: flex; align-items: flex-start; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
+.set-notice-row .set-notice { flex: 1; margin: 0; }
 
 /* Section cards. The older pages' panels look the same. */
 .set-card, .set-main .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 0 var(--sp-5); max-width: none; padding: 0; }
@@ -191,16 +193,17 @@ a.mod-row:hover { background: var(--hover); }
 .mod-group { padding: var(--sp-3) var(--sp-3) var(--sp-1); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
 .set-nav-version { display: grid; gap: var(--sp-1); margin-top: var(--sp-1); padding: 10px var(--sp-3); border-radius: var(--r-md); color: var(--fg-3); font-size: var(--text-xs); }
 .set-nav-version:hover { background: var(--hover); color: var(--fg-2); }
-@media (max-width: 1000px) {
+/* The menu is its own page where it would otherwise squeeze the page beside it. */
+.set-nav-text { display: grid; min-width: 0; }
+.set-nav-hint { display: none; }
+.set-back { display: none; }
+@media (max-width: 1280px) {
   .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; }
-  .set-nav { position: static; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 0 6px; margin: 0 -4px; }
-  .set-nav::-webkit-scrollbar { display: none; }
-  .set-nav-title, .set-nav-head { display: none; }
-  .set-nav-group { display: contents; }
-  .set-nav-link { flex: none; min-height: 38px; padding: 0 var(--sp-3) 0 6px; gap: 6px; border-radius: var(--r-full); background: var(--bg-2); border: 1px solid var(--border); white-space: nowrap; }
-  .set-nav-icon { width: 26px; height: 26px; }
-  .set-nav-link.active { border-color: var(--accent); }
-  .set-nav-version { display: none; }
+  .set-nav { position: static; padding: 0; }
+  .set-shell:not(.at-menu) .set-nav, .set-shell.at-menu .set-main { display: none; }
+  .set-back { display: block; margin-bottom: var(--sp-2); }
+  .set-nav-link { min-height: 56px; padding: var(--sp-2); }
+  .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--text-sm); font-weight: 400; line-height: 1.4; }
 }
 @media (max-width: 600px) {
   .set-head { flex-direction: column; align-items: stretch; }

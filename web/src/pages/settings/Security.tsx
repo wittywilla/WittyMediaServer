@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, type Session, type UserView } from '../../api'
+import { fmtDateTime, api, type Session, type UserView } from '../../api'
 import { IconCheck, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import QrCode from './QrCode'
@@ -11,7 +11,7 @@ import './remote.css'
 
 const where: Record<string, string> = { machine: 'This computer', home: 'At home', vpn: 'Away, through your VPN', internet: 'Away, over the internet' }
 
-const when = (t: number) => (t ? new Date(t * 1000).toLocaleString() : 'not yet')
+const when = (t: number) => (t ? fmtDateTime(t * 1000) : 'not yet')
 
 export default function Security() {
   const { user } = useApp()

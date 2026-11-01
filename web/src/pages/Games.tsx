@@ -1,8 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, backdropUrl, getToken, mediaUrl, posterUrl, serverBase, uploadFile, type GameConsole, type GameDetailsInfo, type GameFacets, type Item, type Library } from '../api'
+import { fmtDateTime, api, backdropUrl, getToken, mediaUrl, posterUrl, serverBase, uploadFile, type GameConsole, type GameDetailsInfo, type GameFacets, type Item, type Library } from '../api'
 import ArtworkPicker from '../components/ArtworkPicker'
-import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
+import { BackLink, EmptyState, LoadError, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
 import { IconEdit, IconGamepad, IconImage, IconPlay, IconSettings, IconSortDown, IconSortUp, IconStar } from '../icons'
 import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } from './GameMeta'
 import { reportClient, setLogSession } from '../errorReport'
@@ -139,8 +139,9 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const narrowed = !!(search || filter || genre || decade || players || score || unmatched)
   const loadedRef = useRef(0)
   loadedRef.current = items?.length ?? 0
+  const [failed, setFailed] = useState(false)
   const load = () => api.get<{ items: Item[]; total: number }>(url(Math.max(PAGE, loadedRef.current)))
-    .then((r) => { setItems(r.items); setTotal(r.total) }).catch(() => setItems([]))
+    .then((r) => { setItems(r.items); setTotal(r.total); setFailed(false) }).catch(() => setFailed(true))
   const loadConsoles = () => api.get<GameConsole[]>(`/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {})
   const [watch, setWatch] = useState(0) // bumped to follow a scan just started
   useEffect(() => { setItems(null); loadedRef.current = 0; load() }, [lib.id, filter, search, sort, desc, genre, decade, players, score, unmatched]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -250,7 +251,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
           </select>
         )}
       </div>
-      {!items ? <SkeletonGrid /> : items.length === 0
+      {!items ? (failed ? <LoadError what="This library" onRetry={() => { void load() }} /> : <SkeletonGrid />) : items.length === 0
         ? (narrowed
           ? <EmptyState icon={<IconGamepad />} title="No games match" text={search ? `Nothing here matches “${search}”.` : 'No games here match those filters.'}
               action={<button className="btn" onClick={() => { setTyped(''); setParams({}, { replace: true }) }}>Show all games</button>} />
@@ -351,25 +352,32 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
             {meta && meta.players > 0 && <span>{meta.players === 1 ? '1 player' : `Up to ${meta.players} players`}</span>}
             {played > 60 && <span>Played for {fmtPlay(played)}</span>}
             {mine && mine.plays > 0 && <span>{mine.plays} {mine.plays === 1 ? 'play' : 'plays'}</span>}
-            {it.contentRating && <span className="pill">{it.contentRating}</span>}
+            {it.contentRating && !meta?.ages.length && <span className="pill">{it.contentRating}</span>}
             {it.rating != null && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
             {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 3).join(', ')}{it.genres.length > 3 ? '…' : ''}</span>}
           </div>
           {offerResume && ready && auto && (
             <button className="game-resume" onClick={() => nav(`/game/${it.id}?resume=1`)}>
               {auto.hasThumb ? <img src={thumbUrl(it.id, 0, auto.updatedAt)} alt="" /> : <span className="game-save-empty" />}
-              <span><b>Pick up where you left off</b><small className="muted">{new Date(auto.updatedAt * 1000).toLocaleString()}</small></span>
+              <span><b>Pick up where you left off</b><small className="muted">{fmtDateTime(auto.updatedAt * 1000)}</small></span>
             </button>
           )}
           <div className="actions game-actions">
-            {offerResume && ready && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
+            {offerResume && ready && !auto && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
             {ready && <button className={'btn' + (offerResume ? '' : ' primary')} onClick={() => nav(`/game/${it.id}${startsResumed ? '?resume=1' : ''}`)}><IconPlay /> {offerResume ? 'Start over' : startsResumed ? 'Resume' : 'Play'}</button>}
             {mine && <button className="btn" aria-pressed={mine.favourite} onClick={() => putMeta({ favourite: !mine.favourite })}>{mine.favourite ? '★ Favourite' : '☆ Add to favourites'}</button>}
             <button className="btn" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconSettings size={15} /> Settings</button>
-            {ready && <button className="btn ghost" onClick={() => nav(`/game/${it.id}?safe=1${auto ? '&resume=1' : ''}`)}>Start with default settings</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
             <Link className="btn" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Controllers</Link>
+            {(ready || user?.isAdmin) && (
+              <details className="game-more" onClick={(e) => { if ((e.target as HTMLElement).tagName !== 'SUMMARY') e.currentTarget.removeAttribute('open') }}>
+                <summary className="btn ghost">More</summary>
+                <div className="game-more-list">
+                  {ready && <button className="btn ghost" onClick={() => nav(`/game/${it.id}?safe=1${auto ? '&resume=1' : ''}`)}>Start with default settings</button>}
+                  {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
+                  {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
+                </div>
+              </details>
+            )}
           </div>
           {mine && (
             <label className="game-notes">Your notes
@@ -416,7 +424,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
                   return (
                     <li key={s.slot}>
                       {s.hasThumb ? <img src={thumbUrl(it.id, s.slot, s.updatedAt)} alt="" /> : <span className="game-save-empty" />}
-                      <div><b>{name}</b><small className="muted">{new Date(s.updatedAt * 1000).toLocaleString()}</small></div>
+                      <div><b>{name}</b><small className="muted">{fmtDateTime(s.updatedAt * 1000)}</small></div>
                       <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${name}`}>Download</a>
                       <button className="btn sm ghost" onClick={() => remove(s.slot)} aria-label={`Delete ${name}`}>Delete</button>
                     </li>

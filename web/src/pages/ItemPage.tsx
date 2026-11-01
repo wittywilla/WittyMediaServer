@@ -9,7 +9,7 @@ import { SaveButton } from '../components/SaveToCollection'
 import { GameDetails } from './Games'
 
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
-import { BackLink, EmptyState, Spinner, artHue, isGeneratedArt } from '../components/common'
+import { BackLink, EmptyState, LoadError, Spinner, artHue, isGeneratedArt } from '../components/common'
 import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
@@ -24,9 +24,11 @@ export default function ItemPage() {
   const [art, setArt] = useState(false)
   const [discSettings, setDiscSettings] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
-  const load = () => api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
+  const [broken, setBroken] = useState(false)
+  const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
   useEffect(() => { load() }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
+  if (broken) return <LoadError what="This title" onRetry={load} />
   if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
   if (!it) return <Spinner />
   if (it.kind === 'book') return <BookDetails it={it} />

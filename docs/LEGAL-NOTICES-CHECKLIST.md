@@ -28,7 +28,7 @@ a notice of its own.
 | Media streaming from outside: podcasts, stations | `webMedia` | Radio, podcast libraries and pages |
 | TV channels and guide data | `tv` | TV guide, Channels & tuners |
 | Games and game details | `games` | Games library, game pages |
-| Downloading cores | `cores` | Settings, Gaming, and the install dialog |
+| Downloading cores | `cores` | Settings, Consoles & cores, and the install dialog |
 | Modules and their updates | `modules` | Settings, Modules |
 | Creator videos and the people named in them | `creators` | Creator libraries, channels, watch page, vertical videos' creators and About |
 | Books and comics, reader content | `reader` | Books library, book pages |
@@ -55,7 +55,7 @@ To apply when each one merges. Don't edit a notice's words for one screen: add a
 | `radio-revamp` | Stations from the directory; radio pages | `webMedia` | Already on the Radio library; keep it in the merged page |
 | `games-metadata` | Game details, ratings, box art, every source it adds | `games` on the page, `webResults` on match or search results | Add each source to `services`. Credit each source on the game's page, as `GameDetails` now does for Wikidata |
 | `games-rigs` | Moonlight or any connection to someone's gaming PC or server | `thirdPartyServer` | Add the bridge's GitHub download and its GPL license to `services` and the licenses page. The bridge's install dialog takes `cores`-style wording: add a kind if needed. Mention the added encryption (RSA, ECDSA, AES) in the `cryptography` section |
-| `games-custom-cores` | Installing or adding a core or firmware | `cores` | "New custom modules" are third-party: also `modules` |
+| `games-custom-cores` | Installing or adding a core or firmware | `cores` | In the add dialog. "New custom modules" are third-party: `modules` where those are added |
 | `games-options`, `games-controllers` | Settings around games | None, if they show no third-party content | If a screen shows a game or its details, `games`. Button pictures must not copy a console maker's logos |
 | `games-archives` | Settings, About, third-party licenses | None | It adds the license list: keep `<div id="licenses" />` just above it, since Legal links to `/settings/about#licenses`. Its hint and page-title lines for "About & legal" conflict with this branch's: take "About". |
 | `witty-cd` | Album lookups | `webResults` on results, `metadata` on album pages | Add each lookup host to `services`; credit it as its terms ask |

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { api, ApiError } from '../../api'
+import { fmtDateTime, api, ApiError } from '../../api'
 import { LIB_TYPES } from '../../components/AddLibrary'
 import { Spinner } from '../../components/common'
 import { IconCheck, IconClose, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
@@ -18,7 +18,7 @@ import LegalNote from '../../components/LegalNote'
 const PHASE: Record<string, string> = { downloading: 'Downloading', verifying: 'Checking the signature', installing: 'Installing' }
 const busy = (m: ModuleStatus) => !!PHASE[m.phase]
 const mb = (n = 0) => (n / 1048576).toFixed(1)
-const when = (ms: number) => new Date(ms).toLocaleString()
+const when = (ms: number) => fmtDateTime(ms)
 const day = (ms: number) => new Date(ms).toLocaleDateString()
 const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
 const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice
@@ -215,7 +215,6 @@ export default function ModulesSettings() {
   return (
     <div className="ms-page">
       <PageHead title="Modules" desc="What this server can do, one piece at a time. Add what you want and remove what you don’t. All of it is already part of the server, so adding a module is instant and downloads nothing." />
-      <LegalNote kind="modules" className="set-legal" />
 
       <Section title="Updates" desc="Some modules can update without a new server. Each update is signed, this server installs only what it can verify, and it takes effect straight away, with no restart."
         actions={<button className="btn ghost sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
@@ -273,6 +272,7 @@ export default function ModulesSettings() {
           </div>
         </div>
       </Section>
+      <LegalNote kind="modules" className="set-legal" />
     </div>
   )
 }

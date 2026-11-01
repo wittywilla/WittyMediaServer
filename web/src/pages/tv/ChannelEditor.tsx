@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { api, fmtRuntime, mediaUrl, type Item, type UserView } from '../../api'
+import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from '../../api'
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { PageHead, Section } from '../settings/ui'
@@ -185,7 +185,7 @@ export default function ChannelEditor() {
               <ul className="tvs-list">
                 {history.map((h) => (
                   <li key={h.id} className="tvs-item">
-                    <div className="tvs-item-text"><b>{h.name}</b><span>{new Date(h.savedAt * 1000).toLocaleString()}</span></div>
+                    <div className="tvs-item-text"><b>{h.name}</b><span>{fmtDateTime(h.savedAt * 1000)}</span></div>
                     <button className="btn sm ghost" onClick={() => void restore(h.id)}>Go back to this</button>
                   </li>
                 ))}

@@ -29,7 +29,6 @@ export default function WittyRigsSettings() {
   return (
     <>
       <PageHead title="WittyRigs" desc="Advanced, and most servers don’t need it. It’s for playing demanding PC games installed on this server itself, using this machine’s graphics card. To play on other PCs, use Game PCs." />
-      <LegalNote kind="games" className="set-legal" />
       <Section title="Hosting games on this server">
         {!st.enabled && !sure && (
           <>
@@ -56,6 +55,7 @@ export default function WittyRigsSettings() {
       </Section>
       {st.enabled && st.rig && <RigCard rig={st.rig} onChange={load} />}
       <Section title="License"><p>WittyRigs is Apache-2.0. Sunshine itself is {st.license}: <a href={st.source} target="_blank" rel="noreferrer noopener">source</a>. Neither contains the other.</p></Section>
+      <LegalNote kind="games" className="set-legal" />
     </>
   )
 }

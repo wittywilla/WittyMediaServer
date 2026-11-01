@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, setToken } from '../../api'
+import { fmtDateTime, api, setToken } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast } from '../../state'
 import { PageHead, Section } from './ui'
@@ -162,7 +162,7 @@ export default function ResetSettings() {
           <ul className="set-list">
             {view.copies.map((c) => (
               <li key={c.name}>
-                <span><b>{new Date(c.at * 1000).toLocaleString()}</b> <span className="muted">{size(c.bytes)}</span></span>{' '}
+                <span><b>{fmtDateTime(c.at * 1000)}</b> <span className="muted">{size(c.bytes)}</span></span>{' '}
                 <button className="btn sm" onClick={() => { setErr(''); setPassword(''); setCode(''); setPicked({ copy: c.name, action: 'restore' }) }}>Bring back</button>{' '}
                 <button className="btn sm ghost" onClick={() => { setErr(''); setPassword(''); setCode(''); setPicked({ copy: c.name, action: 'delete' }) }}>Delete</button>
               </li>

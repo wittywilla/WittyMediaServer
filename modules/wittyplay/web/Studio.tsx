@@ -103,7 +103,7 @@ export function ControllerStudio(props: Props) {
   return (
     <div ref={root} className="wps" role="dialog" aria-label="Controllers">
       <header className="wps-head">
-        <h2>Controllers <span className="wp-muted">· {props.gameTitle || props.consoleName}</span></h2>
+        <h1 className="wps-title">Controllers <span className="wp-muted">· {props.gameTitle || props.consoleName}</span></h1>
         <div className="wps-tabs" role="tablist">
           {tabs.map(([id, name]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'wp-btn' + (tab === id ? ' primary' : '')} onClick={() => setTab(id)}>{name}</button>)}
         </div>

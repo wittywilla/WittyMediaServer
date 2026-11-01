@@ -268,7 +268,7 @@ input[type=range] { accent-color: var(--accent); }
 /* ---------------------------------------------------------------- hero */
 .hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--sp-2)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
-.hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .92) 0%, rgb(var(--bg-rgb) / .62) 40%, rgb(var(--bg-rgb) / 0) 78%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .35) 24%, rgb(var(--bg-rgb) / 0) 52%); }
+.hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .35) 24%, rgb(var(--bg-rgb) / 0) 52%); }
 .hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); }
 .hero h1 { font-size: var(--display); margin: 0 0 var(--sp-3); letter-spacing: var(--tracking-display); text-shadow: 0 2px 16px rgba(0,0,0,.5); }
 .hero .meta { margin-bottom: var(--sp-3); }
@@ -593,10 +593,9 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 /* The short legal notices (components/LegalNote). */
 .legal-note { margin: var(--sp-4) 0 0; max-width: 72ch; color: var(--fg-3); font-size: var(--text-xs); line-height: 1.5; }
 .legal-note a, .auth-version a, .oobe-ack a, .legal-ack-bar a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
-.legal-top { margin: 0 0 var(--sp-4); }
-.set-legal { margin: 0 0 var(--sp-4); }
+.set-legal { margin: var(--sp-4) 0 0; }
 /* The page's own notice says more than the general one, and settings show no media. */
-.legal-foot { margin: var(--section-gap) auto 0; text-align: center; }
+.legal-foot { margin: var(--section-gap) 0 0; }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
 .legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
@@ -722,3 +721,14 @@ main.content:focus { outline: none; }
   .muted { color: var(--fg-2); }
   :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-width: 3px; }
 }
+
+/* Small controls keep their look, and are easier to hit with a finger. */
+@media (pointer: coarse), (max-width: 600px) {
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
+  .set-switch::after { content: ''; position: absolute; inset: -9px -2px; }
+  .tip::before { inset: -11px; }
+  summary { padding-block: 10px; }
+  .legal-note a { padding: 12px 6px; margin: -12px -6px; }
+}
+.field-row:has(> .field-label) { align-items: flex-end; flex-wrap: wrap; }
+.field-label { display: grid; gap: 4px; flex: 1 1 180px; font-size: var(--text-sm); color: var(--fg-2); }

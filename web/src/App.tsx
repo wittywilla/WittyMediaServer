@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { api, inMainMenus } from './api'
-import { IconFilm, IconGamepad, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
+import { IconGamepad, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
 import { useNavStyle } from './navPrefs'
 import { Avatar } from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -179,15 +179,15 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {open && <div className="backdrop-dim" onClick={onClose} />}
       <aside className="sidebar" aria-label="Main navigation" aria-hidden={!open} inert={!open || undefined}>
         <Link to="/" className="brand"><BrandMark /><Brand name={brandName} /></Link>
-        <NavLink to="/" end className="nav-link"><IconHome /> Home</NavLink>
-        <NavLink to="/tv" className="nav-link"><IconTv /> TV guide</NavLink>
+        <NavLink to="/" end className="nav-link nav-dup"><IconHome /> Home</NavLink>
+        <NavLink to="/tv" className="nav-link nav-dup"><IconTv /> TV guide</NavLink>
         <div className="nav-section">Libraries</div>
         {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
         {libraries.length === 0 && <div className="nav-empty">No libraries yet</div>}
         {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
         {canUseCouch && <NavLink to="/couch" className="nav-link"><IconGamepad /> Game PCs</NavLink>}
-        <div className="nav-section">Manage</div>
-        <NavLink to="/settings" className="nav-link"><IconSettings /> Settings<UpdateDot /></NavLink>
+        <div className="nav-section nav-dup">Manage</div>
+        <NavLink to="/settings" className="nav-link nav-dup"><IconSettings /> Settings<UpdateDot /></NavLink>
         <div className="sidebar-footer"><VersionTag version={version} /></div>
       </aside>
     </>
@@ -268,10 +268,10 @@ function TabBar({ onLibraries }: { onLibraries: () => void }) {
   return (
     <nav className="tabbar" aria-label="Main">
       <NavLink to="/" end><IconHome /><span>Home</span></NavLink>
-      <NavLink to="/tv"><IconTv /><span>TV</span></NavLink>
+      <NavLink to="/tv"><IconTv /><span>TV guide</span></NavLink>
       <NavLink to="/search"><IconSearch /><span>Search</span></NavLink>
-      <button type="button" onClick={onLibraries}><IconFilm /><span>Libraries</span></button>
-      <NavLink to="/settings" className="tab-upd"><IconSettings /><span>You</span><UpdateDot /></NavLink>
+      <button type="button" onClick={onLibraries}><IconMenu /><span>Menu</span></button>
+      <NavLink to="/settings" className="tab-upd"><IconSettings /><span>Settings</span><UpdateDot /></NavLink>
     </nav>
   )
 }

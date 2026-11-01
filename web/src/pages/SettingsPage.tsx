@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { api, type Library } from '../api'
+import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
-import { UpdateDot, VersionTag } from '../components/common'
+import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconClose, IconDrive, IconEdit, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlus, IconRefresh, IconRight, IconShield, IconTag, IconTrash, IconTune, IconTv, IconUsers, libIcon } from '../icons'
+import { IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -32,36 +32,43 @@ const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
 
-// Settings: a menu of pages grouped by what they are about (beside the page
-// on wide screens, a row of buttons on phones), each page a column of
-// section cards in the middle of the screen.
+// Settings: a menu of pages grouped by what they are about, each page a column of
+// section cards in the middle of the screen. On wide screens the menu sits beside the
+// page. Where that would squeeze the page, the menu is a page of its own, explaining
+// each item, with a way back to it from each page.
+const NARROW = '(max-width: 1280px)'
+const useNarrow = () => useSyncExternalStore((changed) => {
+  const m = window.matchMedia(NARROW)
+  m.addEventListener('change', changed)
+  return () => m.removeEventListener('change', changed)
+}, () => window.matchMedia(NARROW).matches)
 
 type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean; hint: string }
 const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'Server', pages: [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
-    { to: 'playback', label: 'Playback & discs', icon: <IconTv />, admin: true, hint: 'Player, DVDs and Blu-rays' },
-    { to: 'channels', label: 'Channels & tuners', icon: <IconTv />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
-    { to: 'gaming', label: 'Gaming', icon: <IconGamepad />, admin: true, hint: 'Consoles, cores and game streaming' },
-    { to: 'couch', label: 'Game PCs', icon: <IconGamepad />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
-    { to: 'transcoding', label: 'Transcoding', icon: <IconTune />, admin: true, hint: 'Quality, hardware and formats' },
+    { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
+    { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
+    { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
+    { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
+    { to: 'transcoding', label: 'Transcoding', icon: <IconFilm />, admin: true, hint: 'Quality, hardware and formats' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
   { title: 'You', pages: [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
-    { to: 'games', label: 'Games', icon: <IconGamepad />, hint: 'Picture, speed, shortcuts and more, for your games' },
+    { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
   { title: 'Advanced', pages: [
-    { to: 'wittyrigs', label: 'WittyRigs', icon: <IconGamepad />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
+    { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
-    { to: 'logs', label: 'WittyLog', icon: <IconShield />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
-    { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconDrive />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
-    { to: 'modules', label: 'Modules', icon: <IconRefresh />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
+    { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
+    { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
+    { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
     { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
     { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
@@ -74,19 +81,24 @@ export default function SettingsPage() {
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
   const slug = loc.pathname.split('/')[2]
+  const narrow = useNarrow()
   // A crash the owner hasn't looked at yet is pointed out on every settings page.
   // Asked again on leaving the logs page, where it may just have been dealt with.
-  const [unseenCrash, setUnseenCrash] = useState(false)
+  const [unseenCrashes, setUnseenCrashes] = useState<string[]>([])
   const onLogs = slug === 'logs'
   useEffect(() => {
     if (!user?.isAdmin || onLogs) return
     let gone = false
-    api.get<{ crashes: { seen: boolean }[] }>('/logs/crashes').then((r) => { if (!gone) setUnseenCrash(r.crashes.some((c) => !c.seen)) }).catch(() => {})
+    api.get<{ crashes: { id: string; seen: boolean }[] }>('/logs/crashes').then((r) => { if (!gone) setUnseenCrashes(r.crashes.filter((c) => !c.seen).map((c) => c.id)) }).catch(() => {})
     return () => { gone = true }
   }, [user?.isAdmin, onLogs])
+  const dismissCrashes = () => {
+    Promise.all(unseenCrashes.map((id) => api.post(`/logs/crashes/${encodeURIComponent(id)}/seen`))).catch((e) => toast(e.message))
+    setUnseenCrashes([])
+  }
   if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   return (
-    <div className="set-shell">
+    <div className={'set-shell' + (slug ? '' : ' at-menu')}>
       <nav className="set-nav" aria-label="Settings">
         <div className="set-nav-title">Settings</div>
         {groups.map((g) => (
@@ -94,7 +106,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">{g.title}</div>
             {g.pages.map((p) => (
               <NavLink key={p.to} to={`/settings/${p.to}`} className="set-nav-link" title={p.hint}>
-                <span className="set-nav-icon">{p.icon}</span><span>{p.label}</span>{p.to === 'about' && <UpdateDot />}
+                <span className="set-nav-icon">{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{p.hint}</small></span>{p.to === 'about' && <UpdateDot />}
               </NavLink>
             ))}
           </div>
@@ -104,14 +116,21 @@ export default function SettingsPage() {
         </NavLink>
       </nav>
       <main className="set-main">
-        {unseenCrash && !onLogs && <Link className="set-notice" to="/settings/logs?tab=crashes"><span>The server stopped unexpectedly. See what happened</span><IconRight /></Link>}
+        <div className="set-back"><BackLink to="/settings" label="Settings" /></div>
+        {unseenCrashes.length > 0 && !onLogs && (
+          <div className="set-notice-row">
+            <Link className="set-notice" to="/settings/logs?tab=crashes"><span>The server stopped unexpectedly. See what happened</span><IconRight /></Link>
+            <button type="button" className="btn icon" aria-label="Dismiss this notice" title="Dismiss" onClick={dismissCrashes}><IconClose /></button>
+          </div>
+        )}
         <Routes>
+          <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="gaming" element={<GamingSettings />} />
-          <Route path="games" element={<><PageHead title="Games" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
+          <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
@@ -192,7 +211,6 @@ function Libraries() {
     <>
       <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
-      <LegalNote kind="local" className="set-legal" />
       {libraries.length > 0 && (
         <div className="set-lib-summary">
           <b>{libraries.length} {libraries.length === 1 ? 'library' : 'libraries'}</b>
@@ -241,6 +259,7 @@ function Libraries() {
         </div>
       )}
       {editing && <LibraryEditor lib={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshLibraries(); toast('Library saved; scanning') }} />}
+      <LegalNote kind="local" className="set-legal" />
     </>
   )
 }
@@ -331,7 +350,7 @@ function Users() {
 function SignInScreen() {
   const st = useServerSettings()
   const { s, set, on } = st
-  if (!s) return null
+  if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
   const profiles = (s.loginStyle || 'profiles') === 'profiles'
   return (
     <Section title="Signing in">
@@ -520,7 +539,7 @@ function Updates() {
   return (
     <Section title="Updates" desc="New versions of WittyMediaServer are published on GitHub. Each one is signed, and this server installs only releases whose signature and checksum it can verify."
       actions={<button className="btn ghost sm" onClick={check} disabled={checking || active}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
-      <Row label="Installed version" desc={st?.checkedAt ? `Last checked ${new Date(st.checkedAt).toLocaleString()}` : 'Not checked yet'}>
+      <Row label="Installed version" desc={st?.checkedAt ? `Last checked ${fmtDateTime(st.checkedAt)}` : 'Not checked yet'}>
         <span className="mod-ver">{st?.current || '…'}</span>
       </Row>
       {st?.checkError && <p className="upd-msg warn">The last check didn’t work: {st.checkError}</p>}

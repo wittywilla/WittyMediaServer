@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, posterUrl, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
-import { BackLink, EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
+import { BackLink, EmptyState, LoadError, ItemCard, ShowCard, Spinner } from '../components/common'
 import { canPost, type Collection, type CollectionRule } from '../gallery'
 import { IconClose, IconEdit, IconLibrary, IconPlay, IconPlus, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
@@ -16,8 +16,10 @@ export default function CollectionsPage() {
   const { user } = useApp()
   const [list, setList] = useState<Collection[] | null>(null)
   const [making, setMaking] = useState(false)
-  const load = useCallback(() => { api.get<Collection[]>('/collections').then(setList).catch(() => setList([])) }, [])
+  const [failed, setFailed] = useState(false)
+  const load = useCallback(() => { setFailed(false); api.get<Collection[]>('/collections').then(setList).catch(() => setFailed(true)) }, [])
   useEffect(load, [load])
+  if (failed && !list) return <LoadError what="Your collections" onRetry={load} />
   if (!list) return <Spinner />
   return (
     <>

@@ -66,7 +66,9 @@ export function useServerSettings() {
   const [saved, setSaved] = useState<Record<string, string> | null>(null)
   const [draft, setDraft] = useState<Record<string, string> | null>(null)
   const [busy, setBusy] = useState(false)
-  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { setSaved(s); setDraft(s) }).catch((e) => toast(e.message)) }, [])
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => { setFailed(false); api.get<Record<string, string>>('/settings').then((s) => { setSaved(s); setDraft(s) }).catch(() => setFailed(true)) }, [attempt])
   const dirty = !!saved && !!draft && Object.keys(draft).some((k) => (draft[k] ?? '') !== (saved[k] ?? ''))
   const set = (k: string, v: string) => setDraft((d) => ({ ...(d || {}), [k]: v }))
   const on = (k: string, def = '1') => (draft?.[k] ?? def) === '1'
@@ -78,7 +80,7 @@ export function useServerSettings() {
       setSaved(n); setDraft(n); getPrefs(true); toast('Settings saved')
     } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
-  return { s: draft, set, on, dirty, busy, save, discard: () => setDraft(saved) }
+  return { s: draft, set, on, dirty, busy, save, discard: () => setDraft(saved), failed, retry: () => setAttempt((n) => n + 1) }
 }
 
 export function SaveBar({ dirty, busy, save, discard }: { dirty: boolean; busy: boolean; save: () => void; discard: () => void }) {

@@ -46,6 +46,7 @@ func TestAGamesImportShowsInTheActivityPanel(t *testing.T) {
 		t.Fatalf("state %s: %+v", got.State, got)
 	}
 	if got.Unit != "games" || got.Done == 0 || got.Done != got.Total {
+		// The last stage to have had anything to do left its bar full.
 		t.Errorf("progress: %d of %d %s", got.Done, got.Total, got.Unit)
 	}
 	if !strings.Contains(got.Result, "Recognised 2 of 2 games") {

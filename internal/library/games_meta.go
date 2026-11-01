@@ -149,7 +149,7 @@ func (g *GameMeta) work(ctx context.Context) {
 			return
 		}
 		g.setPhase(true, "details")
-		n, err := g.localBatch(ctx)
+		n, err := g.localBatch(ctx, t)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			break
@@ -157,7 +157,6 @@ func (g *GameMeta) work(ctx context.Context) {
 		if n == 0 {
 			break
 		}
-		t.did(n)
 	}
 	t.stage(ctx, phaseOnline)
 	finished := make(chan struct{})
@@ -196,7 +195,7 @@ func (g *GameMeta) work(ctx context.Context) {
 	}()
 	for t.wait(ctx) == nil {
 		g.setPhase(true, "details")
-		details, err := g.detailsBatch(ctx)
+		details, err := g.detailsBatch(ctx, t)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			failed = err
@@ -206,14 +205,13 @@ func (g *GameMeta) work(ctx context.Context) {
 			t.stage(ctx, phasePictures)
 			return
 		}
-		t.did(details)
 	}
 }
 
 // localBatch asks the local database about games it hasn't been asked about, and applies
 // the answers straight away. Nothing here goes over the internet, beyond fetching a
 // console's list once.
-func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
+func (g *GameMeta) localBatch(ctx context.Context, t *gameMetaTask) (int, error) {
 	set := g.sources(ctx)
 	if set.all["libretro"] == nil || !slices.Contains(set.on, "libretro") {
 		return 0, nil
@@ -236,6 +234,7 @@ func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
 			}
 		}
 		done++
+		t.did(1)
 		answers, _, err := g.Store.gameAnswers(ctx, j.it.ID)
 		if err != nil {
 			continue
@@ -544,7 +543,7 @@ func fetchOrder(ids []string) []string {
 	return out
 }
 
-func (g *GameMeta) detailsBatch(ctx context.Context) (int, error) {
+func (g *GameMeta) detailsBatch(ctx context.Context, t *gameMetaTask) (int, error) {
 	jobs, err := g.Store.nextGames(ctx, gameMetaBatch)
 	if err != nil || len(jobs) == 0 {
 		return 0, err
@@ -583,6 +582,7 @@ func (g *GameMeta) detailsBatch(ctx context.Context) (int, error) {
 		if err := g.lookup(ctx, &jobs[i], set, order); err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "item", jobs[i].it.ID, "err", err)
 		}
+		t.did(1) // one at a time, so the time left that's shown means something
 	}
 	return len(jobs), nil
 }

@@ -18,8 +18,7 @@
 .gr-path { color: var(--fg-3); font-size: var(--text-xs); overflow-wrap: anywhere; }
 .gr-reason { color: var(--fg-2); font-size: var(--text-sm); }
 .gr-row-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
-.gr-picker { grid-column: 1 / -1; }
-.gr-picker .select { width: 100%; max-width: 28rem; }
+.gr-picker { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-1); }
 
 .gr-fix { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--border); display: grid; gap: var(--sp-3); }
 .gr-how { margin: 0; color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
@@ -27,12 +26,14 @@
 .gr-versions h3 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); }
 .gr-versions ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
 .gr-versions li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); }
-.gr-versions .select { width: 100%; max-width: 36rem; }
+.gr-versions li[aria-current] .gr-version-name { font-weight: var(--weight-heading); }
+.gr-version-name { min-width: 0; overflow-wrap: anywhere; }
+.gr-fix .shelf-head:focus { outline: none; }
 .gr-fix-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .gr-problem { margin: var(--sp-3) 0; }
 
 @media (max-width: 640px) {
   .gr-row { grid-template-columns: minmax(0, 1fr); }
   .gr-row-actions { justify-content: flex-start; }
-  .gr-row-actions .btn, .gr-bulk .btn, .gr-fix-actions .btn { min-height: 44px; }
+  .gr-row-actions .btn, .gr-bulk .btn, .gr-fix-actions .btn, .gr-picker .btn, .gr-versions .btn { min-height: 44px; }
 }

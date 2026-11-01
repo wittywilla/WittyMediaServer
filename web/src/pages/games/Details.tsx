@@ -292,7 +292,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       )}
 
       <details className="gm-section gm-file">
-        <summary>Files and advanced</summary>
+        <summary>{user?.isAdmin ? 'Fix this game, files and advanced' : 'Files and advanced'}</summary>
         <dl className="gm-facts">
           <div><dt>File</dt><dd>{[it.container?.toUpperCase(), sizeText].filter(Boolean).join(' · ')}</dd></div>
           {meta?.tags && meta.tags !== it.tagline && <div><dt>File name says</dt><dd>{meta.tags}</dd></div>}

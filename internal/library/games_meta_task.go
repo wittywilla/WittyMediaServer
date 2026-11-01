@@ -53,7 +53,7 @@ func (t *gameMetaTask) started() *tasks.Handle {
 
 // did says n games of this stage have been dealt with.
 func (t *gameMetaTask) did(n int) {
-	if n == 0 {
+	if t == nil || n == 0 {
 		return
 	}
 	t.mu.Lock()

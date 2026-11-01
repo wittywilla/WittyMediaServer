@@ -143,7 +143,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		s.GameMeta.KeysChanged(r.Context()) // the new source can be asked about every game
 	}
 	if regions := s.DB.GetSetting(r.Context(), "gamingRegionOrder", ""); regions != regionsWere {
-		s.gameRegionsChanged(r.Context(), regions)
+		s.gameRegionsChanged(regions)
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {

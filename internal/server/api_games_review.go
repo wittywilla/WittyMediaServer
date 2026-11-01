@@ -10,11 +10,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -34,24 +36,38 @@ func (s *Server) gameReviewRoutes(m *http.ServeMux) {
 }
 
 // gameRegionsChanged puts the owner's new order of regions to use: what's new follows it
-// straight away, and each games library is scanned to bring what's listed into line.
-func (s *Server) gameRegionsChanged(ctx context.Context, setting string) {
+// straight away, and each games library is scanned to bring what's listed into line. A
+// scan that's going stops first, as it would save what it worked out under the old order.
+func (s *Server) gameRegionsChanged(setting string) {
 	gameregion.Set(setting)
-	if err := s.Store.GameRegionsChanged(ctx); err != nil {
-		s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
-		return
-	}
-	libs, err := s.Store.Libraries(ctx)
-	if err != nil {
-		s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
-		return
-	}
-	for _, lib := range libs {
-		if lib.Type == "games" {
-			s.Scanner.Start(lib.ID)
+	logging.Go("game regions", func() {
+		ctx := context.Background()
+		libs, err := s.Store.Libraries(ctx)
+		if err != nil {
+			s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
+			return
 		}
-	}
-	s.GameMeta.Kick()
+		var games []int64
+		for _, lib := range libs {
+			if lib.Type == "games" {
+				games = append(games, lib.ID)
+				s.Scanner.Cancel(lib.ID)
+			}
+		}
+		for _, id := range games {
+			for deadline := time.Now().Add(time.Minute); s.Scanner.Running(id) && time.Now().Before(deadline); {
+				time.Sleep(50 * time.Millisecond)
+			}
+		}
+		if err := s.Store.GameRegionsChanged(ctx); err != nil {
+			s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
+			return
+		}
+		for _, id := range games {
+			s.Scanner.Start(id)
+		}
+		s.GameMeta.Kick()
+	}, "cat", "library")
 }
 
 func (s *Server) gamesLibrary(w http.ResponseWriter, r *http.Request) *library.Library {

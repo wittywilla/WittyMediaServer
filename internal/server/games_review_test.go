@@ -335,7 +335,7 @@ func TestTheOrderOfRegionsIsASetting(t *testing.T) {
 		}
 		jsonBody(t, g.do("GET", fmt.Sprintf("/api/items?library=%d&kind=game", lib.ID), g.admin, nil), &out)
 		if len(out.Items) != 1 {
-			t.Fatalf("%d tiles", len(out.Items))
+			return "" // versions apart for a moment, while they're put together again
 		}
 		return out.Items[0].Tagline
 	}
@@ -356,8 +356,12 @@ func TestTheOrderOfRegionsIsASetting(t *testing.T) {
 	if got := gameregion.Order()[0]; got != gameregion.Japan {
 		t.Fatalf("order %v", gameregion.Order())
 	}
-	waitForScan(t, g, lib.ID)
-	if got := head(); got != "Japan" {
-		t.Fatalf("after the change it led with %q", got)
+	deadline := time.Now().Add(30 * time.Second)
+	for head() != "Japan" {
+		if time.Now().After(deadline) {
+			t.Fatalf("after the change it led with %q", head())
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
+	waitForScan(t, g, lib.ID)
 }

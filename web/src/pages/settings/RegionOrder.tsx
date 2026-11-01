@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { IconDown, IconUp } from '../../icons'
 import { Section } from './ui'
 import './regionorder.css'
@@ -28,6 +28,27 @@ export default function RegionOrder({ saved, onSave }: { saved?: string; onSave:
   const [order, setOrder] = useState(() => orderOf(saved))
   const [said, setSaid] = useState('')
   const list = useRef<HTMLOListElement>(null)
+  const [moved, setMoved] = useState<{ id: string; by: number } | null>(null)
+  // Saved once the moves stop, as each change goes over the games libraries again.
+  const waiting = useRef<{ timer: number; order: string } | null>(null)
+  const save = useRef(onSave)
+  save.current = onSave
+  const flush = () => {
+    if (!waiting.current) return
+    clearTimeout(waiting.current.timer)
+    void save.current(waiting.current.order)
+    waiting.current = null
+  }
+  useEffect(() => flush, [])
+  // The button that was pressed may have just reached the end of the list and gone out of
+  // use, and focus mustn't fall off the page with it.
+  useEffect(() => {
+    if (!moved) return
+    const row = list.current?.querySelector<HTMLElement>(`[data-region="${moved.id}"]`)
+    const again = row?.querySelector<HTMLButtonElement>(moved.by < 0 ? '.ro-up' : '.ro-down')
+    const other = row?.querySelector<HTMLButtonElement>(moved.by < 0 ? '.ro-down' : '.ro-up')
+    ;(again && !again.disabled ? again : other)?.focus()
+  }, [moved])
   const move = (id: string, by: number) => {
     const from = order.indexOf(id)
     const to = from + by
@@ -37,15 +58,9 @@ export default function RegionOrder({ saved, onSave }: { saved?: string; onSave:
     next.splice(to, 0, id)
     setOrder(next)
     setSaid(`${nameOf(id)} moved to number ${to + 1} of ${next.length}.`)
-    void onSave(next.join(','))
-    // The button that was pressed may have just reached the end of the list and gone out
-    // of use, and focus mustn't fall off the page with it.
-    requestAnimationFrame(() => {
-      const row = list.current?.querySelector<HTMLElement>(`[data-region="${id}"]`)
-      const again = row?.querySelector<HTMLButtonElement>(by < 0 ? '.ro-up' : '.ro-down')
-      const other = row?.querySelector<HTMLButtonElement>(by < 0 ? '.ro-down' : '.ro-up')
-      ;(again && !again.disabled ? again : other)?.focus()
-    })
+    setMoved({ id, by })
+    if (waiting.current) clearTimeout(waiting.current.timer)
+    waiting.current = { order: next.join(','), timer: window.setTimeout(flush, 1500) }
   }
   return (
     <Section title="Which version comes first" desc="When there’s more than one version of a game, this decides which one its tile leads with, which file of an archive plays, and whose names and pictures are used. Anywhere not listed comes last.">

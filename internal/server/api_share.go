@@ -61,8 +61,9 @@ func (s *Server) handleCreateShare(w http.ResponseWriter, r *http.Request) {
 		}
 		l.Title = it.Title
 	case "album":
+		// Seeing someone's shared album doesn't make it yours to hand to anyone.
 		a, err := s.Store.PhotoAlbumByID(r.Context(), b.ID, u.ID, u.IsAdmin)
-		if err != nil {
+		if err != nil || (a.OwnerID != u.ID && !u.IsAdmin) {
 			writeErr(w, 404, "not found")
 			return
 		}
@@ -153,14 +154,26 @@ func (s *Server) sharedItem(ctx context.Context, c *shareContext, id int64) (*li
 			return nil, library.ErrNotFound
 		}
 	case "album":
+		// The album has to still be one the link's maker may share, not only hold the picture.
+		if _, err := s.Store.PhotoAlbumByID(ctx, c.link.TargetID, c.owner.ID, c.owner.IsAdmin); err != nil {
+			return nil, library.ErrNotFound
+		}
 		var one int
 		if err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM photo_album_items WHERE album_id = ? AND item_id = ?`, c.link.TargetID, id).Scan(&one); err != nil {
+			return nil, library.ErrNotFound
+		}
+		// The maker can still see the album: its owner may have made it private since.
+		if _, err := s.Store.PhotoAlbumByID(ctx, c.link.TargetID, c.owner.ID, c.owner.IsAdmin); err != nil {
 			return nil, library.ErrNotFound
 		}
 	default:
 		return nil, library.ErrNotFound
 	}
-	if !c.acc.AllowsItem(it, nil) {
+	var sh *library.Show
+	if it.ShowID != nil {
+		sh, _ = s.Store.ShowFacts(ctx, *it.ShowID)
+	}
+	if !c.acc.AllowsItem(it, sh) {
 		return nil, library.ErrNotFound
 	}
 	return it, nil
@@ -212,7 +225,7 @@ func (s *Server) handleShareOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.CountShareView(r.Context(), c.link.ID)
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
-	writeJSON(w, 200, map[string]any{"kind": c.link.Kind, "title": c.link.Title, "owner": c.owner.Name, "allowDownload": c.link.AllowDownload, "expiresAt": c.link.ExpiresAt, "items": photos})
+	writeJSON(w, 200, map[string]any{"kind": c.link.Kind, "title": c.link.Title, "allowDownload": c.link.AllowDownload, "expiresAt": c.link.ExpiresAt, "items": photos})
 }
 
 // GET /api/share/{token}/image/{id}?w=: always re-encoded.
@@ -305,6 +318,9 @@ func shareStreamID(it *library.Item) string { return "share-" + hls.Key(it.Path)
 
 func (s *Server) ensureShareStream(r *http.Request, it *library.Item) error {
 	id := shareStreamID(it)
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		return library.ErrNotFound
+	}
 	pctx, cancel := context.WithTimeout(logging.WithSession(r.Context(), id), 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
@@ -412,7 +428,7 @@ func (s *Server) sharedStream(w http.ResponseWriter, r *http.Request) (*library.
 	return it, true
 }
 
-var shareTokenRe = regexp.MustCompile(`(/api/share/|/s/)[A-Za-z0-9_-]+`)
+var shareTokenRe = regexp.MustCompile(`(/api/(?:v[0-9]+/)?share/|/s/)[A-Za-z0-9_-]+`)
 
 // redactPath hides the secret of a shared link from request logs, which people
 // attach to bug reports.

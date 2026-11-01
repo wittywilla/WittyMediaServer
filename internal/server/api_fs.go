@@ -38,6 +38,10 @@ func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"path": "", "parent": nil, "sep": string(filepath.Separator), "places": browser.Places(libs...)})
 		return
 	}
+	if err := s.checkAdminPaths(r, []string{p}, nil); err != nil {
+		writeErr(w, 403, err.Error())
+		return
+	}
 	l, err := browser.List(p, fb.Options{ShowHidden: r.URL.Query().Get("hidden") == "1", Kind: library.FileKind})
 	switch err {
 	case nil:

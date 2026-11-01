@@ -85,6 +85,8 @@
       <!-- What 0.5.2-alpha left: its setup program's copy, boot task and firewall rule. -->
       <Custom Action="TakeOverOldCopyUser" After="InstallFiles" Condition="NOT REMOVE" />
       <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND $(var.Everyone)" />
+      <!-- Before the service first starts: it holds password hashes and sessions. -->
+      <Custom Action="SecureServiceData" Before="StartServices" Condition="NOT REMOVE AND INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" />
     </InstallExecuteSequence>
 
     <!-- Failing here never stops an install: all that's left is something to tidy by hand. -->
@@ -98,6 +100,10 @@
                  Value="&quot;[BinFolder]wittymediaserver.exe&quot; --take-over-old-copy" />
     <CustomAction Id="TakeOverOldCopyMachine" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
 
+    <SetProperty Action="SetSecureServiceData" Id="SecureServiceData" Before="SecureServiceData" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; --secure-service-data &quot;[CommonAppDataFolder]WittyMediaServer&quot;" />
+    <CustomAction Id="SecureServiceData" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="check" Impersonate="no" />
+
     <!-- Open the app at the end, if the box stays ticked. -->
     <CustomAction Id="OpenApp" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]WittyMediaServer.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
 
@@ -108,9 +114,6 @@
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
     <StandardDirectory Id="DesktopFolder" />
-    <StandardDirectory Id="CommonAppDataFolder">
-      <Directory Id="ServiceDataFolder" Name="WittyMediaServer" />
-    </StandardDirectory>
 
     <ComponentGroup Id="Program" Directory="INSTALLFOLDER">
       <Component Id="AppExe">
@@ -194,19 +197,11 @@
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="string" Value="1" KeyPath="yes" />
       </Component>
 
-      <!-- Only for everyone: where the service keeps its library. Only it and administrators get in. -->
+      <!-- Only for everyone: remembers that the service was asked for. SecureServiceData below
+           makes its folder, which only it and administrators can get into. -->
       <Component Id="ServiceSettings" Guid="1a7d3e80-5f62-49b4-9c28-f0e6b1d4a735" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="string" Value="1" KeyPath="yes" />
       </Component>
-      <Component Id="ServiceData" Guid="c8e15d24-7a90-4b6f-83d1-2f7c9e0a6b58" Directory="ServiceDataFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
-        <CreateFolder>
-          <util:PermissionEx User="LocalService" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />
-          <util:PermissionEx User="SYSTEM" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />
-          <util:PermissionEx User="Administrators" Domain="BUILTIN" GenericAll="yes" Inheritable="yes" />
-        </CreateFolder>
-        <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="ServiceData" Type="string" Value="1" KeyPath="yes" />
-      </Component>
-
       <!-- Only for everyone: lets other devices on the home network connect. A firewall that
            refuses, or one that's switched off, doesn't stop the install: Windows just asks later. -->
       <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND $(var.Everyone)">

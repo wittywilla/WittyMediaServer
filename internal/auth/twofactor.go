@@ -29,6 +29,8 @@ var (
 	ErrCodeNeeded = errors.New("Enter the 6-digit code from your authenticator app.")
 	// ErrCodeWrong: the code was wrong or has already been used.
 	ErrCodeWrong = errors.New("That code isn't right, or it has already been used.")
+
+	errAlreadyOn = errors.New("two-factor sign-in is already on")
 )
 
 const (
@@ -111,8 +113,12 @@ func (s *Service) StartTwoFactor(ctx context.Context, id int64, issuer string) (
 // and returns the recovery codes (shown once, stored only as hashes).
 func (s *Service) ConfirmTwoFactor(ctx context.Context, id int64, code string) ([]string, error) {
 	var stored sql.NullString
-	if err := s.DB.QueryRowContext(ctx, `SELECT totp_secret FROM users WHERE id = ?`, id).Scan(&stored); err != nil {
+	var on int
+	if err := s.DB.QueryRowContext(ctx, `SELECT totp_secret, totp_on FROM users WHERE id = ?`, id).Scan(&stored, &on); err != nil {
 		return nil, err
+	}
+	if on != 0 {
+		return nil, errAlreadyOn
 	}
 	secret, err := b32.DecodeString(stored.String)
 	if err != nil || len(secret) == 0 {
@@ -134,8 +140,12 @@ func (s *Service) ConfirmTwoFactor(ctx context.Context, id int64, code string) (
 		hashes[i] = hashRecovery(c)
 	}
 	raw, _ := json.Marshal(hashes)
-	if _, err := s.DB.ExecContext(ctx, `UPDATE users SET totp_on = 1, totp_last = ?, recovery_codes = ? WHERE id = ?`, step, string(raw), id); err != nil {
+	res, err := s.DB.ExecContext(ctx, `UPDATE users SET totp_on = 1, totp_last = ?, recovery_codes = ? WHERE id = ? AND totp_on = 0`, step, string(raw), id)
+	if err != nil {
 		return nil, err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return nil, errAlreadyOn
 	}
 	return codes, nil
 }

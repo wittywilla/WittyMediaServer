@@ -29,7 +29,7 @@ func TestPartNames(t *testing.T) {
 		}
 	}
 	for _, name := range []string{
-		"Night Falls Part 2", // a sequel's title, not a part
+		"Night Falls Part 2",                 // a sequel's title, not a part
 		"Show S01E01 CD1", "Show 1x02 part1", // an episode split in two is two episodes
 		"CD1", "Film", "Part of Me", "Film CD99",
 	} {

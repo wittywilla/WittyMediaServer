@@ -56,6 +56,16 @@ func run(args []string) int {
 			return cmdDoctor(args[1:])
 		case "uninstall", "--uninstall", "-uninstall", "/uninstall":
 			return uninstall.RunCLI(args[1:], os.Stdin, os.Stdout)
+		case "--secure-service-data": // run by the Windows installer, as an administrator
+			if len(args) != 2 {
+				fmt.Fprintln(os.Stderr, "usage: wittymediaserver --secure-service-data <folder>")
+				return 2
+			}
+			if err := uninstall.SecureServiceData(args[1]); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return 1
+			}
+			return 0
 		case "--take-over-old-copy": // run by the Windows installer
 			for _, what := range uninstall.TakeOver(uninstall.Here()) {
 				fmt.Println("cleared:", what)

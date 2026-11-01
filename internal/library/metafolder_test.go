@@ -117,7 +117,6 @@ func (f *folderFixture) filmFile() string {
 	return "Films/Harbour Lights (2001) [item-" + itoa(f.film.ID) + "].json"
 }
 
-
 func TestExportLayout(t *testing.T) {
 	f := newFolderFixture(t)
 	res := f.export(t)
@@ -671,7 +670,7 @@ func TestOtherSidecarsAreCleaned(t *testing.T) {
 	if v == nil {
 		t.Fatal("not read")
 	}
-	hasNoMarkup(t, "video sidecar", v.Title, v.Description, v.Uploader, v.WebpageURL, strings.Join(v.Tags, ","), v.Comments[0].Author, v.Comments[0].Text, v.Custom["k"].(string), v.Custom["n"].(map[string]any)["m"].(string))
+	hasNoMarkup(t, "video sidecar", v.Title, v.Description, v.Uploader, v.WebpageURL, strings.Join(v.Tags, ","), v.Comments[0].Author, v.Comments[0].Text, string(v.Custom))
 	if v.Title != "Clip" || v.WebpageURL != "" {
 		t.Errorf("%+v", v)
 	}

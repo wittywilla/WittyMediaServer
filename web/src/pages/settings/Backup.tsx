@@ -4,7 +4,7 @@ import { ApiError, fmtDateTime, getToken, serverBase, setToken } from '../../api
 import { Spinner } from '../../components/common'
 import { IconDownload, IconLock, IconTrash } from '../../icons'
 import { toast } from '../../state'
-import { ask, Button, Field, Input, Notice, Progress, Segmented, Select, Tabs } from '../../ui'
+import { Button, Field, Input, Notice, Progress, Segmented, Select, Tabs } from '../../ui'
 import { PageHead, Row, Section, Switch } from './ui'
 import './backup.css'
 
@@ -242,20 +242,32 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
 }
 
 function FileList({ view, reload, call, onRestore }: { view: View; reload: () => void; call: ReturnType<typeof client>; onRestore: (name: string) => void }) {
-  const download = async (name: string) => {
+  const [asking, setAsking] = useState('')
+  const [deleting, setDeleting] = useState(false) // what the password asked for below is for
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const startAsking = (name: string, del: boolean) => { setAsking(name); setDeleting(del); setPassword(''); setCode(''); setErr('') }
+  const download = async () => {
+    setErr('')
     try {
-      const r = await call<{ url: string }>('POST', `/backup/files/${encodeURIComponent(name)}/link`)
+      const r = await call<{ url: string }>('POST', `/backup/files/${encodeURIComponent(asking)}/link`, { password, code })
       const a = document.createElement('a')
       a.href = serverBase() + r.url
-      a.download = name
+      a.download = asking
       document.body.appendChild(a)
       a.click()
       a.remove()
-    } catch (e) { toast(message(e)) }
+      setAsking(''); setPassword(''); setCode('')
+    } catch (e) { setErr(message(e)) }
   }
-  const remove = async (b: Info) => {
-    if (!await ask({ title: 'Delete this backup?', body: `${b.name} (${size(b.size)}) is deleted for good.`, confirm: 'Delete', danger: true })) return
-    try { await call('DELETE', `/backup/files/${encodeURIComponent(b.name)}`); toast('Backup deleted'); reload() } catch (e) { toast(message(e)) }
+  const remove = async () => {
+    setErr('')
+    try {
+      await call('DELETE', `/backup/files/${encodeURIComponent(asking)}`, { password, code })
+      setAsking(''); setPassword(''); setCode('')
+      toast('Backup deleted'); reload()
+    } catch (e) { setErr(message(e)) }
   }
   return (
     <Section title="Backups on this server" desc={<>In <code>{view.folder}</code>. They stay through a reset that keeps a copy, and stay on the same drive as everything else, so download one to keep it somewhere safer.</>}>
@@ -269,10 +281,22 @@ function FileList({ view, reload, call, onRestore }: { view: View; reload: () =>
                 <small className="mono bk-name">{b.name}</small>
               </div>
               <div className="bk-file-actions">
-                <Button onClick={() => void download(b.name)} icon={<IconDownload />}>Download</Button>
+                <Button onClick={() => startAsking(b.name, false)} icon={<IconDownload />}>Download</Button>
                 <Button onClick={() => onRestore(b.name)}>Restore</Button>
-                <Button variant="ghost" onClick={() => void remove(b)} icon={<IconTrash />} aria-label={`Delete ${b.name}`}>Delete</Button>
+                <Button variant="ghost" onClick={() => startAsking(b.name, true)} icon={<IconTrash />} aria-label={`Delete ${b.name}`}>Delete</Button>
               </div>
+              {asking === b.name && (
+                <form className="bk-pw" onSubmit={(e) => { e.preventDefault(); void (deleting ? remove() : download()) }}>
+                  <p className="bk-quiet">{deleting ? `${b.name} (${size(b.size)}) is deleted for good. A backup is the way back after something goes wrong, so this asks for your password.` : 'A backup holds your accounts, so taking one off the server asks for your password.'}</p>
+                  <Field label="Your password"><Input type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+                  {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+                  {err && <Notice tone="warn" title={deleting ? 'It wasn’t deleted' : 'It can’t be downloaded yet'}>{err}</Notice>}
+                  <div className="bk-actions">
+                    <Button type="submit" variant={deleting ? 'danger' : 'primary'} disabled={password === '' || (view.twoFactor && code === '')}>{deleting ? 'Delete' : 'Download'}</Button>
+                    <Button onClick={() => setAsking('')}>Cancel</Button>
+                  </div>
+                </form>
+              )}
             </li>
           ))}
         </ul>
@@ -289,15 +313,18 @@ function ScheduleForm({ view, reload, call }: { view: View; reload: () => void; 
   const [password, setPassword] = useState('')
   const [again, setAgain] = useState('')
   const [changePw, setChangePw] = useState(false)
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const on = s.frequency !== 'off'
+  const fewer = s.keep < view.schedule.keep // that removes backups, and asks for your password
   const badPw = (changePw || !s.protected) && password !== '' && (password.length < 8 || password !== again)
   const save = async () => {
     setBusy(true); setErr('')
     try {
-      await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], password: changePw || !s.protected ? password : '' })
-      setPassword(''); setAgain(''); setChangePw(false); toast('Schedule saved'); reload()
+      await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], password: changePw || !s.protected ? password : '', current, code })
+      setPassword(''); setAgain(''); setChangePw(false); setCurrent(''); setCode(''); toast('Schedule saved'); reload()
     } catch (e) { setErr(message(e)) } finally { setBusy(false) }
   }
   const clearPw = async () => {
@@ -318,6 +345,13 @@ function ScheduleForm({ view, reload, call }: { view: View; reload: () => void; 
             <Row label="Keep the newest" desc="Older scheduled backups are deleted. Ones you make yourself never are.">
               <Input className="bk-keep" type="number" inputMode="numeric" min={1} max={365} aria-label="How many to keep" value={s.keep} onChange={(e) => setS({ ...s, keep: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
             </Row>
+            {fewer && (
+              <div className="bk-pw">
+                <p className="bk-quiet">Keeping fewer deletes backups at the next run, so this asks for your password.</p>
+                <Field label="Your password"><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
+                {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+              </div>
+            )}
           </>
         )}
         {view.lastAuto ? <p className="bk-quiet">Last made {fmtDateTime(view.lastAuto * 1000)}.</p> : null}

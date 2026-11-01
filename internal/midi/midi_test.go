@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"testing"
+	"time"
 )
 
 // song is one track at the default tempo: two quarter notes, a drum, and a tempo change.
@@ -125,6 +126,12 @@ func FuzzParse(f *testing.F) {
 		if len(b) > 1<<16 {
 			return
 		}
+		start := time.Now()
+		defer func() {
+			if took := time.Since(start); took > 5*time.Second {
+				t.Errorf("%d bytes took %v", len(b), took)
+			}
+		}()
 		s, err := Parse(b)
 		if err != nil {
 			return

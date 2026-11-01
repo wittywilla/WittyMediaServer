@@ -4,6 +4,7 @@ import { IconClose, IconEdit, IconRefresh } from '../icons'
 import { toast } from '../state'
 import { useLineIndex, type LyricLine, type useLyrics } from './lyrics'
 import type { PlayerView } from './types'
+import { WebLink } from '../components/WebLink'
 
 // Lyrics that follow the music: the line being sung stays in the middle, and pressing any
 // line goes to it. Scrolling by hand holds the view still for a few seconds. Words without
@@ -35,7 +36,7 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
     <div className="np-side np-lyrics">
       <div className="np-side-head">
         <h3>Lyrics</h3>
-        {lyrics?.sourceName && <span className="np-side-meta">{lyrics.creditUrl ? <a href={lyrics.creditUrl} target="_blank" rel="noreferrer">{lyrics.sourceName}</a> : lyrics.sourceName}</span>}
+        {lyrics?.sourceName && <span className="np-side-meta">{lyrics.creditUrl ? <WebLink href={lyrics.creditUrl}>{lyrics.sourceName}</WebLink> : lyrics.sourceName}</span>}
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close the lyrics"><IconClose /></button>
       </div>
       {loading && <p className="np-hint">Looking for the words…</p>}

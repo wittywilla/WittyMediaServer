@@ -267,6 +267,11 @@ func (s *Server) handleRepairRemap(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "that path is too long")
 		return
 	}
+	// Saying what a move would change looks at the new place, before any password.
+	if err := s.checkAdminPaths(r, []string{b.To}, nil); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	env := s.repairEnv()
 	if !b.Apply {
 		plan, err := diagnose.PlanRemap(r.Context(), env, b.From, b.To)

@@ -374,7 +374,7 @@ func TestSeriesRule(t *testing.T) {
 }
 
 func TestSafeFileName(t *testing.T) {
-	cases := map[string]string{`a/b\c:d`: "a b c d", "..": "Recording", "  x  y ": "x y", `CON?`: "CON"}
+	cases := map[string]string{`a/b\c:d`: "a b c d", "..": "Recording", "  x  y ": "x y", `CON?`: "Recording CON"}
 	for in, want := range cases {
 		if got := safeFileName(in); got != want {
 			t.Errorf("%q: %q", in, got)

@@ -77,15 +77,15 @@ export default function PlaybackSettings() {
 // BD-J: Blu-ray menus written in Java. Java is the server owner's to install,
 // and turning this on runs a disc's code, in a sandbox, so it starts off.
 function BDJRows({ s, set, dirty }: { s: Record<string, string>; set: (k: string, v: string) => void; dirty: boolean }) {
-  const [status, setStatus] = useState<{ version?: string; path?: string; error?: string } | null>(null)
-  useEffect(() => { if (!dirty) api.get<{ version?: string; path?: string; error?: string }>('/bdj/status').then(setStatus).catch(() => setStatus(null)) }, [dirty])
+  const [status, setStatus] = useState<{ version?: string; path?: string; error?: string; configured?: boolean } | null>(null)
+  useEffect(() => { if (!dirty) api.get<{ version?: string; path?: string; error?: string; configured?: boolean }>('/bdj/status').then(setStatus).catch(() => setStatus(null)) }, [dirty])
   return (
     <>
-      <Row label="Run Blu-ray Java menus (BD-J)" desc={<>Many commercial Blu-rays write their menus in Java. To show them, install any Java 8 or newer on this server, for example Eclipse Temurin, a free OpenJDK build. It isn’t included. A disc’s Java code runs in its own process with no network and no access to your files outside the disc, but it’s still code from the disc, so this is off until you turn it on. With it off, these discs play their main feature directly.{status && <><br />{status.version ? `Java ${status.version} found: ${status.path}` : `Java not usable: ${status.error}`}</>}</>}>
+      <Row label="Run Blu-ray Java menus (BD-J)" desc={<>Many commercial Blu-rays write their menus in Java. To show them, install any Java 8 or newer on this server, for example Eclipse Temurin, a free OpenJDK build. It isn’t included. A disc’s Java code runs in its own process with no network and no access to your files outside the disc, but it’s still code from the disc, so this is off until you turn it on. With it off, these discs play their main feature directly.{status && <><br />{status.version ? `Java ${status.version} found: ${status.path}` : status.error ? `Java not usable: ${status.error}` : `Java found: ${status.path}. It’s tried when this is on.`}</>}</>}>
         <Switch label="Run Blu-ray Java menus" checked={s.bdjEnabled === '1'} onChange={(v) => set('bdjEnabled', v ? '1' : '0')} />
       </Row>
-      <Row label="Java location" desc="Optional. Leave it empty to find Java by itself. Otherwise the Java folder, or the java program inside it." stack>
-        <input className="input mono" aria-label="Java location" value={s.javaPath || ''} onChange={(e) => set('javaPath', e.target.value)} placeholder="C:\Program Files\Eclipse Adoptium\jdk-21" />
+      <Row label="Java location" desc={<>{status?.configured ? 'Named in the server’s config file.' : 'Found by itself.'} To use another Java, name its folder as <code>javaPath</code> in the server’s config file, or with <code>WMS_JAVA</code>. It can’t be changed from here, so that a web account can’t choose what the server runs.</>} stack>
+        <div className="input mono" role="status">{status?.path || 'None found'}</div>
       </Row>
     </>
   )

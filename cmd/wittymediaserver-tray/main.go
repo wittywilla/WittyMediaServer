@@ -317,7 +317,7 @@ func openServerOutput(path string) (*serverOutput, error) {
 }
 
 func (o *serverOutput) open() error {
-	f, err := os.OpenFile(o.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	f, err := os.OpenFile(o.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
 	if err != nil {
 		return err
 	}

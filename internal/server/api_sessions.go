@@ -62,19 +62,46 @@ func (s *Server) handleEndOtherSessions(w http.ResponseWriter, r *http.Request) 
 }
 
 // checkOwnPassword asks for the signed-in person's password again before
-// something sensitive, counted like any other sign-in attempt. It answers the
-// request itself when the password is refused.
+// something sensitive, counted like any other sign-in attempt, as it starts. It
+// answers the request itself when the password is refused. The right password
+// takes back only this attempt, so it can't clear what wrong codes have built up.
 func (s *Server) checkOwnPassword(w http.ResponseWriter, r *http.Request, u *auth.User, password string) bool {
-	release, ok := s.loginAllowed(w, r, u.Name)
+	release, ok := s.signInAllowed(w, r, u.Name)
 	if !ok {
 		return false
 	}
 	defer release()
 	if !s.Auth.CheckPassword(r.Context(), u.ID, password) {
-		s.signInFailed(r, u.Name)
+		s.logins.noteFailure()
+		s.logSignInFailure(r, u.Name)
 		writeErr(w, 403, "the current password is not right")
 		return false
 	}
+	s.logins.uncount(r, u.Name)
+	return true
+}
+
+// confirmOwner asks for the signed-in person's password, and code if they have two-factor sign-in,
+// before something that a stolen session must not be able to do. It answers the request itself when
+// they are refused.
+func (s *Server) confirmOwner(w http.ResponseWriter, r *http.Request, password, code string) bool {
+	u := userFrom(r)
+	return s.checkOwnPassword(w, r, u, password) && (!u.TwoFactor || s.checkOwnCode(w, r, u, code))
+}
+
+// checkOwnCode is checkOwnPassword for a two-factor code.
+func (s *Server) checkOwnCode(w http.ResponseWriter, r *http.Request, u *auth.User, code string) bool {
+	if d := s.logins.attempt(r, u.Name); d > 0 {
+		tooManyTries(w, d)
+		return false
+	}
+	if !s.Auth.CheckTwoFactor(r.Context(), u, code) {
+		s.logins.noteFailure()
+		s.logSignInFailure(r, u.Name)
+		writeErr(w, 403, auth.ErrCodeWrong.Error())
+		return false
+	}
+	s.logins.uncount(r, u.Name)
 	return true
 }
 
@@ -117,17 +144,22 @@ func (s *Server) handleTwoFactorConfirm(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	u := userFrom(r)
-	if !s.loginWaitOver(w, r, u.Name) {
+	if d := s.logins.attempt(r, u.Name); d > 0 {
+		tooManyTries(w, d)
 		return
 	}
 	codes, err := s.Auth.ConfirmTwoFactor(r.Context(), u.ID, b.Code)
 	if err != nil {
 		if errors.Is(err, auth.ErrCodeWrong) {
-			s.signInFailed(r, u.Name)
+			s.logins.noteFailure()
+			s.logSignInFailure(r, u.Name)
+		} else {
+			s.logins.uncount(r, u.Name) // no code was checked
 		}
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.logins.uncount(r, u.Name)
 	s.endSessions(r, u.ID, currentToken(r))
 	s.Log.InfoContext(r.Context(), "two-factor sign-in turned on", "cat", "auth", "name", u.Name)
 	writeJSON(w, 200, map[string]any{"recovery": codes})
@@ -148,9 +180,7 @@ func (s *Server) handleTwoFactorDisable(w http.ResponseWriter, r *http.Request) 
 	if !s.checkOwnPassword(w, r, u, b.Password) {
 		return
 	}
-	if !s.Auth.CheckTwoFactor(r.Context(), u, b.Code) {
-		s.signInFailed(r, u.Name)
-		writeErr(w, 403, auth.ErrCodeWrong.Error())
+	if !s.checkOwnCode(w, r, u, b.Code) {
 		return
 	}
 	if err := s.Auth.DisableTwoFactor(r.Context(), u.ID); err != nil {

@@ -43,10 +43,30 @@ jobs:
           name: tray-darwin
           path: tray
 
+  # npm packages' code runs during a web build, so it runs here, apart from what builds the server:
+  # a bad package can spoil a page, and can't reach the Go source or the program the signature vouches for.
+  web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+
   archives:
-    needs: [ffmpeg-freebsd, tray-macos]
-    # Package even when the FreeBSD FFmpeg build failed; only the macOS tray is required.
-    if: ${{ !cancelled() && needs.tray-macos.result == 'success' }}
+    needs: [ffmpeg-freebsd, tray-macos, web]
+    # Package even when the FreeBSD FFmpeg build failed; the macOS tray and web client are required.
+    if: ${{ !cancelled() && needs.tray-macos.result == 'success' && needs.web.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,9 +80,10 @@ jobs:
           go-version: "1.27.x"
           check-latest: true
           cache: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          node-version: 22
+          name: web-dist
+          path: web/dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
@@ -80,7 +101,7 @@ jobs:
           SCREENSCRAPER_DEV_PASSWORD: ${{ secrets.SCREENSCRAPER_DEV_PASSWORD }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
-          scripts/build-release.sh "$VERSION"
+          SKIP_WEB=1 scripts/build-release.sh "$VERSION"
       - name: Build the .deb and .rpm
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
@@ -257,7 +278,7 @@ jobs:
           if [ -z "$SIGNING_KEY" ]; then echo "::warning::no signing key: this release is unsigned"; exit 0; fi
           key="$RUNNER_TEMP/release.key"
           (umask 077; printf '%s\n' "$SIGNING_KEY" > "$key")
-          go run ./scripts/sign sign -key "$key" signed/*SHA256SUMS.txt
+          go run ./scripts/sign sign -key "$key" -expect "wittymediaserver-${GITHUB_REF_NAME#v}" signed/*SHA256SUMS.txt
           rm -f "$key"
           go run ./scripts/sign verify signed/*SHA256SUMS.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -350,5 +371,3 @@ jobs:
           build-args: VERSION=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

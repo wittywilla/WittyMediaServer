@@ -117,3 +117,21 @@ func TestWriteConcatStopsAtAnOutpoint(t *testing.T) {
 		t.Errorf("%s", b)
 	}
 }
+
+// A disc's cell that is really FFmpeg's list format would have the list's own entries read.
+func TestWriteConcatRefusesAListInACell(t *testing.T) {
+	dir := t.TempDir()
+	iso := filepath.Join(dir, "disc.iso")
+	body := append(make([]byte, 4096), []byte("ffconcat version 1.0\nfile s.txt\n")...)
+	if err := os.WriteFile(iso, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cell := []Segment{{Extents: []wittydvd.FileExtent{{File: iso, Offset: 4096, Length: 34}}}}
+	if _, err := WriteConcat(dir, "bad", cell); err == nil {
+		t.Error("a list inside a disc was accepted")
+	}
+	fine := []Segment{{Extents: []wittydvd.FileExtent{{File: iso, Offset: 0, Length: 2048}}}, {Extents: []wittydvd.FileExtent{{File: filepath.Join(dir, "gone.iso"), Offset: 0, Length: 2048}}}}
+	if _, err := WriteConcat(dir, "ok", fine); err != nil {
+		t.Errorf("%v", err)
+	}
+}

@@ -97,6 +97,9 @@ func discoverPhotos(root string) ([]candidate, error) {
 		case IsVideoFile(name) && nameHolds(p, name, mediatypes.Video):
 			kind = "video"
 		}
+		if !mediaEntry(root, p, d) {
+			return nil
+		}
 		st, err := d.Info()
 		if err != nil || st.Size() == 0 {
 			return nil
@@ -672,11 +675,11 @@ type PhotoAlbum struct {
 // PhotoAlbums lists the albums an account can see in a library.
 func (s *Store) PhotoAlbums(ctx context.Context, libraryID, userID int64, access *Access) ([]PhotoAlbum, error) {
 	clause, cargs := access.ItemClause()
-	args := append(append(append([]any{}, cargs...), cargs...), libraryID, userID)
+	args := append(append(append(append([]any{}, cargs...), cargs...), cargs...), libraryID, userID)
 	rows, err := s.DB.QueryContext(ctx, `SELECT a.id, a.library_id, a.owner_id, IFNULL(u.name, ''), a.name, a.description, a.shared, a.created_at, a.updated_at,
 		(SELECT COUNT(*) FROM photo_album_items x JOIN items i ON i.id = x.item_id WHERE x.album_id = a.id AND i.missing = 0 AND `+clause+`),
 		IFNULL((SELECT i.id FROM items i WHERE i.id = a.cover_item AND i.missing = 0 AND `+clause+`),
-		  (SELECT x.item_id FROM photo_album_items x JOIN items i ON i.id = x.item_id WHERE x.album_id = a.id AND i.missing = 0 ORDER BY x.added_at DESC LIMIT 1))
+		  (SELECT x.item_id FROM photo_album_items x JOIN items i ON i.id = x.item_id WHERE x.album_id = a.id AND i.missing = 0 AND `+clause+` ORDER BY x.added_at DESC LIMIT 1))
 		FROM photo_albums a LEFT JOIN users u ON u.id = a.owner_id
 		WHERE a.library_id = ? AND (a.owner_id = ? OR a.shared = 1) ORDER BY a.name COLLATE NOCASE LIMIT 2000`, args...)
 	if err != nil {
@@ -805,7 +808,10 @@ func (s *Scanner) IndexUploaded(ctx context.Context, lib *Library, path string) 
 	return s.Store.itemByPath(ctx, lib.ID, path)
 }
 
-var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$`)
+var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$`)
+
+// ReservedName says Windows gives this name to a device, whatever folder it is in.
+func ReservedName(name string) bool { return reservedNameRe.MatchString(name) }
 
 // SafeFileName makes a name that came from a client safe to create on any file
 // system: no folders, control characters or characters some systems forbid, no

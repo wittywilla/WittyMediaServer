@@ -35,5 +35,9 @@ func (s *Server) handleMediaTypes(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, v)
 	}
-	writeJSON(w, 200, map[string]any{"version": all.Version, "formats": out, "codecs": all.Codecs, "ffmpeg": s.Tools.Version})
+	answer := map[string]any{"version": all.Version, "formats": out, "codecs": all.Codecs}
+	if userFrom(r).IsAdmin {
+		answer["ffmpeg"] = s.Tools.Version
+	}
+	writeJSON(w, 200, answer)
 }

@@ -108,6 +108,7 @@ $actions | ForEach-Object { $order[$_.a] = [int]$_.s }
 if ($order.StopRunningApp -ge $order.RemoveExistingProducts) { Fail "it stops the running copy too late" } else { Ok "stops what's running before removing the old version" }
 if ($order.SetAUTOSTART -le $order.FindRelatedProducts) { Fail "turning off start at sign-in is remembered before an upgrade is detected" } else { Ok "remembers start at sign-in once an upgrade is detected" }
 if ($order.SetScope -ge $order.FindRelatedProducts) { Fail "who it's for is settled after looking for what to upgrade" } else { Ok "settles who it's for before looking for what to upgrade" }
+if ($order.SecureServiceData -ge $order.StartServices) { Fail "the service would start before its folder is made private" } else { Ok "the service's folder is private before it first starts" }
 if ($order.TakeOverOldCopyUser -le $order.InstallFiles) { Fail "it clears the old copy before the new one's there" }
 if ($order.TakeOverOldCopyUser -ge $order.WriteRegistryValues) { Fail "it would clear the new entries too" } else { Ok "clears the old copy between the new files and the new registry entries" }
 

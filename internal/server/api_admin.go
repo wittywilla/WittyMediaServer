@@ -20,11 +20,11 @@ import (
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
-	"serverName", "audioCodec", "lowPower", "bdjEnabled", "javaPath", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
+	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "shareLinks", "mapTiles", "lanDiscovery", "radioDirectory", "radioChecks",
+	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "lanDiscovery", "radioDirectory", "radioChecks",
 	"legalOwnerNotice", "legalOwnerContact"}
 
 // settingDefaults are returned when a key has never been saved.
@@ -43,7 +43,7 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// uploads and shareLinks: adults may add photos from their devices, and make
 	// links for people without an account. mapTiles (off when empty) is an online
 	// map provider's address for the photo map; nothing else ever contacts one.
-	"uploads": "1", "uploadMaxMb": "4096", "shareLinks": "1", "mapTiles": "",
+	"uploads": "1", "uploadMaxMb": "4096", "uploadAccountMb": "102400", "shareLinks": "1", "mapTiles": "",
 	// lanDiscovery: apps on the home network can find this server.
 	"lanDiscovery": "1",
 	// radioDirectory: search the free station directory, and refresh details of
@@ -65,6 +65,7 @@ var settingChecks = map[string]func(string) bool{
 	"audioBitrate":      bitrateRe.MatchString,
 	"moduleUpdateCheck": oneOf("", "0", "1"),
 	"moduleAutoInstall": oneOf("0", "1"),
+	"uploadAccountMb":   intBetween(0, 1<<30),
 }
 
 var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)

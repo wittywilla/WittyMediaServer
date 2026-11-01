@@ -47,6 +47,9 @@ func (s *Server) handleCreateCollection(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 403, "this profile can't make collections")
 		return
 	}
+	if !s.underLimit(w, r, u, `SELECT COUNT(*) FROM collections WHERE owner_id = ?`, maxCollectionsPerAccount, "collections") {
+		return
+	}
 	var b collectionBody
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -78,7 +81,7 @@ func (s *Server) handlePreviewRule(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"items": items, "count": count})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "count": count})
 }
 
 func (s *Server) visibleCollection(r *http.Request) (*library.Collection, error) {
@@ -286,7 +289,7 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad year")
 		return
 	}
-	rv, err := s.Store.ReviewOfYear(r.Context(), userFrom(r).ID, year)
+	rv, err := s.Store.ReviewOfYear(r.Context(), userFrom(r).ID, year, s.access(r))
 	if err != nil {
 		writeLibErr(w, err)
 		return
@@ -316,5 +319,5 @@ func (s *Server) handleRecommended(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"items": items, "shows": shows, "because": because})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "shows": s.showsForViewer(r, shows...), "because": because})
 }

@@ -277,6 +277,21 @@ func List(f Folders) []Info {
 	return out
 }
 
+// CountUploads says how many files with this start to their name are waiting in the folder.
+func CountUploads(f Folders, prefix string) int {
+	entries, err := os.ReadDir(f.Dir())
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasPrefix(e.Name(), prefix) {
+			n++
+		}
+	}
+	return n
+}
+
 // Delete removes a backup from the folder.
 func Delete(f Folders, name string) error {
 	p, err := f.PathOf(name)

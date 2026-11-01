@@ -412,6 +412,9 @@ func (s *Server) handleAddComment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "a comment needs text, up to 2000 characters")
 		return
 	}
+	if !s.underLimit(w, r, u, `SELECT COUNT(*) FROM item_comments WHERE user_id = ?`, maxCommentsPerAccount, "comments") {
+		return
+	}
 	c, err := s.Store.AddComment(r.Context(), u.ID, id, b.ParentID, body)
 	if err != nil {
 		writeLibErr(w, err)

@@ -219,7 +219,11 @@ func (s *Server) handleViewTitles(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/listings/status
 func (s *Server) handleListingStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, s.Scanner.ListingStatus(r.Context()))
+	st := s.Scanner.ListingStatus(r.Context())
+	if !userFrom(r).IsAdmin { // a library page wants the note; how much was checked is for the settings
+		st.AsOf, st.HasKey, st.Titles, st.Listed, st.Running, st.Done, st.Total = 0, false, 0, 0, false, 0, 0
+	}
+	writeJSON(w, 200, st)
 }
 
 // PUT /api/listings/settings {enabled, region, accepted: [...]}
@@ -315,7 +319,11 @@ func (s *Server) handleTitleAttached(w http.ResponseWriter, r *http.Request) {
 	collect := func(items []*library.Item, links []library.ItemLink) []row {
 		out := []row{}
 		for i, it := range items {
-			if acc == nil || acc.AllowsItem(it, nil) {
+			var sh *library.Show
+			if acc != nil && it.ShowID != nil {
+				sh, _ = s.Store.ShowFacts(ctx, *it.ShowID)
+			}
+			if acc == nil || acc.AllowsItem(it, sh) {
 				s.forViewer(r, it)
 				out = append(out, row{it, links[i]})
 			}

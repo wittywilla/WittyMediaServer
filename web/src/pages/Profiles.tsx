@@ -31,11 +31,13 @@ export default function Profiles() {
   const [curpw, setCurpw] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<UserView | null>(null)
+  const [removing, setRemoving] = useState<User | null>(null)
   const [naming, setNaming] = useState<UserView | null>(null)
   const load = () => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
   useEffect(() => { load() }, [])
   const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw, current: curpw }); setMypw(''); setCurpw(''); toast('Password changed; other devices are signed out') } catch (e: any) { toast(e.message) } }
   const del = async (u: User) => {
+    if (u.isAdmin) { setRemoving(u); return } // this one asks for your password
     if (!await ask({ title: `Remove “${profileName(u)}”?`, body: 'Their watch history is deleted too. This can’t be undone.', confirm: 'Remove profile', danger: true })) return
     try { await api.del(`/users/${u.id}`); load() } catch (e: any) { toast(e.message) }
   }
@@ -82,7 +84,20 @@ export default function Profiles() {
       )}
       {adding && <AddProfile admin={!!user?.isAdmin} onClose={() => setAdding(false)} onDone={() => { setAdding(false); load() }} />}
       {editing && <LimitsEditor user={editing} admin={!!user?.isAdmin} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />}
+      {removing && <RemoveAdmin user={removing} onClose={() => setRemoving(null)} onDone={() => { setRemoving(null); load() }} />}
       {naming && <NamesDialog user={naming} onClose={() => setNaming(null)} onSaved={() => { setNaming(null); load() }} />}
+    </>
+  )
+}
+
+// YourPassword asks again for the password of whoever is signed in, and their code if they
+// use one, before a change a stolen session must not be able to make.
+function YourPassword({ password, code, setPassword, setCode, autoFocus }: { password: string; code: string; setPassword: (s: string) => void; setCode: (s: string) => void; autoFocus?: boolean }) {
+  const { user } = useApp()
+  return (
+    <>
+      <label>Your password<input className="input" type="password" autoFocus={autoFocus} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+      {user?.twoFactor && <label>Code from your authenticator app<input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></label>}
     </>
   )
 }
@@ -116,6 +131,32 @@ function YourNames({ canRename, onSaved }: { canRename: boolean; onSaved: (u: Us
         <Switch labelledBy="show-username" checked={!!user.showUsername} onChange={choose} />
       </div>
     </>
+  )
+}
+
+function RemoveAdmin({ user: target, onClose, onDone }: { user: User; onClose: () => void; onDone: () => void }) {
+  const { user } = useApp()
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const remove = async () => {
+    setErr(''); setBusy(true)
+    try {
+      await api.del(`/users/${target.id}`, { current: password, code })
+      toast(`Profile “${profileName(target)}” removed`)
+      onDone()
+    } catch (x) { setErr((x as Error).message); setBusy(false) }
+  }
+  return (
+    <Dialog title={`Remove the administrator “${profileName(target)}”?`} size="sm" onClose={onClose}
+      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="danger" disabled={busy || !password || (!!user?.twoFactor && !code)} onClick={remove}>Remove</Button></>}>
+      <div className="form full">
+        <p className="muted flush">Their watch history is deleted too. This asks for your password, so that someone using a device you left signed in can't do it.</p>
+        <YourPassword autoFocus password={password} code={code} setPassword={setPassword} setCode={setCode} />
+        {err && <div className="error" role="alert">{err}</div>}
+      </div>
+    </Dialog>
   )
 }
 
@@ -158,11 +199,16 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
   const [isAdmin, setIsAdmin] = useState(false)
   const [age, setAge] = useState(7)
   const [err, setErr] = useState('')
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
+  const { user } = useApp()
   const needsPw = kind === 'adult'
+  const newAdmin = kind === 'adult' && isAdmin
   const save = async () => {
     setErr('')
     try {
       const body: Record<string, unknown> = { name, displayName: display, password: pw, kind, isAdmin: kind === 'adult' && isAdmin }
+      if (newAdmin) { body.current = current; body.code = code }
       if (kind !== 'adult') body.access = { maxAge: age, allowUnrated: false, liveTv: kind === 'kids', libraryChannels: kind === 'kids', tunerChannels: false }
       await api.post('/users', body)
       toast(`Profile “${display || name}” added`, { tone: 'ok' })
@@ -171,7 +217,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
   }
   return (
     <Dialog title="Add a profile" onClose={onClose}
-      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || (needsPw ? pw.length < 8 : pw.length > 0 && pw.length < 4)} onClick={save}>Add profile</Button></>}>
+      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || (needsPw ? pw.length < 8 : pw.length > 0 && pw.length < 4) || (newAdmin && (!current || (!!user?.twoFactor && !code)))} onClick={save}>Add profile</Button></>}>
         <div className="form full">
           {admin && (
             <Segmented big label="Kind of profile" value={kind} onChange={(k) => { setKind(k); setAge(k === 'guest' ? 13 : 7) }}
@@ -187,6 +233,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
           <Field label="Profile name (optional)" hint="What they’re called around the app, if that’s different."><Input value={display} onChange={(e) => setDisplay(e.target.value)} maxLength={60} placeholder={name} /></Field>
           <Field label={needsPw ? 'Password' : 'Password or PIN (optional)'}><Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" /></Field>
           {kind === 'adult' && admin && <label className="check-row"><input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} /> Administrator (can change everything)</label>}
+          {newAdmin && <YourPassword password={current} code={code} setPassword={setCurrent} setCode={setCode} />}
           {kind !== 'adult' && <AgePicker value={age} onChange={setAge} />}
           {err && <div className="error" role="alert">{err}</div>}
         </div>

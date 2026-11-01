@@ -13,9 +13,14 @@ set -eu
 OUT="${1:-$(pwd)/.tools/ffmpeg-static}"
 WORK="${WORK:-$(pwd)/.tools/ffmpeg-src}"
 JOBS="${JOBS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}"
-FFMPEG_VER="${FFMPEG_VER:-7.1.1}"
+# What goes into a release, by exact commit and hash: moving to a newer one is a deliberate change here.
+FFMPEG_VER=9.0.2
+FFMPEG_SHA256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
 LAME_VER=3.100
+LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
 OPUS_VER=1.5.2
+OPUS_SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1
+X264_COMMIT=b35605ace3ddf7c1a5d67a2eb553f034aef41d55 # the stable branch
 MAKE=make; command -v gmake >/dev/null 2>&1 && MAKE=gmake
 # FreeBSD (and macOS) ship clang as "cc" and no gcc, but x264 and FFmpeg
 # default to "gcc", so name the compiler explicitly everywhere.
@@ -57,6 +62,14 @@ dl() {
   note_error "could not download $out from: $*" "download failed"
   exit 1
 }
+# checked <file> <sha256>: stops the build, and removes the file, if it isn't what was pinned.
+checked() {
+  got=$( (sha256sum "$1" 2>/dev/null || shasum -a 256 "$1" 2>/dev/null || sha256 -r "$1") | cut -d' ' -f1)
+  [ "$got" = "$2" ] && return 0
+  rm -f "$1"
+  note_error "$1 does not match its pinned checksum (got $got)" "download failed"
+  exit 1
+}
 # step <name> <command...>: runs quietly, shows the log tail when it fails.
 step() {
   name="$1"; shift
@@ -72,11 +85,13 @@ step() {
 
 echo "==> x264"
 if [ ! -d x264 ]; then
-  git clone -q --depth 1 https://code.videolan.org/videolan/x264.git x264 ||
-    git clone -q --depth 1 https://github.com/mirror/x264.git x264 ||
-    { note_error "could not clone x264" "download failed"; exit 1; }
+  git init -q x264
+  (cd x264 && { git fetch -q --depth 1 https://code.videolan.org/videolan/x264.git "$X264_COMMIT" ||
+    git fetch -q --depth 1 https://github.com/mirror/x264.git "$X264_COMMIT"; } && git checkout -q FETCH_HEAD) ||
+    { rm -rf x264; note_error "could not fetch x264 $X264_COMMIT" "download failed"; exit 1; }
 fi
 cd x264
+[ "$(git rev-parse HEAD)" = "$X264_COMMIT" ] || { note_error "x264 is not at the pinned commit" "download failed"; exit 1; }
 step x264-configure "$BASH_BIN" ./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-cli --enable-pic
 step x264-make $MAKE -j"$JOBS"
 step x264-install $MAKE install
@@ -85,6 +100,7 @@ cd "$WORK"
 echo "==> lame"
 dl lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/$LAME_VER/lame-$LAME_VER.tar.gz" \
   "https://deb.debian.org/debian/pool/main/l/lame/lame_$LAME_VER.orig.tar.gz"
+checked lame.tar.gz "$LAME_SHA256"
 [ -d "lame-$LAME_VER" ] || tar -xzf lame.tar.gz
 cd "lame-$LAME_VER"
 step lame-configure sh ./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-frontend
@@ -96,6 +112,7 @@ echo "==> opus"
 dl opus.tar.gz "https://downloads.xiph.org/releases/opus/opus-$OPUS_VER.tar.gz" \
   "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-$OPUS_VER.tar.gz" \
   "https://github.com/xiph/opus/releases/download/v$OPUS_VER/opus-$OPUS_VER.tar.gz"
+checked opus.tar.gz "$OPUS_SHA256"
 [ -d "opus-$OPUS_VER" ] || tar -xzf opus.tar.gz
 cd "opus-$OPUS_VER"
 step opus-configure sh ./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-doc --disable-extra-programs
@@ -105,6 +122,7 @@ cd "$WORK"
 
 echo "==> ffmpeg $FFMPEG_VER"
 dl ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VER.tar.xz" "https://www.ffmpeg.org/releases/ffmpeg-$FFMPEG_VER.tar.xz"
+checked ffmpeg.tar.xz "$FFMPEG_SHA256"
 [ -d "ffmpeg-$FFMPEG_VER" ] || tar -xJf ffmpeg.tar.xz
 cd "ffmpeg-$FFMPEG_VER"
 EXTRA_LD="-static"

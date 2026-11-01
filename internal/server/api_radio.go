@@ -318,7 +318,7 @@ func (s *Server) handleRadioImport(w http.ResponseWriter, r *http.Request) {
 		LibraryID int64  `json:"libraryId"`
 		Playlist  string `json:"playlist"`
 	}
-	if err := readJSON(r, &b); err != nil {
+	if err := readJSONUpTo(r, &b, maxPlaylistBody); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}

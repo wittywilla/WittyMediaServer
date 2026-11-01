@@ -87,6 +87,8 @@ var written = []Component{
 		Note: "WittyCouch Host, a separate program, is built on its code; its source is offered beside each release. Moonlight's own apps aren't bundled, and are only linked."},
 	{Group: GroupPrograms, Name: "Sunshine", License: "GPL-3.0", URL: "https://github.com/LizardByte/Sunshine",
 		Note: "Not bundled. WittyRigs uses a copy that someone installs themselves, and WittyCouch connects to it on a PC."},
+	{Group: GroupData, Name: "pdf.js's image decoders and colour profile: OpenJPEG, PDFium's JBIG2, qcms", License: "BSD-2-Clause, BSD-3-Clause and MIT (profile: CC0)", URL: "https://github.com/mozilla/pdf.js",
+		Note: "Compiled to WebAssembly by the pdf.js project. Fetched only when a PDF needs them."},
 	{Group: GroupData, Name: "Natural Earth 1:110m land, via world-atlas", License: "Public domain (world-atlas: ISC)", URL: "https://www.naturalearthdata.com",
 		Note: "The outline of the world on the photo map."},
 	{Group: GroupServices, Name: "The Movie Database (TMDB)", License: "TMDB's terms", URL: "https://www.themoviedb.org/terms-of-use",

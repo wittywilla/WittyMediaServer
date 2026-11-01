@@ -117,10 +117,76 @@ func (s *Store) DeleteAnnotation(ctx context.Context, userID, id int64) error {
 	return err
 }
 
-var (
-	tagRe   = regexp.MustCompile(`(?s)<(script|style|head)[^>]*>.*?</(script|style|head)>|<[^>]+>`)
-	spaceRe = regexp.MustCompile(`\s+`)
-)
+var spaceRe = regexp.MustCompile(`\s+`)
+
+// stripTags takes the tags out of XHTML, and the insides of script, style and head. It keeps
+// its place in the text rather than using a pattern: "<script>" with no closing tag makes a
+// pattern look to the end of the text at each one, so a crafted chapter takes days.
+func stripTags(s string) string {
+	var out strings.Builder
+	out.Grow(len(s))
+	closers := []string{"</script>", "</style>", "</head>"}
+	next := []int{-2, -2, -2} // where each closer is next seen, -1 for no more of them
+	for i := 0; i < len(s); {
+		lt := strings.IndexByte(s[i:], '<')
+		if lt < 0 {
+			out.WriteString(s[i:])
+			break
+		}
+		lt += i
+		out.WriteString(s[i:lt])
+		if lt+1 < len(s) && s[lt+1] == '>' { // "<>" isn't a tag
+			out.WriteByte('<')
+			i = lt + 1
+			continue
+		}
+		gt := strings.IndexByte(s[lt+1:], '>')
+		if gt < 0 { // no more tags can end: the rest is text
+			out.WriteString(s[lt:])
+			break
+		}
+		end := lt + 1 + gt + 1
+		out.WriteByte(' ')
+		i = end
+		if !hidesItsInsides(s[lt+1 : end-1]) {
+			continue
+		}
+		closeAt, closeLen := -1, 0
+		for c, name := range closers {
+			if next[c] != -1 && next[c] < end {
+				next[c] = -1
+				if at := strings.Index(s[end:], name); at >= 0 {
+					next[c] = end + at
+				}
+			}
+			if next[c] >= 0 && (closeAt < 0 || next[c] < closeAt) {
+				closeAt, closeLen = next[c], len(name)
+			}
+		}
+		if closeAt >= 0 {
+			i = closeAt + closeLen
+		}
+	}
+	return out.String()
+}
+
+// hidesItsInsides: a tag whose contents aren't text. tag is what's between < and >.
+func hidesItsInsides(tag string) bool {
+	for _, name := range []string{"script", "style", "head"} {
+		if rest, ok := strings.CutPrefix(tag, name); ok {
+			if rest == "" {
+				return true
+			}
+			c := rest[0]
+			return !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == ':')
+		}
+	}
+	return false
+}
+
+// bookWork is how many books are being read through at once: counting a book's words or
+// searching it is up to 64 MB of text, and anyone who can open a book can ask for it again.
+var bookWork = make(chan struct{}, 2)
 
 // bookBudget is how much text one request unpacks from a book. A real book
 // comes nowhere near it; a crafted archive can repeat a tiny, highly compressed
@@ -140,11 +206,13 @@ func chapterText(zr *zip.Reader, name string, budget *int64) string {
 	defer f.Close()
 	b, _ := io.ReadAll(io.LimitReader(f, min(16<<20, *budget)))
 	*budget -= int64(len(b))
-	return strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(tagRe.ReplaceAllString(string(b), " ")), " "))
+	return strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(stripTags(string(b))), " "))
 }
 
 // WordCounts is the number of words in each chapter (for "time left").
 func WordCounts(zr *zip.Reader, spine []string) []int {
+	bookWork <- struct{}{}
+	defer func() { <-bookWork }()
 	out := make([]int, len(spine))
 	budget := int64(bookBudget)
 	for i, name := range spine {
@@ -167,6 +235,8 @@ func SearchBook(zr *zip.Reader, spine []string, q string) []SearchHit {
 	if len([]rune(q)) < 2 {
 		return []SearchHit{}
 	}
+	bookWork <- struct{}{}
+	defer func() { <-bookWork }()
 	lq := strings.ToLower(q)
 	hits := []SearchHit{}
 	budget := int64(bookBudget)
@@ -189,10 +259,10 @@ func SearchBook(zr *zip.Reader, spine []string, q string) []SearchHit {
 				hits = append(hits, SearchHit{Chapter: ci, Snippet: q, Quote: q})
 				break
 			}
-			start, end := max(0, at-60), min(len(text), at+len(q)+60)
-			hits = append(hits, SearchHit{Chapter: ci, Quote: text[at : at+len(q)], Prefix: text[max(0, at-40):at],
+			start, end := max(0, at-60), min(len(text), at+len(lq)+60)
+			hits = append(hits, SearchHit{Chapter: ci, Quote: text[at : at+len(lq)], Prefix: text[max(0, at-40):at],
 				Snippet: "…" + strings.ToValidUTF8(text[start:end], "") + "…"})
-			from = at + len(q)
+			from = at + len(lq)
 		}
 	}
 	return hits

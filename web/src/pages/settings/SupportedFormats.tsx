@@ -10,7 +10,7 @@ type Format = {
   id: string; name: string; category: string; extensions: string[] | null; playsText: string; needs: string; notes?: string; available: boolean; folder?: boolean
 }
 type Codec = { id: string; name: string; kind: string }
-type Data = { formats: Format[]; codecs: Codec[]; ffmpeg: string }
+type Data = { formats: Format[]; codecs: Codec[]; ffmpeg?: string }
 
 const GROUPS: [string, string][] = [
   ['video', 'Video'], ['audio', 'Music and audio'], ['subtitle', 'Subtitles'], ['photo', 'Photos'],
@@ -45,7 +45,7 @@ export default function SupportedFormats() {
           They’re listed below, marked “needs more”, and their files stay in your library.
         </p>
       )}
-      <p className="muted formats-ffmpeg">{data.ffmpeg || 'FFmpeg wasn’t found.'}</p>
+      {data.ffmpeg !== undefined && <p className="muted formats-ffmpeg">{data.ffmpeg || 'FFmpeg wasn’t found.'}</p>}
       <label className="formats-find">
         <span className="sr-only">Find a format or extension</span>
         <Input type="search" placeholder="Find a format or extension" value={find} onChange={(e) => setFind(e.target.value)} />

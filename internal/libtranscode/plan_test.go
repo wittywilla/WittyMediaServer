@@ -414,3 +414,39 @@ func TestFilterPathEscaping(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// A conversion reads a library's files, some of which aren't what they say, so every input is held
+// to the same list of formats as playing one.
+func TestEveryInputKeepsToMediaFormats(t *testing.T) {
+	check := func(what string, args []string) {
+		t.Helper()
+		seen := 0
+		for i, a := range args {
+			if a != "-i" {
+				continue
+			}
+			seen++
+			if !slices.Contains(args[:i], "-format_whitelist") {
+				t.Errorf("%s: %q has no list of formats", what, args[i+1])
+			}
+		}
+		if seen == 0 {
+			t.Errorf("%s: no input: %v", what, args)
+		}
+	}
+	check("a cover", CoverArgs("/lib/film.mkv", Step{index: 2}, "/tmp/cover.jpg"))
+	pl := &Plan{}
+	check("a conversion", pl.Args(&Source{Path: "/lib/film.mkv"}, Output{Path: "/tmp/out.mkv"}))
+	pl.embeds = append(pl.embeds, Step{path: "/lib/film.en.srt"})
+	args := pl.Args(&Source{Path: "/lib/film.mkv"}, Output{Path: "/tmp/out.mkv"})
+	n := 0
+	for _, a := range args {
+		if a == "-format_whitelist" {
+			n++
+
+		}
+	}
+	if n != 2 {
+		t.Errorf("each input needs its own list of formats: %v", args)
+	}
+}

@@ -24,15 +24,19 @@ func (s *Server) logos() *library.Logos {
 
 func (s *Server) handleLogoStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	counts, err := s.Store.LogoCounts(ctx)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	writeJSON(w, 200, map[string]any{
-		"consent": s.Store.LogoConsent(ctx), "counts": counts, "source": "Wikidata and Wikimedia Commons",
+	out := map[string]any{
+		"consent": s.Store.LogoConsent(ctx), "source": "Wikidata and Wikimedia Commons",
 		"sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Licensing",
-	})
+	}
+	if userFrom(r).IsAdmin {
+		counts, err := s.Store.LogoCounts(ctx)
+		if err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		out["counts"] = counts
+	}
+	writeJSON(w, 200, out)
 }
 
 // PUT /api/logos/consent {accepted, removeDownloaded}
@@ -102,12 +106,34 @@ func (s *Server) handleLogoImage(w http.ResponseWriter, r *http.Request) {
 	s.serveArtFile(w, r, f, p)
 }
 
-// GET /api/logos/credits: where every logo came from, as their licences ask.
+// GET /api/logos/credits: where every logo came from, as their licences ask. An account with
+// limits is credited the studios and networks of what it may see, not of everything here.
 func (s *Server) handleLogoCredits(w http.ResponseWriter, r *http.Request) {
-	out, err := s.Store.LogoCredits(r.Context())
+	ctx := r.Context()
+	out, err := s.Store.LogoCredits(ctx)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if acc := s.access(r); acc != nil {
+		seen := map[string]bool{}
+		for _, kind := range []string{library.LogoStudio, library.LogoNetwork} {
+			brands, err := s.Store.Brands(ctx, 0, kind, acc)
+			if err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
+			for _, b := range brands {
+				seen[kind+"|"+b.Key] = true
+			}
+		}
+		kept := out[:0]
+		for _, g := range out {
+			if (g.Kind != library.LogoStudio && g.Kind != library.LogoNetwork) || seen[g.Kind+"|"+library.BrandKey(g.Name)] {
+				kept = append(kept, g)
+			}
+		}
+		out = kept
 	}
 	writeJSON(w, 200, map[string]any{"logos": out})
 }
@@ -136,6 +162,10 @@ func (s *Server) handleLogoPreview(w http.ResponseWriter, r *http.Request) {
 	src := r.URL.Query().Get("src")
 	if !library.IsLogoPreview(src) {
 		writeErr(w, 400, "not a logo address")
+		return
+	}
+	if s.Store.LogoConsent(r.Context()) != "yes" {
+		writeErr(w, 409, library.ErrLogosNotAgreed.Error())
 		return
 	}
 	s.serveArtSrc(w, r, src)

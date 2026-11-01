@@ -79,18 +79,22 @@ fetch() {
   return 1
 }
 
-# fetch_btbn <out> <file>: a rolling FFmpeg build, checked against the checksums
-# published with it (a download that was cut short or altered on the way fails).
-fetch_btbn() {
-  local out="$1" file="$2" want got
-  [ -s "$out" ] && return 0
-  fetch "$out" "$BTBN/$file" || return 1
-  rm -f "$CACHE/btbn.sha256"
-  fetch "$CACHE/btbn.sha256" "$BTBN/checksums.sha256" || { rm -f "$out"; return 1; }
-  want=$(grep -E "[ *]$file\$" "$CACHE/btbn.sha256" | cut -d' ' -f1 | head -1)
+# fetch_locked <out> <name>: exactly the file scripts/ffmpeg.lock names, whatever is cached or wherever
+# it came from. What goes in a release is what the release signature vouches for.
+fetch_locked() {
+  local out="$1" name="$2" want url got
+  read -r want url < <(awk -v n="$name" '$1 == n { print $2, $3 }' "$(dirname "${BASH_SOURCE[0]}")/ffmpeg.lock")
+  if [ -z "$want" ] || [ -z "$url" ]; then
+    echo "   !! scripts/ffmpeg.lock names no file for $name" >&2
+    return 1
+  fi
+  got=$( [ -s "$out" ] && { sha256sum "$out" 2>/dev/null || shasum -a 256 "$out"; } | cut -d' ' -f1)
+  [ "$got" = "$want" ] && return 0
+  rm -rf "$out" "${out%.zip}" "${out%.tar.xz}"
+  fetch "$out" "$url" || return 1
   got=$( (sha256sum "$out" 2>/dev/null || shasum -a 256 "$out") | cut -d' ' -f1)
-  if [ -z "$want" ] || [ "$want" != "$got" ]; then
-    echo "   !! $file does not match its published checksum" >&2
+  if [ "$want" != "$got" ]; then
+    echo "   !! $url does not match scripts/ffmpeg.lock" >&2
     rm -f "$out"
     return 1
   fi
@@ -100,10 +104,6 @@ fetch_btbn() {
 untar() { [ -d "$2" ] || { mkdir -p "$2" && tar -xf "$1" -C "$2"; }; }
 unzipd() { [ -d "$2" ] || { mkdir -p "$2" && unzip -qo "$1" -d "$2"; }; }
 
-BTBN=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest
-JVS=https://johnvansickle.com/ffmpeg/releases
-MR=https://ffmpeg.martin-riedl.de/redirect/latest
-
 # Puts ffmpeg + ffprobe into $1/bin for $2/$3. Returns 1 if it could not.
 bundle_ffmpeg() {
   local dir="$1" os="$2" arch="$3" bin="$1/bin"
@@ -111,27 +111,26 @@ bundle_ffmpeg() {
   case "$os/$arch" in
     windows/amd64|windows/arm64)
       local n=win64; [ "$arch" = arm64 ] && n=winarm64
-      fetch_btbn "$CACHE/$n.zip" "ffmpeg-master-latest-$n-gpl.zip" || return 1
+      fetch_locked "$CACHE/$n.zip" "$n" || return 1
       unzipd "$CACHE/$n.zip" "$CACHE/$n"
       cp "$CACHE"/$n/*/bin/ffmpeg.exe "$CACHE"/$n/*/bin/ffprobe.exe "$bin/" ;;
     linux/amd64|linux/arm64)
       local n=linux64; [ "$arch" = arm64 ] && n=linuxarm64
-      fetch_btbn "$CACHE/$n.tar.xz" "ffmpeg-master-latest-$n-gpl.tar.xz" || return 1
+      fetch_locked "$CACHE/$n.tar.xz" "$n" || return 1
       untar "$CACHE/$n.tar.xz" "$CACHE/$n"
       cp "$CACHE"/$n/*/bin/ffmpeg "$CACHE"/$n/*/bin/ffprobe "$bin/" ;;
     linux/arm|linux/386)
       # BtbN has no 32-bit Linux builds; John Van Sickle's static builds do.
       local n=armhf; [ "$arch" = 386 ] && n=i686
-      fetch "$CACHE/linux-$n.tar.xz" "$JVS/ffmpeg-release-$n-static.tar.xz" || return 1
+      fetch_locked "$CACHE/linux-$n.tar.xz" "linux-$n" || return 1
       untar "$CACHE/linux-$n.tar.xz" "$CACHE/linux-$n"
       cp "$CACHE"/linux-$n/*/ffmpeg "$CACHE"/linux-$n/*/ffprobe "$bin/" ;;
     darwin/*)
-      # Release links are sometimes missing for one architecture; snapshots
-      # (current master) are the fallback.
       local f
       for f in ffmpeg ffprobe; do
-        fetch "$CACHE/mac-$arch-$f.zip" "$MR/macos/$arch/release/$f.zip" "$MR/macos/$arch/snapshot/$f.zip" || return 1
-        unzip -qo "$CACHE/mac-$arch-$f.zip" -d "$bin"
+        fetch_locked "$CACHE/mac-$arch-$f.zip" "mac-$arch-$f" || return 1
+        # Only the program, wherever the archive keeps it.
+        unzip -qoj "$CACHE/mac-$arch-$f.zip" "$f" -d "$bin"
       done ;;
     freebsd/*)
       local d src=""

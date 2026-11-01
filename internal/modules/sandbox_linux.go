@@ -196,8 +196,9 @@ func restrict(abi int, writable []string, network bool) error {
 
 // denyCalls refuses what Landlock doesn't cover: making any socket, unless this helper may
 // have a network, which also keeps it from a socket file such as a container runtime's;
-// changing who owns a file or who may use it; and reaching into another process. It stays
-// on through the exec that follows.
+// changing who owns a file or who may use it, by its mode or by its access list; reaching
+// into another process; and the kernel's more exposed corners. It stays on through the
+// exec that follows.
 func denyCalls(network bool) error {
 	if seccompArch == 0 {
 		return fmt.Errorf("this system has no filter for %s", runtime.GOARCH)

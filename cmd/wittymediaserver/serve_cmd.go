@@ -36,6 +36,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
@@ -185,8 +186,10 @@ func cmdServe(args []string) int {
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr.BDJ = func() (bool, string) {
-		ctx := context.Background()
-		return database.GetSetting(ctx, "bdjEnabled", "0") == "1", database.GetSetting(ctx, "javaPath", "")
+		return database.GetSetting(context.Background(), "bdjEnabled", "0") == "1", cfg.JavaPath
+	}
+	if old := database.GetSetting(context.Background(), "javaPath", ""); old != "" && cfg.JavaPath == "" {
+		log.Warn("The Java location saved in Settings is no longer used: a web account can't choose what the server runs. If Java isn't found by itself, name it in the config file (javaPath) or with WMS_JAVA.", "cat", "discs")
 	}
 
 	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}
@@ -201,6 +204,7 @@ func cmdServe(args []string) int {
 	layout.Current().ClearObsolete()
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
+	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {
@@ -269,6 +273,8 @@ func cmdServe(args []string) int {
 		log.Error("listen", "addr", cfg.Listen, "err", err)
 		return 1
 	}
+	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
+	ln = srv.Conns.Wrap(ln)
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
 	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
@@ -278,8 +284,11 @@ func cmdServe(args []string) int {
 		// On the console only, on purpose: the person at the server is meant to see
 		// it, and the log files and viewer never hold it.
 		logging.AddSecret(srv.SetupCode())
-		fmt.Fprintln(os.Stderr, "This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", srv.SetupCode())
-		log.Warn("This server has no accounts yet. Set it up in your browser; the setup code is on the server's console.")
+		fmt.Fprintln(os.Stderr, "This server has no accounts yet. Set it up in your browser. From another device it asks for this code:", srv.SetupCode())
+		if err := srv.WriteSetupCode(); err != nil {
+			log.Warn("could not write down the setup code", "err", err)
+		}
+		log.Warn("This server has no accounts yet. Set it up in your browser. From another device, the setup code is on the server's console and in setup-code.txt in its data folder.")
 	}
 	// Remote access: nothing opens unless the owner turned it on.
 	srv.StartRemote(context.Background(), handler)

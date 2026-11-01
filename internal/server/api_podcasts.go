@@ -30,6 +30,15 @@ func (s *Server) handlePodcasts(w http.ResponseWriter, r *http.Request) {
 			if a != nil && !a.AllowsLibrary(p.LibraryID) {
 				continue
 			}
+			// None of its episodes showing means the subscription doesn't either: an
+			// account with limits can't learn what it may not see.
+			if a != nil {
+				title := p.Title
+				eps, _, err := s.Store.Items(r.Context(), library.ItemQuery{LibraryID: p.LibraryID, Album: &title, Access: a, Limit: 1, NoTotal: true, Brief: true})
+				if err != nil || len(eps) == 0 {
+					continue
+				}
+			}
 			p.URL = "" // a private feed's address is a password
 			out = append(out, p)
 		}
@@ -200,14 +209,14 @@ func (s *Server) proxyEpisode(w http.ResponseWriter, r *http.Request, it *librar
 	res, err := library.SafeClient.Do(req)
 	if err != nil {
 		if r.Context().Err() == nil {
-			s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "err", err)
+			s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "err", library.WithoutAddress(err))
 		}
 		writeErr(w, 502, "the podcast server did not answer")
 		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 && res.StatusCode != 206 && res.StatusCode != 416 {
-		s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "url", it.Path, "status", res.StatusCode)
+		s.Log.WarnContext(r.Context(), "could not fetch a podcast episode", "cat", "playback", "item", it.ID, "status", res.StatusCode)
 		writeErr(w, 502, "the podcast server answered "+res.Status)
 		return
 	}

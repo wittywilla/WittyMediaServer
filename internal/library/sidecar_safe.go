@@ -232,7 +232,24 @@ func (v *videoSidecar) clean() {
 		v.Comments[i].Author = metafolder.Line(v.Comments[i].Author, 200)
 		v.Comments[i].Text = metafolder.Text(v.Comments[i].Text, 10000)
 	}
-	v.Custom = cleanCustom(v.Custom, 0)
+	v.Custom = cleanRawCustom(v.Custom)
+}
+
+// cleanRawCustom unpacks free-form details only when they are small enough to be kept at all:
+// decoded, a few megabytes of "{}," take gigabytes of memory.
+func cleanRawCustom(raw sideCustom) sideCustom {
+	if len(raw) == 0 || len(raw) > 16<<10 {
+		return nil
+	}
+	var m map[string]any
+	if json.Unmarshal(raw, &m) != nil || m == nil {
+		return nil
+	}
+	b, err := json.Marshal(cleanCustom(m, 0))
+	if err != nil {
+		return nil
+	}
+	return b
 }
 
 // cleanCustom cleans free-form extra details, however they nest, up to a point.

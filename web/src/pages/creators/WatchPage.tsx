@@ -11,6 +11,7 @@ import { useApp } from '../../state'
 import { Avatar, Comments, EditVideoDialog, LikeButtons, SubscribeButton, viewsOf } from './parts'
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
+import { WebLink } from '../../components/WebLink'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -74,7 +75,7 @@ export default function WatchPage() {
               {d.description && <p className={more || !long ? '' : 'clamped'}>{d.description}</p>}
               {long && <button className="btn sm ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Show less' : 'Show more'}</button>}
               {d.tags.length > 0 && <div className="ch-tagline">{d.tags.map((t) => <Link key={t} to={`/library/${d.libraryId}?tag=${encodeURIComponent(t)}`}>#{t}</Link>)}</div>}
-              {d.sourceUrl && <p className="muted ch-source">Source: <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">{d.sourceUrl}</a></p>}
+              {d.sourceUrl && <p className="muted ch-source">Source: <WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></p>}
               {d.custom && Object.keys(d.custom).length > 0 && (
                 <dl className="ch-custom">{Object.entries(d.custom).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{String(x)}</dd></div>)}</dl>
               )}

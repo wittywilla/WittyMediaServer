@@ -33,6 +33,21 @@ func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
 		if err := os.Rename(target, target+".moved"); err == nil {
 			println("WROTE rename")
 		}
+		// An access list giving everyone read: chmod by another name. Mode 0600 becomes 0644
+		// without it, with no user to map, and all of it comes through setxattr.
+		acl := []byte{2, 0, 0, 0, 1, 0, 6, 0, 255, 255, 255, 255, 4, 0, 4, 0, 255, 255, 255, 255, 32, 0, 4, 0, 255, 255, 255, 255}
+		if err := unix.Setxattr(target, "system.posix_acl_access", acl, 0); err != unix.EPERM {
+			println("WROTE access list", err)
+		}
+		if err := unix.Setxattr(target, "user.note", []byte("x"), 0); err != unix.EPERM {
+			println("WROTE xattr", err)
+		}
+		if _, _, e := unix.RawSyscall(unix.SYS_BPF, 0, 0, 0); e != unix.EPERM {
+			println("REACHED bpf")
+		}
+		if _, _, e := unix.RawSyscall(unix.SYS_KEYCTL, 0, 0, 0); e != unix.EPERM {
+			println("REACHED keyctl")
+		}
 		if c, err := net.Dial("unix", os.Getenv("WMS_SANDBOX_SOCKET")); err == nil {
 			c.Close()
 			println("REACHED a socket file")
@@ -61,7 +76,7 @@ func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
 		return
 	}
 	target := filepath.Join(t.TempDir(), "database")
-	if err := os.WriteFile(target, []byte("original"), 0o644); err != nil {
+	if err := os.WriteFile(target, []byte("original"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	exe, err := os.Executable()
@@ -94,6 +109,9 @@ func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
 		}
 		if strings.Contains(s, "WROTE") || strings.Contains(s, "CREATED") {
 			t.Fatalf("it changed a file: %s", s)
+		}
+		if st, err := os.Stat(target); err != nil || st.Mode().Perm() != 0o600 {
+			t.Fatalf("who may read it changed: %v %v", st, err)
 		}
 		if strings.Contains(s, "REACHED") {
 			t.Fatalf("it reached out: %s", s)

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -127,7 +128,7 @@ func (s *Server) handleMusicSongs(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/music/likes?library=: the ids of this person's liked songs.
 func (s *Server) handleMusicLikes(w http.ResponseWriter, r *http.Request) {
-	ids, err := s.Store.LikedTracks(r.Context(), userFrom(r).ID, int64(qInt(r, "library", 0)))
+	ids, err := s.Store.LikedTracks(r.Context(), userFrom(r).ID, int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -323,14 +324,13 @@ func (s *Server) handleMusicExtraFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	path := filepath.Join(filepath.Dir(it.Path), name)
+	f, st, err := s.Store.OpenLibraryFile(r.Context(), filepath.Join(filepath.Dir(it.Path), name))
+	if err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	defer f.Close()
 	if found.Kind == "text" {
-		f, err := os.Open(path)
-		if err != nil {
-			writeErr(w, 404, "not found")
-			return
-		}
-		defer f.Close()
 		b, err := io.ReadAll(io.LimitReader(f, maxExtraText))
 		if err != nil {
 			writeErr(w, 500, "couldn't read that")
@@ -339,20 +339,9 @@ func (s *Server) handleMusicExtraFile(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]string{"text": lyrics.Decode(b)})
 		return
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || !st.Mode().IsRegular() {
-		writeErr(w, 404, "not found")
-		return
-	}
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Del("Content-Security-Policy") // the browser's own viewer shows it in a tab; PDFs can't run scripts on this site
-	http.ServeContent(w, r, "", st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
 }
 
 // ---------------------------------------------------------------- artists
@@ -367,6 +356,24 @@ type artistFacts struct {
 	Picture  bool   `json:"picture,omitempty"`
 	At       int64  `json:"at"`
 	NotFound bool   `json:"notFound,omitempty"`
+}
+
+const maxArtistBio = 6 << 10
+
+// creditLink is the article's address, which the page makes a link of. It came in a service's
+// answer, so anything else gets the article's usual address instead.
+func (a *artistFacts) creditLink() string {
+	if u, err := url.Parse(a.URL); err == nil && u.Scheme == "https" && strings.HasSuffix(u.Host, ".wikipedia.org") {
+		return a.URL
+	}
+	return "https://en.wikipedia.org/wiki/" + url.PathEscape(strings.ReplaceAll(a.Title, " ", "_"))
+}
+
+func (a *artistFacts) shortBio() string {
+	if len(a.Bio) <= maxArtistBio {
+		return a.Bio
+	}
+	return strings.ToValidUTF8(a.Bio[:maxArtistBio], "") + "…"
 }
 
 func (s *Server) artistCache(name, ext string) string {
@@ -504,21 +511,26 @@ func (s *Server) saveArtistPicture(ctx context.Context, name, src string) bool {
 var artistPictures = []string{"artist.jpg", "artist.jpeg", "artist.png", "artist.webp"}
 
 // localArtistPicture looks in the artist's folder and the album's for a picture named
-// for that purpose. The folders come from a song's own path, checked to be in a library.
-func (s *Server) localArtistPicture(ctx context.Context, songPath string) string {
+// for that purpose, and hands it back open. The folders come from a song's own path.
+func (s *Server) localArtistPicture(ctx context.Context, songPath string) (*os.File, string) {
 	if isWeb(songPath) {
-		return ""
+		return nil, ""
 	}
 	dir := filepath.Dir(songPath)
 	for _, d := range []string{filepath.Dir(dir), dir} {
 		for _, name := range artistPictures {
 			p := filepath.Join(d, name)
-			if s.Store.LibraryFile(ctx, p) {
-				return p
+			f, _, err := s.Store.OpenLibraryFile(ctx, p)
+			if err != nil {
+				continue
 			}
+			if imageType(f, p) != "" {
+				return f, p
+			}
+			f.Close()
 		}
 	}
-	return ""
+	return nil, ""
 }
 
 var artistRefresh = make(chan string, 64) // names to look up when there's a moment
@@ -527,13 +539,13 @@ var artistRefreshOnce sync.Once
 
 func (s *Server) queueArtistLookup(name string) {
 	artistRefreshOnce.Do(func() {
-		go func() {
+		logging.Loop("artist lookups", func() {
 			for n := range artistRefresh {
 				ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 				s.lookUpArtist(ctx, n)
 				cancel()
 			}
-		}()
+		})
 	})
 	select {
 	case artistRefresh <- name:
@@ -556,9 +568,8 @@ func (s *Server) handleArtistPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if p := s.localArtistPicture(ctx, tracks[0].Path); p != "" {
-		w.Header().Set("Cache-Control", "private, max-age=86400")
-		http.ServeFile(w, r, p)
+	if f, p := s.localArtistPicture(ctx, tracks[0].Path); f != nil {
+		s.serveArtFile(w, r, f, p)
 		return
 	}
 	facts := s.readArtistFacts(name)
@@ -654,7 +665,7 @@ func (s *Server) handleMusicArtist(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{"name": name, "albums": albums, "tracks": s.forViewer(r, all...), "top": s.forViewer(r, top...), "genres": genreList,
 		"online": s.DB.GetSetting(ctx, "musicInfoOnline", "0") == "1"}
 	if facts != nil && !facts.NotFound {
-		out["bio"], out["bioUrl"], out["bioTitle"] = facts.Bio, facts.URL, facts.Title
+		out["bio"], out["bioUrl"], out["bioTitle"] = facts.shortBio(), facts.creditLink(), facts.Title
 	}
 	writeJSON(w, 200, out)
 }

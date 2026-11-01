@@ -15,6 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/backup"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 const backupPassword = "correct horse battery"
@@ -166,8 +167,17 @@ func TestBackupThroughTheRoutes(t *testing.T) {
 		t.Fatalf("%d", w.Code)
 	}
 
+	// A backup holds every account's password hash, and with a password every secret too. So a
+	// stolen session can make one, and can't take it away.
+	if w := b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, nil); w.Code == 200 {
+		t.Fatalf("a download link with no password: %s", w.Body)
+	}
+	if w := b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, map[string]any{"password": "not the password"}); w.Code != 403 {
+		t.Fatalf("a download link with a wrong password: %d %s", w.Code, w.Body)
+	}
+
 	// A ticket opens that one file.
-	w = b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, nil)
+	w = b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, map[string]any{"password": backupPassword})
 	var link struct {
 		URL string `json:"url"`
 	}
@@ -239,11 +249,62 @@ func TestBackupThroughTheRoutes(t *testing.T) {
 		t.Error("what was unpacked is still there")
 	}
 
-	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, nil); w.Code != 200 {
-		t.Fatalf("%d", w.Code)
+	// A stolen session can't take away the way back.
+	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, nil); w.Code != 403 {
+		t.Fatalf("deleted with no password: %d", w.Code)
+	}
+	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, map[string]any{"password": backupPassword}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	if w := b.call("GET", link.URL, "", nil); w.Code != 404 {
 		t.Errorf("a ticket outlived its file: %d", w.Code)
+	}
+}
+
+// An upload has no size limit of its own, and may come from someone with no account during first-time
+// setup, so what it can't do is fill the disk, or take the place of what's been checked already.
+func TestBackupUploadLeavesRoomAndKeepsItsOwnName(t *testing.T) {
+	b := newBackupServer(t)
+	old := uploadFreeFloor
+	defer func() { uploadFreeFloor = old }()
+	send := func(body []byte) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "/api/backup/restore/upload", bytes.NewReader(body))
+		r.RemoteAddr, r.Host = "192.168.1.50:4000", "localhost:9797"
+		r.Header.Set("Authorization", "Bearer "+b.admin)
+		r.ContentLength = -1 // sent in pieces: nothing says how long it is
+		w := httptest.NewRecorder()
+		b.h.ServeHTTP(w, r)
+		return w
+	}
+	uploadFreeFloor = 1 << 62
+	if w := send([]byte("hello")); w.Code != 507 {
+		t.Fatalf("no room at all: %d %s", w.Code, w.Body)
+	}
+	if err := os.MkdirAll(b.backupFolders().Dir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	free := sysinfo.FreeBytes(b.backupFolders().Dir())
+	uploadFreeFloor = free - 64<<10
+	if w := send(make([]byte, 32<<20)); w.Code != 507 {
+		t.Fatalf("more than there's room for: %d %s", w.Code, w.Body)
+	}
+	if list := backup.List(b.backupFolders()); len(list) != 0 {
+		t.Errorf("what didn't fit stayed: %+v", list)
+	}
+	uploadFreeFloor = old
+	names := map[string]bool{}
+	for range 3 {
+		w := send([]byte("PK"))
+		var up struct {
+			File string `json:"file"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &up); err != nil || up.File == "" {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		names[up.File] = true
+	}
+	if len(names) != 3 {
+		t.Errorf("uploads in the same second took the same name, so one can replace what was checked: %v", names)
 	}
 }
 
@@ -347,10 +408,14 @@ func TestScheduledBackupRuns(t *testing.T) {
 		at := time.Now().Add(-30 * 24 * time.Hour)
 		_ = os.Chtimes(filepath.Join(f.Dir(), name), at, at)
 	}
-	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": "short"}); w.Code != 400 {
+	// Keeping fewer removes backups, so it takes more than the session.
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}}); w.Code != 403 {
+		t.Fatalf("kept fewer with no password: %d", w.Code)
+	}
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "current": backupPassword, "password": "short"}); w.Code != 400 {
 		t.Fatalf("a short password: %d", w.Code)
 	}
-	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": backupPassword}); w.Code != 200 {
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "current": backupPassword, "password": backupPassword}); w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	// The key isn't the password, and neither is shown.

@@ -17,6 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // What surrounds the guide: searching the schedule, an account's favourite
@@ -58,6 +59,9 @@ const (
 
 // GET /api/guide/search?q=word&days=7: what is coming up that matches, soonest
 // first, on the channels this account can see.
+// Each search works out every channel's schedule for up to two weeks, so only a few run at once.
+var guideSearchSlots = make(chan struct{}, 4)
+
 func (s *Server) handleGuideSearch(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if len(q) < 2 || len(q) > 100 {
@@ -72,6 +76,14 @@ func (s *Server) handleGuideSearch(w http.ResponseWriter, r *http.Request) {
 	limit := qInt(r, "limit", 50)
 	if limit < 1 || limit > maxSearchHits {
 		limit = 50
+	}
+	select {
+	case guideSearchSlots <- struct{}{}:
+		defer func() { <-guideSearchSlots }()
+	default:
+		w.Header().Set("Retry-After", "2")
+		writeErr(w, 429, "the guide is busy: try again in a moment")
+		return
 	}
 	ctx := r.Context()
 	now := time.Now()
@@ -338,7 +350,11 @@ func (s *Server) handleUploadBumper(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	f, path, err := createUnique(s.bumperDir(), name)
+	if free := sysinfo.FreeBytes(s.bumperDir()); free >= 0 && free-uploadFreeFloor <= max(r.ContentLength, 0) {
+		writeErr(w, 507, "The disk this server keeps its data on is nearly full.")
+		return
+	}
+	f, path, err := library.CreateInLibrary(s.bumperDir(), s.bumperDir(), name)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -462,7 +478,7 @@ func (s *Server) handleClipPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := fmt.Sprintf("clip-%d-%d", it.ID, b.Title)
-	s.HLS.Ensure(hls.Spec{ID: id, InputArgs: in.InputArgs, Duration: in.Total, VideoFilter: in.VideoFilter, AudioIndex: in.AudioIndex, SubtitleIndex: -1,
+	s.HLS.Ensure(hls.Spec{ID: id, ItemID: it.ID, InputArgs: in.InputArgs, Duration: in.Total, VideoFilter: in.VideoFilter, AudioIndex: in.AudioIndex, SubtitleIndex: -1,
 		SeekMargin: 1.5, Quality: q, MaxHeight: h, AudioCodec: "aac"})
 	writeJSON(w, 200, map[string]any{"url": "/api/hls/" + id + "/playlist.m3u8", "durationSec": in.Total})
 }

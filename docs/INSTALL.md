@@ -289,12 +289,19 @@ WittyMediaServer runs on your own computer, in your home. **Out of the box it is
 home network only**: every device on the same Wi-Fi or cable network can open
 `http://<this computer's address>:9797` (the setup wizard and *Settings → About* show the address).
 
-**Setting up from another network.** Until the first account exists, whoever makes it owns the
-server, so from this computer and your home network setup just works. A server nobody can reach from
-a home network first (a rented one, say) needs `remoteAccess` turned on in its configuration
-([CONFIG.md](CONFIG.md)) and HTTPS, and from there, through a reverse proxy, or under a domain name,
-setup also asks for a **setup code**. The server prints the code on its console when it starts (`This server has no accounts yet...`, in
-`docker logs` or in `journalctl -u wittymediaserver`). It is never kept in the log files or shown in the log viewer.
+**Setting up from another device.** Until the first account exists, whoever makes it owns the server. On
+the computer running it, setup just works. From any other device, your phone included, setup asks for a
+**setup code**, because someone else on your network could otherwise get there first. Find it in either place:
+
+- on the server's console when it starts (`This server has no accounts yet...`, in `docker logs` or in
+  `journalctl -u wittymediaserver`);
+- in `setup-code.txt` in the server's data folder, which goes away once setup is done.
+
+It is never kept in the log files or shown in the log viewer. If you trust everyone on your network and would
+rather not, start the server with `-setup-from-home` (or `WMS_SETUP_FROM_HOME=1`).
+
+A server nobody can reach from a home network first (a rented one, say) also needs `remoteAccess` turned on
+in its configuration ([CONFIG.md](CONFIG.md)), and HTTPS.
 
 **Windows firewall rule from the installer?** It covers networks you've marked private, not public ones.
 If other devices can't connect, set your network to *Private* in Windows' network settings.

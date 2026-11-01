@@ -117,11 +117,18 @@ func TestAddCustom(t *testing.T) {
 		t.Fatalf("%v %s", err, css)
 	}
 	for name, c := range map[string]Custom{
-		"no name":   {Scheme: "dark", Colors: colors},
-		"scheme":    {Name: "x", Scheme: "blue", Colors: colors},
-		"corners":   {Name: "x", Scheme: "dark", Colors: colors, Radius: 99},
-		"missing":   {Name: "x", Scheme: "dark", Colors: map[string]string{"bg": "#000000"}},
-		"injection": {Name: "x", Scheme: "dark", Colors: func() map[string]string { c := map[string]string{}; for k, v := range colors { c[k] = v }; c["bg"] = "#000;}body{display:none"; return c }()},
+		"no name": {Scheme: "dark", Colors: colors},
+		"scheme":  {Name: "x", Scheme: "blue", Colors: colors},
+		"corners": {Name: "x", Scheme: "dark", Colors: colors, Radius: 99},
+		"missing": {Name: "x", Scheme: "dark", Colors: map[string]string{"bg": "#000000"}},
+		"injection": {Name: "x", Scheme: "dark", Colors: func() map[string]string {
+			c := map[string]string{}
+			for k, v := range colors {
+				c[k] = v
+			}
+			c["bg"] = "#000;}body{display:none"
+			return c
+		}()},
 	} {
 		if _, err := m.AddCustom(c); err == nil {
 			t.Errorf("%s: accepted", name)

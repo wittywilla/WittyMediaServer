@@ -5,6 +5,7 @@ import { IconCheck, IconClose, IconDown, IconLock, IconRefresh, IconSearch, Icon
 import { toast } from '../state'
 import { Row, Section, Switch } from './settings/ui'
 import LegalNote from '../components/LegalNote'
+import { WebLink } from '../components/WebLink'
 
 // What's known about a game, and where it comes from: its ratings and pictures, fixing
 // a wrong match, and choosing sources and keys. Shared by the game's page, the library
@@ -25,7 +26,7 @@ export function GameRatings({ d }: { d: GameDetailsInfo }) {
           {d.scores.map((s) => (
             <li key={s.source + s.kind}>
               <b>{Math.round(s.value)}<small>/100</small></b>
-              <span>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}</span>
+              <span>{s.url ? <WebLink href={s.url}>{s.source}</WebLink> : s.source}</span>
               <small>{s.kind === 'critic' ? 'Critics' : 'Players'}{s.votes ? ` · ${s.votes.toLocaleString()} ${s.votes === 1 ? 'vote' : 'votes'}` : ''}</small>
             </li>
           ))}
@@ -81,7 +82,7 @@ export function GameCredits({ d }: { d: GameDetailsInfo }) {
       Details from{' '}
       {d.credits.map((c, i) => (
         <span key={c.source}>
-          {i > 0 ? '; ' : ''}<a href={c.url || c.site} target="_blank" rel="noreferrer">{c.name}</a> ({c.license})
+          {i > 0 ? '; ' : ''}<WebLink href={c.url || c.site}>{c.name}</WebLink> ({c.license})
         </span>
       ))}.
     </p>
@@ -252,7 +253,7 @@ export function GameKeyFields({ source, values, onChange }: { source: GameSource
   const canTest = fields.every((f) => f.hint || values[f.setting]?.trim() || source.saved.includes(f.setting))
   return (
     <div className="gm-key">
-      {source.keyUrl && <p><a href={source.keyUrl} target="_blank" rel="noreferrer">Get a key</a> · {source.cost}</p>}
+      {source.keyUrl && <p><WebLink href={source.keyUrl}>Get a key</WebLink> · {source.cost}</p>}
       {source.unavailable && <div className="set-note bad">{source.unavailable}</div>}
       {source.steps && <ol className="op-steps">{source.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>}
       <div className="gm-key-fields">
@@ -335,7 +336,7 @@ export function GameSourcesSettings() {
                       <dt>Licence</dt><dd>{s.license}.</dd>
                       <dt>Gives</dt><dd>{s.gives.join(', ')}.</dd>
                     </dl>
-                    <a href={s.site} target="_blank" rel="noreferrer">{s.name} website</a>
+                    <WebLink href={s.site}>{s.name} website</WebLink>
                   </details>
                 </div>
                 <div className="gm-source-actions">

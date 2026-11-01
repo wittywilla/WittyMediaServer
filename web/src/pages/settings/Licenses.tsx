@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
+import { WebLink } from '../../components/WebLink'
 
 // What this server is made of, and under which licenses. All of it comes from the
 // server (GET /licenses), which builds the list from what's really compiled in.
@@ -19,7 +20,7 @@ function Row({ c }: { c: Component }) {
   return (
     <li className="lic-row">
       <div className="lic-head">
-        <span className="lic-name"><a href={c.url} target="_blank" rel="noreferrer">{c.name}</a>{c.version && <span className="muted"> {c.version}</span>}</span>
+        <span className="lic-name"><WebLink href={c.url}>{c.name}</WebLink>{c.version && <span className="muted"> {c.version}</span>}</span>
         <span className="lic-tag">{c.license}</span>
         {c.hasText && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={toggle}>{open ? 'Hide license' : 'Read license'}</button>}
       </div>

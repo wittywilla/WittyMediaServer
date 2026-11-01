@@ -670,18 +670,18 @@ func TestHostileRowsAreMadeHarmless(t *testing.T) {
 		return s.String
 	}
 	for q, want := range map[string]string{
-		`SELECT COUNT(*) FROM settings WHERE key IN ('javaPath','remoteAccess','agents','logDir')`:                 "0",
-		`SELECT COUNT(*) FROM sessions`:                                                                             "0",
-		`SELECT COUNT(*) FROM share_links`:                                                                          "0",
-		`SELECT COUNT(*) FROM items WHERE id IN (50, 51)`:                                                           "0",
-		`SELECT COUNT(*) FROM library_paths WHERE path = '/etc' OR path = '/' OR path LIKE '%/certs'`:               "0",
-		`SELECT title FROM items WHERE id = 1`:                                                                      "Treeline",
-		`SELECT overview FROM items WHERE id = 1`:                                                                   "Plot",
-		`SELECT poster FROM items WHERE id = 1`:                                                                     "",
-		`SELECT backdrop FROM items WHERE id = 1`:                                                                   "",
-		`SELECT poster FROM items WHERE id = 2`:                                                                     "",
-		`SELECT password_hash FROM users WHERE id = 2`:                                                              "",
-		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name NOT IN ('title_meta_item_gone', 'title_meta_show_gone', 'listings_item_gone', 'listings_show_gone')`: "0",
+		`SELECT COUNT(*) FROM settings WHERE key IN ('javaPath','remoteAccess','agents','logDir')`: "0",
+		`SELECT COUNT(*) FROM sessions`:                                                               "0",
+		`SELECT COUNT(*) FROM share_links`:                                                            "0",
+		`SELECT COUNT(*) FROM items WHERE id IN (50, 51)`:                                             "0",
+		`SELECT COUNT(*) FROM library_paths WHERE path = '/etc' OR path = '/' OR path LIKE '%/certs'`: "0",
+		`SELECT title FROM items WHERE id = 1`:                                                        "Treeline",
+		`SELECT overview FROM items WHERE id = 1`:                                                     "Plot",
+		`SELECT poster FROM items WHERE id = 1`:                                                       "",
+		`SELECT backdrop FROM items WHERE id = 1`:                                                     "",
+		`SELECT poster FROM items WHERE id = 2`:                                                       "",
+		`SELECT password_hash FROM users WHERE id = 2`:                                                "",
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name NOT IN ('title_meta_item_gone', 'title_meta_show_gone', 'listings_item_gone', 'listings_show_gone', 'share_links_item_gone', 'share_links_album_gone')`: "0",
 	} {
 		if got := one(q); got != want {
 			t.Errorf("%s: %q, want %q", q, got, want)
@@ -799,14 +799,14 @@ func TestFullRoundTrip(t *testing.T) {
 				return n
 			}
 			for q, want := range map[string]int{
-				`SELECT COUNT(*) FROM users WHERE name = 'newcomer'`:                                    0,
-				`SELECT COUNT(*) FROM users WHERE name = 'kim' AND is_admin = 1`:                        1,
-				`SELECT COUNT(*) FROM items`:                                                            2,
-				`SELECT COUNT(*) FROM progress WHERE position_sec = 120`:                                1,
-				`SELECT COUNT(*) FROM channels WHERE name = 'Late Films'`:                               1,
-				`SELECT COUNT(*) FROM sessions`:                                                         0,
-				`SELECT COUNT(*) FROM settings WHERE key = 'brandName'`:                                 1,
-				`SELECT COUNT(*) FROM settings WHERE key = 'javaPath'`:                                  0,
+				`SELECT COUNT(*) FROM users WHERE name = 'newcomer'`:                                        0,
+				`SELECT COUNT(*) FROM users WHERE name = 'kim' AND is_admin = 1`:                            1,
+				`SELECT COUNT(*) FROM items`:                                                                2,
+				`SELECT COUNT(*) FROM progress WHERE position_sec = 120`:                                    1,
+				`SELECT COUNT(*) FROM channels WHERE name = 'Late Films'`:                                   1,
+				`SELECT COUNT(*) FROM sessions`:                                                             0,
+				`SELECT COUNT(*) FROM settings WHERE key = 'brandName'`:                                     1,
+				`SELECT COUNT(*) FROM settings WHERE key = 'javaPath'`:                                      0,
 				`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'listings_item_gone'`: 1,
 			} {
 				if got := count(q); got != want {
@@ -907,7 +907,7 @@ func TestPartialRestore(t *testing.T) {
 	if got := one(`SELECT COUNT(*) FROM custom_consoles`); got != "1" {
 		t.Errorf("what no backup holds should stay: %q", got)
 	}
-	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "4" {
+	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "6" {
 		t.Errorf("triggers: %q", got)
 	}
 }

@@ -5,7 +5,7 @@
 //
 //	go run ./scripts/sign keygen [-key file]        make the key (once); prints the public key
 //	go run ./scripts/sign pubkey [-key file]        print the public key again
-//	go run ./scripts/sign sign   [-key file] <file> write <file>.sig
+//	go run ./scripts/sign sign   [-key file] [-expect wittymediaserver-1.2.3] <file> write <file>.sig
 //	go run ./scripts/sign verify <file>             check <file>.sig against the keys built into the server
 //
 // The key file defaults to WMS_SIGNING_KEY, then ~/.wms-signing/release.key.
@@ -36,6 +36,7 @@ func main() {
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	keyPath := fs.String("key", defaultKey(), "private key file")
+	expect := fs.String("expect", "", "refuse a list naming anything but files of this release, such as wittymediaserver-1.2.3")
 	_ = fs.Parse(os.Args[2:])
 	var err error
 	switch os.Args[1] {
@@ -47,7 +48,7 @@ func main() {
 			fmt.Println(base64.StdEncoding.EncodeToString(k.Public().(ed25519.PublicKey)))
 		}
 	case "sign":
-		err = sign(*keyPath, fs.Args())
+		err = sign(*keyPath, *expect, fs.Args())
 	case "verify":
 		err = verify(fs.Args())
 	default:
@@ -64,7 +65,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   go run ./scripts/sign keygen [-key file]        make the release signing key (once)
   go run ./scripts/sign pubkey [-key file]        print its public key
-  go run ./scripts/sign sign [-key file] <file>   write <file>.sig
+  go run ./scripts/sign sign [-key file] [-expect wittymediaserver-1.2.3] <file>   write <file>.sig
   go run ./scripts/sign verify <file>             check <file>.sig with the keys built into the server`)
 }
 
@@ -129,7 +130,28 @@ func load(path string) (ed25519.PrivateKey, error) {
 	return ed25519.NewKeyFromSeed(seed), nil
 }
 
-func sign(path string, files []string) error {
+// checkList refuses to sign a list naming anything but this release's files: a signature is
+// what makes an update trusted, so whatever produced the list doesn't get to say what it covers.
+func checkList(b []byte, expect string) error {
+	if expect == "" {
+		return nil
+	}
+	sums, err := update.ParseSums(b)
+	if err != nil {
+		return err
+	}
+	if len(sums) == 0 {
+		return errors.New("the list names no files")
+	}
+	for name := range sums {
+		if !strings.HasPrefix(name, expect+"-") {
+			return fmt.Errorf("the list names %s, which isn't part of %s", name, expect)
+		}
+	}
+	return nil
+}
+
+func sign(path, expect string, files []string) error {
 	if len(files) == 0 {
 		return errors.New("which file? go run ./scripts/sign sign <file>")
 	}
@@ -141,6 +163,9 @@ func sign(path string, files []string) error {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			return err
+		}
+		if err := checkList(b, expect); err != nil {
+			return fmt.Errorf("%s: %w", f, err)
 		}
 		if err := os.WriteFile(f+".sig", update.Sign(k, b), 0o644); err != nil {
 			return err

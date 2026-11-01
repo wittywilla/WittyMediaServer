@@ -47,3 +47,23 @@ func TestConfigTypo(t *testing.T) {
 		t.Fatal("an unknown setting should be reported, not ignored")
 	}
 }
+
+func TestMaxConnections(t *testing.T) {
+	dir := t.TempDir()
+	load := func(args ...string) (*Config, error) { return Parse(append([]string{"-data", dir}, args...)) }
+	t.Setenv("WMS_CONFIG", "")
+	c, err := load()
+	if err != nil || c.MaxConnections != DefaultConnections {
+		t.Fatalf("%+v %v", c, err)
+	}
+	if c, err := load("-max-connections", "5000"); err != nil || c.MaxConnections != 5000 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	t.Setenv("WMS_MAX_CONNECTIONS", "300")
+	if c, err := load(); err != nil || c.MaxConnections != 300 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	if _, err := load("-max-connections", "5"); err == nil {
+		t.Error("too few to use the server at all")
+	}
+}

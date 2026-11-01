@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -78,6 +79,8 @@ type Cache struct {
 	Limit func() int64
 	// abandonIn replaces abandonAfter, for tests.
 	abandonIn time.Duration
+	// beforeBuild runs as each job starts, for tests.
+	beforeBuild func()
 
 	mu     sync.Mutex
 	jobs   map[string]*job
@@ -293,7 +296,7 @@ func (c *Cache) start(key, p string, console *wittyplay.Console, entry string) *
 	delete(c.failed, key)
 	j := &job{key: key, path: p, entry: entry, console: console, done: make(chan struct{}), state: stateWaiting, lastSeen: time.Now()}
 	c.jobs[key] = j
-	go c.run(j)
+	logging.Go("unpacking a game", func() { c.run(j) }, "cat", "games")
 	return j
 }
 
@@ -324,12 +327,22 @@ func (c *Cache) run(j *job) {
 			}
 		}
 	}()
-	err := func() error {
+	err := func() (err error) {
+		// This reads a stranger's archive, and whoever waits has to hear how it ended.
+		defer func() {
+			if p := recover(); p != nil {
+				logging.ReportPanic("unpacking a game", p, "cat", "games")
+				err = errors.New("this archive could not be unpacked")
+			}
+		}()
 		select {
 		case c.slots <- struct{}{}:
 			defer func() { <-c.slots }()
 		case <-ctx.Done():
 			return ctx.Err()
+		}
+		if c.beforeBuild != nil {
+			c.beforeBuild()
 		}
 		return c.build(ctx, j)
 	}()

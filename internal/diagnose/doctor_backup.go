@@ -36,8 +36,8 @@ func checkMetaFiles(_ context.Context, e *DoctorEnv) []Issue {
 		details = append(details, p.String())
 	}
 	return []Issue{{Key: "metadata-files:problems", Severity: SevWarn, Title: "Some of your metadata files can't be used", Safety: SafetyManual, Count: len(details) + more, More: more, Details: details,
-		What: "These files in the metadata folder have mistakes, so they're left out when you apply the folder. Everything else carries on as usual.",
-		Fix:  "Open each file in a text editor and put right the line it names. Settings, Repair, Metadata files shows them too, and has examples.",
+		What:  "These files in the metadata folder have mistakes, so they're left out when you apply the folder. Everything else carries on as usual.",
+		Fix:   "Open each file in a text editor and put right the line it names. Settings, Repair, Metadata files shows them too, and has examples.",
 		Steps: []string{"Open the file named below in any text editor.", "Go to the line it says. A missing comma or quotation mark is the usual cause.", "Save it, and check again."}}}
 }
 

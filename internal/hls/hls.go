@@ -34,6 +34,9 @@ import (
 // Spec describes one transcode.
 type Spec struct {
 	ID string
+	// ItemID is what this stream plays, so that someone holding its address can be checked
+	// against their limits like anyone asking for the item.
+	ItemID int64
 	// LogSession is the session this stream logs under when it is part of
 	// something bigger (a disc's streams use the disc's); "" = its own ID.
 	LogSession  string
@@ -116,13 +119,13 @@ type Variant struct {
 
 // Rendition is a WebVTT subtitle track of a stream.
 type Rendition struct {
-	Stream   int // subtitle stream number in the source (s:N)
+	Stream int // subtitle stream number in the source (s:N)
 	// File: it isn't in the source. It's this subtitle file beside it, in this format.
 	File, Format string
 	Name         string
-	Language string
-	Default  bool
-	Forced   bool
+	Language     string
+	Default      bool
+	Forced       bool
 }
 
 type job struct {
@@ -197,7 +200,7 @@ const (
 
 // sessionDirRe matches the folders this package makes (see the IDs in
 // api_play.go, dvdsession and bdsession).
-var sessionDirRe = regexp.MustCompile(`^(v|dvd|bd)-[0-9a-zA-Z-]+$`)
+var sessionDirRe = regexp.MustCompile(`^(v|dvd|bd|clip)-[0-9a-zA-Z-]+$`)
 
 func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {
 	if max < 1 {
@@ -1152,7 +1155,7 @@ func textSubtitleFileFilter(path string, start float64) string {
 }
 
 func textSubtitleFilter(path string, stream int, start float64) string {
-	f := fmt.Sprintf("subtitles='%s':si=%d", escapeFilterPath(path), stream)
+	f := fmt.Sprintf("subtitles=filename='%s':si=%d", escapeFilterPath(path), stream)
 	if start > 0 {
 		f = fmt.Sprintf("setpts=PTS+%.3f/TB,%s,setpts=PTS-STARTPTS", start, f)
 	}
@@ -1160,9 +1163,11 @@ func textSubtitleFilter(path string, stream int, start float64) string {
 }
 
 // escapeFilterPath writes a path for a quoted value in a filter graph, which is
-// read twice: by the graph, then by the option.
+// read twice: by the graph, where only a quote means anything inside quotes, then
+// by the option. The option's name is written out, or a name holding "=" would be
+// read as an option of its own.
 func escapeFilterPath(p string) string {
-	return strings.NewReplacer(`\`, `\\\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
+	return strings.NewReplacer(`\`, `\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
 }
 
 // watch tracks the newest finished segment so Segment() can decide whether a

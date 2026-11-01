@@ -214,12 +214,22 @@ func (in *Inspection) Stage(ctx context.Context, f Folders, o StageOptions) (*Re
 			return fail(err)
 		}
 		entry, listed := known[e.Name]
+		hand := src.Part == PartMetaFiles
+		if !listed && !hand {
+			return fail(Refused(printableName(e.Name), "it's been added since it was checked"))
+		}
+		if src.Skip != nil && src.Skip(rel) {
+			return fail(Refused(printableName(e.Name), "it isn't something a backup holds"))
+		}
 		sum, err := writeEntry(ctx, e, dst)
 		if err != nil {
 			return fail(Refused(printableName(e.Name), err.Error()))
 		}
-		if listed && src.Part != PartMetaFiles && sum != entry.SHA256 {
+		if listed && !hand && sum != entry.SHA256 {
 			return fail(Refused(printableName(e.Name), "it's been changed since it was checked"))
+		}
+		if err := src.Check(rel, readHead(dst)); err != nil {
+			return fail(Refused(printableName(e.Name), err.Error()))
 		}
 		done += int64(e.UncompressedSize64)
 		if o.Progress != nil {

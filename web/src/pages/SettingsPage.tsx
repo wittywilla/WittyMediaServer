@@ -23,6 +23,7 @@ import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
+import { WebLink } from '../components/WebLink'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const WittyStatsPage = lazy(() => import('./WittyStatsPage'))
@@ -486,7 +487,7 @@ function About() {
 
 type UpdateInfo = { version: string; title: string; notes: string; url: string; published?: number; prerelease: boolean; signed: boolean; size: number }
 type UpdateStatus = {
-  current: string; latest?: UpdateInfo; checkedAt?: number; checkError?: string
+  current: string; latest?: UpdateInfo; checkedAt?: number; checkError?: string; withdrawn?: string
   phase: 'idle' | 'downloading' | 'verifying' | 'installing' | 'restarting' | 'failed'
   done?: number; total?: number; error?: string; canApply: boolean; reason?: string; page: string
 }
@@ -554,6 +555,7 @@ function Updates() {
       <Row label="Installed version" desc={st?.checkedAt ? `Last checked ${fmtDateTime(st.checkedAt)}` : 'Not checked yet'}>
         <span className="mod-ver">{st?.current || '…'}</span>
       </Row>
+      {st?.withdrawn && <p className="upd-msg warn" role="alert">This version was withdrawn by the project: {st.withdrawn}. Update as soon as a newer one is offered.</p>}
       {st?.checkError && <p className="upd-msg warn">The last check didn’t work: {st.checkError}</p>}
       {st && !l && !st.checkError && !!st.checkedAt && <p className="upd-msg">You have the newest version.</p>}
       {st && l && (
@@ -566,7 +568,7 @@ function Updates() {
             {st.canApply && !active && <button className="btn primary sm" onClick={apply}>Update now</button>}
           </div>
           {l.notes && <ReleaseNotes text={l.notes} />}
-          <a href={l.url || st.page} target="_blank" rel="noreferrer">Release page on GitHub ›</a>
+          <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
           {!st.canApply && st.reason && <p className="upd-msg">{st.reason}</p>}
         </div>
       )}

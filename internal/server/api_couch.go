@@ -550,6 +550,11 @@ func (s *Server) couchCheckAddress(ctx context.Context, u *auth.User, address st
 	}
 	reach, err = gamestream.CheckAddress(ctx, host, nil)
 	if err != nil {
+		if !u.IsAdmin { // whether a name resolves here is a question about this network
+			asked := time.Now()
+			padCouchFailure(ctx, u, asked)
+			return "", 0, 0, couchConnectMessage(u, err)
+		}
 		return "", 0, 0, err.Error()
 	}
 	if port != 0 && port != gamestream.DefaultPort && !u.IsAdmin && s.DB.GetSetting(ctx, "couchCustomPorts", "0") != "1" {
@@ -596,9 +601,11 @@ func (s *Server) handleCouchAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &gamestream.Rig{Address: host, Port: port, Policy: s.couchPolicy(ctx, u)}
+	asked := time.Now()
 	info, err := client.Hello(ctx)
 	if err != nil {
 		s.Log.Info("couch: a PC didn't answer", "user", u.Name)
+		padCouchFailure(ctx, u, asked)
 		writeErr(w, 502, couchConnectMessage(u, err))
 		return
 	}
@@ -638,6 +645,21 @@ func reachName(r gamestream.Reach) string {
 		return "this machine"
 	}
 	return "unknown"
+}
+
+// couchAnswerWait is the longest a PC is given to answer.
+var couchAnswerWait = 5 * time.Second
+
+// padCouchFailure: "refused" comes back at once, and "nobody there" only after the wait, which
+// would tell anyone but an admin what's on the network as surely as saying so.
+func padCouchFailure(ctx context.Context, u *auth.User, asked time.Time) {
+	if u.IsAdmin {
+		return
+	}
+	select {
+	case <-time.After(time.Until(asked.Add(couchAnswerWait))):
+	case <-ctx.Done():
+	}
 }
 
 // couchConnectMessage: an admin gets the reason, and anyone else gets one sentence.

@@ -229,7 +229,7 @@ export const api = {
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
   patch: <T>(p: string, b?: unknown) => req<T>('PATCH', p, b ?? {}),
-  del: <T>(p: string) => req<T>('DELETE', p),
+  del: <T>(p: string, b?: unknown) => req<T>('DELETE', p, b),
 }
 
 // downloadFile saves what the server sends, signed in the same way as any other

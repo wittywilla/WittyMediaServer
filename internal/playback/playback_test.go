@@ -1,8 +1,8 @@
 package playback
 
 import (
-	"strings"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -60,10 +60,21 @@ func TestWebProfile(t *testing.T) {
 		{"over the height cap", nil, func(q *Request) { q.MaxHeight = 720 }, Transcode, false},
 		{"picture subtitles", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "hdmv_pgs_subtitle"}} }, func(q *Request) { q.SubtitleIndex = 0 }, Transcode, false},
 		{"styled subtitles asked for", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "ass"}} }, func(q *Request) { q.SubtitleIndex = 0; q.BurnSubtitle = true }, Transcode, false},
-		{"hdr on an ordinary screen", func(s *Source) { s.Range = "hdr10"; s.VideoCodec = "vp9"; s.Container = "webm"; s.Audio[0].Codec = "opus"; s.BitDepth = 10 }, nil, Transcode, false},
+		{"hdr on an ordinary screen", func(s *Source) {
+			s.Range = "hdr10"
+			s.VideoCodec = "vp9"
+			s.Container = "webm"
+			s.Audio[0].Codec = "opus"
+			s.BitDepth = 10
+		}, nil, Transcode, false},
 		{"interlaced", func(s *Source) { s.Interlaced = true }, nil, Transcode, false},
 		{"10-bit h264", func(s *Source) { s.BitDepth = 10 }, nil, Transcode, false},
-		{"12-bit vp9 plays", func(s *Source) { s.VideoCodec = "vp9"; s.Container = "webm"; s.Audio[0].Codec = "opus"; s.BitDepth = 10 }, nil, Direct, false},
+		{"12-bit vp9 plays", func(s *Source) {
+			s.VideoCodec = "vp9"
+			s.Container = "webm"
+			s.Audio[0].Codec = "opus"
+			s.BitDepth = 10
+		}, nil, Direct, false},
 		{"3D in 2D", func(s *Source) { s.Stereo = "sbs" }, func(q *Request) { q.Flatten3D = true }, Transcode, false},
 		{"3D as it is", func(s *Source) { s.Stereo = "sbs" }, nil, Direct, false},
 		{"over the limit away from home", nil, func(q *Request) { q.OverLimit = true }, Transcode, false},

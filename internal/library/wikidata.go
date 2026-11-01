@@ -104,11 +104,11 @@ func (s wdSnak) amount() float64 {
 }
 
 const (
-	wdPublication = "P577"
-	wdGenre       = "P136"
-	wdMPARating   = "P1657"
-	wdDuration    = "P2047"
-	wdInstanceOf  = "P31"
+	wdPublication  = "P577"
+	wdGenre        = "P136"
+	wdMPARating    = "P1657"
+	wdDuration     = "P2047"
+	wdInstanceOf   = "P31"
 	wdPartOfSeries = "P179"
 )
 

@@ -20,6 +20,15 @@ const MaxBytes = 256 << 10
 // MaxLines keeps a hostile file from making a very long list.
 const MaxLines = 5000
 
+// A line can be sung at several moments, and each copy holds its words. So what comes out can be
+// far larger than what went in, unless these hold it: 18000 moments of 18000 timed words fit in
+// MaxBytes, and would take many gigabytes to answer with.
+const (
+	maxStampsPerLine = 32
+	maxTimedWords    = 20000
+	maxOffsetMS      = 24 * 60 * 60 * 1000
+)
+
 // Word is one timed word of a line, for lyrics with word timing.
 type Word struct {
 	T    int64  `json:"t"` // milliseconds from the start of the track
@@ -83,6 +92,7 @@ func Parse(text string) Doc {
 	var timed []Line
 	var plain []string
 	var offset int64
+	wordsLeft := maxTimedWords
 	for _, raw := range strings.Split(text, "\n") {
 		if len(timed) >= MaxLines || len(plain) >= MaxLines {
 			break
@@ -92,6 +102,9 @@ func Parse(text string) Doc {
 			if m := metaRe.FindStringSubmatch(line); m != nil {
 				if strings.EqualFold(m[1], "offset") {
 					offset, _ = strconv.ParseInt(strings.TrimSpace(m[2]), 10, 64)
+					if offset < -maxOffsetMS || offset > maxOffsetMS {
+						offset = 0
+					}
 				}
 				continue // [ar:], [ti:], [length:] and the like
 			}
@@ -106,16 +119,22 @@ func Parse(text string) Doc {
 			if loc == nil || loc[0] != 0 {
 				break
 			}
-			m := stampRe.FindStringSubmatch(rest)
-			stamps = append(stamps, stampMS(m[1], m[2], m[3]))
+			if len(stamps) < maxStampsPerLine {
+				m := stampRe.FindStringSubmatch(rest)
+				stamps = append(stamps, stampMS(m[1], m[2], m[3]))
+			}
 			rest = rest[loc[1]:]
 		}
 		rest = strings.TrimSpace(rest)
 		words, shown := parseWords(rest)
 		for _, t := range stamps {
+			if len(timed) >= MaxLines {
+				break
+			}
 			l := Line{T: t, Text: shown}
-			if len(words) > 0 {
+			if len(words) > 0 && len(words) <= wordsLeft {
 				l.Words = words
+				wordsLeft -= len(words)
 			}
 			timed = append(timed, l)
 		}

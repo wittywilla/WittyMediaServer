@@ -29,11 +29,19 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
+// How many connections can be open at once. A household is nowhere near this: a browser opens
+// 6 per server at most, plus a socket per tab, and that many is the fewest that makes sense.
+const (
+	DefaultConnections = 2048
+	minConnections     = 16
+)
+
 type Config struct {
 	DataDir      string
 	Listen       string
 	FFmpegPath   string
 	FFprobePath  string
+	JavaPath     string // the Java for Blu-ray menus; "" finds it. Never a web setting: see handleBDJStatus
 	TranscodeDir string
 	CacheDir     string
 	ImagesDir    string // downloaded and generated artwork ("metadata media")
@@ -42,10 +50,21 @@ type Config struct {
 	PublicURL    string // optional external URL used in generated links
 	// RemoteAccess turns remote access on regardless of Settings, for servers
 	// nobody can reach from a home network first (a rented server).
-	RemoteAccess   bool
-	TrustedProxies string // reverse proxies whose forwarded headers are believed, added to those in Settings
-	Dev            bool   // serve the web UI from web/dist on disk instead of the embedded copy
-	MaxTranscode   int
+	RemoteAccess bool
+	// SetupFromHome lets the first account be made from the home network without the
+	// setup code. Off, only the server's own desktop goes without it.
+	SetupFromHome bool
+	// AllowNetworkPaths lets settings from another device name network shares and device paths.
+	// Reaching one signs in there with the server's own account.
+	AllowNetworkPaths bool
+	// GamingCustomCores lets custom game cores be turned on in Settings. It is set only on the
+	// machine: a core is a program, and a web session must not be able to decide to run one.
+	GamingCustomCores bool
+	TrustedProxies    string // reverse proxies whose forwarded headers are believed, added to those in Settings
+	Dev               bool   // serve the web UI from web/dist on disk instead of the embedded copy
+	MaxTranscode      int
+	// MaxConnections is how many connections can be open at once, on both ports together.
+	MaxConnections int
 	WatchStdin     bool // exit when stdin closes (used by the tray launcher)
 	OpenBrowser    bool // open the setup page on first start (desktops only)
 
@@ -55,21 +74,26 @@ type Config struct {
 
 // File is the JSON config file. Every field is optional.
 type File struct {
-	Portable       bool   `json:"portable,omitempty"`
-	Listen         string `json:"listen,omitempty"`
-	DataDir        string `json:"dataDir,omitempty"`
-	CacheDir       string `json:"cacheDir,omitempty"`
-	MetadataDir    string `json:"metadataDir,omitempty"`
-	TranscodeDir   string `json:"transcodeDir,omitempty"`
-	LogDir         string `json:"logDir,omitempty"`
-	LogLevel       string `json:"logLevel,omitempty"`
-	FFmpeg         string `json:"ffmpeg,omitempty"`
-	FFprobe        string `json:"ffprobe,omitempty"`
-	MaxTranscodes  int    `json:"maxTranscodes,omitempty"`
-	PublicURL      string `json:"publicUrl,omitempty"`
-	RemoteAccess   bool   `json:"remoteAccess,omitempty"`
-	TrustedProxies string `json:"trustedProxies,omitempty"`
-	OpenBrowser    *bool  `json:"openBrowser,omitempty"`
+	Portable          bool   `json:"portable,omitempty"`
+	Listen            string `json:"listen,omitempty"`
+	DataDir           string `json:"dataDir,omitempty"`
+	CacheDir          string `json:"cacheDir,omitempty"`
+	MetadataDir       string `json:"metadataDir,omitempty"`
+	TranscodeDir      string `json:"transcodeDir,omitempty"`
+	LogDir            string `json:"logDir,omitempty"`
+	LogLevel          string `json:"logLevel,omitempty"`
+	FFmpeg            string `json:"ffmpeg,omitempty"`
+	FFprobe           string `json:"ffprobe,omitempty"`
+	JavaPath          string `json:"javaPath,omitempty"`
+	MaxTranscodes     int    `json:"maxTranscodes,omitempty"`
+	MaxConnections    int    `json:"maxConnections,omitempty"`
+	PublicURL         string `json:"publicUrl,omitempty"`
+	RemoteAccess      bool   `json:"remoteAccess,omitempty"`
+	SetupFromHome     bool   `json:"setupFromHome,omitempty"`
+	AllowNetworkPaths bool   `json:"allowNetworkPaths,omitempty"`
+	GamingCustomCores bool   `json:"gamingCustomCores,omitempty"`
+	TrustedProxies    string `json:"trustedProxies,omitempty"`
+	OpenBrowser       *bool  `json:"openBrowser,omitempty"`
 }
 
 const (
@@ -273,6 +297,13 @@ func Parse(args []string) (*Config, error) {
 	if v, err := strconv.Atoi(os.Getenv("WMS_MAX_TRANSCODES")); err == nil && v > 0 {
 		maxDef = v
 	}
+	connDef := DefaultConnections
+	if f.MaxConnections != 0 {
+		connDef = f.MaxConnections
+	}
+	if v, err := strconv.Atoi(os.Getenv("WMS_MAX_CONNECTIONS")); err == nil && v != 0 {
+		connDef = v
+	}
 	openDef := f.OpenBrowser == nil || *f.OpenBrowser
 
 	c := &Config{ConfigFile: path, Portable: portable}
@@ -283,28 +314,42 @@ func Parse(args []string) (*Config, error) {
 	fs.StringVar(&c.Listen, "listen", env("WMS_LISTEN", or(f.Listen, ":"+strconv.Itoa(DefaultPort))), "listen address (WMS_LISTEN)")
 	fs.StringVar(&c.FFmpegPath, "ffmpeg", env("WMS_FFMPEG", rel(f.FFmpeg)), "path to ffmpeg (WMS_FFMPEG); default: bundled or PATH")
 	fs.StringVar(&c.FFprobePath, "ffprobe", env("WMS_FFPROBE", rel(f.FFprobe)), "path to ffprobe (WMS_FFPROBE)")
+	fs.StringVar(&c.JavaPath, "java", env("WMS_JAVA", rel(f.JavaPath)), "Java folder or program for Blu-ray menus (WMS_JAVA); default: found by itself")
 	fs.StringVar(&c.LogLevel, "log", env("WMS_LOG", or(f.LogLevel, "info")), "log level: debug|info|warn|error")
 	fs.StringVar(&c.LogDir, "log-dir", env("WMS_LOG_DIR", rel(f.LogDir)), "folder for log files (WMS_LOG_DIR); default <data>/logs")
 	fs.StringVar(&c.PublicURL, "public-url", env("WMS_PUBLIC_URL", f.PublicURL), "external base URL")
+	fs.BoolVar(&c.GamingCustomCores, "gaming-custom-cores", f.GamingCustomCores || os.Getenv("WMS_GAMING_CUSTOM_CORES") == "1", "let custom game cores be turned on in Settings (WMS_GAMING_CUSTOM_CORES=1)")
+	fs.BoolVar(&c.SetupFromHome, "setup-from-home", f.SetupFromHome || os.Getenv("WMS_SETUP_FROM_HOME") == "1", "let anyone on the home network make the first account, without the setup code (WMS_SETUP_FROM_HOME=1)")
+	fs.BoolVar(&c.AllowNetworkPaths, "allow-network-paths", f.AllowNetworkPaths || os.Getenv("WMS_ALLOW_NETWORK_PATHS") == "1", "let settings changed from another device name network shares, such as \\\\nas\\media (WMS_ALLOW_NETWORK_PATHS=1)")
 	fs.BoolVar(&c.RemoteAccess, "remote-access", f.RemoteAccess || os.Getenv("WMS_REMOTE_ACCESS") == "1", "allow connections from outside the home network (WMS_REMOTE_ACCESS=1); normally set in Settings")
 	fs.StringVar(&c.TrustedProxies, "trusted-proxies", env("WMS_TRUSTED_PROXIES", f.TrustedProxies), "reverse proxies whose X-Forwarded-For is believed: addresses or networks, comma separated (WMS_TRUSTED_PROXIES)")
 	fs.BoolVar(&c.Dev, "dev", os.Getenv("WMS_DEV") == "1", "serve web UI from ./web/dist on disk")
 	fs.BoolVar(&c.WatchStdin, "watch-stdin", os.Getenv("WMS_WATCH_STDIN") == "1", "shut down when stdin closes (parent process control)")
 	fs.BoolVar(&c.OpenBrowser, "open-browser", openDef && os.Getenv("WMS_NO_BROWSER") != "1", "open the setup page in the browser on first start")
 	fs.IntVar(&c.MaxTranscode, "max-transcodes", maxDef, "maximum concurrent transcodes")
+	fs.IntVar(&c.MaxConnections, "max-connections", connDef, "maximum connections open at once, for the whole server (WMS_MAX_CONNECTIONS)")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 	if c.MaxTranscode < 1 {
 		return nil, errors.New("max-transcodes must be at least 1")
 	}
+	if c.MaxConnections < minConnections {
+		return nil, fmt.Errorf("max-connections must be at least %d: a single browser can use that many", minConnections)
+	}
 	c.TranscodeDir = env("WMS_TRANSCODE_DIR", or(rel(f.TranscodeDir), filepath.Join(c.DataDir, "transcode")))
 	c.CacheDir = env("WMS_CACHE_DIR", or(rel(f.CacheDir), filepath.Join(c.DataDir, "cache")))
 	c.ImagesDir = env("WMS_METADATA_DIR", or(rel(f.MetadataDir), filepath.Join(c.CacheDir, "images")))
 	c.LogDir = or(c.LogDir, filepath.Join(c.DataDir, "logs"))
 	for _, d := range []string{c.DataDir, c.TranscodeDir, c.CacheDir, c.ImagesDir, c.LogDir} {
+		_, missing := os.Stat(d)
 		if err := os.MkdirAll(d, 0o750); err != nil {
 			return nil, err
+		}
+		if os.IsNotExist(missing) {
+			if err := makePrivate(d); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return c, nil

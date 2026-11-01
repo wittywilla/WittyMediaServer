@@ -141,6 +141,8 @@ Check (Up) "the service answers"
 Check (Test-Path "C:\ProgramData\WittyMediaServer\wms.db") "the library is in ProgramData"
 Check (@(Get-NetFirewallRule -DisplayName WittyMediaServer -ErrorAction SilentlyContinue).Count -ge 2) "the firewall rules are there"
 icacls "C:\ProgramData\WittyMediaServer"
+$who = (Get-Acl "C:\ProgramData\WittyMediaServer").Access | ForEach-Object { $_.IdentityReference.Value }
+Check (-not ($who -match 'Users$|Everyone|Authenticated')) "only the service and administrators can open its folder: $($who -join ', ')"
 
 Say "upgrade for everyone keeps the service"
 Install $new @()

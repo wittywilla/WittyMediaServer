@@ -4,14 +4,15 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // Music and audiobooks: albums (or books), artists (or authors), the
@@ -119,10 +120,16 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if library.PlaysDirect(it) && !qBool(r, "transcode") {
+		f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
+		if err != nil {
+			writeErr(w, 404, "not found")
+			return
+		}
+		defer f.Close()
 		w.Header().Set("Cache-Control", "private, max-age=3600")
 		// The type comes from the list, never from what the file's bytes look like.
 		w.Header().Set("Content-Type", audioType(it))
-		http.ServeFile(w, r, it.Path)
+		http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
 		return
 	}
 	select {

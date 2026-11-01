@@ -141,11 +141,11 @@ func TestLatest(t *testing.T) {
 		rel("v0.2.0", false, full("0.2.0")...),
 		rel("nonsense", false, full("nonsense")...),
 	}
-	r := latest(rels, "0.3.0-alpha", "windows", "amd64")
+	r := latest(rels, "0.3.0-alpha", "windows", "amd64", nil)
 	if r == nil || r.Version != "0.4.0-alpha" || !r.Signed() || r.Title == "" {
 		t.Fatalf("latest = %+v", r)
 	}
-	if latest(rels, "0.4.0-alpha", "windows", "amd64") != nil {
+	if latest(rels, "0.4.0-alpha", "windows", "amd64", nil) != nil {
 		t.Error("offered a version that is not newer")
 	}
 	if got := ArchiveName("1.0.0", "linux", "arm"); got != "wittymediaserver-1.0.0-linux-armv7.tar.gz" {

@@ -279,9 +279,11 @@ func (s *Store) tracksInOrder(ctx context.Context, query string, args []any, acc
 
 // LikedTracks is the ids of the songs someone has liked in a library, or in all of
 // them with libraryID 0, so a heart can be drawn without asking for each song.
-func (s *Store) LikedTracks(ctx context.Context, userID, libraryID int64) ([]int64, error) {
+func (s *Store) LikedTracks(ctx context.Context, userID, libraryID int64, access *Access) ([]int64, error) {
+	clause, cargs := access.ItemClause()
 	rows, err := s.DB.QueryContext(ctx, `SELECT r.item_id FROM item_reactions r JOIN items i ON i.id = r.item_id
-		WHERE r.user_id = ? AND r.value = 1 AND i.kind = 'audio' AND i.missing = 0 AND (? = 0 OR i.library_id = ?) LIMIT 20000`, userID, libraryID, libraryID)
+		WHERE r.user_id = ? AND r.value = 1 AND i.kind = 'audio' AND i.missing = 0 AND (? = 0 OR i.library_id = ?) AND `+clause+` LIMIT 20000`,
+		append([]any{userID, libraryID, libraryID}, cargs...)...)
 	if err != nil {
 		return nil, err
 	}

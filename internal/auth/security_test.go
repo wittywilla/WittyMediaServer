@@ -223,9 +223,6 @@ func TestWeakAccounts(t *testing.T) {
 	if _, err := s.CreateUser(ctx, "Alex", "correct horse battery", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.CreateProfile(ctx, "Kid", "1234", KindKids, false, ""); err != nil {
-		t.Fatal(err)
-	}
 	list, err := s.WeakAccounts(ctx)
 	if err != nil || len(list) != 1 || list[0].Name != "Sam" || !list[0].IsAdmin {
 		t.Fatalf("got %+v %v", list, err)
@@ -235,5 +232,19 @@ func TestWeakAccounts(t *testing.T) {
 	}
 	if list, _ := s.WeakAccounts(ctx); len(list) != 0 {
 		t.Fatalf("after a better password: %+v", list)
+	}
+}
+
+func TestWeakAccountsListsPINs(t *testing.T) {
+	ctx, s := context.Background(), newService(t)
+	if _, err := s.CreateProfile(ctx, "Sam", "1234", KindKids, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateProfile(ctx, "Tapper", "", KindKids, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	list, err := s.WeakAccounts(ctx)
+	if err != nil || len(list) != 1 || list[0].Name != "Sam" {
+		t.Fatalf("%+v %v", list, err)
 	}
 }

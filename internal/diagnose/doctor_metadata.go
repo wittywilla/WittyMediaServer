@@ -865,18 +865,18 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 
 // RemapPlan says what moving a folder would do.
 type RemapPlan struct {
-	From      string   `json:"from"`
-	To        string   `json:"to"`
-	Roots     int      `json:"roots"`    // library folders that change
-	Rows      int      `json:"rows"`     // every row that would change
-	Checked   int      `json:"checked"`  // files looked for
-	Found     int      `json:"found"`    // ...and found in the new place
-	Sample    []string `json:"sample"`   // a few of the new paths
-	NotFound  []string `json:"notFound"` // a few that weren't there
-	CanApply  bool     `json:"canApply"`
-	Why       string   `json:"why,omitempty"`
-	Applied   bool     `json:"applied,omitempty"`
-	Copy      string   `json:"copy,omitempty"`
+	From     string   `json:"from"`
+	To       string   `json:"to"`
+	Roots    int      `json:"roots"`    // library folders that change
+	Rows     int      `json:"rows"`     // every row that would change
+	Checked  int      `json:"checked"`  // files looked for
+	Found    int      `json:"found"`    // ...and found in the new place
+	Sample   []string `json:"sample"`   // a few of the new paths
+	NotFound []string `json:"notFound"` // a few that weren't there
+	CanApply bool     `json:"canApply"`
+	Why      string   `json:"why,omitempty"`
+	Applied  bool     `json:"applied,omitempty"`
+	Copy     string   `json:"copy,omitempty"`
 }
 
 const (

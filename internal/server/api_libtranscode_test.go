@@ -126,3 +126,36 @@ func TestReadOnlyLibraryKeepsSavedDetailsOut(t *testing.T) {
 		t.Fatal("not stored")
 	}
 }
+
+// Replacing originals deletes people's films, so it takes more than a stolen session to start.
+func TestReplacingOriginalsAsksForThePassword(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	lib, err := ts.Store.CreateLibrary(context.Background(), "Films", "movies", []string{t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, _ := libtranscode.PresetPolicy(libtranscode.PresetCompatible)
+	path := "/api/libtranscode/libraries/" + strconv.FormatInt(lib.ID, 10)
+	body := map[string]any{"policy": policy, "output": libtranscode.OutputReplace}
+	if w := ts.do(t, http.MethodPut, path, admin, body); w.Code != 403 {
+		t.Fatalf("no password: %d %s", w.Code, w.Body)
+	}
+	body["current"] = "not the password"
+	if w := ts.do(t, http.MethodPut, path, admin, body); w.Code != 403 {
+		t.Fatalf("wrong password: %d %s", w.Code, w.Body)
+	}
+	if got := libtranscode.LoadRule(context.Background(), ts.DB, lib.ID).Output; got == libtranscode.OutputReplace {
+		t.Fatal("it was saved")
+	}
+	body["current"] = "correct-horse-1"
+	if w := ts.do(t, http.MethodPut, path, admin, body); w.Code != 200 {
+		t.Fatalf("the right password: %d %s", w.Code, w.Body)
+	}
+	// Saving other changes to a rule that already replaces asks nothing more.
+	delete(body, "current")
+	body["auto"] = true
+	if w := ts.do(t, http.MethodPut, path, admin, body); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+}

@@ -58,7 +58,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 			}
 			return nil
 		}
-		if strings.HasPrefix(name, ".") {
+		if strings.HasPrefix(name, ".") || !mediaEntry(root, p, d) {
 			return nil
 		}
 		rel, err := filepath.Rel(root, p)

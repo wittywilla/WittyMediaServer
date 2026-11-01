@@ -104,7 +104,8 @@ belong to their stations.
 | Some interface icons in `web/src/icons.tsx` follow the shapes of Material Icons | Apache-2.0 |
 | The map's outline of the world's land (`web/public/world-land.txt`, loaded only when the photo map is opened), made from [Natural Earth](https://www.naturalearthdata.com) 1:110m land via world-atlas (ISC) | Public domain |
 | pdf.js (pdfjs-dist; loaded only when a PDF is opened) | Apache-2.0 |
-| Vite, TypeScript (build only) | MIT / Apache-2.0 |
+| pdf.js's image decoders and colour profile, fetched only when a PDF needs them: OpenJPEG (BSD-2-Clause), PDFium's JBIG2 (BSD-3-Clause), qcms (MIT), CGATS001Compat ICC profile (CC0) | As listed |
+| Vite, Rolldown, TypeScript (build only) | MIT / Apache-2.0 |
 
 ## Metadata services
 

@@ -16,7 +16,7 @@ import './fixmatches.css'
 // Fix matches: everything that needs a look, worst first, with suggestions and reasons, and a
 // key for each thing you'd do. Nothing here asks anyone anything until you open a title.
 
-const TABS: [string, string][] = [['review', 'Needs a look'], ['unmatched', 'No match'], ['low', 'Not sure'], ['ok', 'Looks right'], ['manual', 'You chose'], ['none', 'Left alone'], ['removed', 'Removed']]
+const TABS: [string, string][] = [['review', 'Needs a look'], ['unmatched', 'No match'], ['low', 'Not sure'], ['ok', 'Looks right'], ['manual', 'You chose'], ['none', 'Left alone'], ['all', 'Everything'], ['removed', 'Removed']]
 
 const STATE_WORDS: Record<QueueRow['state'], string> = { unmatched: 'No match', low: 'Not sure', ok: 'Looks right', manual: 'You chose this', none: 'Left alone' }
 

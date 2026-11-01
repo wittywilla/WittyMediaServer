@@ -140,7 +140,7 @@ export default function ModuleStore() {
         {others.length > 0 && (
           <section className="st-shelf st-others" aria-labelledby="st-others-h">
             <h2 id="st-others-h"><IconShield /> From other stores</h2>
-            <p className="ms-note">Nobody at this project has reviewed these. Each is labelled with the store it comes from. <Link to="/settings/modules/stores">Manage stores</Link> · <Link to="/help/module-store">What to know first</Link></p>
+            <p className="ms-note">Nobody at this project has reviewed these. Each is labelled with the store it comes from. <Link to="/settings/modules/stores">Manage stores</Link> · <Link to="/help/module-store#other-stores">What to know first</Link></p>
             {cards(others)}
           </section>
         )}

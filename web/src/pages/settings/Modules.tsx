@@ -159,7 +159,7 @@ export default function ModulesSettings() {
     title: `Remove ${m.name}?`, action: 'Remove', danger: true,
     body: <>
       <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files, watch history and settings stay as they are.</p>
-      <p>Its code stays on the server, as part of the server, so this doesn’t free up disk space. Any versions of it that were downloaded are deleted{m.source ? ', and the fork it comes from is forgotten' : ''}. You can add it back any time.</p>
+      <p>Every version of it that was downloaded is deleted{m.source ? ', and the fork it comes from is forgotten' : ''}. You can add it back any time.</p>
       {!!m.requiredBy?.length && <p>{m.requiredBy.join(', ')} {m.requiredBy.length === 1 ? 'is' : 'are'} built on it.</p>}
     </>,
     run: async () => {
@@ -466,6 +466,7 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
       {m.installed && !m.source && (m.noFork || m.updatable) && (
         <details className="ms-more">
           <summary>Advanced</summary>
+          <p className="muted"><Link to="/help/module-store#using-someones-fork">What using a fork means</Link></p>
           <div className="ms-fork">
             <b>Use someone’s fork of this module</b>
             {m.noFork ? <p className="ms-note">{m.noFork}</p> : <ForkForm m={m} onReport={onReport} />}

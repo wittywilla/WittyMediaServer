@@ -238,7 +238,7 @@ These go after `wittymediaserver --uninstall`. `Uninstall WittyMediaServer.exe` 
 | `--remove-backups` | Also deletes backups in the data folder |
 | `--yes`, or `/S` | Asks nothing. Without other options it keeps your data |
 | `--report <file>` | Writes the list of what it did to this file |
-| `--dry-run` | Says what it would remove and leave, and changes nothing. Use it only with the `wittymediaserver` command |
+| `--dry-run` | Says what it would remove and leave, and changes nothing |
 | `--json` | Gives the plan or the result as JSON. Only with the `wittymediaserver` command |
 
 It returns 0 when everything asked for was removed, 1 when something couldn't be, or you said no, and 2 for a wrong option.

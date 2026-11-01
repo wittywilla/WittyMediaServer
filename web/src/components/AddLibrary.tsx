@@ -177,7 +177,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         {locked.length > 0 && (
           <section className="oobe-locked" aria-label="Kinds of library that need a module">
             <h3 className="oobe-type-head">Add a module to use these</h3>
-            <p className="muted oobe-hint">Each of these needs a module this server doesn’t have at the moment. Adding one is instant and downloads nothing.</p>
+            <p className="muted oobe-hint">Each of these needs a module this server doesn’t have at the moment. Adding one takes a moment and needs no restart.</p>
             {addErr && <div className="error" role="alert">{addErr}</div>}
             <ul className="oobe-locked-list">
               {locked.map((x) => {

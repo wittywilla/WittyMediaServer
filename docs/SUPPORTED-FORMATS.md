@@ -270,3 +270,7 @@ These aren't played. They give titles, details or artwork to what's beside them.
 - **CUE sheets** split one long sound file into the tracks of an album.
 - **Live photos and motion photos** play their clip, either beside the picture or inside its file.
 - **SVG pictures** lose anything active before they are sent.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

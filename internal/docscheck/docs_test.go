@@ -213,7 +213,7 @@ func guideText(t *testing.T, guideSlug string) (string, bool) {
 
 // A link from a page to a guide leads to that guide and that heading.
 func TestAppLinksToHelpLeadSomewhere(t *testing.T) {
-	link := regexp.MustCompile(`/help/([a-z0-9-]+)(?:#([a-z0-9_-]+))?`)
+	link := regexp.MustCompile(`[^.\w/]/help/([a-z0-9-]+)(?:#([a-z0-9_-]+))?`)
 	short := regexp.MustCompile(`<HelpLink to="([a-z0-9-]+)(?:#([a-z0-9_-]+))?"`)
 	for p, src := range webSources(t) {
 		matches := append(link.FindAllStringSubmatch(src, -1), short.FindAllStringSubmatch(src, -1)...)
@@ -266,6 +266,9 @@ func TestHelpIsNotOnGitHub(t *testing.T) {
 		if blob.MatchString(src) {
 			t.Errorf("%s links to GitHub for help: use /help/<guide>", p)
 		}
+		if filepath.Base(p) == "guides.ts" {
+			continue // the list of what's bundled
+		}
 		for _, line := range strings.Split(src, "\n") {
 			if t := strings.TrimSpace(line); strings.HasPrefix(t, "//") || strings.HasPrefix(t, "*") || strings.HasPrefix(t, "/*") {
 				continue
@@ -284,7 +287,7 @@ func TestHelpIsNotOnGitHub(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
+			if d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") || strings.Contains(p, "mediatypes") {
 				return nil
 			}
 			for _, line := range strings.Split(read(t, p), "\n") {

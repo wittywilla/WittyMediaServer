@@ -1001,8 +1001,13 @@ Treat a ROM as hostile and a core as buggy:
   [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
   processes, plus a low-integrity token so it can only write to its save folder. It keeps normal
   priority: see below.
-- **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits.
-- **FreeBSD and others:** rlimits and priority only. Docs say so plainly.
+- **macOS:** a `sandbox-exec` profile denying network, other programs and writes elsewhere, plus rlimits. Never run on a real Mac yet.
+- **FreeBSD and others:** rlimits and priority. On FreeBSD a game with no graphics card also can't start programs or open a socket. That
+  isn't a sandbox, and custom cores are refused there.
+- **PlayStation 2 on Linux:** `pcsx2` maps its recompiled code through `/dev/shm`, and crashes while loading if it can't, so that one core may
+  make files there (`-shared-memory`, `CoreTraits.SharedMemory`). That's shared with whatever else runs under the same account, which is why
+  no other core and no custom core gets it. Its `cache` folder stays beside the save between games, so shaders aren't built again every
+  time, and backups leave it out.
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
   sessions is capped.
 

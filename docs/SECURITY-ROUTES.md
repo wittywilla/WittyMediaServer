@@ -265,13 +265,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modulestore/run/undo` | Admin | Own password, and a code with two-factor sign-in |
 | `DELETE /api/modulestore/run` | Admin | Nothing further |
 | `GET /api/modulestore/modules/{id}/log` | Admin | Known module. Records are redacted when written |
-| `GET /api/modulestore/media/{store}/{sha}` | Admin | A picture a catalogue lists, checked against its hash, PNG or JPEG. No token in the address |
-| `POST /api/modulestore/stores/preview` | Admin | Public addresses only unless the body allows the local network. Size limits. Keeps nothing |
+| `GET /api/modulestore/media/{store}/{sha}` | Admin | A picture a catalogue lists, checked against its hash, PNG or JPEG. At most 64 MB kept for one store, and what it stops listing goes. No token in the address |
+| `POST /api/modulestore/stores/preview` | Admin | Public addresses only. The body can allow the local network, with own password and a code with two-factor sign-in, as what comes back says what's listening. Size limits. Keeps nothing |
 | `POST /api/modulestore/stores` | Admin | Warning agreed to. Own password, and a code with two-factor sign-in. Signature checked against the key pinned |
 | `DELETE /api/modulestore/stores/{id}` | Admin | Known store. What uses it goes back to the official version |
 | `PUT /api/modulestore/stores/{id}/enabled` | Admin | Known store. Body says on or off |
 | `POST /api/modulestore/stores/{id}/check` | Admin | Known store. Its pinned key has to match |
-| `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. WittyTuner refused |
+| `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. The key the admin was shown. Refused for WittyTuner, where the machine's owner keeps forks out, and where this system can't box one in |
 | `GET /api/modules` | Admin | Nothing further |
 | `POST /api/modules/check` | Admin | Answers younger than a minute are reused |
 | `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use |
@@ -618,8 +618,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/libtranscode/files/{id}/use-copy` | Admin | A file of a run. Paths from the run's own record, which no backup holds |
 | `DELETE /api/libtranscode/files/{id}/leftover` | Admin | A file of a run. Only a kept original or a converted copy, by the form of its name, from the run's own record |
 | `GET /api/libtranscode/tdarr` | Admin | Nothing further. The key is never answered |
-| `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again |
-| `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address |
+| `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again, and own password and a code with two-factor sign-in |
+| `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address. Any other address asks for own password and a code with two-factor sign-in |
 | `POST /api/libtranscode/tdarr/send` | Admin | At most 10,000 items. Library mapped. Saved address only |
 | `GET /api/metadata-folder` | Admin | Nothing: the folder's place is fixed |
 | `POST /api/metadata-folder/export` | Admin | Library number. One job at a time. The folder's place is fixed. No link is followed |

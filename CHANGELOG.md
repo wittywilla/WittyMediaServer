@@ -7,6 +7,23 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Security, second pass over what this release added.** Attacks were tried against the store, backups, support bundles and game cores:
+  - Restoring a backup on a new server asks for the setup code, as setting one up does. A stranger on your network could otherwise get
+    there first and restore a backup with an account of their own.
+  - A module from another store now obeys `WMS_NO_MODULE_FORKS` and the refusal on systems that can't box it in, and a store you turn off can't
+    install anything or be fetched. It keeps at most 64 MB of pictures. The key you were shown is the key that's pinned.
+  - Looking at a store on your own network, and giving Tdarr a new address, ask for your password: what comes back says what's listening there.
+  - Passphrases, several kinds of API key and `password: x` as a program prints it are taken out of logs. One log file or crash report goes
+    through the same check as a bundle, and only asking in so many words turns sanitizing off.
+  - An administrator's uninstall doesn't follow links left in other people's folders, and the Windows and Mac installers won't set rules
+    through a link or junction someone left where the data folder goes.
+- **What a module is held to, in plain words.** Helpers had no limits at all on FreeBSD or a Mac. On FreeBSD they now can't start programs, open a
+  socket or write into a file, and as root they also go in a jail. On a Mac they run in Apple's sandbox, which hasn't been run on a real Mac yet. Neither
+  is a full sandbox, so modules from other publishers stay refused there. Settings, Modules and the store now say what a helper is held to wherever it's
+  short of one, Windows included.
+- **PlayStation 2 runs under the sandbox on Linux,** where its core used to crash on loading. It keeps its shader cache between games, and backups leave it out.
+- On a Mac, a game's sandbox refused to start the game at all. Found by reading, as this hasn't been run on a real Mac.
+
 - **The module store:** search by name, description or category, browse by category, and filter by installed, updates,
   publisher and platform, with a page for each module: what it does, screenshots, what's new, what it asks for, what it's
   built on and which servers it fits. In Settings, Modules, and at `/settings/modules/store`.

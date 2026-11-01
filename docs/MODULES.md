@@ -600,12 +600,12 @@ What the server does about it:
 | Signed | With this project's key | With the key an admin gave, for this one module only |
 | Automatic updates | If the owner turned them on | **Never**: an admin chooses each version |
 | Network, Linux | Only WittyTuner | **None: no sockets at all, and it won't run if the system can't apply that** |
-| Changing what's in files, Linux | Refused | **Refused, and it won't run on a kernel too old to do so** (5.19 or newer) |
+| Changing what's in files, Linux | Refused | **Refused, and it won't run on a kernel too old to do so** (6.2 or newer) |
 | Windows | Can't change the server's files or start programs | The same, and **it keeps its network**, which the warning says |
-| macOS, FreeBSD | No limits | **No limits**, which the warning says |
+| macOS, FreeBSD | [What's in the table below](#the-helper-protocol-module-api-3) | **Refused**, as nothing here can box one in |
 | Encrypted media | Refused | **Refused**: the server checks for itself, and only accepts file locations inside the disc |
 
-A forked game runner goes through the same limits, and may also write to its own save folder and open devices such as a
+A store can't get round any of this: a fork from a store obeys the same refusals, and `WMS_NO_MODULE_FORKS`. A forked game runner goes through the same limits, and may also write to its own save folder and open devices such as a
 graphics card. On Linux a fork's helper has no 32-bit build it can run on, since the filter those limits rely on needs a
 64-bit system.
 
@@ -664,16 +664,20 @@ and `..` are refused. What's on disk is checked again each time a program is sta
 
 **Limits on a helper or a service:**
 
-| | Everywhere | Linux | Windows | macOS, FreeBSD |
-|---|---|---|---|---|
-| Small environment, soft memory limit, one call at a time with a time limit | Yes | | | |
-| Hard memory limit | | Yes | Yes | No |
-| Can't write to or create files | | Yes (Landlock). Emptying a file too, from kernel 5.19 | Yes (low integrity) | No |
-| Can't change who owns a file or may use it, or reach into another process | | Yes on 64-bit (a call filter) | Yes | No |
-| No network | | Yes on 64-bit (no sockets, which also keeps it from socket files), and an empty network where namespaces are allowed | No | No |
-| Can't signal the server | | Yes where namespaces are allowed, or from kernel 6.12 | Yes | No |
-| Can't start programs | | No | Yes (job) | No |
-| Dies with the server | Yes, when stdin closes | Also on the server's death | Also by the job | |
+| | Everywhere | Linux | Windows | macOS (`sandbox-exec`) | FreeBSD, an ordinary account |
+|---|---|---|---|---|---|
+| Small environment, soft memory limit, one call at a time with a time limit | Yes | | | | |
+| Hard memory limit | | Yes | Yes | No | Yes (address space) |
+| Can't write to or create files | | Yes (Landlock). Emptying a file too, from kernel 6.2 | Yes (low integrity) | Yes | Can't write into any file, by `RLIMIT_FSIZE`. **Can still delete and rename them** |
+| Can't change who owns a file or may use it, or reach into another process | | Yes on 64-bit (a call filter) | Yes | Writing a file's rules, yes | **No**, though the server can't be debugged by a helper |
+| No network | | Yes on 64-bit (no sockets, which also keeps it from socket files), and an empty network where namespaces are allowed | No | Yes | Yes: no new socket of any kind, by `RLIMIT_SBSIZE` |
+| Can't signal the server | | Yes where namespaces are allowed, or from kernel 6.12 | Yes | Yes | **No** |
+| Can't start programs | | No | Yes (job) | Yes | Yes, by `RLIMIT_NPROC` |
+| Dies with the server | Yes, when stdin closes | Also on the server's death | Also by the job | | |
+
+macOS's column has been written and compiled, and not yet run on a real Mac. The profile is tried on a program that does nothing before it's relied on, and a helper that won't start inside it starts without it, with the page saying so. FreeBSD's was tried from inside a helper in a FreeBSD 15.1 virtual machine. Running as root there, a helper goes in a jail of its own as well, with no network and no sight of other programs, but being root it can change any file and take off its other limits.
+
+`GET /api/modules` and the store's view carry `sandbox`: `level` is `full`, `partial`, `limited` or `unconfined`, with a `title` and `words` when it isn't full. The Modules page and the store show those.
 
 **What the server lets a module have, and only these:**
 

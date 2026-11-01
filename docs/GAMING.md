@@ -340,7 +340,8 @@ Everything comes back by itself, with the last picture up until there's a new on
 | Decoder or browser sticks | No new frame for 4 s on a visible page means reconnecting | About 5 s |
 | Tab closed, or browser dies | The game pauses, and carries on when someone returns within a minute | |
 | Runner dies | The game ends and the player says why. What was saved stays, and it starts again from there | |
-| Server dies | Nothing it started is left behind | |
+| Server dies | Nothing it started is left behind. Once it's back, the player finds the game is gone, as below | |
+| The game has gone from the server | The server or the module restarted, or this device was away too long. A player that finds this starts the game again from its last save, rather than trying to connect for a minute. If that happens twice in two minutes, it says so instead | Module killed: playing again in about 5 s |
 
 **The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game
 kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the
@@ -568,8 +569,8 @@ file. Each game has its own cards for each account, so a game that reads another
 is unformatted, as a new card was on a real console, and a game offers to format it the first time it saves.
 
 Paths are built only from numeric IDs and a slot number. The host sends the bytes over its pipe, and the server
-writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written every 30
-seconds when they have changed, and on stop. One game's folder can hold 4 GB for one account, and a save that would
+writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written within 5
+seconds of changing, and on stop. One game's folder can hold 4 GB for one account, and a save that would
 go over is refused with a message, rather than failing later.
 
 A person can download a state or a battery save and put one back. An exported state has a small header with the

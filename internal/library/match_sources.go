@@ -446,7 +446,7 @@ func (w *wikidataSource) Search(ctx context.Context, q string, _ *int) ([]MatchC
 		info[r.ID] = MatchCandidate{Source: "wikidata", ID: r.ID, Kind: kind, Title: r.Label, Overview: r.Description}
 	}
 	if len(ids) == 0 {
-		return nil, nil
+		return w.searchText(ctx, q)
 	}
 	ents, err := w.entities(ctx, ids, "claims")
 	if err != nil {
@@ -460,6 +460,61 @@ func (w *wikidataSource) Search(ctx context.Context, q string, _ *int) ([]MatchC
 				if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
 					c.Year = &y
 				}
+			}
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+// Wikidata's two kinds of film and of TV series.
+const (
+	wdFilm   = "Q11424"
+	wdSeries = "Q5398426"
+)
+
+// searchText looks through everything a film or series is called, for a name that doesn't
+// start the way its entry does: "Dr Story The Treeline" for "The Treeline".
+func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandidate, error) {
+	var res struct {
+		Query struct {
+			Search []struct {
+				Title string `json:"title"`
+			} `json:"search"`
+		} `json:"query"`
+	}
+	v := url.Values{"action": {"query"}, "list": {"search"}, "srlimit": {"10"}, "format": {"json"},
+		"srsearch": {strings.ReplaceAll(q, `"`, " ") + " haswbstatement:" + wdInstanceOf + "=" + wdFilm + "|" + wdInstanceOf + "=" + wdSeries}}
+	if err := w.get(ctx, w.api()+"?"+v.Encode(), &res); err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, r := range res.Query.Search {
+		if wikiIDRe.MatchString(r.Title) {
+			ids = append(ids, r.Title)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ents, err := w.entities(ctx, ids, "claims|labels|descriptions")
+	if err != nil {
+		return nil, err
+	}
+	out := make([]MatchCandidate, 0, len(ids))
+	for _, id := range ids {
+		e, ok := ents[id]
+		if !ok {
+			continue
+		}
+		kind := wdWhat(e.Descriptions["en"].Value)
+		if kind == "" {
+			kind = "movie"
+		}
+		c := MatchCandidate{Source: "wikidata", ID: id, Kind: kind, Title: e.Labels["en"].Value, Overview: e.Descriptions["en"].Value}
+		if cl := e.Claims[wdPublication]; len(cl) > 0 {
+			if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
+				c.Year = &y
 			}
 		}
 		out = append(out, c)

@@ -27,7 +27,7 @@ export default function FixMatches() {
   const matchable = libraries.filter((l) => ['movies', 'discs', 'shows', 'anime'].includes(l.type))
   if (!user?.isAdmin) return <EmptyState title="This page is for administrators" />
   return (
-    <div className="fx">
+    <div className="fm">
       <div className="toolbar">
         <h1>Fix matches</h1>
         <div className="seg" role="tablist" aria-label="Fix matches">
@@ -116,7 +116,7 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
         e.preventDefault()
         const n = Math.max(0, Math.min(rows.length - 1, sel + d))
         setSel(n)
-        list.current?.querySelectorAll<HTMLElement>('.fx-row')[n]?.scrollIntoView({ block: 'nearest' })
+        list.current?.querySelectorAll<HTMLElement>('.fm-row')[n]?.scrollIntoView({ block: 'nearest' })
       }
       switch (e.key) {
         case 'j': return move(1)
@@ -148,17 +148,17 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
   const sure = rows.filter((r) => (r.suggestions?.[0]?.score ?? 0) >= 90)
   return (
     <>
-      <div className="fx-tabs chips" role="tablist" aria-label="Which titles">
+      <div className="fm-tabs chips" role="tablist" aria-label="Which titles">
         {TABS.map(([k, l]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={'chip' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>{l}{q && k !== 'removed' && q.counts[k] != null ? ` ${q.counts[k]}` : ''}</button>
         ))}
       </div>
       {tab === 'removed' ? <RemovedList library={library} /> : (
         <>
-          <div className="fx-actions">
-            <input className="input fx-search" aria-label="Find a title in this list" placeholder="Find a title" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="fm-actions">
+            <input className="input fm-search" aria-label="Find a title in this list" placeholder="Find a title" value={search} onChange={(e) => setSearch(e.target.value)} />
             {job?.running
-              ? <span className="fx-job" role="status">Finding suggestions: {job.done} of {job.total}{job.current ? `, ${job.current}` : ''}
+              ? <span className="fm-job" role="status">Finding suggestions: {job.done} of {job.total}{job.current ? `, ${job.current}` : ''}
                   <button type="button" className="btn sm ghost" onClick={() => api.del('/match/suggest-all').then(() => setJob(null))}>Stop</button></span>
               : <button type="button" className="btn" onClick={() => api.post<{ job: NonNullable<typeof job> }>('/match/suggest-all', { library }).then((r) => setJob(r.job)).catch((e) => toast(e.message))}>Find suggestions for all</button>}
             {sure.length > 1 && <button type="button" className="btn" onClick={() => { setChecked(new Set(sure.map(keyOf))) }}>Choose the {sure.length} that are 90% sure</button>}
@@ -166,32 +166,32 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
           {!q ? (failed ? <LoadError what="The list" onRetry={load} /> : <Spinner />) : rows.length === 0 ? (
             <EmptyState icon={<IconCheck />} title={tab === 'review' ? 'Nothing needs a look' : 'Nothing here'} text={tab === 'review' ? 'Everything here is matched, and matched well. A new scan may add more.' : undefined} />
           ) : (
-            <div className="fx-split">
-              <ul className="fx-list" ref={list} aria-label="Titles" >
+            <div className="fm-split">
+              <ul className="fm-list" ref={list} aria-label="Titles" >
                 {rows.map((r, i) => {
                   const on = i === Math.min(sel, rows.length - 1)
                   return (
-                    <li key={keyOf(r)} className={'fx-row' + (on ? ' on' : '')}>
+                    <li key={keyOf(r)} className={'fm-row' + (on ? ' on' : '')}>
                       <input type="checkbox" aria-label={`Choose ${r.title}`} checked={checked.has(keyOf(r))} onChange={() => setChecked((c) => { const n = new Set(c); if (n.has(keyOf(r))) n.delete(keyOf(r)); else n.add(keyOf(r)); return n })} />
-                      <button type="button" className="fx-row-main" aria-current={on} onClick={() => { setSel(i); requestAnimationFrame(() => detail.current?.scrollIntoView({ block: 'nearest' })) }}>
-                        <span className="fx-row-pic">{r.poster ? <img src={artPreviewUrl(r.poster)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}</span>
-                        <span className="fx-row-text">
+                      <button type="button" className="fm-row-main" aria-current={on} onClick={() => { setSel(i); requestAnimationFrame(() => detail.current?.scrollIntoView({ block: 'nearest' })) }}>
+                        <span className="fm-row-pic">{r.poster ? <img src={artPreviewUrl(r.poster)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}</span>
+                        <span className="fm-row-text">
                           <b>{r.title}{r.year ? ` (${r.year})` : ''}</b>
                           <span className="muted">{r.file}</span>
-                          <span className="fx-row-state"><ConfidenceMeter value={r.confidence} label={STATE_WORDS[r.state]} /> <span className="muted">{STATE_WORDS[r.state]}</span></span>
+                          <span className="fm-row-state"><ConfidenceMeter value={r.confidence} label={STATE_WORDS[r.state]} /> <span className="muted">{STATE_WORDS[r.state]}</span></span>
                         </span>
                       </button>
                     </li>
                   )
                 })}
-                {q.total > rows.length && <li className="muted fx-more">The worst {rows.length} of {q.total}. Fix these and the rest move up.</li>}
+                {q.total > rows.length && <li className="muted fm-more">The worst {rows.length} of {q.total}. Fix these and the rest move up.</li>}
               </ul>
               {cur && <Detail key={keyOf(cur)} ref_={detail} r={cur} topFor={topFor} setTopFor={setTopFor} onAccept={accept} onLeave={leave} onEdit={() => setEditing(cur)} onRenumber={() => setRenumber(cur)} onDecided={decided} />}
             </div>
           )}
-          <p className="muted fx-keys">Keys: <kbd>J</kbd> <kbd>K</kbd> next and last, <kbd>A</kbd> accept the first suggestion, <kbd>1</kbd> to <kbd>6</kbd> accept that one, <kbd>N</kbd> no match, <kbd>E</kbd> edit, <kbd>X</kbd> choose, <kbd>/</kbd> search, <kbd>U</kbd> undo.</p>
+          <p className="muted fm-keys">Keys: <kbd>J</kbd> <kbd>K</kbd> next and last, <kbd>A</kbd> accept the first suggestion, <kbd>1</kbd> to <kbd>6</kbd> accept that one, <kbd>N</kbd> no match, <kbd>E</kbd> edit, <kbd>X</kbd> choose, <kbd>/</kbd> search, <kbd>U</kbd> undo.</p>
           {(lastUndo || chosen.length > 0) && (
-            <div className="lib-bulk fx-bar" role="region" aria-label="Actions">
+            <div className="lib-bulk fm-bar" role="region" aria-label="Actions">
               {chosen.length > 0 && <>
                 <span>{chosen.length} chosen</span>
                 <button type="button" className="btn primary" onClick={acceptChosen}>Accept their best suggestions</button>
@@ -199,7 +199,7 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
                 <button type="button" className="btn ghost" onClick={() => setChecked(new Set())}>Clear</button>
               </>}
               {lastUndo && <>
-                <span className="fx-bar-what">{lastUndo.what}</span>
+                <span className="fm-bar-what">{lastUndo.what}</span>
                 <button type="button" className="btn" onClick={undo}>Undo</button>
               </>}
             </div>
@@ -260,23 +260,23 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
   }
   const list = results?.results ?? known ?? []
   return (
-    <div className="fx-detail" ref={ref_} aria-label={`Fixing ${r.title}`} role="region">
-      <header className="fx-detail-head">
+    <div className="fm-detail" ref={ref_} aria-label={`Fixing ${r.title}`} role="region">
+      <header className="fm-detail-head">
         <div>
           <h2>{r.title}{r.year ? ` (${r.year})` : ''}</h2>
-          <p className="muted fx-file" title={r.file}>{r.file}</p>
+          <p className="muted fm-file" title={r.file}>{r.file}</p>
         </div>
-        <div className="fx-detail-btns">
+        <div className="fm-detail-btns">
           <button type="button" className="btn" onClick={onEdit}>Edit details</button>
           {r.target === 'show' && <button type="button" className="btn" onClick={onRenumber}>Renumber episodes</button>}
           {(r.state === 'unmatched' || r.state === 'low') && <button type="button" className="btn ghost" onClick={() => onLeave(r, r.state === 'low')} title={r.state === 'low' ? 'It\'s right: stop asking' : 'It has no match'}>{r.state === 'low' ? 'It\'s right' : 'It has no match'}</button>}
         </div>
       </header>
-      <div className="fx-why">
+      <div className="fm-why">
         {r.provider ? <span>Matched with {r.url ? <a href={r.url} target="_blank" rel="noreferrer">{r.sourceLabel}</a> : r.sourceLabel}.</span> : null}
         <ul>{r.reasons.map((w) => <li key={w}>{w}</li>)}</ul>
       </div>
-      <form className="field-row fx-find" onSubmit={(e) => { e.preventDefault(); search() }}>
+      <form className="field-row fm-find" onSubmit={(e) => { e.preventDefault(); search() }}>
         <input className="input" aria-label="Search for the right title, or paste an id or address" placeholder="A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button type="submit" className="btn" disabled={busy}>Search</button>
       </form>
@@ -287,11 +287,11 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
         <PreviewTable p={preview.p} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} />
       ) : (
         <>
-          {list.length > 0 && <h3 className="fx-sugg-h">{results ? 'Results' : 'Suggestions'}</h3>}
-          <ol className="fx-sugg">
+          {list.length > 0 && <h3 className="fm-sugg-h">{results ? 'Results' : 'Suggestions'}</h3>}
+          <ol className="fm-sugg">
             {list.map((c, i) => (
               <li key={c.source + c.id}>
-                <span className="fx-num" aria-hidden="true">{i < 6 ? i + 1 : ''}</span>
+                <span className="fm-num" aria-hidden="true">{i < 6 ? i + 1 : ''}</span>
                 <ResultRow c={c} onChoose={() => look(c)} />
                 <button type="button" className="btn sm" onClick={() => onAccept(r, c)} aria-label={`Accept ${c.title}`}>Accept</button>
               </li>
@@ -311,10 +311,10 @@ function RemovedList({ library }: { library: number }) {
   if (!list) return <Spinner />
   if (list.length === 0) return <EmptyState icon={<IconTrash />} title="Nothing has been taken out" text="Titles taken out of a library wait here. Their files stay on disk." />
   return (
-    <ul className="fx-simple">
+    <ul className="fm-simple">
       {list.map((r) => (
         <li key={r.path}>
-          <div><b>{r.title}</b><div className="muted fx-file">{r.path}</div></div>
+          <div><b>{r.title}</b><div className="muted fm-file">{r.path}</div></div>
           <button type="button" className="btn" onClick={() => api.post('/meta/removed/restore', { path: r.path }).then(() => { toast('Back in its library'); load() }).catch((e) => toast(e.message))}>Bring it back</button>
         </li>
       ))}
@@ -329,10 +329,10 @@ function HistoryPage() {
   if (!list) return <Spinner />
   if (list.length === 0) return <EmptyState title="No changes yet" text="Every match, edit and renumbering is kept here, and can be undone." />
   return (
-    <ul className="fx-simple">
+    <ul className="fm-simple">
       {list.map((h) => (
         <li key={h.batch}>
-          <div><b>{h.action}</b>: {h.title}{h.count > 1 ? ` and ${h.count - 1} more` : ''}<div className="muted fx-file">{new Date(h.at * 1000).toLocaleString()}{h.user ? ` by ${h.user}` : ''}</div></div>
+          <div><b>{h.action}</b>: {h.title}{h.count > 1 ? ` and ${h.count - 1} more` : ''}<div className="muted fm-file">{new Date(h.at * 1000).toLocaleString()}{h.user ? ` by ${h.user}` : ''}</div></div>
           {h.undone ? <span className="muted">Undone</span> : <button type="button" className="btn" onClick={() => undoBatch(h.batch).then(() => { toast('Undone'); load() }).catch((e) => toast(e.message))}>Undo</button>}
         </li>
       ))}
@@ -361,7 +361,7 @@ function RulesPage({ library }: { library: number }) {
     try { const r = await api.post<{ matches: RuleTry[] }>('/match/rules/try', { library, rules }); setTried(r.matches) } catch (e: any) { setErr(e.message) }
   }
   return (
-    <div className="fx-rules">
+    <div className="fm-rules">
       <section className="panel">
         <h2>Names that say what a file is</h2>
         <p className="panel-note">An id in a file or folder's name always wins over a search, and doesn't appear in the title: <code>My Film (2001) [tmdbid-123].mkv</code>, <code>{'{imdb-tt0000123}'}</code>, <code>[tvdb-456]</code>, <code>[tvmaze-78]</code>.</p>
@@ -371,10 +371,10 @@ function RulesPage({ library }: { library: number }) {
           <h2>This library's rules</h2>
           <p className="panel-note">For folders with a naming of their own. The first rule that fits a file decides. Use <code>{'{title}'}</code>, <code>{'{year}'}</code>, <code>{'{edition}'}</code>, <code>{'{tmdb}'}</code>, <code>{'{imdb}'}</code>, <code>{'{tvdb}'}</code>, <code>{'{any}'}</code>, and <code>*</code> for anything within a folder's name. For example, <code>Ghibli/{'{year}'} - {'{title}'}</code>.</p>
           {rules.length === 0 && <p className="muted">No rules yet.</p>}
-          <ol className="fx-rule-list">
+          <ol className="fm-rule-list">
             {rules.map((r, i) => (
               <li key={i}>
-                <label className="fx-rule-pattern">How the path reads
+                <label className="fm-rule-pattern">How the path reads
                   <input className="input mono" spellCheck={false} value={r.pattern} placeholder="Folder/{year} - {title}" onChange={(e) => up(i, { pattern: e.target.value })} />
                 </label>
                 <label>Where to look
@@ -401,7 +401,7 @@ function RulesPage({ library }: { library: number }) {
             <button type="button" className="btn primary" disabled={saved || rules.some((r) => !r.pattern.trim())} onClick={save}>Save</button>
           </div>
           {tried && (
-            <div className="fx-try">
+            <div className="fm-try">
               <h3>{tried.length ? `${tried.length} ${tried.length === 1 ? 'file fits' : 'files fit'}` : 'No file fits'}</h3>
               <p className="muted">Nothing has changed. This is what each would become on its next scan.</p>
               <ul>{tried.slice(0, 50).map((t) => (
@@ -441,12 +441,12 @@ function RenumberDialog({ showId, title, onClose, onDone }: { showId: number; ti
   const unknown = rows.filter((r) => r.season != null && r.episode != null && !names.has(`${r.season}|${r.episode}`)).length
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
-      <div className="modal wide fx-renumber" role="dialog" aria-modal="true" aria-labelledby="ren-h">
+      <div className="modal wide fm-renumber" role="dialog" aria-modal="true" aria-labelledby="ren-h">
         <h2 id="ren-h">Renumber {title}</h2>
         {!map ? (err ? <div className="error" role="alert">{err}</div> : <Spinner />) : (
           <>
             {map.note ? <p className="muted">{map.note}</p> : <p className="muted">Each file beside what {map.sourceLabel} calls that number{unknown ? `. ${unknown} ${unknown === 1 ? 'number isn\'t' : 'numbers aren\'t'} listed there` : ''}. Numbers you change are locked, so a scan keeps them.</p>}
-            <div className="fx-shift">
+            <div className="fm-shift">
               <label>Season
                 <select className="select" value={season} onChange={(e) => setSeason(e.target.value)}>
                   <option value="all">All</option>
@@ -460,15 +460,15 @@ function RenumberDialog({ showId, title, onClose, onDone }: { showId: number; ti
               <button type="button" className="btn" onClick={() => setRows(rows.map((r) => (inScope(r) && r.season != null ? { ...r, season: Math.max(0, r.season + Number(shift || 0)) } : r)))}>Move seasons instead</button>
               <button type="button" className="btn ghost" onClick={() => { let n = 0; setRows(rows.map((r) => (inScope(r) ? { ...r, episode: ++n } : r))) }}>Number them in order</button>
             </div>
-            <div className="fx-ep-wrap">
-              <table className="titles-table fx-eps">
+            <div className="fm-ep-wrap">
+              <table className="titles-table fm-eps">
                 <thead><tr><th>File</th><th>Season</th><th>Episode</th><th>{map.sourceLabel || 'Source'} calls it</th></tr></thead>
                 <tbody>
                   {rows.filter(inScope).map((r) => (
                     <tr key={r.id}>
-                      <td className="fx-file" title={r.file}>{r.file}</td>
-                      <td><input className="input fx-n" inputMode="numeric" aria-label={`Season of ${r.file}`} value={r.season ?? ''} onChange={(e) => change(r.id, { season: num(e.target.value) })} /></td>
-                      <td><input className="input fx-n" inputMode="numeric" aria-label={`Episode of ${r.file}`} value={r.episode ?? ''} onChange={(e) => change(r.id, { episode: num(e.target.value) })} /></td>
+                      <td className="fm-file" title={r.file}>{r.file}</td>
+                      <td><input className="input fm-n" inputMode="numeric" aria-label={`Season of ${r.file}`} value={r.season ?? ''} onChange={(e) => change(r.id, { season: num(e.target.value) })} /></td>
+                      <td><input className="input fm-n" inputMode="numeric" aria-label={`Episode of ${r.file}`} value={r.episode ?? ''} onChange={(e) => change(r.id, { episode: num(e.target.value) })} /></td>
                       <td className={names.has(`${r.season}|${r.episode}`) ? '' : 'muted'}>{names.get(`${r.season}|${r.episode}`) || 'Not listed'}</td>
                     </tr>
                   ))}

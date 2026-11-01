@@ -100,7 +100,6 @@ func TestModuleDowngradesAskForThePassword(t *testing.T) {
 	}
 	needed("POST", "/api/modules/wittycomics/install", map[string]any{"version": "0.1.5", "confirm": true})
 	needed("POST", "/api/modules/wittycomics/rollback", nil)
-	needed("POST", "/api/modules/wittycomics/builtin", nil)
 
 	// A newer one, or the warning alone, needs nothing.
 	if w := ts.do(t, "POST", "/api/modules/wittycomics/install", admin, map[string]any{"version": "0.3.0", "confirm": true}); w.Code == 403 {

@@ -116,6 +116,16 @@ no modules and then with them. Then it lists anything still waiting for you. Not
 
 ### 7. Publish
 
+This step talks to GitHub from Ubuntu, so Ubuntu needs `gh` and to be signed in to it. The rehearsal doesn't need either. Once:
+
+```bash
+sudo apt install gh
+```
+
+```bash
+gh auth login
+```
+
 Once the rehearsal passes and lists nothing:
 
 ```bash
@@ -141,8 +151,21 @@ In order it:
 ### 8. Afterwards
 
 - [ ] Open a server, *Settings, Modules*, and see the store list the new versions.
-- [ ] Build the Docker image, which nothing above covers: `docker build .`
+- [ ] Build the Docker image, which nothing above covers: `docker build .` It needs `wittymodule` v0.3.0 to be on GitHub, and
+      no other module: the image holds none, and a server in it adds them at run time.
 - [ ] Try one module's *withdraw* workflow on a version made for the purpose.
+
+## What this release publishes
+
+The server's `go.mod` names one thing from this family, `github.com/wittywilla/wittymodule` at **v0.3.0**, so that tag is
+the only one a build of the server needs. The modules a running server offers come from the catalogue, and all of them
+declare module API 3 and `minServer` 0.6.0-alpha.
+
+| Tag | Repositories |
+|---|---|
+| v0.3.0 | WittyModule, WittyDVD, WittyBluray, WittyPhotos, WittyPlay |
+| v0.2.0 | WittyDisc (a library, used by WittyDVD and WittyBluray), WittyCD, WittyTuner, WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyInk, WittyEbook, WittyPDF, WittyComics, WittyVisualizer |
+| v0.1.1 | WittyStats |
 
 ## If something goes wrong
 

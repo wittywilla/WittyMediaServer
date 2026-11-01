@@ -126,7 +126,7 @@ flowchart LR
 | `internal/playback` | how a file plays on each kind of client: direct, remux or transcode, and which tracks |
 | `internal/auth`, `internal/db`, `internal/config`, `internal/logging`, `internal/themes` | accounts, storage, configuration, logs, themes |
 | **WittyDisc**, **WittyDVD**, **WittyBluray** | the disc engines, each its own Go module and repository |
-| `web/` | the web app; `web/src/modules/*` holds the reader plugins (WittyInk, WittyEbook, WittyPDF, WittyComics) |
+| `web/` | the web app; what a module shows in the browser arrives as a web bundle at run time |
 | **WittyReader** | WittyReader, the standalone reading app |
 | **WittyMediaPlayer** | WittyMediaPlayer, the standalone desktop player (Qt 6, FFmpeg and a Go helper for the disc engines) |
 | `clients/` | desktop and mobile shells |

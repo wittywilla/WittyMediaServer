@@ -265,15 +265,20 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/modules/{id}/pin` | Admin | Known module |
 | `PUT /api/modules/{id}/autoupdate` | Admin | Known module. Body says on or off |
 | `POST /api/modules/{id}/latest` | Admin | Known module |
-| `POST /api/modules/{id}/builtin` | Admin | Known module. Own password, and a code with two-factor sign-in, once confirmed |
 | `PUT /api/modules/{id}/source` | Admin | Known module. Repository and key. Confirmation, with own password and a code with two-factor sign-in |
 | `DELETE /api/modules/{id}/source` | Admin | Known module |
 | `POST /api/modules/{id}/add` | Admin | Known module |
 | `POST /api/modules/{id}/remove` | Admin | Known module. No library needs it |
+| `POST /api/modules/{id}/enable` | Admin | Known module |
+| `POST /api/modules/{id}/disable` | Admin | Known module. No library needs it |
 | `PUT /api/modules/installed` | Admin | Known modules. No library needs what is left out |
 | `GET /api/modules/libraries` | Signed-in | Nothing: which kinds of library exist |
 | `PUT /api/modules/libraries/{type}/label` | Admin | Known type. Label rules |
 | `GET /api/modules/web` | Signed-in | Nothing: the bundles in use |
+| `GET /api/modules/{id}/icon` | Signed-in | Known module. Only what the signed catalogue names, kept on this server |
+| `GET /api/modules/{id}/notices` | Signed-in | Known module. Only the notices file of the version in use |
+| `GET /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits |
+| `PUT /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits. JSON of at most 64 KB, and 32 keys for a module |
 | `GET /api/modules/{id}/web/{version}/{path...}` | Signed-in; address token | Version in use. Name in the bundle's signed list, of a listed file type, hash checked when served |
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |

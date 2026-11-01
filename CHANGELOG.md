@@ -7,6 +7,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
+
 - **Every format, everywhere.** One list of file types now drives scanning, playback, serving, the file browser and the
   docs. It covers over 200 extensions: every common video container, codec and raw stream, FLAC to DSD to tracker and game
   music, MIDI through a synthesiser of the server's own, RAW from every major camera, Kindle, FictionBook, Word, Rich Text and

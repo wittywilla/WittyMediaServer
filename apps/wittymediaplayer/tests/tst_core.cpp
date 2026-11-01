@@ -164,6 +164,7 @@ private slots:
     void ripNamesNeverOverwrite();
     void everyFormatEncodes();
     void losslessIsExact();
+    void oneEncoderRestartsEachTrack();
     void spectrumFindsTheTone();
     void flashLimiterHoldsStrobes();
     void flashLimiterLeavesSteadyLight();
@@ -199,6 +200,7 @@ private slots:
 
     void engineClientProtocol();
     void engineClientHelperGone();
+    void engineClientSurvivesItsHelperCrashing();
     void windowOpensAndRefuses();
     void windowKeyboard();
 
@@ -642,6 +644,34 @@ void Tests::engineClientProtocol()
     QVERIFY(!c.running());
 }
 
+// When the helper dies, what hears of it calls straight back in. That starts a new one while
+// the old process is still in the middle of saying it finished.
+void Tests::engineClientSurvivesItsHelperCrashing()
+{
+    if (!QFile::exists(EngineClient::enginePath()))
+        QSKIP("the helper isn't next to the tests");
+    EngineClient c;
+    QVERIFY(c.start());
+    bool lost = false, answered = false;
+    connect(&c, &EngineClient::helperLost, &c, [&] {
+        lost = true;
+        c.call(QStringLiteral("close"), {});
+    });
+    bool failed = false;
+    c.call(QStringLiteral("drives"), {}, [&](const EngineReply &r) {
+        if (r.code != QLatin1String("helper-lost"))
+            return;
+        failed = true;
+        c.call(QStringLiteral("drives"), {}, [&](const EngineReply &x) { answered = x.ok(); });
+    });
+    auto *first = c.findChild<QProcess *>();
+    QVERIFY(first);
+    first->kill();
+    QTRY_VERIFY_WITH_TIMEOUT(lost, 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(answered || !failed, 10000);
+    c.stop();
+}
+
 void Tests::engineClientHelperGone()
 {
     EngineClient c;
@@ -949,6 +979,28 @@ void Tests::everyFormatEncodes()
     QVERIFY(!enc.open(dir.filePath(QStringLiteral("x")), QStringLiteral("nonsense"), {}, {}, &why));
     QVERIFY(!why.isEmpty());
     QVERIFY(!enc.open(dir.filePath(QStringLiteral("no/such/folder/x.flac")), QStringLiteral("flac"), {}, {}, &why));
+}
+
+// A disc is ripped with one encoder. The tracks after the first start at zero too, or
+// their files open on minutes of silence.
+void Tests::oneEncoderRestartsEachTrack()
+{
+    if (testFfmpeg().isEmpty())
+        QSKIP("no test FFmpeg");
+    QTemporaryDir dir;
+    const QByteArray pcm = cdTone(75 * 3);
+    for (const QString &id : {QStringLiteral("alac"), QStringLiteral("flac")}) {
+        AudioEncoder enc;
+        QString why, second;
+        for (int n = 1; n <= 2; n++) {
+            second = dir.filePath(QStringLiteral("%1-%2.%3").arg(id).arg(n).arg(ripFormat(id)->extension));
+            QVERIFY2(enc.open(second, id, {}, {}, &why), qPrintable(why));
+            QVERIFY(enc.write(pcm.constData(), pcm.size()));
+            QVERIFY2(enc.finish(), qPrintable(enc.error()));
+        }
+        const QString info = describe(second);
+        QVERIFY2(info.contains(QStringLiteral("Duration: 00:00:03")) && info.contains(QStringLiteral("start: 0.000000")), qPrintable(id + QLatin1Char(' ') + info));
+    }
 }
 
 void Tests::losslessIsExact()

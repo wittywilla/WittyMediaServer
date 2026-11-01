@@ -73,7 +73,7 @@ private:
     void *instance_ = nullptr;
     QString version_;
     std::shared_ptr<VlcSession> session_;
-    std::atomic<int> retiring_{0};
+    std::shared_ptr<std::atomic<int>> retiring_ = std::make_shared<std::atomic<int>>(0);
     QTimer poll_;
     double volume_ = 1.0;
     bool paused_ = false;

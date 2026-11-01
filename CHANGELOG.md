@@ -5,6 +5,14 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyCouch:** a game's name from a PC can no longer break out of the quotes in the Moonlight command people copy
+  and paste, in PowerShell or a POSIX shell, and a name with an apostrophe now reaches Moonlight whole. The host
+  program's version check gets nothing of the server's and runs in its sandbox, a program is only looked for in `.build`
+  by development builds, and a viewer arriving just as a stream ends can't leave a connection behind.
+- **WittyMediaPlayer:** a crashed disc helper can't take the window with it, and dialogs closed while waiting on it are
+  safe. Ripped tracks after the first start at zero. A long file whose video ends early no longer reads all its sound
+  into memory. Closing with a drive stuck on a bad sector is safe and no longer waits on it, and a disc image never
+  overwrites a file that appeared during the copy.
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

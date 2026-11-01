@@ -30,7 +30,11 @@ bool EngineClient::start()
     buffer_.clear();
     sawHello_ = false;
     awaitingBlob_ = false;
-    delete proc_;
+    // This can be running inside that process's own signal: it can't go until that's over.
+    if (proc_) {
+        proc_->disconnect(this);
+        proc_->deleteLater();
+    }
     proc_ = new QProcess(this);
     proc_->setProcessChannelMode(QProcess::SeparateChannels);
     proc_->setStandardErrorFile(QProcess::nullDevice());

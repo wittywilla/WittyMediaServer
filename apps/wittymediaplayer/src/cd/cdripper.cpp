@@ -4,6 +4,7 @@
 
 #include <QDateTime>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -37,12 +38,22 @@ QString safePart(QString s)
 }
 
 // A line of the helper's report, or false when it's gone.
+constexpr int kStopGrace = 3000;
+
 bool readLine(QProcess &p, QByteArray *out, const std::atomic<bool> &stop, bool *closedInput)
 {
+    QElapsedTimer stopping;
     while (!p.canReadLine()) {
         if (stop.load() && !*closedInput) {
             p.closeWriteChannel(); // the helper stops when its input ends
             *closedInput = true;
+        }
+        // It only looks between reads, and a drive on a bad spot can take minutes over one.
+        if (stop.load()) {
+            if (!stopping.isValid())
+                stopping.start();
+            else if (stopping.hasExpired(kStopGrace))
+                p.kill();
         }
         if (!p.waitForReadyRead(200) && p.state() == QProcess::NotRunning && !p.canReadLine())
             return false;

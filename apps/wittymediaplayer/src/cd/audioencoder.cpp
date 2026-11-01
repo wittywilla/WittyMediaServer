@@ -138,6 +138,7 @@ void AudioEncoder::close()
     av_packet_free(&pkt_);
     stream_ = coverStream_ = nullptr;
     headerWritten_ = false;
+    pts_ = 0; // one encoder rips a whole disc, and each track starts at zero
 }
 
 bool AudioEncoder::fail(const QString &message, int code)

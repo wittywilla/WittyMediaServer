@@ -143,7 +143,7 @@ private:
     double volume_ = 1.0;
     uint64_t generation_ = 0;
     QTimer watch_;
-    std::atomic<int> retiring_{0};
+    std::shared_ptr<std::atomic<int>> retiring_ = std::make_shared<std::atomic<int>>(0);
     int64_t reportedBad_ = 0;
     bool reportedLost_ = false;
 };

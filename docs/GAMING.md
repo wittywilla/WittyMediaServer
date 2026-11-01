@@ -269,7 +269,7 @@ on-screen numbers are showing, and each has been changed to take as little as it
 | Jitter buffer | A browser holds frames back to smooth them out | **Gone.** The sender's `playout-delay` header extension says frames may not wait. A page can only ask for a smaller buffer, and even then a frame waits for an estimate of the network's jitter and 10 ms more. This one change took frames from 50 to 200 ms down to about 1 ms in the browser |
 | Sound's delay | Tracks of one stream are held back to match each other | Sound has a stream of its own, so its buffer can't become the picture's delay. Both follow real time, so they don't drift apart |
 | The display | A frame waits for the next refresh | **Frames land just before the display wants them** where a browser shows that helps: `PhaseLock` moves when the game makes them, a little at a time, until they just make it. It only moves them through one refresh looking for the edge, and gives up if the wait doesn't change |
-| Sound | A browser holds back enough sound to cover how unevenly it arrives | Sound is sent evenly, as fast as it plays, not in lumps a game's frame apart, and its clock jumps over any gap. A browser holds about 35 to 75 ms of it, from over 115. After a one-second stall it's back within about 15 seconds |
+| Sound | A browser holds back enough sound to cover how unevenly it arrives | Sound is sent evenly, as fast as it plays, not in lumps a game's frame apart, and its clock jumps over any gap. A browser holds about 35 to 80 ms of it, from over 115, which leaves sound that much behind the picture. After a one-second stall it's back within about 15 seconds |
 
 The numbers are from `wittyplay-probe`, on this repository's test machine (see [Measuring it](#measuring-it)):
 
@@ -346,6 +346,10 @@ Everything comes back by itself, with the last picture up until there's a new on
 **The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game
 kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the
 encoder 350 and 352, the server's heap 25 and 26, the page 12 and 17, goroutines 43 and 43, the runner's handles 380 and 384. Nothing grew.
+
+A second run took an NES game with its sound and run-ahead through NVENC for 61 minutes, while other tests and builds ran beside it. Frame to screen
+stayed at 9 to 13 ms and a press at 10 to 14. The runner stayed at 28 MB, the encoder at 283 and 284, the server's heap at 5 and 6, and goroutines at 43. Nothing was
+lost and nothing was dropped. A browser filled in 3.1 seconds of sound over the hour, nearly all of it during the eleven minutes the machine was busiest.
 
 ### Measuring it
 

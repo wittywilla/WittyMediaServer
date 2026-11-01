@@ -1,0 +1,12 @@
+/* A console or game studio: its logo, or a typed label in the same space. */
+.gc-mark { display: inline-block; vertical-align: middle; max-width: 100%; }
+img.gc-mark { object-fit: contain; }
+img.gc-mark.sm { height: 1rem; }
+img.gc-mark.md { height: 1.5rem; }
+img.gc-mark.lg { height: 2.5rem; }
+.gc-mark-text { font-weight: var(--weight-heading); letter-spacing: .04em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gc-mark-text.sm { font-size: var(--text-xs); }
+.gc-mark-text.md { font-size: var(--text-sm); }
+.gc-mark-text.lg { font-size: var(--text-lg); }
+/* A picture with its own background can't change colour, so it gets a plate. */
+.gc-mark-plate { background: #fff; border-radius: var(--r-xs); padding: 2px; } /* design-ok: its own background is usually drawn for white */

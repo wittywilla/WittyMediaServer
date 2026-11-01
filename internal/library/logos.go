@@ -375,7 +375,7 @@ func (l *Logos) work(ctx context.Context) {
 	var t *tasks.Handle // only once there's something to do: this wakes after every scan
 	defer func() { t.Finish(nil) }()
 	for l.Store.LogoConsent(ctx) == "yes" {
-		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY id LIMIT 1`, LogoPending))
+		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
 		if err != nil {
 			return
 		}

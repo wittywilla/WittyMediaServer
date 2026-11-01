@@ -1187,12 +1187,22 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
+| `GET /games/home` | user | The games home screen in one answer, for `?library=`. |
+| `GET /games/{id}/check` | user | What a game needs in order to play, and whether this server has it. |
 | `GET /games/consoles` | user | Game consoles. |
 | `GET /games/modes` | user | Game modes. |
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
 | `POST /games/{id}/prepare` | user | Game prepare. |
+| `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
+| `PUT /games/{id}/version` | admin | Which file in its archive to play. |
+| `POST /games/{id}/split` | admin | A version becomes a game of its own. |
+| `PUT /games/{id}/console` | admin | This file is for another console. |
+| `POST /games/{id}/not-a-game` | admin | Takes it off the list; its file stays. |
+| `GET /libraries/{id}/games/review` | admin | Files that didn't become games, or can't play. Query: `kind`, `limit`, `offset`. |
+| `POST /libraries/{id}/games/review/apply` | admin | Says what those files are. |
+| `GET /libraries/{id}/games/import` | admin | How an import is going. |
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |

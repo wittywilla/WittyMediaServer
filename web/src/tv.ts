@@ -107,12 +107,13 @@ const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
 
 // Where the focus last was. A button can take itself away when pressed (a row that's removed,
 // a list that closes), and a remote has no other way back to where that was.
-let lastFocus: { el: HTMLElement; box: DOMRect; scope: ParentNode; page: string } | null = null
+let lastFocus: { box: DOMRect; scope: Node; page: string } | null = null
 
-function focusGoneFrom(scope: ParentNode): DOMRect | null {
+function focusGoneFrom(scope: Node): DOMRect | null {
   const l = lastFocus
-  if (!l || l.scope !== scope || l.page !== location.pathname) return null
-  return !l.el.isConnected || l.el.matches(':disabled') ? l.box : null
+  // The same dialog or page: a dialog can be found by more than one of its layers.
+  if (!l || l.page !== location.pathname || !l.scope.isConnected || !(l.scope.contains(scope) || scope.contains(l.scope))) return null
+  return l.box
 }
 
 function move(dir: Dir): boolean {
@@ -124,7 +125,7 @@ function move(dir: Dir): boolean {
   // a library can have thousands of cards, and this runs on every key press.
   const boxes = new Map(all.map((el) => [el, el.getBoundingClientRect()]))
   if (!cur || cur === document.body || !boxes.has(cur) || !visible(cur, boxes.get(cur)!)) {
-    const gone = focusGoneFrom(scope)
+    const gone = focusGoneFrom(scope as Node)
     const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
     if (near) { focus(near); return true }
     // Nothing focused yet: start at the first control of the main content.
@@ -319,7 +320,7 @@ export function installTVInput() {
     const el = e.target as HTMLElement
     const group = groupOf(el)
     if (group) lastIn.set(group, el)
-    lastFocus = { el, box: el.getBoundingClientRect(), scope: scopeOf(el), page: location.pathname }
+    lastFocus = { box: el.getBoundingClientRect(), scope: scopeOf(el) as Node, page: location.pathname }
   }, { passive: true })
   // A list is open from the moment it is pressed until a choice or leaving it.
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })

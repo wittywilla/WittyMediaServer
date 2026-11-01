@@ -98,6 +98,7 @@ func (m toMock) RoundTrip(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	u.RawQuery = r.URL.RawQuery
 	r2 := r.Clone(r.Context())
 	r2.URL, r2.Host = u, ""
 	return http.DefaultTransport.RoundTrip(r2)

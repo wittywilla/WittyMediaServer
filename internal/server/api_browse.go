@@ -242,7 +242,7 @@ func (s *Server) handleListingSettings(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/listings/refresh
 func (s *Server) handleListingRefresh(w http.ResponseWriter, r *http.Request) {
-	s.Scanner.KickListings()
+	s.Scanner.RecheckListings()
 	writeJSON(w, 202, s.Scanner.ListingStatus(r.Context()))
 }
 

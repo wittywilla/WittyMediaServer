@@ -981,7 +981,7 @@ func TestListingsNeedEveryAcknowledgement(t *testing.T) {
 	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.syncListings(ctx); err != nil {
+	if err := s.syncListings(ctx, false); err != nil {
 		t.Fatal(err)
 	}
 	st := s.ListingStatus(ctx)
@@ -1005,6 +1005,54 @@ func TestListingsNeedEveryAcknowledgement(t *testing.T) {
 	var n int
 	if err := s.Store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM listings`).Scan(&n); err != nil || n != 0 {
 		t.Errorf("%d kept: %v", n, err)
+	}
+}
+
+// A title's listings go with its match, and Check now means now.
+func TestListingsFollowTheMatch(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights.mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
+		t.Fatal(err)
+	}
+	listed := func(all bool) int {
+		t.Helper()
+		if err := s.syncListings(ctx, all); err != nil {
+			t.Fatal(err)
+		}
+		return s.ListingStatus(ctx).Listed
+	}
+	if n := listed(false); n != 1 {
+		t.Fatalf("listed %d", n)
+	}
+	it := oneItem(t, s, lib.ID)
+	if _, err := s.RemoveMatch(ctx, title(t, s, TargetItem, it.ID), "someone"); err != nil {
+		t.Fatal(err)
+	}
+	if n := s.ListingStatus(ctx).Listed; n != 0 {
+		t.Errorf("the match has gone, and still listed: %d", n)
+	}
+	if n := listed(false); n != 0 {
+		t.Errorf("no match, and listed by a guess at its name: %d", n)
+	}
+	if _, err := s.ApplyMatch(ctx, title(t, s, TargetItem, it.ID), "tmdb", "2", nil, "someone"); err != nil {
+		t.Fatal(err)
+	}
+	if n := listed(false); n != 1 {
+		t.Errorf("matched again, and not looked at again: %d", n)
+	}
+	if _, err := s.Store.DB.ExecContext(ctx, `DELETE FROM listings`); err != nil {
+		t.Fatal(err)
+	}
+	if n := listed(false); n != 0 {
+		t.Errorf("checked again too soon: %d", n)
+	}
+	if n := listed(true); n != 1 {
+		t.Errorf("Check now didn't: %d", n)
 	}
 }
 

@@ -1063,6 +1063,8 @@ func (s *Scanner) ApplyMatch(ctx context.Context, t *Title, source, id string, o
 	if err := s.Store.SaveTitle(ctx, t); err != nil {
 		return "", err
 	}
+	s.Store.forgetListing(ctx, t.Target, t.ID)
+	s.KickListings()
 	return batch, nil
 }
 
@@ -1171,7 +1173,12 @@ func (s *Scanner) RemoveMatch(ctx context.Context, t *Title, user string) (strin
 		cancel()
 	}
 	s.persist(ctx, t)
-	return batch, s.Store.SaveTitle(ctx, t)
+	if err := s.Store.SaveTitle(ctx, t); err != nil {
+		return "", err
+	}
+	s.Store.forgetListing(ctx, t.Target, t.ID)
+	s.KickListings()
+	return batch, nil
 }
 
 // PreviewRefresh says what looking a title up again would change.

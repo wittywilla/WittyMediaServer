@@ -968,6 +968,7 @@ func (s *Store) Undo(ctx context.Context, batch string) (int, error) {
 		if err := s.SaveTitle(ctx, t); err != nil {
 			return n, err
 		}
+		s.forgetListing(ctx, e.target, e.id)
 		n++
 	}
 	_, err = s.DB.ExecContext(ctx, `UPDATE meta_history SET undone = 1 WHERE batch = ?`, batch)

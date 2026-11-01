@@ -139,8 +139,17 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const narrowed = !!(search || filter || genre || decade || players || score || unmatched)
   const loadedRef = useRef(0)
   loadedRef.current = items?.length ?? 0
-  const load = () => api.get<{ items: Item[]; total: number }>(url(Math.max(PAGE, loadedRef.current)))
-    .then((r) => { setItems(r.items); setTotal(r.total) }).catch(() => setItems([]))
+  // Only the newest answer counts, and a refresh that fails leaves what's on the page.
+  const loadSeq = useRef(0)
+  const load = () => {
+    const seq = ++loadSeq.current
+    return api.get<{ items: Item[]; total: number }>(url(Math.max(PAGE, loadedRef.current)))
+      .then((r) => { if (seq === loadSeq.current) { setItems(r.items); setTotal(r.total) } })
+      .catch(() => { if (seq === loadSeq.current) setItems((cur) => cur ?? []) })
+  }
+  // What follows a scan or a lookup outlives this render, and must ask with today's filters.
+  const loadNow = useRef(load)
+  loadNow.current = load
   const loadConsoles = () => api.get<GameConsole[]>(`/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {})
   const [watch, setWatch] = useState(0) // bumped to follow a scan just started
   useEffect(() => { setItems(null); loadedRef.current = 0; load() }, [lib.id, filter, search, sort, desc, genre, decade, players, score, unmatched]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -157,7 +166,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
       const r = await api.get<{ scanning: boolean; skipped?: Record<string, number> }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false, skipped: undefined }))
       if (stop) return
       setSkipped(r.skipped || {})
-      await Promise.all([load(), loadConsoles()])
+      await Promise.all([loadNow.current(), loadConsoles()])
       if (r.scanning && !stop) timer = window.setTimeout(tick, 2000)
     }
     void tick()
@@ -171,15 +180,16 @@ export function GamesLibrary({ lib }: { lib: Library }) {
     const el = more.current
     if (!el || !hasMore) return
     let busy = false
+    let current = true // a page asked for under other filters doesn't belong on this list
     const io = new IntersectionObserver((es) => {
       if (!es.some((e) => e.isIntersecting) || busy) return
       busy = true
       api.get<{ items: Item[]; total: number }>(url(PAGE, loaded))
-        .then((r) => { setItems((cur) => [...(cur || []), ...r.items]); setTotal(r.total) })
+        .then((r) => { if (current) { setItems((cur) => [...(cur || []), ...r.items]); setTotal(r.total) } })
         .catch(() => {}).finally(() => { busy = false })
     }, { rootMargin: '800px' })
     io.observe(el)
-    return () => io.disconnect()
+    return () => { current = false; io.disconnect() }
   }, [hasMore, loaded, filter, search, sort, desc, genre, decade, players, score, unmatched]) // eslint-disable-line react-hooks/exhaustive-deps
   const setParam = (k: string, v: string) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
   // Search follows typing, once it pauses.
@@ -513,10 +523,6 @@ export function GamePage() {
   useEffect(() => { Promise.all([api.get<Item>(`/items/${id}`), getConsoles().then((l) => { for (const c of l) knownConsoles.set(c.id, c.short) }).catch(() => {})]).then(([i]) => setIt(i)).catch((e) => setErr(e.message)) }, [id])
   const host = useMemo<PlayHost | null>(() => {
     if (!it) return null
-    const wsBase = () => {
-      const base = serverBase() || window.location.origin
-      return base.replace(/^http/, 'ws')
-    }
     return {
       ...settingsHost,
       itemId: it.id, title: it.title, consoleId: it.console || '', consoleName: consoleName(it.console || ''), resume: params.get('resume') === '1', safeMode: params.get('safe') === '1',
@@ -532,9 +538,10 @@ export function GamePage() {
       saveControl: async (s) => { await api.put(`/consoles/${it.console}/controls`, s) },
       stop: async (sid) => { setLogSession(null); await api.del(`/play/${sid}`) },
       answer: async (sid, sdp, prefer) => (await api.post<{ sdp: string }>(`/play/${sid}/webrtc`, { sdp, prefer })).sdp,
+      // As for pictures and sound: over HTTPS in a browser the sign-in cookie comes along.
       wsUrl: (sid, video) => {
-        const tok = getToken()
-        return `${wsBase()}/api/play/${sid}/ws?video=${video}` + (tok ? `&token=${encodeURIComponent(tok)}` : '')
+        const url = mediaUrl(`/api/play/${sid}/ws?video=${video}`)
+        return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
       },
       action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
       close: () => nav(`/item/${it.id}`, { replace: true }),

@@ -51,6 +51,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   safe. Ripped tracks after the first start at zero. A long file whose video ends early no longer reads all its sound
   into memory. Closing with a drive stuck on a bad sector is safe and no longer waits on it, and a disc image never
   overwrites a file that appeared during the copy.
+- **Fixed, from the audit of the web app:** leaving a Game PC stream while it starts now ends it, and opening its menu no
+  longer leaves keys held down on the PC. The visualizer's flashing notice is each person's own. Filters in a games library
+  stay put during a scan or lookup. V no longer opens the visualizer over a game. A disc, and music after an audiobook, play
+  at the right speed. Stations using HLS resume first time. Setting every keyboard button at once makes one profile. A
+  refused cheat isn't shown as added, and one Esc no longer loses an edited settings file. Games no longer put a sign-in in
+  the WebSocket address over HTTPS.
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

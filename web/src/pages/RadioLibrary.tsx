@@ -333,6 +333,7 @@ function PlaylistForm({ lib, onDone }: { lib: Library; onDone: () => void }) {
     <form className="rd-form" onSubmit={add}>
       <label className="oobe-field">M3U or PLS playlist file<input className="input" type="file" accept=".m3u,.m3u8,.pls,text/plain" onChange={(e) => readFile(e.target.files?.[0])} /></label>
       <label className="oobe-field">…or paste it here<textarea className="input" rows={5} value={playlist} onChange={(e) => setPlaylist(e.target.value)} /></label>
+      <LegalNote kind="webMedia" />
       {err && <div className="error" role="alert">{err}</div>}
       <button className="btn primary" disabled={!playlist.trim() || busy}>{busy ? 'Adding…' : 'Add stations'}</button>
     </form>

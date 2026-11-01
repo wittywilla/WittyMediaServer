@@ -437,6 +437,19 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
   // Nobody can let go of a button in a menu they've gone into.
   useEffect(() => { if (panel) { setFastForward(false); setSlow(false) } }, [panel])
 
+  // Text typed into the settings file isn't lost to one Esc: the first press only says so.
+  const jsonDirty = useRef(false)
+  const jsonWarned = useRef(false)
+  const noteJsonDirty = useCallback((dirty: boolean) => { jsonDirty.current = dirty; jsonWarned.current = false }, [])
+  const mayLeavePanel = () => {
+    if (!jsonDirty.current || jsonWarned.current) return true
+    jsonWarned.current = true
+    say('This file isn’t saved. Press Save to keep it, or do that again to leave without saving')
+    return false
+  }
+  const mayLeave = useRef(mayLeavePanel)
+  mayLeave.current = mayLeavePanel
+
   // Escape, or Start and Select together on a pad, opens the menu.
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -444,10 +457,11 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
       const typing = (e.target as Element | null)?.matches?.('input:not([type=range]):not([type=checkbox]):not([type=color]), textarea')
       if (!['Escape', 'F1', 'GoBack', 'BrowserBack', 'Back', 'XF86Back'].includes(e.key) && !(tv && e.key === 'Backspace' && !typing)) return
       e.preventDefault()
+      if (!mayLeave.current()) return
       setPanel((p) => (p === 'touch' ? p : p ? (p === 'menu' ? null : 'menu') : 'menu'))
     }
     window.addEventListener('keydown', key)
-    input.onMenu = () => setPanel((x) => (x ? null : 'menu'))
+    input.onMenu = () => { if (mayLeave.current()) setPanel((x) => (x ? null : 'menu')) }
     return () => { window.removeEventListener('keydown', key); input.onMenu = undefined }
   }, [tv, input])
 
@@ -579,7 +593,7 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
         }} />}
 
       {panel && panel !== 'touch' && panel !== 'controllers' && (
-        <div className={'wp-menu-back' + (SIDE_PANELS.includes(panel) ? ' wp-side' : '')} onClick={() => setPanel(null)}>
+        <div className={'wp-menu-back' + (SIDE_PANELS.includes(panel) ? ' wp-side' : '')} onClick={() => { if (mayLeavePanel()) setPanel(null) }}>
           <div ref={menuRef} className="wp-menu" role="dialog" aria-modal="true" aria-label={panelTitle(panel, host.title)} onClick={(e) => e.stopPropagation()}>
             {panel === 'menu' && (
               <>
@@ -657,8 +671,8 @@ function Playing({ host, initial, known }: { host: PlayHost; initial: ControlsDa
             {panel === 'json' && settings.view && (
               <>
                 <h2>Custom settings file</h2>
-                <JsonEditor host={host} api={settings} view={settings.view} scope={{ item: host.itemId }} level={level} levels={levels} onLevel={setLevel} consoleName={host.consoleName} title={host.title} say={say} itemId={host.itemId} />
-                <Back onClick={() => setPanel('menu')} />
+                <JsonEditor host={host} api={settings} view={settings.view} scope={{ item: host.itemId }} level={level} levels={levels} onLevel={setLevel} consoleName={host.consoleName} title={host.title} say={say} itemId={host.itemId} onDirty={noteJsonDirty} />
+                <Back onClick={() => { if (mayLeavePanel()) setPanel('menu') }} />
               </>
             )}
             {panel === 'cheats' && (

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { api } from '../api'
 import type { Place, VisualizerHost } from '@wittywilla/wittyvisualizer'
 import { bundledModule } from '../moduleBundles'
+import { useApp } from '../state'
 
 // WittyVisualizer in this app. It costs nothing until someone opens it: this small file is
 // all that's in the main script, and the plugin (a newer bundle if the server has one, or
@@ -37,9 +38,10 @@ const Stage = lazy(load)
 
 // A simple way to show it anywhere there's a media element: WittyCD's player uses this.
 export function VisualizerView({ media, place, onPlace, onClose }: { media: () => HTMLMediaElement | null; place: Place; onPlace?: (p: Place) => void; onClose: () => void }) {
+  const { user } = useApp()
   return (
     <Suspense fallback={null}>
-      <Stage host={visualizerHost} media={media} place={place} onPlace={onPlace} onClose={onClose} />
+      <Stage host={visualizerHost} owner={user?.id} media={media} place={place} onPlace={onPlace} onClose={onClose} />
     </Suspense>
   )
 }

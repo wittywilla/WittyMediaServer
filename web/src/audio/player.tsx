@@ -51,6 +51,9 @@ export type CdCtxValue = { now: CdNow | null; actions: CdActions; audioEl: HTMLA
 const CdCtx = createContext<CdCtxValue | null>(null)
 export const useCd = () => useContext(CdCtx)!
 
+// Screens that have the speakers and the keyboard to themselves.
+const takesOver = (path: string) => path.startsWith('/play/') || path.startsWith('/game/') || path.startsWith('/couch-rig/') || /^\/couch\/\d+\/play\//.test(path)
+
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const audio = useRef<HTMLAudioElement | null>(null)
   const [queue, setQueue] = useState<Item[]>([])
@@ -129,7 +132,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setFull(true)
     if (!docked()) history.pushState({ ...(history.state || {}), wmsAudioFull: true }, '')
     // Opening the player is a press, so a saved choice to show it here can start now.
-    if (viz === 'off') visualizerWantedWithPlayer().then((on) => { if (on) setViz('panel') })
+    if (viz === 'off' && vizHere) visualizerWantedWithPlayer().then((on) => { if (on) setViz('panel') })
   }
   const closeFull = () => { if (history.state?.wmsAudioFull) history.back(); else setFull(false) }
   useEffect(() => {
@@ -150,12 +153,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     a.play().catch(() => setPlaying(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
+  // After that, as load used the speed from before a change of kind of listening. A disc
+  // plays at its own speed, whatever the music was at.
+  useEffect(() => { if (audio.current) setSpeed(audio.current, cdOn.current ? 1 : rate) }, [rate, current?.id, cd.now?.disc.id])
 
   const direct = (it: Item) => DIRECT.has(it.videoCodec)
+  const hlsLoad = useRef(0) // the newest station to ask for hls.js: it can arrive after they've gone
+  useEffect(() => () => { hlsLoad.current++; hls.current?.destroy(); hls.current = null }, [])
   const load = (it: Item, at: number) => {
     const a = audio.current!
     hls.current?.destroy()
     hls.current = null
+    const asked = ++hlsLoad.current
     if (it.kind === 'radio') {
       offset.current = 0
       const src = mediaUrl(`/api/radio/${it.id}/stream`)
@@ -168,7 +177,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       a.removeAttribute('src')
       const id = it.id
       import('hls.js').then(({ default: Hls }) => {
-        if (audio.current !== a || currentId.current !== id) return
+        if (audio.current !== a || currentId.current !== id || hlsLoad.current !== asked) return
         if (!Hls.isSupported()) { toast(`${it.title} can't be played in this browser`); return }
         const h = new Hls({
           xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
@@ -301,14 +310,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!a) return
     if (live && current && !a.getAttribute('src') && !hls.current) {
       load(current, 0)
-      if (!current.radio?.hls) a.play().catch(() => {})
+      if (a.getAttribute('src')) a.play().catch(() => {}) // otherwise hls.js is on its way, and plays when it's ready
       return
     }
     a.play().catch(() => {})
   }
 
-  // A video takes over the speakers: pause the music.
-  useEffect(() => { if (loc.pathname.startsWith('/play/')) audio.current?.pause() }, [loc.pathname])
+  // A video or a game takes over the speakers: pause the music.
+  const takenOver = takesOver(loc.pathname)
+  useEffect(() => { if (takenOver) audio.current?.pause() }, [takenOver])
 
   // Sleep timer.
   useEffect(() => {
@@ -362,22 +372,23 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!current) return
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
-      if (!vizHere || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || loc.pathname.startsWith('/play/')) return
+      // A game's V is the game's, and the CD player has a visualizer of its own.
+      if (!vizHere || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || takenOver || loc.pathname.startsWith('/cd/')) return
       e.preventDefault()
       setViz(viz === 'off' ? 'full' : 'off')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [current?.id, viz, vizHere, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
-  // A video takes over: nothing should be drawing behind it.
-  useEffect(() => { if (loc.pathname.startsWith('/play/')) setViz('off') }, [loc.pathname])
+  }, [current?.id, viz, vizHere, takenOver, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A video or a game takes over: nothing should be drawing behind it.
+  useEffect(() => { if (takenOver) setViz('off') }, [takenOver])
 
   // "<" and ">" step through the speeds, as in the video player.
   useEffect(() => {
     if (!current) return
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.key !== '<' && e.key !== '>') || document.querySelector('.player:not(.mini):not(.inline), .player.inline')) return
+      if (cdOn.current || tag === 'INPUT' || tag === 'TEXTAREA' || (e.key !== '<' && e.key !== '>') || document.querySelector('.player:not(.mini):not(.inline), .player.inline')) return
       const list = SPEEDS.filter((s) => s <= maxSpeed)
       const i = list.indexOf(rate)
       const next = list[Math.max(0, Math.min(list.length - 1, (i < 0 ? list.indexOf(1) : i) + (e.key === '>' ? 1 : -1)))]
@@ -452,7 +463,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           lastAt.current = p
           setTime(p)
         }} />
-      {current && !loc.pathname.startsWith('/play/') && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (
+      {current && !takenOver && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (
         <div className={'audio-bar' + (full ? ' full' : '')} role="region" aria-label="Now playing">
           {full && (
             <div className="ab-top">

@@ -63,10 +63,20 @@ export class Pads {
   private lastSent = 0
   private timer = 0
   private menuSince = 0
+  private paused = false
   connected = 0
   constructor(private send: Send, private onMenu: () => void, private onChange: (n: number) => void) {}
   start() { this.timer = window.setInterval(() => this.poll(), 8) }
   stop() { clearInterval(this.timer) }
+  // While paused the game hears nothing, and starts from nothing held down.
+  setPaused(on: boolean) {
+    if (on === this.paused) return
+    this.paused = on
+    if (!on) return
+    this.last.clear()
+    const mask = (1 << this.connected) - 1
+    for (let i = 0; i < this.connected; i++) this.send(padMessage(i, mask, { buttons: 0, lt: 0, rt: 0, lx: 0, ly: 0, rx: 0, ry: 0 }), true)
+  }
   private poll() {
     if (document.hidden || !navigator.getGamepads) return
     const pads = [...navigator.getGamepads()].filter((p): p is Gamepad => !!p && p.connected).slice(0, MAX_PADS)
@@ -85,7 +95,7 @@ export class Pads {
         if (!this.menuSince) this.menuSince = now
         else if (now - this.menuSince > 800) { this.menuSince = 0; this.onMenu() }
       } else if (i === 0) this.menuSince = 0
-      if (!same(this.last.get(i), s) || keepAlive) {
+      if (!this.paused && (!same(this.last.get(i), s) || keepAlive)) {
         this.send(padMessage(i, mask, s), false)
         this.last.set(i, s)
         this.lastSent = now

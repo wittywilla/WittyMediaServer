@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"net/http"
 	"strings"
 
@@ -72,15 +74,13 @@ func (s *Server) visibleShow(r *http.Request, id int64) (*library.Show, error) {
 }
 
 // forViewer takes out what only an administrator needs: where a file is on
-// this machine (folder names, often an account name). A podcast episode's
-// path is a web address and stays: players and the page need it.
+// this machine (folder names, often an account name), and the web addresses of
+// radio stations and podcast episodes, which can hold a private key. Both play
+// through the server.
 func (s *Server) forViewer(r *http.Request, items ...*library.Item) []*library.Item {
 	if !userFrom(r).IsAdmin {
 		for _, it := range items {
-			// A radio station's address can hold a private key; it plays through the relay.
-			if !isWeb(it.Path) || it.Kind == "radio" {
-				it.Path = ""
-			}
+			it.Path = ""
 			it.Poster, it.Backdrop = artForViewer(it.Poster), artForViewer(it.Backdrop)
 		}
 	}
@@ -108,6 +108,31 @@ func artForViewer(v string) string {
 	return "local"
 }
 
+// fileFailed is what someone who doesn't manage this server is told when a file can't be read.
+const fileFailed = "This file can't be read right now. It may have moved, or be damaged."
+
+// viewerError is what to tell the person asking about a file that failed. Errors from the
+// system and from FFmpeg name where the file is, which is for administrators; a refusal such
+// as "this disc is encrypted" names nothing and helps, so it stays. The full text is in the log.
+func (s *Server) viewerError(r *http.Request, err error) string {
+	msg := err.Error()
+	if u := userFrom(r); u != nil && u.IsAdmin {
+		return msg
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) || strings.Contains(msg, s.Cfg.DataDir) {
+		s.Log.WarnContext(r.Context(), "a file couldn't be read", "cat", "library", "err", err)
+		return fileFailed
+	}
+	for _, root := range s.Store.Roots(r.Context()) {
+		if strings.Contains(msg, root) {
+			s.Log.WarnContext(r.Context(), "a file couldn't be read", "cat", "library", "err", err)
+			return fileFailed
+		}
+	}
+	return msg
+}
+
 // visibleLibraries drops libraries an account may not open.
 func (s *Server) visibleLibraries(ctx context.Context, a *library.Access) ([]library.Library, error) {
 	libs, err := s.Store.Libraries(ctx)
@@ -127,14 +152,13 @@ func (s *Server) visibleLibraries(ctx context.Context, a *library.Access) ([]lib
 }
 
 // hidePaths: where files live on the server is for administrators (the
-// folders can name people). Web addresses of podcast episodes stay: the
-// player and the download button read them.
+// folders can name people), and so are episode addresses, which can hold a key.
 func hidePaths(r *http.Request, items ...*library.Item) {
 	if u := userFrom(r); u != nil && u.IsAdmin {
 		return
 	}
 	for _, it := range items {
-		if it != nil && !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
+		if it != nil {
 			it.Path = ""
 		}
 	}

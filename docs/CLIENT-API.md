@@ -72,8 +72,9 @@ seconds. IDs are integers, except session and stream IDs, which are strings to p
 **Lists** that can be long take `limit` and `offset` and answer with `total` (`/items`), so don't fetch
 a whole library for a screen. Filtering and sorting always happen on the server.
 
-**Files on the server** are not for apps. An item's `path`, `poster` and `backdrop` fields are empty or
-say little for anyone but an administrator: use the routes for pictures, and `/playback` for media.
+**Files on the server** are not for apps. An item's `path` is empty for anyone but an administrator, a
+podcast episode's and a radio station's included, as their addresses can hold a key. `poster` and
+`backdrop` say little. Use the routes for pictures, and `/playback` for media.
 
 **Artwork** is a plain image route. Add `v=<updatedAt>` to the address so it can be cached until the
 item changes. Items and shows without a picture answer 404: draw a placeholder.
@@ -132,7 +133,8 @@ For someone typing an address or a URL. This is the whole check, in order:
 
 1. **Tidy it up.** Trim it. With no scheme, add `http://`. With neither a scheme nor a port, add port
    9797. Remove any path, query and trailing slash.
-2. **Ask.** `GET /api/v1/capabilities`, with a timeout of about 5 seconds, sending no token.
+2. **Ask.** `GET /api/v1/capabilities`, with a timeout of about 5 seconds, sending no token. From the
+   internet, `version` is empty until you sign in: go by `apiVersion` and `features`.
 3. **Is it a WittyMediaServer?**
 
    | Answer | Means | Say |

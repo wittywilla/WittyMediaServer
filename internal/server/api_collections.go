@@ -78,7 +78,7 @@ func (s *Server) handlePreviewRule(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"items": items, "count": count})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "count": count})
 }
 
 func (s *Server) visibleCollection(r *http.Request) (*library.Collection, error) {
@@ -316,5 +316,5 @@ func (s *Server) handleRecommended(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"items": items, "shows": shows, "because": because})
+	writeJSON(w, 200, map[string]any{"items": s.forViewer(r, items...), "shows": s.showsForViewer(r, shows...), "because": because})
 }

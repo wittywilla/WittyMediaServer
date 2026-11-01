@@ -115,7 +115,7 @@
 .nav-custom { display: grid; gap: var(--sp-4); margin-top: var(--sp-5); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
 .nav-custom h3 { margin: 0; font-size: var(--text-lg); }
 .nav-custom-opts { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-4) var(--sp-6); }
-.nav-custom-opt { display: grid; gap: var(--sp-2); min-width: 0; font-size: var(--text-sm); color: var(--fg-2); }
+.nav-custom-opt { display: grid; justify-items: start; gap: var(--sp-2); min-width: 0; font-size: var(--text-sm); color: var(--fg-2); }
 .nav-custom-toggle { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--control-h); font-size: var(--text-md); color: var(--fg); }
 .nav-custom-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
 .nav-custom-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1); border-radius: var(--r-md); background: var(--bg-3); }

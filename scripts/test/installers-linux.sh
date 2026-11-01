@@ -9,6 +9,7 @@
 #   wittymediaserver-<new>-linux-amd64.{deb,rpm}       the packages being tested
 #   upgrade/wittymediaserver-*-linux-amd64.{deb,rpm}   the same built as a later version
 #   old/wittymediaserver-0.5.2-alpha-linux-amd64.tar.gz  (optional) a real old release
+#   archive/wittymediaserver-*-linux-amd64.tar.gz        (optional) the plain archive
 #
 # Runs where Docker runs Linux containers. Writes each run's listings to <folder>/results/.
 set -uo pipefail
@@ -161,6 +162,49 @@ if [ -n "$old" ]; then
   echo "TOOK OVER, kept data, port and account"
   printf 'y\ny\n' | wittymediaserver --uninstall > /tmp/uninstall2.txt; cat /tmp/uninstall2.txt
   [ ! -e /tank/wms/wms.db ] || fail "the custom data folder's database stayed"
+fi
+arc=$(ls /pkgs/archive/wittymediaserver-*-linux-amd64.tar.gz 2>/dev/null)
+if [ -n "$arc" ]; then
+  # The account and home folders the takeover test made aren't this test's.
+  id media >/dev/null 2>&1 && userdel media
+  rm -rf /tank /srv/wms /tmp/old
+  eval "$SNAPSHOT" > /tmp/before3.txt
+
+  say "the plain archive, with its install.sh, then --uninstall"
+  mkdir -p /tmp/arc && tar -xzf "$arc" -C /tmp/arc --strip-components=1
+  sh /tmp/arc/install.sh --prefix /srv/wittymedia --data /srv/wittydata --port 8124 > /tmp/out 2>&1 || { cat /tmp/out; fail "install.sh"; }
+  wait_up 8124
+  ls /srv/wittymedia /srv/wittymedia/bin
+  [ ! -e /srv/wittymedia/wms ] || fail "install.sh brought the forwarder"
+  /srv/wittymedia/bin/wittymediaserver --uninstall --yes --remove-data > /tmp/out 2>&1; code=$?
+  cat /tmp/out
+  [ $code -eq 0 ] || fail "uninstall exit $code"
+  [ ! -e /srv/wittymedia ] || { find /srv/wittymedia; fail "the program stayed"; }
+  [ ! -e /srv/wittydata ] || { find /srv/wittydata; fail "the data stayed"; }
+  rmdir /srv 2>/dev/null; mkdir -p /srv
+  eval "$SNAPSHOT" > /tmp/after3.txt
+  diff -u /tmp/before3.txt /tmp/after3.txt || fail "the archive's install left something behind"
+  echo "NOTHING LEFT after install.sh and --uninstall"
+
+  say "a real unpacked 0.5.2-alpha, portable, whose update lands the new package over it"
+  rm -rf /tmp/p && mkdir -p /tmp/p/data
+  tar -xzf "$old" -C /tmp/p --strip-components=1
+  echo '{"portable":true,"dataDir":"data","listen":":8125"}' > /tmp/p/wms.json
+  (cd /tmp/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
+  wait_up 8125
+  [ -f /tmp/p/data/wms.db ] || fail "the old copy isn't portable"
+  kill "$(cat /tmp/p.pid)"; sleep 2
+  # What 0.5.2's updater does: every file in the package goes in, nothing else is touched.
+  tar -xzf "$arc" -C /tmp/p --strip-components=1
+  (cd /tmp/p && WMS_NO_BROWSER=1 nohup ./wms serve > /tmp/p.log 2>&1 & echo $! > /tmp/p.pid)
+  wait_up 8125
+  /tmp/p/wms version | tee /tmp/v; grep -q "^wittymediaserver " /tmp/v || fail "./wms isn't the new server"
+  [ -f /tmp/p/data/wms.db ] || fail "the update lost the library"
+  sleep 2
+  ls -a /tmp/p
+  for f in wittyplay-host LICENSE README.md icon.png; do [ ! -e "/tmp/p/$f" ] || fail "$f, from the old package, stayed"; done
+  pkill -f /tmp/p/bin/wittymediaserver; kill "$(cat /tmp/p.pid)" 2>/dev/null
+  echo "AN UNPACKED 0.5.2 TOOK THE UPDATE, kept its library, and the old command still works"
 fi
 echo ALLPASSED
 SCRIPT

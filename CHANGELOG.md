@@ -7,6 +7,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Real installers, on every system.** Windows gets a normal `.msi` setup: just for you or for everyone, Start menu entry, optional background service,
+  firewall rule, start at sign-in, desktop shortcut and command line, each asked for in plain words, with silent flags for admins, and updating in place.
+  macOS gets a `.pkg` with a background service. Linux gets a `.deb` and an `.rpm` with a systemd service and a layout ready for a package repository. Each
+  takes over from a copy that 0.5.2-alpha or older installed, keeping your library. These replace `wms-setup.exe` and `install.ps1`.
+- **Uninstalling removes everything, if you ask.** Windows' Installed apps, **Uninstall WittyMediaServer** on a Mac, and `wittymediaserver --uninstall` anywhere
+  ask whether to keep your library, accounts and settings. A full clean-up takes the program, services, tasks, firewall rules, startup entries, shortcuts,
+  registry keys, data, caches, logs and downloaded modules, then lists what it removed and what it couldn't. It never touches your media or anything it didn't
+  make, and recorded TV and backups have a question each.
+- **Programs you can tell apart.** You open `WittyMediaServer`. Everything else is in a `bin` folder and named for its job: `wms` is now
+  `bin/wittymediaserver`, and `wittyplay-host` is `bin/wittyplay-game-runner`. On Windows each says what it is in its Properties and in Task Manager. Scripts that
+  run `wms` need the new name; a small `wms` stays in the `.zip` and `.tar.gz` for this release. In Docker the command is `wittymediaserver`, and the compose service
+  is too. `wms.json`, the `WMS_` settings and your data folders haven't moved.
+- **The tray app shows a server that's already running**, such as a background service, instead of failing to start a second one.
+- **Windows' background service is a real service,** under a limited account, in place of a boot task that ran as SYSTEM.
+- Test builds are no longer signed with the release key unless `SIGN=1` says it's a real release.
+
 - **Library transcoding.** Convert a library's files ahead of time, under **Settings, Library transcoding**. Three plain presets (play on any
   device, save space, keep the best quality), with every detail open to change: sound tracks and subtitles by language, commentary, audio description, a
   stereo track beside surround, lossless and object sound, forced and picture subtitles, HDR, Dolby Vision, 3D, files with several pictures, and more. A

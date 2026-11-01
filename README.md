@@ -128,7 +128,7 @@ Saves follow your profile. [How it works](docs/GAMING.md).
 
 | Windows · macOS · Linux · FreeBSD | Docker | Always-on service |
 |---|---|---|
-| Double-click **WittyMediaServer**; it lives in the tray or menu bar. | `docker run -p 9797:9797 -v wms-config:/config -v /media:/media:ro ghcr.io/wittywilla/wittymediaserver` | `sudo ./install.sh` · Windows: `.\install.ps1` |
+| Double-click **WittyMediaServer**; it lives in the tray or menu bar. | `docker run -p 9797:9797 -v wms-config:/config -v /media:/media:ro ghcr.io/wittywilla/wittymediaserver` | `sudo apt install ./wittymediaserver-…-linux-amd64.deb`, `sudo dnf install ./…rpm`, or the Windows installer's service option |
 
 > **On your home network.** The server runs on your own computer, so it's available to every device
 > on your home network (TV, phone, tablet, other computers) at the address the wizard shows. Away from

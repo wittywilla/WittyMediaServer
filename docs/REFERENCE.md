@@ -117,8 +117,12 @@ flowchart LR
 
 | Folder | What lives there |
 |---|---|
-| `cmd/wms` | the server, and the `disc`, `dvd`, `bluray` and `config` tools |
-| `cmd/wms-tray` | the tray / menu-bar launcher |
+| `cmd/wittymediaserver` | the server, and the `disc`, `dvd`, `bluray` and `config` tools |
+| `cmd/wittymediaserver-tray` | the app people open: the tray or menu-bar icon |
+| `cmd/wittymediaserver-uninstall` | the uninstaller with windows and buttons, on Windows and macOS |
+| `internal/layout` | what a package holds, and what each program is called |
+| `internal/uninstall` | removing everything, for every system |
+| `packaging/` | the installers: MSI, `.deb`, `.rpm`, `.pkg` |
 | `internal/server` | the HTTP API, streaming endpoints, security middleware and the built-in web app |
 | `internal/library` | libraries, scanning, TV shows, music, books, metadata (NFO, TMDB, TheTVDB, TVmaze, Wikidata, AniList, custom agents), watch state |
 | `internal/dvdsession`, `internal/bdsession` | one viewer's DVD or Blu-ray: presentations, menus, subtitles, streams |
@@ -148,8 +152,8 @@ Requirements: **Go 1.26+** and **Node 22+**. FFmpeg is only needed to run it.
 ```bash
 git clone https://github.com/wittywilla/WittyMediaServer && cd WittyMediaServer
 (cd web && npm install && npm run build)        # the web app, built into the program
-go build -o wms ./cmd/wms                        # the server
-go build -o WittyMediaServer ./cmd/wms-tray      # the tray launcher (Windows: -ldflags -H=windowsgui)
+go build -o wittymediaserver ./cmd/wittymediaserver                        # the server
+go build -o WittyMediaServer ./cmd/wittymediaserver-tray   # the tray app (Windows: -ldflags -H=windowsgui)
 ./wms serve -ffmpeg /path/to/ffmpeg -log debug
 go test ./...                                    # WMS_TEST_ISO / WMS_TEST_BD enable the real-disc tests
 ```

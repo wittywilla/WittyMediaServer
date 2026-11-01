@@ -28,7 +28,7 @@ items with `console: rig`, and `POST /games/{id}/play` sends them there.
 ## The architecture
 
 ```
- Browser                     wms (the server)                 wittyplay-host (one per game)
+ Browser                     wittymediaserver (the server)                 wittyplay-game-runner (one per game)
 ┌─────────────┐  WebRTC   ┌───────────────────────┐  pipes   ┌──────────────────────────┐
 │ <video>     │◄──────────│ stream.Session        │◄─────────│ libretro frontend        │
 │ gamepad,    │  H.264 or │  ├ pion WebRTC        │  raw     │  ├ loads one core        │
@@ -44,7 +44,7 @@ items with `console: rig`, and `POST /games/{id}/play` sends them there.
 
 Three kinds of process, each doing one job:
 
-1. **`wittyplay-host`**: our own small libretro frontend, written in Go with no cgo. It loads a
+1. **`wittyplay-game-runner`**: our own small libretro frontend, written in Go with no cgo. It loads a
    core, runs it one frame at a time and writes raw frames and audio to its stdout. It reads
    input and commands on stdin. It holds no network connection and no database. A crash or an
    exploited core takes down one game, not the server. Cores print to stdout too, so the runner
@@ -58,7 +58,7 @@ Three kinds of process, each doing one job:
 "The process that runs a game" is called a **runner**, and it's defined by a protocol rather than by a
 program: length-prefixed messages over a pipe (`modules/wittyplay/ipc`). Two programs can fill that role.
 
-| | `wittyplay-host` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
+| | `wittyplay-game-runner` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
 |---|---|---|
 | What it is | Our own small libretro frontend | RetroArch with a mode that speaks the protocol |
 | Licence | Apache-2.0 | GPLv3, a separate program |
@@ -84,7 +84,7 @@ Cores are the same files RetroArch uses, and a RetroArch install's cores are fou
 
 A cgo frontend would need a C toolchain for every platform in the release matrix. We use
 [purego](https://github.com/ebitengine/purego) (Apache-2.0) to open the core and to receive its
-callbacks. It is linked **only** into `wittyplay-host`, because on Linux it changes how the
+callbacks. It is linked **only** into `wittyplay-game-runner`, because on Linux it changes how the
 runtime starts threads and makes the binary depend on the system's libc. The server stays the
 static binary it has always been.
 
@@ -156,7 +156,7 @@ as "use the discrete card". No system setting changes and nothing needs clicking
 which card was chosen.
 
 That variable is NVIDIA's. On a laptop with an AMD discrete card and integrated graphics, Windows may pick the
-integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-host.exe`,
+integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-game-runner.exe`,
 choose Options, then High performance.
 
 ### What the sandbox opens for a graphics driver
@@ -915,7 +915,7 @@ sandboxed.
 | pion/webrtc and its family | MIT | Linked into `wms` |
 | coder/websocket | ISC | Linked into `wms` |
 | bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see THIRD_PARTY_LICENSES.md | Linked into `wms`. No GPL code |
-| ebitengine/purego | Apache-2.0 | Linked into `wittyplay-host` only |
+| ebitengine/purego | Apache-2.0 | Linked into `wittyplay-game-runner` only |
 | libretro API definitions | MIT | The constants and struct layouts only; no libretro code is copied |
 | RetroArch | GPLv3 | Not shipped. Its core folder is read if present. The fork would be a separate program ([WITTYRETROARCH.md](WITTYRETROARCH.md)) |
 | Libretro cores | Each core's own | **Never bundled.** A separate file, installed on an admin's request, loaded by a separate process |

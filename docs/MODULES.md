@@ -225,7 +225,7 @@ worth another look if plugins from strangers become common.
 | WittyDisc | Goes with the engines | A library they link. It has no release of its own to run |
 | WittyCD | Helper, **later**, for reading images only | Reading an image is a stateless parse of untrusted files, which suits a helper. Samples would then go directly to the listener from the image's extents, as FFmpeg already reads DVD extents, so there is no cost to playback |
 | WittyTuner | Helper, **later** | Possible, since streams can go straight to FFmpeg, but it holds device access and needs care per platform |
-| WittyPlay | Already half done | `wittyplay-host` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
+| WittyPlay | Already half done | `wittyplay-game-runner` is a separate process and can be delivered as is. The streaming half (WebRTC) is still in the server |
 | WittyCouch, WittyRigs | Stays built in, for now | They need the network and hold people's pairings: a helper would have to be given what the sandbox takes away |
 | WittyCouch Host | Already a separate program | Its releases come from its own repository, signed the same way, once it has one |
 | WittyIntegratedFileBrowser | Stays built in | About 230 lines of read-only listing. A process for it would cost more than it could ever save, and it is security-sensitive enough to move with the server |

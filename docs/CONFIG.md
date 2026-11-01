@@ -17,7 +17,7 @@ The server looks for `wms.json` in this order and uses the first one it finds:
 | # | Where | When to use it |
 |---|---|---|
 | 1 | the file given with `-config <file>` or the `WMS_CONFIG` environment variable | services, scripts, several servers on one machine |
-| 2 | **next to the program** (`wms.exe` / `wms`) | portable mode — see below |
+| 2 | **in the program's top folder**, beside `WittyMediaServer.exe` and `bin` | portable mode — see below |
 | 3 | your user config folder: | a normal install |
 | | Windows: `%APPDATA%\WittyMediaServer\wms.json` | |
 | | macOS: `~/Library/Application Support/WittyMediaServer/wms.json` | |
@@ -93,7 +93,7 @@ A typo in a setting name stops the server with a clear message instead of being 
 Portable mode keeps **everything** — program, database, artwork, logs — in one folder, so you
 can run the server from a USB drive or an external disk, or keep several independent copies.
 
-To make any folder portable, put a `wms.json` next to `wms.exe` (or `wms`):
+To make an unpacked folder portable, put a `wms.json` in its top folder, beside `bin`:
 
 ```json
 { "portable": true }

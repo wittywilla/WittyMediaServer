@@ -24,9 +24,11 @@
 #   FFMPEG_FREEBSD_DIR=   static FreeBSD ffmpeg/ffprobe: <dir>/<arch>/, <dir>/ffmpeg-freebsd-<arch>/
 #                         or (amd64 only) <dir>/ (see scripts/build-ffmpeg-static.sh)
 #   TRAY_DARWIN_DIR=      <dir>/<arch>/WittyMediaServer tray binaries built on a Mac (needs CGO)
-#   WMS_SIGNING_KEY=      release signing key (default ~/.wms-signing/release.key, see
-#                         docs/PUBLISHING.md); signs the checksum list so installs can update
-#   REQUIRE_SIGNING=1     fail when there is no signing key
+#   SIGN=1                sign the checksum list, so installs can update to this build from
+#                         Settings. Only for a real release: see docs/PUBLISHING.md. Test builds
+#                         stay unsigned, so a signed copy of a test build can't exist.
+#   WMS_SIGNING_KEY=      with SIGN=1, the key (default ~/.wms-signing/release.key)
+#   REQUIRE_SIGNING=1     with SIGN=1, fail when there is no signing key
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -303,7 +305,9 @@ SUMS="wittymediaserver-${VERSION}-SHA256SUMS.txt"
 # Sign the checksum list: the in-app updater installs nothing without it.
 rm -f "$DIST/$SUMS.sig"
 KEY="${WMS_SIGNING_KEY:-$HOME/.wms-signing/release.key}"
-if [ -f "$KEY" ]; then
+if [ "${SIGN:-}" != "1" ]; then
+  echo "   (not signed: SIGN=1 signs a real release)"
+elif [ -f "$KEY" ]; then
   "$TOOLS/release-sign$HOSTEXE" sign -key "$KEY" "$DIST/$SUMS"
   "$TOOLS/release-sign$HOSTEXE" verify "$DIST/$SUMS" || { echo "error: the signing key is not the one built into the server (internal/update/keys.go)" >&2; exit 1; }
 else

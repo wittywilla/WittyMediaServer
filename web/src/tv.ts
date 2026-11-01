@@ -17,17 +17,17 @@
 //   to their first axes and buttons. The controller is only polled while one
 //   is connected, so this costs nothing otherwise.
 
-import { isBackKey, ranked, type Dir } from './ui/spatial'
+import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
-const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .ctv-mini, .tv-remind'
+const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .pick-intro, .ctv-mini, .tv-remind'
 // The player that fills the screen. A player inside a page (.inline) is just a
 // part of that page.
 const FULL_PLAYER = '.player:not(.mini):not(.inline)'
 // What OK reaches first when the picture has the focus: whatever is asking
 // for an answer, then the controls.
-const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
+const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.pick-intro button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
 
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
 
@@ -105,6 +105,16 @@ const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .s
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
 
+// Where the focus last was. A button can take itself away when pressed (a row that's removed,
+// a list that closes), and a remote has no other way back to where that was.
+let lastFocus: { el: HTMLElement; box: DOMRect; scope: ParentNode; page: string } | null = null
+
+function focusGoneFrom(scope: ParentNode): DOMRect | null {
+  const l = lastFocus
+  if (!l || l.scope !== scope || l.page !== location.pathname) return null
+  return !l.el.isConnected || l.el.matches(':disabled') ? l.box : null
+}
+
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
@@ -114,6 +124,9 @@ function move(dir: Dir): boolean {
   // a library can have thousands of cards, and this runs on every key press.
   const boxes = new Map(all.map((el) => [el, el.getBoundingClientRect()]))
   if (!cur || cur === document.body || !boxes.has(cur) || !visible(cur, boxes.get(cur)!)) {
+    const gone = focusGoneFrom(scope)
+    const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
+    if (near) { focus(near); return true }
     // Nothing focused yet: start at the first control of the main content.
     const first = all.find((el) => el.closest('.content, .player, [role=dialog]') && visible(el, boxes.get(el)!)) || all.find((el) => visible(el, boxes.get(el)!))
     if (!first) return false
@@ -306,6 +319,7 @@ export function installTVInput() {
     const el = e.target as HTMLElement
     const group = groupOf(el)
     if (group) lastIn.set(group, el)
+    lastFocus = { el, box: el.getBoundingClientRect(), scope: scopeOf(el), page: location.pathname }
   }, { passive: true })
   // A list is open from the moment it is pressed until a choice or leaving it.
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })

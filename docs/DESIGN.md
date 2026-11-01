@@ -229,7 +229,7 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
 - **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
 - **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
   TV, Search, the drawer and You.
-- **Reserved**: `components/ActivitySlot.tsx`, left of the account menu, for one `IconButton`.
+- **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets
 
@@ -435,3 +435,7 @@ mask-image: linear-gradient(#000 80%, transparent); /* design-ok: a mask only re
 8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so the
    native apps get the same behaviour.
 9. **Check it** at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in a dark and a light theme.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

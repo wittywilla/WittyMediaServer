@@ -162,7 +162,7 @@ function Tuners() {
     try { await api.del(`/tuners/${t.id}`); forgetLineup(); void load() } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Tuners and IPTV" desc={<>Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>}
+    <Section title="Tuners and IPTV" desc={<><Link to="/help/channels#live-tv-playlists">How tuners and playlists work.</Link> Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>}
       actions={<button className="btn sm" disabled={searching} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>}>
       {found && found.length === 0 && <p className="muted">No new tuners found on your network or this machine. You can still add one below.</p>}
       {found && found.length > 0 && (

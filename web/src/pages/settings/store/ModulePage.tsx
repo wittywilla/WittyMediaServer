@@ -148,7 +148,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         {d.permissions.length ? (
           <ul className="st-perms">{d.permissions.map((p) => <li key={p.name}><IconInfo size={16} /><span><b>{p.name}</b> {p.words}</span></li>)}</ul>
         ) : <p>No special permissions.</p>}
-        <p className="muted">Whatever it asks for, a module can read what this server’s account can read, and the server’s own limits apply to it. See <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/MODULES.md#the-helper-protocol-module-api-1" target="_blank" rel="noreferrer noopener">what limits a module</a>.</p>
+        <p className="muted">Whatever it asks for, a module can read what this server’s account can read, and the server’s own limits apply to it. See <Link to="/help/module-store#what-limits-a-module">what limits a module</Link>.</p>
       </section>
 
       <section className="st-mod-sec" aria-labelledby="st-facts">

@@ -1,18 +1,98 @@
 # Background tasks
 
-Everything the server does in the background goes through one registry, `internal/tasks`. The activity
-button in the top bar reads it, and so can WittyStats, the native apps and anything else with the API below.
+See what your server is busy with, how far along it is and what went wrong, from the activity button in the top bar. Library scans, backups, conversions and other long jobs all show here.
 
-- [Reporting a task from the server](#reporting-a-task-from-the-server)
-- [Reporting a task from a module](#reporting-a-task-from-a-module)
-- [Who sees what](#who-sees-what)
-- [The API](#the-api)
-- [What it costs](#what-it-costs)
+- [The activity button](#the-activity-button)
+- [Who sees it](#who-sees-it)
+- [What's going on now](#whats-going-on-now)
+- [Pausing and cancelling](#pausing-and-cancelling)
+- [History](#history)
+- [What doesn't show here](#what-doesnt-show-here)
+- [For developers](#for-developers)
 
-## Reporting a task from the server
+## The activity button
 
-Every server job gets the registry as `s.Tasks` (or a `Tasks` field on its service). A nil registry and a nil
-handle both do nothing, so a job and its tests never have to check.
+The button is in the top bar, just left of the account menu. On a phone it sits at the right of the row of sections.
+
+- While something is running, a ring around it shows how far along everything is, with a count.
+- A **!** means something finished with a problem you haven't looked at.
+- When nothing is going on, it's quiet.
+
+Press it to open the **Activity** panel, which has two tabs: **Now** and **History**.
+
+## Who sees it
+
+Open **Settings → Activity**.
+
+**On this account**, anyone who's offered the button can turn off **Show the activity button**. That only changes what you see, and the work carries on either way.
+
+**On this server**, administrators choose for everyone:
+
+| Setting | What it does | Default |
+|---|---|---|
+| **Activity button** | Off hides it from everyone, administrators too. Background work carries on, and is still in the log | On |
+| **Who else can see it** | **Only administrators**, **Adult profiles too**, or **Everyone, including kids and guests** | Only administrators |
+
+Press **Save** to apply them.
+
+Anyone who isn't an administrator gets a read-only view, and sees less:
+
+| | Administrator | Anyone else allowed |
+|---|---|---|
+| **Which tasks** | All | Those on libraries they can see, their own, and general ones. Never backups, repairs, module work or other admin-only work |
+| **File names and paths** | Yes | No |
+| **Who started it** | Yes | Only if it was them |
+| **The words of an error** | Yes | No, because these often hold paths. They get a general sentence, and how many problems there were |
+| **Pause, Resume, Cancel, Try again, clearing the history** | Yes | No |
+
+## What's going on now
+
+The **Now** tab groups work by library, with the server's own work after that, under **This server**. Each task shows:
+
+- what it is, who started it and when;
+- how far along it is, its speed and about how long is left, when that's known;
+- which stage it's at, and what it's working on now;
+- how many problems it has met. Open that to read them. The first 50 are kept here, and **Settings → WittyLog** has the rest.
+
+If the panel says **Reconnecting to the server**, what you're looking at may be out of date.
+
+## Pausing and cancelling
+
+Only tasks that can stop safely offer these buttons, so not every task has both.
+
+- **Pause** and **Resume** are offered on library scans, finding suggested matches, finding out about games, and library transcoding.
+- **Cancel** is offered on library scans, backups and restores, repairs, WittyDiagnoser checks, finding suggested matches, streaming listings, library transcoding, and finding channels on a tuner.
+
+Both take effect when the job next reaches a point where it can stop, which is usually within a moment. A task says **Pausing…** until then. Pausing a scan of anything but games waits until the scan has finished walking through the folders.
+
+A cancelled scan can be run again, and picks up where it stopped: files it has already seen, unchanged, take almost no time.
+
+Modules' own tasks show here too, but they don't offer **Pause** or **Cancel**.
+
+## History
+
+The **History** tab lists what has finished, newest first, with how long it took and what came of it. **All** and **Failed** choose what's listed, and **Show more** goes further back.
+
+- Anything that failed says what happened and what to do. **Technical details** has the error as it came.
+- **Try again**, or **Scan again** on a scan, starts it again, where that's possible.
+- The bin button removes one task from the list, and **Clear history** removes them all. **Settings → WittyLog** keeps its own record either way.
+- Work that was running when the server stopped shows as failed, saying so.
+
+Under **Settings → Activity**, **Keep at most** (10 to 5,000 tasks, 500 by default) and **For no longer than** (1 to 365 days, 30 by default) limit how much is kept. When either limit is reached, the oldest goes first.
+
+## What doesn't show here
+
+- Thumbnails and intro detection have no tasks of their own yet.
+- A game scan's bar starts again between its stages, because each stage counts on its own.
+- Some small jobs that wake up and find nothing to do leave no trace.
+
+## For developers
+
+Everything the server does in the background goes through one registry, `internal/tasks`. The activity button reads it, and so can WittyStats, the native apps and anything else with the API below.
+
+### Reporting a task from the server
+
+Every server job gets the registry as `s.Tasks` (or a `Tasks` field on its service). A nil registry and a nil handle both do nothing, so a job and its tests never have to check.
 
 ```go
 ctx, cancel := context.WithCancel(context.Background())
@@ -66,8 +146,7 @@ Calling these often is fine: see [what it costs](#what-it-costs). Report as you 
 | `NoHistory` | Left out of the history. For things that come and go constantly |
 | `Quiet` | Dropped when it ends having done nothing, with nothing wrong: a service that woke up and found no work |
 
-**Retry.** Say once how to start a kind of task again. It works from the history too, even after a restart, so it
-can only use what's in `RetryKey`:
+**Retry.** Say once how to start a kind of task again. It works from the history too, even after a restart, so it can only use what's in `RetryKey`:
 
 ```go
 s.Tasks.OnRetry(tasks.TypeBackup, func(old tasks.Task, by tasks.By) error {
@@ -75,14 +154,11 @@ s.Tasks.OnRetry(tasks.TypeBackup, func(old tasks.Task, by tasks.By) error {
 })
 ```
 
-**After a restart.** A task that was going when the server stopped shows in the history as failed, saying so.
-
 **Games.** A scan of a games library reports as `scan`, with phases for working out what each file is, listing the games and putting versions together, and says what it found and how many files need a look. Finding out about them is one `games` task, *Finding out about games*, which can be paused: names from the local list first, then online sources and box art. Neither holds a file path where anyone without admin rights can read it.
 
-**Kinds of task.** `scan`, `analysis`, `metadata`, `thumbnails`, `intros`, `games`, `module`, `backup`, `transcode`, `convert` (library transcoding), `tdarr`,
-`update`, `guide`, `recording`, `diagnose`, `other`. A new kind needs nothing but its name.
+**Kinds of task.** `scan`, `analysis`, `metadata`, `thumbnails`, `intros`, `games`, `module`, `backup`, `transcode`, `convert` (library transcoding), `tdarr`, `update`, `guide`, `recording`, `diagnose`, `other`. A new kind needs nothing but its name.
 
-## Reporting a task from a module
+### Reporting a task from a module
 
 A helper calls `wittymodule.ReportTask` (module API 3), and the task shows beside the server's own:
 
@@ -92,40 +168,29 @@ wittymodule.ReportTask(wittymodule.TaskReport{Key: "reindex", Title: "Reindexing
 
 A helper may be someone's fork, so the server believes it only about itself:
 
-- Every report goes through `TaskReport.Validate`. A task's name is `<module id>/<key>`, with the id from the
-  manifest and never from what the helper says, so a module can't touch another's tasks.
+- Every report goes through `TaskReport.Validate`. A task's name is `<module id>/<key>`, with the id from the manifest and never from what the helper says, so a module can't touch another's tasks.
 - Each module can have 16 tasks going, and each task's reports apply at most 4 times a second, keeping the latest.
 - Module tasks are for admins only, and offer no Pause or Cancel.
 - When the process stops, whatever it left going ends: failed if the process failed, and otherwise cancelled.
 
-Most helpers are stopped after a minute idle and report only during a call. Long work needs a process that stays
-running and never streams (`keep` and `background` on its `proc`). Don't start a process just to report.
+Most helpers are stopped after a minute idle and report only during a call. Long work needs a process that stays running and never streams (`keep` and `background` on its `proc`). Don't start a process just to report.
 
-## Who sees what
-
-Two settings, in **Settings, Activity**, and each person's own choice:
-
-| Setting | Values | Default |
-|---|---|---|
-| `activityEnabled` | `1` on, `0` off for everyone. The owner's switch | `1` |
-| `activityViewers` | Who gets the read-only view besides admins: `admins`, `adults`, `everyone` | `admins` |
-| `activityKeepCount`, `activityKeepDays` | How much history is kept, at most | `500`, `30` |
-| `activityHidden` in `/me/ui` | This person has hidden the button for themselves | not set |
+### Settings
 
 The server enforces these, and a client only follows `access` in the answer.
 
-| | Admin | Anyone else allowed to see it |
+| Setting | Values | Default |
 |---|---|---|
-| Tasks | All | Those on libraries they can see, their own private ones, and general ones. Never `AdminOnly` |
-| File names and paths (`item`, `path`) | Yes | **No** |
-| Who started it (`by`, `byId`) | Yes | Only if it was them |
-| The words of an error (`detail`, `fix`, `problems`, `result`) | Yes | **No**: these often hold paths. `error` becomes a general sentence, and the number of problems stays |
-| Pause, Resume, Cancel, Retry, clearing the history | Yes | **No** |
+| `activityEnabled` | `1` on, `0` off for everyone | `1` |
+| `activityViewers` | Who gets the read-only view besides admins: `admins`, `adults`, `everyone` | `admins` |
+| `activityKeepCount`, `activityKeepDays` | How much history is kept, at most | `500`, `30` |
+| `activityHidden` in `/me/ui` | This person has hidden the button for themselves | Not set |
 
-## The API
+Fields a non-admin never gets: `item`, `path`, `detail`, `fix`, `problems`, `result`, and `by` and `byId` unless it was them. `error` becomes a general sentence, and the number of problems stays.
 
-Paths are relative to `/api/v1`. All of it needs a signed-in account. A task's fields are the `Task` schema in
-[openapi.json](openapi.json).
+### The API
+
+Paths are relative to `/api/v1`. All of it needs a signed-in account. A task's fields are the `Task` schema in `docs/openapi.json`.
 
 | Route | Who | What |
 |---|---|---|
@@ -136,11 +201,7 @@ Paths are relative to `/api/v1`. All of it needs a signed-in account. A task's f
 | `POST /system/tasks/{id}/pause`, `/resume`, `/cancel` | admin | 404 if it has finished, 409 if this task can't do that. Offered by `canPause`, `canResume`, `canCancel` |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again, under a new id. Offered by `canRetry` |
 
-**States.** `queued`, `running`, `paused`, then one of `done`, `failed` or `cancelled`. Pausing and cancelling take effect
-when the job next checks, usually within a moment, so wait for the state to change rather than assuming it. Between asking and
-stopping, a task is `running` with `canResume` true: show that as pausing. A cancelled
-library scan can be retried, and it picks up where it stopped because files it has already seen, unchanged, take almost
-no time.
+**States.** `queued`, `running`, `paused`, then one of `done`, `failed` or `cancelled`. Pausing and cancelling take effect when the job next checks, usually within a moment, so wait for the state to change rather than assuming it. Between asking and stopping, a task is `running` with `canResume` true: show that as pausing.
 
 **The stream.** Send the token in a header. `EventSource` can't, so a browser or an app reads the response body as it arrives:
 
@@ -157,18 +218,16 @@ data: {"tasks":[{"id":"...","state":"running","done":10,"total":40,...}],"gone":
 : still here
 ```
 
-- `snapshot` comes first and holds everything. Each `update` holds the tasks that changed, whole, including ones that just
-  finished. Replace by `id`. Drop any listed in `gone`, and move finished ones from your current list to your history.
-- Updates come at most twice a second, and not at all when nothing is changing. A comment line every 25 seconds keeps
-  the connection open, so treat 60 seconds of silence as a lost connection.
+- `snapshot` comes first and holds everything. Each `update` holds the tasks that changed, whole, including ones that just finished. Replace by `id`. Drop any listed in `gone`, and move finished ones from your current list to your history.
+- Updates come at most twice a second, and not at all when nothing is changing. A comment line every 25 seconds keeps the connection open, so treat 60 seconds of silence as a lost connection.
 - On losing it, connect again with a growing wait. The new `snapshot` replaces all you had, so nothing needs replaying.
-- **Close it when you aren't showing it.** A stream is one of the few connections a browser allows per server, and the
-  web app closes its own whenever its tab is hidden. Signing out, losing access or the owner turning this off ends it.
+- **Close it when you aren't showing it.** A stream is one of the few connections a browser allows per server, and the web app closes its own whenever its tab is hidden. Signing out, losing access or the owner turning this off ends it.
 - At most 16 streams per account (429 past that).
 
-## What it costs
+### What it costs
 
-With nobody watching, reporting takes a short lock and sets a few fields: no timer, no goroutine and no copying
-(`BenchmarkProgressNobodyWatching`). With someone watching, one goroutine sends what changed at most twice a second,
-however often jobs report, and a slow watcher gets the latest state rather than a backlog. History rows are written by a
-goroutine that exists only while there's something to write, because a job may be holding the database when it reports.
+With nobody watching, reporting takes a short lock and sets a few fields: no timer, no goroutine and no copying (`BenchmarkProgressNobodyWatching`). With someone watching, one goroutine sends what changed at most twice a second, however often jobs report, and a slow watcher gets the latest state rather than a backlog. History rows are written by a goroutine that exists only while there's something to write, because a job may be holding the database when it reports.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

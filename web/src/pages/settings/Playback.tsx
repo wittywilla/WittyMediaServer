@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { HelpLink } from '../../components/HelpLink'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { LoadError } from '../../components/common'
@@ -81,7 +82,7 @@ function BDJRows({ s, set, dirty }: { s: Record<string, string>; set: (k: string
   useEffect(() => { if (!dirty) api.get<{ version?: string; path?: string; error?: string; configured?: boolean }>('/bdj/status').then(setStatus).catch(() => setStatus(null)) }, [dirty])
   return (
     <>
-      <Row label="Run Blu-ray Java menus (BD-J)" desc={<>Many commercial Blu-rays write their menus in Java. To show them, install any Java 8 or newer on this server, for example Eclipse Temurin, a free OpenJDK build. It isn’t included. A disc’s Java code runs in its own process with no network and no access to your files outside the disc, but it’s still code from the disc, so this is off until you turn it on. With it off, these discs play their main feature directly.{status && <><br />{status.version ? `Java ${status.version} found: ${status.path}` : status.error ? `Java not usable: ${status.error}` : `Java found: ${status.path}. It’s tried when this is on.`}</>}</>}>
+      <Row label="Run Blu-ray Java menus (BD-J)" desc={<>Many commercial Blu-rays write their menus in Java (<HelpLink to="bluray#bd-j-java-menus">more about this</HelpLink>). To show them, install any Java 8 or newer on this server, for example Eclipse Temurin, a free OpenJDK build. It isn’t included. A disc’s Java code runs in its own process with no network and no access to your files outside the disc, but it’s still code from the disc, so this is off until you turn it on. With it off, these discs play their main feature directly.{status && <><br />{status.version ? `Java ${status.version} found: ${status.path}` : status.error ? `Java not usable: ${status.error}` : `Java found: ${status.path}. It’s tried when this is on.`}</>}</>}>
         <Switch label="Run Blu-ray Java menus" checked={s.bdjEnabled === '1'} onChange={(v) => set('bdjEnabled', v ? '1' : '0')} />
       </Row>
       <Row label="Java location" desc={<>{status?.configured ? 'Named in the server’s config file.' : 'Found by itself.'} To use another Java, name its folder as <code>javaPath</code> in the server’s config file, or with <code>WMS_JAVA</code>. It can’t be changed from here, so that a web account can’t choose what the server runs.</>} stack>

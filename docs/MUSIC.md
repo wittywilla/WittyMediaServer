@@ -1,245 +1,259 @@
 # Music, audiobooks and podcasts
 
-Add a library of type **Music** or **Audiobooks** in *Settings → Libraries* (or in the setup
-wizard) and point it at your folders.
+Use this guide to set up your music, audiobooks and podcasts, and to get the most from the player: the queue, stations, the full-screen player, the visualizer, sound settings and audio CDs.
 
-- [Folder layout](#folder-layout)
-- [What is read from your files](#what-is-read-from-your-files)
-- [The music pages](#the-music-pages)
-- [Playing](#playing)
+- [Setting up a library](#setting-up-a-library)
+- [What's read from your files](#whats-read-from-your-files)
+- [Finding your music](#finding-your-music)
+- [Playing and the queue](#playing-and-the-queue)
 - [The full-screen player](#the-full-screen-player)
 - [Lyrics](#lyrics)
-- [Karaoke](#karaoke)
 - [Visualizer](#visualizer)
 - [Sound](#sound)
-- [Formats](#formats)
-- [CD images](#cd-images)
+- [Audiobooks](#audiobooks)
 - [Podcasts](#podcasts)
+- [Internet radio](#internet-radio)
+- [Audio CDs](#audio-cds)
+- [Formats](#formats)
 
-## Folder layout
+This guide describes the web app, which the desktop WittyMediaClient also shows. The Android and Apple apps can't play these libraries yet, so use a browser or the desktop app.
 
-Any layout works as long as the files are tagged. Without tags, folders are used:
+## Setting up a library
+
+1. Go to **Settings → Libraries**, or use first-time setup.
+2. Choose **Music** or **Audiobooks**. If Music is listed under **Add a module to use these**, press **Add WittyCD** first.
+3. Choose your folders, then add the library.
+
+Any layout works when your files are tagged. Without tags, the folders are used:
 
 ```
 Music/
-  Some Artist/An Album/01 First Song.mp3       artist / album / "track title"
-  Some Artist - An Album/01 First Song.mp3     album folder only (artist from the tags)
+  Some Artist/An Album/01 First Song.mp3      artist, album, track and title
+  Some Artist - An Album/01 First Song.mp3    album folder only, artist from the tags
 Audiobooks/
-  Jane Author/A Short Book/01 Chapter 1.m4b   author / book / chapter
+  Jane Author/A Short Book/01 Chapter 1.m4b   author, book, chapter
   Jane Author/Another Book.m4b                one file per book
 ```
 
-## What is read from your files
+## What's read from your files
 
 | From | Used for |
 |---|---|
-| Tags (ID3, Vorbis comments, MP4 atoms…) | title, artist, album, album artist, track and disc number, year, genre, comment |
-| `cover.jpg`, `folder.jpg`, `front.jpg`, `AlbumArt*.jpg` in the folder | the album cover (the largest one wins) |
-| Picture embedded in the file | the cover when the folder has none (extracted once per album) |
-| File and folder names | title, track number, album and artist when tags are missing |
-| `<song>.lrc` or `<song>.txt` beside a song | its lyrics |
-| Lyrics in the tags (ID3 `USLT` and `SYLT`, Vorbis, MP4) | its lyrics, when there's no file beside it |
-| `replaygain_*` or `R128_*` tags | volume leveling, if you turn it on |
-| `artist.jpg` (or `.png`, `.webp`) in the artist's or the album's folder | the artist's photo |
+| Tags (ID3, Vorbis comments, MP4) | Title, artist, album, album artist, track and disc number, year, genre, comment |
+| A picture named `cover`, `folder`, `front`, `album`, `poster`, `artwork` or `albumart…` in the folder | The album cover. The largest one wins |
+| A picture inside the file | The cover, when the folder has none |
+| File and folder names | Title, track number, album and artist, when tags are missing |
+| `<song>.lrc` or `<song>.txt` beside a song, and lyrics in its tags | Its [lyrics](LYRICS-KARAOKE.md) |
+| `replaygain_*` or `R128_*` tags | [Volume leveling](#sound), if you turn it on |
+| `artist.jpg` (or `.jpeg`, `.png`, `.webp`) in the artist's or album's folder | The artist's photo |
 | PDFs and text files in the album's folder | **Read** in the full-screen player |
+| M3U, PLS, XSPF and Windows Media playlists | [Collections](COLLECTIONS.md#collections-and-smart-playlists) of the songs they name that are in the library |
 
 Nothing is written into your music folders.
 
-**Audiobooks** use the *album* tag (or the folder) as the book and the *artist* (or the parent
-folder) as the author. Each file is a chapter.
+### Artist biographies and photos
 
-## The music pages
+An artist's page can show the opening of their Wikipedia article and its picture. This is off until you agree, in first-time setup or under **Settings → Metadata agents**, in **Lyrics and music information**: turn on **Artist biographies and photos**.
 
-A music library opens on its front page: a row of covers to flip through, with your most played at the front, then
-**Artists**, **Albums** and **Songs**, each with **See all**. Colours behind them come from the artwork.
+When it's on, your server sends Wikipedia an artist's name when someone views that artist, and nothing else. It's the article with that name, which may not always be the right person. An `artist.jpg` in their folder is always used first.
 
-- **Play my music** shuffles the whole library.
-- **Albums** sort by title, artist, year, date added or most played, either way round, and filter by genre.
-- **Songs** have views for **Liked**, **Most played**, **Played lately** and **Newest**, with search, genre and sorting.
-- **Artists** have a page of their own, with their songs and discography, and singles and EPs apart.
-- An album with more than one disc is divided by disc, and other versions of it are offered below (Deluxe, Remaster).
-- **Playlists** are [collections](COLLECTIONS.md), so a smart playlist made there is here too.
-- Any song's **⋯** menu has Play next, Add to the queue, Like, Start a station and Add to a playlist.
-- **Station** makes a queue from one song, using only your library: the same artist, genre and era, leaving out what you've disliked.
+## Finding your music
 
-Audiobooks and podcasts have the same front page, with **Continue listening**.
+A music library opens on **Home**: a row of covers to flip through, with what you've played most at the front, then **Artists**, **Albums**, **Songs** and **Played lately**. Colours behind them come from the artwork. **Play my music** shuffles up to 500 songs from the library.
 
-## Playing
+| Tab | What you can do |
+|---|---|
+| **Albums** | Sort by title, artist, year, recently added or most played, either way round. Filter by genre |
+| **Artists** | Sort by name or most albums, and find one by name |
+| **Songs** | Choose **All songs**, **Liked**, **Most played**, **Played lately** or **Newest**. Search, sort, filter by genre, and press **Play** or **Shuffle** |
+| **Playlists** | The same four lists ready to play, and your own playlists |
 
-The bar floats along the bottom while you browse, and the page leaves room for it so it never hides anything. Its arrow
-collapses it to a small button in the corner. On a phone it's art, title, play and next, above the tab bar.
+**An album's page** has **Play**, **Shuffle**, **Station**, **Play next**, **Add to queue** and **Like all**. An album on more than one disc is divided by disc. Below the tracks are **Other versions** of it, such as a deluxe or remastered release, and **More by** that artist.
 
-**What's playing comes back after a reload,** stopped where it was, with the queue, shuffle and repeat as they were. It's kept on
-that device for each person, for 30 days, and nothing is fetched until you press play. Stop and close forgets it.
+**An artist's page** has their most played songs, their **Discography** newest first or by title, and **Singles and EPs** apart, meaning anything with fewer than seven tracks.
 
-- **Music**: Play, Shuffle, Add to queue, repeat one/all. Shuffle really reorders the queue, so what's shown is what will play.
-- **Audiobooks and podcasts**: they continue where you stopped (on every device), **speed** from 0.75× to 3× with the voice
-  pitch kept, **back 15 s / forward 30 s**, and a **sleep timer**.
+**Any song's** menu has **Play next**, **Add to the queue**, **Like**, **Start a station from this**, **Add to a playlist…**, **Go to artist** and **Go to album**.
+
+**Playlists are collections,** so one made here is on the Collections page too, and a smart playlist made there is listed here. See [Collections](COLLECTIONS.md#collections-and-smart-playlists).
+
+## Playing and the queue
+
+The bar floats along the bottom while you browse, and the page leaves room for it. Its arrow collapses it to a small button in the corner. On a phone it shows the art, title, play and next, above the tab bar.
+
+**What's playing comes back after a reload,** stopped where it was, with the queue, shuffle and repeat as they were. It's kept on that device for each person, for 30 days, and nothing is fetched until you press play. **Stop and close** forgets it.
+
+- **Shuffle** really reorders the queue, so what's shown is what will play.
+- **Repeat** goes from off, to all, to this song.
 - Lock screens, headphone buttons and keyboard media keys control playback, with artwork and a progress bar on the lock screen.
+- A video or game takes over the speakers, so it pauses the music.
+
+**The queue** opens from its button in the bar or the full player, or with **Q**. It can change as it plays:
+
+- Drag a row, or use its up, down and remove buttons from a keyboard or remote.
+- Press a row to jump to it.
+- **Save the queue as a playlist** keeps it.
+- **Clear what's to come** leaves only the song playing.
+
+**A station** makes a queue from one song using only your library: the same artist, the same genre and songs from about the same time, with some chance mixed in, leaving out anything you've disliked. Start one from **Station** on an album or artist, from a song's menu, or from **More** in the full player. Nothing online is asked. A small library may not have enough to make one, and it says so.
 
 ## The full-screen player
 
-Press the artwork or **Full screen** in the bar. **F** then fills the whole screen. It's the same for music, audiobooks,
-podcasts and radio, with what doesn't apply left out.
+Press the artwork or title in the bar, or **Full screen**. **F** then fills the whole screen. It's the same for music, audiobooks, podcasts and radio, with what doesn't apply left out.
 
-**Keys:** Esc close, Space play or pause, ← → previous or next, L lyrics, K karaoke, Q queue, V visualizer, S shuffle,
-R repeat, M mute, F fill the screen, `,` and `.` back and forward 10 seconds. Up or Down moves onto the controls, and arrows then move between them,
-so a remote or a controller reaches everything.
+**Top row:** close, volume, add to a playlist, sleep timer, queue, like, fill the screen, and **More**. **More** has **Sound: equaliser and more**, **Start a station from this song**, **Go to album**, **Go to artist** and **Stop and close**.
 
-**Top row:** volume, add to a playlist, sleep timer, queue, like, fill the screen, and **⋯** for sound settings, a station, and the
-album and artist.
+**Below the controls:** **Visualizer** and its styles, **Lyrics**, **Karaoke**, **Read** and playback speed.
 
-**The queue** can be edited as it plays: drag a row, or use its buttons from a keyboard or remote. Save it as a playlist, or clear
-what's to come.
+**Read** shows the words at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
 
-**Read** shows the words at your own pace, and any PDF or text file in the album's folder.
+**The sleep timer** stops playing in 15, 30, 45, 60 or 90 minutes, or **After this song**.
+
+| Key | What it does |
+|---|---|
+| Esc | Close the panel, then the player |
+| Space | Play or pause |
+| ← → | Previous or next |
+| L | Lyrics |
+| K | Karaoke |
+| Q | Queue |
+| V | Visualizer on or off |
+| S | Shuffle |
+| R | Repeat |
+| M | Mute |
+| F | Fill the screen |
+| `,` `.` | Back or forward 10 seconds |
+| `<` `>` | Slower or faster |
+
+Up, Down or OK moves onto the controls, and arrows then move between them, so a remote or a controller reaches everything.
 
 ## Lyrics
 
-**Lyrics** (or L) follow the music: the line being sung stays in the middle, and pressing any line goes to it. Words without
-times read as plain text.
-
-They're looked for in this order:
-
-1. A correction made on this server.
-2. `<song>.lrc` or `<song>.txt` beside the song.
-3. The song's own tags.
-4. Online, **only if the owner has turned it on** in first-time setup or *Settings → Metadata agents*.
-
-**Online sources:**
-
-| Source | Cost | What it's told |
-|---|---|---|
-| [LRCLIB](https://lrclib.net) | Free, with no key or account | The artist, title, album and length of a song, when someone opens its lyrics |
-| Your own LRCLIB server | Free | The same, and it stays on your network |
-| [Musixmatch](https://developer.musixmatch.com) | Your own key; lyrics need a paid plan | The artist, title and length |
-
-Never a file name, or who's listening. Answers are kept in the server's cache folder, so they don't go into backups of its data,
-and aren't passed on to anyone. *Forget them* in Settings clears them. The words belong to their writers.
-
-**If the timing is off:**
-
-- **Sooner** and **Later** under the lyrics move them for you alone, and the setting stays with that song.
-- An admin can press **Fix** to correct them for everyone: choose another version, paste or edit them, or use **Tap along**, which plays
-  the song from the start while you press as each line begins. None of this writes anything beside your music.
-
-A `.lrc` file is plain text, with word timing if you want it:
-
-```
-[00:12.50]A line, with the time it starts
-[00:16.00]<00:16.00> Each <00:16.40> word <00:16.90> timed
-```
-
-## Karaoke
-
-**Karaoke** (or K) is a big display for singing: words that fill in as they're sung, a three-second count before a line after a break,
-and the next line waiting below. It needs timed lyrics, and without timing it says so.
-
-- **Voice lower** and **Voice lowest** turn the singer down. **This has limits.** It works by removing what's in the middle of the stereo mix,
-  which is where most singers are. Echoes of the voice remain, songs that spread the voice wide keep more of it, and anything else in the
-  middle (often a snare or a solo) goes down with it. Bass is kept. A mono recording has nothing to separate, and the screen says so.
-- **Key** moves the music up to six semitones either way, for the singer, without changing the speed. Long held notes can warble a little at large
-  shifts. Both go back to normal when you leave.
-- **Words** moves the timing if it's slightly off.
-- The fill across a line is exact for lyrics with word timing, and otherwise an estimate from the line's length. It says which.
-
-**Keys:** Esc leave, Space play or pause, ← → previous or next line, V voice, − + key, `[` `]` timing, F fill the screen.
-Up or Down moves onto the controls for a remote.
+Lyrics follow the music in the full-screen player, and karaoke is one press from there. How they're found, what goes online and when, and how to add or fix them is in [Lyrics and karaoke](LYRICS-KARAOKE.md).
 
 ## Visualizer
 
-**In the full-screen player the visualizer is on by default**, behind the artwork, with the big **Visualizer** button (or V) to turn it off.
+The visualizer draws moving shapes from the music behind the artwork in the full-screen player. It's on by default there, and **Visualizer** or **V** turns it off. It's part of the **WittyVisualizer** module: if its buttons aren't there, an admin can add it in **Settings → Modules**. **V** also opens it from anywhere the bar is showing.
 
-- **Bars, Waves and Drift** are soft shapes drawn from the music in the artwork's colour. They don't flash, so they need no warning.
-- **More** has every effect from [WittyVisualizer](https://github.com/wittywilla/WittyVisualizer). The notice about flashing comes first, the first time.
+- **Bars, Waves and Drift** are soft shapes in the artwork's colour. They don't flash, so they come with no warning.
+- **More** has every other effect WittyVisualizer offers. A notice about flashing comes first, once, with the choice of calm mode. Choose **Not now** and it goes back to Bars.
+- **Effect settings and your own effects…**, at the end of **More**, opens the full view, with its settings.
 - **Slow** is a slower, gentler pace for whichever one is showing. Devices set to reduce motion start that way.
-- **It never changes by itself unless you ask.** To have it change, choose an interval under the shuffle button: every 15 seconds up to every 10 minutes,
-  among Bars, Waves and Drift, or among every effect.
-- It's one canvas, and it stops when the page is hidden.
+- **It never changes by itself unless you ask.** To have it change, press the shuffle button beside **Slow** and choose how often, from every 15 seconds to every 10 minutes. Then choose **Bars, Waves and Drift** or **Every effect**. Every effect only includes the others once you've read the notice, and with **Slow** on it keeps to the gentle ones.
 
-If the sound can't be read (a server on a different address, or an iPhone, which offers no way to do it that survives a locked screen), the shapes
-move slowly on their own, not in time with anything, and that's all they are pretending to do.
+Your choices are kept with your account, so they follow you between devices.
+
+If the sound can't be read, the shapes move slowly on their own and aren't following the music. This happens when the server is on a different address from the page, and on iPhones and iPads.
+
+The CD player has its own **Visualizer** button, which shows WittyVisualizer's effects.
 
 ## Sound
 
-Under **⋯ → Sound**, kept on each device, because speakers differ:
+Open **More → Sound: equaliser and more** in the full player. These settings are kept on each device, because speakers differ.
 
-- **No gaps** starts the next song right as this one ends. How close it gets depends on the file: formats like MP3 have a little silence built in at each end.
-- **Crossfade** from 2 to 12 seconds. Songs of the same album aren't crossed unless you say, as they're often meant to run together.
-- **ReplayGain** levels volume using tags in your files. Songs without tags play as they are.
-- **Equaliser**: ten bands, presets, and an overall level.
+- **No gaps** starts the next song right as this one ends, and is on by default. How close it gets depends on the file, as formats like MP3 have a little silence built in at each end.
+- **Crossfade** runs from 2 to 12 seconds. Songs of the same album aren't crossed unless you tick **Also within an album**, as they're often meant to run together.
+- **ReplayGain** levels the volume using tags in your files: **Each song the same** or **Keep each album's balance**. Songs without those tags play as they are. Tools such as MusicBrainz Picard can add them.
+- **Equaliser** has ten bands, presets and an overall level. If boosting makes loud parts crackle, lower the overall level a little.
 
-On iPhones and iPads, the equaliser and leveling stop when the screen locks, because those devices stop this kind of audio then. Playing without them keeps going.
-With a server on a different address from the page, the browser doesn't allow them at all, and the panel says so.
+No gaps and crossfade work for files sent as they are. Formats converted while playing follow their own rules, and so do CD images.
 
-## Formats
+These limits are worth knowing:
 
-MP3, AAC/M4A, FLAC, Opus, Ogg Vorbis and WAV are sent to the browser as they are (instant
-seeking, no server work). ALAC, WMA, APE, WavPack, AIFF, DSD and others are converted to AAC
-while playing — a light job even for small servers.
+- On iPhones and iPads, the equaliser and leveling stop when the screen locks, and playing without them keeps going. This hasn't been run on a real iPhone or iPad yet.
+- With a server on a different address from the page, the browser doesn't allow them at all, and the panel says so.
 
-## CD images
+## Audiobooks
 
-Keep images of your audio CDs in a **Music** library and they become albums, with their tracks in the Songs list and
-search like any others. Keep them in a **Discs** library (**DVDs, Blu-rays & CDs**) and they sit on the shelf with your
-other discs. Either way they play in the CD player, a window in the spirit of the desktop players of the early 2000s: the disc
-goes in, spins behind a window on a dark stage, and a lit display shows the track, index and time beside the list of tracks.
-Press the time to change what it shows. **Visualizer** (or V) puts the light shows on the stage instead of the disc.
+A library of the kind **Audiobooks** uses the *album* tag (or the folder) as the book, and the *artist* (or the parent folder) as the author. Each file is a chapter. Its tabs are **Home**, **Books** and **Authors**.
 
-**Which should I use?** Music, unless you want your CDs on the same shelf as your films. An album from a CD works like
-every other album, and pressing **Insert disc** brings up the player.
+- **Your place is saved** every 15 seconds while you listen, for your account, so you can carry on from any device. **Continue listening** on the home page, and **Continue** on a book's page, take you back.
+- **Back 15 seconds** and **Forward 30 seconds** replace shuffle and repeat.
+- **Speed** runs from 0.75× to 3× with the voice pitch kept, up to the fastest speed the server allows. Each kind of listening keeps its own speed on that device, so 1.5× for a book doesn't carry over to your next album.
+- **The sleep timer** can also stop **At the end of this chapter**.
 
-**Formats:** `.cue` with `.bin`, `.wav`, `.aiff` or one `.flac`; `.toc`; `.ccd` with `.img`; `.nrg`; `.chd`; and a bare `.iso`,
-`.img` or `.bin` that is really audio, which plays as one long track as nothing says where the others begin. A sheet beside
-already tagged per-track files, or files in formats such as MP3, is left alone, and those stay ordinary songs.
-
-**Better than the real thing:**
-
-- **No gaps, ever.** The whole disc is sent as one continuous stream, so a live album or a segued record plays exactly as
-  it was laid out, pregaps included. The display counts down through a pregap, as a good player does.
-- **Lossless,** as FLAC, or as compressed AAC if a connection can't keep up: that switch is automatic, and can be set by hand
-  under *About this disc*. Limits for people away from home apply as usual.
-- **Your place on the disc** is kept for each person, on every device.
-- **Repeat one or all, shuffle, and your own program,** all without a join between repeats.
-- **Hidden tracks:** press Previous at the start of track 1 to rewind into audio hidden before it, or pick it from the list.
-- **Pre-emphasis,** a treble boost on some early CDs, is corrected as a good player would.
-- **Index points** and **CD+G** karaoke pictures, from a `.cdg` file beside the image.
-- The music keeps playing while you browse, in the bar along the bottom, with lock screen and media key controls.
-
-**Names and covers.** A disc's own text comes first (CD-TEXT or the sheet), then its folder and file names. Each new disc is
-also looked up on MusicBrainz, using only its table of contents: see [Metadata](METADATA.md#audio-cds). A cover beside the
-image always wins. If several albums match, the disc keeps its own names and offers a **Choose from N matches** button.
-
-**Keys:** Space play or pause, N and P next and previous, J and L back and forward 10 seconds, S stop, R repeat, H shuffle,
-V visualizer, E eject. Remotes and controllers move around the deck as they do everywhere else.
-
-**A damaged image** plays as far as it goes, and says so. To find out what is wrong with one:
-
-```bash
-wittymediaserver cd check "Album.cue"
-```
-
-**Copy protection:** plain CD audio doesn't have any. An image whose audio is scrambled sounds like noise and is reported as
-such, and nothing in this project unscrambles it. DTS surround discs are reported too.
+Lyrics, karaoke and online lyrics are for music libraries only.
 
 ## Podcasts
 
-Add a library of type **Podcasts** (a folder is optional: it is only used for downloads), open
-it and press **Add podcast**: search by name (results from the Apple Podcasts directory) or
-paste a feed address. New episodes are picked up every 2 hours, or with **Check for new
-episodes** on the podcast's page.
+1. Add a library of the kind **Podcasts**. A folder is optional: it holds episode files you already have, and it's where downloads are saved.
+2. Choose **Add, then follow shows**, or **Follow a podcast** on the library's page later.
+3. Search the directory by name, or switch to **RSS feed address** and paste the show's feed. Private and members-only feeds work too.
 
-- Episodes play **through your server**: your devices never contact the podcast's host, and
-  old `http://` feeds work on secure pages. Seeking works as usual.
-- **Download** keeps an episode in the library folder (`<folder>/<podcast>/<date> <title>.mp3`);
-  **Keep downloaded: newest N** does it automatically.
-- **Unfollow** removes the episodes that were not downloaded; downloaded files stay.
+Only admins can follow shows or download episodes. Everyone with access to the library can listen.
+
+- New episodes are picked up every 2 hours, or with **Check for new episodes** on the show's page.
+- Episodes play through your server, so your devices never contact the podcast's host, and seeking works as usual. Old `http://` feeds work on secure pages.
+- **Download** keeps one episode in the library's first folder, as `<podcast>/<date> <title>`. **Keep downloaded** does it automatically for the newest 1, 3, 5, 10 or 25.
+- **Unfollow** removes the episodes that weren't downloaded. Downloaded files stay.
 - Episodes marked explicit are rated TV-MA, so Kids and Guest profiles don't see them.
 
-For safety, feeds and episodes are only ever fetched from the internet: the server refuses to
-connect to itself or to devices on your local network on a feed's behalf.
+Search results come from the free Apple Podcasts directory: what an admin types goes there from your server, and the cover pictures in the results load straight from Apple to that person's browser.
+
+For safety, feeds and episodes are only fetched from the internet. The server refuses to connect to itself or to devices on your local network on a feed's behalf.
+
+## Internet radio
+
+A library of the kind **Internet radio** needs no folder. Press **Add stations** on its page, then search a free directory, type a stream address, or add a playlist. Stations play in the same bar and full player, without seeking or speed, and a stream that drops is tried again a few times.
+
+Everything about stations, including what contacts what, is in [Collections, radio and Your year](COLLECTIONS.md#internet-radio).
+
+## Audio CDs
+
+Images of your audio CDs play in a CD player of their own, in the spirit of the desktop players of the early 2000s: the disc spins behind a window, and a lit display shows the track, index and time beside the list of tracks. This needs the **WittyCD** module.
+
+**Which library should you use?**
+
+- **Music,** unless you want your CDs on the same shelf as your films. The image becomes an album, with its tracks in **Songs** and search like any others. Press **Insert disc** on its page to bring up the player.
+- **DVDs, Blu-rays & CDs,** to keep them on the shelf with your other discs.
+
+**Formats:** `.cue` with `.bin`, `.wav`, `.aiff` or one `.flac`; `.toc`; `.ccd` with `.img`; `.nrg`; `.chd`; and a bare `.iso`, `.img` or `.bin` that's really audio, which plays as one long track because nothing says where the others begin. A sheet beside already tagged per-track files, or beside files such as MP3, is left alone, and those stay ordinary songs.
+
+### What the player does
+
+- **No gaps.** The whole disc goes as one continuous stream, so a live album plays as it was laid out, pregaps included. The display counts down through a pregap.
+- **Quality.** It sends lossless sound as FLAC or WAV, and moves to compressed AAC if the connection keeps stalling. **About this disc** shows what it's sending and has **Sound quality**: **Automatic**, **Always lossless** or **Always compressed**. Limits for people away from home apply as usual.
+- **Your place on the disc** is kept for each person, on every device.
+- **Repeat, Shuffle and Program.** **Program** lets you choose your own order with the plus buttons. Neighbouring tracks of the disc play with no gap.
+- **Hidden tracks.** Audio hidden before track 1 is listed as **Hidden track**. Pressing Previous at the start of track 1 finds it too.
+- **Pre-emphasis,** a treble boost on some early CDs, is corrected, and the display shows **PRE**.
+- **Index points** have **Index −** and **Index +** when a track has them.
+- **CD+G pictures** show from a `.cdg` file beside the image, and **Pictures** turns them off.
+- **The time display** changes between elapsed, remaining and disc left when you press it.
+- **The music keeps playing** in the bar along the bottom when you leave the page.
+
+Lyrics and karaoke aren't part of the CD player. Tracks can't have them while a disc is playing.
+
+### Names and covers
+
+A disc's own text comes first (CD-TEXT or the sheet), then its folder and file names. Each new disc is also looked up on MusicBrainz, using only its table of contents: see [Metadata](METADATA.md#audio-cds). A cover beside the image always wins.
+
+An admin can press **Find this album** or **Change album**. If several albums match, the disc keeps its own names and offers **Choose from N matches**.
+
+### Keys
+
+| Key | What it does |
+|---|---|
+| Space or K | Play or pause |
+| N, P | Next or previous track |
+| J, L | Back or forward 10 seconds |
+| S | Stop |
+| R | Repeat |
+| H | Shuffle |
+| V | Visualizer |
+| E | Eject |
+
+Remotes and controllers move around the deck as they do everywhere else.
+
+### If a disc is damaged or sounds wrong
+
+A damaged image plays as far as it goes, and says so. To find out what's wrong with one, use **Settings → WittyDiagnoser**: see [WittyDiagnoser](DIAGNOSER.md).
+
+Plain CD audio has no copy protection. An image whose audio looks like noise may be damaged, scrambled or copy protected, and the player warns you before playing it. Nothing here unscrambles it, so a clean copy is the way to play it. DTS surround discs are reported the same way, because they'd play as loud noise.
+
+## Formats
+
+MP3, AAC and M4A, FLAC, Opus, Ogg Vorbis and WAV go to the browser as they are, with instant seeking and no work for the server. ALAC, WMA, APE, WavPack, AIFF, DSD and others are converted to AAC while playing. MIDI files are played through the server's own synthesiser. Every format is in [Supported formats](SUPPORTED-FORMATS.md#music-and-audio).
 
 ---
-<sub>WittyMediaServer 0.5.0-alpha documentation</sub>
 
-Every sound format this library takes, and which of them play as they are, is in [Supported formats](SUPPORTED-FORMATS.md).
+<sub>WittyMediaServer documentation</sub>

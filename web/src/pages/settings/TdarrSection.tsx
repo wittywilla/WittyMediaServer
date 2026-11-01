@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { PageHelp } from '../../components/HelpLink'
 import { api } from '../../api'
 import { Button, Field, Input, LoadError, Notice, Select, Spinner, toast } from '../../ui'
 import { Section, Switch } from './ui'
@@ -45,7 +46,7 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
   const dirty = url !== saved.url || key !== '' || enabled !== saved.enabled || JSON.stringify(mappings) !== JSON.stringify(saved.mappings)
   const known = report?.libraries ?? []
   return (
-    <Section title="Connect your own Tdarr" desc="If you already use Tdarr, or want spare computers doing the work, this server can watch it and hand it files. It’s optional: everything above works without it.">
+    <Section title="Connect your own Tdarr" actions={<PageHelp to="tdarr" />} desc="If you already use Tdarr, or want spare computers doing the work, this server can watch it and hand it files. It’s optional: everything above works without it.">
       <Notice title="Tdarr is a separate program, and it isn’t open source.">
         <p>It’s made by other people and comes under its own licence, with free and paid tiers. It isn’t included here, and this server doesn’t install it. You download it from tdarr.io and agree to its terms yourself.</p>
         <p><b>About its nodes.</b> A Tdarr node connects to a Tdarr server, and that connection isn’t documented for anything else to use, so nodes can’t connect directly to this server. Attach them to your Tdarr server as usual, and connect that here: you’ll see them below, and what they’re working on shows in the activity panel.</p>

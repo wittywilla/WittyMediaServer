@@ -1,165 +1,109 @@
-# Gaming: design
+# Games: design
 
-Games sit in libraries next to films and music. You open one in a browser, on any device, and
-play it straight away with whatever controller you have. Saves follow your account. Games run
-on the server and stream to the browser with low latency, through **WittyPlay**
-(**WittyPlay**).
+How games are built and why, for anyone changing them. To play games, see [Games](GAMES.md).
 
-This page explains how it is built and why. It is the reference for anyone changing it.
-[GAMING-API.md](GAMING-API.md) is the API a client uses, including the Apple TV and Android TV apps.
+[The API for clients](GAMING-API.md) is what a client uses, including TV apps. This page is about games the server emulates. Playing on a PC running Sunshine is a different thing beside it: see [Game PCs](GAME-RIGS.md).
 
-Everything here is about games the server emulates. Playing on any PC running Sunshine, through a Moonlight client
-in the page, is a different thing that lives alongside it: see [GAME-RIGS.md](GAME-RIGS.md). A shared PC's games are
-items with `console: rig`, and `POST /games/{id}/play` sends them there.
+## Where the code lives
+
+| Part | Where | What it holds |
+|---|---|---|
+| The module | The **WittyPlay** repository | Console tables, settings, the runner (`host`, `libretro`, `cmd/wittyplay-game-runner`), streaming (`stream`), core installs (`cores`), patches (`patch`), the service (`rpc`, `cmd/wittyplay-module`), the player (`web/`) |
+| Stubs in the server | `internal/play`, `internal/play/stream`, `cores`, `ipc`, `patch` | Written by `kit/facade` in WittyModule from `facade.json` in WittyPlay: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
+| Routes | `internal/server/api_games*.go`, `api_game_options.go`, `api_game_profiles.go`, `game_peers.go` | Sign-in, access rules and saving settings |
+| Scanning | `internal/library/games*.go`, `internal/gameid`, `internal/gamearchive`, `internal/gamemeta`, `internal/gameregion` | What a file is, what a game's called, and unpacking. These stay in the server |
+| Pages | `web/src/pages/Games.tsx`, `pages/games/`, `GameReview.tsx`, `GameMeta.tsx`, `settings/Gaming.tsx`, `settings/GamingCustom.tsx` | The library, a game's page and couch mode. They have to work with the module missing |
+
+A change to what the server calls is two changes in two repositories, and means running the generator again:
+
+```bash
+go run ./kit/facade -config <WittyPlay>/facade.json -module <WittyPlay> -server <this checkout>
+```
+
+Run it from a WittyModule checkout. [Modules](MODULES.md) has the rest of how a service runs and is released.
 
 ## What it has to do
 
 - A Gaming library type, organised by console, with several libraries of one console allowed.
 - Games run through libretro cores and stream to the browser.
-- Every controller: gamepads in any button order, keyboard, on-screen touch controls, remapping by
-  pressing, named profiles, hot-plug, several players.
+- Every controller: gamepads in any button order, keyboard, on-screen touch controls, remapping by pressing, named profiles, hot-plug, several players.
 - Every browser: Chromium, Firefox and Safari, on desktop and phones.
 - Saves and save states per account, and resume where you left off.
-- Runs on low-end servers. Emulators are memory-unsafe code fed untrusted files, so they stay
-  boxed in.
-- WittyMediaServer stays Apache-2.0. No GPL code in its binaries, no non-commercial cores
-  offered, and no ROMs or BIOS files bundled, downloaded or linked.
+- Runs on low-end servers. Emulators are memory-unsafe code fed untrusted files, so they stay boxed in.
+- WittyMediaServer stays Apache-2.0. No GPL code in its binaries, no non-commercial cores offered, and no ROMs or BIOS files bundled, downloaded or linked.
 
 ## The architecture
 
 ```
- Browser                     wittymediaserver (the server)                 wittyplay-game-runner (one per game)
-┌─────────────┐  WebRTC   ┌───────────────────────┐  pipes   ┌──────────────────────────┐
-│ <video>     │◄──────────│ stream.Session        │◄─────────│ libretro frontend        │
-│ gamepad,    │  H.264 or │  ├ pion WebRTC        │  raw     │  ├ loads one core        │
-│ keyboard,   │  VP8 +    │  ├ WebSocket fallback │  frames, │  ├ runs at the core's    │
-│ touch       │  Opus     │  ├ fan-out to viewers │  PCM     │  │  own frame rate       │
-│             │──────────►│  └ saves to disk      │─────────►│  └ sandboxed, no network │
-└─────────────┘  input on │        ▲ │            │  input,  └──────────────────────────┘
-                 a data   │        │ ▼            │  commands
-                 channel  │  ffmpeg (video)       │
-                          │  ffmpeg (audio)       │
-                          └───────────────────────┘
+ Browser              wittymediaserver      wittyplay-module              wittyplay-game-runner
++-----------+         +------------+  HTTP  +-------------------+  pipes  +---------------------+
+| <video>   |  HTTP   | sign-in,   | on     | stream.Session    |<--------| libretro frontend   |
+| gamepad,  |-------->| access,    | 127.   |  pion WebRTC      |  raw    |  loads one core     |
+| keyboard, |         | settings,  | 0.0.1  |  WebSocket        |  frames,|  runs at the core's |
+| touch     |         | scanning   |<------>|  fan-out          |  PCM    |  own frame rate     |
+|           |<--------+------------+        |  saves to disk    |-------->|  sandboxed,         |
++-----------+    WebRTC: H.264 or VP8 + Opus|  ffmpeg (video)   |  input, |  no network         |
+     ^           input on a data channel    |  ffmpeg (audio)   |  orders +---------------------+
+     +--------------------------------------+-------------------+
 ```
 
-Three kinds of process, each doing one job:
+Four kinds of process, each doing one job:
 
-1. **`wittyplay-game-runner`**: our own small libretro frontend, written in Go with no cgo. It loads a
-   core, runs it one frame at a time and writes raw frames and audio to its stdout. It reads
-   input and commands on stdin. It holds no network connection and no database. A crash or an
-   exploited core takes down one game, not the server. Cores print to stdout too, so the runner
-   moves the pipe to a handle of its own before it loads one.
-2. **FFmpeg**: already part of every install. Video and audio each get their own process, so the
-   hardware encoder detection the transcoder uses works here too.
-3. **`wms`**: holds the WebRTC connections and writes save files. It never loads a core.
+1. **`wittymediaserver`** signs people in, checks what they may play, keeps settings and scans libraries. It has no module code compiled in and never loads a core. Its stubs call the service. A WebSocket viewer is passed through to the service's own route, `/ws/{sid}`.
+2. **`wittyplay-module`** is the service: one long-running process, while the server has a use for it, on `127.0.0.1` with a random port and a token made for that start. It holds the games being played, their WebRTC connections and encoders, and writes their save files.
+3. **`wittyplay-game-runner`** is our own small libretro frontend, written in Go with no cgo. One per game. It loads a core, runs it one frame at a time and writes raw frames and audio to its stdout, reading input and commands on stdin. It holds no network connection and no database. A crash or an exploited core takes down one game. Cores print to stdout too, so the runner moves the pipe to a handle of its own before it loads one.
+4. **FFmpeg**, which comes with the server. Video and audio each get their own process, so the hardware encoder detection the transcoder uses works here too.
 
 ### Two runners, one protocol
 
-"The process that runs a game" is called a **runner**, and it's defined by a protocol rather than by a
-program: length-prefixed messages over a pipe (`ipc` in WittyPlay). Two programs can fill that role.
+"The process that runs a game" is called a **runner**, and it's defined by a protocol rather than by a program: length-prefixed messages over a pipe (`ipc` in WittyPlay).
 
-| | `wittyplay-game-runner` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
+| | `wittyplay-game-runner` | WittyRetroArch |
 |---|---|---|
-| What it is | Our own small libretro frontend | RetroArch with a mode that speaks the protocol |
+| What it is | Our own small libretro frontend, built and in use | A fork of RetroArch with a mode that speaks the protocol. **Not built** |
 | Licence | Apache-2.0 | GPLv3, a separate program |
-| Software-rendered cores | Yes | Yes |
-| Hardware-rendered cores (N64, PS2, PSP, Dreamcast, 3DS) | Yes, with OpenGL | Yes |
-| Server with no GPU | Yes, for software-rendered cores | For software-rendered cores |
+| Software-rendered cores | Yes | Would |
+| Hardware-rendered cores | Yes, with OpenGL, on Windows and Linux | Would |
 | Size and upkeep | A few thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
 
-The server uses WittyRetroArch when it finds one, and the built-in runner otherwise. An admin can choose
-in Settings, Consoles & cores.
+No console needs the fork. The server would use it if it found a program named `wittyretroarch` (`gameRunner` in `internal/server/api_games.go`), and **Game runner** in Settings, Consoles & cores can choose. See [WittyRetroArch](WITTYRETROARCH.md).
 
-Unmodified RetroArch can't fill this role: its only way to hand frames to another program is its
-recording feature, which muxes and adds several frames of delay, and it needs a display or careful
-configuration on a headless server. So a fork is what makes it usable here. The built-in runner now does
-what the fork was going to be for, so the fork is no longer needed for any console.
-
-Pipes are also what makes the licences work. **[WITTYRETROARCH.md](WITTYRETROARCH.md) explains how GPL
-code and the Apache binaries stay compatible**, what the fork has to do, and what the protocol is.
-
-Cores are the same files RetroArch uses, and a RetroArch install's cores are found and offered automatically.
+Cores are the same files RetroArch uses, and a RetroArch install's cores are found.
 
 ### Why no cgo
 
-A cgo frontend would need a C toolchain for every platform in the release matrix. We use
-[purego](https://github.com/ebitengine/purego) (Apache-2.0) to open the core and to receive its
-callbacks. It is linked **only** into `wittyplay-game-runner`, because on Linux it changes how the
-runtime starts threads and makes the binary depend on the system's libc. The server stays the
-static binary it has always been.
+A cgo frontend would need a C toolchain for every platform in the release matrix. We use [purego](https://github.com/ebitengine/purego) (Apache-2.0) to open the core and to receive its callbacks. It's linked **only** into `wittyplay-game-runner`, because on Linux it changes how the runtime starts threads and makes the binary depend on the system's libc.
 
 ## Consoles that draw with a graphics card
 
-Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the
-server's graphics card renders the game and the result is streamed like any other frame.
+Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the server's graphics card renders the game and the result is streamed like any other frame. This runs on Windows and Linux servers: on anything else `libretro/gl_other.go` refuses, and those games say so.
 
-**The choice: OpenGL in the built-in runner, using the system's own libraries through purego.** It needs no
-C compiler, no second program, no GPL code, and stays one small binary per platform. Every core we offer
-for these consoles can use OpenGL. A runner built on RetroArch would give nothing more for any of them and
-would cost a C codebase to build for every platform. Vulkan isn't built: no core we offer needs it, and the
-one thing it would add, choosing a card directly on a two-GPU machine, is already solved for NVIDIA below.
-Cores are told OpenGL is what's preferred, and those that can also draw with Vulkan or Direct3D use it.
+**The choice: OpenGL in the built-in runner, using the system's own libraries through purego.** It needs no C compiler, no second program and no GPL code. Every core we offer for these consoles can use OpenGL. Vulkan isn't built: no core we offer needs it. Cores are told OpenGL is what's preferred, and those that can also draw with Vulkan or Direct3D use it.
 
 ```
- core ── draws into ──► framebuffer we made ── glReadPixels ──► pixel buffer ── fence ──► frame
+ core -- draws into --> framebuffer we made -- glReadPixels --> pixel buffer -- fence --> frame
                         (colour + depth/stencil)                (no stall)                to the server
 ```
 
-- **The context** is a hidden window with WGL on Windows, which nothing ever shows, and EGL with no display on
-  Linux. On Linux every card is an EGL device, so the runner takes the first that isn't drawn by the CPU,
-  preferring anything to integrated Intel. Under WSL it goes through `/dev/dxg` and Mesa's D3D12 driver.
-- **Reading frames back** doesn't stall the game. The copy is queued behind the frame's own drawing, and the
-  runner only waits for that drawing to finish, after the core has returned. OpenGL's rows are bottom-up, so
-  they are flipped once, on the copy that goes down the pipe.
-- **Encoding:** a game on the graphics card uses whichever hardware encoder works here, whatever the
-  transcoder's setting says, because its frames are large and its card is awake. NVENC is told not to keep a queue of
-  finished frames (`-delay 0`). Its own conversion from RGB is always BT.601, which browsers wouldn't undo correctly, so
-  frames go through FFmpeg's scaler first: see [Encoding](#encoding).
-- **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on
-  Nintendo 64, PlayStation, PSP and Dreamcast, and native on PlayStation 2 and 3DS. The per-core options are in
-  `traits.go` in WittyPlay. A choice a core doesn't offer is ignored, so an updated core can't break.
-- **PlayStation 2 stays native** because its games draw full-screen effects in small tiles, and the fixes that hold those
-  together when upscaled are worked out per game by the core's own database, which doesn't always succeed. Gran Turismo 4 at 2x
-  comes out in bands of the wrong colour with a grid over them, from the moment of a fresh start: the fault is already there
-  in the frame when it leaves the core. A state loaded into a fresh runner hides it, because those fixes aren't applied to one,
-  which makes it look intermittent. Native has no such seams, and a quarter of the pixels to draw, encode and send. Upscaling
-  is still there to choose, game by game, with that risk.
-- **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is
-  full. Software-rendered games don't count.
-- **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU
-  (`llvmpipe`, Microsoft's GDI renderer) doesn't count: it works, far too slowly to play. Settings, Consoles & cores names
-  the card in use, or says why there is none.
+- **The context** is a hidden window with WGL on Windows, which nothing ever shows, and EGL with no display on Linux. On Linux every card is an EGL device, so the runner takes the first that isn't drawn by the CPU, preferring anything to integrated Intel. Under WSL it goes through `/dev/dxg` and Mesa's D3D12 driver.
+- **Reading frames back** doesn't stall the game. The copy is queued behind the frame's own drawing, and the runner only waits for that drawing to finish, after the core has returned. OpenGL's rows are bottom-up, so they are flipped once, on the copy that goes down the pipe.
+- **Encoding:** a game on the graphics card uses whichever hardware encoder works here, whatever the transcoder's setting says, because its frames are large and its card is awake. NVENC is told not to keep a queue of finished frames (`-delay 0`). Its own conversion from RGB is always BT.601, which browsers wouldn't undo correctly, so frames go through FFmpeg's scaler first: see [Encoding](#encoding).
+- **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on Nintendo 64, PlayStation, PSP and Dreamcast, and native otherwise (`DefaultResolution`). The per-core options are in `traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+- **PlayStation 2 stays native** because its games draw full-screen effects in small tiles, and the fixes that hold those together when upscaled are worked out per game by the core's own database, which doesn't always succeed. One racing game at 2x comes out in bands of the wrong colour with a grid over them, from the moment of a fresh start. A state loaded into a fresh runner hides it, because those fixes aren't applied to one, which makes it look intermittent. Native has no such seams, and a quarter of the pixels to draw, encode and send. Upscaling is still there to choose, game by game.
+- **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is full. Software-rendered games don't count.
+- **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU (`llvmpipe`, Microsoft's GDI renderer) doesn't count. Settings, Consoles & cores names the card in use, or says why there is none.
 
-### What it costs
+**What it costs.** [Where the time goes](#where-the-time-goes) has the numbers for each console. At 1280x960 on an RTX 3070, NVENC takes about 5 ms a frame. PlayStation 2 on an 8-core laptop runs at 45 to 60 frames a second in a race, with VU1 on a thread of its own (the core's database still turns that off for games known to hang with it) and without waiting on the graphics card at every read-back. Both are in `traits.go`.
 
-[Where the time goes](#where-the-time-goes) has the numbers for each console. At 1280x960 on an RTX 3070, NVENC takes about 5 ms
-a frame. Readings of 22 to 36 ms in earlier versions of this page were wrong by exactly one frame: frames were matched to what came
-out of the encoder by counting, and one was off. They're matched by timestamp now, and the numbers drawn into each picture by
-`wittyplay-probe` confirm it.
-
-**PlayStation 2** on an 8-core laptop runs at 45 to 60 frames a second in a race, up from about 40, with VU1 on a thread of its own
-(the core's database still turns that off for games known to hang with it) and without waiting on the graphics card at every
-read-back. Both are in `traits.go`.
-
-**What PPSSPP does by itself:** the first time a PSP game starts for an account, the core unpacks the PSP firmware from
-the updater on that game's own disc into the save folder, about 20 MB, decrypting it as a PSP would. That is part of the
-core, it has no option to turn it off, and nothing in this server asks for it or sees the results.
+**What PPSSPP does by itself:** the first time a PSP game starts for an account, the core unpacks support files from that game's own disc into the save folder, about 20 MB. That's part of the core, which has no option to turn it off, and nothing in this server asks for it or sees the results.
 
 ### Two graphics cards
 
-On a laptop with Intel and NVIDIA, Windows hands OpenGL to the card driving the display, usually the slow one.
-The runner sets `SHIM_MCCOMPAT=0x800000001` in its own process before OpenGL loads, which NVIDIA's driver reads
-as "use the discrete card". No system setting changes and nothing needs clicking. Settings, Consoles & cores shows
-which card was chosen.
-
-That variable is NVIDIA's. On a laptop with an AMD discrete card and integrated graphics, Windows may pick the
-integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-game-runner.exe`,
-choose Options, then High performance.
+On a laptop with Intel and NVIDIA, Windows hands OpenGL to the card driving the display, usually the slow one. The runner sets `SHIM_MCCOMPAT=0x800000001` in its own process before OpenGL loads, which NVIDIA's driver reads as "use the discrete card". No system setting changes. On a laptop with an AMD discrete card, Windows may pick the integrated one, and [Games](GAMES.md#consoles-that-need-a-graphics-card) says what to do.
 
 ### What the sandbox opens for a graphics driver
 
-Only games on a core marked as drawing with a graphics card get these (the `-gpu` flag), and a software-rendered
-game's sandbox is as it was. A core the table doesn't know gets them too, since nothing says it doesn't need them.
+Only games on a core marked as drawing with a graphics card get these (the `-gpu` flag). A core the table doesn't know gets them too, since nothing says it doesn't need them.
 
 | Platform | What changes | Why |
 |---|---|---|
@@ -167,100 +111,65 @@ game's sandbox is as it was. A core the table doesn't know gets them too, since 
 | Linux | The address-space limit is dropped; the limit on memory actually written to stays, at 8 GB | Drivers map far more addresses than a machine has memory |
 | Windows | The job's memory limit is 8 GB, not 2 GB | Graphics drivers and the larger emulators commit a lot |
 
-Everything else stays: Linux's namespaces, `no_new_privs` and the seccomp filter, and Windows's job object, which
-kills the runner with the server and forbids child processes, and its low-integrity token. The low-integrity
-token needed no change: drivers are read from where they're installed, and graphics devices aren't blocked by it.
+Everything else stays: Linux's namespaces, `no_new_privs` and the seccomp filter, and Windows's job object, which kills the runner with the server and forbids child processes, and its low-integrity token.
 
-What a sandbox can't cover: a graphics driver is a large body of code running inside the process, talking to
-the kernel through interfaces built for speed. A core taken over by a bad ROM can reach the same driver and kernel
-surface a game can. That's unavoidable for hardware rendering and is why these games have the limit above and
-stay opt-in by core. Treat a server with a GPU as a machine where a hostile ROM has more to work with.
+What a sandbox can't cover: a graphics driver is a large body of code running inside the process, talking to the kernel through interfaces built for speed. A core taken over by a bad ROM can reach the same driver and kernel surface a game can. Treat a server with a GPU as a machine where a hostile ROM has more to work with.
 
-**Running as a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there.
-Settings, Consoles & cores will say there's no usable card. Run the server in a signed-in session to play these consoles.
+**As a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there, so Settings, Consoles & cores says there's no usable card.
 
-**Containers:** pass the card in, with `--device /dev/dri` for Intel and AMD, or `--gpus all` for NVIDIA.
+**Under the Linux sandbox,** LRPS2 can't write its shader cache, so it rebuilds it each run. It hasn't been fixed.
 
 ### Cores that keep their own stacks
 
-Several cores run the game on stacks they allocate themselves, and call back from there. The Go runtime refuses a
-callback on a foreign stack on a thread it created, so on Linux the runner hosts the core on a thread it
-didn't: `libretro.OnCoreThread`.
+Several cores run the game on stacks they allocate themselves, and call back from there. The Go runtime refuses a callback on a foreign stack on a thread it created, so on Linux the runner hosts the core on a thread it didn't: `libretro.OnCoreThread`.
 
 ## The game pages
 
-The library, a game's page and couch mode are in `web/src/pages/games`, and the menus and screens around a game are WittyPlay's
-own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx` in its repository). The prompts have a copy on each side, `pages/games/prompts.tsx` for the pages, because the pages have to work with the module missing. What they rest on, for anyone changing them:
+The library, a game's page and couch mode are in `web/src/pages/games`, and the menus and screens around a game are WittyPlay's own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx`). The prompts have a copy on each side, `pages/games/prompts.tsx` for the pages, because the pages have to work with the module missing.
 
 - **One request for the home screen.** `GET /games/home` answers with every shelf, so a TV app shows the same as the web page.
-- **Only what's on screen is on the page.** `VirtualGames.tsx` draws the rows near the screen and asks for the pages of results
-  those rows need, and stops asking during a fling. Six thousand games keep about the same number of elements on the page as sixty.
-- **Moving costs a transform.** The cover flow draws nine covers and moves them with `transform` and `opacity`. The tint behind
-  the page is a colour from a 16-pixel copy of the cover, faded between two layers. Nothing is blurred.
-- **Controllers come through `tv.ts`.** It turns buttons into key presses, which aren't "trusted" as real ones are, so a page can
-  tell a controller's X from someone typing. X searches, Y marks a favourite, View changes the sort, the bumpers move between
-  sections, and the triggers jump along the alphabet when sorted by title. Start opens couch mode. While a game is playing,
-  `tv.ts` leaves the controller to the game, and Start and Select together open the game menu.
-- **Prompts follow the last thing touched.** `useInputKind` watches for it. A controller shows its own letters or shapes, with
-  Nintendo's confirm button on the right as `tv.ts` maps it. A mouse or a finger sees no prompts.
-- **What a game needs is checked before Play.** `GET /games/{id}/check` looks for a core and a BIOS the way pressing Play does,
-  so a page can say what's missing and link to the fix. The player's error screens read the same flags from a refused start
-  (`needCore`, `needBios`, `encrypted`), and `web/words.ts` turns them into what to do next.
+- **Only what's on screen is on the page.** `VirtualGames.tsx` draws the rows near the screen and asks for the pages of results those rows need, and stops asking during a fling.
+- **Moving costs a transform.** The cover flow moves its covers with `transform` and `opacity`. The tint behind the page is a colour from a 16-pixel copy of the cover, faded between two layers. Nothing is blurred.
+- **Controllers come through `tv.ts`.** It turns buttons into key presses, which aren't "trusted" as real ones are, so a page can tell a controller's X from someone typing. X searches, Y marks a favourite, View changes the sort, the bumpers move between sections, and the triggers jump along the alphabet when sorted by title. Start opens couch mode. While a game is playing, `tv.ts` leaves the controller to the game, and Start and Select together open the game menu.
+- **Prompts follow the last thing touched.** `useInputKind` watches for it. A controller shows its own letters or shapes, with Nintendo's confirm button on the right as `tv.ts` maps it. A mouse or a finger sees no prompts.
+- **What a game needs is checked before Play.** `GET /games/{id}/check` looks for a core and a BIOS the way pressing Play does, so a page can say what's missing and link to the fix. The player's error screens read the same flags from a refused start (`needCore`, `needBios`, `encrypted`), and `web/words.ts` turns them into what to do next.
 
-Couch mode is `/big`. It's the same pages in a frame of their own, with larger sizes through `html.ten-foot`, and it survives
-going into a game and back for that tab. There is no playing on the device yet: every game runs on the server. See
-[In-browser emulation](#in-browser-emulation-designed-not-built-yet).
+Couch mode is `/big`. It's the same pages in a frame of their own, with larger sizes through `html.ten-foot`, and it survives going into a game and back for that tab.
 
 ## Touch screens
 
-Nintendo DS and 3DS games are played on a touch screen. A press on the picture is the stylus, with a mouse or a
-finger, and sends a position as fractions of the picture (`docs/GAMING-API.md`). The cores get it as libretro's
-pointer device, and work out which screen it fell on. With on-screen controls showing, a finger on a button
-presses the button and a finger anywhere else is the stylus.
+Nintendo DS and 3DS games are played on a touch screen. A press on the picture is the stylus, with a mouse or a finger, and sends a position as fractions of the picture ([the API](GAMING-API.md#touch-screens)). The cores get it as libretro's pointer device, and work out which screen it fell on. With on-screen controls showing, a finger on a button presses the button and a finger anywhere else is the stylus.
 
-DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one. A real DS
-game that's played by touch has been played this way, from its title screen on.
+DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one.
 
-**3DS games must be decrypted.** Nothing here will decrypt them or look for keys. The server reads the plain headers of
-`.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files, and an encrypted one is still listed, with a clear message on its page and on
-*Needs a look → Can't play*. A game's bytes are what count: a package marks its contents as encrypted, but its program must also start
-with `NCCH`, and that program must have its NoCrypto flag set. A package marked encrypted whose program is plainly readable plays; one
-marked clear whose program is scrambled doesn't.
+**3DS games must be unencrypted.** Nothing here decrypts them or looks for keys (`threeds.go`). The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files, and an encrypted one is still listed, with a clear message on its page and on *Needs a look → Can't play*. A game's bytes are what count: a package marks its contents as encrypted, but its program must also start with `NCCH`, and that program must have its NoCrypto flag set. A package marked encrypted whose program is plainly readable plays. One marked clear whose program is scrambled doesn't.
 
-A `.cia` is an install package. Azahar's list of what it opens doesn't include it, so an unencrypted one has its main program copied out to a
-temporary file for the session, and a core opens that. Updates and extra content inside a package aren't applied. A title's type says if a package
-is an update or extra content rather than a game, and those aren't listed as games. A game made only for the New 3DS says so in its header, and
-Azahar is told to be one (`citra_is_new_3ds`), as it starts as the older model otherwise.
+A `.cia` is an install package, and Azahar's list of what it opens doesn't include it, so an unencrypted one has its main program copied out to a temporary file for the session. Updates and extra content inside a package aren't applied. A title's type says if a package is an update or extra content rather than a game, and those aren't listed as games. A game made only for the New 3DS says so in its header, and Azahar is told to be one (`citra_is_new_3ds`). No real 3DS game has been played: the one real file tried is encrypted.
 
 ## Why WebRTC, and what happens when it can't connect
 
-Latency is the whole product. WebRTC has no segment buffering, it drops late frames rather than
-stalling, and the sender can tell a browser to keep no buffer at all. Input goes over an
-unreliable, unordered data channel carrying the complete pad state in every packet, so a lost
-packet is corrected by the next one.
+Latency is the whole product. WebRTC has no segment buffering, it drops late frames rather than stalling, and the sender can tell a browser to keep no buffer at all. Input goes over an unreliable, unordered data channel carrying the complete pad state in every packet, so a lost packet is corrected by the next one.
 
-Not every network or browser allows it, so the player steps down automatically:
+Not every network or browser allows it, so the player steps down by itself:
 
-| Step | Video | Audio | Input | When |
-|---|---|---|---|---|
-| 1. **WebRTC** | H.264, or VP8 where the browser has no H.264 | Opus | Data channel | The normal case on every current browser |
-| (chosen) **WebRTC, drawn directly** | H.264 taken as it arrives, decoded by `VideoDecoder`, drawn to a canvas | Opus | Data channel | Only when someone picks it under Connection. It can tear. See below |
-| 2. **WebSocket + WebCodecs** | H.264 decoded by `VideoDecoder`, drawn to a canvas | PCM | WebSocket | UDP is blocked, or only a reverse proxy is reachable |
-| 3. **WebSocket + JPEG** | One JPEG per frame, encoded in Go, drawn to a canvas | PCM | WebSocket | No WebRTC, no WebCodecs and no H.264, or FFmpeg can't encode |
+| Step | Video | Audio | When |
+|---|---|---|---|
+| 1. **WebRTC** | H.264, or VP8 where the browser has no H.264 | Opus | The normal case. Input on a data channel |
+| (chosen) **WebRTC, drawn directly** | H.264 taken as it arrives, decoded by `VideoDecoder`, drawn to a canvas | Opus | Only when someone picks it under Connection. It can tear |
+| 2. **WebSocket + WebCodecs** | H.264 decoded by `VideoDecoder`, drawn to a canvas | PCM | UDP is blocked, or only a reverse proxy is reachable. Input on the WebSocket |
+| 3. **WebSocket + JPEG** | One JPEG per frame, encoded in Go, drawn to a canvas | PCM | No WebRTC, no WebCodecs and no H.264, or FFmpeg can't encode |
 
-The steps share the same session, so changing transport never restarts the game. You can force a
-step in the player's settings.
+The steps share the same session, so changing transport never restarts the game. A recovering player keeps the old transport until the new one has a picture (`connect()` in `Player.tsx`).
 
 ## Where the time goes
 
-From a press to the screen, a frame passes through these stages. Every one is measured on real frames, all the time the
-on-screen numbers are showing, and each has been changed to take as little as it can:
+From a press to the screen, a frame passes through these stages. Every one is measured on real frames, all the time the on-screen numbers are showing.
 
 | Stage | What happens | What's been done about it |
 |---|---|---|
 | Reading the pad | The browser's pad state is read | Several times per screen refresh (`PAD_READ_MS`), not once. A TV keeps to the screen's pace |
 | Network, up | One packet on an unreliable channel | Nothing waits for anything, and a lost packet is corrected by the next |
-| Waiting for the core | A press arrives while the game waits for its next frame | **A new press starts the next frame straight away.** Frames stay on the same schedule afterwards, so the game keeps its speed: that frame is a little early and the gap after it a little longer. For the smaller consoles this takes the wait from about 8 ms to nothing. `host.waitForFrame` |
+| Waiting for the core | A press arrives while the game waits for its next frame | **A new press starts the next frame straight away.** Frames stay on the same schedule afterwards, so the game keeps its speed. For the smaller consoles this takes the wait from about 8 ms to nothing. `host.waitForFrame` |
 | The core | The game runs a frame, and a graphics card's frame is read back | Unavoidable, and it's the core's own speed |
 | Runner to server | The picture crosses a pipe | Newest frame wins: a picture still waiting is replaced |
 | Queue for the encoder | Waiting for the encoder | **It holds one frame at a time.** FFmpeg has queues between its threads, which can hide many frames, every one of them delay. A frame that arrives while it's busy replaces the one waiting |
@@ -268,64 +177,46 @@ on-screen numbers are showing, and each has been changed to take as little as it
 | Network, down | | A frame's RTP timestamp comes from the real time, and it isn't paced out |
 | Jitter buffer | A browser holds frames back to smooth them out | **Gone.** The sender's `playout-delay` header extension says frames may not wait. A page can only ask for a smaller buffer, and even then a frame waits for an estimate of the network's jitter and 10 ms more. This one change took frames from 50 to 200 ms down to about 1 ms in the browser |
 | Sound's delay | Tracks of one stream are held back to match each other | Sound has a stream of its own, so its buffer can't become the picture's delay. Both follow real time, so they don't drift apart |
-| The display | A frame waits for the next refresh | **Frames land just before the display wants them** where a browser shows that helps: `PhaseLock` moves when the game makes them, a little at a time, until they just make it. It only moves them through one refresh looking for the edge, and gives up if the wait doesn't change |
-| Sound | A browser holds back enough sound to cover how unevenly it arrives | Sound is sent evenly, as fast as it plays, not in lumps a game's frame apart, and its clock jumps over any gap. A browser holds about 35 to 80 ms of it, from over 115, which leaves sound that much behind the picture. After a one-second stall it's back within about 15 seconds |
+| The display | A frame waits for the next refresh | **Frames land just before the display wants them** where a browser shows that helps: `PhaseLock` in `web/latency.ts` moves when the game makes them, a little at a time. It only moves them through one refresh looking for the edge, and gives up if the wait doesn't change |
+| Sound | A browser holds back enough sound to cover how unevenly it arrives | Sound is sent evenly, as fast as it plays, and its clock jumps over any gap. A browser holds about 35 to 80 ms of it, which leaves sound that much behind the picture. After a one-second stall it's back within about 15 seconds |
 
-The numbers are from `wittyplay-probe`, on this repository's test machine (see [Measuring it](#measuring-it)):
+The numbers are from `wittyplay-probe` (see [Measuring it](#measuring-it)):
 
 | Console, core | Picture | Finished frame to screen, ms | Press to screen, ms |
 |---|---|---|---|
-| NES, FCEUmm | 256x224 | 107 before, **9** now | 116 before, **11** now |
-| Super Nintendo, Mesen-S | 256x239 | 108 before, **13** now | 120 before, **22** now |
-| Nintendo 64, Mupen64Plus-Next | 1280x960 | 66 before, **22** now | 77 before, **31** now |
-| PlayStation, PCSX ReARMed | 364x240 | 85 before, **10** now | 94 before, **12** now |
-| PlayStation 2, LRPS2 | 640x448 (1280x896 before) | 234 before, **14** now | 269 before, **49** now |
-| PSP, PPSSPP | 960x540 | 214 before, **16** now | 227 before, **23** now |
-| Nintendo DS, melonDS | 256x384 | 102 before, **14** now | 115 before, **19** now |
+| NES, FCEUmm | 256x224 | 9 | 11 |
+| Super Nintendo, Mesen-S | 256x239 | 13 | 22 |
+| Nintendo 64, Mupen64Plus-Next | 1280x960 | 22 | 31 |
+| PlayStation, PCSX ReARMed | 364x240 | 10 | 12 |
+| PlayStation 2, LRPS2 | 640x448 | 14 | 49 |
+| PSP, PPSSPP | 960x540 | 16 | 23 |
+| Nintendo DS, melonDS | 256x384 | 14 | 19 |
 
-Medians, from an RTX 3070 laptop with an i7-12700H, NVENC, WebRTC on the same machine, and Edge with no window, while other work kept the
-CPU 20 to 60% busy. "Before" is what the player did until 0.6.0-alpha, measured with the same probe. With the CPU at full load, before was
-150 to 200 ms and now is about 10 to 25. Where the time still goes on a Nintendo 64, at 1280x960: about 4 ms in the core, 2 reaching the
-server, 5 to 7 encoding, under 1 for the network, 1 decoding and 8 waiting for the display. A PlayStation 2 game takes most of a frame to
-run, so a press waits for the one in progress.
+**These are headless, on one machine.** Medians, from an RTX 3070 laptop with an i7-12700H, NVENC, WebRTC on the same machine, and Edge with no window, while other work kept the CPU 20 to 60% busy. With the CPU at full load, they're about 10 to 25. Where the time still goes on a Nintendo 64, at 1280x960: about 4 ms in the core, 2 reaching the server, 5 to 7 encoding, under 1 for the network, 1 decoding and 8 waiting for the display. A PlayStation 2 game takes most of a frame to run, so a press waits for the one in progress.
 
-**Press to screen** is from a press leaving the player to the first frame on the screen that the core made having seen that press.
-It's the most this path can claim. Games themselves take a frame or more to react to a button, as they did on the real console.
+**Press to screen** is from a press leaving the player to the first frame on the screen that the core made having seen that press. It's the most this path can claim. Games themselves take a frame or more to react to a button, as they did on the real console.
+
+**What it can't see:** "on the screen" is when the browser expects the frame to reach the glass. Real displays add their own delay, and a headless browser's idea of the display is not a monitor. Only a camera can measure the whole of it. Firefox, Safari, phones, TVs and real networks haven't been run.
 
 ### Run-ahead, by default on the older consoles
 
-A game's own reaction is the largest stage left, and only run-ahead can change it. On a real NES game and a real SNES game
-(`wittyplay-probe react`), the picture changes two frames after a press without it, and one frame after with it. So it's on by default, one
-frame, for cores whose whole state saves in a moment (`quickStates` in `stream/control.go`), on servers with four CPU threads or more. It costs
-under a millisecond a frame on a NES and about 5 ms on the SNES's most accurate core, and turns itself off, quietly, for a game that falls behind.
-A rare game may show a small glitch, which is what the setting is for: *Automatic run-ahead*, under Speed and rewind. Administrators can rule out run-ahead altogether.
-
-**What it can't see:** "on the screen" is when the browser expects the frame to reach the glass. Real displays add their own
-delay, and a headless browser's idea of the display is not a monitor. Only a camera can measure the whole of it.
+A game's own reaction is the largest stage left, and only run-ahead can change it. On a real NES game and a real SNES game (`wittyplay-probe react`), the picture changes two frames after a press without it, and one frame after with it. So it's on by default, one frame, for cores whose whole state saves in a moment (`quickStates` in `stream/control.go`), on servers with four CPU threads or more. It costs under a millisecond a frame on a NES and about 5 ms on the SNES's most accurate core, and turns itself off, quietly, for a game that falls behind. The setting is *Automatic run-ahead*, under Speed and rewind. Administrators can rule out run-ahead altogether.
 
 ### Speed or steadiness
 
-`emulation.latency`, under Speed and rewind. **Fastest** shows every frame as it arrives. **Balanced** lets the browser hold a frame
-for up to 80 ms in a bad moment. **Steadiest** leaves it to the browser's own judgement, and doesn't start frames early on a press.
-**Automatic**, the default, is Fastest until frames start arriving unevenly for three seconds, and goes back after twenty calm ones.
+`emulation.latency`, under Speed and rewind. **Fastest** shows every frame as it arrives. **Balanced** lets the browser hold a frame for up to 80 ms in a bad moment. **Steadiest** leaves it to the browser's own judgement, and doesn't start frames early on a press. **Automatic**, the default, is Fastest until frames start arriving unevenly for three seconds, and goes back after twenty calm ones.
 
 ### Drawn directly
 
-WebRTC's encoded frames can be taken as soon as they're whole, before the browser's jitter buffer and renderer, decoded with
-`VideoDecoder` and drawn on a canvas that doesn't wait for the page's compositor (`web/direct.ts`). It keeps WebRTC's retransmissions.
-On a real display this may show a frame a whole refresh sooner, and it can tear. A headless browser has no display to measure that
-against, so it's for choosing under Connection, and isn't the default until someone has measured it with a camera.
+WebRTC's encoded frames can be taken as soon as they're whole, before the browser's jitter buffer and renderer, decoded with `VideoDecoder` and drawn on a canvas that doesn't wait for the page's compositor (`web/direct.ts`). It keeps WebRTC's retransmissions. On a real display this may show a frame a whole refresh sooner, and it can tear. A headless browser has no display to measure that against, so it's for choosing under Connection, and isn't the default until someone has measured it with a camera.
 
 ### Poor networks
 
-- **Rate:** bitrate follows the browser's reports of its video (`rateControl`). It falls straight to what's getting through when loss
-  is heavy, and by steps when round trips grow, which means queues are filling. It goes back up after 20 calm seconds. Changing it means a
-  new encoder, so changes are at least 5 seconds apart. On a link capped at 4 Mbit/s with 30 ms of delay, a 1280x960 game settles
-  in a few seconds with nothing lost, at 37 ms from frame to screen.
-- **Bursts:** a frame can't use more than a quarter of a second's bits. Left alone, encoders give a keyframe a second's worth or
-  more, which a slow network drops, and the browser asks for another, for good.
-- **Lost pictures:** a browser that has lost track of the picture asks for a keyframe, which starts another encoder, as FFmpeg can't be
-  told. That stops the picture for about a quarter of a second, so if the regular keyframe is due within 300 ms, it waits for that.
+- **Rate:** bitrate follows the browser's reports of its video (`rateControl`). It falls straight to what's getting through when loss is heavy, and by steps when round trips grow. It goes back up after 20 calm seconds. Changing it means a new encoder, so changes are at least 5 seconds apart. On a link capped at 4 Mbit/s with 30 ms of delay, a 1280x960 game settles in a few seconds with nothing lost, at 37 ms from frame to screen.
+- **Bursts:** a frame can't use more than a quarter of a second's bits. Left alone, encoders give a keyframe a second's worth or more, which a slow network drops, and the browser asks for another, for good.
+- **Lost pictures:** a browser that has lost track of the picture asks for a keyframe, which starts another encoder, as FFmpeg can't be told. That stops the picture for about a quarter of a second, so if the regular keyframe is due within 300 ms, it waits for that.
+
+These have only run against the probe's simulated network.
 
 ### When something stops
 
@@ -341,30 +232,20 @@ Everything comes back by itself, with the last picture up until there's a new on
 | Tab closed, or browser dies | The game pauses, and carries on when someone returns within a minute | |
 | Runner dies | The game ends and the player says why. What was saved stays, and it starts again from there | |
 | Server dies | Nothing it started is left behind. Once it's back, the player finds the game is gone, as below | |
-| The game has gone from the server | The server or the module restarted, or this device was away too long. A player that finds this starts the game again from its last save, rather than trying to connect for a minute. If that happens twice in two minutes, it says so instead | Module killed: playing again in about 5 s |
+| The game has gone from the server | The server or the module restarted, or this device was away too long. A player that finds this starts the game again from its last save. If that happens twice in two minutes, it says so instead | Module killed: playing again in about 5 s |
 
-**The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game
-kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the
-encoder 350 and 352, the server's heap 25 and 26, the page 12 and 17, goroutines 43 and 43, the runner's handles 380 and 384. Nothing grew.
-
-A second run took an NES game with its sound and run-ahead through NVENC for 61 minutes, while other tests and builds ran beside it. Frame to screen
-stayed at 9 to 13 ms and a press at 10 to 14. The runner stayed at 28 MB, the encoder at 283 and 284, the server's heap at 5 and 6, and goroutines at 43. Nothing was
-lost and nothing was dropped. A browser filled in 3.1 seconds of sound over the hour, nearly all of it during the eleven minutes the machine was busiest.
+**The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the encoder 350 and 352, the server's heap 25 and 26, the page 12 and 17, goroutines 43 and 43, the runner's handles 380 and 384. Nothing grew. A second run took an NES game with its sound and run-ahead for 61 minutes: frame to screen stayed at 9 to 13 ms, a press at 10 to 14, the runner at 28 MB, and nothing was lost or dropped.
 
 ### Measuring it
 
-`wittyplay-probe` (`cmd/wittyplay-probe` in WittyPlay) runs a game through the real path to a real browser. It's given the runner, a
-core, a game and a browser, and starts everything:
+`wittyplay-probe` (`cmd/wittyplay-probe` in WittyPlay) runs a game through the real path to a real browser. It's given the runner, a core, a game and a browser, and starts everything:
 
 ```
-wittyplay-probe run -runner ./wittyplay-host -core fceumm_libretro.so -core-id fceumm -console nes -rom game.nes -save /tmp/save \
+wittyplay-probe run -runner ./wittyplay-game-runner -core fceumm_libretro.so -core-id fceumm -console nes -rom game.nes -save /tmp/save \
     -ffmpeg ffmpeg -encoders h264_nvenc,libx264,libopus -browser /path/to/chromium -seconds 30 -shots /tmp/pictures
 ```
 
-It draws each frame's number and the newest input it saw into the top of the picture, with known colours under them. The page
-reads those back from what the browser actually shows, so nothing else has to be believed: not the clocks, not the records. It reports
-each stage's middle and 95th percentile, how far the colours have moved, and with `-shots`, what the core made beside what the
-browser showed. Other commands:
+It draws each frame's number and the newest input it saw into the top of the picture, with known colours under them. The page reads those back from what the browser actually shows, so nothing else has to be believed: not the clocks, not the records. It reports each stage's middle and 95th percentile, how far the colours have moved, and with `-shots`, what the core made beside what the browser showed.
 
 | Command | What it does |
 |---|---|
@@ -374,133 +255,73 @@ browser showed. Other commands:
 | `frames -out folder` | What leaves the core, before any encoder, as pictures. A fault in these isn't the stream's |
 | `react -button start` | How many frames a game takes to show a press, on a still screen |
 
-On Windows, use `-loopback`, or Windows Firewall will stop to ask. `scripts/build-probe.mjs` rebuilds the test page after a change to the
-player's transport.
+On Windows, use `-loopback`, or Windows Firewall will stop to ask. `scripts/build-probe.mjs` rebuilds the test page after a change to the player's transport.
 
 ### Encoding
 
-- **Encoder order:** the hardware encoders the transcoder has already test-encoded with (NVENC,
-  Quick Sync, VideoToolbox, AMF, VAAPI), then `libx264`, then `libopenh264`, then `libvpx`. A
-  failed start falls through to the next one.
-- **Settings:** no B-frames, no lookahead, a keyframe every second so a lost packet heals quickly,
-  and the fastest preset of each encoder. `libx264` uses sliced threads, because frame threads hold back
-  a frame per thread: about 250 ms on a machine with many cores.
-- **Colours:** frames are converted to BT.709 and marked as that (VP8, which has only BT.601, is converted to that). Browsers show an
-  unmarked H.264 stream as BT.709 and not all of them read the mark, so what's sent has to be what they assume. With FFmpeg's default of
-  BT.601, red came out orange, off by 39 out of 255. The probe measures this on every run, and it's now within 1.
-- **Sharp pixels:** retro games are small and 4:2:0 chroma smears pixel art, so frames up to 400
-  pixels wide are doubled with nearest-neighbour before encoding. On a server with fewer than
-  four CPU threads and no hardware encoder they are not doubled. The source resolution is so low
-  that the encoder has little to do either way.
-- **Framing:** FFmpeg writes FLV for H.264 and IVF for VP8. Both mark exactly where a frame ends,
-  so we never hold a finished frame while waiting for the next one to prove it finished, which
-  raw Annex B would cost us one full frame of delay.
-- **A slow encoder drops frames instead of building a queue:** the session keeps only the newest
-  unencoded frame, and gives the encoder one at a time.
+- **Encoder order:** the hardware encoders the transcoder has already test-encoded with (NVENC, Quick Sync, VideoToolbox, AMF, VAAPI), then `libx264`, then `libopenh264`, then `libvpx`. A failed start falls through to the next one.
+- **Settings:** no B-frames, no lookahead, a keyframe every second so a lost packet heals quickly, and the fastest preset of each encoder. `libx264` uses sliced threads, because frame threads hold back a frame per thread: about 250 ms on a machine with many cores.
+- **Colours:** frames are converted to BT.709 and marked as that (VP8, which has only BT.601, is converted to that). Browsers show an unmarked H.264 stream as BT.709 and not all of them read the mark, so what's sent has to be what they assume. The probe measures this on every run.
+- **Sharp pixels:** retro games are small and 4:2:0 chroma smears pixel art, so frames up to 400 pixels wide are doubled with nearest-neighbour before encoding. On a server with fewer than four CPU threads and no hardware encoder they are not doubled.
+- **Framing:** FFmpeg writes FLV for H.264 and IVF for VP8. Both mark exactly where a frame ends, so we never hold a finished frame while waiting for the next one to prove it finished, which raw Annex B would cost us one full frame of delay.
+- **A slow encoder drops frames instead of building a queue:** the session keeps only the newest unencoded frame, and gives the encoder one at a time.
 
 ### What low-end servers can expect
 
-A retro console at 2x is about 512x448 at 60 frames a second. Two sessions is the default limit.
-The host runs at below-normal priority so a game never starves a film being transcoded, except
-for games on a graphics card and the Nintendo DS, which run at normal priority. At below-normal,
-a real PSP game got a sixteenth of a core and 2 frames a second on a machine only 77% busy, which
-isn't a game. Audio costs about 1% of a core.
-On Linux and macOS the host runs at a slightly lower priority, so a film being transcoded comes
-first without the game being starved. Windows has no such gentle setting: below-normal gets next
-to nothing while other programs are busy (one game measured 1 frame a second, against 61 at normal,
-with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a
-software-rendered core uses about one CPU core. Audio costs about 1% of a core.
+A retro console at 2x is about 512x448 at 60 frames a second. Two sessions is the default limit. On Linux and macOS the runner runs at a slightly lower priority, so a film being transcoded comes first without the game being starved, except for games on a graphics card and the Nintendo DS, which keep normal priority. Windows has no such gentle setting: below-normal gets next to nothing while other programs are busy (one game measured 1 frame a second, against 61 at normal, with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a software-rendered core uses about one CPU core. Audio costs about 1% of a core.
 
-## In-browser emulation (designed, not built)
+## On-device play (not built)
 
-Libretro cores also exist compiled to WebAssembly, in RetroArch's web build. A second mode could
-send the ROM to the browser and run it there, with no server CPU, no network and offline use.
+Every game runs on the server. Libretro cores also exist compiled to WebAssembly, and a second mode could send the ROM to the browser and run it there.
 
-**Why it isn't built:** at home it wouldn't be faster. A game in a page runs in step with the page's frames, so a press waits half a
-refresh on average before the game looks at it, where a streamed game starts its next frame at once. On a home network that makes
-the two about equal, about 15 ms before the display, and an upscaled or 3D game is far beyond what a browser can run anyway. What it
-would buy is play over a poor connection, from servers too small to run games, and with no connection at all. What it would cost is a
-copy of the game on every device that plays it, 774 MB of web builds or a toolchain per core, and a second way for saves
-and controllers to work, for the consoles whose cores' licences allow it. That leaves out both of the usual choices for the Super Nintendo
-and the Genesis. If it's built, this is how:
+**Why it isn't built:** at home it wouldn't be faster. A game in a page runs in step with the page's frames, so a press waits half a refresh on average before the game looks at it, where a streamed game starts its next frame at once. An upscaled or 3D game is far beyond what a browser can run anyway. What it would buy is play over a poor connection, from servers too small to run games, and with no connection at all. What it would cost is a copy of the game on every device that plays it, a second way for saves and controllers to work, and it leaves out the usual cores for the Super Nintendo and the Genesis, whose licences don't allow it.
 
-- It would be GPLv3 code, downloaded only on request into the data folder, and served as separate
-  files from a sandboxed frame. Nothing would be compiled into the app's bundle.
-- `auto` would pick it per device and game: when the server is overloaded, or when the session
-  has poor round-trip times and the browser is fast. A manual override would sit in the player.
-- Saves would upload to the same per-account store, and input would use the same layers.
-- It would always be optional. It only works in a browser, so the server would list it as `browserOnly`, and the
-  TV apps would never see it.
-
-The player has been kept independent of the transport so that this can be added without a rewrite.
+If it's built: it would be downloaded only on request and served as separate files from a sandboxed frame, with nothing compiled into the app's bundle. It only works in a browser, so the server would list it as `browserOnly`, and TV apps would never see it. The player has been kept independent of the transport so that this can be added without a rewrite. The game page says plainly that it isn't available.
 
 ## Libraries and scanning
 
-- **Library type `games`**, with a `console` on the library (`nes`, `snes`, and so on) or `auto`
-  for one folder holding many consoles. Several libraries of one console work the same way as
-  several Movies libraries: the add flow's "combine or separate" choice applies per console.
-- **Items** have kind `game` and a `console`. Multi-file games: a `.cue`, `.gdi` or `.ccd` hides the files it names,
-  and an `.m3u` hides the discs it lists.
-- **Archives** count as the game inside them, so nothing needs unpacking first. See below.
+- **Library type `games`**, with a `console` on the library (`nes`, `snes`, and so on) or `auto` for one folder holding many consoles. Several libraries of one console work the same way as several Movies libraries: the add flow's "combine or separate" choice applies per console.
+- **Items** have kind `game` and a `console`. Multi-file games: a `.cue`, `.gdi` or `.ccd` hides the files it names, and an `.m3u` hides the discs it lists.
+- **Archives** count as the game inside them, so nothing needs unpacking first.
 - **What gets skipped:** BIOS folders (`bios`, `system`), and anything shown not to be a game.
 
 ### What a scan believes
 
-A file's name is where the question starts, not where it ends. `.bin` and `.iso` mean half a dozen consoles, `.md` is usually a
-readme, `.dmg` a Mac disk image and `.vb` source code. So every file is judged on evidence (`internal/gameid`, and
-`internal/library/games_detect.go`), and a game's page shows an administrator what the evidence was.
+A file's name is where the question starts, not where it ends. So every file is judged on evidence (`internal/gameid`, and `internal/library/games_detect.go`), and a game's page shows an administrator what the evidence was.
 
 | Evidence | How sure | What it covers |
 |---|---|---|
 | **The file's own bytes** | 100 | iNES, UNIF and Famicom Disk System headers; the Super Nintendo's internal header, scored; the Nintendo 64's first word in any byte order; the logos a Game Boy, Game Boy Advance and DS check before starting; `SEGA` at 0x100 on a Mega Drive; TMR SEGA, with its console digit; Neo Geo Pocket's copyright line; Lynx and Atari 7800 headers; and on discs, `SYSTEM.CNF` (`BOOT` is PlayStation, `BOOT2` is PlayStation 2), `PSP_GAME` and its `PARAM.SFO`, `PBP`, the boot sector of Dreamcast, Saturn and Sega CD discs, GameCube and Wii magic numbers. `.cso` and `.zso` are read through their compression. A sheet is judged by the file it names |
-| **An extension only one console uses**, in its folder | 80 | `.smc` in a Super Nintendo folder, or inside an archive there |
-| **The folder or library**, and a file that can't say | 70 | `.chd`, `.cdi`, `.gdi`; consoles with no header at all, like the Atari 2600, checked for size |
+| **The folder or library**, and a file that can't confirm it | 70 to 75 | `.chd`, `.cdi`, `.gdi`; consoles with no header at all, like the Atari 2600, checked for size (`gameid.CheckFor`) |
+| **An extension only one console uses**, with nothing else to go on | 60 | `.smc`, say, with no folder to help, and big enough to be a cartridge |
 | **A person said so** | 100 | Anything on the *Needs a look* list |
 
-The file wins an argument. A PlayStation 2 game in a folder named for the PlayStation is a PlayStation 2 game. In a library set to one console, a
-game for another isn't quietly listed or quietly dropped: it goes on *Needs a look*.
+The file wins an argument. A PlayStation 2 game in a folder named for the PlayStation is a PlayStation 2 game. In a library set to one console, a game for another isn't quietly listed or quietly dropped: it goes on *Needs a look*.
 
 **Nothing unproven becomes a game.** Every file is either listed, or on one of two lists on the library's page, each with its reason:
 
-- **Needs a look** is for files that might be games: no header where every game has one, a disc with nothing to say which console, a console with no core here,
-  an archive holding hundreds of different things. One click says what it is, or that it isn't a game. A whole folder takes one click too.
-- **Left out** is for what's been shown not to be one: BIOS files (by name and by bytes), updates and extra content (a 3DS title's type in its title id, a PSP's
-  `CATEGORY`, a name's tags), test cartridges and cheat devices, music CDs, chiptunes, text, programs, film discs, and a second copy of something. These can be overruled.
+- **Needs a look** is for files that might be games: no header where every game has one (`mustHaveHeader`), a disc with nothing to say which console, a console with no core here, an archive holding hundreds of different things. One click says what it is, or that it isn't a game.
+- **Left out** is for what's been shown not to be one: BIOS files (by name and by bytes), updates and extra content (a 3DS title's type in its title id, a PSP's `CATEGORY`, a name's tags), test cartridges and cheat devices, music CDs, chiptunes, text, programs, film discs, and a second copy of something. These can be overruled.
 
-These choices are kept in the database, beside the library. Nothing is ever written to a games folder.
+These choices are kept in the database, beside the library. A header-less NES dump is listed if its size fits, with a note: only Mesen can play one, by its checksum, and Mesen's NES core currently aborts on Linux.
 
 **Several files, one game.** After each file has been judged:
 
-- **Copies** are found by checksum, across folders and whatever they're named: a loose `.cue` and a `.7z` holding the same disc. Only files the same size as another are
-  ever read for this. The one that needs no unpacking is kept.
-- **Discs** come together by name: `Disc 2`, `(CD2)`, `disc2of3`, or a folder called `Disc 2`. They can be loose, in archives, or both, and they're offered to the
-  core as a playlist, so the game's menu can change disc. Each disc in an archive is unpacked first. A disc that's kept on another drive from the data folder is copied beside the
-  playlist for as long as the game is running, unless a link can be made, because cores can't follow a playlist across drives.
-- **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order (see below). The head stays the
-  head, as saves belong to it. Each version is still its own game, with its own saves, and can be made a game of its own from its page.
-- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
-- **What someone typed stays.** A field marked as edited that no source gave is theirs, and no scan changes it, including the first scan of a new version, which goes over every game
-  once, and whatever an NFO beside the file says. A field that's both edited and from a source is an old answer an earlier version read back from an NFO it wrote, which a better one can replace.
+- **Copies** are found by checksum, across folders and whatever they're named. Only files the same size as another are ever read for this. The one that needs no unpacking is kept.
+- **Discs** come together by name: `Disc 2`, `(CD2)`, `disc2of3`, or a folder called `Disc 2`. They can be loose, in archives, or both, and they're offered to the core as a playlist, so the game's menu can change disc. A disc kept on another drive from the data folder is copied beside the playlist for as long as the game is running, unless a link can be made, because cores can't follow a playlist across drives.
+- **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order. The head stays the head, as saves belong to it. Each version is still its own game, with its own saves.
+- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another (`games_sets.go`).
+- **What someone typed stays.** A field marked as edited that no source gave is theirs, and no scan changes it, whatever an NFO beside the file says. A field that's both edited and from a source is an old answer an earlier version read back from an NFO it wrote, which a better one can replace.
 
-**Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and
-what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a
-name and a checksum match within a minute, with online sources and pictures carrying on after that.
+**Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a name and a checksum match within a minute, with online sources and pictures carrying on after that.
 
 ### Games in archives
 
-`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2,
-xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short
-forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose
-extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `internal/gamearchive`.
+`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2, xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `internal/gamearchive`.
 
-**Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in
-the database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index,
-so a scan reads through the first 64 MB of one at most, which is usually far enough to see what it is. The title comes
-from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
+**Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in the database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index, so a scan reads through the first 64 MB of one at most. The title comes from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
 
-**Which file:** a playlist first, then a `.cue` or `.gdi`, then `.ccd` or `.toc`, then any other game file for that console.
-Among several candidates, it prefers one named after the archive, then a verified dump in a widely-played region, and
-puts bad dumps and hacks last. A tie goes to the first in the archive.
+**Which file:** a playlist first, then a `.cue` or `.gdi`, then `.ccd` or `.toc`, then any other game file for that console. Among several candidates, it prefers one named after the archive, then a verified dump in a widely-played region, and puts bad dumps and hacks last. A tie goes to the first in the archive.
 
 | What's in it | What's unpacked | What the core opens |
 |---|---|---|
@@ -509,48 +330,29 @@ puts bad dumps and hacks last. A tie goes to the first in the archive.
 | Several discs of one game, and a playlist | The same | The playlist |
 | Several discs of one game, and no playlist | The same | `game.m3u`, written then. A console that can't open one gets the first disc |
 
-A `.cue`, `.gdi` or `.m3u` from an archive is checked before it's used: each file it names must have arrived. A name that
-differs only in case, or carries a path from the computer it was made on, is corrected in the unpacked copy, as those
-fail on Linux. A name that matches nothing gives a clear error, which also means a list can't point a core at anything
-outside the game's folder.
+A `.cue`, `.gdi` or `.m3u` from an archive is checked before it's used: each file it names must have arrived. A name that differs only in case, or carries a path from the computer it was made on, is corrected in the unpacked copy. A name that matches nothing gives a clear error, which also means a list can't point a core at anything outside the game's folder.
 
-**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Consoles & cores (16 GB by default). Nothing is
-ever written beside the original.
+**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Consoles & cores (16 GB by default). Nothing is ever written beside the original.
 
 - A game is reused on the next play, and the longest unplayed is evicted when room is needed, except a game being played.
 - The id comes from the file's path, size and time, and the console, so a changed archive is a new game.
-- A game unpacks into `.tmp-…` and appears under its final name in one rename, after every file is synced to disk and
-  a manifest of their sizes is written. Anything a crash leaves behind is under the temporary name, and is cleared at
-  the next start. A finished game is checked against its manifest each time it starts, and is unpacked again if it fails.
-- Everyone asking for the same game shares one unpack. At most two run at a time, and the rest wait. One that nobody has
-  asked about for two minutes is stopped.
-- Disk space comes first: a game that won't fit, leaving 512 MB free, gets a clear error.
-- Settings, Consoles & cores shows how much it's using and can empty it. A game being played stays.
+- A game unpacks into `.tmp-…` and appears under its final name in one rename, after every file is synced to disk and a manifest of their sizes is written. Anything a crash leaves behind is cleared at the next start. A finished game is checked against its manifest each time it starts, and is unpacked again if it fails.
+- Everyone asking for the same game shares one unpack. At most two run at a time, and the rest wait. One that nobody has asked about for two minutes is stopped.
+- A game that won't fit, leaving 512 MB free, gets a clear error.
 
-**Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the
-archive's path in the library. A one-file game is always opened as `game.<ext>`, the name `.zip` games have always had, in
-case a core names files after what it opened.
+**Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the archive's path in the library. A one-file game is always opened as `game.<ext>`, in case a core names files after what it opened.
 
-**Starting** a game that isn't unpacked yet: `POST /games/{id}/prepare` starts the unpack and says how far it has got, and
-the player shows that. `POST /games/{id}/play` works without it, and just takes as long as the unpack does.
+**Starting** a game that isn't unpacked yet: `POST /games/{id}/prepare` starts the unpack and says how far it has got, and the player shows that. `POST /games/{id}/play` works without it, and just takes as long as the unpack does.
 
 ### Metadata and box art
 
-Scans only list files. Details, ratings and pictures come along behind them in the background, from sources you choose in
-*Settings → Metadata agents → Video games*. Three work with no key: the [libretro database](https://github.com/libretro/libretro-database)
-(CC BY-SA 4.0, downloaded when needed and never bundled), [libretro's thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails)
-(no licence stated, so fetched to your server only, never bundled or republished) and [Wikidata](https://www.wikidata.org) with Wikipedia.
-IGDB, ScreenScraper, RAWG and TheGamesDB take a free key each. [METADATA.md](METADATA.md#video-games) has all of it: what
-each one sends, how games are matched, and how ratings reach Kids profiles.
+Scans only list files. Details, ratings and pictures come along behind them in the background (`internal/library/games_meta.go`), and [Metadata](METADATA.md#video-games) has the sources, what each one is sent, and how games are matched. Your own files always come first: `Game.png`, `Game-cover.jpg`, `Game-poster.jpg`, `Game-fanart.jpg` and `Game.nfo` beside a game. With no box art, the library shows a tile made from the game's name and console. Native apps get all this through `GET /games/{id}/metadata`: see [the client API](CLIENT-API.md#game-details).
 
-Your own files always come first: `Game.png`, `Game-cover.jpg`, `Game-poster.jpg`, `Game-fanart.jpg` and `Game.nfo` beside a game. With no box
-art, the library shows a tile made from the game's name and console. Saved states each show a picture of the game. Native apps get all
-this through `GET /games/{id}/metadata`: see [CLIENT-API.md](CLIENT-API.md#game-details).
+**Console icons** are the logo service's kinds `console` and `gamestudio`, downloaded only after an administrator agrees (`ConsoleMark.tsx`, and [the logo service](METADATA.md#the-logo-service)). Pages have to look right with text alone.
 
 ## Saves, states and resume
 
-A state that arrives before the first frame waits for two frames that nobody sees. Some cores accept one
-earlier and then start the game from the beginning anyway.
+A state that arrives before the first frame waits for two frames that nobody sees. Some cores accept one earlier and then start the game from the beginning anyway.
 
 Everything is stored per account under the data folder:
 
@@ -564,43 +366,25 @@ gaming/saves/u<user id>/i<item id>/save.srm       battery save
                                    system/             the system folder of a core that keeps saves in it
 ```
 
-**Memory cards.** The PlayStation 2 core keeps its memory cards under its system folder, as `pcsx2/memcards`. A running
-core can't write to the shared system folder, and shouldn't see other people's cards there, so this core gets a system
-folder of its own, in the save folder (`SavesIn` in `traits.go`). The cards stay there. Copies of the BIOS in use and the
-core's support files go in beside them when the game starts and are removed when it ends, up to 64 MB, so firmware
-doesn't end up in backups. They're copies, not links, because on Linux a core could write through a hard link to the real
-file. Each game has its own cards for each account, so a game that reads another game's save can't find it. A new card
-is unformatted, as a new card was on a real console, and a game offers to format it the first time it saves.
+**Memory cards.** The PlayStation 2 core keeps its memory cards under its system folder, as `pcsx2/memcards`. A running core can't write to the shared system folder, and shouldn't see other people's cards there, so this core gets a system folder of its own, in the save folder (`SavesIn` in `traits.go`, `stream/ownsystem.go`). The cards stay there. Copies of the BIOS in use and the core's support files go in beside them when the game starts and are removed when it ends, up to 64 MB, so firmware doesn't end up in backups. They're copies, not links, because on Linux a core could write through a hard link to the real file. Each game has its own cards for each account. A new card is unformatted, as a new card was on a real console. This has been seen working on Windows, and not yet in Linux with the sandbox. Saves on Play! and Dreamcast cores are untested.
 
-Paths are built only from numeric IDs and a slot number. The host sends the bytes over its pipe, and the server
-writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written within 5
-seconds of changing, and on stop. One game's folder can hold 4 GB for one account, and a save that would
-go over is refused with a message, rather than failing later.
+Paths are built only from numeric IDs and a slot number. The runner sends the bytes over its pipe, and the service writes them atomically, so a runner that has been exploited can't choose a path. Battery saves are written within 5 seconds of changing, and on stop. One game's folder can hold 4 GB for one account (`MaxSaveBytes`), and imports and patches can bring an account's total to 10 GB (`maxAccountGameBytes`). A save that would go over is refused with a message.
 
-A person can download a state or a battery save and put one back. An exported state has a small header with the
-console, the core, its size and a checksum, and an import checks all of them. A plain state file from elsewhere is
-taken with a warning: nothing can vouch for it, and it's only ever read by a core inside its sandbox. A state that
-won't load leaves the game as it was and says so, and Undo load is always there.
+A person can download a state or a battery save and put one back. An exported state has a small header with the console, the core, its size and a checksum, and an import checks all of them. A plain state file from elsewhere is taken with a warning: it's only ever read by a core inside its sandbox. A state that won't load leaves the game as it was and says so, and Undo load is always there.
 
 ## Which version comes first
 
-*Settings, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as
-`japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that
-order). A country counts as its region, and a version for the world counts as the first. It decides three things:
+*Settings, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as `japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that order). A country counts as its region, and a version for the world counts as the first. It decides three things:
 
 - which file of an archive plays,
 - which version leads a tile,
 - which record names a game whose file says nothing about its region.
 
-Changing it scans the games libraries again. A file someone chose stays. So does the version of a game someone has played,
-as their saves belong to it, or has given a title of their own. New versions that arrive later never take over from
-the one leading a tile, which is the same with any order.
+Changing it scans the games libraries again. A file someone chose stays. So does the version of a game someone has played, as their saves belong to it, or has given a title of their own. New versions that arrive later never take over from the one leading a tile.
 
 ## Settings
 
-Settings are described once, as data, in `settings.go` in WittyPlay: a key, a kind, a range, a default, a label
-and any caution. The server checks values against that, and every client draws its controls from it
-(`GET /api/games/settings/schema`). A new setting is a line in that table, plus whatever uses it.
+Settings are described once, as data, in `settings.go` in WittyPlay: a key, a kind, a range, a default, a label and any caution. The server checks values against that, and every client draws its controls from it (`GET /api/games/settings/schema`). A new setting is a line in that table, plus whatever uses it.
 
 ### Levels
 
@@ -615,12 +399,9 @@ Values live in layers. The most specific one that has a value wins, one key at a
 | A person's games on one console | That person | `wittyplay_settings` |
 | One game, for one person | That person | `wittyplay_settings` |
 
-Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward
-(`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`).
-Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
+Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward (`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`). Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
 
-Stored values are checked again when they're used, so a value that's stopped being valid is ignored and a game
-still starts. Reading settings never fails a start: anything unreadable counts as nothing set.
+Stored values are checked again when they're used, so a value that's stopped being valid is ignored and a game still starts. Reading settings never fails a start.
 
 ### Where each thing runs
 
@@ -630,50 +411,31 @@ still starts. Reading settings never fails a start: anything unreadable counts a
 | On-screen numbers | The browser, asking `GET /play/{id}/stats` once a second while on | A few counters |
 | Volume, mute, sound buffer | The browser | None |
 | Fast-forward, slow motion, frame skip, frame advance | The runner | Fast-forward runs the core faster, and sends no more pictures than normal |
-| Rewind, run-ahead | The runner | Real, so off by default and limited |
+| Rewind, manual run-ahead | The runner | Real, so off by default and limited |
 | Core options, cheats | The core, through its own interfaces | None |
 | Patches | The server, once, when a game starts | A file read and write |
 
 ### The picture
 
-`web/display.ts` and `web/layout.ts`. With no effect on, the transport's video element is on the page by itself, which
-is as fast as a browser can show anything. Colour is a CSS filter. Turning on an effect that needs a shader puts a
-canvas over the video and draws each frame on it the moment it's decoded, using `requestVideoFrameCallback`, so
-nothing waits for a timer. The shader is our own, about 60 lines. Its only uniforms are numbers from the settings.
+`web/display.ts` and `web/layout.ts`. With no effect on, the transport's video element is on the page by itself. Colour is a CSS filter. Turning on an effect that needs a shader puts a canvas over the video and draws each frame on it the moment it's decoded, using `requestVideoFrameCallback`. The shader is our own, about 60 lines. Its only uniforms are numbers from the settings.
 
-- **Without WebGL**, or when a context is lost, CSS lays scanlines and the grid over the picture and does colour.
-  The context coming back restores the shader. The player never stops for this.
-- **Flicker** is the one effect that changes on its own. It's capped at a small part of the brightness, is off by
-  default, carries a caution, and is forced off under `prefers-reduced-motion`. Fast-forward carries a caution too.
-- **A person's image** is decoded in Go, must be PNG, JPEG or WebP and within 16 MP and 16 MB, and only the decoded
-  pixels are kept, as a PNG this server wrote. It's served as `image/png` with `nosniff` and a sandboxing CSP, to its
-  owner only. An SVG, or anything hiding after the image's end, can't get through.
+- **Without WebGL**, or when a context is lost, CSS lays scanlines and the grid over the picture and does colour. The context coming back restores the shader.
+- **Flicker** is the one effect that changes on its own. It's capped at a small part of the brightness, is off by default, carries a caution, and is forced off under `prefers-reduced-motion`. Fast-forward carries a caution too.
+- **A person's image** is decoded in Go, must be PNG, JPEG or WebP and within 16 MP and 16 MB, and only the decoded pixels are kept, as a PNG this server wrote. It's served as `image/png` with `nosniff` and a sandboxing CSP, to its owner only.
 
 ### How a game's speed changes
 
 `host/control.go` stands between the runner's loop and the core.
 
-- **Fast-forward** runs the core faster and sends at most the game's own frame rate. The core is told it needn't draw
-  or mix (libretro's `GET_AUDIO_VIDEO_ENABLE`), and many cores then run a lot faster. It has no sound.
+- **Fast-forward** runs the core faster and sends at most the game's own frame rate. The core is told it needn't draw or mix (libretro's `GET_AUDIO_VIDEO_ENABLE`), and many cores then run a lot faster. It has no sound.
 - **Slow motion** has no sound either: stretched sound would need resampling for a feature that's used for moments.
-- **Frame skip** leaves frames out of what's sent, on request or, when set to automatic, only once the loop is more
-  than a frame behind, and never more than three in a row.
-- **Rewind** (`host/rewind.go`) keeps the newest state whole, and each older one as its difference from the one after.
-  The oldest can then be dropped at any moment, which keeps it inside a byte limit however busy the game is. If taking
-  a state costs over a quarter of a frame it takes them less often, and if it still doesn't fit it turns off and says
-  so. Loading a state or resetting starts its history again.
-- **Run-ahead** runs the real frame with its sound, saves, runs on with only the last picture kept, and goes back. That
-  takes frames off the delay at the cost of a save, a load and extra frames each time. On FCEUmm that's about a millisecond a
-  frame. If the game falls behind its schedule for a couple of seconds, it turns off, with a message.
+- **Frame skip** leaves frames out of what's sent, on request or, when set to automatic, only once the loop is more than a frame behind, and never more than three in a row.
+- **Rewind** (`host/rewind.go`) keeps the newest state whole, and each older one as its difference from the one after. The oldest can then be dropped at any moment, which keeps it inside a byte limit however busy the game is. If taking a state costs over a quarter of a frame it takes them less often, and if it still doesn't fit it turns off and says so. Loading a state or resetting starts its history again.
+- **Run-ahead** runs the real frame with its sound, saves, runs on with only the last picture kept, and goes back. If the game falls behind its schedule for a couple of seconds, it turns off, with a message unless it was automatic.
 
 ### Core options
 
-A runner tells the server what a core offers as it starts: labels, allowed values and their names, descriptions, categories, and
-which options the core currently wants hidden (a core can hide options that don't apply, and show them again when another changes). The
-newest libretro option format is read, and the older two for cores that only have those. The server keeps that
-per core, so settings screens can show it with no game running. For a core never run here, it starts one with no game
-for a moment to ask, boxed in as any game is. The runner refuses a key the core didn't offer and a value it didn't
-list, so nothing written in a setting can reach anything else, whatever the server let through.
+A runner tells the server what a core offers as it starts: labels, allowed values and their names, descriptions, categories, and which options the core currently wants hidden. The newest libretro option format is read, and the older two for cores that only have those. The server keeps that per core, so settings screens can show it with no game running. For a core never run here, it starts one with no game for a moment to ask, boxed in as any game is. The runner refuses a key the core didn't offer and a value it didn't list, so nothing written in a setting can reach anything else.
 
 ### Custom settings files
 
@@ -695,123 +457,44 @@ list, so nothing written in a setting can reach anything else, whatever the serv
 }
 ```
 
-- **It's data.** Nothing in it is run. It can hold settings and core options, and a control can only set a core option.
-  Values go through the same checks as everything else, and a core only takes what it listed.
-- **It's hostile until proven otherwise.** 256 KB at most, 8 levels deep, 20,000 values, 64 controls, 32 presets. Sizes
-  are checked before anything is set aside, and the parser walks tokens so that it can stop part-way. It's fuzz-tested.
-- **Mistakes are shown where they are.** Errors stop it saving, with the line. Things it doesn't know, and core options a
-  core won't take, are **ignored and listed**, never dropped silently.
+- **It's data.** Nothing in it is run. A control can only set a core option. Values go through the same checks as everything else, and a core only takes what it listed.
+- **It's hostile until proven otherwise.** 256 KB at most, 8 levels deep, 20,000 values, 64 controls, 32 presets. Sizes are checked before anything is set aside, and the parser walks tokens so that it can stop part-way. It's fuzz-tested.
+- **Mistakes are shown where they are.** Errors stop it saving, with the line. Things it doesn't know, and core options a core won't take, are **ignored and listed**, never dropped silently.
 - A controller can use a file's presets and controls. Writing one takes a keyboard.
 
 ### If a setting breaks a game
 
 - A change to the picture only ever affects the browser, and one a browser can't do falls back.
 - A running game is told about changes with a command it can refuse. The game isn't restarted.
-- **Safe mode** (`POST /games/{id}/play` with `"safeMode": true`) starts with default settings, no cheats and no patches,
-  and takes no setting changes until it's stopped. It's offered on the game's page, in the game menu, and whenever a
-  game fails to start.
-- A patch that won't apply, such as one for a different version of the game, leaves the game unpatched and playable,
-  with a notice. It never stops the game starting.
+- **Safe mode** (`POST /games/{id}/play` with `"safeMode": true`) starts with default settings, no cheats and no patches, and takes no setting changes until it's stopped. It's offered on the game's page, in the game menu, and whenever a game fails to start.
+- A patch that won't apply leaves the game unpatched and playable, with a notice.
 - Resetting a level is one button in the settings file screen.
 
 ### Shortcuts
 
-`web/hotkeys.ts` works on a player's RetroPad buttons after the input layer has mapped them, so shortcuts follow a
-remapped pad. Holding the shortcut button (Select unless changed) and pressing another does the shortcut and keeps that
-button from the game until it's let go. Start and Select together, or Guide, always opens the menu. Hold actions let go
-by themselves if the window loses focus or a menu opens, because a stuck fast-forward would be worse than a lost press.
-Speed changes go by reliable HTTP, not the input channel, for the same reason. A keyboard shortcut gives way to a key a
-game button is using.
+`web/hotkeys.ts` works on a player's RetroPad buttons after the input layer has mapped them, so shortcuts follow a remapped pad. Holding the shortcut button (Select unless changed) and pressing another does the shortcut and keeps that button from the game until it's let go. Start and Select together, or Guide, always opens the menu. Hold actions let go by themselves if the window loses focus or a menu opens, because a stuck fast-forward would be worse than a lost press. Speed changes go by reliable HTTP, not the input channel, for the same reason. A keyboard shortcut gives way to a key a game button is using.
 
 ## Adding your own core
 
-A **core** is the program that emulates a console. This server offers a list of them with their licences checked, under
-Settings, Consoles & cores. If you want one that isn't on the list, such as a newer build, or a core for a
-system we don't have, you can add it yourself. This is the guide for doing that. It assumes you've never done it before.
+[Games](GAMES.md#your-own-core) has the steps for a person adding one. This is what's behind them (`internal/server/api_games_custom.go`, `web/src/pages/settings/GamingCustom.tsx`, `cores/custom.go`).
 
-### Before you start
-
-**A core is a program, and it will run on your server** whenever someone plays with it. It always runs boxed in, in a
-process of its own, never inside the server itself. A box can have holes, though, so only add cores you trust.
-
-You'll need:
-
-- **The core file**, built for the computer your server runs on. On Windows it ends in `.dll`, on Linux in `.so`, on a Mac in
-  `.dylib`, and its name usually ends in `_libretro`, like `something_libretro.dll`. It may come in a `.zip`.
-- **Your password.** You'll be asked for it each time.
-- **Where to get a core is your call.** This project doesn't suggest sources. Get it from the people who make it. WittyMediaServer
-  has not checked anything you add here, and doesn't offer or support it.
-
-### 1. Turn it on
-
-Custom cores are **off on every server until an administrator turns them on**. Go to Settings, Consoles & cores, Custom cores, and
-turn on **Allow custom cores**. It asks for your password.
-
-Why off by default: most people never need this, and a server shared with others shouldn't be one setting away from running
-new programs. Turning it on takes a moment, once. Turning it off needs no password: the cores stay where they are, don't run,
-and can still be removed.
-
-**First, allow them on the machine.** A core is a program that can read what the server can, so the page alone can't turn this on:
-start the server with `WMS_GAMING_CUSTOM_CORES=1`, or `-gaming-custom-cores`, or put `"gamingCustomCores": true` in its
-[config file](CONFIG.md). A server that had custom cores on before this keeps them, but they don't run until this is set.
-
-If someone else runs the machine, they can keep it off whatever else is set by starting the server with
-`WMS_GAMING_NO_CUSTOM_CORES=1`. That beats everything, including the switch above. On a system that can't box a core in (anything
-but Windows, Linux or macOS), it can't be turned on at all.
-
-Kids and guest profiles, and anyone who isn't an administrator, never see any of this.
-
-### 2. Add the core
-
-Choose **Add a core**, then one of three ways:
-
-| Way | What to do |
+| Guard | How |
 |---|---|
-| **Upload a file** | Pick the core, or a `.zip` holding it, from your computer |
-| **Web address** | Paste an `https://` address. It has to be on the public internet: this server won't fetch from itself or your own network |
-| **In the cores folder** | Put the file in the cores folder (the page shows where) first, then pick it from the list |
+| Who | Administrators only, with an adult account. Adding, approving again and going back all ask for the password. Kids and guests can't reach any of it |
+| Off by default | Two switches, both needed: `WMS_GAMING_CUSTOM_CORES=1`, `-gaming-custom-cores` or `"gamingCustomCores": true` on the machine, and one server-wide setting, which the general settings route can't change. `WMS_GAMING_NO_CUSTOM_CORES=1` beats both. Where `SandboxStrength` says a core can't be boxed in, it can't be turned on |
+| Where it runs | Always in a runner process with the same sandbox as any game, listed under [Security](#security). Custom cores get no more rights than the cores we offer |
+| Tested first | The first thing a file ever does is load in that sandbox, where a crash is an exit code and a hang is a timeout, after two minutes. Its answers are treated as hostile and cleaned before they're shown |
+| The file | SHA-256 recorded when approved, and read in full before every game. It's the file as approved or it doesn't run |
+| Sizes | 1.5 GB for an upload or download, 1 GB for a core, 4 GB unpacked, 20,000 files |
+| Paths | Nothing a person or a file sends becomes a path to write to. File names that name folders are refused. A zip with any entry that climbs out, or any link, is refused whole. A placed file is chosen from the server's own list, and links aren't followed |
+| Web addresses | `https` only, and only the public internet: checked when connecting, so a name can't resolve its way onto your network, and again at every redirect. No proxy, no passwords in addresses |
+| Record | Every addition, change, removal, refused file and failure during play is in the history on that page and in the server's log |
 
-If the place you got it from publishes a SHA-256, paste it in, and the file is refused if it doesn't match.
+What it can't do: the sandbox limits what a core can do to a machine, and it's as strong as the system allows. On Linux, some layers need a recent kernel, and the report says if one wasn't available. A core reads files like any program under the server's account, and can't send anything anywhere because it has no network. The SHA-256 check notices a changed file. It doesn't stop someone who can already write to the data folder.
 
-Enter your password and choose **Test this core**. The server test-loads it in the sandbox. It takes a few seconds, or longer if
-a virus scanner wants a look first. A core gets two minutes before it counts as hung.
+**Licence shown:** from its info file, our list going by its name, or nothing at all, when it says **Unknown license**. Non-commercial cores are labelled, and are never offered by us. The list of what we offer is kept apart from custom cores in the code.
 
-If it fails, it says why, in plain words, and nothing is kept:
-
-| It says | What that means |
-|---|---|
-| Built for something else | You have the Windows build and a Linux server, say. Get the one for your server |
-| Isn't a program library | It's a text file, a web page saved by mistake, or an archive that needs unpacking |
-| Isn't a libretro core | It's a real library, but a different kind of program. It needs to be a libretro core |
-| Needs another library | It depends on something this server doesn't have. Check what its makers say it needs |
-| Crashed, or didn't finish loading | The core is broken, or doesn't suit this server. Only the test stopped; your server is fine |
-
-### 3. Look at what it reports
-
-If it passes, the page shows what the core says about itself: its name, version and the files it opens, the computer it's built
-for, whether it wants BIOS files or a graphics card, its size and its SHA-256. All of that comes from the file, so read it as what
-the core claims. Passing shows it's a libretro core, not that it's safe or that your games will run well on it.
-
-It also shows its **licence**, and where that came from: its info file, our list going by its name, or nothing at all, when it says
-**Unknown license**. Non-commercial cores are labelled, and are never offered by us. You can correct it if you know better.
-
-### 4. Say which consoles it's for
-
-Tick the consoles, which are sorted so that the ones its file types fit come first. Then:
-
-- **Use by default** makes it what that console plays with. Without it, the core is available but only used if nothing from our list is
-  installed for that console.
-- Other cores stay available. Change a console's core on its card in Settings, Consoles & cores.
-- **For one game:** on the game's own page, administrators see a Core setting. That page also shows how each core has gone on that game,
-  and marks the one that has gone best, once there's been enough real play to say.
-
-Confirm that you understand it runs as code on the server, and choose **Add this core**.
-
-### A core for a system we don't have
-
-If no console fits, make a **custom console**, either from the link in that same step or under Custom consoles. It needs a name, a short
-name and its file extensions. You can also add other folder names that mean it, BIOS file names, and which controller it should look
-like. Prefer to paste? The **JSON** tab takes the same thing:
+**A custom console** needs a name, a short name and its file extensions. The **JSON** tab takes the same thing:
 
 ```json
 {
@@ -824,14 +507,9 @@ like. Prefer to paste? The **JSON** tab takes the same thing:
 }
 ```
 
-It then appears when adding a library, like any other console. Games can sit in a folder named after it, in a library set to it, or in
-archives, as usual. An extension another console already uses, like `.iso`, is only trusted in a library set to this console or a folder
-named after it, so nothing gets taken from a console that already works.
+Its ID starts with `custom-`. An extension another console already uses, like `.iso`, is only trusted in a library set to this console or a folder named after it, so nothing gets taken from a console that already works.
 
-### Cores that need more than one file
-
-Some cores come with a small **info file** (`something_libretro.info`), and some need **extra files** to work. To add those with the core, make
-a `.zip` laid out like this:
+**A core's zip:**
 
 ```
 something_libretro.dll      the core itself, at the top
@@ -840,266 +518,131 @@ assets/...                  files only this core uses
 system/...                  files that belong in the BIOS folder
 ```
 
-Anything else in the zip is ignored. Or add them later, with **Add files** on the core's card. A file placed in the cores folder brings an info
-file of the same name with it. Files for the BIOS folder never overwrite one already there, because that one is yours. Removing a core takes back
-only the files it added.
+Anything else in the zip is ignored. Files for the BIOS folder never overwrite one already there. Removing a core takes back only the files it added.
 
-### Replacing, going back and removing
-
-- **Replace** takes a new file the same way as adding one, and keeps its consoles and settings.
-- **Going back:** the previous versions are kept, and a core's card lists them under What it reports. Each is tested again first. A core never updates
-  by itself: what runs is exactly the file you approved, until you approve another.
-- **Remove** takes the core. **Saves are never touched**, by any of this: they belong to your account and the game. A battery save usually
-  works in any version of a core. A save state is only sure to work in the version that made it.
-
-### If a core's file changes
-
-If a core's file stops matching the SHA-256 you approved, it **won't run**. Players are told the core has changed, and its card shows both
-hashes and an entry in its history. Unless you changed that file yourself, take it seriously: something else wrote to your data folder. If it was you,
-**Test and approve again**. Otherwise, **Remove** it and add a copy you trust.
-
-### Safety: what this does and doesn't protect
-
-| Guard | How |
-|---|---|
-| Who | Administrators only, with an adult account. Adding, approving again and going back all ask for the password. Kids and guests can't reach any of it |
-| Off by default | Two switches, both needed: `WMS_GAMING_CUSTOM_CORES=1` on the machine, and one server-wide setting, which the general settings route can't change. `WMS_GAMING_NO_CUSTOM_CORES=1` beats both |
-| Where it runs | Always in a runner process with the same sandbox as any game, listed under [Security](#security). The server never loads one. Custom cores get no more rights than the cores we offer |
-| Tested first | The first thing a file ever does is load in that sandbox, where a crash is an exit code and a hang is a timeout. Its answers are treated as hostile and cleaned before they're shown |
-| The file | SHA-256 recorded when approved, and read in full before every game. It's the file as approved or it doesn't run |
-| Sizes | 1.5 GB for an upload or download, 1 GB for a core, 4 GB unpacked, 20,000 files |
-| Paths | Nothing a person or a file sends becomes a path to write to. File names that name folders are refused. A zip with any entry that climbs out, or any link, is refused whole. A placed file is chosen from the server's own list, and links aren't followed |
-| Web addresses | `https` only, and only the public internet: checked when connecting, so a name can't resolve its way onto your network, and again at every redirect. No proxy, no passwords in addresses |
-| Record | Every addition, change, removal, refused file and failure during play is in the history on that page and in the server's log |
-
-What it can't do: the sandbox limits what a core can do to your machine, and it's as strong as your system allows. On Linux, some layers need a recent
-kernel, and the report says if one wasn't available. It reads files like any program under your server's account, so a hostile core can read what that account
-can read, and it can't send anything anywhere because it has no network. The SHA-256 check notices a changed file. It doesn't stop someone who can already write to your
-data folder, and it says nothing about whether the file you approved was good to begin with.
-
-**Copy protection stays in force.** Nothing here decrypts or gets around anything. The server's own refusals, such as password-protected archives and encrypted discs, are unchanged, and a core is handed the game file it was asked to open and no keys. What a third-party core does with a file is down to its authors, and to you for choosing it.
+**Copy protection stays in force.** The server's own refusals, such as password-protected archives and encrypted discs, are unchanged, and a core is handed the game file it was asked to open and no keys.
 
 ## Clients other than a browser
 
-Games have to work from the Apple TV and Android TV apps as well, so nothing about a game is decided
-inside the web player:
+Games have to work from TV apps as well, so nothing about a game is decided inside the web player:
 
-- **The server holds** sessions, saves, resume, play time, each console's controller and default layouts, and
-  everyone's saved layouts. They're plain JSON, and the web player reads them like any other client.
-- **The protocol is standard:** WebRTC offer and answer over HTTP, data channels with documented messages, and a
-  WebSocket with documented frames. A test (`TestNativeClientPlaysAGame`) plays a game this way with no browser.
-- **The server says which modes a client can use.** Anything only a browser can do, such as in-browser emulation
-  when it exists, is marked `browserOnly` and is never offered to an app.
-- **Everything works with a D-pad.** A TV remote is a controller with its own default map, and Back opens the
-  game's menu, which can press Start and Select for remotes that have neither. No drop-downs or sliders are needed
-  to play.
-
-What's left for a TV app to write is listed at the end of [GAMING-API.md](GAMING-API.md).
+- **The server holds** sessions, saves, resume, play time, each console's controller and default layouts, and everyone's saved layouts. They're plain JSON, and the web player reads them like any other client.
+- **The protocol is standard:** WebRTC offer and answer over HTTP, data channels with documented messages, and a WebSocket with documented frames. A test (`TestNativeClientPlaysAGame`) plays a game this way with no browser.
+- **The server says which modes a client can use.** Anything only a browser could do is marked `browserOnly` and is never offered to an app.
+- **Everything works with a D-pad.** A TV remote is a controller with its own default map, and Back opens the game's menu, which can press Start and Select for remotes that have neither.
 
 ## Controllers
 
-Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons, two sticks and how far
-two triggers are held. The libretro API speaks RetroPad, so each console needs only labels. These, and all the
-default layouts, are data from the server (`controls.go` in WittyPlay).
+Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons, two sticks and how far two triggers are held. The libretro API speaks RetroPad, so each console needs only labels. These, and all the default layouts, are data from the server (`controls.go` in WittyPlay).
 
-- **Gamepads:** standard mapping by position (bottom button is RetroPad B, right is A, and so on),
-  which is how libretro's cores expect pads to be laid out.
-- **Pads without standard mapping:** a browser that can't put a pad in order reports raw numbers. Our own table
-  of common models by vendor and product (`layouts.go` in WittyPlay) puts them in order. A D-pad reported as one axis, or as two,
-  is found by looking at it, and a trigger reported as an axis that rests at one end counts from there. An unknown pad gets a
-  first-to-last guess, and the screen says to check it.
-- **Sticks and triggers:** the dead zone is a circle and the travel is rescaled from its edge, so sticks reach full speed and small movements
-  still count. Triggers reach the core as how far they're held, for cores that ask. A value near the press point doesn't flicker.
-- **Keyboard:** arrows, Z, X, A, S, Q, W, Enter and Shift by default. Consoles with sticks add I, J, K and L. Remappable.
+- **Gamepads:** standard mapping by position (bottom button is RetroPad B, right is A, and so on), which is how libretro's cores expect pads to be laid out.
+- **Pads without standard mapping:** a browser that can't put a pad in order reports raw numbers. Our own table of common models by vendor and product (`layouts.go`) puts them in order. A D-pad reported as one axis, or as two, is found by looking at it, and a trigger reported as an axis that rests at one end counts from there. An unknown pad gets a first-to-last guess, and the screen says to check it.
+- **Sticks and triggers:** the dead zone is a circle and the travel is rescaled from its edge. Triggers reach the core as how far they're held, for cores that ask. A value near the press point doesn't flicker.
+- **Keyboard:** arrows, Z, X, A, S, Q, W, E, R, Enter and right Shift by default. Consoles with sticks add I, J, K and L. Remappable.
 - **TV remote:** the D-pad, OK as A, Play/Pause as B, Back for the menu.
-- **Hot-plug:** connecting a pad gives it the player it had last time on this device, or the next free one. Disconnecting one lets go
-  of everything it held at once. Browsers that don't fire the events are found by the heartbeat.
-- **Several players:** up to four in the UI, with eight supported by the protocol. Moving a pad onto a player who's taken swaps them.
-- **Turbo and rumble:** turbo per button, per profile. Rumble reaches the right player's pad with each of its two motors.
-  The runner only passes on a motor's change. The player asks for a second at a time and renews it while it's wanted, so a page that goes away can't leave a pad shaking.
-- **Device types:** a core's `SET_CONTROLLER_INFO` list is read, and each console's preferred one is plugged in: a DualShock on PlayStation
-  where the core offers it, which is what gives games their sticks and rumble. Players can choose another. Toggling a DualShock between digital
-  and analog is the core's own business, by its own button combination.
+- **Hot-plug:** connecting a pad gives it the player it had last time on this device, or the next free one. Disconnecting one lets go of everything it held at once. Browsers that don't fire the events are found by the heartbeat.
+- **Several players:** up to four (`MaxPlayers`). Moving a pad onto a player who's taken swaps them.
+- **Turbo and rumble:** turbo per button, per profile. Rumble reaches the right player's pad with each of its two motors. The runner only passes on a motor's change. The player asks for a second at a time and renews it while it's wanted, so a page that goes away can't leave a pad shaking.
+- **Device types:** a core's `SET_CONTROLLER_INFO` list is read, and each console's preferred one is plugged in: a DualShock on PlayStation where the core offers it. Players can choose another.
+- **Touch:** an on-screen controller per console. The editor moves, resizes and sets the opacity of each control and chooses which ones show, saved per console and per device, for portrait and landscape separately. Sliding between buttons works, and Android gets haptics.
+- **Touch sticks:** consoles with a stick get an on-screen analog one. On the Nintendo 64, the on-screen D-pad is that stick. On PlayStation, whose games nearly all use the D-pad, it starts hidden and the editor can show it.
+
+Layouts are saved on the server: gamepads per console and model, keyboards per console, and touch layouts per console, device and orientation. They follow the account.
 
 ### How it stays cheap
 
-Pads are read every 4 ms while one is connected, as browsers update them far more often than the screen refreshes (a TV stays with the screen), and sending happens only when a state changes.
-Reading allocates nothing, and a pad whose timestamp hasn't moved isn't read again. With no pad connected, or the page hidden, no frames are
-asked for at all, and all that's left is one heartbeat every quarter of a second.
+Pads are read every 4 ms while one is connected, as browsers update them far more often than the screen refreshes (a TV stays with the screen), and sending happens only when a state changes. Reading allocates nothing, and a pad whose timestamp hasn't moved isn't read again. With no pad connected, or the page hidden, no frames are asked for at all, and all that's left is one heartbeat every quarter of a second.
 
 ### When someone looks away
 
-A hidden page lets go of every button and stops rumble, because browsers stop updating pads for one and anything held would stay held. Losing
-the window's focus lets go of keys, which may be released elsewhere, but pads carry on, so a game on a second screen still works.
+A hidden page lets go of every button and stops rumble, because browsers stop updating pads for one and anything held would stay held. Losing the window's focus lets go of keys, which may be released elsewhere, but pads carry on, so a game on a second screen still works.
 
 ### What browsers don't allow
 
-Most browsers only show gamepads to secure pages, and only once a button on them has been pressed. On plain `http://`, with no pad to be seen,
-the controller screen says so and what to do: open the server over https, or at `localhost` on the same computer. Rumble needs a browser
-that has the feature (Chromium-based ones, and recent Safari) and a pad that can. A TV app reads controllers itself and has none of these limits.
+Most browsers only show gamepads to secure pages, and only once a button on them has been pressed. On plain `http://`, with no pad to be seen, the controller screen says so and what to do. Rumble needs a browser that has the feature and a pad that can. A TV app reads controllers itself and has none of these limits. None of this has been tried with a real controller.
 
 ### Profiles
 
-People make their own named mappings, stored per account on the server (`docs/GAMING-API.md`, "Controller profiles"). Each can be limited to a controller
-model, a console and a game, and the most exact one in use wins: game, then console, then controller, then the default. Files of them can be exported and
-imported; an import is untrusted input, checked and limited like anything from a client.
+People make their own named mappings, stored per account on the server ([the API](GAMING-API.md#controller-profiles)). Each can be limited to a controller model, a console and a game, and the most exact one in use wins: game, then console, then controller, then the default. Files of them can be exported and imported; an import is untrusted input, checked and limited like anything from a client.
 
-Profile numbers are W3C standard numbers wherever the pad can be put in order, so one follows you between browsers. A pad that can't be stores its own
-numbers, marked `raw`, and such a profile applies only to that pad in that state. This is also why any-controller profiles can't apply to it.
+Profile numbers are W3C standard numbers wherever the pad can be put in order, so one follows you between browsers. A pad that can't be stores its own numbers, marked `raw`, and such a profile applies only to that pad in that state.
 
 ### The controller screen
 
 One screen, in the game menu and at `/controllers`, with three tabs: Buttons, Players and Background. Touch controls open from it.
 
-- **The picture** (`web/art.tsx`) is our own drawing as inline SVG: a flat two-button pad, a four-button pad with shoulders, a six-button pad, a three-handled
-  pad, a two-stick pad and a stick on a base. They're generic shapes, with no maker's logo and nothing traced from a product. Each console's `pad.art` picks one.
-- **Its buttons are real `<button>`s** laid over the drawing, so remotes, keyboards and screen readers reach them. They light up as they're pressed, updated
-  directly rather than by drawing again, to stay cheap at sixty times a second. The same mappings are always there as a plain list.
-- **Remapping is by pressing:** choose a button, press what you want for it. What was already held doesn't count. Whatever was pressed isn't also taken for OK when the
-  screen gets control back (`.wp-capture` makes `tv.ts` stand down). It stops waiting by itself, so a person with only a controller can't get stuck.
+- **The picture** (`web/art.tsx`) is our own drawing as inline SVG: a flat two-button pad, a four-button pad with shoulders, a six-button pad, a three-handled pad, a two-stick pad and a stick on a base. They're generic shapes, with no maker's logo and nothing traced from a product. Each console's `pad.art` picks one.
+- **Its buttons are real `<button>`s** laid over the drawing, so remotes, keyboards and screen readers reach them. They light up as they're pressed, updated directly rather than by drawing again. The same mappings are always there as a plain list.
+- **Remapping is by pressing:** choose a button, press what you want for it. What was already held doesn't count. Whatever was pressed isn't also taken for OK when the screen gets control back (`.wp-capture` makes `tv.ts` stand down). It stops waiting by itself, so a person with only a controller can't get stuck.
 - **A source used twice is allowed, and shown** on both rows, with a Swap.
-- **Everything works from a controller or remote:** steppers instead of sliders and drop-downs, and nothing that needs pointing. Choosing a file can't be done on a TV, so importing and uploading are
-  left out there, and what's set elsewhere follows the account.
-- **Colours are the theme's**, in the pairs `scripts/theme-contrast.py` checks. Labels have their own solid backing, so they stay readable on any picture.
+- **Everything works from a controller or remote:** steppers instead of sliders and drop-downs. Choosing a file can't be done on a TV, so importing and uploading are left out there.
+- **Colours are the theme's**, in the pairs `scripts/theme-contrast.py` checks.
 
 ### The background picture
 
-Uploads are hostile until proven otherwise. Only PNG, JPEG and WebP are decoded, whatever the file claims, and an SVG is refused. The size in pixels is read from the header first (24 megapixels at most) and
-one picture is decoded at a time, so a small file claiming to be huge can't use up memory. It's drawn again as a new JPEG of up to 2560 pixels, which leaves behind everything but the picture: EXIF, location,
-anything appended. A photo stored sideways is turned upright first, as that's in the part dropped.
+Uploads are hostile until proven otherwise. Only PNG, JPEG and WebP are decoded, whatever the file claims. The size in pixels is read from the header first (24 megapixels at most) and one picture is decoded at a time. It's drawn again as a new JPEG of up to 2560 pixels, which leaves behind everything but the picture. A photo stored sideways is turned upright first.
 
-It's stored at `gaming/backgrounds/u<user id>.jpg`, from numbers only, and served to its owner with `nosniff` and the sandboxing policy every API answer has. No route takes an account number, so there's
-nothing to change to reach someone else's. It goes with the account.
-- **Touch sticks:** consoles with a stick get an on-screen analog one, read as how far a thumb pushes it. On the Nintendo 64, where the stick is how
-  games steer, the on-screen D-pad is that stick. On PlayStation, whose games nearly all use the D-pad, it starts hidden and the editor can show it.
-- **Touch:** an on-screen controller per console. The editor moves, resizes and sets the opacity of
-  each control and chooses which ones show, saved **per console and per device, for portrait and
-  landscape separately**. Sliding between buttons works, and Android gets haptics (iOS has no web
-  API for them).
-
-Layouts are saved on the server: gamepads per console and model, keyboards per console, and touch layouts per
-console, device and orientation. They follow the account.
+It's stored at `gaming/backgrounds/u<user id>.jpg`, from numbers only, and served to its owner with `nosniff` and the sandboxing policy every API answer has. No route takes an account number.
 
 ## Security
 
-Treat a ROM as hostile and a core as buggy:
+Treat a ROM as hostile and a core as buggy.
 
-**The host process**
+**The runner**
 
 - Starts with an empty environment, in a working folder of its own, with only pipes open.
-- Only the core the server picked runs: the request names a game, never a file. Core files come
-  from the server's own list.
-- **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter
-  refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder, both on every
-  thread (the runner sets Landlock, then starts itself again so that all its threads inherit it); memory and
-  file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve
-  far more than they use (one holding 30 MB had reserved 1.9 GB); lower priority; killed when the server dies.
-- **Windows:** a job object that kills it with the server, limits memory and forbids child
-  processes, plus a low-integrity token so it can only write to its save folder; below-normal
-  priority.
-- **Games on a graphics card** open a little more: see
-  [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
-  processes, plus a low-integrity token so it can only write to its save folder. It keeps normal
-  priority: see below.
-- **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits.
-- **FreeBSD and others:** rlimits and priority only. Docs say so plainly.
-- A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of
-  sessions is capped.
+- Only the core the server picked runs: the request names a game, never a file. Core files come from the server's own list.
+- **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder, on every thread (the runner sets Landlock, then starts itself again so that all its threads inherit it); memory and file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve far more than they use; killed when the server dies.
+- **Windows:** a job object that kills it with the server, limits memory and forbids child processes, plus a low-integrity token so it can only write to its save folder.
+- **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits. If that tool is missing, only the rlimits. Not run on a real Mac.
+- **FreeBSD and others:** rlimits and priority only (`stream/sandbox_other.go`). Not run.
+- **Games on a graphics card** open a little more: see [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
+- A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of sessions is capped.
 
 **Archives**
 
-- An archive is hostile input, and its decoders are other people's code. Everything that reads one runs in a throwaway
-  worker: the server started again with an internal flag. It boxes itself in with the same layers as the host, and has a
-  memory limit of 4 GB and a lower priority. On Windows it uses a job object for the limit. A crafted header that makes a
-  decoder panic or ask for all the memory in the world ends the worker, and the server reports that one archive as damaged.
-  A scan's worker that stops answering for 60 seconds is killed.
-- A name that climbs out of the folder, is absolute, or names a drive or a device refuses the whole archive. Writing also
-  goes through `os.Root`, so a name the checks miss still can't leave the folder.
+- An archive is hostile input, and its decoders are other people's code. Everything that reads one runs in a throwaway worker: the server started again with an internal flag. It boxes itself in with the same layers as the runner (`internal/play/hostsandbox`), and has a memory limit of 4 GB and a lower priority. On Windows it uses a job object for the limit. A crafted header that makes a decoder panic ends the worker, and the server reports that one archive as damaged. A scan's worker that stops answering for 60 seconds is killed.
+- A name that climbs out of the folder, is absolute, or names a drive or a device refuses the whole archive. Writing also goes through `os.Root`.
 - Links, devices and folders in an archive are ignored. No link is ever created.
-- At most 10,000 entries and 32 GB, with at most 2,000 times the archive's own size above 1 GB. Those are checked against
-  the headers first. Then the bytes are counted as they're written, since headers can lie: writing more than a file's
-  headers promised stops it. Checksums are checked where the format has them.
-- Encrypted archives get a clear message, and no password is ever tried. A `.7z` that keeps its names readable and locks
-  only its contents can't be told from its headers, so it shows in the library and says so when played. The other kinds are
-  reported by the scan: password-protected, damaged, oversized, unsafe.
+- At most 10,000 entries and 32 GB, with at most 2,000 times the archive's own size above 1 GB. Those are checked against the headers first. Then the bytes are counted as they're written, since headers can lie. Checksums are checked where the format has them.
+- Encrypted archives get a clear message, and no password is ever tried. A `.7z` that keeps its names readable and locks only its contents can't be told from its headers, so it shows in the library and says so when played. The other kinds are reported by the scan: password-protected, damaged, oversized, unsafe.
 
-**The server's side of the pipe**
+**The service's side of the pipe**
 
-- Everything the host says is untrusted: every message has a size limit, dimensions are checked,
-  and frames go to FFmpeg as raw bytes only.
+- Everything the runner says is untrusted: every message has a size limit, dimensions are checked, and frames go to FFmpeg as raw bytes only.
 
 **The API**
 
-- Every endpoint checks sign-in. Starting a game goes through the same per-account access rules as
-  any other item, and a session belongs to the account that started it.
+- Every endpoint checks sign-in. Starting a game goes through the same per-account access rules as any other item, and a session belongs to the account that started it.
 - WebSockets check the Origin, as the rest of the API's CSRF rules do.
-- Only admins can install cores. Downloads go to one fixed host over HTTPS, the core name comes
-  from our own list, the size is capped, only the single expected file is unpacked, and it is
-  written atomically with its SHA-256 recorded.
-- Custom cores have their own rules: see [Adding your own core](#adding-your-own-core).
+- Only admins can install cores. Downloads go to one fixed host over HTTPS, the core name comes from our own list, the size is capped, only the single expected file is unpacked, and it is written atomically with its SHA-256 recorded.
 - Input packets have a fixed size, and players outside the session's limit are ignored.
-- SDP offers are capped in size.
+- SDP offers are capped in size. One game takes at most 8 viewers and 4 connecting at once, and past that the oldest goes.
+- Guest profiles can't upload anything to do with games. Kids profiles can bring their own saves and pictures, but not patches (`authz_gameuploads_test.go`).
 
-Downloading a core means running someone else's native code on the server. That's why only an
-admin can do it, why each core's licence and source are shown first, and why the host is
-sandboxed.
+Downloading a core means running someone else's native code on the server. That's why only an admin can do it, why each core's licence is shown first, and why the runner is sandboxed.
 
 ## Licences
 
 | Thing | Licence | How it's kept apart |
 |---|---|---|
-| WittyPlay (host, stream, web) | Apache-2.0 | Ours |
-| pion/webrtc and its family | MIT | Linked into `wms` |
-| coder/websocket | ISC | Linked into `wms` |
-| bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see THIRD_PARTY_LICENSES.md | Linked into `wms`. No GPL code |
+| WittyPlay (runner, stream, web) | Apache-2.0 | Ours |
+| pion/webrtc and its family | MIT | Linked into `wittyplay-module` |
+| coder/websocket | ISC | Linked into `wittyplay-module` |
+| bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see the third-party licences | Linked into the server. No GPL code |
 | ebitengine/purego | Apache-2.0 | Linked into `wittyplay-game-runner` only |
 | libretro API definitions | MIT | The constants and struct layouts only; no libretro code is copied |
-| RetroArch | GPLv3 | Not shipped. Its core folder is read if present. The fork would be a separate program ([WITTYRETROARCH.md](WITTYRETROARCH.md)) |
+| RetroArch | GPLv3 | Not shipped. Its core folder is read if present |
 | Libretro cores | Each core's own | **Never bundled.** A separate file, installed on an admin's request, loaded by a separate process |
-| FFmpeg | GPL builds | Already a separate program |
+| FFmpeg | GPL builds | A separate program |
 
-**Non-commercial cores** (`snes9x`, `genesis_plus_gx`, `picodrive`, `fbneo`, `mame2003*`) are not
-offered for download. An admin can add one with [Adding your own core](#adding-your-own-core), where it is labelled as
-non-commercial, as that's their own copy and their own decision.
+**Non-commercial cores** (`snes9x`, `genesis_plus_gx`, `picodrive`, `fbneo`, `mame2003*`) are not offered for download.
 
-**Custom cores are third-party and unverified.** Each one shows its licence if there's anything to go on, and says where that came
-from, or says "Unknown license". They are never offered, and the list of what we offer is kept apart from them in the code.
-
-**ROMs and BIOS files are never bundled, downloaded or linked.** The console page lists the BIOS
-file names a core expects, so you can supply your own.
-
-### Where BIOS files go
-
-Put them in a folder named `BIOS` inside a console's games folder. Any capitalisation works, and so do folders
-inside it:
-
-```
-Games/
-  Playstation 2 (PS2)/
-    Some Game.iso
-    BIOS/
-      SCPH-39001/
-        SCPH-39001_BIOS_V7_USA_160.BIN
-        SCPH-39001_BIOS_V7_USA_160.NVM
-```
-
-The folder is never listed as games. When someone presses Play, the server looks in a `BIOS` folder beside the
-game and one level up, and copies what the core wants to its own system folder (shown in Settings, Consoles & cores),
-leaving your copies alone. You can also put files straight in the system folder: a PlayStation 2 BIOS goes in
-`pcsx2/bios` inside it.
-
-**Satellaview games in `.bs` files** need the receiver's cartridge, named `BS-X.bin`, and only play on Mesen-S, which
-opens on the receiver's own screens. Satellaview games dumped like cartridges need nothing.
-
-**PlayStation 2 needs one** on LRPS2, the recommended core, and any region runs any game. With a whole set, the
-server picks a late first-generation US model, then any US model, then European. Without one, the game falls
-back to Play!, which needs no BIOS and runs fewer games. If only LRPS2 is installed the player says what's missing
-and where to put it.
+**ROMs and BIOS files are never bundled, downloaded or linked.** The console page lists the BIOS file names a core expects, so people can supply their own. `bios.go` copies what a core wants from a `BIOS` folder beside a game or one level up, to the system folder, leaving the originals alone. A PS2 BIOS is recognised by its name and size (`ps2BIOS` in `traits.go`). With a whole set, the server picks a late first-generation US model, then any US model, then European.
 
 ### Which cores are offered
 
-Licences are from the [libretro core-info](https://github.com/libretro/libretro-core-info) files
-(MIT), checked on 2026-10-30.
+Licences are from the [libretro core-info](https://github.com/libretro/libretro-core-info) files (MIT), checked on 2026-10-30. The table is `Consoles` in `consoles.go`.
 
 | Console | Cores offered, in order | Licence |
 |---|---|---|
@@ -1117,20 +660,17 @@ Licences are from the [libretro core-info](https://github.com/libretro/libretro-
 | Nintendo DS | melonds, desmume | GPLv3, GPLv2 |
 | Nintendo 3DS | azahar\*, panda3ds\* | GPLv2+, GPLv3 |
 | PC Engine / TurboGrafx-16 | mednafen_pce_fast | GPLv2 |
-| Atari 2600, 7800, Lynx | stella2014, prosystem, handy | GPLv2, GPLv2, zlib |
+| Atari 2600 | stella2014, stella | GPLv2 |
+| Atari 7800, Lynx | prosystem, handy | GPLv2, zlib |
 | WonderSwan, Neo Geo Pocket, Virtual Boy | mednafen_wswan, mednafen_ngp, mednafen_vb | GPLv2 |
 
-If a game won't load on the chosen core, the other installed cores for that console are tried in turn. Some cores
-start with settings other than their own defaults, where those don't suit streaming (`coreoptions.go`).
+If a game won't load on the chosen core, the other installed cores for that console are tried. Some cores start with settings other than their own defaults, where those don't suit streaming (`coreoptions.go`).
 
-\* Draws with a graphics card. Every one of these exists on the build server for Windows and Linux amd64, checked
-on 2026-10-31. LRPS2 and PPSSPP also need support files, which the install fetches from the same host.
+\* Draws with a graphics card. Every one of these exists on the build server for Windows and Linux amd64, checked on 2026-10-31. LRPS2 and PPSSPP also need support files, which the install fetches from the same host.
 
 ## Testing with real games
 
-`cmd/wittyplay-check` in **WittyPlay** plays real games with no browser. It starts the real runner
-with its sandbox on, exactly as a game session does (`stream.StartRunner`), loads each game on a real core,
-and records what happened.
+`cmd/wittyplay-check` in WittyPlay plays real games with no browser. It starts the real runner with its sandbox on, exactly as a game session does (`stream.StartRunner`), loads each game on a real core, and records what happened.
 
 ```
 cd WittyPlay
@@ -1141,28 +681,17 @@ go build -o /some/folder/ ./cmd/wittyplay-check ./cmd/wittyplay-game-runner
 For each game on each core it:
 
 1. Loads it, and records how long that took and anything the core complained about.
-2. Plays a set number of frames, pressing buttons to get past title screens, and on a console with a touch screen,
-   tapping it too.
-3. Saves a state, records what follows, goes back and checks the same pictures come again. Then it replays
-   with buttons held, and a different picture proves input reached the game.
+2. Plays a set number of frames, pressing buttons to get past title screens, and on a console with a touch screen, tapping it too.
+3. Saves a state, records what follows, goes back and checks the same pictures come again. Then it replays with buttons held, and a different picture proves input reached the game.
 4. Quits the way the server does, with a save, and checks the process ended cleanly.
-5. Starts a new process and restores the battery save and state the way a session does. The pictures must
-   match, which is what proves a resume really resumes.
+5. Starts a new process and restores the battery save and state the way a session does. The pictures must match, which is what proves a resume really resumes.
 6. On a game with several discs, changes disc and back.
 
 `-quick` stops after step 2, for sweeping a large collection.
 
-A crash, hang or failure in one game only ends that game's check. The result is `ok`, `load-failed`, `crash`,
-`hang`, `blank` (only ever one colour), `frozen` (never changes), `shut-itself-down`, `skipped`, `refused` (an
-encrypted game, which nothing will try to open) or `too-slow-to-judge` (a busy machine couldn't run enough frames;
-`-continue` tries those again). Warnings say what else looked wrong: `slow`, `silent`, `no-audio`, `audio-rate`,
-`no-states`, `state-inexact`, `state-load-failed`, `no-input-effect`, `one-screen-blank`, `resume-*`, `quit-*`,
-`disc-change-failed`.
+A crash, hang or failure in one game only ends that game's check. The result is `ok`, `load-failed`, `crash`, `hang`, `blank` (only ever one colour), `frozen` (never changes), `shut-itself-down`, `skipped`, `refused` (an encrypted game, which nothing will try to open) or `too-slow-to-judge` (a busy machine couldn't run enough frames; `-continue` tries those again). Warnings say what else looked wrong: `slow`, `silent`, `no-audio`, `audio-rate`, `no-states`, `state-inexact`, `state-load-failed`, `no-input-effect`, `one-screen-blank`, `resume-*`, `quit-*`, `disc-change-failed`.
 
-The report folder has `summary.txt`, `results.jsonl` with every number per game, each game's last picture, and
-`sheets/`, pages of pictures to look over, because wrong colours and garbled pictures are things only eyes catch. The
-tool refuses a report folder inside a git checkout, as the report names your games, and its terminal output uses
-numbers only.
+The report folder has `summary.txt`, `results.jsonl` with every number per game, each game's last picture, and `sheets/`, pages of pictures to look over, because wrong colours and garbled pictures are things only eyes catch. The tool refuses a report folder inside a git checkout, as the report names your games, and its terminal output uses numbers only.
 
 | Flag | What it does |
 |---|---|
@@ -1180,17 +709,13 @@ numbers only.
 | `-load-timeout`, `-hang` | How long a load may take, and how long with no new frame counts as a hang |
 | `-continue` | Carries on a stopped run |
 
-`.zip` games are unpacked by the tool, and `.7z` needs a 7-Zip program. Point it at unpacked copies otherwise.
+`.zip` games are unpacked by the tool, and `.7z` needs a 7-Zip program.
 
-Read speed and hangs only on a quiet machine: the runner has low priority on purpose, and the first time a new build
-of it starts it can stall for many seconds. CPU numbers from Windows are too low for games that do little per frame, as
-Windows counts a process's time in ticks. Linux's are the ones to believe.
+Read speed and hangs only on a quiet machine: the first time a new build of the runner starts it can stall for many seconds. CPU numbers from Windows are too low for games that do little per frame, as Windows counts a process's time in ticks. Linux's are the ones to believe. Read `gameFps` beside `fps` in the server log.
 
 ### What has been tried
 
-Run on 2026-10-31 on Windows, with the same cores checked on Linux where the table says so. "OK" means it loaded, drew
-a changing picture and quit cleanly. NES, SNES and PlayStation had full-speed runs on a quiet machine, and the speeds
-below come from those.
+Run on 2026-10-31 on Windows, with the same cores checked on Linux where the table says so. "OK" means it loaded, drew a changing picture and quit cleanly. NES, SNES and PlayStation had full-speed runs on a quiet machine, and the speeds below come from those.
 
 | Console | What was played | Result |
 |---|---|---|
@@ -1207,63 +732,32 @@ below come from those.
 | Lynx | 20 homebrew or test ROMs | 16 OK. The other 4 are test ROMs that draw one colour. All are silent |
 | Atari 7800 | No game with a clear licence was found | Only that the core installs and opens |
 
-Every core offered installs and opens in the sandbox, on Windows, on Linux and in the container image: 27 of 27 at the
-time of that run. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter.
+Every core offered at the time, 27 of them, installed and opened in the sandbox, on Windows, on Linux and in the container image. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter. Since then, Mesen's NES core has been found to abort on Linux.
 
-In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264
-and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting,
-and clean exits when the server or the runner is killed.
+In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264 and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting, and clean exits when the server or the runner is killed. Streaming through the module has played a real game in a browser, and the graphics-card consoles' delay figures are above.
 
-**The SNES games that stay blank on Supafaust**, 43 of them:
-
-- 7 play on another core.
-- 13 are Satellaview dumps. 31 of the 45 in the set play on Supafaust as they are; 2 of those that don't play on Mesen-S
-  with `BS-X.bin`.
-- 7 are Sufami Turbo cartridges and 2 are data packs, which all need a base cartridge plugged in.
-- 6 aren't games: start-up programs of copiers and cheat devices.
-- 8 others. Some use chips whose firmware the cores want, and none was available to test with.
-
-These ran for 25 seconds on all three cores, so they aren't merely slow starters. About one in five games made no sound
-in the first few seconds, with Supafaust and Mesen-S agreeing on 40 of the sample's 45, and that is usually a quiet title screen.
-Most games ignore the buttons in those seconds too, which is why `no-input-effect` is so common.
-**Listed but not playable yet** because they need hardware rendering: Nintendo 64, PSP, Dreamcast. Their controllers are
-already set up, numbered as those cores number them.
-Nintendo DS needs a pointer input for its touch screen, which comes after the first release.
+**The SNES games that stay blank on Supafaust**, 43 of them: 7 play on another core. 13 are Satellaview dumps, and 2 of those play on Mesen-S with `BS-X.bin`. 7 are Sufami Turbo cartridges and 2 are data packs, which need a base cartridge plugged in. 6 aren't games: start-up programs of copiers and cheat devices. 8 others, some using chips whose firmware the cores want. These ran for 25 seconds on all three cores, so they aren't merely slow starters.
 
 ## Limits today
 
-- **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are. Nearly all zips are Deflate.
-- **A `.7z` with locked contents** is only found out when played. See Security.
-- **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code, so a code that
-  does nothing can't be told apart from a wrong one. Some cores have no cheat support at all.
+- **Delay figures** are headless on one machine, and not from glass to glass. PlayStation 2 is the slowest, at about 49 ms from a press to the screen. Firefox, Safari, phones, TVs and real networks haven't been run. Nor has a real controller or TV remote.
+- **3DS** isn't tested with a real game.
+- **Graphics-card consoles** run on Windows and Linux only, and with OpenGL only. melonDS's own OpenGL mode produces no frames here, so DS games draw in software at native resolution.
+- **Mesen's NES core** aborts on Linux, which leaves header-less NES dumps with nothing to play them there.
+- **PlayStation 2 on Linux:** the shader cache is rebuilt each run. A real PS2 save hasn't been tried under the sandbox.
+- **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are.
+- **A `.7z` with locked contents** is only found out when played.
+- **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code. Some cores have no cheat support at all.
 - **Slow motion and fast-forward have no sound.**
 - **A core's option labels are its own**, and in English: this frontend tells a core its language is English.
 - **Patches** work on games that are a single file, not on discs (`.cue`, `.chd`, `.iso` and so on).
-- **Software-rendered cores only** with the built-in runner.
-- **Real cores:** the tests use the built-in test core. Loading and running real libretro cores has
-  not been tested end to end yet.
-- **A blank picture isn't noticed.** If a core won't load a game, the next is tried. If it loads and draws one colour, it
-  stays there. 4 NES games on fceumm and 7 SNES games on Supafaust do this and play on another core, which an admin can
-  pick in Settings, Consoles & cores.
-- **Few games on some consoles.** Only NES, SNES, PlayStation, DS and PSP have been tried with real games, and only NES
-  and SNES with many. See "What has been tried".
-- **Container image:** about 800 MB, up from about 150 MB, as cores from the build server need Debian's C library rather
-  than Alpine's. Most of the size is Debian's FFmpeg, and the release's static FFmpeg could replace it.
-- **OpenGL only** with the built-in runner: see above for why. melonDS's own OpenGL mode produces no frames here,
-  so DS games draw in software at native resolution.
-- **No bandwidth adaptation yet:** the bitrate is a setting (Auto, Data saver, High), not a live
-  response to the network.
-- **No netplay yet.** Several players means several controllers on one device.
-- **Plain http on a home network:** browsers limit some features to secure pages. Firefox hides
-  gamepads, and WebCodecs is unavailable, which leaves WebRTC or JPEG. Reaching the server over
-  https or `localhost` removes both limits.
-- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Consoles & cores, and fill in the public
-  address, or use host networking.
+- **A blank picture isn't noticed.** If a core won't load a game, the next is tried. If it loads and draws one colour, it stays there. 4 NES games on fceumm and 7 SNES games on Supafaust do this and play on another core, which an admin can pick.
+- **Few games on some consoles.** Only NES and SNES have been tried with many real games. See [What has been tried](#what-has-been-tried).
+- **Container image:** cores from the build server need Debian's C library rather than Alpine's, which makes the image larger.
+- **No netplay.** Several players means several controllers on one device.
+- **Plain http on a home network:** browsers limit some features to secure pages. Firefox hides gamepads, and WebCodecs is unavailable, which leaves WebRTC or JPEG. Reaching the server over https or `localhost` removes both limits.
+- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Consoles & cores, and fill in the public address, or use host networking.
 
-## Phases
+---
 
-1. This document.
-2. The library and scanning.
-3. Launching a core and streaming one game end to end.
-4. Controllers and the touch editor.
-5. Polish.
+<sub>WittyMediaServer documentation</sub>

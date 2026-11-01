@@ -17,7 +17,7 @@ independent audit. For what to do about exposure, read [REMOTE.md](REMOTE.md).
 | **Someone who can put files in a library** | Hostile media, sidecars, links, pipes, archives, disc images | Parsers are bounded, fuzzed and time-limited. Files are served through a handle that can't leave the library. FFmpeg opens library files only as real media formats, with no network |
 | **A host behind a feed or playlist** | Answer anything, redirect anywhere, change its answer between requests | The internet-only client checks each connection as it is made, including the machine's own addresses. A playlist from the internet stays on the internet. FFmpeg never reads an internet stream by itself |
 | **A stolen administrator session** | Everything in Settings | It's not meant to reach the machine: no running programs, no reading arbitrary files, no second administrator or reset without the password and code, and no taking away the backups or a library's originals without them either. Custom cores need a switch set on the machine |
-| **A helper, game core or module** | Run with a hostile file as input | Helpers and cores run in a sandbox, as far as the system allows: no writes outside their folder, no sockets unless needed, no changing who may read a file |
+| **A helper, game core or module** | Run with a hostile file as input | Helpers and cores run in a sandbox, as far as the system allows: no writes outside their folder, no sockets unless needed, no changing who may read a file. On macOS and FreeBSD a module's helper has no sandbox |
 | **Whoever controls what GitHub answers** | Offer old or altered releases | Everything installed is signed, the signature covers each file's name and hash, older versions aren't offered, and a withdrawn version stays withdrawn |
 
 **Outside the model:** someone with the server's own operating system account, or physical access; an administrator who
@@ -31,7 +31,7 @@ chooses to trust, such as a reverse proxy listed as trusted, a fork of a module,
 - **Encrypted is refused, never decrypted.** Protected discs, broadcasts and game files are detected and refused, and no
   extension point exists to change that. For HLS, a key is refused before FFmpeg sees the playlist.
 - **Things that can't be undone ask for the password again.** So do downloading, deleting or keeping fewer backups, starting to
-  replace a library's originals, adding or removing an administrator, reset, and moving a module to a fork or an older version.
+  replace a library's originals, adding or removing an administrator, reset, adding a module store, and moving a module to a fork or an older version.
 - **What a web account can set can't name a program.** Paths to programs live in the config file or the environment.
 - **A file's name, a feed's answer and a stream's address are data.** None is ever handed to a shell, read as an FFmpeg
   option, or shown to people who don't need it.
@@ -60,6 +60,10 @@ chooses to trust, such as a reverse proxy listed as trusted, a fork of a module,
 | Choosing how to reach a server safely | [REMOTE.md](REMOTE.md) |
 | Signing, keys and taking back a release | [PUBLISHING.md](PUBLISHING.md) |
 | What FFmpeg is allowed to do | [TRANSCODING.md](TRANSCODING.md#expert) |
-| Modules, their sandbox and forks | [MODULES.md](MODULES.md) |
+| Modules, their sandbox and forks | [What limits a module](MODULE-STORE.md#what-limits-a-module) |
 | Custom game cores | [GAMING.md](GAMING.md) |
 | Encrypted channels | [CHANNELS.md](CHANNELS.md) |
+
+---
+
+<sub>WittyMediaServer documentation</sub>

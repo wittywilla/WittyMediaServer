@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PageHelp } from '../../../components/HelpLink'
 import { ApiError, fmtDateTime } from '../../../api'
 import { BackLink } from '../../../components/common'
 import { ConfirmOwner } from '../ConfirmOwner'
@@ -18,7 +19,7 @@ export default function OtherStores() {
   const head = (
     <>
       <BackLink to="/settings/modules/store" label="Module store" />
-      <PageHead title="Other stores" desc="Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you." />
+      <PageHead title="Other stores" desc="Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you." actions={<PageHelp to="module-store#other-stores">What to know first</PageHelp>} />
     </>
   )
   if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>Try again</Button>}>{error.message}</Notice></div>

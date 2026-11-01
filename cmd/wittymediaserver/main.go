@@ -87,7 +87,7 @@ func usage() {
 usage:
   wittymediaserver [serve] [flags]
                              start the server (default); -config <file> uses a wms.json
-  wittymediaserver --uninstall [--keep-data | --remove-data] [--remove-recordings] [--yes] [--dry-run]
+  wittymediaserver --uninstall [--keep-data | --remove-data] [--remove-recordings] [--remove-backups] [--yes] [--dry-run]
                              remove the program, its service and shortcuts, asking about your data
   wittymediaserver config path            show the config file and folders in use
   wittymediaserver config init [--portable]

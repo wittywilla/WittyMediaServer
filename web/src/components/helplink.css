@@ -1,0 +1,5 @@
+/* The small way into a guide from the page it's about. */
+.help-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: var(--control-h-sm); color: var(--fg-2); font-size: var(--text-sm); }
+.help-link:hover { color: var(--fg); text-decoration: underline; }
+.help-inline { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.set-help { display: flex; justify-content: flex-end; margin-bottom: calc(var(--sp-2) * -1); }

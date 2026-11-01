@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
+import { HelpLink } from './HelpLink'
 
 // What a page shows when the module behind it isn't on this server: what's missing and what it
 // would add, and for an admin a button that installs it, with no restart. Never a broken screen.
@@ -53,6 +54,7 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
       <p>{name} isn't on this server, so this can't open yet. Everything else works as usual.</p>
       {mods?.map((m) => m.summary ? <p key={m.id}><strong>{m.name}</strong>: {m.summary}</p> : null)}
       {!admin && <p>An admin of this server can add it in Settings, Modules.</p>}
+      <p><HelpLink to="module-store">What modules are</HelpLink></p>
       {noBuild && <p>{noBuild.unavailable}</p>}
       {admin && !busy && !noBuild && (mods || ids.map((id) => ({ id, name: id }))).map((m) => (
         <button key={m.id} type="button" className="btn primary" disabled={adding} onClick={() => add(m.id)}>Add {m.name}</button>

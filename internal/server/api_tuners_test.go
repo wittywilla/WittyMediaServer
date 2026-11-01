@@ -271,3 +271,80 @@ func TestTunerChannelLogo(t *testing.T) {
 		}
 	}
 }
+
+// A person can put a channel's logo right through the API, a list's address stays hidden, and the
+// credits say where every picture on a screen came from, for whoever can see it.
+func TestTunerChannelLogoChoiceAndCredits(t *testing.T) {
+	h, admin, kid, s := tvServer(t)
+	logoChannels(t, s, "https://logos.example/secret.png", "")
+	if _, err := s.DB.Exec(`UPDATE tuner_channels SET name = 'NBC HD', enabled = 1 WHERE id = 2`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`UPDATE tuner_channels SET enabled = 1 WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	row := func(id int) map[string]any {
+		var list []map[string]any
+		w := tvCall(h, "GET", "/api/tuners/1/channels", admin, "")
+		if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(w.Body.String(), "secret.png") {
+			t.Errorf("the list's address reached a client: %s", w.Body)
+		}
+		for _, c := range list {
+			if int(c["id"].(float64)) == id {
+				return c
+			}
+		}
+		t.Fatalf("no channel %d", id)
+		return nil
+	}
+	if b, _ := row(2)["brand"].(map[string]any); b["name"] != "NBC" || b["kind"] != "network" {
+		t.Errorf("found by name: %v", row(2))
+	}
+	if u, _ := row(1)["logoUrl"].(string); !strings.HasPrefix(u, "/api/tv/tun-1/logo") {
+		t.Errorf("the list's logo comes through this server: %v", row(1))
+	}
+	put := func(id int, logo string) int {
+		return tvCall(h, "PUT", fmt.Sprintf("/api/tuner-channels/%d", id), admin, fmt.Sprintf(`{"logo":%q}`, logo)).Code
+	}
+	if c := put(2, "evil|x"); c != 400 {
+		t.Errorf("a kind that isn't one: %d", c)
+	}
+	if c := put(2, "studio|Open Pictures"); c != 200 {
+		t.Errorf("a person's correction: %d", c)
+	}
+	if b, _ := row(2)["brand"].(map[string]any); b["name"] != "Open Pictures" || b["kind"] != "studio" {
+		t.Errorf("the correction: %v", row(2))
+	}
+	if g, err := s.Store.LogoFor(context.Background(), "studio", "Open Pictures"); err != nil || g == nil {
+		t.Errorf("the service should know the name someone gave: %v %v", g, err)
+	}
+	if c := put(1, "none"); c != 200 {
+		t.Errorf("none: %d", c)
+	}
+	if r := row(1); r["logoUrl"] != nil || r["brand"] != nil {
+		t.Errorf("none means none: %v", r)
+	}
+	if c := put(1, ""); c != 200 {
+		t.Errorf("back to automatic: %d", c)
+	}
+	if w := tvCall(h, "PUT", "/api/tuner-channels/2", kid, `{"logo":"none"}`); w.Code != 403 {
+		t.Errorf("only an administrator: %d", w.Code)
+	}
+	// A guide row and the credits say the same thing, and nothing about the list's address.
+	w := tvCall(h, "GET", "/api/logos/credits", admin, "")
+	if !strings.Contains(w.Body.String(), `"name":"Channel 1","source":"list"`) || strings.Contains(w.Body.String(), "secret.png") {
+		t.Errorf("credits: %s", w.Body)
+	}
+	if w := tvCall(h, "GET", "/api/logos", kid, ""); w.Code != 403 {
+		t.Errorf("the whole list is for an administrator: %d", w.Code)
+	}
+	if w := tvCall(h, "GET", "/api/logos?kind=nonsense", admin, ""); w.Code != 400 {
+		t.Errorf("a kind that isn't one: %d", w.Code)
+	}
+	if w := tvCall(h, "GET", "/api/logos?kind=studio&q=open", admin, ""); !strings.Contains(w.Body.String(), "Open Pictures") {
+		t.Errorf("found by name: %s", w.Body)
+	}
+}

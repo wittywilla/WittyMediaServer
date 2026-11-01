@@ -5583,6 +5583,23 @@
               "null"
             ]
           },
+          "sandbox": {
+            "properties": {
+              "level": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "words": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "level"
+            ],
+            "type": "object"
+          },
           "server": {
             "type": "string"
           }
@@ -5592,6 +5609,7 @@
           "libraries",
           "minApi",
           "modules",
+          "sandbox",
           "server"
         ],
         "type": "object"

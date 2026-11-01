@@ -813,7 +813,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /legal/notices` | none | The short legal notices, by kind, and what this server's owner wrote. See "Legal notices". |
 | `GET /legal` | none | The full Legal page, with the privacy list and what this server's owner wrote. |
 | `POST /legal/acknowledge` | admin | Record that an administrator has seen the first-run notice, so `legalAck` in `/status` turns true. |
-| `GET /prefs` | user | Server-wide playback defaults every viewer needs. |
+| `GET /prefs` | user | Server-wide defaults every viewer needs: playback, and `navDefault`, the owner's arrangement of the main menu as JSON. |
 | `GET /branding/logo` | none | The custom logo, if the server has one (404 otherwise). The `brandLogo` value in `/status` changes when it does. |
 | `PUT /branding/logo` | admin | Replace the logo: the PNG or JPEG itself as the body, 2 MB at most. |
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
@@ -901,6 +901,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
 | `PUT /users/{id}/access` | user | Set an account's limits, or clear a Kids or Guest password. |
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
+| `PUT /users/{id}/profile` | user | Change `displayName`, `username` or `showUsername`. Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 
 ### Browsing
 
@@ -1094,6 +1095,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /themes/{id}/download` | none | The theme as a ZIP. |
 | `GET /themes/{id}/{file}` | none | A file of a theme: theme.css and the images and fonts it uses. |
 | `POST /themes` | admin | Install a theme: the ZIP as the body. |
+| `POST /themes/custom` | admin | Add a theme from the theme maker: `name`, `scheme`, `colors` and `radius`. Colours must be exactly `#rrggbb`. |
 | `DELETE /themes/{id}` | admin | Remove a theme. |
 
 ### Channels and live TV

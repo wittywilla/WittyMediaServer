@@ -183,7 +183,10 @@ export default function CouchMode() {
     window.scrollTo(0, 0)
     const t = window.setTimeout(() => {
       if (document.activeElement && document.activeElement !== document.body && main.current?.contains(document.activeElement)) return
-      main.current?.querySelector<HTMLElement>('[data-front="1"], .gm-game-actions .primary, a[href].card, a[href].gm-console, button')?.focus({ preventScroll: true })
+      for (const sel of ['[data-front="1"]', '.gm-game-actions .primary', '.gm-osk-key', 'a[href].card', 'a[href].gm-console', 'button:not([tabindex="-1"]), a[href]']) {
+        const el = main.current?.querySelector<HTMLElement>(sel)
+        if (el) { el.focus({ preventScroll: true }); break }
+      }
     }, 350)
     return () => clearTimeout(t)
   }, [loc.pathname])

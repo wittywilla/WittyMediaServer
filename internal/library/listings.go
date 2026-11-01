@@ -90,10 +90,26 @@ func (s *Scanner) SetListings(ctx context.Context, on bool, region string, accep
 		if !regionRe.MatchString(region) {
 			return errors.New("a region is two letters, such as US")
 		}
-		if region != s.Store.ListingsRegion(ctx) {
-			if err := s.Store.DB.SetSetting(ctx, "listingsRegion", region); err != nil {
-				return err
+	}
+	// Once they're on, what was accepted stands: changing the region doesn't ask again.
+	already := s.Store.ListingsEnabled(ctx)
+	if on {
+		have := map[string]bool{}
+		for _, a := range accepted {
+			have[a] = true
+		}
+		for _, a := range ListingAcknowledgements {
+			if !have[a] && !already {
+				return ErrListingsNotAccepted
 			}
+		}
+		if s.TMDBKey == nil || s.TMDBKey() == "" {
+			return errors.New("listings need a free TMDB key first: add one under Built-in agents")
+		}
+	}
+	if region != "" && region != s.Store.ListingsRegion(ctx) {
+		if err := s.Store.DB.SetSetting(ctx, "listingsRegion", region); err != nil {
+			return err
 		}
 	}
 	if !on {
@@ -107,23 +123,13 @@ func (s *Scanner) SetListings(ctx context.Context, on bool, region string, accep
 		_, err := s.Store.DB.ExecContext(ctx, `DELETE FROM listing_titles`)
 		return err
 	}
-	have := map[string]bool{}
-	for _, a := range accepted {
-		have[a] = true
-	}
-	for _, a := range ListingAcknowledgements {
-		if !have[a] {
-			return ErrListingsNotAccepted
+	if !already {
+		if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
+			return err
 		}
-	}
-	if s.TMDBKey == nil || s.TMDBKey() == "" {
-		return errors.New("listings need a free TMDB key first: add one under Built-in agents")
-	}
-	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
-		return err
-	}
-	if err := s.Store.DB.SetSetting(ctx, "listingsConsentAt", strconv.FormatInt(db.Now(), 10)); err != nil {
-		return err
+		if err := s.Store.DB.SetSetting(ctx, "listingsConsentAt", strconv.FormatInt(db.Now(), 10)); err != nil {
+			return err
+		}
 	}
 	s.KickListings()
 	return nil
@@ -219,9 +225,20 @@ func (s *Store) TitleListings(ctx context.Context, target string, id int64) ([]L
 var listingJob = struct {
 	sync.Mutex
 	running     bool
+	again       bool // asked for while running: go round once more, for what was forgotten since
 	done, total int
 	cancel      context.CancelFunc
 }{}
+
+// forgetListing drops what's known of one title's listings when its match changes. They were
+// read for whatever it was matched with before, and would otherwise be shown for weeks.
+func (s *Store) forgetListing(ctx context.Context, target string, id int64) {
+	for _, table := range []string{"listings", "listing_titles"} {
+		if _, err := s.DB.ExecContext(ctx, `DELETE FROM `+table+` WHERE target = ? AND target_id = ?`, target, id); err != nil {
+			return
+		}
+	}
+}
 
 // StopListings stops the background job.
 func StopListings() {
@@ -234,7 +251,12 @@ func StopListings() {
 
 // KickListings checks whatever hasn't been checked lately, in the background and
 // gently. It does nothing if the owner hasn't turned listings on.
-func (s *Scanner) KickListings() {
+func (s *Scanner) KickListings() { s.kickListings(false) }
+
+// RecheckListings checks everything again now, however lately it was checked.
+func (s *Scanner) RecheckListings() { s.kickListings(true) }
+
+func (s *Scanner) kickListings(all bool) {
 	ctx := context.Background()
 	if !s.Store.ListingsEnabled(ctx) || s.TMDBKey == nil || s.TMDBKey() == "" {
 		return
@@ -242,6 +264,7 @@ func (s *Scanner) KickListings() {
 	listingJob.Lock()
 	defer listingJob.Unlock()
 	if listingJob.running {
+		listingJob.again = true
 		return
 	}
 	jctx, cancel := context.WithCancel(ctx)
@@ -251,9 +274,14 @@ func (s *Scanner) KickListings() {
 			cancel()
 			listingJob.Lock()
 			listingJob.running = false
+			again := listingJob.again
+			listingJob.again = false
 			listingJob.Unlock()
+			if again {
+				s.KickListings()
+			}
 		}()
-		if err := s.syncListings(jctx); err != nil && !errors.Is(err, context.Canceled) {
+		if err := s.syncListings(jctx, all); err != nil && !errors.Is(err, context.Canceled) {
 			s.Log.WarnContext(jctx, "could not update streaming listings", "err", err)
 		}
 	}, "cat", "library")
@@ -264,9 +292,12 @@ type listingTodo struct {
 	id     int64
 }
 
-func (s *Scanner) syncListings(ctx context.Context) error {
+func (s *Scanner) syncListings(ctx context.Context, all bool) error {
 	region := s.Store.ListingsRegion(ctx)
 	cutoff := time.Now().Add(-listingMaxAge).Unix()
+	if all {
+		cutoff = time.Now().Unix() + 1
+	}
 	var todo []listingTodo
 	rows, err := s.Store.DB.QueryContext(ctx, `SELECT 'item', i.id FROM items i LEFT JOIN listing_titles t ON t.target = 'item' AND t.target_id = i.id AND t.region = ?1
 		WHERE i.missing = 0 AND i.show_id IS NULL AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder') AND i.library_id IN (SELECT id FROM libraries WHERE type IN ('movies', 'discs'))

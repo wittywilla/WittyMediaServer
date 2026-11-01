@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { api, artPreviewUrl, type Item, type Show } from '../../api'
 import { IconCheck, IconClose, IconLock, IconRefresh, IconTrash, IconUnlock } from '../../icons'
+import { ask, Button, Dialog, IconButton } from '../../ui'
 import { fmtClock, joinOf, listOf, parseClock, sendPicture, undoBatch, type ArtChoice, type ArtKind, type MetaField, type Target, type TitleEditor } from '../../metadata'
 import { toast } from '../../state'
 import LegalNote from '../LegalNote'
@@ -35,15 +35,9 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
   const [locks, setLocks] = useState<Record<string, boolean>>({})
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const [leaving, setLeaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [undo, setUndo] = useState<{ batch: string; what: string } | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
   const nav = useNavigate()
-  const pressedOutside = useRef(false)
-  const safeChoice = useRef<HTMLButtonElement | null>(null)
-  // A question at the foot of the dialog takes the keyboard to its safe answer.
-  useEffect(() => { if (leaving || deleting) safeChoice.current?.focus() }, [leaving, deleting])
 
   const load = useCallback(() => api.get<TitleEditor>(`/meta/${target}/${id}`).then(setEd).catch((e) => setLoadErr(e.message)), [target, id])
   useEffect(() => { load() }, [load])
@@ -105,7 +99,9 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
   const keys = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'Enter')) { e.preventDefault(); save() }
   }
-  const askClose = () => { if (dirty) setLeaving(true); else onClose() }
+  const askClose = async () => {
+    if (!dirty || await ask({ title: 'Discard your changes?', body: "You have changes that aren't saved.", confirm: 'Discard them', cancel: 'Keep editing', danger: true })) onClose()
+  }
   const revert = async (f: string) => {
     setErr('')
     try {
@@ -122,34 +118,39 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
     } catch (e: any) { setErr(e.message) }
   }
   const remove = async () => {
+    const files = target === 'show' ? 'files stay' : 'file stays'
+    if (!await ask({ title: 'Take this out of its library?', body: `Its ${files} on disk, and it won't come back on a scan. You can bring it back from Fix matches, Removed.`, confirm: 'Take it out', cancel: 'Keep it', danger: true })) return
     try {
       await api.del(`/meta/${target}/${id}`)
       toast('Taken out of the library. Its file is still there.')
       onChanged()
       onClose()
       nav(ed ? `/library/${ed.libraryId}` : '/')
-    } catch (e: any) { setErr(e.message); setDeleting(false) }
+    } catch (e: any) { setErr(e.message) }
   }
 
   const fieldProps = { val, set, isLocked, toggleLock, revert, ed: ed! }
   const allLocked = !!ed && ed.order.every((f) => ed.fields[f].locked)
-  const body = (
-    <div className="modal-backdrop ed-backdrop"
-      onMouseDown={(e) => { pressedOutside.current = e.target === e.currentTarget }}
-      // A drag that starts inside and ends outside is someone selecting text, not closing. e.detail
-      // is 0 for what Escape sends (see a11y.tsx).
-      onClick={(e) => { if (e.target === e.currentTarget && (pressedOutside.current || e.detail === 0)) askClose(); pressedOutside.current = false }}>
-      <div className="modal ed-dialog" role="dialog" aria-modal="true" aria-labelledby="ed-title" onKeyDown={keys}>
-        <header className="ed-head">
-          <div className="ed-head-text">
-            <h2 id="ed-title">Edit details</h2>
-            {ed && <p className="muted ed-file" title={ed.file}>{ed.file}</p>}
-          </div>
-          <button type="button" className="btn ghost square" aria-label="Close" onClick={askClose}><IconClose /></button>
-        </header>
+  // What's asked of a remote: from the last section down to the buttons, and back.
+  const navKeys = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== 'ArrowDown') return
+    const links = [...e.currentTarget.querySelectorAll<HTMLElement>('a')]
+    if (document.activeElement !== links[links.length - 1]) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.closest('.ed-dialog')?.querySelector<HTMLElement>('.actions button:not([disabled])')?.focus()
+  }
+  return (
+    <Dialog title="Edit details" description={ed?.file} size="wide" className="ed-dialog" onClose={askClose}
+      actions={<>
+        <Button variant="ghost" className="ed-delete" disabled={!ed} icon={<IconTrash size={18} />} onClick={remove}>Delete</Button>
+        <Button variant="ghost" onClick={askClose}>Cancel</Button>
+        <Button variant="primary" busy={busy} disabled={!ed || !dirty} onClick={save} title="Ctrl+S">Save</Button>
+      </>}>
+      <div className="ed-body" onKeyDown={keys}>
         {!ed ? (loadErr ? <div className="error ed-pad" role="alert">{loadErr}</div> : <div className="loading-box"><div className="spinner" /></div>) : (
           <div className="ed-layout">
-            <nav className="ed-nav" aria-label="Sections">
+            <nav className="ed-nav" aria-label="Sections" data-nav-group onKeyDown={navKeys}>
               {SECTIONS.filter((s) => !(s.id === 'logos' && ed.kind === 'episode') && !(s.id === 'playback' && ed.disc)).map((s) => (
                 <a key={s.id} href={`#ed-${s.id}`} onClick={(e) => { e.preventDefault(); const el = document.getElementById('ed-' + s.id); el?.scrollIntoView({ block: 'start' }); el?.querySelector<HTMLElement>('input, select, textarea, button')?.focus({ preventScroll: true }) }}>{s.label}</a>
               ))}
@@ -185,42 +186,20 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
             <button type="button" className="btn sm" onClick={async () => {
               try { await undoBatch(undo.batch); setUndo(null); setDraft({}); setLocks({}); await load(); onChanged(); toast('Undone') } catch (e: any) { setErr(e.message) }
             }}>Undo</button>
-            <button type="button" className="btn sm ghost square" aria-label="Dismiss" onClick={() => setUndo(null)}><IconClose size={16} /></button>
+            <IconButton size="sm" label="Dismiss" hideTip onClick={() => setUndo(null)}><IconClose size={16} /></IconButton>
           </div>
         )}
         {err && <div className="error ed-err" role="alert">{err}</div>}
-        {leaving ? (
-          <footer className="ed-foot ed-confirm" role="alertdialog" aria-label="Unsaved changes">
-            <span>You have changes that aren't saved.</span>
-            <div className="ed-foot-right">
-              <button type="button" className="btn ghost" ref={safeChoice} onClick={() => setLeaving(false)}>Keep editing</button>
-              <button type="button" className="btn danger" onClick={onClose}>Discard them</button>
-            </div>
-          </footer>
-        ) : deleting ? (
-          <footer className="ed-foot ed-confirm" role="alertdialog" aria-label="Take this out of the library">
-            <span>Take this out of its library? Its {target === 'show' ? 'files stay' : 'file stays'} on disk and {target === 'show' ? 'they' : 'it'} won't come back on a scan. You can bring {target === 'show' ? 'them' : 'it'} back from Fix matches, Removed.</span>
-            <div className="ed-foot-right">
-              <button type="button" className="btn ghost" ref={safeChoice} onClick={() => setDeleting(false)}>Keep it</button>
-              <button type="button" className="btn danger" onClick={remove}><IconTrash size={18} /> Take it out</button>
-            </div>
-          </footer>
-        ) : (
-          <footer className="ed-foot">
-            <button type="button" className="btn ghost ed-delete" disabled={!ed} onClick={() => setDeleting(true)}><IconTrash size={18} /> Delete</button>
-            <div className="ed-foot-right">
-              <button type="button" className="btn ghost" onClick={askClose}>Cancel</button>
-              <button type="button" className="btn primary" disabled={!ed || busy || !dirty} onClick={save} title="Ctrl+S">{busy ? 'Saving…' : 'Save'}</button>
-            </div>
-          </footer>
-        )}
       </div>
-    </div>
+    </Dialog>
   )
-  return createPortal(body, document.body)
 }
 
 type FieldProps = { ed: TitleEditor; val: (f: string) => string; set: (f: string, v: string) => void; isLocked: (f: string) => boolean; toggleLock: (f: string) => void; revert: (f: string) => void }
+
+function LockButton({ label, locked, onClick }: { label: string; locked: boolean; onClick: () => void }) {
+  return <IconButton size="sm" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} label={locked ? `${label} is locked: nothing can change it` : `Lock ${label}`} onClick={onClick}>{locked ? <IconLock size={16} /> : <IconUnlock size={16} />}</IconButton>
+}
 
 // Where a value came from, in words.
 function sourceWords(m?: MetaField) {
@@ -253,9 +232,7 @@ function FieldShell({ name, label, children, p, wide, hint }: { name: string; la
           <button type="button" className="btn sm ghost ed-revert" onClick={() => p.revert(name)} title={m.revertTo ? `Go back to: ${m.revertTo}` : 'Go back to empty'}
             aria-label={`Go back to what ${m.revertFrom || 'the source'} said for ${label}`}><IconRefresh size={14} /> Revert</button>
         )}
-        <button type="button" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} aria-label={`Lock ${label}`} title={locked ? 'Locked: nothing can change this. Press to unlock' : 'Lock this, so nothing can change it'} onClick={() => p.toggleLock(name)}>
-          {locked ? <IconLock size={16} /> : <IconUnlock size={16} />}
-        </button>
+        <LockButton label={label} locked={locked} onClick={() => p.toggleLock(name)} />
       </div>
       {hint && <div className="ed-hint" id={hintId}>{hint}</div>}
     </div>
@@ -313,6 +290,7 @@ function DetailFields(p: FieldProps) {
       {p.ed.kind === 'episode' && text('season', 'Season', { inputMode: 'numeric' })}
       {p.ed.kind === 'episode' && text('episode', 'Episode', { inputMode: 'numeric' })}
       {list('edition', 'Edition', "Director's Cut, Remastered", 'Separate them with commas. Shows on its card, and can be filtered by.')}
+      {text('series', 'Collection', { placeholder: 'The film series it belongs to', wide: true, hint: 'Two or more with the same name appear as a collection on the library page.' })}
       {text('tagline', 'Tagline', { wide: true })}
       {has('overview') && (
         <FieldShell name="overview" label="Overview" p={p} wide>
@@ -326,9 +304,7 @@ function DetailFields(p: FieldProps) {
           <div className="ed-field-head">
             <span className="ed-source">{sourceWords(p.ed.fields.contentRating)}</span>
             <div className="ed-field-tools">
-              <button type="button" className={'ed-lock' + (p.isLocked('contentRating') ? ' on' : '')} aria-pressed={p.isLocked('contentRating')} aria-label="Lock Content rating" onClick={() => p.toggleLock('contentRating')}>
-                {p.isLocked('contentRating') ? <IconLock size={16} /> : <IconUnlock size={16} />}
-              </button>
+              <LockButton label="Content rating" locked={p.isLocked('contentRating')} onClick={() => p.toggleLock('contentRating')} />
             </div>
           </div>
           <RatingField tv={p.ed.kind !== 'movie'} value={p.val('contentRating')} onChange={(v) => p.set('contentRating', v)} />
@@ -386,9 +362,7 @@ function ArtSlot({ a, p, open, onBrowse }: { a: (typeof ART)[number]; p: FieldPr
       <div className="ed-art-info">
         <div className="ed-field-head">
           <b>{a.label}</b>
-          <button type="button" className={'ed-lock' + (p.isLocked(a.kind) ? ' on' : '')} aria-pressed={p.isLocked(a.kind)} aria-label={`Lock ${a.label}`} onClick={() => p.toggleLock(a.kind)}>
-            {p.isLocked(a.kind) ? <IconLock size={16} /> : <IconUnlock size={16} />}
-          </button>
+          <LockButton label={a.label} locked={p.isLocked(a.kind)} onClick={() => p.toggleLock(a.kind)} />
         </div>
         <span className="ed-source">{value !== (p.ed.fields[a.kind]?.value ?? '') ? 'Not saved yet' : sourceWords(p.ed.fields[a.kind]) || a.hint}</span>
         <div className="ed-art-btns">

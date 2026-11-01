@@ -28,6 +28,7 @@ func fakeTMDB(t *testing.T) string {
 			"genres":               []map[string]any{{"name": "Comedy"}, {"name": "Sci-Fi"}},
 			"production_companies": []map[string]any{{"name": "Lantern Works"}, {"name": "Small Pictures"}},
 			"credits":              map[string]any{"crew": []map[string]string{{"name": "Dee Rector", "job": "Director"}}},
+			"belongs_to_collection": map[string]string{"name": "Harbour Collection"},
 			"images":               map[string]any{"posters": []map[string]string{{"file_path": "/one.jpg"}, {"file_path": "/two.jpg"}}}}
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -540,6 +541,32 @@ func TestSearchScoresBestFirst(t *testing.T) {
 	}
 }
 
+// A year kept from before counts when scoring, as one in the file's name does. One the
+// match itself gave doesn't.
+func TestSavedYearCountsWhenScoring(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights.mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	it := oneItem(t, s, lib.ID)
+	score := func(source string) int {
+		tl := title(t, s, TargetItem, it.ID)
+		y := 2004
+		tl.Item.Year = &y
+		tl.Meta.Sources = map[string]string{"year": source}
+		res, err := s.SearchMatches(ctx, tl, "", nil)
+		if err != nil || len(res.Results) == 0 {
+			t.Fatalf("%+v %v", res, err)
+		}
+		return res.Results[0].Score
+	}
+	if saved, service := score(SourceSaved), score("tmdb"); saved != 100 || service >= 90 {
+		t.Errorf("kept from before %d, from a service %d", saved, service)
+	}
+}
+
 // browseFixture is a library with something to sort: no scan, just rows.
 func browseFixture(t *testing.T) (*Store, *Library) {
 	t.Helper()
@@ -954,7 +981,7 @@ func TestListingsNeedEveryAcknowledgement(t *testing.T) {
 	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.syncListings(ctx); err != nil {
+	if err := s.syncListings(ctx, false); err != nil {
 		t.Fatal(err)
 	}
 	st := s.ListingStatus(ctx)
@@ -978,6 +1005,95 @@ func TestListingsNeedEveryAcknowledgement(t *testing.T) {
 	var n int
 	if err := s.Store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM listings`).Scan(&n); err != nil || n != 0 {
 		t.Errorf("%d kept: %v", n, err)
+	}
+}
+
+// A studio's list of films isn't a series, and the one a film is named after comes first.
+func TestPickSeries(t *testing.T) {
+	for _, c := range []struct {
+		names []string
+		title string
+		want  string
+	}{
+		{[]string{"Harbour Studio feature films", "Harbour Lights"}, "Harbour Lights 2", "Harbour Lights Collection"},
+		{[]string{"Lantern Universe", "Moth Trilogy"}, "The Moth Returns", "Moth Trilogy"},
+		{[]string{"Lantern Universe"}, "A Quiet Sequel", "Lantern Universe Collection"},
+		{[]string{"list of Harbour Studio films", "Harbour Studio films"}, "Harbour Lights", ""},
+		{nil, "Harbour Lights", ""},
+	} {
+		if got := pickSeries(c.names, c.title); got != c.want {
+			t.Errorf("%v, %q: %q, not %q", c.names, c.title, got, c.want)
+		}
+	}
+}
+
+// A title's listings go with its match, and Check now means now.
+func TestListingsFollowTheMatch(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights.mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
+		t.Fatal(err)
+	}
+	// Changing a match starts the job by itself: let that finish, so it can't get in the way.
+	settle := func() {
+		for {
+			listingJob.Lock()
+			running := listingJob.running
+			listingJob.Unlock()
+			if !running {
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	listed := func(all bool) int {
+		t.Helper()
+		settle()
+		if err := s.syncListings(ctx, all); err != nil {
+			t.Fatal(err)
+		}
+		return s.ListingStatus(ctx).Listed
+	}
+	if n := listed(false); n != 1 {
+		t.Fatalf("listed %d", n)
+	}
+	it := oneItem(t, s, lib.ID)
+	if _, err := s.RemoveMatch(ctx, title(t, s, TargetItem, it.ID), "someone"); err != nil {
+		t.Fatal(err)
+	}
+	settle()
+	if n := s.ListingStatus(ctx).Listed; n != 0 {
+		t.Errorf("the match has gone, and still listed: %d", n)
+	}
+	if n := listed(false); n != 0 {
+		t.Errorf("no match, and listed by a guess at its name: %d", n)
+	}
+	if _, err := s.ApplyMatch(ctx, title(t, s, TargetItem, it.ID), "tmdb", "2", nil, "someone"); err != nil {
+		t.Fatal(err)
+	}
+	if n := listed(false); n != 1 {
+		t.Errorf("matched again, and not looked at again: %d", n)
+	}
+	if _, err := s.Store.DB.ExecContext(ctx, `DELETE FROM listings`); err != nil {
+		t.Fatal(err)
+	}
+	if n := listed(false); n != 0 {
+		t.Errorf("checked again too soon: %d", n)
+	}
+	if n := listed(true); n != 1 {
+		t.Errorf("Check now didn't: %d", n)
+	}
+	// What was accepted stands when only the region changes.
+	if err := s.SetListings(ctx, true, "GB", nil); err != nil {
+		t.Fatalf("changing the region: %v", err)
+	}
+	settle()
+	if s.Store.ListingsRegion(ctx) != "GB" || !s.Store.ListingsEnabled(ctx) {
+		t.Errorf("%q", s.Store.ListingsRegion(ctx))
 	}
 }
 
@@ -1036,4 +1152,43 @@ func TestSavedViews(t *testing.T) {
 func (s *Store) UpdateLibraryType(ctx context.Context, id int64, typ string) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE libraries SET type = ? WHERE id = ?`, typ, id)
 	return err
+}
+
+// Two films of one series make a collection nobody had to make, and it can be edited like anything else.
+func TestSeriesMakeCollections(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights (2004).mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	it := oneItem(t, s, lib.ID)
+	if tt := title(t, s, TargetItem, it.ID); tt.Field("series") != "Harbour Collection" {
+		t.Fatalf("series: %q", tt.Field("series"))
+	}
+	if got, _ := s.Store.SeriesInLibrary(ctx, lib.ID, nil); len(got) != 0 {
+		t.Errorf("one film isn't a collection: %+v", got)
+	}
+	second := addRow(t, s.Store, lib, "Harbour Lights Again", 2006, 1920, 1080, nil, "", 8)
+	tt := title(t, s, TargetItem, second.ID)
+	if err := tt.EditFields(map[string]string{"series": "Harbour Collection"}, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Store.SaveTitle(ctx, tt); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Store.SeriesInLibrary(ctx, lib.ID, nil)
+	if err != nil || len(got) != 1 || got[0].Name != "Harbour Collection" || got[0].Count != 2 || got[0].Key == "" {
+		t.Fatalf("%+v %v", got, err)
+	}
+	if names := browseTitles(t, s.Store, BrowseFilter{Library: lib.ID, Series: "Harbour Collection", Sort: "title"}); len(names) != 2 {
+		t.Errorf("%v", names)
+	}
+	// Nothing about a series goes looking for a logo.
+	if g, _ := s.Store.LogoFor(ctx, BrandSeries, "Harbour Collection"); g != nil {
+		t.Errorf("%+v", g)
+	}
+	if collectionName("A Tale") != "A Tale Collection" || collectionName("A Tale Trilogy") != "A Tale Trilogy" {
+		t.Error("collectionName")
+	}
 }

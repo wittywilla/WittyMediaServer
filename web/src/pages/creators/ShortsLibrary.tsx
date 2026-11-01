@@ -339,7 +339,7 @@ function ActiveVideo({ v, muted, toggleMute, rate, onDone }: { v: VideoCard; mut
   const onKey = (e: React.KeyboardEvent) => { if (e.key === ' ' || e.key === 'k' || e.key === 'Enter') { e.preventDefault(); toggle() } }
   const dur = info?.durationSec || v.durationSec
   return (
-    <div className="sh-video" onClick={toggle} onKeyDown={onKey}>
+    <div className="sh-video" onClick={toggle} onKeyDown={onKey}>{/* design-ok: a click on the picture is the mouse's shortcut for the keys and the button beside it */}
       <video ref={video} playsInline loop={false} muted={muted} poster={videoThumb(v.id, 640, v.updatedAt)}
         onPlay={() => setPaused(false)} onPause={() => setPaused(true)}
         onEnded={() => {

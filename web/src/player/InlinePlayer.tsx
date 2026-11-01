@@ -92,7 +92,7 @@ export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, du
   }
   const chapters = info?.chapters?.map((c) => c.start)
   return (
-    <div className={'player inline ' + className + (compact ? ' compact' : '')} ref={root} tabIndex={0} onKeyDown={onKey} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)}>
+    <div className={'player inline ' + className + (compact ? ' compact' : '')} ref={root} tabIndex={0} onKeyDown={onKey} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <div className="stage"><video ref={video} playsInline preload="auto" onEnded={onEnded} /></div>
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}

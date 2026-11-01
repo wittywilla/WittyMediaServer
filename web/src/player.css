@@ -150,9 +150,10 @@
 .season-tab .t { margin-top: var(--sp-2); font-weight: 600; font-size: var(--text-sm); color: var(--fg); }
 .season-tab .sub { font-size: var(--text-xs); color: var(--fg-3); }
 .episodes { display: grid; gap: var(--sp-1); margin: 0 calc(-1 * var(--sp-2)); }
-.episode { display: grid; grid-template-columns: clamp(150px, 20vw, 240px) minmax(0, 1fr); gap: var(--sp-4); padding: var(--sp-2); border-radius: var(--r-lg); cursor: pointer; transition: background var(--dur-2); }
+.episode { position: relative; display: grid; grid-template-columns: clamp(150px, 20vw, 240px) minmax(0, 1fr); gap: var(--sp-4); padding: var(--sp-2); border-radius: var(--r-lg); cursor: pointer; transition: background var(--dur-2); }
 .episode:hover { background: var(--hover); }
-.episode .thumb { position: relative; display: block; width: 100%; padding: 0; border: 0; color: inherit; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
+.episode .t::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-lg); }
+.episode .thumb { position: relative; z-index: 1; display: block; width: 100%; padding: 0; border: 0; color: inherit; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
 .episode .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .episode .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; background: rgb(0 0 0 / .32); transition: opacity var(--dur-2); z-index: 2; }
 .episode:hover .thumb .play, .episode .thumb:focus-visible .play { opacity: 1; }

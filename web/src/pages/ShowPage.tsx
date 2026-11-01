@@ -142,16 +142,16 @@ function EpisodeRow({ ep }: { ep: Item }) {
   const nav = useNavigate()
   const pct = ep.progress && ep.progress.durationSec > 0 && !ep.progress.watched ? Math.min(100, (ep.progress.positionSec / ep.progress.durationSec) * 100) : 0
   return (
-    <div className="episode" onClick={() => nav(`/item/${ep.id}`)}>
-      {/* Real controls inside the clickable row: a remote or keyboard can reach both. */}
-      <button type="button" className="thumb" aria-label={`Play ${ep.title}`} onClick={(e) => { e.stopPropagation(); nav(`/play/${ep.id}`) }}>
+    <div className="episode">
+      {/* The title's link covers the whole row, so a click anywhere opens it; a remote or keyboard reaches both controls. */}
+      <button type="button" className="thumb" aria-label={`Play ${ep.title}`} onClick={() => nav(`/play/${ep.id}`)}>
         {ep.poster && <img src={posterUrl(ep)} alt="" loading="lazy" />}
         <span className="play"><span><IconPlay /></span></span>
         {pct > 0 && <span className="progress"><i style={{ width: pct + '%' }} /></span>}
         {ep.progress?.watched && <SeenBadge />}
       </button>
       <div className="info">
-        <Link className="t" to={`/item/${ep.id}`} onClick={(e) => e.stopPropagation()}><span className="num">{episodeLabel(ep)}</span> {ep.title}</Link>
+        <Link className="t" to={`/item/${ep.id}`}><span className="num">{episodeLabel(ep)}</span> {ep.title}</Link>
         <div className="sub">{[ep.aired, fmtRuntime(ep.runtimeSec)].filter(Boolean).join(' · ')}</div>
         {ep.overview && <p>{ep.overview}</p>}
       </div>

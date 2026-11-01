@@ -25,6 +25,8 @@ import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
+const WittyStatsPage = lazy(() => import('./WittyStatsPage'))
+const IconStats = () => <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3Zm6.5 0v-7h3v7h-3Z" /></svg>
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const ActivitySettings = lazy(() => import('./settings/Activity'))
 const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
@@ -75,6 +77,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
+    { to: 'stats', label: 'Statistics', icon: <IconStats />, hint: 'The machine, streams and libraries, on a screen you arrange yourself' },
     { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
@@ -154,6 +157,7 @@ export default function SettingsPage() {
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
+          <Route path="stats" element={<Suspense fallback={null}><WittyStatsPage /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
           <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />

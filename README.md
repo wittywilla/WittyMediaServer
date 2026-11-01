@@ -159,6 +159,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |
 | 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |
+| 📊 | [Statistics](docs/STATS.md) · [Background tasks](docs/TASKS.md) | the numbers behind WittyStats and the activity button, who sees what, and what they cost |
 | 📡 | [Client API](docs/CLIENT-API.md) · [OpenAPI](docs/openapi.json) | for apps and tools: TV sign-in, playback profiles, stream tokens, disc menus |
 | 💾 | [Backup and restore](docs/BACKUP.md) | one ZIP of your data and metadata, and bringing it back after a reset or a move |
 | 🔧 | [Repair](docs/REPAIR.md) | finding and fixing problems with metadata, the database, modules and the install |

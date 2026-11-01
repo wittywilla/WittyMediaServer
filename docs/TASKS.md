@@ -135,7 +135,8 @@ Paths are relative to `/api/v1`. All of it needs a signed-in account. A task's f
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again, under a new id. Offered by `canRetry` |
 
 **States.** `queued`, `running`, `paused`, then one of `done`, `failed` or `cancelled`. Pausing and cancelling take effect
-when the job next checks, usually within a moment, so wait for the state to change rather than assuming it. A cancelled
+when the job next checks, usually within a moment, so wait for the state to change rather than assuming it. Between asking and
+stopping, a task is `running` with `canResume` true: show that as pausing. A cancelled
 library scan can be retried, and it picks up where it stopped because files it has already seen, unchanged, take almost
 no time.
 

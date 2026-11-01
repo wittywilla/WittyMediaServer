@@ -20,6 +20,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   which wasn't true, put right.
 - **Libraries can be read-only**: nothing the server does may change their files.
 
+- **An activity button in the top bar.** A ring and a count show library scans and other background work as they happen, and it
+  stays quiet when nothing is going on. Its panel lists each task library by library, with the file being worked on, the speed, the
+  time left, and pause, resume, cancel and try again. A history keeps what finished, with errors that say what happened and what
+  to do. It works from the keyboard and with a remote, and is a sheet on phones. Administrators can hide it for themselves, and
+  the owner can turn it off or give others a read-only view with no file names and nobody else's details, in **Settings, Activity**.
+- **One place for background work.** Scans, game details, logos, streaming listings, match suggestions, radio checks, module installs,
+  server updates, the TV guide, channel scans, recordings, WittyDiagnoser and transcodes all report to it, live, with no polling.
+  Modules can report too, and apps can follow it through the API: see `docs/TASKS.md`.
+- **Server statistics, and the WittyStats module.** A screen you arrange yourself: processor per core, memory, graphics, each disk,
+  each network connection, the server itself, who is watching what and why it's converting, what's in your libraries, duplicates, scan times, the
+  log over time and more. Add, move and resize widgets by drag or by keyboard, keep several layouts, or go back to stock. Any chart can
+  be a table, and any widget opens into more detail with CSV and JSON export. The server only samples while someone is looking, and keeps a
+  small history for charts. Apps get the same numbers: see `docs/STATS.md`.
 - **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
 
 - **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,

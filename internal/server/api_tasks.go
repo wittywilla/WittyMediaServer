@@ -235,6 +235,8 @@ func (s *Server) handleTaskStream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-s.streamsEnding():
+			return
 		case <-beat.C:
 			if !s.taskStreamStillAllowed(r, tok, u) {
 				return
@@ -259,6 +261,17 @@ func (s *Server) handleTaskStream(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+// EndStreams ends the event streams, which otherwise hold a server's shutdown until its time
+// runs out: they never finish by themselves. Clients connect again when it's back.
+func (s *Server) EndStreams() {
+	s.streamEnd.Do(func() { close(s.streamsEnding()) })
+}
+
+func (s *Server) streamsEnding() chan struct{} {
+	s.streamEndInit.Do(func() { s.streamEndCh = make(chan struct{}) })
+	return s.streamEndCh
 }
 
 // taskStreamStillAllowed: the session is good, it's the same kind of account, and the

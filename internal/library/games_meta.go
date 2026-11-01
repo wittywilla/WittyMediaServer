@@ -136,9 +136,27 @@ func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
 	// This wakes every few minutes, so it only shows once a round has found something to do.
+	// Pictures go on beside the details, so either can be the first to find some.
+	var tMu sync.Mutex
 	var t *tasks.Handle
 	var failed error
-	defer func() { t.Finish(failed) }()
+	defer func() {
+		tMu.Lock()
+		defer tMu.Unlock()
+		t.Finish(failed)
+	}()
+	note := func(n int) {
+		if n == 0 {
+			return
+		}
+		tMu.Lock()
+		if t == nil {
+			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
+		}
+		h := t
+		tMu.Unlock()
+		h.Add(int64(n))
+	}
 	defer func() {
 		if g.OnSettled != nil {
 			g.OnSettled()
@@ -154,6 +172,7 @@ func (g *GameMeta) work(ctx context.Context) {
 		if n == 0 {
 			break
 		}
+		note(n)
 	}
 	finished := make(chan struct{})
 	pictures := make(chan struct{})
@@ -169,6 +188,7 @@ func (g *GameMeta) work(ctx context.Context) {
 				return
 			}
 			if n > 0 {
+				note(n)
 				continue
 			}
 			select {
@@ -188,7 +208,6 @@ func (g *GameMeta) work(ctx context.Context) {
 	}()
 	for ctx.Err() == nil {
 		g.setPhase(true, "details")
-		t.Phase("Details")
 		details, err := g.detailsBatch(ctx)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
@@ -198,10 +217,7 @@ func (g *GameMeta) work(ctx context.Context) {
 		if details == 0 {
 			return
 		}
-		if t == nil {
-			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
-		}
-		t.Add(int64(details))
+		note(details)
 	}
 }
 

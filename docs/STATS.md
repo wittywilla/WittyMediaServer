@@ -45,10 +45,13 @@ No answer holds a file path, except `volumes[].mount` for administrators, which 
 | `GET /system/metrics/now?sections=` | One `MetricsNow`, for an app that wants a number now and then. Takes about a quarter of a second if nobody is watching, as a speed needs two readings |
 | `GET /system/metrics/history?range=1h&series=cpu,memory` | `History`: `times`, and `series` by name. `peak` too when each point stands for several readings. Admins only |
 | `GET /system/metrics/report` | `MetricsReport`: everything that takes a look through the database. `?fresh=1` skips the minute's wait |
+| `GET /system/metrics/drives` | Each disk's health, where the system will say, or `note` saying why not. Admins only, and kept for ten minutes: on Windows, asking starts PowerShell, and the first answer can take seconds |
 
 **Sections:** `server`, `cpu`, `temperature`, `memory`, `gpu`, `disks`, `diskio`, `network`, `process`, `modules`, `streams`, `games`,
 `libraries`, `logs`. Leaving out `sections` gives all this account may have. A section a system can't provide is left out
-of the answer rather than sent as zero, so check before showing it. The fields are in [openapi.json](openapi.json).
+of the answer rather than sent as zero, so check before showing it. Lists with nothing in them, such as `streams` with nobody
+watching, are left out too: if you asked for a section and it isn't there, it has nothing in it, unless the catalogue says it isn't
+available. The fields are in [openapi.json](openapi.json).
 
 **Ranges:** `15m`, `1h`, `6h`, `24h`, `7d`, `30d`, `90d`. At most 240 points come back. Up to ten minutes uses the two-second samples
 if someone has been watching, up to a day the minute samples, and longer the hourly rows.
@@ -77,5 +80,12 @@ are bytes. `goroutines`, `streams`, `transcodes` and `games` are counts.
 | Graphics | NVIDIA with `nvidia-smi`; AMD | NVIDIA with `nvidia-smi` | No | No |
 | Disk space | Yes | Yes | Yes | Yes |
 | Disk speed | Yes, with how busy | Yes, by drive letter | No | No |
+| Disk health | What the kernel says about the device | Windows' own health status, where it allows it | As in WittyDiagnoser | As in WittyDiagnoser |
 | Network, per interface | Yes | Yes | Names only | Names only |
 | This server | Yes | Yes | Yes, with peak memory | Yes, with peak memory |
+
+## The screen
+
+WittyStats is the module that shows all this, in its own repository. It's in Settings, System, Statistics, and it's arranged by each person: widgets can be added, removed, moved and resized, by buttons from a keyboard or remote and by dragging with a mouse or finger, in up to eight saved layouts, with three presets and a way back to stock. Every widget has a table beside its chart, a detail view with every row, and CSV and JSON files made in the browser.
+
+It follows the rules above: it opens one stream, asking only for the sections of widgets on the layout, and only while the page is showing. It closes when the page is hidden or left. The report and histories are fetched only when a widget near the screen needs them, each no more than once a minute. What a server can't provide says why, from the catalogue, and someone without the whole machine gets no frame for what isn't theirs.

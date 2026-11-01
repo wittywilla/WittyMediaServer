@@ -33,6 +33,7 @@ or licence. The rest already exist on GitHub and only need pushing.
 | WittyPDF | Reader plugin: PDF | `web/src/modules/wittypdf` | Exists |
 | WittyComics | Reader plugin: comics and manga | `web/src/modules/wittycomics` | Exists |
 | WittyVisualizer | The audio visualizer plugin, for the server and the desktop player | `web/src/modules/wittyvisualizer` | Exists |
+| WittyStats | The statistics screen you arrange yourself. **Apache-2.0** | New, at `D:\projects\WittyStats` | **Create** |
 | WittyReader | The standalone reader app | `apps/wittyreader` | Exists |
 | WittyMediaPlayer | The standalone desktop player | `apps/wittymediaplayer` | Exists |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others | `clients/wittymediaclient` | Exists |

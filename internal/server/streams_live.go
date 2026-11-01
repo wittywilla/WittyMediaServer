@@ -101,6 +101,9 @@ func (t *streamTracker) init(s *Server) {
 	t.live, t.byHLS, t.games = map[string]*liveStream{}, map[string]*liveStream{}, map[string]*liveGame{}
 }
 
+// hlsKey: two people can share one stream, and each is watching it for themselves.
+func hlsKey(user int64, id string) string { return strconv.FormatInt(user, 10) + "|" + id }
+
 func streamKey(user, item int64) string {
 	return strconv.FormatInt(user, 10) + "/" + strconv.FormatInt(item, 10)
 }
@@ -131,7 +134,7 @@ func (t *streamTracker) note(r *http.Request, it *library.Item, decision string,
 	st.view = v
 	st.lastSeen.Store(time.Now().Unix())
 	if hlsID != "" {
-		t.byHLS[hlsID] = st
+		t.byHLS[hlsKey(u.ID, hlsID)] = st
 	}
 	if decision == "transcode" {
 		st.task = t.s.Tasks.Start(tasks.Spec{Type: tasks.TypeTranscode, Title: "Converting " + it.Title, By: byUser(u), Private: true, NoHistory: true})
@@ -224,10 +227,10 @@ func (t *streamTracker) served(w http.ResponseWriter, r *http.Request, itemID in
 	}
 	key := streamKey(u.ID, itemID)
 	if itemID == 0 {
-		key = "hls/" + hlsID
+		key = hlsKey(u.ID, hlsID)
 	}
 	t.mu.Lock()
-	st := t.byHLS[hlsID]
+	st := t.byHLS[hlsKey(u.ID, hlsID)]
 	if hlsID == "" || st == nil {
 		st = t.live[key]
 	}
@@ -242,7 +245,7 @@ func (t *streamTracker) served(w http.ResponseWriter, r *http.Request, itemID in
 					st.view.Decision = "remux"
 				}
 			}
-			t.byHLS[hlsID] = st
+			t.byHLS[hlsKey(u.ID, hlsID)] = st
 		}
 		t.live[key] = st
 		t.startedLocked()

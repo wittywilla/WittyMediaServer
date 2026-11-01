@@ -2347,6 +2347,37 @@
         ],
         "type": "object"
       },
+      "DriveHealthView": {
+        "properties": {
+          "bad": {
+            "type": "boolean"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mount": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked",
+          "lines",
+          "mount"
+        ],
+        "type": "object"
+      },
       "Error": {
         "properties": {
           "error": {
@@ -29820,6 +29851,44 @@
           "Server"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/drives": {
+      "get": {
+        "operationId": "getSystemMetricsDrives",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "drives": {
+                      "items": {
+                        "$ref": "#/components/schemas/DriveHealthView"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Each disk's health, where the system will say. Kept for ten minutes.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/system/metrics/history": {

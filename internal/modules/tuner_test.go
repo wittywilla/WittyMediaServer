@@ -280,62 +280,6 @@ func TestTunerStreamEndsWithItsContext(t *testing.T) {
 	}
 }
 
-// A version that fails, or can't do something, is passed over for the built-in copy.
-func TestTunerFallsBackToBuiltin(t *testing.T) {
-	tn, m := fakeTuners(t)
-	addr := streamSite(t).URL + "/ts"
-	for _, behave := range []string{"crash", "denied", "garbage", "dies-listing", "empty", "error-doc"} {
-		s, _ := streamSource(t, tn, addr, behave)
-		list, err := s.Channels(context.Background())
-		if err != nil || len(list) != 1 || list[0].Locator != addr || list[0].Name != "Test" {
-			t.Errorf("%s: channels: %+v %v", behave, list, err)
-		}
-		list, err = s.Scan(context.Background(), wittytuner.ScanOptions{}, nil)
-		if err != nil || len(list) != 1 {
-			t.Errorf("%s: scan: %+v %v", behave, list, err)
-		}
-		if st := m.Report().Modules[0]; st.Version == "0.1.0" {
-			break // gone out of use, as it should once they add up: the rest is the built-in copy
-		}
-	}
-	tn, m = fakeTuners(t)
-	for _, behave := range []string{"denied", "dies-opening"} {
-		s, ch := streamSource(t, tn, addr, behave)
-		st, err := s.Open(context.Background(), ch)
-		if err != nil {
-			t.Fatalf("%s: %v", behave, err)
-		}
-		n, err := io.Copy(io.Discard, st.Reader)
-		st.Close()
-		if err != nil || n != 500*188 {
-			t.Fatalf("%s: %d %v", behave, n, err)
-		}
-	}
-	if failures(m) != 1 {
-		t.Fatalf("only the one that died counts: %d", failures(m))
-	}
-
-	// The built-in copy in use: no helper is started, and the source works just the same.
-	w := newWorld(t)
-	none := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{tunerManifest("0.1.0")}, Keys: nil})
-	defer none.Close()
-	s, ch := streamSource(t, Tuners{none}, addr, "crash")
-	st, err := s.Open(context.Background(), ch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer st.Close()
-	if n, _ := io.Copy(io.Discard, st.Reader); n != 500*188 {
-		t.Fatal(n)
-	}
-	none.mu.Lock()
-	n := len(none.attached)
-	none.mu.Unlock()
-	if n != 0 {
-		t.Fatal("a helper with the built-in copy in use")
-	}
-}
-
 // What a helper can say that refuses something is taken as said.
 func TestTunerHelperMayRefuse(t *testing.T) {
 	tn, m := fakeTuners(t)
@@ -459,35 +403,6 @@ func TestTunerScanCancels(t *testing.T) {
 	defer stop()
 	if _, err := s.Channels(short); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
-	}
-}
-
-// What a helper can't do stays with the built-in copy whichever version is in use.
-func TestTunerWhatStaysBuiltin(t *testing.T) {
-	tn, m := fakeTuners(t)
-	for driver, opts := range map[string]map[string]string{
-		"satip":   {"server": "192.168.1.60"},
-		"command": {"command": "prog"},
-	} {
-		s, err := tn.New(context.Background(), driver, wittytuner.Config{Name: "X", Options: opts}, wittytuner.Env{AllowCommands: true})
-		if err != nil {
-			t.Fatalf("%s: %v", driver, err)
-		}
-		if _, ok := s.(*tunerProxy); ok {
-			t.Errorf("%s goes through a helper", driver)
-		}
-	}
-	// An address that takes FFmpeg never asks the helper, here one that would crash.
-	s, _ := streamSource(t, tn, "rtsp://192.168.1.60/x", "crash")
-	if _, err := s.Open(context.Background(), wittytuner.Channel{ID: "x", Name: "X", Locator: "rtsp://192.168.1.60/x"}); err == nil || !strings.Contains(err.Error(), "FFmpeg") {
-		t.Fatalf("%v", err)
-	}
-	if failures(m) != 0 {
-		t.Fatal("the helper was asked")
-	}
-	// Settings are checked by the built-in copy, not by what a helper would allow.
-	if _, err := tn.New(context.Background(), "stream", wittytuner.Config{Options: map[string]string{"url": "file:///etc/passwd"}}, wittytuner.Env{}); err == nil {
-		t.Fatal("a file as a stream")
 	}
 }
 

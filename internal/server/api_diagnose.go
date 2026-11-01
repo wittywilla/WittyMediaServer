@@ -432,6 +432,12 @@ const maxDiagnoseEntries = 3000
 
 // discFolderKind says whether a folder holds a DVD or a Blu-ray.
 func discFolderKind(p string) string {
+	switch base := filepath.Base(p); {
+	case strings.EqualFold(base, "VIDEO_TS"):
+		return "dvd"
+	case strings.EqualFold(base, "BDMV"):
+		return "bluray"
+	}
 	entries, err := os.ReadDir(p)
 	if err != nil {
 		return ""

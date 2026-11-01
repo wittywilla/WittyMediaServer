@@ -96,7 +96,7 @@ func (w *world) withdraw(id string, serial int, key ed25519.PrivateKey, vs ...wi
 
 func threeVersions(w *world) {
 	for _, v := range []string{"0.2.0", "0.3.0", "0.4.0"} {
-		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", 1))
+		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", wittymodule.API))
 	}
 }
 
@@ -150,7 +150,7 @@ func TestDowngradePinAndReturnToLatest(t *testing.T) {
 	threeVersions(w)
 	auto := true
 	newManager := func() *Manager {
-		return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)},
+		return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)},
 			Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh},
 			AutoInstall: func() bool { return auto }, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	}
@@ -280,7 +280,7 @@ func TestDataFormatRefusesWhatCantReadTheData(t *testing.T) {
 	w := newWorld(t)
 	man := func(ver string, format, from int) []byte {
 		var m wittymodule.Manifest
-		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", 1), &m); err != nil {
+		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", wittymodule.API), &m); err != nil {
 			t.Fatal(err)
 		}
 		m.DataFormat, m.DataFrom = format, from
@@ -886,7 +886,7 @@ func TestForkTakesAModulesPlace(t *testing.T) {
 	w.gh.mu.Unlock()
 	forged := func(ver string, key ed25519.PrivateKey) {
 		var man wittymodule.Manifest
-		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", 1), &man); err != nil {
+		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", wittymodule.API), &man); err != nil {
 			t.Fatal(err)
 		}
 		man.Repo = repo
@@ -1047,7 +1047,7 @@ func TestFakeReleasesCantHideRealOnes(t *testing.T) {
 	w.key = stranger
 	for i := range maxNewChecks + 3 {
 		v := fmt.Sprintf("9.0.%d", i)
-		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", 1))
+		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", wittymodule.API))
 	}
 	w.key = real
 	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {

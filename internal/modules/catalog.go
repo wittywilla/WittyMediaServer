@@ -20,7 +20,7 @@ import (
 // projects of their own. They are listed in the store with the rest, so someone who
 // only wants music can leave films out, and they update with the server.
 func ServerManifests() [][]byte {
-	const common = `"repo":"wittywilla/WittyMediaServer","delivery":"builtin","version":"0.1.0","api":1,"minServer":"0.1.0","maxServer":"0.x","stays":"All of it: this is part of the server, so a new server brings its new versions."`
+	const common = `"repo":"wittywilla/WittyMediaServer","delivery":"builtin","version":"0.1.0","api":3,"minServer":"0.1.0","maxServer":"0.x","stays":"All of it: this is part of the server, so a new server brings its new versions."`
 	return [][]byte{
 		[]byte(`{"id":"wittyvideo","name":"WittyVideo","group":"watch","summary":"Films, TV shows, anime and home videos, with posters, plots and continue watching.","libraries":["movies","shows","anime","videos","commercials"],` + common + `}`),
 		[]byte(`{"id":"wittychannels","name":"WittyChannels","group":"watch","summary":"Creator videos, music videos and concerts, grouped by who made them.","libraries":["channels","musicvideos"],` + common + `}`),

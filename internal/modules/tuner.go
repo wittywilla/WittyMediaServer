@@ -340,6 +340,9 @@ var inputOptions = map[string]bool{
 // Formats that open this machine's capture devices, whose address is a device's name.
 var captureFormats = map[string]bool{"v4l2": true, "alsa": true, "dshow": true, "avfoundation": true}
 
+// Formats that read a stream. FFmpeg has others that make things up or read files.
+var streamFormats = map[string]bool{"mpegts": true, "hls": true, "rtsp": true, "rtp": true, "flv": true}
+
 // checkInput refuses what a helper asks FFmpeg to open unless it can only be a stream or a
 // capture device: FFmpeg can also read files, chain other protocols and write. It is the
 // last thing between a helper with a bad day and this server's own program.
@@ -370,6 +373,9 @@ func checkInput(input []string) error {
 		}
 		if a == "-f" {
 			capture = captureFormats[input[i]]
+			if !capture && !streamFormats[input[i]] {
+				return fmt.Errorf("it asked for the FFmpeg format %q", input[i])
+			}
 		}
 	}
 	if addr == "" || len(addr) > maxLocator || strings.ContainsAny(addr, "\r\n") {

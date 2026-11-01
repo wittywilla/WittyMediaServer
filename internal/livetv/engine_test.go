@@ -41,7 +41,7 @@ func TestEngineMakesSources(t *testing.T) {
 	defer SetEngine(old)
 	f := &fakeEngine{}
 	SetEngine(f)
-	m := testManager(t)
+	m := bareManager(t)
 	ctx := context.Background()
 	if _, err := m.Create(ctx, &Tuner{Name: "Bad", Driver: "stream", Options: map[string]string{"url": "file:///etc/passwd"}}); err == nil || f.made == 0 {
 		t.Fatalf("%v %d", err, f.made)
@@ -55,7 +55,7 @@ func TestNoEngineSaysSo(t *testing.T) {
 	old := engine
 	defer SetEngine(old)
 	SetEngine(nil)
-	m := testManager(t)
+	m := bareManager(t)
 	if _, err := m.Discover(context.Background()); !errors.Is(err, ErrNoEngine) {
 		t.Fatalf("%v", err)
 	}

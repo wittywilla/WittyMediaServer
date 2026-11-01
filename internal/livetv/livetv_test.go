@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -27,7 +29,7 @@ func tsData(n int, scrambled bool) []byte {
 	return bytes.Repeat(p, n)
 }
 
-func testManager(t *testing.T) *Manager {
+func bareManager(t *testing.T) *Manager {
 	t.Helper()
 	d, err := db.Open(t.TempDir())
 	if err != nil {
@@ -383,4 +385,13 @@ func TestSafeFileName(t *testing.T) {
 	if !strings.HasPrefix(safeFileName(strings.Repeat("é", 200)), "é") || len(safeFileName(strings.Repeat("é", 200))) > 120 {
 		t.Error("long names are cut")
 	}
+}
+
+// testManager has the real WittyTuner, from the test catalogue.
+func testManager(t *testing.T) *Manager {
+	t.Helper()
+	old := engine
+	t.Cleanup(func() { SetEngine(old) })
+	SetEngine(modules.Tuners{M: modtest.Need(t, "wittytuner")})
+	return bareManager(t)
 }

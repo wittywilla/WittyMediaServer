@@ -57,6 +57,10 @@ func handle(method string, raw json.RawMessage) (any, func(io.Writer) error, err
 		return nil, func(w io.Writer) error { _, err := io.WriteString(w, "this is not the protocol"); return err }, nil
 	}
 	switch method {
+	case "validate":
+		return nil, doc(wittytuner.HelperDoc{Info: &wittytuner.Info{Driver: c.Driver, Name: c.Name}, Done: true}), nil
+	case "drivers":
+		return nil, doc(wittytuner.HelperDoc{Drivers: []wittytuner.Driver{{ID: "stream", Name: "A stream"}}, Done: true}), nil
 	case "discover":
 		return nil, doc(wittytuner.HelperDoc{Found: []wittytuner.Found{{Driver: "network", Name: "From the helper", Options: map[string]string{"address": "192.168.1.9"}}, {Driver: "command", Name: "A program"}}, Done: true}), nil
 	case "channels", "scan":

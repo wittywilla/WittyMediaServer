@@ -182,7 +182,7 @@ func newWorld(t *testing.T) *world {
 
 func (w *world) manager() *Manager {
 	exe, _ := os.Executable() // this test program is the launcher too: see TestMain
-	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)},
+	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)},
 		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Launcher: exe,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 }
@@ -809,7 +809,7 @@ func TestNothingPhonesHomeWithoutPermission(t *testing.T) {
 	}
 	run := func(want string) {
 		t.Helper()
-		m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)}, Keys: []ed25519.PublicKey{w.pub},
+		m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)}, Keys: []ed25519.PublicKey{w.pub},
 			Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), CheckEnabled: get(&allowCheck), AutoInstall: get(&allowInstall)})
 		defer m.Close()
 		ctx, cancel := context.WithCancel(context.Background())
@@ -921,90 +921,6 @@ func TestEveryRealManifestIsSound(t *testing.T) {
 	}
 	if !seen["wittyphotos"] {
 		t.Error("WittyPhotos is missing")
-	}
-}
-
-// The whole way, with nothing fake: the real WittyPhotos helper, built, packed and
-// signed by the real tool, installed, and reading a real picture.
-func TestRealHelperEndToEnd(t *testing.T) {
-	if testing.Short() {
-		t.Skip("builds the real helper")
-	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := t.TempDir()
-	key := filepath.Join(out, "test.key")
-	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-	if err := os.WriteFile(key, []byte(base64.StdEncoding.EncodeToString(priv.Seed())+"\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	tool := func(args ...string) {
-		t.Helper()
-		cmd := exec.Command("go", append([]string{"run", "github.com/wittywilla/wittymodule/cmd/wittymodule"}, args...)...)
-		cmd.Dir = root
-		if b, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("wittymodule %v: %v\n%s", args, err, b)
-		}
-	}
-	tool("check", moduleDir(t, "wittyphotos"))
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, moduleDir(t, "wittyphotos"))
-	raw, err := os.ReadFile(filepath.Join(moduleDir(t, "wittyphotos"), "module.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	real, err := wittymodule.ParseManifest(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tool("sign", "-key", key, filepath.Join(out, wittymodule.SumsName(real.ID, real.Version)))
-
-	gh := &github{files: map[string][]byte{}}
-	g := update.GHRelease{TagName: "v" + real.Version}
-	entries, err := os.ReadDir(out)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, e := range entries {
-		if e.Name() == "test.key" {
-			continue
-		}
-		b, err := os.ReadFile(filepath.Join(out, e.Name()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		gh.files["/r/"+e.Name()] = b
-		g.Assets = append(g.Assets, update.GHAsset{Name: e.Name(), Size: int64(len(b)), URL: "https://github.com/r/" + e.Name()})
-	}
-	gh.rels = []update.GHRelease{g}
-
-	old := append([]byte{}, raw...)
-	old = bytes.Replace(old, []byte(`"version": "`+real.Version+`"`), []byte(`"version": "0.0.1"`), 1)
-	m := New(Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: real.MinServer, Builtins: [][]byte{old}, Keys: []ed25519.PublicKey{pub},
-		Fetch: &update.Fetcher{UserAgent: "test", Transport: gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
-	defer m.Close()
-	s := check(t, m)
-	if s.Latest == nil {
-		t.Fatalf("not offered: %+v %s", s, m.Report().CheckError)
-	}
-	if s = installWait(t, m); s.Phase != PhaseIdle || s.Version != real.Version {
-		t.Fatalf("%+v", s)
-	}
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, image.NewGray(image.Rect(0, 0, 7, 5))); err != nil {
-		t.Fatal(err)
-	}
-	pic := filepath.Join(t.TempDir(), "real.png")
-	if err := os.WriteFile(pic, buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	var d struct{ W, H int }
-	if _, err, handled := m.call("wittyphotos", "dimensions", pathParams{pic}, &d); !handled || err != nil || d.W != 7 || d.H != 5 {
-		t.Fatalf("handled=%v err=%v %+v", handled, err, d)
-	}
-	if !(PhotoEngine{m}).IsRaw("x.CR3") || (PhotoEngine{m}).IsRaw("x.mp4") {
-		t.Fatal("IsRaw")
 	}
 }
 

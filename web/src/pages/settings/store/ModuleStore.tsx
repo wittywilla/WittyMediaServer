@@ -60,7 +60,7 @@ export default function ModuleStore() {
     try {
       const v = await checkAll()
       setView(v)
-      if (v.checkError) toast(v.checkError)
+      if (v.checkError || v.stores.some((s) => s.problem)) toast('The check didn’t all work. What happened is on the page.')
       else toast(v.updates ? `${v.updates} ${v.updates === 1 ? 'update' : 'updates'} found` : 'Every module is up to date')
     } catch (e) { setFailure(failureOf(e, 'The check')) } finally { setChecking(false) }
   }

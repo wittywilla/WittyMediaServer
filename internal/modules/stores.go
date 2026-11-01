@@ -502,7 +502,7 @@ var ErrUnknownStore = errors.New("there is no such store")
 // from the file is read before its signature passes against the pinned key.
 func (s *Stores) look(ctx context.Context, rec *storeRecord) (*Failure, *wittymodule.Catalog, []byte, []byte) {
 	f := newStoreFetcher(s.cfg.Transport, rec.Private)
-	name := "This store"
+	name := "this store"
 	cat, sig, err := fetchCatalogFiles(ctx, f, rec.URL)
 	if err != nil {
 		return explainErr(name, err), nil, nil, nil

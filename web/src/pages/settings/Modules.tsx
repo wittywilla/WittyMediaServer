@@ -11,7 +11,7 @@ import './modules.css'
 import LegalNote from '../../components/LegalNote'
 import { LinkButton } from '../../ui'
 import { ChangeNotes, FailureNotice, ModuleLogDialog, PolicyNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
-import { failureForStatus, type Failure } from './store/storeApi'
+import { checkAll, failureForStatus, type Failure } from './store/storeApi'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
@@ -139,10 +139,10 @@ export default function ModulesSettings() {
     if (checking) return
     setChecking(true)
     try {
-      const n = await api.post<ModuleReport>('/modules/check')
+      store.setView(await checkAll())
+      const n = await api.get<ModuleReport>('/modules')
       setR(n)
-      void store.reload()
-      if (n.checkError) toast(n.checkError)
+      if (n.checkError) toast('The check didn’t work. What happened is on the page.')
       else if (!n.modules.some((m) => m.latest)) toast('Every module is up to date')
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }

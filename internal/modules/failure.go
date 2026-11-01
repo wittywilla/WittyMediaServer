@@ -114,6 +114,9 @@ func Explain(name, detail string) *Failure {
 			Try:     []string{"Try it again.", "If it keeps happening, copy the details and ask for help."}}
 	}
 	f.Detail = detail
+	if f.Message != "" { // a name may have started the sentence
+		f.Message = strings.ToUpper(f.Message[:1]) + f.Message[1:]
+	}
 	return &f
 }
 

@@ -356,12 +356,23 @@ func (s *Server) handleBackupDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// POST /api/backup/files/{name}/link: a short-lived address to download it, as a backup can
-// be far too large for the app to hold in memory on its way to a file.
+// POST /api/backup/files/{name}/link {password, code}: a short-lived address to download it, as
+// a backup can be far too large for the app to hold in memory on its way to a file. A backup
+// holds every account's password hash, and one with a password every secret on the server,
+// sealed with a password whoever made it chose. So the password is asked for again here: this
+// is the one way a backup leaves the server, and a stolen session mustn't be able to use it.
 func (s *Server) handleBackupLink(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	if _, err := s.backupFolders().PathOf(name); err != nil {
 		writeErr(w, 404, "no such backup")
+		return
+	}
+	var body resetBody
+	if err := readJSON(r, &body); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.resetAllowed(w, r, body) {
 		return
 	}
 	b := make([]byte, 24)

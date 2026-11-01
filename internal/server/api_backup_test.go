@@ -166,8 +166,17 @@ func TestBackupThroughTheRoutes(t *testing.T) {
 		t.Fatalf("%d", w.Code)
 	}
 
+	// A backup holds every account's password hash, and with a password every secret too. So a
+	// stolen session can make one, and can't take it away.
+	if w := b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, nil); w.Code == 200 {
+		t.Fatalf("a download link with no password: %s", w.Body)
+	}
+	if w := b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, map[string]any{"password": "not the password"}); w.Code != 403 {
+		t.Fatalf("a download link with a wrong password: %d %s", w.Code, w.Body)
+	}
+
 	// A ticket opens that one file.
-	w = b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, nil)
+	w = b.call("POST", "/api/backup/files/"+j.File+"/link", b.admin, map[string]any{"password": backupPassword})
 	var link struct {
 		URL string `json:"url"`
 	}

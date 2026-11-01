@@ -137,6 +137,9 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
 .track-list li.new-disc { flex-wrap: wrap; }
 .track-list li.new-disc::before { content: attr(data-disc); flex: 1 0 100%; margin: var(--sp-4) 0 var(--sp-1); padding: 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; color: var(--fg-2); text-transform: uppercase; letter-spacing: var(--tracking-label); }
 .track-list li.on .tl-n .ab-eq b { background: var(--accent-text); }
+/* The row's own rule styles every button in it as the whole row: these two aren't. */
+.track-list li > .mp-ibtn, .track-list li > .mp-pop > .mp-ibtn { flex: none; display: inline-grid; grid-template-columns: none; width: 40px; min-height: 40px; height: 40px; padding: 0; border-radius: 50%; box-shadow: none; }
+.track-list li > .mp-pop { flex: none; }
 .tl-heart { color: var(--fg-3); }
 .tl-heart.liked { color: var(--accent-text); }
 .mh-artist-head { display: grid; grid-template-columns: clamp(140px, 20vw, 260px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-8)); align-items: start; margin: var(--sp-2) 0 var(--sp-6); }

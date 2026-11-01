@@ -1,8 +1,8 @@
 {
   "format": 1,
   "name": "WittyMediaServer modules",
-  "serial": 2,
-  "generated": "2026-11-01T07:35:37Z",
+  "serial": 3,
+  "generated": "2026-11-01T19:43:42Z",
   "modules": [
     {
       "id": "wittybluray",
@@ -30,8 +30,8 @@
         "FFmpeg, which comes with the server",
         "Java, only for discs with Java menus, and only if you turn that on"
       ],
-      "updates": "Playing an open disc: reading its playlists and clips, running its program, reading its menus and subtitles.",
-      "stays": "Finding and describing discs in a library scan, the check that refuses encrypted discs, drawing menus, turning a disc's steps into what the player shows, and discs with Java menus when Java menus are turned on: the built-in copy plays those. The server also opens every disc itself first, so a disc it can't read at all needs a new server.",
+      "updates": "All of the engine: playlists and clips, running a disc's program and its Java programs, reading menus and subtitles.",
+      "stays": "Drawing menus into pictures stays with the server, and so does refusing encrypted discs, on purpose. The session code that turns steps into streams stays too.",
       "versions": []
     },
     {
@@ -54,8 +54,8 @@
         "music",
         "discs"
       ],
-      "updates": "Reading CD images, disc IDs, CD-TEXT and the lossless stream.",
-      "stays": "The CD player page and looking discs up online.",
+      "updates": "All of the engine: reading images, playing them as one stream, and its FLAC encoder.",
+      "stays": "Finding names for a disc online, and how a library shows it, stay with the server.",
       "versions": []
     },
     {
@@ -81,7 +81,7 @@
         "wittyink"
       ],
       "updates": "The comic reader itself: pages, spreads, the vertical strip, its controls and its look.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place, fetching pages), how the server opens comic archives, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "The Reader page and the host it provides, and how the server takes a book apart.",
       "versions": []
     },
     {
@@ -100,7 +100,10 @@
       },
       "repo": "wittywilla/WittyCouch",
       "group": "games",
-      "versions": []
+      "versions": [],
+      "requires": [
+        "wittycouchhost"
+      ]
     },
     {
       "id": "wittycouchhost",
@@ -165,8 +168,8 @@
       "needs": [
         "FFmpeg, which comes with the server"
       ],
-      "updates": "The DVD engine a viewer plays a disc through: reading the disc's structure, its menus, buttons and commands, where its video lies, and its subtitles. While a downloaded version is in use, each open disc has a small helper program of its own.",
-      "stays": "Scanning a library, the title list on a disc's page and playing a title without its menus still use the built-in copy, and turning what the engine says into streams and pictures is the server's own code, as is refusing encrypted discs. Those change with a new server.",
+      "updates": "All of the engine: the disc's structure, menus, buttons and commands, where its video lies, and subtitles.",
+      "stays": "The session code that turns steps into streams stays with the server, as does refusing encrypted discs, on purpose.",
       "versions": []
     },
     {
@@ -192,7 +195,7 @@
         "wittyink"
       ],
       "updates": "The EPUB reader itself: book view, typography, study tools, handwriting and its look.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching chapters), how the server takes a book apart and cleans it, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "The Reader page and the host it provides, and how the server takes a book apart.",
       "versions": []
     },
     {
@@ -212,8 +215,8 @@
       "repo": "wittywilla/WittyInk",
       "group": "read",
       "core": true,
-      "updates": "What the readers share as they run from their own bundles: the notes panel, highlight colours, definitions, citations, handwriting tools and their look. It reaches a reader only when that reader is running a bundle too.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching pages), and React stay with the server. Readers still using the copy in the app keep the WittyInk in the app. If this bundle fails, the copy in the app takes over.",
+      "updates": "What readers share: annotations, notes, definitions and handwriting.",
+      "stays": "The Reader page and the host it provides, and how the server takes a book apart.",
       "versions": []
     },
     {
@@ -232,7 +235,6 @@
       },
       "repo": "wittywilla/WittyIntegratedFileBrowser",
       "group": "system",
-      "core": true,
       "updates": "Finding drives and usual folders, and listing what is in a folder.",
       "stays": "The folder window in the app, naming what kind of media each file is, and the folders already in your libraries. If a version can't read a folder, the server tries it itself.",
       "versions": []
@@ -240,7 +242,7 @@
     {
       "id": "wittymodule",
       "name": "WittyModule",
-      "summary": "What makes a plugin a project of its own: its manifest, version ranges, helper protocol and release tool.",
+      "summary": "What makes a plugin a project of its own: the manifest, version ranges, the helper protocol and the release tool.",
       "description": "What a plugin needs to be a project of its own: the manifest, the rules for version ranges, the protocol a helper process speaks, and the tool that builds and signs a release.\n\nIt is for people who make modules. There is nothing to use on its own: it reaches a server inside the modules built with it. A module built with it comes from whoever published that module.",
       "icon": {
         "url": "wittymodule.png",
@@ -280,7 +282,7 @@
         "wittyink"
       ],
       "updates": "The PDF reader itself: zoom, outline, thumbnails, search, study tools and its look.",
-      "stays": "pdf.js and its worker, which do the actual reading of a PDF, stay with the server, along with the Reader page, the ReaderHost it provides (saving your place and notes) and React. If this bundle fails, the copy in the app takes over.",
+      "stays": "pdf.js and its worker, which do the actual reading, stay with the app so it isn't carried twice.",
       "versions": []
     },
     {
@@ -302,7 +304,7 @@
       "libraries": [
         "photos"
       ],
-      "updates": "Reading EXIF, picture sizes, and the preview inside RAW files.",
+      "updates": "All of it: reading EXIF, picture sizes, and the preview inside RAW files.",
       "stays": "The photo pages in the app.",
       "versions": []
     },
@@ -329,8 +331,8 @@
         "FFmpeg, which comes with the server",
         "Game cores, which you add in Settings, Consoles & cores"
       ],
-      "updates": "Running games: how the game runner uses cores, and its picture, sound and controller input.",
-      "stays": "The streaming half (WebRTC and encoding), the console tables, and the player in the app. If WittyRetroArch is installed and chosen, it runs the games instead.",
+      "updates": "All of it: the console tables, the game runner, streaming, controllers and the player.",
+      "stays": "The games library, its metadata and where saves are kept stay with the server.",
       "versions": []
     },
     {
@@ -349,12 +351,21 @@
       },
       "repo": "wittywilla/WittyRigs",
       "group": "games",
-      "versions": []
+      "versions": [],
+      "requires": [
+        "wittycouch"
+      ]
     },
     {
       "id": "wittystats",
       "name": "WittyStats",
       "summary": "A statistics screen you arrange yourself: the machine, streams, libraries and history, as charts or tables, with exports.",
+      "description": "A screen for the numbers behind your server: the machine, who is playing what, your libraries and their history, each as a chart or a table. Arrange it your own way, keep up to eight layouts, and save what you see as CSV or JSON.\n\nIt's the screen only. The server collects the numbers and decides who may see what, with or without this module, and someone who isn't an administrator sees only their own streams and the libraries they can open.\n\nNothing runs until the page is open. Then it uses one stream, asking only for what's on the layout, with no polling and no chart library.",
+      "icon": {
+        "url": "wittystats.png",
+        "size": 2226,
+        "sha256": "ea178494ad20231ca0c2f4db923f88dfa10ad5304dc44e5f16d2c0f126113073"
+      },
       "publisher": {
         "name": "WittyWilla",
         "url": "https://github.com/wittywilla"
@@ -368,7 +379,7 @@
     {
       "id": "wittytuner",
       "name": "WittyTuner",
-      "summary": "Live TV and recording from network tuners, IPTV playlists and capture cards. Encrypted channels are refused.",
+      "summary": "Live TV and recording: network tuners, IPTV playlists, capture cards and guide data. Encrypted channels are refused.",
       "description": "One way to reach TV tuners: network tuner boxes, M3U playlists, a single stream address, TV servers over open protocols, SAT>IP, Linux DVB, capture cards and your own command, which stays off unless it's turned on. It lists channels and opens them, and reads guide data from broadcasts and XMLTV files.\n\nEncrypted and copy-protected channels are detected and refused with a clear message, and nothing is decrypted. No channel lists or stream addresses come with it.\n\nIPTV and stream addresses have been tested with local streams. Network tuners and TV servers have only been tested against stand-ins, and SAT>IP, DVB and capture cards haven't been tried on real hardware. Windows digital (BDA) tuners aren't built.",
       "icon": {
         "url": "wittytuner.png",
@@ -385,14 +396,14 @@
         "FFmpeg, which comes with the server",
         "A tuner or an IPTV playlist"
       ],
-      "updates": "Network tuners, IPTV over HTTP and external backends: finding them, reading their channels, scanning, and opening a stream.",
-      "stays": "Custom commands, capture cards, Linux DVB, SAT>IP and IPTV over RTSP, RTP, UDP, RTMP or SRT, which need other programs or this machine's devices, and a helper may use neither. Refusing encrypted channels also stays: the server watches every stream itself and opens HLS and DASH itself, whatever a version says. Recording and the guide stay too.",
+      "updates": "All of it: every kind of tuner, finding them, reading their channels, scanning, and opening a stream.",
+      "stays": "Recording and the guide stay with the server, and so does refusing encrypted channels, on purpose: the server watches every stream itself.",
       "versions": []
     },
     {
       "id": "wittyvisualizer",
       "name": "WittyVisualizer",
-      "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields and more, full screen.",
+      "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields, feedback and more, full screen.",
       "description": "Light shows that follow your music, full screen: bars, scopes, plasma, tunnels, starfields, feedback and fire. It appears in the server's audio player and runs entirely on your device, with no work for the server.\n\nFlashing can harm people with photosensitive epilepsy, so it's off until someone turns it on, after a notice the first time, and it never starts on its own. A flash guard covers every effect, and calm mode leaves out the lively ones. No limiter makes moving light safe for everyone, and the guard hasn't been assessed by a clinician or with a professional flash analyser.",
       "icon": {
         "url": "wittyvisualizer.png",
@@ -406,7 +417,7 @@
       "repo": "wittywilla/WittyVisualizer",
       "group": "listen",
       "updates": "The visualizer itself: its effects, how it listens to the music, its controls and its look. New effects can arrive this way.",
-      "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server.",
       "versions": []
     }
   ]

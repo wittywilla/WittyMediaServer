@@ -40,12 +40,19 @@ export function Menu({ trigger, items, label, head, align = 'end', className }: 
 
   useLayoutEffect(() => { if (open) place() }, [open, place, items.length])
 
+  // The panel can take focus once it's in its place: until then it's hidden.
+  const focused = useRef(false)
   useEffect(() => {
-    if (!open) return
-    const items = () => [...(panel.current?.querySelectorAll<HTMLElement>('[role^=menuitem]:not([aria-disabled=true])') || [])]
-    const list = items()
+    if (!open) { focused.current = false; return }
+    if (!pos || focused.current) return
+    focused.current = true
+    const list = [...(panel.current?.querySelectorAll<HTMLElement>('[role^=menuitem]:not([aria-disabled=true])') || [])]
     const current = list.find((el) => el.getAttribute('aria-current') === 'page')
     ;(start === 'last' ? list[list.length - 1] : current || list[0])?.focus({ preventScroll: true })
+  }, [open, pos]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return
     const outside = (e: Event) => { if (!panel.current?.contains(e.target as Node) && !button.current?.contains(e.target as Node)) close(false) }
     const scrolled = (e: Event) => { if (!panel.current?.contains(e.target as Node)) close(false) }
     window.addEventListener('pointerdown', outside)

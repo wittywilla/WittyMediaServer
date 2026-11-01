@@ -14,9 +14,11 @@ import '@wittywilla/wittyink/reader.css'
 import '@wittywilla/wittyebook/ebook.css'
 import '@wittywilla/wittycomics/comics.css'
 import { installTVInput } from './tv'
+import { installTenFoot } from './ui/tenFoot'
 import { installErrorReporter } from './errorReport'
 
 installTVInput()
+installTenFoot()
 installErrorReporter()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

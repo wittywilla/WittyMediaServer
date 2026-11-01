@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getToken, serverBase } from '../api'
 import { Brand } from './common'
+import { Dialog } from '../ui/Overlay'
 
 // The server's name and logo: a window with a live preview of the corner of
 // the screen, a name box and a logo upload. Used by setup and by Settings,
@@ -48,9 +49,8 @@ export default function BrandDialog({ name, logo, onSave, onClose }: {
   const mark = file === 'remove' || !preview ? '/icon.svg' : preview
   // A portal, so the window never takes on the styles of the page it opens from.
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal brand-dialog" role="dialog" aria-modal="true" aria-labelledby="brand-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="brand-h">Name your server</h2>
+    <Dialog title="Name your server" onClose={onClose} className="brand-dialog" actions={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button></>}>
         <p className="muted">Shown in the top-left corner, on the sign-in page and in the browser tab.</p>
 
         <div className="brand-preview" aria-label="Preview">
@@ -85,12 +85,7 @@ export default function BrandDialog({ name, logo, onSave, onClose }: {
         </div>
 
         {err && <div className="error" role="alert">{err}</div>}
-        <div className="actions">
-          <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
-        </div>
-      </div>
-    </div>,
+    </Dialog>,
     document.body,
   )
 }

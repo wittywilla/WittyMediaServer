@@ -4,6 +4,8 @@ import { api, fmtTime } from '../../api'
 import { canPost, canReact, creatorArt, fmtCount, setReaction, timeAgo, videoThumb, type Comment, type Creator, type VideoCard } from '../../gallery'
 import { IconCheck, IconEdit, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
+import { Dialog, ask } from '../../ui/Overlay'
+import { Button } from '../../ui/Button'
 
 // What WittyShorts and WittyChannels share: a creator's picture, video tiles,
 // like buttons, a subscribe button and comments.
@@ -130,7 +132,7 @@ export function Comments({ itemId, count }: { itemId: number; count?: number }) 
     } catch (x: any) { toast(x.message) } finally { setBusy(false) }
   }
   const remove = async (c: Comment) => {
-    if (!confirm('Delete this comment?')) return
+    if (!await ask({ title: 'Delete this comment?', confirm: 'Delete', danger: true })) return
     try { await api.del(`/comments/${c.id}`); load() } catch (x: any) { toast(x.message) }
   }
   const top = (list || []).filter((c) => !c.parentId)
@@ -192,10 +194,9 @@ export function EditVideoDialog({ v, onClose, onSaved }: { v: { id: number; titl
     <label className="oobe-field">{label}<input className="input" value={value} onChange={(e) => set(e.target.value)} {...extra} /></label>
   )
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal wide cr-edit" role="dialog" aria-modal="true" aria-labelledby="ev-h" onClick={(e) => e.stopPropagation()} onSubmit={save}>
-        <h2 id="ev-h">Edit details</h2>
-        <p className="muted">Saved on this server; the video and its files stay as they are.</p>
+    <Dialog title="Edit details" size="wide" className="cr-edit" onClose={onClose} description="Saved on this server; the video and its files stay as they are."
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="video-form">Save</Button></>}>
+      <form id="video-form" className="ui-dialog-form" onSubmit={save}>
         {field('Title', title, setTitle, { required: true })}
         <label className="oobe-field">Description<textarea className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
         <div className="cr-edit-row">
@@ -211,8 +212,7 @@ export function EditVideoDialog({ v, onClose, onSaved }: { v: { id: number; titl
         </div>
         <label className="oobe-field">Your own fields, one per line (name: value)<textarea className="input" rows={3} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Recorded by: Sam" /></label>
         {err && <div className="error" role="alert">{err}</div>}
-        <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary">Save</button></div>
       </form>
-    </div>
+    </Dialog>
   )
 }

@@ -1,6 +1,6 @@
 /* The channel editor's bigger parts: discs and scenes, bumpers, the timetable and
    the schedule preview. Settings pages follow the app's theme and tokens. */
-.tve-jump { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--space-3, 12px); padding: 8px 0; background: var(--bg); }
+.tve-jump { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--sp-3); padding: 8px 0; background: var(--bg); }
 .tve-jump a { flex: none; padding: 6px 12px; min-height: 36px; display: inline-flex; align-items: center; border-radius: 999px; background: var(--bg-3); color: var(--fg); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
 .tve-jump a:hover, .tve-jump a:focus-visible { background: var(--bg-4); outline: 2px solid var(--accent); outline-offset: 1px; }
 .tve-sub { margin: -4px 0 8px; font-size: var(--text-sm); }
@@ -8,7 +8,7 @@
 
 /* Discs */
 .tve-discs { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
-.tve-disc { display: flex; gap: 12px; padding: 10px; border: 2px solid transparent; border-radius: var(--radius-md, 10px); background: var(--bg-3); }
+.tve-disc { display: flex; gap: 12px; padding: 10px; border: 2px solid transparent; border-radius: var(--r-md); background: var(--bg-3); }
 .tve-disc.chosen { border-color: var(--accent); }
 .tve-disc-art { position: relative; flex: none; width: 84px; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; background: var(--bg-4); }
 .tve-disc-art img { width: 100%; height: 100%; object-fit: cover; display: block; }

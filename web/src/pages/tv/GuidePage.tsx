@@ -447,7 +447,7 @@ function NowLine({ from, to }: { from: number; to: number }) {
   if (now < from || now >= to) return null
   const pct = ((now - from) / (to - from)) * 100
   return (
-    <div className="ctv-nowline" aria-hidden="true" style={{ left: `calc(var(--ctv-chw) + (100% - var(--ctv-chw) - var(--ctv-gutter)) * ${pct / 100})` }}>
+    <div className="ctv-nowline" aria-hidden="true" style={{ left: `calc(var(--ctv-lead) + var(--ctv-chw) + (100% - var(--ctv-lead) - var(--ctv-chw) - var(--ctv-trail) - var(--ctv-gutter)) * ${pct / 100})` }}>
       <span>{fmtClock(now)}</span>
     </div>
   )

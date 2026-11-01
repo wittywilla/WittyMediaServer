@@ -311,8 +311,8 @@ func (s *Server) handleChannelPreview(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if len(progs) > 1000 {
-		progs = progs[:1000]
+	if len(progs) > 3000 {
+		progs = progs[:3000]
 	}
 	writeJSON(w, 200, map[string]any{"stats": stats, "programmes": progs})
 }

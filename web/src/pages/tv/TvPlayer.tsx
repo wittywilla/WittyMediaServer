@@ -34,6 +34,7 @@ export default function TvPlayer() {
   const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
+  const [picture, setPicture] = useState(false)
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -55,7 +56,7 @@ export default function TvPlayer() {
   useEffect(() => {
     if (prevKey.current && prevKey.current !== key) lastKey.current = prevKey.current
     prevKey.current = key
-    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null)
+    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null); setPicture(false)
     const ac = new AbortController()
     showBanner()
     rememberChannel(key)
@@ -230,8 +231,8 @@ export default function TvPlayer() {
   return (
     <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
-      <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} /></div>
-      {!url && !err && <div className="center-spinner"><div className="spinner" /></div>}
+      <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
+      {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {err && (
         <div className="overlay-msg" role="alert">

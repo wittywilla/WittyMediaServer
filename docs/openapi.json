@@ -7275,6 +7275,199 @@
         "x-wms-auth": "admin"
       }
     },
+    "/channels/bumpers": {
+      "get": {
+        "operationId": "getChannelsBumpers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Videos uploaded for the purpose, chosen from any library, or in a commercials library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bumper library.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postChannelsBumpers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Body: itemId. Any video in any library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add to the bumper library.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/bumpers/item/{id}": {
+      "delete": {
+        "operationId": "deleteChannelsBumpersItemId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "An upload goes altogether, its file too. A chosen video only comes off the list."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a bumper.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/bumpers/upload": {
+      "post": {
+        "operationId": "postChannelsBumpersUpload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a bumper.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/clip-preview": {
+      "post": {
+        "operationId": "postChannelsClipPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Body: item, title. An HLS stream of the title, to try a scene before adding it."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Try a scene.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/discs": {
+      "get": {
+        "operationId": "getChannelsDiscs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Every disc, whether it is encrypted, and the words for refusing those that are."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Discs for scenes.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/channels/from-network": {
       "post": {
         "operationId": "postChannelsFromNetwork",
@@ -13689,6 +13882,37 @@
           }
         ],
         "summary": "Guide.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/guide/search": {
+      "get": {
+        "operationId": "getGuideSearch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search the schedule.",
         "tags": [
           "Channels and live TV"
         ],
@@ -24080,6 +24304,215 @@
           }
         ],
         "summary": "Encrypted help.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/favourites": {
+      "get": {
+        "operationId": "getTvFavourites",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "This account's favourite channels, as channel keys. The guide marks them too."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Favourite channels.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/favourites/{key}": {
+      "put": {
+        "operationId": "putTvFavouritesKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Star a channel."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a favourite channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "delete": {
+        "operationId": "deleteTvFavouritesKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unstar a channel."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a favourite channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/reminders": {
+      "get": {
+        "operationId": "getTvReminders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "This account's reminders still to come."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reminders.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postTvReminders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Body: channel, title, sub, start, end. The same programme twice is one reminder."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a reminder.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/reminders/{id}": {
+      "delete": {
+        "operationId": "deleteTvRemindersId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "One of this account's reminders."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a reminder.",
         "tags": [
           "Channels and live TV"
         ],

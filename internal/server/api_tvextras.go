@@ -35,7 +35,7 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/channels/bumpers", ad(s.handleBumpers))
 	m.Handle("POST /api/channels/bumpers", ad(s.handleAddBumper))
 	m.Handle("POST /api/channels/bumpers/upload", ad(s.handleUploadBumper))
-	m.Handle("DELETE /api/channels/bumpers/{id}", ad(s.handleDeleteBumper))
+	m.Handle("DELETE /api/channels/bumpers/item/{id}", ad(s.handleDeleteBumper))
 	m.Handle("GET /api/channels/discs", ad(s.handleChannelDiscs))
 	m.Handle("POST /api/channels/clip-preview", ad(s.handleClipPreview))
 }
@@ -373,7 +373,7 @@ func (s *Server) removeItem(ctx context.Context, it *library.Item) {
 	}
 }
 
-// DELETE /api/channels/bumpers/{id}: an upload goes altogether, its file too. A
+// DELETE /api/channels/bumpers/item/{id}: an upload goes altogether, its file too. A
 // video chosen from a library only comes off this list.
 func (s *Server) handleDeleteBumper(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")

@@ -35,7 +35,7 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
   }
   const remove = async (b: Bumper) => {
     if (b.uploaded && !confirm(`Delete "${b.title}"? The file you uploaded goes too, and any channel using it stops playing it.`)) return
-    try { await api.del(`/channels/bumpers/${b.itemId}`); reload() } catch (e: any) { toast(e.message) }
+    try { await api.del(`/channels/bumpers/item/${b.itemId}`); reload() } catch (e: any) { toast(e.message) }
   }
   return (
     <>

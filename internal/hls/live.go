@@ -45,6 +45,10 @@ type LiveInput struct {
 	// OnFail hears what FFmpeg said when a run failed, so that the next one can
 	// do without what it could not decode.
 	OnFail func(stderr string)
+	// Refused closes when the input turns out to be something that must not play, and
+	// Refusal says why. It ends the session for good; nil for an input that can't.
+	Refused <-chan struct{}
+	Refusal func() error
 }
 
 // LiveFeed says what to play at a moment. An error ends the session unless
@@ -564,7 +568,9 @@ func nostdinOff(args []string) []string {
 
 func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error {
 	args := s.liveArgs(in, run, burst)
-	cmd := ffmpeg.Command(ctx, s.m.tools.FFmpeg, args...)
+	running, cancel := context.WithCancel(ctx)
+	defer cancel()
+	cmd := ffmpeg.Command(running, s.m.tools.FFmpeg, args...)
 	var stderr logging.Tail
 	cmd.Stderr = &stderr
 	if in.Stdin != nil {
@@ -606,6 +612,11 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 				return &FatalError{f}
 			}
 			return nil
+		case <-in.Refused:
+			cancel()
+			err := <-done
+			logging.ChildExit(s.log, "ffmpeg", err, true, &stderr, started, "run", run, "args", cmdline)
+			return &FatalError{in.Refusal()}
 		case <-tick.C:
 			s.readRun(r)
 		}

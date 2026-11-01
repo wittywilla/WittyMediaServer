@@ -274,7 +274,7 @@ func (s *bluraySession) touchMenuState() {
 }
 
 // press runs a menu button's commands.
-func (s *bluraySession) press(n int) *Presentation {
+func (s *bluraySession) press(n int) (out *Presentation) {
 	ms, cur := s.menu, s.current
 	if ms == nil || cur == nil || cur.Menu == nil {
 		return cur
@@ -292,13 +292,15 @@ func (s *bluraySession) press(n int) *Presentation {
 	}
 	fx := st.Effects
 	if fx != nil && fx.Still != nil {
-		if q := s.current; q != nil {
-			c := *q
-			c.Pause = fx.Still
-			s.current = &c
-			defer func(c *Presentation) { s.current.Pause = nil }(&c)
-			cur = &c
-		}
+		// The player is told once, in this answer, whichever way it ends. What the
+		// session keeps never says it, or the next answer would say it again.
+		defer func(still *bool) {
+			if out != nil {
+				c := *out
+				c.Pause = still
+				out = &c
+			}
+		}(fx.Still)
 	}
 	if s.applyEffects(fx) {
 		if cur.Kind == "title" && cur.Menu.Popup {

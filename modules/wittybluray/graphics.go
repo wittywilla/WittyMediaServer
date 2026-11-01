@@ -2,6 +2,7 @@ package wittybluray
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 )
@@ -158,6 +159,9 @@ func (a *odsAssembler) feed(data []byte) {
 // colour follows (else colour 0) and whether the run length is 6 or 14 bits;
 // a zero code byte ends the line.
 func decodeRLE(data []byte, w, h int) ([]byte, error) {
+	if w > maxPictureSide || h > maxPictureSide {
+		return nil, fmt.Errorf("a picture of %dx%d can't be drawn", w, h)
+	}
 	pix := make([]byte, w*h)
 	x, y := 0, 0
 	for i := 0; i < len(data) && y < h; {

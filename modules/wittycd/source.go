@@ -1,6 +1,7 @@
 package wittycd
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -145,7 +146,8 @@ func resolveBeside(dir, name string) (string, error) {
 			return "", err
 		}
 	}
-	if st.Mode()&os.ModeSymlink != 0 && !staysInside(dir, p) {
+	// Any part of the way may be a link, not only the file's own name.
+	if !staysInside(dir, p) {
 		return "", fmt.Errorf("a sheet names %q, a link to somewhere outside its folder", name)
 	}
 	return p, nil
@@ -206,11 +208,11 @@ func (d *Disc) openAudioFile(path string, bigEndian, declared bool) (audioFile, 
 			}
 			return audioFile{src: r, size: length, declared: true}, nil
 		case string(head[:4]) == "FORM" && (string(head[8:12]) == "AIFF" || string(head[8:12]) == "AIFC"):
-			off, length, err := aiffData(f, size)
+			off, length, big, err := aiffData(f, size, string(head[8:12]) == "AIFC")
 			if err != nil {
 				return audioFile{}, fmt.Errorf("%q: %w", filepath.Base(path), err)
 			}
-			return audioFile{src: f, offset: off, size: length, bigEndian: true, declared: true}, nil
+			return audioFile{src: f, offset: off, size: length, bigEndian: big, declared: true}, nil
 		}
 	}
 	switch ext := strings.ToLower(filepath.Ext(path)); ext {
@@ -259,26 +261,58 @@ func wavData(r io.ReaderAt, size int64) (off, length int64, err error) {
 }
 
 // aiffData is the same for AIFF, whose samples are big-endian.
-func aiffData(r io.ReaderAt, size int64) (off, length int64, err error) {
+func aiffData(r io.ReaderAt, size int64, aifc bool) (off, length int64, bigEndian bool, err error) {
 	pos := int64(12)
+	bigEndian = true
+	fmtOK := false
 	for steps := 0; pos+8 <= size && steps < 4096; steps++ {
 		var h [8]byte
 		if _, err := r.ReadAt(h[:], pos); err != nil {
-			return 0, 0, fmt.Errorf("its AIFF header can't be read: %w", err)
+			return 0, 0, false, fmt.Errorf("its AIFF header can't be read: %w", err)
 		}
 		n := int64(binary.BigEndian.Uint32(h[4:]))
-		if string(h[:4]) == "SSND" {
+		switch string(h[:4]) {
+		case "COMM":
+			var c [22]byte
+			got, err := r.ReadAt(c[:], pos+8)
+			if err != nil && got < 18 {
+				return 0, 0, false, fmt.Errorf("its AIFF format can't be read")
+			}
+			// The rate is an 80-bit float: 44100 is exactly these bytes.
+			if binary.BigEndian.Uint16(c[0:]) != 2 || binary.BigEndian.Uint16(c[6:]) != 16 || !bytes.Equal(c[8:12], []byte{0x40, 0x0e, 0xac, 0x44}) {
+				return 0, 0, false, fmt.Errorf("%w: its audio isn't CD audio (16-bit stereo at 44.1 kHz)", ErrUnsupported)
+			}
+			if aifc {
+				if got < 22 {
+					return 0, 0, false, fmt.Errorf("its AIFF format can't be read")
+				}
+				switch string(c[18:22]) {
+				case "NONE", "twos":
+				case "sowt":
+					bigEndian = false
+				default:
+					return 0, 0, false, fmt.Errorf("%w: its AIFF audio is compressed", ErrUnsupported)
+				}
+			}
+			fmtOK = true
+		case "SSND":
 			var b [4]byte
 			if _, err := r.ReadAt(b[:], pos+8); err != nil {
-				return 0, 0, fmt.Errorf("its AIFF file is cut short")
+				return 0, 0, false, fmt.Errorf("its AIFF file is cut short")
 			}
 			start := pos + 16 + int64(binary.BigEndian.Uint32(b[:]))
 			if start >= size {
-				return 0, 0, fmt.Errorf("its AIFF file is cut short")
+				return 0, 0, false, fmt.Errorf("its AIFF file is cut short")
 			}
-			return start, min(n-8, size-start), nil
+			off, length = start, min(n-8, size-start)
+		}
+		if off > 0 && fmtOK {
+			return off, length, bigEndian, nil
 		}
 		pos += 8 + n + n&1
 	}
-	return 0, 0, fmt.Errorf("its AIFF file has no samples")
+	if off > 0 {
+		return 0, 0, false, fmt.Errorf("its AIFF file doesn't say what its audio is")
+	}
+	return 0, 0, false, fmt.Errorf("its AIFF file has no samples")
 }

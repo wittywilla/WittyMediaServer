@@ -62,6 +62,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   where each button goes. Pages carry one legal note, at their foot. *Gaming* is now *Consoles & cores*, *Games* is
   *My game settings*, and the disc options moved from Transcoding to *Playback & discs*. There's an **Automatic** theme
   that follows the device, the crash notice can be dismissed, and small controls are easier to tap.
+### Discs, audio and TV: what the audit found
+
+- **Fixed:** a panic during a Blu-ray title action could take the whole server down, and a button's pause or resume never reached the player.
+- **Encrypted media stays refused:** a scrambled DVD title asked for directly and any action on an encrypted Blu-ray's refusal screen now get the refusal. IPTV checks every HLS variant, and only calls a stream clear when all of them were read.
+- **Encryption that starts later:** an IPTV HLS stream's playlists are read again while it plays or records. A key that appears stops the stream, marks the channel as encrypted and shows the usual refusal; a recording keeps what was clear and stops for the same reason, and a network failure ends nothing.
+- **One wording:** encrypted discs are refused in the same words everywhere a viewer sees them.
+- **Crafted files:** menu, subtitle and picture sizes are limited on every path, a helper's answers are limited before decoding, a station can't make the server build a huge playlist, and a CD sheet can't leave its folder through a linked folder.
+- **Older helpers:** a WittyDVD helper from before chapter runs keeps the disc instead of being blamed, and a cut-short disc image no longer counts against an honest helper.
+- **Fixed:** a stopped stream's clean-up could delete a new stream's files, AIFF files are now checked to be CD audio, and a playlist from elsewhere can't reach this machine by a name or a redirect.
+
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

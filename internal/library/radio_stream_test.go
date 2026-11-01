@@ -263,6 +263,21 @@ func TestCleanRadioText(t *testing.T) {
 	}
 }
 
+// A short line can become a long link, so 2 MB from a station could come to gigabytes.
+func TestHLSRewriteStopsGrowing(t *testing.T) {
+	base, _ := url.Parse("https://stream.example/live/")
+	link := func(string) string { return "/api/radio/1/hls?u=" + strings.Repeat("a", 2500) }
+	body := "#EXTM3U\n" + strings.Repeat("a\n", 1<<20)
+	if _, _, err := RewriteHLS([]byte(body), base, link); !errors.Is(err, ErrNotAudio) {
+		t.Fatalf("%v", err)
+	}
+	// A long real one still comes through: a day of six-second segments.
+	real := "#EXTM3U\n" + strings.Repeat("#EXTINF:6,\nseg.aac\n", 14400)
+	if _, _, err := RewriteHLS([]byte(real), base, func(string) string { return "/api/radio/1/hls?u=" + strings.Repeat("a", 200) }); err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
 func TestHLSRewrite(t *testing.T) {
 	base, _ := url.Parse("https://radio.example/live/index.m3u8")
 	link := func(abs string) string { return "L(" + abs + ")" }

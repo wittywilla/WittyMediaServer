@@ -199,7 +199,7 @@ func compose(objs []compObject, windows []Window, p Palette, pics map[int]*Objec
 		bounds = bounds.Union(r)
 		forced = forced || o.forced
 	}
-	if bounds.Empty() {
+	if bounds.Empty() || bounds.Dx() > maxPictureSide || bounds.Dy() > maxPictureSide {
 		return nil
 	}
 	img := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))

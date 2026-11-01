@@ -373,6 +373,33 @@ func TestFailureIsTiedToTheSession(t *testing.T) {
 
 // A stream with no session of its own logs under its ID. Stopping it on purpose
 // says nothing is wrong, and the next disc session to use it takes it over.
+// A stopped stream's folder is deleted after its FFmpeg goes, which takes a while. By
+// then the viewer may have opened the same film again, under the same ID.
+func TestAStoppedStreamCantDeleteItsSuccessorsFiles(t *testing.T) {
+	root := t.TempDir()
+	m := NewManager(&ffmpeg.Tools{}, root, 2, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	spec := Spec{ID: "v-film-a0", SubtitleIndex: -1, Duration: 20}
+	old, _ := m.ensure(spec)
+	m.mu.Lock()
+	delete(m.session, spec.ID) // what Stop does first
+	m.mu.Unlock()
+	next, created := m.ensure(spec)
+	if !created || next.Dir == old.Dir {
+		t.Fatalf("both use %s", next.Dir)
+	}
+	if !sessionDirRe.MatchString(filepath.Base(next.Dir)) {
+		t.Errorf("%s wouldn't be cleared when the server next starts", next.Dir)
+	}
+	seg := filepath.Join(next.Dir, "seg00000.ts")
+	if err := os.WriteFile(seg, []byte("a segment"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old.stopAndClean()
+	if _, err := os.Stat(seg); err != nil {
+		t.Errorf("the new stream lost a segment: %v", err)
+	}
+}
+
 func TestStoppingOnPurposeIsNoFailure(t *testing.T) {
 	m, out := capturingManager(t, realFFmpeg(t))
 	s := m.Ensure(Spec{ID: "v-running", InputArgs: []string{"-f", "lavfi", "-i", "testsrc2=s=160x90:r=5"}, Duration: 600, AudioIndex: -1, SubtitleIndex: -1, Preset: "ultrafast"})
@@ -407,6 +434,39 @@ func TestLiveFailureIsLoggedAndHeard(t *testing.T) {
 		t.Error("OnFail heard nothing")
 	}
 	logLine(t, out, "level=WARN", `msg="process ended"`, "cat=transcode", "session=tun-7", "stderr=")
+}
+
+// A live input found to be encrypted while it plays ends the session for good, with its
+// reason, and FFmpeg goes with it.
+func TestLiveInputRefusedWhilePlaying(t *testing.T) {
+	bin := realFFmpeg(t)
+	tools := &ffmpeg.Tools{FFmpeg: bin, Encoders: map[string]bool{"libx264": true}}
+	m := NewManager(tools, t.TempDir(), 2, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	refused := make(chan struct{})
+	why := errors.New("encrypted")
+	feeds := 0
+	s, err := m.EnsureLive(LiveSpec{ID: "tun-1", SegmentSec: 1, Feed: func(context.Context, time.Time) (*LiveInput, error) {
+		feeds++
+		return &LiveInput{InputArgs: []string{"-re", "-f", "lavfi", "-i", "testsrc=s=64x64:r=5"}, AudioIndex: -1, Realtime: true,
+			Refused: refused, Refusal: func() error { return why }}, nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	close(refused)
+	select {
+	case <-s.failed:
+	case <-ctx.Done():
+		t.Fatal("it went on playing")
+	}
+	if !errors.Is(s.Err(), why) || feeds != 1 {
+		t.Errorf("%v, after %d runs", s.Err(), feeds)
+	}
 }
 
 // With a real FFmpeg (skipped where there is none): a remux in each kind of

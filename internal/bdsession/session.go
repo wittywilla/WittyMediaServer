@@ -283,7 +283,7 @@ func (s *Session) Start(ctx context.Context) *Presentation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.disc.Encrypted {
-		return s.stop("this disc is encrypted (AACS), so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection", true)
+		return s.stop(encryptedRefusal, true)
 	}
 	return s.show(ctx, s.nav.Start())
 }
@@ -293,8 +293,13 @@ func (s *Session) Start(ctx context.Context) *Presentation {
 func (s *Session) PlayTitle(ctx context.Context, ttn, chapter int) *Presentation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.playTitle(ctx, ttn, chapter)
+}
+
+// playTitle is PlayTitle, with s.mu held.
+func (s *Session) playTitle(ctx context.Context, ttn, chapter int) *Presentation {
 	if s.disc.Encrypted {
-		return s.stop("this disc is encrypted (AACS)", true)
+		return s.stop(encryptedRefusal, true)
 	}
 	pl := s.disc.Playlist(ttn)
 	if pl == nil {
@@ -315,15 +320,25 @@ func (s *Session) OpenMenu(ctx context.Context, kind string, vts int) *Presentat
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.disc.Encrypted {
-		return s.stop("this disc is encrypted (AACS)", true)
+		return s.stop(encryptedRefusal, true)
 	}
 	return s.show(ctx, s.nav.PlayTitle(0))
 }
+
+// encryptedRefusal is what a viewer of an encrypted disc is told.
+const encryptedRefusal = dvdsession.EncryptedRefusal
 
 // Do applies a client action.
 func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// The refusal stands, whatever the viewer presses on it.
+	if s.disc.Encrypted {
+		if cur := s.current; cur != nil && cur.Kind == "stop" {
+			return cur
+		}
+		return s.stop(encryptedRefusal, true)
+	}
 	if st := s.tickTimer(); st != nil {
 		return s.show(ctx, st)
 	}
@@ -348,10 +363,7 @@ func (s *Session) Do(ctx context.Context, a Action) *Presentation {
 	case "ended":
 		return s.show(ctx, s.nav.PlaylistEnded())
 	case "title":
-		s.mu.Unlock()
-		p := s.PlayTitle(ctx, a.TTN, a.Chapter)
-		s.mu.Lock()
-		return p
+		return s.playTitle(ctx, a.TTN, a.Chapter)
 	case "menu":
 		s.syncPosition(a.PositionSec)
 		return s.show(ctx, s.nav.MenuCall())
@@ -436,7 +448,7 @@ func (s *Session) touchMenuState() {
 // ---------------------------------------------------------------- menus
 
 // press runs a menu button's commands.
-func (s *Session) press(ctx context.Context, n int) *Presentation {
+func (s *Session) press(ctx context.Context, n int) (out *Presentation) {
 	s.log.Debug("button pressed", "topic", "menus", "button", n)
 	ms, cur := s.menu, s.current
 	if ms == nil || cur == nil || cur.Menu == nil {
@@ -455,13 +467,15 @@ func (s *Session) press(ctx context.Context, n int) *Presentation {
 	}
 	fx := st.Effects
 	if fx != nil && fx.Still != nil {
-		if q := s.current; q != nil {
-			c := *q
-			c.Pause = fx.Still
-			s.current = &c
-			defer func(c *Presentation) { s.current.Pause = nil }(&c)
-			cur = &c
-		}
+		// The player is told once, in this answer, whichever way it ends. What the
+		// session keeps never says it, or the next answer would say it again.
+		defer func(still *bool) {
+			if out != nil {
+				c := *out
+				c.Pause = still
+				out = &c
+			}
+		}(fx.Still)
 	}
 	if s.applyEffects(fx) {
 		if cur.Kind == "title" && cur.Menu.Popup {

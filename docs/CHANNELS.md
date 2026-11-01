@@ -201,7 +201,7 @@ and checked by the server itself, never from options a helper offers.
 | DVB, SAT>IP | `free_CA_mode` in the SDT, CA descriptors in the PMT |
 | Backends | The channel's CA field |
 | Any MPEG-TS | `transport_scrambling_control` in the packets, also mid-stream |
-| IPTV | DRM licence lines in the playlist, and any `#EXT-X-KEY` in an HLS playlist. FFmpeg's `crypto` protocol is left off its whitelist as a second lock |
+| IPTV | DRM licence lines in the playlist, and any `#EXT-X-KEY` in an HLS playlist or any of its variants, on opening and again while it plays or records, as often as the playlist changes (every 5 to 30 seconds). A key that appears stops the stream and marks the channel; a recording keeps what was clear. FFmpeg's `crypto` protocol is left off its whitelist, but FFmpeg has no option that stops it asking for a key, so these checks are what keeps encrypted HLS out |
 
 Refused channels stay listed. They cannot be tuned or recorded.
 

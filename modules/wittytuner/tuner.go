@@ -62,6 +62,10 @@ type Stream struct {
 	Guard *mpegts.Guard
 	// Verified: an Input stream was inspected on opening and found clear.
 	Verified bool
+	// Recheck looks again at an Input stream that can change while it plays. It says
+	// why the stream is now encrypted, or "", and how long until it's worth asking again.
+	// An error is a failure to find out, which says nothing about the stream.
+	Recheck func(ctx context.Context) (why string, next time.Duration, err error)
 }
 
 // Close releases what the stream holds.
@@ -159,6 +163,9 @@ type Env struct {
 	FFmpeg string
 	// Command prepares a process (the host hides console windows and so on).
 	Command func(ctx context.Context, name string, args ...string) *exec.Cmd
+	// refuseHere: this stream's playlist came from elsewhere, so nothing it names may
+	// lead back to this machine.
+	refuseHere bool
 	// AllowCommands: the owner has allowed the custom command driver.
 	AllowCommands bool
 	// Log is where drivers say what went wrong; nil says nothing. Records are

@@ -249,9 +249,29 @@ func (r *remote) TitleRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wit
 		if isRefusal(err) {
 			return nil, refusal(err)
 		}
+		var ce *wittymodule.CallError
+		if errors.As(err, &ce) && ce.Code == wire.CodeUnknownCall {
+			return r.runsByCell(sp, cells)
+		}
 		r.giveUp(err)
 	}
 	return r.local.TitleRuns(sp, cells)
+}
+
+// runsByCell is for an installed helper from before TitleRuns, which is in good order:
+// each cell on its own, as titles played then, and the helper keeps the disc.
+func (r *remote) runsByCell(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
+	var out []wittydvd.TitleRun
+	for i, c := range cells {
+		ext, err := r.CellExtents(sp, c.Cell)
+		if err != nil {
+			return nil, err
+		}
+		if len(ext) > 0 {
+			out = append(out, wittydvd.TitleRun{Extents: ext, Duration: c.Cell.Duration, FirstCell: i, Cells: 1})
+		}
+	}
+	return out, nil
 }
 
 func (r *remote) askRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
@@ -269,13 +289,12 @@ func (r *remote) askRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]witty
 			return nil, err
 		}
 		fine := func(v float64) bool { return v >= 0 && v <= maxRunSeconds } // false for NaN too
-		if !fine(run.Duration) || !fine(run.Lead) || run.FirstCell != next || run.Cells < 1 {
+		// A cell with nothing to read is left out, as on a cut-short image, so a run may
+		// start past where the last ended. They only have to stay in order and in range.
+		if !fine(run.Duration) || !fine(run.Lead) || run.FirstCell < next || run.Cells < 1 || run.Cells > len(cells)-run.FirstCell {
 			return nil, &badAnswer{errors.New("a title's runs make no sense")}
 		}
-		next += run.Cells
-	}
-	if next != len(cells) {
-		return nil, &badAnswer{errors.New("a title's runs don't cover its cells")}
+		next = run.FirstCell + run.Cells
 	}
 	return runs, nil
 }

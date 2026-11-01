@@ -385,6 +385,10 @@ func videoCodec(codecs string) bool {
 	return false
 }
 
+// maxHLSRewritten is the most a rewritten playlist can come to. Its input is limited, but
+// a short line can become a long link: 2 MB from a station could come to gigabytes here.
+const maxHLSRewritten = 8 << 20
+
 // RewriteHLS turns a station's HLS playlist into one that leads back through this
 // server: every address goes through link, so a player never contacts the station
 // itself and the relay can check each answer. Video variants are left out, and an
@@ -460,6 +464,9 @@ func RewriteHLS(body []byte, base *url.URL, link func(abs string) string) (out [
 		if link, ok := resolve(line); ok {
 			b.WriteString(link)
 			b.WriteByte('\n')
+		}
+		if b.Len() > maxHLSRewritten {
+			return nil, "", ErrNotAudio
 		}
 	}
 	if !bytes.HasPrefix(b.Bytes(), []byte("#EXTM3U")) {

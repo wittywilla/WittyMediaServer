@@ -34,7 +34,9 @@ export function GameImportBar({ libraryId, onChanged }: { libraryId: number; onC
       const r = await api.get<GameImport>(`/libraries/${libraryId}/games/import`).catch(() => null)
       if (stop || !r) return
       setSt(r)
-      const mark = `${r.scan?.done}|${r.lookup.pending}|${r.lookup.pictures}|${JSON.stringify(r.review)}`
+      // Only what changes which files are listed: how a lookup is going is shown here, and
+      // the page shouldn't reload for each picture.
+      const mark = `${r.scanning}|${JSON.stringify(r.review)}`
       if (was && mark !== was) changed.current()
       was = mark
       const moving = r.scanning || r.lookup.running
@@ -95,7 +97,7 @@ export function GameReviewBanner({ libraryId, consoles, version, onChanged }: { 
   )
 }
 
-const TabCount = ({ n }: { n?: number }) => (n ? <span className="gr-count">{n.toLocaleString()}</span> : null)
+const TabCount = ({ n }: { n?: number }) => (n ? <> <span className="gr-count">{n.toLocaleString()}</span></> : null)
 
 function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { libraryId: number; consoles: GameConsole[]; first: Tab; onClose: () => void; onChanged: () => void }) {
   const [tab, setTab] = useState<Tab>(first)

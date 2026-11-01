@@ -111,7 +111,7 @@ func cmdMetadata(args []string) int {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
-		fmt.Printf("Undone: %d titles are back as they were.\n", n)
+		fmt.Printf("Undone: %s back as before.\n", count(n, "title"))
 		return 0
 	}
 	return metadataApply(ctx, store, dir, cfg.ImagesDir, apply)
@@ -124,7 +124,7 @@ func metadataExport(ctx context.Context, store *library.Store, dir string, libra
 		return 1
 	}
 	printProblems(res.Problems)
-	fmt.Printf("%d titles: %d written, %d already up to date, %d left as they are because they have edits you haven't applied.\n", res.Total, res.Written, res.Unchanged, res.Kept)
+	fmt.Printf("%s: %d written, %d already up to date, %d left alone because they have edits you haven't applied.\n", count(res.Total, "title"), res.Written, res.Unchanged, res.Kept)
 	fmt.Println("The files are in", dir)
 	return 0
 }
@@ -137,10 +137,10 @@ func metadataCheck(dir string) int {
 		return 0
 	}
 	if metafolder.HasErrors(ps) {
-		fmt.Printf("%d files looked at: there's something to fix. The other files are fine, and apply without these.\n", files)
+		fmt.Printf("%s looked at: there's something to fix. The other files are fine, and apply without these.\n", count(files, "file"))
 		return 1
 	}
-	fmt.Printf("%d files looked at, and they can all be used.\n", files)
+	fmt.Printf("%s looked at, and all can be used.\n", count(files, "file"))
 	return 0
 }
 
@@ -156,7 +156,7 @@ func metadataApply(ctx context.Context, store *library.Store, dir, images string
 		if p.Total == 0 {
 			fmt.Println("Nothing would change.")
 		} else {
-			fmt.Printf("%d titles would change. Nothing has yet: run this with --apply to change them.\n", p.Total)
+			fmt.Printf("%s would change. Nothing has yet: run this with --apply to change them.\n", count(p.Total, "title"))
 		}
 		if metafolder.HasErrors(p.Problems) {
 			return 1
@@ -170,7 +170,7 @@ func metadataApply(ctx context.Context, store *library.Store, dir, images string
 	}
 	printProblems(res.Problems)
 	printChanges(res.Changes)
-	fmt.Printf("%d titles changed, %d files left out.\n", res.Applied, res.Skipped)
+	fmt.Printf("%s changed, %s left out.\n", count(res.Applied, "title"), count(res.Skipped, "file"))
 	if res.Batch != "" {
 		fmt.Println("To take it all back: wms metadata undo", res.Batch)
 	}
@@ -178,6 +178,13 @@ func metadataApply(ctx context.Context, store *library.Store, dir, images string
 		return 1
 	}
 	return 0
+}
+
+func count(n int, one string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return fmt.Sprintf("%d %ss", n, one)
 }
 
 func printProblems(ps []metafolder.Problem) {

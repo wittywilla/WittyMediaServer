@@ -479,7 +479,13 @@ func (s *Store) planFile(ctx context.Context, e metafolder.Entry, d *metafolder.
 		for f := range d.Fields {
 			names = append(names, f)
 		}
-		sort.Strings(names)
+		// In the order they are in the file, which is the order someone reads it.
+		sort.Slice(names, func(i, j int) bool {
+			if d.Lines[names[i]] != d.Lines[names[j]] {
+				return d.Lines[names[i]] < d.Lines[names[j]]
+			}
+			return names[i] < names[j]
+		})
 		for _, f := range names {
 			v := d.Fields[f]
 			if !t.hasField(f) {
@@ -648,6 +654,20 @@ func setWords(in map[string]bool) string {
 func (s *Store) readTargets(fs *folderScan) (map[string]*metafolder.Doc, []metafolder.Problem) {
 	docs := map[string]*metafolder.Doc{}
 	var ps []metafolder.Problem
+	// What the file names say, for all of them: one nobody touched can still be the
+	// other half of two files for one title.
+	byName := map[string][]string{}
+	for _, e := range fs.docs {
+		base := path.Base(e.Rel)
+		target, id, ok := metafolder.IDFromName(base)
+		if !ok && base == "show.json" {
+			target, id, ok = metafolder.IDFromName(path.Base(path.Dir(e.Rel)))
+		}
+		if ok {
+			key := fmt.Sprintf("%s-%d", target, id)
+			byName[key] = append(byName[key], e.Rel)
+		}
+	}
 	byTitle := map[string]string{}
 	for _, e := range fs.docs {
 		if !fs.touched[e.Rel] && !fs.artOnly[e.Rel] {
@@ -659,7 +679,16 @@ func (s *Store) readTargets(fs *folderScan) (map[string]*metafolder.Doc, []metaf
 			continue
 		}
 		key := fmt.Sprintf("%s-%d", d.Target, d.ID)
-		if other, dup := byTitle[key]; dup {
+		other, dup := byTitle[key]
+		if !dup {
+			for _, rel := range byName[key] {
+				if rel != e.Rel {
+					other, dup = rel, true
+					break
+				}
+			}
+		}
+		if dup {
 			ps = append(ps, metafolder.Problem{File: e.Rel, Line: d.Lines["id"], Field: "id", Msg: "This file and " + other + " describe the same title. Delete one of them. Neither was used", Severity: metafolder.SevError})
 			delete(docs, other)
 			continue

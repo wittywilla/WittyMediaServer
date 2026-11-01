@@ -206,10 +206,14 @@ func (p *Probe) Subtitles() []Stream {
 }
 
 // FileInput opens a file from a library as input. Only local file reading
-// is allowed: a downloaded "video" that is really a playlist must not make
-// the server fetch addresses on the network.
+// is allowed, and only as a real media format (see libraryFormats): a downloaded
+// "video" that is really a playlist must not make the server fetch addresses on
+// the network, or read other files.
 func FileInput(path string) []string {
-	return []string{"-protocol_whitelist", "file,pipe", "-i", path}
+	if literalPicture(path) {
+		return []string{"-format_whitelist", "image2", "-f", "image2", "-pattern_type", "none", "-protocol_whitelist", "file,pipe", "-i", path}
+	}
+	return []string{"-format_whitelist", libraryFormatsFor(path), "-protocol_whitelist", "file,pipe", "-i", path}
 }
 
 // ProbeFile runs ffprobe on a regular media file.
@@ -291,6 +295,9 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
+	if err := noListInCells(segs); err != nil {
+		return "", err
+	}
 	var b strings.Builder
 	b.WriteString("ffconcat version 1.0\n")
 	for _, id := range streamIDs {
@@ -355,10 +362,44 @@ func splitExtents(ext []wittydvd.FileExtent) []wittydvd.FileExtent {
 	return out
 }
 
+// noListInCells: the concat format has to stay on the list of formats FFmpeg may use here, so a
+// part of a disc whose bytes are themselves a list has to be stopped another way. FFmpeg would read
+// that list's entries, including a link beside the image. Only the start of a part can be taken for one.
+func noListInCells(segs []Segment) error {
+	files := map[string]*os.File{}
+	defer func() {
+		for _, f := range files {
+			if f != nil {
+				f.Close()
+			}
+		}
+	}()
+	head := make([]byte, 8)
+	for _, s := range segs {
+		if len(s.Extents) == 0 {
+			continue
+		}
+		e := s.Extents[0]
+		f, seen := files[e.File]
+		if !seen {
+			f, _ = os.Open(e.File)
+			files[e.File] = f
+		}
+		if f == nil {
+			continue // it's FFmpeg's to say a file is missing
+		}
+		if n, _ := f.ReadAt(head, e.Offset); n == len(head) && string(head) == "ffconcat" {
+			return errors.New("a part of this disc isn't video")
+		}
+	}
+	return nil
+}
+
 // ConcatInputArgs are the ffmpeg input flags for an ffconcat list of subfiles.
 func ConcatInputArgs(list string) []string {
 	return []string{
 		"-f", "concat", "-safe", "0",
+		"-format_whitelist", discFormats,
 		"-protocol_whitelist", "file,subfile,concat,concatf",
 		"-probesize", "50M", "-analyzeduration", "20M",
 		"-i", filepath.ToSlash(list),

@@ -44,8 +44,10 @@ function useRig(libraryId: number) {
   const load = () => api.get<RigView[]>('/rigs').then((list) => setRig(list.find((r) => r.libraryId === libraryId) || null)).catch(() => {})
   useEffect(() => {
     load()
-    const t = window.setInterval(() => { if (!document.hidden) load() }, fast > Date.now() ? 4000 : 15000)
-    return () => clearInterval(t)
+    const quick = fast > Date.now()
+    const t = window.setInterval(() => { if (!document.hidden) load() }, quick ? 4000 : 15000)
+    const settle = quick ? window.setTimeout(() => setFast(0), fast - Date.now()) : 0 // back to the usual pace
+    return () => { clearInterval(t); clearTimeout(settle) }
   }, [libraryId, fast]) // eslint-disable-line react-hooks/exhaustive-deps
   return { rig, reload: load, watchWake: () => setFast(Date.now() + 120000) }
 }
@@ -224,6 +226,7 @@ export function RigGameDetails({ it }: { it: Item }) {
           )}
         </div>
       )}
+      <LegalNote kind="thirdPartyServer" />
     </div>
   )
 }

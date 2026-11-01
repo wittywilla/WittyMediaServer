@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 
 import { toast } from '../../state'
@@ -37,11 +37,13 @@ export function AddRig({ onAdded, title, desc }: { onAdded: () => void; title: s
   const [adding, setAdding] = useState(false)
   const [found, setFound] = useState<Found[] | null>(null)
   const [publicWarning, setPublicWarning] = useState('')
+  const asked = useRef('') // the address the warning is about, which may have come from the found list
   const find = async () => {
     setFinding(true)
     try { setFound(await api.get<Found[]>('/rigs/find')) } catch (e: any) { toast(e.message) } finally { setFinding(false) }
   }
   const add = async (addr: string, confirmPublic = false) => {
+    asked.current = addr
     setAdding(true)
     try {
       await api.post('/rigs', { address: addr, confirmPublic })
@@ -76,7 +78,7 @@ export function AddRig({ onAdded, title, desc }: { onAdded: () => void; title: s
       {publicWarning && (
         <div className="rig-warn" role="alert">
           <p>{publicWarning}</p>
-          <button className="btn sm" onClick={() => add(address.trim(), true)}>Add it anyway</button>
+          <button className="btn sm" onClick={() => add(asked.current, true)}>Add it anyway</button>
         </div>
       )}
     </Section>

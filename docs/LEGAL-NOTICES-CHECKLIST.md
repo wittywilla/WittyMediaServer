@@ -39,7 +39,7 @@ a notice of its own.
 | What a person sees when opening a share link | `sharedView` | Shared page, and its viewer |
 | Turning on access from outside | `remote` | Settings, Remote Access |
 | Age limits and Kids profiles | `ratings` | Add profile, profile limits |
-| Something likely to flash: visualizers, for example | `flashing` | Part of `games` today |
+| Something likely to flash | `flashing` | Part of `games` today. WittyVisualizer has its own, stronger notice instead: see below |
 
 If nothing fits, add a kind to `notices.json` with its `section` on the Legal page, and to the list in
 `internal/legal/legal_test.go`. Keep the core words for third-party content: *aren't created by,
@@ -59,7 +59,7 @@ To apply when each one merges. Don't edit a notice's words for one screen: add a
 | `games-options`, `games-controllers` | Settings around games | None, if they show no third-party content | If a screen shows a game or its details, `games`. Button pictures must not copy a console maker's logos |
 | `games-archives` | Settings, About, third-party licenses | None | It adds the license list: keep `<div id="licenses" />` just above it, since Legal links to `/settings/about#licenses`. Its hint and page-title lines for "About & legal" conflict with this branch's: take "About". |
 | `witty-cd` | Album lookups | `webResults` on results, `metadata` on album pages | Add each lookup host to `services`; credit it as its terms ask |
-| `witty-visualizer` | Visualizer | `flashing` | Show it where a visualizer is turned on |
+| `witty-visualizer` | Visualizer | None | Its own notice appears before each person first turns it on, and has to be accepted, so `flashing` would only repeat it. Each person accepts for themselves, on the server and in the desktop player |
 | `modules-independent` | The Modules page, in any new form | `modules` | Keep it directly under the page's header. New custom modules: `modules` in the install dialog too |
 | `logging-diagnoser` | Logs, and anything sent or copied off the server | None, unless it sends something | If it can send anything, it goes on the privacy list and says so first. `Logs & privacy`'s header now says "Logs are never sent anywhere": keep that true |
 | `witty-media-player` | Standalone player | `local` on first run, `webResults` on any lookup | It's its own program, so copy the wording from this file. The owner checks its look before it lands |

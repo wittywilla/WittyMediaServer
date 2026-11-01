@@ -246,6 +246,25 @@ func TestBestLogoFile(t *testing.T) {
 	}
 }
 
+// An entity's claims come all together, and other properties' qualifiers hold strings. One of
+// those must not stop its logos being read.
+func TestLogoClaimsReadBesideOtherProperties(t *testing.T) {
+	var claims map[string][]logoClaim
+	err := json.Unmarshal([]byte(`{
+		"P3984": [{"rank":"normal","mainsnak":{"datavalue":{"value":"a name"}},"qualifiers":{"P1810":[{"datavalue":{"value":"named as"}}]}}],
+		"P625": [{"rank":"normal","mainsnak":{"datavalue":{"value":{"latitude":1}}},"qualifiers":{"P585":[{"datavalue":{"value":{"time":"+2020"}}}]}}],
+		"P154": [
+			{"rank":"normal","mainsnak":{"datavalue":{"value":"NES logo.svg"}},"qualifiers":{"P407":[{"datavalue":{"value":{"id":"Q1860"}}}],"P1810":[{"datavalue":{"value":"NES"}}]}},
+			{"rank":"normal","mainsnak":{"datavalue":{"value":"Family Computer logo.svg"}},"qualifiers":{"P407":[{"datavalue":{"value":{"id":"Q5287"}}}]}}
+		]}`), &claims)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bestLogoFile(claims[wdLogoImage]); got != "NES logo.svg" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestLogoServiceAsksNobodyWithoutConsent(t *testing.T) {
 	s := logoStore(t)
 	src, calls := fakeWikimedia(t, "PD-textlogo")

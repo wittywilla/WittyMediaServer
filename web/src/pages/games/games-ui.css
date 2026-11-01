@@ -7,6 +7,7 @@
 .gm-hide-narrow { display: inline; }
 @media (max-width: 720px) { .gm-hide-narrow { display: none; } }
 .gm-section { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.gm-pictures { margin-block: var(--sp-8); }
 
 /* The colour behind the top of the page. */
 .detail-hero.gm-ambient { position: absolute; z-index: -1; left: calc(-1 * var(--gutter)); right: calc(-1 * var(--gutter)); top: calc(-1 * (var(--topbar-h) + var(--sp-2))); margin: 0; height: min(120vh, 62rem); min-height: 0; max-height: none; overflow: hidden; pointer-events: none; }

@@ -203,9 +203,7 @@ type logoClaim struct {
 	} `json:"mainsnak"`
 	Qualifiers map[string][]struct {
 		Datavalue struct {
-			Value struct {
-				ID string `json:"id"`
-			} `json:"value"`
+			Value json.RawMessage `json:"value"` // a language's is an object, others' are strings
 		} `json:"datavalue"`
 	} `json:"qualifiers"`
 }
@@ -225,7 +223,10 @@ func bestLogoFile(claims []logoClaim) string {
 		if langs := c.Qualifiers[wdLanguage]; len(langs) > 0 {
 			score = 0
 			for _, l := range langs {
-				if l.Datavalue.Value.ID == wdEnglish {
+				var lang struct {
+					ID string `json:"id"`
+				}
+				if json.Unmarshal(l.Datavalue.Value, &lang) == nil && lang.ID == wdEnglish {
 					score = 2
 				}
 			}

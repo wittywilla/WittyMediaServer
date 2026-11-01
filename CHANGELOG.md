@@ -48,6 +48,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ### Fixed
 
+- A quick press on a controller could be lost in the menus, in a game's menu as much as anywhere, if the browser happened to hold back
+  its drawing for a moment. Controllers are now read on a timer of their own, which costs less, since no frames are asked for just to
+  read them. Buttons still held as a game's menu opens are no longer taken for presses in that menu.
+- A game's screenshots never showed on a server reached over plain http, or in an app that signs in with a token.
+- The console logo for the NES could be its Japanese counterpart's. A logo in English, or marked as preferred, now comes first.
+- On a game's page, the first key pressed could move the focus to the Play button rather than doing what it was pressed for.
 - In Settings, scrolling with the pointer over the menu moved the page beside it. The menu now scrolls by itself.
 - With internet radio or music playing, the account menu could open behind the audio bar, and the mini player could cover dialogs. Everything over the page now has one stacking order.
 
@@ -107,6 +113,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Settings, Consoles & cores** now starts with the consoles you have games for, whether each is ready, and the one thing to do
   if it isn't. There's a button to install every recommended core at once. Everything else is under Advanced.
 - Game PCs and gaming PC libraries match the rest, and a gaming PC's library is no longer limited to 500 games.
+- **Controllers and My game settings look like the rest of the app**, on every width: tabs, chips and cards from the app's own set,
+  button prompts, and larger targets on a phone or from across the room. Choosing a console is a row of chips rather than a drop-down
+  list, which a remote can use.
 
 ### Music
 

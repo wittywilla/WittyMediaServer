@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -73,7 +74,7 @@ func FuzzArtRef(f *testing.F) {
 }
 
 func isWebAddress(s string) bool {
-	return len(s) > 7 && (s[:7] == "http://" || (len(s) > 8 && s[:8] == "https://"))
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
 
 func FuzzAgentAnswer(f *testing.F) {

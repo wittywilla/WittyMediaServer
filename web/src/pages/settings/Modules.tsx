@@ -11,7 +11,7 @@ import './modules.css'
 import LegalNote from '../../components/LegalNote'
 import { LinkButton } from '../../ui'
 import { ChangeNotes, FailureNotice, ModuleLogDialog, PolicyNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
-import { failureForStatus } from './store/storeApi'
+import { failureForStatus, type Failure } from './store/storeApi'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
@@ -215,7 +215,7 @@ export default function ModulesSettings() {
     <ModuleRow key={m.id} m={m} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
-      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} onLog={() => setLogOf(m)} repairRoute={store.view?.repairRoute || '/settings/repair'} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
+      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} onLog={() => setLogOf(m)} repairRoute={store.view?.repairRoute || '/settings/repair'} serverFailure={store.view?.items.find((i) => i.official && i.id === m.id)?.failure} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
   )
 
   return (
@@ -312,7 +312,7 @@ type RowProps = {
   m: ModuleStatus; isOpen: boolean; marked: boolean; checkedAt?: number; nameOf: (id: string) => string; refused: string
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
-  onAuto: (on: boolean) => void; onLatest: () => void; onLog: () => void; repairRoute: string; serverAuto: boolean; kinds: LibraryKind[]
+  onAuto: (on: boolean) => void; onLatest: () => void; onLog: () => void; repairRoute: string; serverFailure?: Failure; serverAuto: boolean; kinds: LibraryKind[]
 }
 
 // One module: a line to scan, and everything else when it is opened.
@@ -387,9 +387,9 @@ function BroughtKind({ type, m, kinds, onReport }: { type: string; m: ModuleStat
   )
 }
 
-function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, onLog, repairRoute, serverAuto }: RowProps & { id: string }) {
+function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, onLog, repairRoute, serverFailure, serverAuto }: RowProps & { id: string }) {
   const working = busy(m)
-  const failure = failureForStatus(m)
+  const failure = serverFailure || failureForStatus(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
   const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
   return (

@@ -306,7 +306,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
                   <span className="set-type-icon">{libIcon(t.v)}</span>
                   <b>{kindTitle(kinds, t.v, t.label)}</b>
                   {locked
-                    ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules?add=${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
+                    ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules/store/${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
                     : <small>{t.hint}</small>}
                 </label>
               )

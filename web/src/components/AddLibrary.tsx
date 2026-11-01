@@ -186,7 +186,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
                     <span className="oobe-locked-text"><b>{kindTitle(kinds, x.type, x.name)}</b><span className="muted">Needs {orList(mods.map((m) => m.name))}</span></span>
                     <span className="oobe-locked-acts">
                       {mods.map((m) => <button key={m.id} type="button" className="btn sm" aria-busy={adding === m.id} onClick={() => addModule(m, x.type)} aria-label={`Add ${m.name} for ${x.name}`}><IconPlus /> {adding === m.id ? 'Adding…' : `Add ${m.name}`}</button>)}
-                      {!setup && mods[0] && <Link className="oobe-locked-link" to={`/settings/modules?add=${encodeURIComponent(mods[0].id)}`}>Open the module store</Link>}
+                      {!setup && mods[0] && <Link className="oobe-locked-link" to={`/settings/modules/store/${encodeURIComponent(mods[0].id)}`}>Open the module store</Link>}
                     </span>
                   </li>
                 )

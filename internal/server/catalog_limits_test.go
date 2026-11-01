@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -109,4 +112,39 @@ func TestBulkEditChecksPictures(t *testing.T) {
 	if it.Poster == outside {
 		t.Error("it was kept")
 	}
+}
+
+// The lyrics source an owner names may be at home, and only that one address may be.
+func TestLyricsMirrorStaysOnItsHost(t *testing.T) {
+	var reached atomic.Int64
+	other := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { reached.Add(1) }))
+	defer other.Close()
+	mirror := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, strings.Replace(other.URL, "127.0.0.1", "localhost", 1)+"/secret", http.StatusFound)
+	}))
+	defer mirror.Close()
+	res, err := lyricsMirrorClient.Get(mirror.URL)
+	if err == nil {
+		res.Body.Close()
+	}
+	if reached.Load() != 0 {
+		t.Error("a redirect led away from the address the owner named")
+	}
+	if _, err := lyricsMirrorClient.Get("http://169.254.169.254/latest/meta-data/"); err == nil || !strings.Contains(err.Error(), "lyrics server") {
+		t.Errorf("a cloud host's own address: %v", err)
+	}
+	// Its own redirect, on the machine or the network, still works.
+	home := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/api", http.StatusFound)
+			return
+		}
+		w.WriteHeader(204)
+	}))
+	defer home.Close()
+	res, err = lyricsMirrorClient.Get(home.URL)
+	if err != nil || res.StatusCode != 204 {
+		t.Fatalf("%v %v", res, err)
+	}
+	res.Body.Close()
 }

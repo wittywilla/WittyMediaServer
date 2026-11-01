@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -234,7 +237,35 @@ func (s *Server) lyricsSources(ctx context.Context) []lyrics.Source {
 // Tests point this at their own server.
 var lyricsPublicBase = lyrics.LRCLIBHome
 
-var lyricsMirrorClient = &http.Client{Timeout: 12 * time.Second}
+// The owner's own copy may be at home, so this client alone may reach private addresses. It goes
+// only where the owner said: a redirect stays on that host, and the link-local addresses, where
+// a cloud host's own secrets are, are no place for a lyrics server.
+var lyricsMirrorClient = &http.Client{
+	Timeout: 12 * time.Second,
+	Transport: &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: 10 * time.Second, Control: lyricsMirrorAddress}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+	},
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 3 || req.URL.Host != via[0].URL.Host {
+			return errors.New("a lyrics server's redirect left its own address")
+		}
+		return nil
+	},
+}
+
+func lyricsMirrorAddress(_, address string, _ syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return fmt.Errorf("%s can't be a lyrics server", host)
+	}
+	return nil
+}
 
 // One look-up at a time for the whole server: a listener skipping through an album
 // shouldn't hammer a free service.

@@ -375,3 +375,30 @@ func HomeSubnets() []netip.Prefix {
 	homeSubnets.Store(c)
 	return c.nets
 }
+
+// LocalName says a host name is one only a local network can resolve: a computer's own name, or
+// one under a suffix nobody can register. A name anyone can register can point anywhere.
+func LocalName(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "" {
+		return false
+	}
+	if !strings.Contains(host, ".") {
+		return true // "localhost" or a computer's own name
+	}
+	for _, suffix := range []string{".localhost", ".local", ".localdomain", ".lan", ".home", ".home.arpa", ".fritz.box", ".internal", ".intranet"} {
+		if strings.HasSuffix(host, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// LocalAddress says what someone typed names something at home or on their VPN.
+func LocalAddress(host string) bool {
+	host = strings.Trim(host, "[]")
+	if a, err := netip.ParseAddr(host); err == nil {
+		return (*Policy)(nil).Classify(a) != Internet
+	}
+	return LocalName(host)
+}

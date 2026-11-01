@@ -92,6 +92,12 @@ func checkEPGPlace(place string) error {
 	return nil
 }
 
+// webGuide: a guide address a tuner or a playlist may name, as opposed to what the owner types.
+func webGuide(place string) bool {
+	u, err := url.Parse(place)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
 // AddSource adds a guide source and fetches it.
 func (m *Manager) AddSource(ctx context.Context, name, place string) (*EPGSource, error) {
 	place = strings.TrimSpace(place)
@@ -170,7 +176,7 @@ func (m *Manager) pruneGuide(ctx context.Context) {
 	_, _ = m.DB.ExecContext(ctx, `DELETE FROM epg_programmes WHERE stop < ?`, time.Now().Add(-24*time.Hour).Unix())
 }
 
-func (m *Manager) openGuide(ctx context.Context, place, auth string) (io.ReadCloser, error) {
+func (m *Manager) openGuide(ctx context.Context, place, auth string, client *http.Client) (io.ReadCloser, error) {
 	if !strings.Contains(place, "://") {
 		return os.Open(place)
 	}
@@ -187,9 +193,9 @@ func (m *Manager) openGuide(ctx context.Context, place, auth string) (io.ReadClo
 		}
 	}
 	req.Header.Set("User-Agent", "WittyMediaServer")
-	res, err := (&http.Client{Timeout: 10 * time.Minute}).Do(req)
+	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, gateError(err)
 	}
 	if res.StatusCode != 200 {
 		res.Body.Close()
@@ -202,14 +208,27 @@ func (m *Manager) openGuide(ctx context.Context, place, auth string) (io.ReadClo
 // this server.
 func (m *Manager) FetchSource(ctx context.Context, id int64) error {
 	var place, auth string
-	if err := m.DB.QueryRowContext(ctx, `SELECT url, auth FROM epg_sources WHERE id = ?`, id).Scan(&place, &auth); err != nil {
+	var tunerID sql.NullInt64
+	if err := m.DB.QueryRowContext(ctx, `SELECT url, auth, tuner_id FROM epg_sources WHERE id = ?`, id).Scan(&place, &auth, &tunerID); err != nil {
 		return ErrNotFound
 	}
-	if err := checkEPGPlace(place); err != nil {
+	client := gateClient(true)
+	err := checkEPGPlace(place)
+	if tunerID.Valid {
+		// A guide a tuner or its playlist named, rather than the owner.
+		client = m.internetClient()
+		if t, terr := m.Tuner(ctx, tunerID.Int64); terr == nil && mayLeadHome(t) {
+			client = gateClient(true)
+		}
+		if !webGuide(place) {
+			err = errors.New("a playlist's guide has to be a web address")
+		}
+	}
+	if err != nil {
 		_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ? WHERE id = ?`, err.Error(), db.Now(), id)
 		return err
 	}
-	n, err := m.fetch(ctx, id, place, auth)
+	n, err := m.fetch(ctx, id, place, auth, client)
 	msg := ""
 	if err != nil {
 		msg = err.Error()
@@ -229,8 +248,8 @@ func normalizeName(s string) string {
 	return strings.TrimSuffix(b.String(), "hd")
 }
 
-func (m *Manager) fetch(ctx context.Context, id int64, place, auth string) (int, error) {
-	r, err := m.openGuide(ctx, place, auth)
+func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, client *http.Client) (int, error) {
+	r, err := m.openGuide(ctx, place, auth, client)
 	if err != nil {
 		return 0, err
 	}

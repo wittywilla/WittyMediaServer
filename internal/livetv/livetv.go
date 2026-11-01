@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
@@ -94,6 +95,8 @@ type Manager struct {
 	Tools *ffmpeg.Tools
 	Log   *slog.Logger
 
+	internet *http.Client // what internetClient gives, for a test
+
 	mu               sync.Mutex
 	sources          map[int64]wittytuner.Source
 	scans            map[int64]*ScanState
@@ -161,6 +164,26 @@ func (m *Manager) Close() {
 
 // tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
 func (m *Manager) tunerLog() *slog.Logger { return m.Log.With("module", "wittytuner") }
+
+// internetClient reaches the internet and nothing else, checking each connection as it is made.
+func (m *Manager) internetClient() *http.Client {
+	if m.internet != nil {
+		return m.internet
+	}
+	return library.SafeClient
+}
+
+// envFor is what a tuner's driver gets. A playlist from the internet is someone else's list of
+// addresses: everything fetched for it stays on the internet, whatever it names or redirects to.
+func (m *Manager) envFor(t *Tuner) wittytuner.Env {
+	env := m.Env()
+	if !mayLeadHome(t) {
+		c := m.internetClient()
+		env.HTTP = &http.Client{Timeout: 30 * time.Second, Transport: c.Transport, CheckRedirect: c.CheckRedirect}
+		env.Stream = c
+	}
+	return env
+}
 
 // Env is what drivers get.
 func (m *Manager) Env() wittytuner.Env {
@@ -357,7 +380,7 @@ func (m *Manager) source(ctx context.Context, id int64) (wittytuner.Source, *Tun
 	if s := m.sources[id]; s != nil {
 		return s, t, nil
 	}
-	s, err := newSource(t.Driver, wittytuner.Config{Name: t.Name, Options: t.Options}, m.Env())
+	s, err := newSource(t.Driver, wittytuner.Config{Name: t.Name, Options: t.Options}, m.envFor(t))
 	if err != nil {
 		return nil, t, err
 	}
@@ -393,7 +416,7 @@ func (m *Manager) setError(id int64, msg string) {
 // ensureGuide offers a source's own guide address as a guide source.
 func (m *Manager) ensureGuide(ctx context.Context, id int64, s wittytuner.Source) {
 	info := s.Info()
-	if info.GuideURL == "" {
+	if !webGuide(info.GuideURL) { // nor can a playlist choose a file on this machine, or a network share
 		return
 	}
 	auth := ""
@@ -863,6 +886,11 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	if !t.Enabled {
 		return nil, errors.New("that tuner is turned off")
 	}
+	// FFmpeg makes its own connections for anything but HTTP, and those can't be held to the
+	// internet, so a list from the internet only gets to name web addresses.
+	if !mayLeadHome(t) && !webGuide(c.locator) {
+		return nil, errors.New("a playlist from the internet can only name web addresses. To use this channel, keep the playlist on your home network, or add it as a single stream")
+	}
 	limit := t.MaxStreams
 	if limit == 0 {
 		limit = s.Info().MaxStreams
@@ -899,11 +927,15 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	}
 	o := &Opened{Stream: st, Channel: c, release: release, note: note}
 	if addr, ok := gateInput(st); ok {
-		g, err := newHLSGate(addr, st.Input, mayLeadHome(t), m.tunerLog(), o.refuse)
+		home := mayLeadHome(t)
+		g, err := newHLSGate(addr, st.Input, home, m.tunerLog(), o.refuse)
 		if err != nil {
 			_ = st.Close()
 			release()
 			return nil, err
+		}
+		if !home {
+			g.client = m.internetClient()
 		}
 		o.gate, o.refused = g, make(chan struct{})
 		st.Input = g.args(st.Input)

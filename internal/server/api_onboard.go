@@ -57,16 +57,8 @@ func localHostName(r *http.Request) bool {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
-	host = strings.ToLower(strings.TrimSuffix(strings.Trim(host, "[]"), "."))
-	if net.ParseIP(host) != nil || !strings.Contains(host, ".") {
-		return host != "" // an address, "localhost" or a computer's own name
-	}
-	for _, suffix := range []string{".localhost", ".local", ".localdomain", ".lan", ".home", ".home.arpa", ".fritz.box", ".internal", ".intranet"} {
-		if strings.HasSuffix(host, suffix) {
-			return true
-		}
-	}
-	return false
+	host = strings.Trim(host, "[]")
+	return net.ParseIP(host) != nil || remote.LocalName(host)
 }
 
 // onThisMachine: the browser runs on the server's own desktop, with nothing

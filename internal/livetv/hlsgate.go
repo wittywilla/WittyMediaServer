@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittytuner"
 	"github.com/wittywilla/wittytuner/mpegts"
 )
@@ -617,8 +618,10 @@ func gateClient(home bool) *http.Client {
 	}
 }
 
-// mayLeadHome: the owner named this tuner's address, or its playlist is on the home network, as
-// the tuner driver itself decides. A playlist from the internet stays on the internet.
+// mayLeadHome: the owner named this tuner's address, or its playlist is a file or on the home
+// network, going by the address the owner typed: one a home network or VPN uses, or a name only a
+// local network can resolve. Asking DNS instead would let a public name point home when it suits it.
+// A playlist from the internet stays on the internet.
 func mayLeadHome(t *Tuner) bool {
 	if t.Driver != "iptv" {
 		return true
@@ -631,7 +634,5 @@ func mayLeadHome(t *Tuner) bool {
 	if err != nil {
 		return false
 	}
-	h := u.Hostname()
-	ip := net.ParseIP(h)
-	return strings.EqualFold(h, "localhost") || (ip != nil && (ip.IsLoopback() || ip.IsPrivate()))
+	return remote.LocalAddress(u.Hostname())
 }

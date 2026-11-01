@@ -83,7 +83,7 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/ulikunitz/xz v0.5.15 h1:9DNdB5s+SgV3bQ2ApL10xRc35ck0DuIX/isZvIk+ubY=
 github.com/ulikunitz/xz v0.5.15/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
-github.com/wittywilla/wittymodule v0.3.0 h1:1kyDNethANOOv7dimHUWA41myv2Yn3wnWzHsNtCmASk=
+github.com/wittywilla/wittymodule v0.3.0 h1:tsZCkpmkS3l9f3QU0JsoivNfa6Kamq0VMKErlFhQ9QA=
 github.com/wittywilla/wittymodule v0.3.0/go.mod h1:s4SONzwSeE/5v+HbhiO4H2CaIOxZpjS187rwwQY0kj8=
 github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=

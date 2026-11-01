@@ -2,7 +2,6 @@ package cores
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -31,7 +30,7 @@ func (m *Manager) MarshalJSON() ([]byte, error) {
 	if m.Custom != nil {
 		custom = m.Custom()
 	}
-	return json.Marshal(struct {
+	return service.Marshal(struct {
 		Dir    string
 		System string
 		Extra  []string

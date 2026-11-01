@@ -958,6 +958,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 
 `POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed.
 
+A folder on another machine (`\\nas\media`), named from anywhere but the server's own desktop, is refused by `POST /libraries`, `PUT /libraries/{id}` and `GET /fs` with `"code": "other-machine"`, unless the owner set `allowNetworkPaths`. A client should lay out the ways forward: add it on the server's own desktop, use a drive letter or mount on the server, or that setting.
+
+`GET /status` says `onboarding` while first-time setup is under way, for an administrator. A client that takes someone through setup itself sets `setupDone` to `"0"` once the account exists and `"1"` at the end. A server that has never said either, and has libraries, doesn't count as being in setup.
+
 #### The module store
 
 What the store's pages use. Everything a catalogue says is plain text, to be shown as text. Whatever goes wrong comes with `failure`: `{kind, title, message, try, detail, repair}`, the same words on every client. See [Modules and the store](MODULE-STORE.md).

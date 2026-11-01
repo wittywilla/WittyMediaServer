@@ -104,6 +104,7 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 			admin.ServeHTTP(w, r)
 			return
 		}
+		// A restore brings its own administrators, so it asks what setting up asks.
 		if s.setupNeedsCode(r) {
 			if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
 				w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
@@ -112,7 +113,7 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 			}
 			if !s.setupCodeOK(r.Header.Get("X-Setup-Code")) {
 				s.Log.WarnContext(r.Context(), "restore refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-				writeErr(w, 403, "Restoring from another device takes the setup code. It's on the server's console, and in setup-code.txt in its data folder.")
+				writeErr(w, 403, "Restoring from another device takes the setup code. It's on the server's console (for Docker, in docker logs), and in setup-code.txt in its data folder.")
 				return
 			}
 		}

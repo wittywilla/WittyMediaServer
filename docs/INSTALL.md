@@ -100,7 +100,7 @@ Your library, accounts and settings are in `~/Library/Application Support/WittyM
 
 Running a newer `.pkg` updates it in place, and takes over from what the `install.sh` of 0.5.2-alpha or older put in `/opt`, keeping its library.
 
-**A limit on a Mac.** A module's helper program runs with no sandbox here: only a small environment and a soft memory limit. So a module from another publisher can't be chosen on a Mac. See [Modules](MODULE-STORE.md#using-someones-fork).
+**A limit on a Mac.** A module's helper program runs in Apple's own sandbox, which hasn't been run on a real Mac yet, and Settings, Modules says if it couldn't be used. So a module from another publisher can't be chosen on a Mac for now. See [Modules](MODULE-STORE.md#using-someones-fork).
 
 **Without installing.** Unpack the `.tar.gz` and open `WittyMediaServer.app`.
 
@@ -173,7 +173,7 @@ Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's
 
 **To update,** run `pkg add -f` with the newer package, then `service wittymediaserver start`, as `pkg` stops it. It also takes over from what `install.sh` installed, keeping its data folder, port and account. A package made for FreeBSD 14 needs `env IGNORE_OSVERSION=yes pkg add <file>` on 15, which hasn't been tried.
 
-**A limit on FreeBSD.** A module's helper program runs with no sandbox here: only a small environment and a soft memory limit. So a module from another publisher can't be chosen, and WittyCouch isn't available, as its host has no FreeBSD build. See [Modules](MODULE-STORE.md#using-someones-fork).
+**A limit on FreeBSD.** A module's helper program runs with limits here, not a sandbox: it can't start programs, open a network connection or write into a file, but it can still read what the account can read, delete its files and signal its programs. So run the server as its own account, as the package does, and a module from another publisher can't be chosen, and WittyCouch isn't available, as its host has no FreeBSD build. See [Modules](MODULE-STORE.md#using-someones-fork).
 
 **Without a package.** Unpack the `.tar.gz` and run `./install.sh` as root, with the same options as on Linux. It starts the service straight away.
 

@@ -162,7 +162,9 @@ var screens = map[string][]string{
 	"components/ShareDialog.tsx":         {"sharing"},
 	"pages/SharedPage.tsx":               {"sharedView"},
 	"components/ConnectServer.tsx":       {"connect"},
-	"pages/SetupWizard.tsx":              {"webResults"},
+	"pages/setup/Details.tsx":            {"webResults"},
+	"pages/setup/Logos.tsx":              {"logos"},
+	"pages/setup/Listings.tsx":           {"listings"},
 	"pages/SettingsPage.tsx":             {"local"},
 	"pages/Profiles.tsx":                 {"ratings"},
 }
@@ -213,17 +215,22 @@ func TestEveryKindUsedExists(t *testing.T) {
 
 // The first-run tick-box is required, and is on the step that creates the account.
 func TestSetupWizardAsksOnce(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join(repo, "web/src/pages/SetupWizard.tsx"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	src := string(b)
-	for _, want := range []string{`type="checkbox" required checked={ack}`, "acknowledgedLegal: ack", "legalAckText()", "|| !ack}"} {
-		if !strings.Contains(src, want) {
-			t.Errorf("the setup wizard's account step should have %q", want)
+	var all string
+	for _, file := range []string{"SetupWizard.tsx", "setup/Account.tsx", "setup/Media.tsx"} {
+		b, err := os.ReadFile(filepath.Join(repo, "web/src/pages", file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		all += string(b)
+		if file == "setup/Account.tsx" {
+			for _, want := range []string{"checked={ack}", "acknowledgedLegal: ack", "legalAckText()", "if (!ack) p.ack"} {
+				if !strings.Contains(string(b), want) {
+					t.Errorf("the setup wizard's account step should have %q", want)
+				}
+			}
 		}
 	}
-	if n := strings.Count(src, `kind="local"`); n != 0 {
+	if n := strings.Count(all, `kind="local"`); n != 0 {
 		t.Errorf("the wizard shows the local-media notice once, as the tick-box, but also %d more", n)
 	}
 }

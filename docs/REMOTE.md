@@ -423,7 +423,7 @@ Signs include a device or sign-in you don't recognize, an account you didn't mak
 - **Some addresses work with no sign-in**, as they must: the sign-in page, basic server information, themes, signing in with a code, and share links. Each is more code a stranger can reach.
 - **There's no web application firewall, and no automatic blocking of bad addresses.**
 - **Server updates aren't automatic.** A fixed bug stays open on your server until you install the fix.
-- **A sandbox limits helpers and game cores. It isn't perfect**, and its protection varies by operating system. On FreeBSD and macOS a module's helper program has no sandbox at all, only a small environment and a soft memory limit, so modules from other publishers and custom cores can't be used there.
+- **A sandbox limits helpers and game cores. It isn't perfect**, and its protection varies by operating system. On FreeBSD a module's helper program has limits rather than a sandbox, and on macOS Apple's sandbox hasn't been run on a real Mac yet, so modules from other publishers and custom cores can't be used there.
 - **The server can't see your router, your other devices or a stolen phone.**
 
 ## Limits for viewers away from home

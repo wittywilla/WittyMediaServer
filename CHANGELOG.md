@@ -7,6 +7,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Security, second pass over what this release added.** Attacks were tried against the store, backups, support bundles and game cores:
+  - Restoring a backup on a new server asks for the setup code, as setting one up does. A stranger on your network could otherwise get
+    there first and restore a backup with an account of their own.
+  - A module from another store now obeys `WMS_NO_MODULE_FORKS` and the refusal on systems that can't box it in, and a store you turn off can't
+    install anything or be fetched. It keeps at most 64 MB of pictures. The key you were shown is the key that's pinned.
+  - Looking at a store on your own network, and giving Tdarr a new address, ask for your password: what comes back says what's listening there.
+  - Passphrases, several kinds of API key and `password: x` as a program prints it are taken out of logs. One log file or crash report goes
+    through the same check as a bundle, and only asking in so many words turns sanitizing off.
+  - An administrator's uninstall doesn't follow links left in other people's folders, and the Windows and Mac installers won't set rules
+    through a link or junction someone left where the data folder goes.
+- **What a module is held to, in plain words.** Helpers had no limits at all on FreeBSD or a Mac. On FreeBSD they now can't start programs, open a
+  socket or write into a file, and as root they also go in a jail. On a Mac they run in Apple's sandbox, which hasn't been run on a real Mac yet. Neither
+  is a full sandbox, so modules from other publishers stay refused there. Settings, Modules and the store now say what a helper is held to wherever it's
+  short of one, Windows included.
+- **PlayStation 2 runs under the sandbox on Linux,** where its core used to crash on loading. It keeps its shader cache between games, and backups leave it out.
+- On a Mac, a game's sandbox refused to start the game at all. Found by reading, as this hasn't been run on a real Mac.
 Modules are now separate from the server, with a store to find them in; there are real installers and uninstallers on each system; and help is built into the app. TV, music, games, metadata and the look of everything have been rebuilt.
 
 ### Before you update: what you'll notice
@@ -58,8 +74,8 @@ Most of these come from a security review. [Config file and folders](docs/CONFIG
 This is an alpha, so here's what has and hasn't been tried.
 
 - **Windows:** the `.msi` was built and tested under Wine, not on a real Windows machine. ARM64 wasn't checked.
-- **macOS:** never built or run here. That covers the `.pkg`, the uninstaller and modules. Module helpers have no sandbox there or on FreeBSD.
-- **FreeBSD:** the amd64 package and service passed in virtual machines. No real hardware and no arm64.
+- **macOS:** never built or run here. That covers the `.pkg`, the uninstaller, modules and the sandbox written for a helper.
+- **FreeBSD:** the amd64 package and service passed in virtual machines, and a helper's limits were tried from inside one. No real hardware and no arm64.
 - **Apps:** Android ran on emulators only, including Android TV. iOS and tvOS have never been built.
 - **Game delay figures** were measured with the server and browser on one machine, not from a real screen. Firefox, Safari, phones, TVs and real networks weren't run.
 - **Tdarr** itself has never been run against this, because downloading it binds you to its licence.
@@ -98,6 +114,19 @@ This is an alpha, so here's what has and hasn't been tried.
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
   and `clients/mobile` shells are retired: WittyMediaClient replaces them.
+
+### First-time setup
+
+Rebuilt so someone who's never done this can finish it, with a keyboard, a remote, a phone or a screen reader.
+
+- **A step belongs to what needs it.** The games and disc pages appear only with their modules, lyrics only where music can be played, and each page says where in Settings to change its answer.
+- **Restore from a backup** is one of the two buttons on the first page. Restoring from there now moves on by itself when the server comes back, where it used to sit on its last message.
+- **Choosing modules** downloads them through the store's own install, one at a time with progress, and says plainly what didn't work. It no longer says nothing is downloaded. It also asks what to do when a module has a new version.
+- **Logos, lyrics, Wikipedia and streaming lists** are each a question of their own, off until answered, with what's sent and who owns what said beside them.
+- **Setting up from another device:** the page says where the setup code is, on each system. **A share chosen from another device** lays out the three ways forward as soon as it's typed.
+- **Posters beside your files:** setup now asks. It's still on unless you untick it.
+- **Remotes:** every step has an address, so Back goes back a step, and OK now ticks an ordinary checkbox or chooses a radio button anywhere in the app. Before, those only answered to the space bar, which a remote doesn't have.
+- **The last page** reads what you chose back from the server, rather than from what was pressed.
 
 ### Help
 

@@ -218,6 +218,7 @@ func cmdServe(args []string) int {
 
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
+	modules.ProtectServer()
 	modMgr := modules.New(modules.Config{
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: layout.Current().Modules(),
 		WriteFolders: func(id string) []string {

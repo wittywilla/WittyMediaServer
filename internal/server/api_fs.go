@@ -45,7 +45,7 @@ func (s *Server) handleFS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.checkAdminPaths(r, []string{p}, nil); err != nil {
-		writeErr(w, 403, err.Error())
+		writePathErr(w, 403, err)
 		return
 	}
 	l, err := browser.List(p, modmgr.ListOptions{ShowHidden: r.URL.Query().Get("hidden") == "1", Kind: library.FileKind})

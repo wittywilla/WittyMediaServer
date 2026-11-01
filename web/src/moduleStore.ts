@@ -20,7 +20,7 @@ export type ModuleStatus = {
 }
 export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[]; label?: string; shared?: boolean }
 export type ModuleRef = { id: string; name: string; installed: boolean }
-export type ModuleReport = { server: string; api: number; minApi: number; checkedAt?: number; checkError?: string; holdUntil?: number; modules: ModuleStatus[]; libraries: LibraryKind[] }
+export type ModuleReport = { server: string; api: number; minApi: number; checkedAt?: number; checkError?: string; holdUntil?: number; modules: ModuleStatus[]; libraries: LibraryKind[]; sandbox?: { level: 'full' | 'partial' | 'limited' | 'unconfined'; title?: string; words?: string } }
 export type VersionInfo = Offer & { builtin?: boolean; inUse?: boolean; installed?: boolean; older?: boolean; allowed: boolean; refused?: string; warning?: string; withdrawn?: Withdrawn }
 export type VersionList = { id: string; name: string; repo: string; inUse: string; pin?: string; checkedAt?: number; versions: VersionInfo[] }
 

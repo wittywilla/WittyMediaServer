@@ -117,7 +117,7 @@ What a sandbox can't cover: a graphics driver is a large body of code running in
 
 **As a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there, so Settings, Consoles & cores says there's no usable card.
 
-**Under the Linux sandbox,** LRPS2 can't write its shader cache, so it rebuilds it each run. It hasn't been fixed.
+**Under the Linux sandbox,** LRPS2 maps its recompiled code through `/dev/shm`, and crashes while loading if it can't. So that one core may make files there (`-shared-memory`, `CoreTraits.SharedMemory`). They're shared with whatever else runs under the same account, which is why no other core, and no custom core, gets it. Its `cache` folder stays beside the save between games (`CoreTraits.CacheIn`), and backups leave it out. A game has booted this way with a real BIOS, and left nothing in `/dev/shm`. No graphics driver here supports program binaries, so a shader file being written and read back hasn't been seen.
 
 ### Cores that keep their own stacks
 
@@ -594,8 +594,8 @@ Treat a ROM as hostile and a core as buggy.
 - Only the core the server picked runs: the request names a game, never a file. Core files come from the server's own list.
 - **Linux:** new network, IPC and user namespaces where allowed; `no_new_privs`; a seccomp filter refusing sockets, `execve` and `ptrace`; Landlock limiting writes to its save folder, on every thread (the runner sets Landlock, then starts itself again so that all its threads inherit it); memory and file-size rlimits, on writable memory and with a much higher ceiling on address space, as real cores reserve far more than they use; killed when the server dies.
 - **Windows:** a job object that kills it with the server, limits memory and forbids child processes, plus a low-integrity token so it can only write to its save folder.
-- **macOS:** a `sandbox-exec` profile denying network and writes elsewhere, plus rlimits. If that tool is missing, only the rlimits. Not run on a real Mac.
-- **FreeBSD and others:** rlimits and priority only (`stream/sandbox_other.go`). Not run.
+- **macOS:** a `sandbox-exec` profile denying network, other programs and writes elsewhere, plus rlimits. If that tool is missing, only the rlimits. Not run on a real Mac.
+- **FreeBSD:** rlimits and priority, and it can't start programs, or open a socket with no graphics card (`hostsandbox/limits_freebsd.go`). That isn't a sandbox, and custom cores are refused. The limits were tried in a FreeBSD 15.1 virtual machine, and no game has been run there.
 - **Games on a graphics card** open a little more: see [What the sandbox opens](#what-the-sandbox-opens-for-a-graphics-driver).
 - A session is stopped after 60 seconds with no viewer and after 30 idle minutes. The number of sessions is capped.
 
@@ -744,7 +744,8 @@ In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES
 - **3DS** isn't tested with a real game.
 - **Graphics-card consoles** run on Windows and Linux only, and with OpenGL only. melonDS's own OpenGL mode produces no frames here, so DS games draw in software at native resolution.
 - **Mesen's NES core** aborts on Linux, which leaves header-less NES dumps with nothing to play them there.
-- **PlayStation 2 on Linux:** the shader cache is rebuilt each run. A real PS2 save hasn't been tried under the sandbox.
+- **PlayStation 2 on Linux:** a real game boots under the sandbox, on a software renderer here. A real save hasn't been tried under it, and nor has a graphics card.
+- **On a new Linux with glibc 2.41 or later,** melonDS won't load, as that refuses a library asking for an executable stack, and Play! aborts while loading. Both do the same with the sandbox off.
 - **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are.
 - **A `.7z` with locked contents** is only found out when played.
 - **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code. Some cores have no cheat support at all.

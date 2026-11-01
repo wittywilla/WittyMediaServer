@@ -20,7 +20,7 @@ export function LogoConsentWords() {
     <ul className="set-consent">
       <li>Logos of studios, networks, consoles and services are <b>not part of this software</b>. They're downloaded to your server, one at a time, from <a href="https://commons.wikimedia.org/wiki/Commons:Licensing" target="_blank" rel="noreferrer">Wikimedia Commons</a>.</li>
       <li>Your server tells Wikidata and Wikimedia Commons the <b>name</b> of each studio, network or console it finds, and nothing else: nothing about you or your files.</li>
-      <li>Only files whose own page says they're free to reuse are taken. Each one's source, licence and author are listed here.</li>
+      <li>Only files whose own page says they're free to reuse are taken. Each one's source, licence and author are listed in Settings, Metadata agents, under Logos.</li>
       <li><b>Logos are still trademarks of their owners.</b> They're shown only to name who made something, for your own use on your own server. If you share your server, that's for you to judge.</li>
       <li>Without this, the app shows names in plain text, and nothing else changes. You can upload your own logos either way.</li>
     </ul>
@@ -84,7 +84,7 @@ export const LISTING_STATEMENTS: { id: string; text: string }[] = [
   { id: 'sends-titles', text: 'My server will send TMDB the names or TMDB ids of the titles in my film and TV libraries, using my own TMDB key, about once every two weeks. No files and nothing about me are sent.' },
 ]
 
-const REGIONS = ['AR', 'AT', 'AU', 'BE', 'BR', 'CA', 'CH', 'CL', 'CO', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GB', 'GR', 'HK', 'HU', 'ID', 'IE', 'IL', 'IN', 'IT', 'JP', 'KR', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PH', 'PL', 'PT', 'RO', 'SE', 'SG', 'TH', 'TR', 'TW', 'US', 'ZA']
+export const REGIONS = ['AR', 'AT', 'AU', 'BE', 'BR', 'CA', 'CH', 'CL', 'CO', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GB', 'GR', 'HK', 'HU', 'ID', 'IE', 'IL', 'IN', 'IT', 'JP', 'KR', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PH', 'PL', 'PT', 'RO', 'SE', 'SG', 'TH', 'TR', 'TW', 'US', 'ZA']
 
 export function ListingSettings() {
   const [s, setS] = useState<ListingStatus | null>(null)

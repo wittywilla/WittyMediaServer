@@ -265,13 +265,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modulestore/run/undo` | Admin | Own password, and a code with two-factor sign-in |
 | `DELETE /api/modulestore/run` | Admin | Nothing further |
 | `GET /api/modulestore/modules/{id}/log` | Admin | Known module. Records are redacted when written |
-| `GET /api/modulestore/media/{store}/{sha}` | Admin | A picture a catalogue lists, checked against its hash, PNG or JPEG. No token in the address |
-| `POST /api/modulestore/stores/preview` | Admin | Public addresses only unless the body allows the local network. Size limits. Keeps nothing |
+| `GET /api/modulestore/media/{store}/{sha}` | Admin | A picture a catalogue lists, checked against its hash, PNG or JPEG. At most 64 MB kept for one store, and what it stops listing goes. No token in the address |
+| `POST /api/modulestore/stores/preview` | Admin | Public addresses only. The body can allow the local network, with own password and a code with two-factor sign-in, as what comes back says what's listening. Size limits. Keeps nothing |
 | `POST /api/modulestore/stores` | Admin | Warning agreed to. Own password, and a code with two-factor sign-in. Signature checked against the key pinned |
 | `DELETE /api/modulestore/stores/{id}` | Admin | Known store. What uses it goes back to the official version |
 | `PUT /api/modulestore/stores/{id}/enabled` | Admin | Known store. Body says on or off |
 | `POST /api/modulestore/stores/{id}/check` | Admin | Known store. Its pinned key has to match |
-| `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. WittyTuner refused |
+| `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. The key the admin was shown. Refused for WittyTuner, where the machine's owner keeps forks out, and where this system can't box one in |
 | `GET /api/modules` | Admin | Nothing further |
 | `POST /api/modules/check` | Admin | Answers younger than a minute are reused |
 | `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use |
@@ -578,18 +578,18 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/channels/bumpers/item/{id}` | Admin | Bumper exists. A file is deleted only in the bumpers folder |
 | `GET /api/channels/discs` | Admin | Nothing further |
 | `POST /api/channels/clip-preview` | Admin | A disc that exists. Title exists. Encrypted discs are refused |
-| `GET /api/backup` | An admin, or before any account exists the server's own machine or the setup code | Backups kept, what's going on, and a restore waiting. Before any account exists: no folder, schedule or settings |
+| `GET /api/backup` | An admin, or before any account exists this machine or the setup code | Backups kept, what's going on, and a restore waiting. Before any account exists: no folder, schedule or settings |
 | `GET /api/backup/estimate` | Admin | Nothing further |
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
-| `POST /api/backup/cancel` | An admin, or before any account exists the server's own machine or the setup code | Nothing: stops the job going |
+| `POST /api/backup/cancel` | An admin, or before any account exists this machine or the setup code | Nothing: stops the job going |
 | `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
 | `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
-| `POST /api/backup/restore/upload` | An admin, or before any account exists the server's own machine or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
-| `POST /api/backup/restore/inspect` | An admin, or before any account exists the server's own machine or the setup code | Name as for deleting. One job at a time. Every name, link, size, ratio and hash, and each folder's kind of file. A database is read as values into a clean one, and its rows made harmless. Nothing is changed |
-| `POST /api/backup/restore/start` | An admin, or before any account exists the server's own machine or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
-| `DELETE /api/backup/restore/request` | An admin, or before any account exists the server's own machine or the setup code | Nothing: takes back what's waiting for the next start |
+| `POST /api/backup/restore/upload` | An admin, or before any account exists this machine or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
+| `POST /api/backup/restore/inspect` | An admin, or before any account exists this machine or the setup code | Name as for deleting. One job at a time. Every name, link, size, ratio and hash, and each folder's kind of file. A database is read as values into a clean one, and its rows made harmless. Nothing is changed |
+| `POST /api/backup/restore/start` | An admin, or before any account exists this machine or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
+| `DELETE /api/backup/restore/request` | An admin, or before any account exists this machine or the setup code | Nothing: takes back what's waiting for the next start |
 | `POST /api/backup/undo` | Admin | Password, and code with two-factor sign-in. Safety copy name by form, holding its own list. What it moves stays inside the data folders |
 | `GET /api/games/home` | Signed-in | limits, in the query. Library number. own lists, without what the account can no longer see |
 | `GET /api/games/{id}/check` | Signed-in | limits. A game. Says what it needs, as Play does: BIOS files beside the game are collected. Names and paths of the server aren't answered |
@@ -618,8 +618,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/libtranscode/files/{id}/use-copy` | Admin | A file of a run. Paths from the run's own record, which no backup holds |
 | `DELETE /api/libtranscode/files/{id}/leftover` | Admin | A file of a run. Only a kept original or a converted copy, by the form of its name, from the run's own record |
 | `GET /api/libtranscode/tdarr` | Admin | Nothing further. The key is never answered |
-| `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again |
-| `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address |
+| `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again, and own password and a code with two-factor sign-in |
+| `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address. Any other address asks for own password and a code with two-factor sign-in |
 | `POST /api/libtranscode/tdarr/send` | Admin | At most 10,000 items. Library mapped. Saved address only |
 | `GET /api/metadata-folder` | Admin | Nothing: the folder's place is fixed |
 | `POST /api/metadata-folder/export` | Admin | Library number. One job at a time. The folder's place is fixed. No link is followed |

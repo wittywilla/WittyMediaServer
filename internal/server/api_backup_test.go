@@ -337,9 +337,10 @@ func TestBackupRefusalReachesThePage(t *testing.T) {
 	}
 }
 
-// First-time setup: no accounts, so the server's own machine may restore, and anywhere else
-// needs the setup code, home included, as making the first account does. Once there's an
-// account, none of this is open.
+// First-time setup: no accounts, so whoever could set the server up may restore, and nobody else.
+// A restore brings its own administrators, so it asks exactly what setting up asks. It once let the
+// whole home network in with no code, which got round the setup code altogether: a stranger there
+// could get to a new server first and restore a file with an account of their own.
 func TestBackupFromFirstTimeSetup(t *testing.T) {
 	ts := newContractServer(t)
 	data := t.TempDir()
@@ -355,16 +356,21 @@ func TestBackupFromFirstTimeSetup(t *testing.T) {
 		ts.h.ServeHTTP(w, r)
 		return w.Code
 	}
-	if c := do("127.0.0.1:1000", "localhost:9797", ""); c != 200 {
-		t.Errorf("on the server's own machine: %d", c)
-	}
 	if c := do("192.168.1.50:1000", "192.168.1.2:9797", ""); c != 403 {
-		t.Errorf("from home with no code: %d", c)
+		t.Errorf("from home with no code, on a server nobody has set up: %d", c)
 	}
-	ts.logins.clear()
+	if c := do("192.168.1.50:1000", "192.168.1.2:9797", "WRONG"); c != 403 {
+		t.Errorf("from home with a wrong code: %d", c)
+	}
+	if c := do("192.168.1.50:1000", "192.168.1.2:9797", ts.SetupCode()); c != 200 {
+		t.Errorf("from home with the code: %d", c)
+	}
+	if c := do("127.0.0.1:1000", "localhost:9797", ""); c != 200 {
+		t.Errorf("on this machine, as setting up allows: %d", c)
+	}
 	ts.Cfg.SetupFromHome = true
 	if c := do("192.168.1.50:1000", "192.168.1.2:9797", ""); c != 200 {
-		t.Errorf("from home, when the owner allows it: %d", c)
+		t.Errorf("from home where the owner allows setting up from home: %d", c)
 	}
 	ts.Cfg.SetupFromHome = false
 	if c := do("8.8.8.8:1000", "example.com", ""); c == 200 {

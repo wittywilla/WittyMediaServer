@@ -88,7 +88,7 @@ func TestLibTranscodeAPI(t *testing.T) {
 		t.Fatalf("%d %s", code, body)
 	}
 	// The Tdarr key goes in and never comes back.
-	code, body = do(http.MethodPut, "/tdarr", raw(`{"enabled":false,"url":"http://127.0.0.1:1","apiKey":"tapi_secret_value","mappings":[]}`))
+	code, body = do(http.MethodPut, "/tdarr", raw(`{"enabled":false,"url":"http://127.0.0.1:1","password":"correct-horse-1","apiKey":"tapi_secret_value","mappings":[]}`))
 	if code != 200 || strings.Contains(body, "tapi_secret_value") {
 		t.Fatalf("%d %s", code, body)
 	}

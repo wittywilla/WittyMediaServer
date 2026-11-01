@@ -228,7 +228,12 @@ func (s *Server) handleLogFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
-	http.ServeFile(w, r, p)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	// Through the same check as a bundle: a line may be older than a rule.
+	if err := logging.CopyRedacted(w, p); err != nil {
+		s.Log.WarnContext(r.Context(), "a log file's download stopped", "err", err)
+		panic(http.ErrAbortHandler)
+	}
 }
 
 // POST /api/logs/open (admin): shows the log folder in the file manager of
@@ -264,10 +269,11 @@ func (s *Server) handleCrash(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if qBool(r, "download") {
 		w.Header().Set("Content-Disposition", `attachment; filename="`+r.PathValue("id")+`.txt"`)
 	}
-	_, _ = w.Write(b)
+	_, _ = w.Write([]byte(logging.Redact(string(b))))
 }
 
 // POST /api/logs/crashes/{id}/seen (admin): stop pointing this one out.
@@ -294,11 +300,15 @@ func (s *Server) handleCrashDelete(w http.ResponseWriter, r *http.Request) {
 // sanitize=0 turns it off; redact is its earlier name.
 func bundleSanitized(r *http.Request) bool {
 	q := r.URL.Query()
+	off := func(v string) bool {
+		v = strings.ToLower(v)
+		return v == "0" || v == "false" || v == "no"
+	}
 	if q.Has("sanitize") {
-		return qBool(r, "sanitize")
+		return !off(q.Get("sanitize")) // only asking in so many words turns it off
 	}
 	if q.Has("redact") {
-		return qBool(r, "redact")
+		return !off(q.Get("redact"))
 	}
 	return true
 }

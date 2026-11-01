@@ -56,6 +56,8 @@ type Scanner struct {
 	TMDBBase string
 	// OnScanned runs after a scan of a library that holds films or shows.
 	OnScanned func()
+	// OnGamesScanned runs after a scan of a library of games.
+	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -460,6 +462,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
 		}
 		s.Store.ensureGameLogos(ctx, lib)
+		if s.OnGamesScanned != nil {
+			s.OnGamesScanned()
+		}
 		s.GameMeta.Kick()
 	}
 	return nil

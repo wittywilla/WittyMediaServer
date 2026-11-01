@@ -25,7 +25,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
-	"github.com/wittywilla/wittyplay/testcore/fakecore"
+	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
 )
 
 const testPassword = "a long enough password"

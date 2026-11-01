@@ -14,7 +14,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay/testcore/fakecore"
+	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
 )
 
 // A PC chooses its apps' numbers, so pictures of ones it no longer lists have to go.

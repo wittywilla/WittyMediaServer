@@ -14,7 +14,7 @@ import (
 // The tests that need a real disc read its path from an environment variable,
 // and only ever read it:
 //
-//	WITTY_TEST_DVD=".../SHREK_2.ISO" WITTY_TEST_BD=".../Lorax.iso" go test ./...
+//	WITTY_TEST_DVD=".../MY_DVD.ISO" WITTY_TEST_BD=".../MY_BLURAY.iso" go test ./...
 
 func needDisc(t *testing.T, env string) string {
 	t.Helper()

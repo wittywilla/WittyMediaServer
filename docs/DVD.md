@@ -157,7 +157,7 @@ a straight read of the disc, frame by frame and sound by sound. It takes as long
 the title, and needs a developer's copy of the source and FFmpeg:
 
 ```bash
-WMS_SEAM_DVD=SHREK_2.ISO WMS_SEAM_OUT=seams.txt go test ./internal/dvdsession -run RealDiscChapterSeams -v -timeout 60m
+WMS_SEAM_DVD=MY_DISC.ISO WMS_SEAM_OUT=seams.txt go test ./internal/dvdsession -run RealDiscChapterSeams -v -timeout 60m
 ```
 
 `WMS_SEAM_PACED=1` paces it like someone watching, so the server's rests and restarts are included.

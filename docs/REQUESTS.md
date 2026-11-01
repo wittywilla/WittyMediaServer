@@ -81,8 +81,8 @@ Built for the web app and WittyMediaPlayer. Still open:
   disc or Java code to run, so BD-J was tested with open-source sample applications instead. To try real
   authored output, the owner could build `DEMO_menu` with the free Blu-Disc Studio Lite. What needs
   a disc: real menus' timing with video, and how far the API classes written from the published specs match.
-- **Confirm by watching:** the Shrek 2 warning screen, the interactive games and the Idol credits have
-  fixes, but the owner hasn't confirmed them. The same goes for the DVD chapter-change fix: on Shrek 2, play
+- **Confirm by watching:** a reference disc's warning screen, interactive games and credits have
+  fixes, but the owner hasn't confirmed them. The same goes for the DVD chapter-change fix: on a PAL disc, play
   straight through 2:20 to 2:35 and 33:55 to 36:45. Only PAL discs could be measured, so an NTSC disc is
   still to be tried.
 

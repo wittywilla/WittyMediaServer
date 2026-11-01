@@ -325,7 +325,7 @@ void Tests::themesMatchTheProject()
 
 void Tests::imageNames()
 {
-    QCOMPARE(ImageDialog::suggestedName(QStringLiteral("SHREK_2"), QStringLiteral("iso")), QStringLiteral("SHREK_2.iso"));
+    QCOMPARE(ImageDialog::suggestedName(QStringLiteral("MY_DISC"), QStringLiteral("iso")), QStringLiteral("MY_DISC.iso"));
     QCOMPARE(ImageDialog::suggestedName(QStringLiteral("a/b:c?"), QStringLiteral("img")), QStringLiteral("a_b_c_.img"));
     QCOMPARE(ImageDialog::suggestedName(QStringLiteral("  "), QStringLiteral("iso")), QStringLiteral("Disc.iso"));
     QCOMPARE(ImageDialog::suggestedName(QStringLiteral("Trailing. "), QStringLiteral("iso")), QStringLiteral("Trailing.iso"));

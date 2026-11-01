@@ -27,13 +27,13 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
-	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -57,9 +57,9 @@ type Server struct {
 	Web      fs.FS
 	Version  string
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
-	Tasks       *tasks.Registry
+	Tasks *tasks.Registry
 	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
-	LibConvert *libtranscode.Engine
+	LibConvert               *libtranscode.Engine
 	taskStore                *tasks.SQLStore
 	taskStreams              taskStreamCounts
 	streamEnd, streamEndInit sync.Once

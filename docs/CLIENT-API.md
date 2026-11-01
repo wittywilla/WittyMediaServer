@@ -1068,9 +1068,9 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /epg/sources/{id}` | admin | Delete EPG source. |
 | `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
 | `GET /epg/ids` | admin | EPGI ds. |
-| `GET /recordings` | user | Recordings. |
-| `POST /recordings` | user | Schedule. |
-| `DELETE /recordings/{id}` | user | Cancel recording. |
+| `GET /recordings` | user | This account's recordings, and an administrator's sees everyone's. |
+| `POST /recordings` | user | Schedule. 404 for a channel turned off, 409 at 50 waiting (not for an administrator). |
+| `DELETE /recordings/{id}` | user | Cancel a recording of this account's; an administrator, anyone's. |
 
 ### Games
 
@@ -1344,9 +1344,9 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `PUT /gaming/games/{id}/core` | admin | Choose a core for one game. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
-| `GET /recording-rules` | user | Recording rules. |
-| `POST /recording-rules` | user | Add recording rule. |
-| `DELETE /recording-rules/{id}` | user | Delete recording rule. |
+| `GET /recording-rules` | user | This account's recording rules, and an administrator's sees everyone's. |
+| `POST /recording-rules` | user | Add recording rule. 404 for a channel turned off, 409 at 20 (not for an administrator). |
+| `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |

@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -591,7 +592,7 @@ func tuneError(w http.ResponseWriter, err error) {
 	case wittytuner.IsEncrypted(err):
 		writeErr(w, 403, err.Error())
 	default:
-		writeErr(w, 502, err.Error())
+		writeErr(w, 502, livetv.PublicError(err))
 	}
 }
 
@@ -776,13 +777,26 @@ func (s *Server) handleRecordings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	if !userFrom(r).IsAdmin {
+	// Each person's recordings are theirs to see and manage. An administrator looks after
+	// all of them. What they record still lands in a library, for whoever may see that.
+	if u := userFrom(r); !u.IsAdmin {
+		mine := make([]*livetv.Recording, 0, len(list))
 		for _, x := range list {
-			x.Path = ""
+			if x.UserID == u.ID {
+				x.Path = ""
+				mine = append(mine, x)
+			}
 		}
+		list = mine
 	}
 	writeJSON(w, 200, list)
 }
+
+// Limits on what one account can line up. An administrator has none.
+const (
+	maxPendingRecordings = 50
+	maxRecordingRules    = 20
+)
 
 func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	if !s.canRecord(r) {
@@ -803,6 +817,16 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	id, ok := recordableChannel(w, b.Channel)
 	if !ok {
 		return
+	}
+	if !s.canWatchTuner(r, id) {
+		writeErr(w, 404, "channel not found")
+		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		if n, err := s.TV.PendingRecordings(r.Context(), u.ID); err != nil || n >= maxPendingRecordings {
+			writeErr(w, 409, fmt.Sprintf("You have %d recordings waiting, which is as many as you can have. Cancel one first.", maxPendingRecordings))
+			return
+		}
 	}
 	rec, err := s.TV.Schedule(r.Context(), id, userFrom(r).ID, b.Title, b.Sub, b.Start, b.Stop)
 	if err != nil {
@@ -837,7 +861,14 @@ func (s *Server) handleCancelRecording(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
-	del := qBool(r, "deleteFile") && userFrom(r).IsAdmin
+	u := userFrom(r)
+	if !u.IsAdmin {
+		if rec, err := s.TV.Recording(r.Context(), id); err != nil || rec.UserID != u.ID {
+			writeErr(w, 404, "not found")
+			return
+		}
+	}
+	del := qBool(r, "deleteFile") && u.IsAdmin
 	if err := s.TV.CancelRecording(r.Context(), id, del); err != nil {
 		tunerError(w, err)
 		return
@@ -854,6 +885,15 @@ func (s *Server) handleRecordingRules(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		mine := make([]livetv.Rule, 0, len(list))
+		for _, x := range list {
+			if x.UserID == u.ID {
+				mine = append(mine, x)
+			}
+		}
+		list = mine
 	}
 	writeJSON(w, 200, list)
 }
@@ -875,6 +915,16 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
+	if !s.canWatchTuner(r, id) {
+		writeErr(w, 404, "channel not found")
+		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		if n, err := s.TV.RuleCount(r.Context(), u.ID); err != nil || n >= maxRecordingRules {
+			writeErr(w, 409, fmt.Sprintf("You have %d series recordings, which is as many as you can have. Remove one first.", maxRecordingRules))
+			return
+		}
+	}
 	rule, err := s.TV.AddRule(r.Context(), id, userFrom(r).ID, b.Title)
 	if err != nil {
 		tunerError(w, err)
@@ -892,6 +942,12 @@ func (s *Server) handleDeleteRecordingRule(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		writeErr(w, 400, "bad id")
 		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		if owner, err := s.TV.RuleOwner(r.Context(), id); err != nil || owner != u.ID {
+			writeErr(w, 404, "not found")
+			return
+		}
 	}
 	if err := s.TV.DeleteRule(r.Context(), id); err != nil {
 		tunerError(w, err)

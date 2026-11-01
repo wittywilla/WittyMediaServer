@@ -492,6 +492,11 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.removeUserGameFiles(id)
+	if s.TV != nil {
+		if err := s.TV.ForgetUser(r.Context(), id); err != nil {
+			s.Log.ErrorContext(r.Context(), "could not hand over a removed account's recordings", "cat", "tv", "err", err)
+		}
+	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

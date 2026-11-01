@@ -65,12 +65,7 @@ func (s *Server) resetAllowed(w http.ResponseWriter, r *http.Request, b resetBod
 	if !s.checkOwnPassword(w, r, u, b.Password) {
 		return false
 	}
-	if u.TwoFactor && !s.Auth.CheckTwoFactor(r.Context(), u, b.Code) {
-		s.signInFailed(r, u.Name)
-		writeErr(w, 403, "that code is not right")
-		return false
-	}
-	return true
+	return !u.TwoFactor || s.checkOwnCode(w, r, u, b.Code)
 }
 
 // resetAndRestart writes the request, answers, and restarts, which is when it happens.

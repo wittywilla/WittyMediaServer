@@ -177,18 +177,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
 
-// loginAllowed answers 429 when this client has failed too often, or when too
+// signInAllowed answers 429 when this client has failed too often, or when too
 // many passwords are being checked right now. Otherwise it holds one of the
-// places for checking a password until release is called.
-func (s *Server) loginAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
-	if !s.loginWaitOver(w, r, name) {
-		return nil, false
-	}
-	return s.loginSlot(w, r)
-}
-
-// signInAllowed is loginAllowed for signing in. An attempt counts when it
-// starts, not when its password turns out wrong: otherwise hundreds of guesses
+// places for checking a password until release is called. An attempt counts when
+// it starts, not when its password turns out wrong: otherwise hundreds of guesses
 // sent at once all pass before the first one ends.
 func (s *Server) signInAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
 	if d := s.logins.attempt(r, name); d > 0 {
@@ -218,16 +210,6 @@ func (s *Server) loginSlot(w http.ResponseWriter, r *http.Request) (release func
 	}
 }
 
-// loginWaitOver answers 429 when this client has failed too often.
-func (s *Server) loginWaitOver(w http.ResponseWriter, r *http.Request, name string) bool {
-	d := s.logins.gate(r, name)
-	if d <= 0 {
-		return true
-	}
-	tooManyTries(w, d)
-	return false
-}
-
 func tooManyTries(w http.ResponseWriter, d time.Duration) {
 	w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 	writeErr(w, 429, fmt.Sprintf("Too many wrong tries. Try again in %s.", waitText(d)))
@@ -246,11 +228,6 @@ func (s *Server) endSessions(r *http.Request, id int64, keep string) {
 	if err := s.Auth.EndSessions(r.Context(), id, keep); err != nil {
 		s.Log.ErrorContext(r.Context(), "could not sign an account out of its other devices", "cat", "auth", "account", id, "err", err)
 	}
-}
-
-func (s *Server) signInFailed(r *http.Request, name string) {
-	s.logins.failed(r, name)
-	s.logSignInFailure(r, name)
 }
 
 // logSignInFailure writes down a failure that has already been counted.

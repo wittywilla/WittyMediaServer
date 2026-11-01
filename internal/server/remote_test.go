@@ -803,7 +803,7 @@ func TestLoginSlotIsHeldUntilDone(t *testing.T) {
 	r.RemoteAddr = lan + ":1"
 	var held []func()
 	for range cap(s.loginSlots) {
-		release, ok := s.loginAllowed(httptest.NewRecorder(), r, "x")
+		release, ok := s.loginSlot(httptest.NewRecorder(), r)
 		if !ok {
 			t.Fatal("a place should be free")
 		}
@@ -811,11 +811,11 @@ func TestLoginSlotIsHeldUntilDone(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, ok := s.loginAllowed(httptest.NewRecorder(), r.WithContext(ctx), "x"); ok {
+	if _, ok := s.loginSlot(httptest.NewRecorder(), r.WithContext(ctx)); ok {
 		t.Error("all places are taken")
 	}
 	held[0]()
-	if release, ok := s.loginAllowed(httptest.NewRecorder(), r, "x"); !ok {
+	if release, ok := s.loginSlot(httptest.NewRecorder(), r); !ok {
 		t.Error("a released place is free again")
 	} else {
 		release()

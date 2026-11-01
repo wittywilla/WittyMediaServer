@@ -23,12 +23,15 @@
 /* Colour from the artwork: a soft pool of light at the top, drawn once. */
 .np-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(90% 60% at 50% 0%, rgb(var(--art) / .34), rgb(var(--art) / .1) 55%, transparent 80%); transition: background var(--dur-3); }
 .np-canvas, .np-shader { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.np-shader .wv-stage { width: 100%; height: 100%; background: transparent; }
+.np-shader .wv-stage { position: absolute; inset: 0; width: auto; height: auto; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .np-shader .wv-bar { display: none; }
 .np-shader .wv-picture { cursor: default; }
 .np-shader .wv-start { pointer-events: auto; top: auto; bottom: 24px; }
 .np-shader .wv-note { top: auto; bottom: 8px; left: 8px; }
-.np-shader::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(0 0 0 / .35), rgb(0 0 0 / .1) 30%, rgb(0 0 0 / .55)); }
+.np-shader::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(0 0 0 / .5), rgb(0 0 0 / .25) 30%, rgb(0 0 0 / .68)); }
+/* A shader can be bright anywhere: controls get a dark ground, and words a shadow. */
+.np:has(.np-shader) { --np-chip: rgb(0 0 0 / .55); --np-chip-2: rgb(0 0 0 / .72); --np-fg-2: rgb(255 255 255 / .9); --np-fg-3: rgb(255 255 255 / .85); }
+.np:has(.np-shader) .np-title, .np:has(.np-shader) .np-where, .np:has(.np-shader) .np-times, .np:has(.np-shader) .np-hints { text-shadow: 0 1px 8px rgb(0 0 0 / .9), 0 0 2px rgb(0 0 0 / .8); }
 
 /* Everything that's plain on an image is told what to do with focus. */
 .np :focus-visible, .kar :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }

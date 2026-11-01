@@ -123,8 +123,9 @@ export class SoundGraph {
     // kick, which are put back from below 150 Hz, with some air from above 9 kHz.
     const split = ctx.createChannelSplitter(2)
     const left = ctx.createGain()
+    left.gain.value = 0.7 // what's left is often louder than the mix it came from
     const right = ctx.createGain()
-    right.gain.value = -1
+    right.gain.value = -0.7
     const side = ctx.createGain()
     const sideHigh = ctx.createBiquadFilter()
     sideHigh.type = 'highpass'

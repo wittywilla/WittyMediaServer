@@ -171,7 +171,8 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
           ? 'This recording is close to mono, so there\'s no way to separate the voice from it.'
           : p.sound.vocalCut > 0
             ? 'The voice is turned down by removing what\'s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.'
-            : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
+            : p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
+              : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
       </p>
     </div>
   )

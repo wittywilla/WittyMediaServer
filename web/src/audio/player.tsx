@@ -167,7 +167,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // Whenever something needs the graph: this runs from a press (turning it on), or once
   // something plays, which a press also started.
   useEffect(() => {
-    if (!usesGraph || !playing || cdOn.current) return
+    // With the graph already there, turning the last thing off has to reach it too.
+    if ((!usesGraph && !soundGraph()) || !playing || cdOn.current) return
     let gone = false
     void (async () => {
       const a = audio.current

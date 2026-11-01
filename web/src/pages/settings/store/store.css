@@ -87,6 +87,7 @@
 .st-updateall-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); }
 .st-updateall-top > div { flex: 1 1 14rem; font-size: var(--text-sm); line-height: var(--leading-snug); }
 .st-updateall-count { font-size: var(--text-md); }
+.st-updateall .muted { color: var(--fg-2); }
 .st-idle { opacity: .55; cursor: default; }
 .st-run { display: grid; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); }
 .st-run .btn { background: var(--bg-2); border-color: var(--border-strong); }

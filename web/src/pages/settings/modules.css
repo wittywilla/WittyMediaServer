@@ -26,10 +26,10 @@
 .ms-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); }
 .ms-tag { display: inline-flex; align-items: center; gap: 3px; min-height: 18px; padding: 0 6px; border-radius: var(--r-xs); font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; }
 .ms-tag svg { flex: none; }
-.ms-tag.ok { color: var(--ok); background: var(--ok-soft); }
+.ms-tag.ok { color: color-mix(in srgb, var(--ok) 80%, var(--fg)); background: var(--ok-soft); }
 .ms-tag.warn { color: var(--fg); background: var(--warn-soft); box-shadow: inset 0 0 0 1px var(--warn); }
-.ms-tag.bad { color: var(--danger); background: var(--danger-soft); }
-.ms-tag.new { color: var(--accent-text); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.ms-tag.bad { color: color-mix(in srgb, var(--danger) 75%, var(--fg)); background: var(--danger-soft); }
+.ms-tag.new { color: color-mix(in srgb, var(--accent-text) 80%, var(--fg)); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .ms-tag.off { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
 
 /* What's inside a row. */

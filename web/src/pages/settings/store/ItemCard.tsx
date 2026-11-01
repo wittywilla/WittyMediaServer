@@ -16,10 +16,10 @@ export function actionFor(it: StoreItem): { label: string; aria: string } | null
   if (it.kind === 'in-development' || it.kind === 'refused' || it.kind === 'fork') return null
   if (m && isBusy(m)) return null
   if (m?.installed) {
-    if (it.failure && m.latest) return { label: 'Try again', aria: `Try updating ${it.name} again` }
+    if (it.failure && m.latest) return { label: 'Try again', aria: `Try again: update ${it.name}` }
     return m.latest && !m.pin ? { label: 'Update', aria: `Update ${it.name} to ${m.latest.version}` } : null
   }
-  if (it.fit.ok || it.kind === 'server') return { label: it.failure ? 'Try again' : 'Install', aria: `${it.failure ? 'Try installing' : 'Install'} ${it.name}${it.version ? ` ${it.version}` : ''}` }
+  if (it.fit.ok || it.kind === 'server') return { label: it.failure ? 'Try again' : 'Install', aria: `${it.failure ? 'Try again: install' : 'Install'} ${it.name}${it.version ? ` ${it.version}` : ''}` }
   return null
 }
 
@@ -79,7 +79,7 @@ export function ActionButton({ it, press, working, primary }: { it: StoreItem; p
   const label = inProgress ? 'Working…' : act!.label + (primary && act!.label === 'Install' && it.size ? ` · ${mb(it.size)}` : '')
   return (
     <Button size={primary ? 'md' : 'sm'} variant={primary ? 'primary' : 'default'} className={primary ? undefined : 'st-card-act'} aria-busy={inProgress || undefined} aria-disabled={inProgress || undefined}
-      aria-label={inProgress ? `${it.name}: working` : act!.aria} onClick={inProgress ? undefined : press}>{label}</Button>
+      aria-label={inProgress ? `Working… ${it.name}` : primary ? undefined : act!.aria} onClick={inProgress ? undefined : press}>{label}</Button>
   )
 }
 

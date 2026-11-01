@@ -87,8 +87,8 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 /* ---------------------------------------------------------------- continue playing */
 .gm-cont { flex: none; width: clamp(15rem, 26vw, 21rem); display: grid; gap: var(--sp-2); border-radius: var(--r-md); }
 .gm-cont-shot { position: relative; display: block; aspect-ratio: 16 / 10; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-1); transition: transform var(--dur-2) var(--ease-out); }
-.gm-cont-shot img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; background: var(--bg-4); }
-.gm-cont-shot img.soft { image-rendering: auto; }
+.gm-cont-shot img { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--bg-4); }
+.gm-cont-shot img.crisp, .gm-resume img.crisp, .gm-save-open img.crisp { image-rendering: pixelated; }
 .gm-cont-shot .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--on-image); font-weight: 700; }
 .gm-cont-play { position: absolute; right: var(--sp-2); bottom: var(--sp-2); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); box-shadow: var(--e-2); }
 .gm-cont-text { display: grid; min-width: 0; }
@@ -152,7 +152,7 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-resume { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg-2); min-width: 0; max-width: 100%; }
 .gm-resume:hover { background: var(--bg-3); }
 .gm-resume:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
-.gm-resume img, .gm-resume .gm-save-blank { flex: none; width: 6rem; aspect-ratio: 4 / 3; object-fit: contain; border-radius: var(--r-xs); background: var(--bg-4); image-rendering: pixelated; }
+.gm-resume img, .gm-resume .gm-save-blank { flex: none; width: 6rem; aspect-ratio: 4 / 3; object-fit: contain; border-radius: var(--r-xs); background: var(--bg-4); }
 .gm-resume span:last-child { display: grid; min-width: 0; }
 .gm-resume small { color: var(--fg-2); font-size: var(--text-xs); }
 .gm-blocked { display: flex; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--warn); border-radius: var(--r-md); background: var(--warn-soft); max-width: 44rem; }
@@ -172,7 +172,7 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-saves { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: var(--sp-4); }
 .gm-saves li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); min-width: 0; }
 .gm-save-open { grid-column: 1 / -1; position: relative; display: block; aspect-ratio: 16 / 10; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
-.gm-save-open img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; background: var(--bg-4); }
+.gm-save-open img { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--bg-4); }
 .gm-save-blank { display: block; width: 100%; height: 100%; background: var(--bg-4); }
 .gm-save-play { position: absolute; right: var(--sp-2); bottom: var(--sp-2); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); opacity: 0; transition: opacity var(--dur-2); }
 .gm-save-open:hover .gm-save-play, .gm-save-open:focus-visible .gm-save-play { opacity: 1; }

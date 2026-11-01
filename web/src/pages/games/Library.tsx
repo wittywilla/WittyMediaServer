@@ -9,7 +9,7 @@ import { toast, useApp } from '../../state'
 import { Chip, CardRow, Sheet } from '../../ui'
 import { GameMetaNotice } from '../GameMeta'
 import { CoverFlow } from './CoverFlow'
-import { cachedHome, cardCover, consoleMap, fmtAgo, fmtPlayed, forgetHome, getHome, heroCover, saveThumb, setCouchOn, useCoverTint, useGameLinks, type GameContinue, type GameHome } from './data'
+import { cachedHome, cardCover, consoleMap, crispIfSmall, fmtAgo, fmtPlayed, forgetHome, getHome, heroCover, saveThumb, setCouchOn, useCoverTint, useGameLinks, type GameContinue, type GameHome } from './data'
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
 import { ConsoleMark, useConsoleLogos } from './ConsoleMark'
 import './games-ui.css'
@@ -135,7 +135,7 @@ function ContinueCard({ e, console: c }: { e: GameContinue; console?: GameConsol
     <Link to={ready ? links.play(it.id, e.save ? 'resume=1' : '') : links.item(it.id)} className="gm-cont" data-gm-item={it.id}
       aria-label={`${e.save ? 'Resume' : 'Play'} ${it.title}${c ? ', ' + c.short : ''}, last played ${fmtAgo(e.lastPlayed)}`}>
       <span className="gm-cont-shot">
-        {thumb ? <img src={thumb} alt="" decoding="async" /> : it.poster ? <img className="soft" src={cardCover(it)} alt="" decoding="async" /> : <Placeholder title={it.title} label={c?.short} />}
+        {thumb ? <img src={thumb} alt="" decoding="async" onLoad={crispIfSmall} /> : it.poster ? <img className="soft" src={cardCover(it)} alt="" decoding="async" /> : <Placeholder title={it.title} label={c?.short} />}
         <span className="gm-cont-play"><IconPlay /></span>
       </span>
       <span className="gm-cont-text">

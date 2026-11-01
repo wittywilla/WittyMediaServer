@@ -10,7 +10,7 @@ import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
 import { SettingsScreen, useConsoles, useSettingsHost } from '../Games'
-import { fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
+import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
@@ -176,7 +176,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           </div>
           {auto && ready && (
             <Link className="gm-resume" to={links.play(it.id, 'resume=1')} aria-label={`Resume from ${fmtDateTime(auto.updatedAt * 1000)}`}>
-              {auto.hasThumb ? <img src={saveThumb(it.id, 0, auto.updatedAt)} alt="" loading="lazy" /> : <span className="gm-save-blank" />}
+              {auto.hasThumb ? <img src={saveThumb(it.id, 0, auto.updatedAt)} alt="" loading="lazy" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
               <span><b>Pick up where you left off</b><small>{fmtDateTime(auto.updatedAt * 1000)}</small></span>
             </Link>
           )}
@@ -223,7 +223,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             {[...(auto ? [auto] : []), ...others].map((s) => (
               <li key={s.slot}>
                 <Link to={links.play(it.id, s.slot === 0 ? 'resume=1' : `slot=${s.slot}`)} className="gm-save-open" aria-label={`Play from ${slotName(s.slot)}, saved ${fmtDateTime(s.updatedAt * 1000)}`}>
-                  {s.hasThumb ? <img src={saveThumb(it.id, s.slot, s.updatedAt)} alt="" loading="lazy" decoding="async" /> : <span className="gm-save-blank" />}
+                  {s.hasThumb ? <img src={saveThumb(it.id, s.slot, s.updatedAt)} alt="" loading="lazy" decoding="async" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
                   <span className="gm-save-play"><IconPlay /></span>
                 </Link>
                 <div className="gm-save-text"><b>{slotName(s.slot)}</b><small>{fmtDateTime(s.updatedAt * 1000)}</small></div>

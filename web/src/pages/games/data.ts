@@ -32,6 +32,10 @@ export const saveThumb = (id: number, slot: number, v: number) => {
   return u + (u.includes('?') ? '&' : '?') + `v=${v}`
 }
 
+// A save's picture: an old console's few pixels are kept sharp when enlarged, and a
+// modern one's many are left to the browser to scale smoothly.
+export const crispIfSmall = (e: { currentTarget: HTMLImageElement }) => { if (e.currentTarget.naturalWidth < 512) e.currentTarget.classList.add('crisp') }
+
 export const fmtPlayed = (sec: number) => {
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
   return h > 0 ? `${h} h ${m} min` : `${Math.max(1, m)} min`

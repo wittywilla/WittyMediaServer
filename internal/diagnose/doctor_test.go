@@ -91,6 +91,37 @@ func (f *doctorFixture) run(ids ...string) *DoctorReport {
 	return RunDoctor(context.Background(), f.env, checks, nil)
 }
 
+// No administrator can sign in: it says what to do on the machine, and offers no fix, because
+// Settings can run any fix there is, and a new password must never be set from another device.
+func TestAccountsCheckOnlyPointsAtTheCommand(t *testing.T) {
+	f := newDoctorFixture(t)
+	if r := f.run("accounts"); len(r.Issues) != 0 {
+		t.Fatalf("a new server has nothing wrong: %+v", r.Issues)
+	}
+	d, err := db.OpenExisting(f.env.Data, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	if _, err := d.Exec(`INSERT INTO users(name, password_hash, is_admin, created_at, kind) VALUES('kid', '', 0, 1, 'kids')`); err != nil {
+		t.Fatal(err)
+	}
+	r := f.run("accounts")
+	i := f.issue(r, "accounts:no-admin")
+	if i.CanFix() || r.Fixable != 0 || !strings.Contains(strings.Join(i.Steps, " "), "reset-password") {
+		t.Fatalf("%+v", i)
+	}
+	if c := findCheck("accounts"); c == nil || c.Fix != nil {
+		t.Fatal("this check must never have a fix")
+	}
+	if _, err := d.Exec(`INSERT INTO users(name, password_hash, is_admin, created_at, kind) VALUES('owner', 'hash', 1, 1, 'adult')`); err != nil {
+		t.Fatal(err)
+	}
+	if r := f.run("accounts"); len(r.Issues) != 0 {
+		t.Fatalf("an administrator with a password is fine: %+v", r.Issues)
+	}
+}
+
 func (f *doctorFixture) fixAll(r *DoctorReport) []FixResult {
 	f.t.Helper()
 	var todo []*Issue

@@ -1,0 +1,10 @@
+/* Settings, Profiles: a person's row and what can be done to them. */
+.profile-row { flex-wrap: wrap; }
+.list-item.profile-row .grow { flex: 1 1 12rem; min-width: 0; }
+.profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+
+/* On a phone the buttons take a line of their own, at a size for a finger. */
+@media (max-width: 640px) {
+  .profile-actions { flex: 1 1 100%; }
+  .profile-actions .btn { min-height: 44px; min-width: 44px; }
+}

@@ -34,6 +34,7 @@ Still stuck?
 - **Get the logs out:** `wittymediaserver logs zip`. See [Logs](LOGGING.md#from-the-command-line).
 - **Fix titles by hand:** `wittymediaserver metadata check`. See [The metadata folder](METADATA-FOLDER.md#on-the-command-line).
 - **Start again:** `wittymediaserver reset`. See [the Reset page](#starting-again-the-reset-page).
+- **Forgot a password:** `wittymediaserver reset-password <username>` gives that account a new one, and nothing else changes. See [If you forget your password](ACCOUNTS.md#if-you-forget-your-password).
 - **Lost your phone and your recovery codes:** `wittymediaserver reset-2fa <name>` turns off that account's two-factor sign-in.
 
 ## Repairing from Settings
@@ -65,6 +66,7 @@ wittymediaserver doctor --try-port              also try the port, on this machi
 wittymediaserver doctor -data /path/to/folder   a data folder other than the usual one
 wittymediaserver doctor remap --from <old> --to <new> [--fix]
 wittymediaserver doctor reinstall <module>      the only thing here that goes online
+wittymediaserver doctor reset-password <username>   a new password for someone locked out
 ```
 
 It finds the folders the way the server does, and `wittymediaserver config path` shows which. A `wms.json` with a mistake in it doesn't stop it: it says what the mistake is.
@@ -103,6 +105,7 @@ The name on each row is what `--only` takes.
 | `temp-files` | Temporary files left by something that stopped | Moves them to the safety copy. Old streams and unpacked games are removed, as they're made again when needed. In a conversion folder you chose, anything that isn't a stream's folder is yours, and stays |
 | `reset-state` | A reset or repair waiting from a while ago, a reset that stopped halfway, copies taking up space | Takes the request back, or brings the copy back. It never deletes copies: [the Reset page](#starting-again-the-reset-page) does that |
 | `restore-state` | A restore waiting from a while ago, cut off, or failed | Takes the request back. A restore that was cut off puts everything back at the next start |
+| `accounts` | Accounts, but no administrator with a password | You do it, with steps. A new password is never set from here: it takes [the command on the server itself](ACCOUNTS.md#on-the-server-itself), which works from no other device |
 
 **Metadata** (`metadata`)
 

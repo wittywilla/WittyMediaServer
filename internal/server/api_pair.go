@@ -526,7 +526,7 @@ func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
 	if device == "" {
 		device = "TV app"
 	}
-	if s.Auth.UserCount(r.Context()) == 0 {
+	if s.Auth.NoAccounts(r.Context()) {
 		writeErr(w, 409, "this server has not been set up yet")
 		return
 	}

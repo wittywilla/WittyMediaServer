@@ -95,15 +95,16 @@ func (s *Server) backupRoutes(m *http.ServeMux) {
 }
 
 // adminOrFirstRun lets an administrator in, or, while the server has no accounts, anyone
-// allowed to make the first one. Once there's an account it's administrators only.
+// allowed to make the first one: a restore can bring accounts of its own, so it asks for the
+// same as setup. Once there's an account it's administrators only.
 func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 	admin := s.requireAdmin(h)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.Auth.UserCount(r.Context()) > 0 {
+		if !s.Auth.NoAccounts(r.Context()) {
 			admin.ServeHTTP(w, r)
 			return
 		}
-		if !onLocalNetwork(r) {
+		if s.setupNeedsCode(r) {
 			if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
 				w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 				writeErr(w, 429, "Too many wrong setup codes. Try again later.")
@@ -111,7 +112,7 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 			}
 			if !s.setupCodeOK(r.Header.Get("X-Setup-Code")) {
 				s.Log.WarnContext(r.Context(), "restore refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-				writeErr(w, 403, "Restoring from another network takes the setup code. You'll find it on the server's console.")
+				writeErr(w, 403, "Restoring from another device takes the setup code. It's on the server's console, and in setup-code.txt in its data folder.")
 				return
 			}
 		}

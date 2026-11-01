@@ -78,14 +78,18 @@ func cmdReset2FA(args []string) int {
 		fmt.Fprintln(os.Stderr, "usage: wittymediaserver reset-2fa [-data <dir>] <name>")
 		return 2
 	}
-	cfg, err := config.Parse(args)
+	env, err := doctorEnv(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
-	d, err := db.Open(cfg.DataDir)
-	if err != nil {
+	if err := dataOwnerOK(env.Data); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	d, err := db.OpenExisting(env.Data, false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, recoveryOpenError(env.Data, err))
 		return 1
 	}
 	defer d.Close()
@@ -93,7 +97,8 @@ func cmdReset2FA(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	fmt.Printf("Two-factor sign-in is off for %s. They can sign in with their password and set it up again.\n", name)
+	recoveryLog(env.LogDir, "two-factor sign-in was turned off from the command line", name)
+	fmt.Printf("Two-factor sign-in is off for %q. They can sign in with their password and set it up again.\n", name)
 	return 0
 }
 

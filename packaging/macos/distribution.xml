@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>WittyMediaServer @DISPLAY_VERSION@</title>
+    <organization>com.wittywilla</organization>
+    <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <os-version min="11.0"/>
+    <welcome mime-type="text/plain"><![CDATA[WittyMediaServer is your own media server. This installs the app in Applications, and sets it to run in the background.
+
+Your library, accounts and settings stay in your Library folder, and are kept when you update.
+
+To remove it later, open Uninstall WittyMediaServer in Applications.]]></welcome>
+    <choices-outline>
+        <line choice="app"/>
+        <line choice="service"/>
+    </choices-outline>
+    <choice id="app" title="WittyMediaServer" description="The app, its command line and FFmpeg." enabled="false" selected="true">
+        <pkg-ref id="com.wittywilla.wittymediaserver.app"/>
+    </choice>
+    <choice id="service" title="Run in the background" description="Starts the server when the Mac starts, even when nobody is signed in. Without this, it runs while the app is open." start_selected="true">
+        <pkg-ref id="com.wittywilla.wittymediaserver.service"/>
+    </choice>
+    <pkg-ref id="com.wittywilla.wittymediaserver.app" version="@VERSION@">app.pkg</pkg-ref>
+    <pkg-ref id="com.wittywilla.wittymediaserver.service" version="@VERSION@">service.pkg</pkg-ref>
+</installer-gui-script>

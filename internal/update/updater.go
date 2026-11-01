@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -62,7 +63,7 @@ type Status struct {
 // Updater checks for, downloads and installs releases.
 type Updater struct {
 	Current   string            // the running version
-	Dir       string            // the program folder (where wms lives)
+	Dir       string            // the program's top folder
 	Protect   []string          // folders and files never written (data, cache, config…)
 	Transport http.RoundTripper // internet-only transport for GitHub
 	Log       *slog.Logger
@@ -202,15 +203,22 @@ func (u *Updater) cannotApply() string {
 	case u.Restart == nil:
 		return "This server can't restart itself."
 	case runtime.GOOS == "darwin":
-		return "On a Mac, download the new version and replace the app."
+		return "On a Mac, download the new installer and run it. Your library and settings are kept."
 	case fileExists("/.dockerenv") || os.Getenv("WMS_DOCKER") == "1":
 		return "This server runs in a container: pull the new image and recreate the container."
 	}
-	exe := "wms"
-	if runtime.GOOS == "windows" {
-		exe += ".exe"
+	switch u.Kind() {
+	case layout.KindDeb:
+		return "This copy was installed with a .deb package. Update it the same way: download the new one and run sudo apt install ./" + layout.ServerCommand + "-<version>-linux-<arch>.deb. Your library and settings are kept."
+	case layout.KindRPM:
+		return "This copy was installed with an .rpm package. Update it the same way: download the new one and run sudo dnf install ./" + layout.ServerCommand + "-<version>-linux-<arch>.rpm. Your library and settings are kept."
+	case layout.KindPkg:
+		return "On a Mac, download the new installer and run it. Your library and settings are kept."
+	case layout.KindMSI, layout.KindArchive:
+	default:
+		return "This copy wasn't installed from a release package, so it can't replace its own files."
 	}
-	if !fileExists(filepath.Join(u.Dir, exe)) || !fileExists(filepath.Join(u.Dir, "LICENSE")) {
+	if !fileExists(filepath.Join(u.Dir, "bin", layout.Exe(layout.ServerCommand))) {
 		return "This copy wasn't installed from a release package, so it can't replace its own files."
 	}
 	for _, p := range u.Protect {
@@ -220,11 +228,16 @@ func (u *Updater) cannotApply() string {
 	}
 	if !writable(u.Dir) {
 		if runtime.GOOS == "windows" {
-			return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Install it with the Windows setup, which installs for your account and updates itself, or run install.ps1 again as administrator."
+			return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Download the new installer and run it: it updates in place and keeps your library and settings."
 		}
-		return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Update it with install.sh as root."
+		return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Unpack the new package and run its install.sh as root."
 	}
 	return ""
+}
+
+// Kind says how this copy was installed.
+func (u *Updater) Kind() string {
+	return layout.Find(filepath.Join(u.Dir, layout.Exe(layout.DesktopApp))).Kind
 }
 
 func fileExists(p string) bool { st, err := os.Stat(p); return err == nil && !st.IsDir() }
@@ -341,10 +354,9 @@ func (u *Updater) install(ctx context.Context, rel *Release) error {
 		return fmt.Errorf("unpacking: %w", err)
 	}
 	_ = os.Remove(archive)
-	exe := "wms"
-	if runtime.GOOS == "windows" {
-		exe += ".exe"
-	}
+	// Packages up to 0.5.2-alpha had their server in the top folder, so an update to one
+	// of those is refused rather than leaving two servers side by side.
+	exe := filepath.Join("bin", layout.Exe(layout.ServerCommand))
 	if !fileExists(filepath.Join(newDir, exe)) {
 		return fmt.Errorf("the package has no %s", exe)
 	}

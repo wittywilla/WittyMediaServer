@@ -81,7 +81,7 @@ func main() {
 // goModules finds every module compiled into a program a release ships, on any
 // platform, since some are only used on one.
 func goModules() map[string]string {
-	targets := []string{"./cmd/wms", "./cmd/wms-tray", "./cmd/wms-setup"}
+	targets := []string{"./cmd/wittymediaserver", "./cmd/wittymediaserver-tray", "./cmd/wittymediaserver-uninstall"}
 	targets = append(targets, programsOf()...)
 	mods := map[string]string{}
 	for _, goos := range []string{"linux", "windows", "darwin", "freebsd"} {

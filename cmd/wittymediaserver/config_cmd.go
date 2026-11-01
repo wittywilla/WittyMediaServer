@@ -16,9 +16,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
-// wms config path            show the config file and folders in use
-// wms config init            write a starter wms.json in the user config folder
-// wms config init --portable write it next to the program (portable mode)
+// wittymediaserver config path            show the config file and folders in use
+// wittymediaserver config init            write a starter wms.json in the user config folder
+// wittymediaserver config init --portable write it next to the program (portable mode)
 func cmdConfig(args []string) int {
 	if len(args) == 0 || args[0] == "path" {
 		cfg, err := config.Parse(nil)
@@ -28,14 +28,14 @@ func cmdConfig(args []string) int {
 		}
 		file := cfg.ConfigFile
 		if file == "" {
-			file = "(none — using defaults; create one with: wms config init)"
+			file = "(none — using defaults; create one with: wittymediaserver config init)"
 		}
 		fmt.Printf("config file:   %s\nportable:      %v\ndata:          %s\nmetadata:      %s\ncache:         %s\ntranscode:     %s\nlogs:          %s\nlisten:        %s\n",
 			file, cfg.Portable, cfg.DataDir, cfg.ImagesDir, cfg.CacheDir, cfg.TranscodeDir, cfg.LogDir, cfg.Listen)
 		return 0
 	}
 	if args[0] != "init" {
-		fmt.Fprintln(os.Stderr, "usage: wms config [path | init [--portable]]")
+		fmt.Fprintln(os.Stderr, "usage: wittymediaserver config [path | init [--portable]]")
 		return 2
 	}
 	target := config.UserConfigFile()
@@ -67,7 +67,7 @@ func cmdConfig(args []string) int {
 	return 0
 }
 
-// wms reset-2fa [-data <dir>] <name>: the way back for an account whose phone
+// wittymediaserver reset-2fa [-data <dir>] <name>: the way back for an account whose phone
 // and recovery codes are both gone. It needs access to the server's files.
 func cmdReset2FA(args []string) int {
 	name := ""
@@ -75,7 +75,7 @@ func cmdReset2FA(args []string) int {
 		name, args = args[n-1], args[:n-1]
 	}
 	if name == "" || strings.HasPrefix(name, "-") {
-		fmt.Fprintln(os.Stderr, "usage: wms reset-2fa [-data <dir>] <name>")
+		fmt.Fprintln(os.Stderr, "usage: wittymediaserver reset-2fa [-data <dir>] <name>")
 		return 2
 	}
 	cfg, err := config.Parse(args)
@@ -116,7 +116,7 @@ func cmdReset(args []string) int {
 			cancel = true
 		case "restore":
 			if i+1 >= len(args) {
-				fmt.Fprintln(os.Stderr, "usage: wms reset -restore <copy>; wms reset -list shows them")
+				fmt.Fprintln(os.Stderr, "usage: wittymediaserver reset -restore <copy>; wittymediaserver reset -list shows them")
 				return 2
 			}
 			i++
@@ -197,6 +197,6 @@ func cmdReset(args []string) int {
 		return 1
 	}
 	fmt.Println("It happens the next time the server starts. If it's running, restart it now.")
-	fmt.Println("To change your mind before then: wms reset -cancel")
+	fmt.Println("To change your mind before then: wittymediaserver reset -cancel")
 	return 0
 }

@@ -1,6 +1,6 @@
-// Command wms-tray is the desktop launcher: a system-tray / menu-bar icon that
-// starts and stops the wms server process, opens the web UI, shows logs and
-// can register itself to start at login. It ships as WittyMediaServer(.exe).
+// Command wittymediaserver-tray is the app a person opens: a system-tray or menu-bar icon
+// that starts and stops the server, opens the web app, shows logs and can start itself at
+// login. It ships as WittyMediaServer(.exe).
 package main
 
 import (
@@ -22,6 +22,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -37,7 +38,7 @@ var trayExe, _ = os.Executable()
 
 type launcher struct {
 	mu         sync.Mutex
-	exe        string // wms binary
+	exe        string // the server program
 	dataDir    string
 	listen     string
 	configFile string
@@ -49,6 +50,9 @@ type launcher struct {
 	wantRun    bool
 	lastErr    string
 	logPath    string
+	// attached: a server was already answering on this port, a background service most
+	// likely. Starting another would only fail, so this app just shows it.
+	attached bool
 	// Crash-loop protection.
 	startedAt time.Time
 	fails     int
@@ -58,9 +62,7 @@ type launcher struct {
 
 func main() {
 	l := &launcher{}
-	exe, _ := os.Executable()
-	dir := filepath.Dir(exe)
-	l.exe = findServer(dir)
+	l.exe = findServer()
 	// Same settings as the server: config file (portable or per user),
 	// environment, then our own -data/-listen/-config arguments.
 	var args []string
@@ -92,20 +94,19 @@ func hasArg(s string) bool {
 	return false
 }
 
-func findServer(dir string) string {
-	name := "wms"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
-	for _, c := range []string{filepath.Join(dir, name), filepath.Join(dir, "..", "Resources", name), filepath.Join(dir, "bin", name)} {
+func findServer() string {
+	pkg := layout.Current()
+	name := layout.Exe(layout.ServerCommand)
+	for _, d := range pkg.ProgramDirs() {
+		c := filepath.Join(d, name)
 		if st, err := os.Stat(c); err == nil && !st.IsDir() {
 			return c
 		}
 	}
-	if p, err := exec.LookPath("wms"); err == nil {
+	if p, err := exec.LookPath(layout.ServerCommand); err == nil {
 		return p
 	}
-	return filepath.Join(dir, name)
+	return pkg.ServerPath()
 }
 
 func (l *launcher) url() string {
@@ -212,6 +213,12 @@ func (l *launcher) start() {
 	if l.running {
 		return
 	}
+	if l.answering() {
+		l.attached = true
+		l.refreshLocked()
+		return
+	}
+	l.attached = false
 	f, err := openServerOutput(l.logPath)
 	if err != nil {
 		l.lastErr = err.Error()
@@ -369,6 +376,17 @@ func relaunchTray() error {
 	return cmd.Process.Release()
 }
 
+// answering says a WittyMediaServer already answers at this app's address.
+func (l *launcher) answering() bool {
+	c := &http.Client{Timeout: 1500 * time.Millisecond}
+	res, err := c.Get(l.url() + "/api/health")
+	if err != nil {
+		return false
+	}
+	res.Body.Close()
+	return res.StatusCode == http.StatusOK
+}
+
 func (l *launcher) stop() {
 	l.mu.Lock()
 	cmd, stdin := l.cmd, l.stdin
@@ -402,6 +420,20 @@ func (l *launcher) health() {
 	for {
 		time.Sleep(3 * time.Second)
 		ok := false
+		l.mu.Lock()
+		attached := l.attached
+		l.mu.Unlock()
+		if attached {
+			ok = l.answering()
+			l.mu.Lock()
+			changed := ok != l.healthy
+			l.healthy = ok
+			if changed {
+				l.refreshLocked()
+			}
+			l.mu.Unlock()
+			continue
+		}
 		if l.isRunning() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			req, _ := http.NewRequestWithContext(ctx, "GET", l.url()+"/api/health", nil)
@@ -431,6 +463,22 @@ func (l *launcher) refresh() {
 }
 
 func (l *launcher) refreshLocked() {
+	if l.attached {
+		if l.healthy {
+			l.mStatus.SetTitle("● Running as a background service at " + l.url())
+			systray.SetTooltip("WittyMediaServer — running at " + l.url())
+			l.mOpen.Enable()
+		} else {
+			l.mStatus.SetTitle("○ The background service isn't answering")
+			systray.SetTooltip("WittyMediaServer — not answering")
+			l.mOpen.Disable()
+		}
+		l.setIcon(l.healthy)
+		// It's the service's to start and stop.
+		l.mToggle.Disable()
+		l.mRestart.Disable()
+		return
+	}
 	switch {
 	case l.running && l.healthy:
 		l.mStatus.SetTitle("● Running at " + l.url())

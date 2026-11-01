@@ -21,8 +21,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
-RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wms ./cmd/wms \
- && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-host github.com/wittywilla/wittyplay/cmd/wittyplay-host
+RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wittymediaserver ./cmd/wittymediaserver \
+ && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -ldflags="-s -w" -o /out/wittyplay-game-runner github.com/wittywilla/wittyplay/cmd/wittyplay-host
 
 # Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is
@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certi
  && rm -rf /var/lib/apt/lists/* \
  && groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms \
  && mkdir -p /config /media && chown wms:wms /config
-COPY --from=build /out/wms /out/wittyplay-host /usr/local/bin/
+COPY --from=build /out/wittymediaserver /out/wittyplay-game-runner /usr/local/bin/
 ENV WMS_DOCKER=1 \
     WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
@@ -41,5 +41,5 @@ EXPOSE 9797
 VOLUME ["/config"]
 USER wms
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD wget -qO- http://127.0.0.1:9797/api/health || exit 1
-ENTRYPOINT ["/usr/bin/tini", "--", "wms"]
+ENTRYPOINT ["/usr/bin/tini", "--", "wittymediaserver"]
 CMD ["serve"]

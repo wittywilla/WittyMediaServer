@@ -18,11 +18,11 @@ case "$(cd "$(dirname "$path")" 2>/dev/null && pwd -P)/" in
   "$(pwd -P)"/*) echo "$path is inside this repository. Keep the key outside it." >&2; exit 1 ;;
 esac
 
-# wms-sign says the public half goes elsewhere, because it is written for the server's
+# scripts/sign says the public half goes elsewhere, because it is written for the server's
 # key, so what it prints is not passed on. -key means no other key is even looked for.
 unset WMS_SIGNING_KEY
-go run ./cmd/wms-sign keygen -key "$path" >/dev/null
-public=$(go run ./cmd/wms-sign pubkey -key "$path")
+go run ./scripts/sign keygen -key "$path" >/dev/null
+public=$(go run ./scripts/sign pubkey -key "$path")
 
 cat <<EOF
 

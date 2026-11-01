@@ -24,6 +24,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
 type Config struct {
@@ -130,17 +132,9 @@ func UserConfigFile() string {
 	return FileName
 }
 
-// ProgramDir is the folder of the running executable.
-func ProgramDir() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "."
-	}
-	if p, err := filepath.EvalSymlinks(exe); err == nil {
-		exe = p
-	}
-	return filepath.Dir(exe)
-}
+// ProgramDir is the program's top folder: where wms.json and a portable data folder
+// are, whichever program of the package is asking.
+func ProgramDir() string { return layout.Current().Root }
 
 // findFile returns the config file to load and whether it makes the server
 // portable.
@@ -250,7 +244,7 @@ func Parse(args []string) (*Config, error) {
 	openDef := f.OpenBrowser == nil || *f.OpenBrowser
 
 	c := &Config{ConfigFile: path, Portable: portable}
-	fs := flag.NewFlagSet("wms", flag.ContinueOnError)
+	fs := flag.NewFlagSet(layout.ServerCommand, flag.ContinueOnError)
 	var configFlag string
 	fs.StringVar(&configFlag, "config", "", "config file (WMS_CONFIG); see docs/CONFIG.md")
 	fs.StringVar(&c.DataDir, "data", env("WMS_DATA_DIR", or(rel(f.DataDir), dataDef)), "data directory (WMS_DATA_DIR)")
@@ -284,7 +278,7 @@ func Parse(args []string) (*Config, error) {
 	return c, nil
 }
 
-// Example is a commented starting point written by `wms config init`.
+// Example is a starting point written by `wittymediaserver config init`.
 const Example = `{
   "portable": false,
   "listen": ":9797",

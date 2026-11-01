@@ -1,5 +1,5 @@
 services:
-  wms:
+  wittymediaserver:
     image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; :latest is the newest full release
     build: .
     container_name: wittymediaserver

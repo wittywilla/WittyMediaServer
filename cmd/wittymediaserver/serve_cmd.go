@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -186,6 +187,7 @@ func cmdServe(args []string) int {
 	// install the next one. Nothing in the data folders is ever replaced.
 	progDir := config.ProgramDir()
 	update.Cleanup(progDir)
+	layout.Current().ClearObsolete()
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
 	restartReq := make(chan struct{}, 1)
@@ -306,6 +308,14 @@ func cmdServe(args []string) int {
 	ctx, cancel := context.WithCancel(sigCtx)
 	defer cancel()
 	go gameMeta.Run(ctx)
+	go func() {
+		// Windows asks a service to stop this way: it has no signals to send.
+		select {
+		case <-serviceStop:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 	if cfg.WatchStdin {
 		// The tray launcher holds our stdin open; when it closes the pipe we
 		// shut down gracefully (Windows has no SIGTERM to deliver).

@@ -1,0 +1,58 @@
+#!/bin/sh
+# The background service: launchd starts the server at boot, as the person who installed it, so it
+# sees their media and their library. The app's menu-bar icon then shows the service.
+set -e
+PLIST=/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist
+
+# Keep whatever an earlier install chose.
+DATA=""
+PORT=9797
+if [ -f "$PLIST" ]; then
+  DATA=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_DATA_DIR' "$PLIST" 2>/dev/null || true)
+  LISTEN=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_LISTEN' "$PLIST" 2>/dev/null || true)
+  [ -n "$LISTEN" ] && PORT="${LISTEN#:}"
+  launchctl bootout system "$PLIST" 2>/dev/null || true
+fi
+
+RUN_AS=$(stat -f %Su /dev/console)
+if [ -z "$RUN_AS" ] || [ "$RUN_AS" = root ] || [ "$RUN_AS" = loginwindow ]; then
+  # Installed with nobody at the screen, by management software: the first real account.
+  RUN_AS=$(dscl . -list /Users UniqueID | awk '$2 >= 501 { print $1; exit }')
+fi
+HOME_DIR=$(dscl . -read "/Users/$RUN_AS" NFSHomeDirectory | awk '{print $2}')
+
+if [ -z "$DATA" ]; then
+  if [ -f /var/lib/wittymediaserver/wms.db ]; then
+    DATA=/var/lib/wittymediaserver # the install.sh of 0.5.2-alpha or older
+  else
+    DATA="$HOME_DIR/Library/Application Support/WittyMediaServer"
+  fi
+fi
+mkdir -p "$DATA"
+chown "$RUN_AS" "$DATA"
+chmod 700 "$DATA"
+
+cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.wittywilla.wittymediaserver</string>
+  <key>ProgramArguments</key><array>
+    <string>/Applications/WittyMediaServer.app/Contents/Helpers/wittymediaserver</string>
+    <string>serve</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>WMS_DATA_DIR</key><string>$DATA</string>
+    <key>WMS_LISTEN</key><string>:$PORT</string>
+    <key>WMS_NO_BROWSER</key><string>1</string>
+  </dict>
+  <key>UserName</key><string>$RUN_AS</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ProcessType</key><string>Background</string>
+</dict></plist>
+EOF
+chown root:wheel "$PLIST"
+chmod 644 "$PLIST"
+launchctl bootstrap system "$PLIST"
+exit 0

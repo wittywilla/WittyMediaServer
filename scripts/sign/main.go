@@ -1,12 +1,12 @@
-// Command wms-sign makes and uses the key that signs WittyMediaServer
+// Command sign is a developer tool and never ships. It makes and uses the key that signs WittyMediaServer
 // releases. The in-app updater installs a release only when its checksum
 // list (wittymediaserver-<version>-SHA256SUMS.txt) has a .sig made with
 // this key. See docs/PUBLISHING.md, "Signing releases".
 //
-//	wms-sign keygen [-key file]        make the key (once); prints the public key
-//	wms-sign pubkey [-key file]        print the public key again
-//	wms-sign sign   [-key file] <file> write <file>.sig
-//	wms-sign verify <file>             check <file>.sig against the keys built into wms
+//	go run ./scripts/sign keygen [-key file]        make the key (once); prints the public key
+//	go run ./scripts/sign pubkey [-key file]        print the public key again
+//	go run ./scripts/sign sign   [-key file] <file> write <file>.sig
+//	go run ./scripts/sign verify <file>             check <file>.sig against the keys built into the server
 //
 // The key file defaults to WMS_SIGNING_KEY, then ~/.wms-signing/release.key.
 // It must never be committed or shared.
@@ -55,17 +55,17 @@ func main() {
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "wms-sign:", err)
+		fmt.Fprintln(os.Stderr, "sign:", err)
 		os.Exit(1)
 	}
 }
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  wms-sign keygen [-key file]        make the release signing key (once)
-  wms-sign pubkey [-key file]        print its public key
-  wms-sign sign [-key file] <file>   write <file>.sig
-  wms-sign verify <file>             check <file>.sig with the keys built into wms`)
+  go run ./scripts/sign keygen [-key file]        make the release signing key (once)
+  go run ./scripts/sign pubkey [-key file]        print its public key
+  go run ./scripts/sign sign [-key file] <file>   write <file>.sig
+  go run ./scripts/sign verify <file>             check <file>.sig with the keys built into the server`)
 }
 
 func defaultKey() string {
@@ -114,7 +114,7 @@ func load(path string) (ed25519.PrivateKey, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("no signing key at %s (make one with: wms-sign keygen)", path)
+			return nil, fmt.Errorf("no signing key at %s (make one with: go run ./scripts/sign keygen)", path)
 		}
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func load(path string) (ed25519.PrivateKey, error) {
 
 func sign(path string, files []string) error {
 	if len(files) == 0 {
-		return errors.New("which file? wms-sign sign <file>")
+		return errors.New("which file? go run ./scripts/sign sign <file>")
 	}
 	k, err := load(path)
 	if err != nil {
@@ -152,7 +152,7 @@ func sign(path string, files []string) error {
 
 func verify(files []string) error {
 	if len(files) == 0 {
-		return errors.New("which file? wms-sign verify <file>")
+		return errors.New("which file? go run ./scripts/sign verify <file>")
 	}
 	for _, f := range files {
 		b, err := os.ReadFile(f)

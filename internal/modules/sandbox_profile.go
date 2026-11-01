@@ -26,7 +26,7 @@ func helperProfile(mode int, program string, writable []string) string {
 	b.WriteString(`(deny signal (target others))`)
 	b.WriteString(`(deny file-write*)(allow file-write-data (literal "/dev/null") (literal "/dev/stdout") (literal "/dev/stderr"))`)
 	for _, d := range writable {
-		if filepath.IsAbs(d) {
+		if strings.HasPrefix(d, "/") { // a Mac's, wherever this is tested
 			b.WriteString(`(allow file-write* (subpath ` + sbplString(d) + `))`)
 		}
 	}

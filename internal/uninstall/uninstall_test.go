@@ -698,3 +698,46 @@ func TestEveryDataFolderIsKnown(t *testing.T) {
 		t.Errorf("add these to DataEntries in data.go:\n  %s", strings.Join(missing, "\n  "))
 	}
 }
+
+// Someone else's folder, cleared as root: everything in it is theirs to make a link. Their link to
+// /var must not cost the machine /var/cache, and nor must a link further up.
+func TestAnotherPersonsLinkIsNotFollowed(t *testing.T) {
+	for _, linked := range []string{".local/share/wittymediaserver", ".local/share", ".local", ".config/wittymediaserver", ".config"} {
+		e, sys, root := newUnix(t)
+		e.Libraries = noFacts
+		sys.answers["id wms"] = ""
+		precious := filepath.Join(root, "var")
+		for _, f := range []string{"cache/keep", "logs/keep", "modules/keep", "wms.db", "wms.json", "share/wittymediaserver/cache/keep", "wittymediaserver/wms.json"} {
+			write(t, filepath.Join(precious, filepath.FromSlash(f)), "x")
+		}
+		home := filepath.Join(root, "home", "mallory")
+		link := filepath.Join(home, filepath.FromSlash(linked))
+		if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(precious, link); err != nil {
+			t.Skip("this system can't make links:", err)
+		}
+		before := tree(t, precious)
+		res := Execute(MakePlan(e), Options{RemoveData: true})
+		if after := tree(t, precious); strings.Join(before, "\n") != strings.Join(after, "\n") {
+			t.Errorf("%s: removed as root through someone's link: %v, now %v\n%s", linked, before, after, res.Report())
+		}
+	}
+	// And a person's own link to another drive is theirs to follow.
+	e, _, root := newUnix(t)
+	e.Libraries = noFacts
+	other := filepath.Join(root, "tank", "mine")
+	fillData(t, other)
+	link := filepath.Join(e.Home, ".local", "share", "wittymediaserver")
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(other, link); err != nil {
+		t.Skip("this system can't make links:", err)
+	}
+	Execute(MakePlan(e), Options{RemoveData: true})
+	if _, err := os.Stat(filepath.Join(other, "wms.db")); err == nil {
+		t.Error("your own data folder, on another drive through your own link, should go")
+	}
+}

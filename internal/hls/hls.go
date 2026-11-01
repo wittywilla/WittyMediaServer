@@ -1104,7 +1104,7 @@ func holeExprs(holes []Hole, read float64) (keep, shift string) {
 // counts from the start of the file while the picture, after a seek, counts from
 // where it started, so the clock is put right around it.
 func textSubtitleFilter(path string, stream int, start float64) string {
-	f := fmt.Sprintf("subtitles='%s':si=%d", escapeFilterPath(path), stream)
+	f := fmt.Sprintf("subtitles=filename='%s':si=%d", escapeFilterPath(path), stream)
 	if start > 0 {
 		f = fmt.Sprintf("setpts=PTS+%.3f/TB,%s,setpts=PTS-STARTPTS", start, f)
 	}
@@ -1112,9 +1112,11 @@ func textSubtitleFilter(path string, stream int, start float64) string {
 }
 
 // escapeFilterPath writes a path for a quoted value in a filter graph, which is
-// read twice: by the graph, then by the option.
+// read twice: by the graph, where only a quote means anything inside quotes, then
+// by the option. The option's name is written out, or a name holding "=" would be
+// read as an option of its own.
 func escapeFilterPath(p string) string {
-	return strings.NewReplacer(`\`, `\\\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
+	return strings.NewReplacer(`\`, `\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
 }
 
 // watch tracks the newest finished segment so Segment() can decide whether a

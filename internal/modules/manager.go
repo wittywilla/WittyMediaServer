@@ -168,8 +168,8 @@ type moduleState struct {
 	// NoAuto: someone wants to choose this module's updates by hand. It keeps offering
 	// them, and unlike a pin it says nothing about which version stays.
 	NoAuto bool `json:"noAuto,omitempty"`
-	// Chosen: the active version was picked by hand, so it is used even when the
-	// built-in copy is newer.
+	// Chosen: the active version was picked by hand, so it is used even when what's
+	// built in is newer.
 	Chosen   bool    `json:"chosen,omitempty"`
 	Removed  bool    `json:"removed,omitempty"`  // someone took it off this server
 	Disabled bool    `json:"disabled,omitempty"` // someone turned it off, and it stays on disk
@@ -193,7 +193,7 @@ type entry struct {
 	state   moduleState
 
 	man      *wittymodule.Manifest // the version in use
-	dir      string                // its folder; "" for the built-in copy
+	dir      string                // its folder; "" with no version in use
 	proc     *proc                 // for a helper; nil otherwise
 	web      *webFiles             // for a bundle; nil otherwise
 	notice   string
@@ -338,9 +338,9 @@ func (m *Manager) loadState() map[string]moduleState {
 		return saved
 	}
 	if err := json.Unmarshal(b, &saved); err != nil {
-		// Only the choice of version is lost: every module falls back to its
-		// built-in copy until the next install.
-		m.log.Warn("modules: the saved state is unreadable; using built-in copies", "err", err)
+		// Only the choice of version is lost: no module has a version in use until the
+		// next install.
+		m.log.Warn("modules: the saved state is unreadable; no downloaded module is in use", "err", err)
 		return map[string]moduleState{}
 	}
 	return saved
@@ -459,8 +459,8 @@ func (m *Manager) resolve(id string, e *entry) {
 	var why []string
 	var pick *wittymodule.Manifest
 	var pickDir string
-	// With nothing chosen, the built-in copy is the choice: Previous is what the chosen
-	// version falls back on, not a choice of its own.
+	// With nothing chosen, no version is: Previous is what the chosen version falls back
+	// on, not a choice of its own.
 	var candidates []string
 	if e.state.Active != "" && !e.state.Disabled {
 		candidates = []string{e.state.Active, e.state.Previous}
@@ -477,8 +477,8 @@ func (m *Manager) resolve(id string, e *entry) {
 			why = append(why, name+" "+ver+" was withdrawn for security reasons: "+sentence(w.Reason))
 			continue
 		}
-		// A newer built-in copy simply wins, which isn't a problem to report. The
-		// exception is an older version someone chose on purpose.
+		// A part of the server that's newer simply wins, which isn't a problem to report.
+		// The exception is an older version someone chose on purpose.
 		if wittymodule.Compare(ver, e.builtin.Version) <= 0 && !(i == 0 && e.state.Chosen) {
 			continue
 		}
@@ -646,7 +646,7 @@ func (e *entry) status(id string) Status {
 	}
 	st.Withdrawn = e.state.Withdrawn.Find(e.man.Version)
 	if e.dir == "" {
-		st.Withdrawn = nil // the built-in copy is what this server was built with
+		st.Withdrawn = nil // no version is in use for it to apply to
 	}
 	for i := len(e.state.Events) - 1; i >= 0; i-- {
 		if ev := e.state.Events[i]; ev.Kind == "failed" || ev.Kind == "taken-out-of-use" {
@@ -686,7 +686,7 @@ func (m *Manager) Report() Report {
 var ErrUnknown = errors.New("there is no such module")
 
 // call runs one call on a module's helper. handled is false when the caller
-// should use the built-in copy instead: there is no helper in use, or it failed.
+// has nothing to fall back on: there is no helper in use, or it failed.
 // helperRunning: calls to this module go to a helper program.
 func (m *Manager) helperRunning(id string) bool {
 	m.mu.Lock()
@@ -830,8 +830,8 @@ func (m *Manager) ReportFailure(id, ver, reason string) error {
 	return nil
 }
 
-// Rollback takes the version in use out of use, going back to the previous one or
-// the built-in copy. It isn't installed on its own again, though an admin may.
+// Rollback takes the version in use out of use, going back to the previous one, if
+// any. It isn't installed on its own again, though an admin may.
 func (m *Manager) Rollback(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -946,8 +946,8 @@ func (m *Manager) SetAutoUpdate(id string, on bool) error {
 	return nil
 }
 
-// UseBuiltin goes back to the built-in copy without blaming the version in use: it
-// stays available to choose again.
+// UseBuiltin stops using a downloaded version without blaming it: it stays available
+// to choose again.
 func (m *Manager) UseBuiltin(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -978,7 +978,7 @@ func (m *Manager) UseBuiltin(id string) error {
 }
 
 // ToLatest unpins a module and starts moving it to the newest version that fits:
-// a release if one is newer than the built-in copy, or else the built-in copy.
+// a release if one is newer than what's built in, or else what's built in.
 func (m *Manager) ToLatest(id string) error {
 	if err := m.Unpin(id); err != nil {
 		return err

@@ -149,7 +149,7 @@ Each module is checked on its own: whether it's whole, whether its signature is 
 **In Settings:**
 
 1. Press **Check this server** under **Settings → Repair**. A broken module is listed under **Modules**.
-2. **Fix this** takes that version out of use and moves its files to the safety copy. The module goes back to the version before it, or to a copy built into the server if it has one.
+2. **Fix this** takes that version out of use and moves its files to the safety copy. The module goes back to the version before it. With none, it's out of use until you install it again.
 3. **Reinstall it** does that and also downloads the newest compatible version from its publisher. Nothing is downloaded unless you choose this.
 
 A module whose install failed also says so on its page under **Settings → Modules**, with a way to retry and a link here.

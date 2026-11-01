@@ -399,8 +399,7 @@ func (m *Manager) setDisabled(id string, e *entry, off bool) error {
 
 // RemoveModule takes a module off this server. libraries names the libraries there are,
 // by type; if any would be left with no module, nothing changes and *ErrInUse says
-// which. Its downloaded versions go, since the built-in copy is there if it comes back,
-// and no data is touched.
+// which. Its downloaded versions go, and no data is touched.
 func (m *Manager) RemoveModule(id string, libraries map[string][]string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

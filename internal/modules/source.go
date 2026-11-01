@@ -97,7 +97,7 @@ func ForkRefusal() string {
 	return ""
 }
 
-// OlderThanInUse says a version is older than the one in use. "" means the built-in copy.
+// OlderThanInUse says a version is older than the one in use. "" means none is.
 func (m *Manager) OlderThanInUse(id, ver string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -174,8 +174,8 @@ func (e *entry) sourceInfo() *SourceInfo {
 
 // SetSource makes a fork the source of a module. Without confirm it answers
 // *ErrNeedsConfirm with the warning, and changes nothing. What was downloaded from the old
-// source goes, since it was signed by someone else: the module runs its built-in copy
-// until a version of the fork is chosen, and nothing installs on its own.
+// source goes, since it was signed by someone else: the module has no version in use
+// until one of the fork's is chosen, and nothing installs on its own.
 func (m *Manager) SetSource(id, repo, key, by string, confirm bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

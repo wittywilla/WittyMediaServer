@@ -397,7 +397,7 @@ func (s *Server) handleModuleWebFile(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/modules/{id}/failed: a browser saying a bundle wouldn't load or crashed.
 // Three reports from an admin within a day, at most one a minute, take that version out
-// of use for the built-in copy. Anyone else's report goes in the module's log for an admin
+// of use. Anyone else's report goes in the module's log for an admin
 // to see, and each is logged with who said so.
 func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 	if s.Modules == nil {
@@ -425,8 +425,7 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(204)
 }
 
-// POST /api/modules/{id}/rollback: go back to the previous version, or the
-// built-in copy.
+// POST /api/modules/{id}/rollback: go back to the previous version, if any.
 func (s *Server) handleModuleRollback(w http.ResponseWriter, r *http.Request) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")

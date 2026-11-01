@@ -53,7 +53,7 @@ const (
 )
 
 // What the server reads before it looks at an answer. They are far above what a real
-// disc needs; beyond them the answer is a helper's fault, and the built-in copy takes over.
+// disc needs; beyond them the answer is a helper's fault, and counts against its version.
 const (
 	maxMenuHeader    = 256 << 10
 	maxStepAnswer    = 256 << 10

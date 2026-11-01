@@ -129,8 +129,7 @@ func (m *Manager) ProgramCommand(id string) (path string, args []string, version
 }
 
 // Program finds a program module's version in use: the path to run, checked against
-// its signature just now, and that version. ok is false when the built-in copy is in
-// use, and the caller uses that.
+// its signature just now, and that version. ok is false when no version is in use.
 func (m *Manager) Program(id string) (path, version string, ok bool) {
 	m.mu.Lock()
 	e := m.mods[id]

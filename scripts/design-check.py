@@ -31,7 +31,6 @@ ROOT = pathlib.Path('web/src')
 BASELINE = pathlib.Path('scripts/design-check-baseline.json')
 # Where colours and scales are defined, and code that isn't interface: not checked.
 SKIP = {'styles.css'}
-SKIP_PARTS = {'modules/wittyvisualizer', 'modules/wittyink', 'modules/wittyebook', 'modules/wittypdf', 'modules/wittycomics'}
 # Inside :root and theme blocks of styles.css colours are the definition.
 OK_COLOUR_WORDS = {'transparent', 'currentcolor', 'inherit'}
 
@@ -136,7 +135,7 @@ def scan():
     results = {}
     for f in sorted(ROOT.rglob('*')):
         rel = f.relative_to(ROOT).as_posix()
-        if f.suffix not in ('.css', '.tsx') or f.name in SKIP or any(rel.startswith(p) for p in SKIP_PARTS):
+        if f.suffix not in ('.css', '.tsx') or f.name in SKIP:
             continue
         text = f.read_text(encoding='utf-8').replace('\r\n', '\n')
         found = css_problems(text) if f.suffix == '.css' else tsx_problems(text)

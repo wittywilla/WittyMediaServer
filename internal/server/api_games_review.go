@@ -22,15 +22,14 @@ import (
 // each choice is kept beside the library, and the next scan goes by it. See docs/GAMING.md.
 
 func (s *Server) gameReviewRoutes(m *http.ServeMux) {
-	admin := s.requireAdmin
-	m.Handle("GET /api/libraries/{id}/games/review", admin(s.handleGameReview))
-	m.Handle("POST /api/libraries/{id}/games/review/apply", admin(s.handleGameReviewApply))
-	m.Handle("GET /api/libraries/{id}/games/import", admin(s.handleGameImport))
+	m.Handle("GET /api/libraries/{id}/games/review", s.requireAdmin(s.handleGameReview))
+	m.Handle("POST /api/libraries/{id}/games/review/apply", s.requireAdmin(s.handleGameReviewApply))
+	m.Handle("GET /api/libraries/{id}/games/import", s.requireAdmin(s.handleGameImport))
 	m.Handle("GET /api/games/{id}/versions", s.requireUser(s.handleGameVersions))
-	m.Handle("PUT /api/games/{id}/version", admin(s.handleGameVersionPick))
-	m.Handle("POST /api/games/{id}/split", admin(s.handleGameSplit))
-	m.Handle("PUT /api/games/{id}/console", admin(s.handleGameConsoleFix))
-	m.Handle("POST /api/games/{id}/not-a-game", admin(s.handleGameNotAGame))
+	m.Handle("PUT /api/games/{id}/version", s.requireAdmin(s.handleGameVersionPick))
+	m.Handle("POST /api/games/{id}/split", s.requireAdmin(s.handleGameSplit))
+	m.Handle("PUT /api/games/{id}/console", s.requireAdmin(s.handleGameConsoleFix))
+	m.Handle("POST /api/games/{id}/not-a-game", s.requireAdmin(s.handleGameNotAGame))
 }
 
 func (s *Server) gamesLibrary(w http.ResponseWriter, r *http.Request) *library.Library {

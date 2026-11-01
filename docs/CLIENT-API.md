@@ -66,6 +66,11 @@ for this account** (titles an account may not see don't exist as far as it can t
 429 slow down (`Retry-After` says for how long), 503 busy (for example, every transcode slot is in use: a
 stream's segments may answer this, so wait `Retry-After` and try again), other 5xx a problem on the server.
 
+**Limits.** Routes that need no sign-in take a body of 16 KB, sent within 15 seconds. JSON elsewhere takes 1 MB.
+A game session takes 8 WebRTC offers at once and one more a minute, and 4 WebSocket viewers (429 past that). One
+address can hold 128 connections, so reuse them, and a response that a client doesn't read for 2 minutes (15 for
+a file being played) is ended: ask again with `Range` to carry on.
+
 **Numbers.** Times are seconds as floating point unless a name says otherwise; `...At` values are Unix
 seconds. IDs are integers, except session and stream IDs, which are strings to pass back unchanged.
 

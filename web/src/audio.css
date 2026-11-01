@@ -47,11 +47,11 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* ---------------------------------------------------------------- audio bar */
 /* The bar: floating along the bottom, a pill with the artwork standing out of it, in
    the theme's own colours. Room is left under the page so it never hides anything. */
-.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 45; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: center; gap: 0 var(--sp-2);
+.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock, 45); display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: center; gap: 0 var(--sp-2);
   padding: 10px 10px 8px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 /* While the account menu is open, it comes first. */
-.app:has(.profile-menu .menu) ~ .audio-bar { z-index: 20; }
+.app:has(.profile-menu .menu) ~ .audio-bar { z-index: 9; }
 .ab-art { position: relative; width: 52px; height: 52px; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
 .ab-art svg { width: 22px; height: 22px; }
 .ab-art:hover { transform: scale(1.04); }
@@ -110,7 +110,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }
 .audio-bar.collapsed .ab-art { width: 48px; height: 48px; margin: 0; border-radius: 50%; }
-.ab-ring { position: absolute; left: 2px; top: 2px; width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(var(--accent-text) var(--pct), transparent var(--pct)); -webkit-mask-image: radial-gradient(closest-side, transparent 92%, #000 93%); mask-image: radial-gradient(closest-side, transparent 92%, #000 93%); pointer-events: none; z-index: 1; }
+.ab-ring { position: absolute; left: 2px; top: 2px; width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(var(--accent-text) var(--pct), transparent var(--pct)); -webkit-mask-image: radial-gradient(closest-side, transparent 92%, var(--fg) 93%); mask-image: radial-gradient(closest-side, transparent 92%, var(--fg) 93%); pointer-events: none; z-index: 1; }
 .ab-mini-play { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
 .app:has(~ .audio-bar.collapsed) .content { padding-bottom: 88px; }
 @media (max-width: 899px) { .audio-bar.collapsed { right: 8px; } .app:has(~ .audio-bar.collapsed) .content { padding-bottom: 150px; } }
@@ -120,7 +120,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .mp-ibtn:hover { background: var(--hover); }
 .mp-ibtn:active { transform: scale(.94); }
 .mp-pop { position: relative; display: inline-flex; }
-.mp-pop-body { position: fixed; z-index: 80; min-width: 220px; max-width: calc(100vw - 16px); max-height: min(60vh, 460px); overflow-y: auto; padding: 6px; border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-3); color: var(--fg); }
+.mp-pop-body { position: fixed; z-index: var(--z-popover, 80); min-width: 220px; max-width: calc(100vw - 16px); max-height: min(60vh, 460px); overflow-y: auto; padding: 6px; border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-3); color: var(--fg); }
 .mp-menu { display: grid; gap: 1px; }
 .mp-menu button { display: flex; align-items: center; gap: 10px; min-height: 44px; width: 100%; padding: 0 12px; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; white-space: nowrap; }
 .mp-menu button:hover, .mp-menu button:focus-visible { background: var(--hover); }

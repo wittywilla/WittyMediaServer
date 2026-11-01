@@ -1,6 +1,7 @@
 /* Music, audiobook and podcast pages. Built on the theme's tokens, so they suit light and
    dark alike. The colour from the artwork is one soft gradient, drawn once. */
 
+:root { --mh-fade: linear-gradient(rgb(0 0 0 / .28), transparent); }
 .mh { position: relative; min-width: 0; }
 .mh-toolbar { position: relative; z-index: 1; }
 .mh .grow { flex: 1; }
@@ -29,11 +30,11 @@
 .cf-art { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-3); position: relative; }
 .cf-art img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .cf-art .ph { position: absolute; inset: 0; }
-.cf-reflect { display: block; height: 18%; margin-top: 6px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); }
+.cf-reflect { display: block; height: 18%; margin-top: 6px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; -webkit-mask-image: var(--mh-fade); mask-image: var(--mh-fade); }
 .cf-reflect img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transform: scaleY(-1); pointer-events: none; }
 .cf-cover:focus-visible { outline: none; }
 .cf-cover:focus-visible .cf-art { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
-.cf-step { position: absolute; top: calc(var(--cf-size) / 2); transform: translateY(-50%); z-index: 20; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--scrim); color: var(--on-image, #fff); cursor: pointer; }
+.cf-step { position: absolute; top: calc(var(--cf-size) / 2); transform: translateY(-50%); z-index: 9; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--scrim); color: var(--on-image); cursor: pointer; }
 .cf-step:hover { background: var(--accent); color: var(--accent-fg); }
 .cf-step[disabled] { opacity: .3; cursor: default; }
 .cf-step.left { left: max(8px, calc(50% - var(--cf-size) * .5 - 76px)); }
@@ -74,7 +75,7 @@
 .mh-artist:hover .mh-artist-photo { transform: translateY(-3px); }
 .mh-artist:focus-visible { outline: none; }
 .mh-artist:focus-visible .mh-artist-photo { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
-.mh-artist-reflect { position: relative; display: block; width: 100%; height: 22px; margin-top: 2px; overflow: hidden; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); }
+.mh-artist-reflect { position: relative; display: block; width: 100%; height: 22px; margin-top: 2px; overflow: hidden; -webkit-mask-image: var(--mh-fade); mask-image: var(--mh-fade); }
 .mh-artist-reflect img { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; transform: scaleY(-1); }
 .mh-artist-reflect .mh-initial { display: none; }
 .mh-artist-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); justify-items: center; }
@@ -93,8 +94,8 @@
 .mh-song-play { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-3); min-height: 60px; padding: 6px 4px 6px 8px; border: 0; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-md); }
 .mh-song-art { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
 .mh-song-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.mh-song-art .ab-eq { position: absolute; padding: 4px; border-radius: 4px; background: var(--scrim); height: 20px; }
-.mh-song-art .ab-eq b { background: var(--on-image, #fff); }
+.mh-song-art .ab-eq { position: absolute; padding: 4px; border-radius: var(--r-sm); background: var(--scrim); height: 20px; }
+.mh-song-art .ab-eq b { background: var(--on-image); }
 .mh-song-text { flex: 1; min-width: 0; display: grid; }
 .mh-song-text b { font-weight: 600; font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mh-song-text small { font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -110,7 +111,7 @@
 .mh-resume-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mh-resume-text b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .mh-resume-text small { color: var(--fg-2); font-size: var(--text-xs); }
-.mh-resume-bar { height: 3px; margin: 4px 0; background: var(--border); border-radius: 2px; overflow: hidden; }
+.mh-resume-bar { height: 3px; margin: 4px 0; background: var(--border); border-radius: var(--r-sm); overflow: hidden; }
 .mh-resume-bar i { display: block; height: 100%; background: var(--accent); }
 .mh-resume-text .btn { margin-top: auto; align-self: flex-start; }
 

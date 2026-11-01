@@ -242,7 +242,9 @@ export class SoundGraph {
     if (semitones === 0 && !this.pitch) return true
     if (typeof AudioWorkletNode === 'undefined' || !this.ctx.audioWorklet) return false
     try {
-      this.pitchLoaded ??= this.ctx.audioWorklet.addModule(new URL('./pitch-worklet.js', import.meta.url).href)
+      // A file of its own beside the page, as a small one bundled would become a data: address,
+      // which the page's security policy rightly refuses.
+      this.pitchLoaded ??= this.ctx.audioWorklet.addModule(new URL('/pitch-worklet.js', location.href).href)
       await this.pitchLoaded
     } catch { this.pitchLoaded = null; return false }
     if (!this.pitch) {

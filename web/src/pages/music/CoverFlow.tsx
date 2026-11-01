@@ -40,7 +40,7 @@ export default function CoverFlow<T>({ covers, onChange, onOpen, tall, fallback 
         {shown.map(({ c, i }) => {
           const d = i - at
           return (
-            <button key={c.key} type="button" ref={d === 0 ? front : undefined} className={'cf-cover' + (d === 0 ? ' front' : '')} style={{ '--d': d, '--a': Math.abs(d), zIndex: 10 - Math.abs(d) } as React.CSSProperties}
+            <button key={c.key} type="button" ref={d === 0 ? front : undefined} className={'cf-cover' + (d === 0 ? ' front' : '')} style={{ '--d': d, '--a': Math.abs(d), zIndex: 5 - Math.abs(d) } as React.CSSProperties}
               tabIndex={d === 0 ? 0 : -1} aria-hidden={d === 0 ? undefined : true} aria-label={d === 0 ? `Open ${c.label}` : undefined}
               onClick={() => { if (dragged.current) return; if (d === 0) onOpen(c); else go(i) }}>
               <span className="cf-art">{c.url ? <img src={c.url} alt="" draggable={false} /> : fallback(c)}</span>

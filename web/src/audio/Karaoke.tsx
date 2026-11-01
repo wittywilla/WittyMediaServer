@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { posterUrl } from '../api'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { soundGraph } from './sound'
@@ -117,7 +116,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
   const firstAt = lines[0]?.t ?? 0
   return (
     <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
-      {it.poster && <div className="kar-bg" aria-hidden="true" style={{ backgroundImage: `url(${posterUrl(it)})` }} />}
+      <div className="kar-bg" aria-hidden="true" />
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
         <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>

@@ -82,7 +82,8 @@ export function useLineIndex(lines: LyricLine[], position: () => number, offsetM
     const once = () => { const i = lineAt(lines, position() * 1000 - offsetMs); if (i !== was.current) { was.current = i; setIndex(i) } }
     once()
     if (!lines.length) return
-    if (playing && !document.hidden) raf = requestAnimationFrame(step)
+    // Frames stop by themselves while the page is hidden, and pick up again on the way back.
+    if (playing) raf = requestAnimationFrame(step)
     // Paused, a seek still has to move the highlight, without a frame loop running.
     const t = playing ? undefined : setInterval(once, 300)
     return () => { cancelAnimationFrame(raf); clearInterval(t) }

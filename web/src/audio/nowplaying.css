@@ -291,10 +291,10 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-song b { font-size: clamp(1rem, 2.4vh, 1.5rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kar-song span { color: var(--np-fg-2); font-size: clamp(.9rem, 1.9vh, 1.2rem); }
 .kar-stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 3vh, 34px); padding: 0 clamp(16px, 5vw, 80px); text-align: center; }
-.kar-now { margin: 0; min-height: 2.3em; font-size: clamp(2rem, 7.4vh, 5.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.kar-now { margin: 0; max-width: 100%; min-height: 2.3em; font-size: clamp(2rem, 7.4vh, 5.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .kar-word { --fill: 0%; color: transparent; background: linear-gradient(90deg, var(--np-white) var(--fill), var(--np-rest) var(--fill)); -webkit-background-clip: text; background-clip: text; white-space: pre-wrap; }
 .kar-rest { color: var(--np-fg-3); }
-.kar-next { margin: 0; min-height: 1.3em; font-size: clamp(1.2rem, 3.4vh, 2.5rem); font-weight: 600; color: var(--np-fg-3); overflow-wrap: anywhere; }
+.kar-next { margin: 0; max-width: 100%; min-height: 1.3em; font-size: clamp(1.2rem, 3.4vh, 2.5rem); font-weight: 600; color: var(--np-fg-3); overflow-wrap: anywhere; }
 .kar-count { position: absolute; top: clamp(4px, 5vh, 60px); left: 0; right: 0; display: flex; justify-content: center; height: clamp(64px, 13vh, 130px); }
 .kar-count span { display: grid; place-items: center; aspect-ratio: 1; height: 100%; border-radius: 50%; background: var(--np-count-ring); border: 3px solid var(--np-white); font-size: clamp(2rem, 7.4vh, 5rem); font-weight: 800; font-variant-numeric: tabular-nums; animation: kar-tick 1s ease-out both; }
 @keyframes kar-tick { from { transform: scale(1.18); opacity: .4; } to { transform: scale(1); opacity: 1; } }

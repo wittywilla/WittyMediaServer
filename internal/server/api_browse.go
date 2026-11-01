@@ -313,7 +313,11 @@ func (s *Server) handleTitleAttached(w http.ResponseWriter, r *http.Request) {
 	collect := func(items []*library.Item, links []library.ItemLink) []row {
 		out := []row{}
 		for i, it := range items {
-			if acc == nil || acc.AllowsItem(it, nil) {
+			var sh *library.Show
+			if acc != nil && it.ShowID != nil {
+				sh, _ = s.Store.ShowFacts(ctx, *it.ShowID)
+			}
+			if acc == nil || acc.AllowsItem(it, sh) {
 				s.forViewer(r, it)
 				out = append(out, row{it, links[i]})
 			}

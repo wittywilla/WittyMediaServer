@@ -148,3 +148,27 @@ func TestLyricsMirrorStaysOnItsHost(t *testing.T) {
 	}
 	res.Body.Close()
 }
+
+// What a limit hides stays hidden on a parent's page, by the extra's show too.
+func TestAttachedExtrasGoByTheirShow(t *testing.T) {
+	f := newMusicFixture(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	lib := f.library(t, "shows", root)
+	if _, err := f.DB.ExecContext(ctx, `INSERT INTO shows(id, library_id, path, title, sort_title, content_rating, added_at, updated_at) VALUES(55,?,'/s','A Show','a show','R',1,1)`, lib); err != nil {
+		t.Fatal(err)
+	}
+	show := int64(55)
+	parent := f.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(root, "parent.mkv"), Title: "Parent", ContentRating: "G"})
+	extra := f.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(root, "extra.mkv"), Title: "Hidden extra", ShowID: &show})
+	if err := f.Store.AttachItem(ctx, extra.ID, library.LinkExtra, library.ExtraTypes[0], "", &parent.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/api/meta/item/%d/attached", parent.ID)
+	if w := f.do(t, "GET", path, f.kid, nil); w.Code != 200 || strings.Contains(w.Body.String(), "Hidden extra") {
+		t.Errorf("a Kids profile: %d %s", w.Code, w.Body)
+	}
+	if w := f.do(t, "GET", path, f.adult, nil); !strings.Contains(w.Body.String(), "Hidden extra") {
+		t.Errorf("an account with no limits: %s", w.Body)
+	}
+}

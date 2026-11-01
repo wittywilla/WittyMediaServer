@@ -194,8 +194,9 @@ func (s *Server) handleGameVersions(w http.ResponseWriter, r *http.Request) {
 	if discs, err := s.Store.GameDiscs(ctx, it.ID); err == nil && len(discs) > 0 {
 		out["discs"] = discs
 	}
-	// What's inside a set, which is only a choice if there's a choice to make.
-	if gamearchive.IsArchive(it.Path) {
+	// What's inside a set, which is only a choice if there's a choice to make. Only an
+	// administrator can make it, and answering means opening the archive in a worker.
+	if userFrom(r).IsAdmin && gamearchive.IsArchive(it.Path) {
 		if inner := s.archiveVersions(ctx, it); len(inner) > 1 {
 			out["inside"] = inner
 		}

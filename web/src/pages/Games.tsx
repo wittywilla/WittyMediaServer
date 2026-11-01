@@ -5,7 +5,7 @@ import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, LoadError, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
 import { IconEdit, IconGamepad, IconImage, IconPlay, IconSettings, IconSortDown, IconSortUp, IconStar } from '../icons'
 import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } from './GameMeta'
-import { GameFixPanel, GameImportBar, GameProblem, GameReviewBanner } from './GameReview'
+import { GameFixPanel, GameImportBar, GameProblem, GameReviewBanner, GameVersionLinks } from './GameReview'
 import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
@@ -431,6 +431,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
           {meta && <GameShots d={meta} title={it.title} />}
           {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { loadMeta(); reload?.() }} />}
           {user?.isAdmin && meta && <GameFixPanel it={it} d={meta} consoles={consoles} onChanged={() => { loadMeta(); reload?.() }} />}
+          {!user?.isAdmin && <GameVersionLinks it={it} />}
           {meta && <GameCredits d={meta} />}
           <div className="page-back"><BackLink to={`/library/${it.libraryId}`} label="Back to library" /></div>
         </div>

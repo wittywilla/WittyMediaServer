@@ -216,7 +216,7 @@ func TestChoosingAVersionInAnArchive(t *testing.T) {
 			Altered bool   `json:"altered"`
 		} `json:"inside"`
 	}
-	jsonBody(t, g.do("GET", fmt.Sprintf("/api/games/%d/versions", id), g.other, nil), &v)
+	jsonBody(t, g.do("GET", fmt.Sprintf("/api/games/%d/versions", id), g.admin, nil), &v)
 	if len(v.Inside) != 3 {
 		t.Fatalf("%+v", v)
 	}
@@ -239,7 +239,7 @@ func TestChoosingAVersionInAnArchive(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 	v.Inside = nil
-	jsonBody(t, g.do("GET", fmt.Sprintf("/api/games/%d/versions", id), g.other, nil), &v)
+	jsonBody(t, g.do("GET", fmt.Sprintf("/api/games/%d/versions", id), g.admin, nil), &v)
 	for _, x := range v.Inside {
 		if x.Current != (x.Entry == "Mega Game (J).smc") {
 			t.Errorf("%+v", x)

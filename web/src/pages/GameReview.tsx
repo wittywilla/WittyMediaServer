@@ -257,6 +257,23 @@ export function GameFixPanel({ it, d, consoles, onChanged }: { it: Item; d: Game
   )
 }
 
+// The other versions of a game, for anyone who isn't an administrator: each is a game with
+// its own saves, so all there is to do is open it.
+export function GameVersionLinks({ it }: { it: Item }) {
+  const [v, setV] = useState<GameVersions | null>(null)
+  useEffect(() => { api.get<GameVersions>(`/games/${it.id}/versions`).then(setV).catch(() => {}) }, [it.id])
+  const others = (v?.versions || []).filter((x) => !x.current)
+  if (others.length === 0) return null
+  return (
+    <section className="gr-fix" aria-label="Other versions of this game">
+      <div className="gr-versions">
+        <h2 className="shelf-head">Other versions of this game</h2>
+        <ul>{others.map((x) => <li key={x.id}><Link to={`/item/${x.id}`}>{x.label || 'Another version'}</Link></li>)}</ul>
+      </div>
+    </section>
+  )
+}
+
 // Why a game can't play, before anyone presses Play. It's for everyone, as it's about
 // their file and what would help.
 export function GameProblem({ d }: { d: GameDetailsInfo }) {

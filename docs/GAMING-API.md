@@ -35,7 +35,7 @@ trip through the app switcher loses nothing.
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
 | `POST /games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
-| `GET /games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, the versions inside its archive, and its discs |
+| `GET /games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, and for an administrator the versions inside its archive, and its discs |
 | `PUT /games/{id}/version` `{entry}` | admin | Which file in its archive to play, or `""` to choose by the rules |
 | `POST /games/{id}/split` | admin | A version becomes a game of its own, and stays one |
 | `PUT /games/{id}/console` `{console}` | admin | This file is for another console. A scan follows |

@@ -668,7 +668,7 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		t.Progress(min(sumLive/1000, totalInt), totalInt)
 	}
 	t.Progress(0, totalInt)
-	t.Phase("Converting: "+countFiles(len(todo))+" to do")
+	t.Phase("Converting: " + countFiles(len(todo)) + " to do")
 	jobs := make(chan *unit)
 	var wg sync.WaitGroup
 	var sumMu sync.Mutex

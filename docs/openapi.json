@@ -212,6 +212,9 @@
           "durationSec": {
             "type": "number"
           },
+          "genre": {
+            "type": "string"
+          },
           "title": {
             "type": "string"
           },
@@ -18616,6 +18619,98 @@
         "x-wms-auth": "user"
       }
     },
+    "/music/artist": {
+      "get": {
+        "operationId": "getMusicArtist",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An artist's page: albums, songs and biography if online information is on",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/artist-photo": {
+      "get": {
+        "operationId": "getMusicArtistPhoto",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An artist's picture, or a cover of theirs",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/music/artists": {
       "get": {
         "operationId": "getMusicArtists",
@@ -18652,6 +18747,594 @@
           }
         ],
         "summary": "Artists or authors.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/extras/{id}": {
+      "get": {
+        "operationId": "getMusicExtrasId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Booklets and text beside a song's album",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/extras/{id}/file": {
+      "get": {
+        "operationId": "getMusicExtrasIdFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One of those files, by the name the list gave",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/home": {
+      "get": {
+        "operationId": "getMusicHome",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A music library's front page in one request",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/likes": {
+      "get": {
+        "operationId": "getMusicLikes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The ids of this person's liked songs",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/loudness/{id}": {
+      "get": {
+        "operationId": "getMusicLoudnessId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The volume correction a file is tagged with",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/lyrics-cache": {
+      "delete": {
+        "operationId": "deleteMusicLyricsCache",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets all lyrics fetched from online",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/lyrics/{id}": {
+      "delete": {
+        "operationId": "deleteMusicLyricsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets the correction and any online answer",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMusicLyricsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fetch",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "again",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A song's lyrics. Looks online only with fetch=1, when the owner has turned it on",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMusicLyricsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Corrects a song's lyrics on this server",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/lyrics/{id}/offset": {
+      "put": {
+        "operationId": "putMusicLyricsIdOffset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This person's timing correction for a song",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/lyrics/{id}/search": {
+      "post": {
+        "operationId": "postMusicLyricsIdSearch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search online lyrics to choose from",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/radio/{id}": {
+      "get": {
+        "operationId": "getMusicRadioId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A station made from this song, from this library",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/songs": {
+      "get": {
+        "operationId": "getMusicSongs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "artist",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "genre",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "desc",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Songs by view, artist, genre or search, sorted",
         "tags": [
           "Music, audiobooks and podcasts"
         ],
@@ -25008,686 +25691,6 @@
           "Game PCs"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/music/home": {
-      "get": {
-        "operationId": "getMusicHome",
-        "summary": "A music library's front page in one request",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "library",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/songs": {
-      "get": {
-        "operationId": "getMusicSongs",
-        "summary": "Songs by view, artist, genre or search, sorted",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "library",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "artist",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "genre",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "desc",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/likes": {
-      "get": {
-        "operationId": "getMusicLikes",
-        "summary": "The ids of this person's liked songs",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "library",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/radio/{id}": {
-      "get": {
-        "operationId": "getMusicRadioId",
-        "summary": "A station made from this song, from this library",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/loudness/{id}": {
-      "get": {
-        "operationId": "getMusicLoudnessId",
-        "summary": "The volume correction a file is tagged with",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/extras/{id}": {
-      "get": {
-        "operationId": "getMusicExtrasId",
-        "summary": "Booklets and text beside a song's album",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/extras/{id}/file": {
-      "get": {
-        "operationId": "getMusicExtrasIdFile",
-        "summary": "One of those files, by the name the list gave",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/artist": {
-      "get": {
-        "operationId": "getMusicArtist",
-        "summary": "An artist's page: albums, songs and biography if online information is on",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "library",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/artist-photo": {
-      "get": {
-        "operationId": "getMusicArtistPhoto",
-        "summary": "An artist's picture, or a cover of theirs",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "library",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/lyrics/{id}": {
-      "get": {
-        "operationId": "getMusicLyricsId",
-        "summary": "A song's lyrics. Looks online only with fetch=1, when the owner has turned it on",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fetch",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "again",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "put": {
-        "operationId": "putMusicLyricsId",
-        "summary": "Corrects a song's lyrics on this server",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteMusicLyricsId",
-        "summary": "Forgets the correction and any online answer",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/lyrics/{id}/offset": {
-      "put": {
-        "operationId": "putMusicLyricsIdOffset",
-        "summary": "This person's timing correction for a song",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/lyrics/{id}/search": {
-      "post": {
-        "operationId": "postMusicLyricsIdSearch",
-        "summary": "Search online lyrics to choose from",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/music/lyrics-cache": {
-      "delete": {
-        "operationId": "deleteMusicLyricsCache",
-        "summary": "Forgets all lyrics fetched from online",
-        "tags": [
-          "Music, audiobooks and podcasts"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
       }
     }
   },

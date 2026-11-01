@@ -291,7 +291,7 @@ function SongsTab({ lib, params, set }: { lib: Library; params: URLSearchParams;
         )}
       </div>
       {!songs ? <Spinner /> : songs.length === 0
-        ? <EmptyState icon={<IconAudio />} title={view === 'liked' ? 'No liked songs yet' : view === 'played' || view === 'recent' ? 'Nothing played yet' : 'No songs here'} text={view === 'liked' ? 'Press the heart on a song to keep it here.' : ''} />
+        ? <EmptyState icon={<IconAudio />} title={search || genre ? 'Nothing matches that' : view === 'liked' ? 'No liked songs yet' : view === 'played' || view === 'recent' ? 'Nothing played yet' : 'No songs here'} text={!search && !genre && view === 'liked' ? 'Press the heart on a song to keep it here.' : ''} />
         : <TrackList items={songs} showAlbum onPlay={(i) => audio.play(songs, i, 'music')} />}
     </>
   )

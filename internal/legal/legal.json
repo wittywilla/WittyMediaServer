@@ -304,6 +304,39 @@
       "setting": "/settings/metadata"
     },
     {
+      "name": "LRCLIB",
+      "hosts": [
+        "lrclib.net"
+      ],
+      "gets": "A song's artist, title, album and length.",
+      "when": "Only if the owner turns online lyrics on: when someone opens the lyrics of a song with none of its own.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Musixmatch",
+      "hosts": [
+        "api.musixmatch.com",
+        "developer.musixmatch.com",
+        "www.musixmatch.com"
+      ],
+      "gets": "A song's artist, title and length, with the key an administrator set.",
+      "when": "Only if online lyrics are on and an administrator added a key: when someone opens the lyrics of a song with none of its own.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
+      "name": "Wikipedia and Wikimedia Commons, for artists",
+      "hosts": [
+        "en.wikipedia.org",
+        "upload.wikimedia.org"
+      ],
+      "gets": "An artist's name.",
+      "when": "Only if the owner turns online music information on: when an artist's picture or page is first shown, for an artist with no picture of their own.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
       "name": "Custom agents",
       "hosts": [],
       "gets": "Title, year and type, sent to the address an administrator set, with any key they set.",

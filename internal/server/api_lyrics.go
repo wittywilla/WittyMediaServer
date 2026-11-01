@@ -497,11 +497,17 @@ func (s *Server) handleLyricsSave(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case in.Provider != "":
 		for _, src := range s.lyricsSources(r.Context()) {
-			l, ok := src.(*lyrics.LRCLIB)
-			if !ok || l.Provider != in.Provider {
+			provider := ""
+			switch l := src.(type) {
+			case *lyrics.LRCLIB:
+				provider = l.Provider
+			case *lyrics.Musixmatch:
+				provider = l.Provider()
+			}
+			if provider != in.Provider {
 				continue
 			}
-			f, err := l.ByID(r.Context(), in.ID)
+			f, err := src.ByID(r.Context(), in.ID)
 			if err != nil {
 				writeErr(w, 502, err.Error())
 				return

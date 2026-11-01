@@ -303,7 +303,8 @@ func (m *Musixmatch) Get(ctx context.Context, q Query) (*Found, error) {
 	return f, nil
 }
 
-// Search has nothing to offer here: this source only matches one track at a time.
+// Search has only the one answer: this source matches one track at a time. What it searched
+// for goes in the result's id, because this source has no ids of its own to ask by again.
 func (m *Musixmatch) Search(ctx context.Context, q Query, _ string) ([]Found, error) {
 	f, err := m.Get(ctx, q)
 	if errors.Is(err, ErrNotFound) {
@@ -312,9 +313,24 @@ func (m *Musixmatch) Search(ctx context.Context, q Query, _ string) ([]Found, er
 	if err != nil {
 		return nil, err
 	}
-	f.ID = "match"
+	f.ID = url.Values{"artist": {q.Artist}, "title": {q.Title}, "length": {strconv.Itoa(int(math.Round(q.DurationSec)))}}.Encode()
 	return []Found{*f}, nil
 }
 
-// ByID gets the same match again, as this source has no ids to ask by.
-func (m *Musixmatch) ByID(context.Context, string) (*Found, error) { return nil, ErrNotFound }
+// ByID gets the same match again, from the id Search gave it.
+func (m *Musixmatch) ByID(ctx context.Context, id string) (*Found, error) {
+	v, err := url.ParseQuery(id)
+	if err != nil || len(id) > 2048 || v.Get("title") == "" {
+		return nil, ErrNotFound
+	}
+	length, _ := strconv.Atoi(v.Get("length"))
+	f, err := m.Get(ctx, Query{Artist: v.Get("artist"), Title: v.Get("title"), DurationSec: float64(length)})
+	if err != nil {
+		return nil, err
+	}
+	f.ID = id
+	return f, nil
+}
+
+// Provider is how this source's answers are marked.
+func (m *Musixmatch) Provider() string { return "musixmatch" }

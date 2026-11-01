@@ -887,8 +887,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
-| `GET /logs/bundle` | admin | The support bundle, a zip made on request: `days`, `redact=1` hides titles and paths. Nothing is uploaded anywhere. |
-| `GET /logs/bundle/preview` | admin | What the support bundle would hold. |
+| `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
+| `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
 | `GET /diagnose/browse` | admin | Folders and disc images inside the libraries and data folders only. |
 | `POST /diagnose/disc` | admin | Start checking a disc: `{path, crawl, damage}`. 202 with the job; 429 when too many wait. Read-only. |
@@ -902,6 +902,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
+| `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
+| `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
+| `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
+| `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
@@ -1046,6 +1051,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /match/rules` | Admin | A library's naming rules. |
 | `PUT /match/rules` | Admin | Replace a library's naming rules. |
 | `POST /match/rules/try` | Admin | What some rules would do to a library's files. Changes nothing. |
+| `GET /metadata-folder` | admin | The [editable metadata folder](FIXING-METADATA.md): `{path, files, pictures, layout, job}`. `job` is the export's progress and result. No route here takes a path. |
+| `POST /metadata-folder/export` | admin | `{library}` (0 or left out for all): write the files, in the background. 202 with the job; 409 if the folder is busy. Never deletes, and never writes over edits not applied. |
+| `GET /metadata-folder/preview` | admin | What applying would change: `{files, unchanged, total, listed, changes: [{file, target, id, name, fields: [{field, label, old, new, line}]}], problems: [{file, line, field, msg, severity}]}`. Writes nothing. |
+| `POST /metadata-folder/apply` | admin | Makes those changes in one batch: `{batch, applied, fields, skipped, changes, problems}`. A bad file is listed and left out. `POST /meta/undo` with the batch takes it back. |
 
 ### Playback
 
@@ -1532,3 +1541,23 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+## Backup
+
+The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a refused one answers with the reason in the job's `error`, and `refused` is true. While a server has no accounts, the routes marked for first-time setup follow the rule for making the first account: on the home network, or with the setup code in `X-Setup-Code`.
+
+| Route | |
+|---|---|
+| `GET /backup` | What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet. |
+| `GET /backup/estimate` | About how large each part of a backup is, before compression. |
+| `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
+| `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
+| `POST /backup/files/{name}/link` | A short-lived address to download a backup. |
+| `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
+| `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |
+| `POST /backup/restore/inspect` | Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup. |
+| `POST /backup/restore/start` | Bring a checked archive back: `{parts, confirm: "RESTORE", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for. |
+| `DELETE /backup/restore/request` | Take back a restore that's waiting for the next start. |
+| `POST /backup/undo` | Put back what the last restore replaced: `{copy, password, code}`. The server restarts. |

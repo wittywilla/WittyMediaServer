@@ -6,6 +6,9 @@
 // One check runs at a time, in the background, with a short queue. A check gives
 // way to anyone watching something: while the server is busy it rests for as long
 // as its last piece of work took.
+//
+// The doctor (doctor.go) shares this package and its words, and is the part that repairs:
+// it looks after the server's own data and install, never a disc, and never a library's files.
 package diagnose
 
 import (

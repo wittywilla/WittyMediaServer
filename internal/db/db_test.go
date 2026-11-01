@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -155,5 +156,51 @@ func TestTransactionsWaitForEachOther(t *testing.T) {
 	}
 	if n != writers {
 		t.Errorf("tally = %d, want %d: a write was lost", n, writers)
+	}
+}
+
+// A database built by BuildAt must be what Open makes. A new track of migrations that
+// BuildAt doesn't know about would otherwise lose its tables in a restore.
+func TestBuildAtIsWhatOpenMakes(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	d, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	b, err := BuildAt(ctx, filepath.Join(t.TempDir(), "built.db"), CurrentVersions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	objects := func(q interface {
+		QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	}) map[string]bool {
+		rows, err := q.QueryContext(ctx, `SELECT type || ':' || name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		out := map[string]bool{}
+		for rows.Next() {
+			var s string
+			if err := rows.Scan(&s); err != nil {
+				t.Fatal(err)
+			}
+			out[s] = true
+		}
+		return out
+	}
+	opened, built := objects(d.DB), objects(b)
+	for k := range opened {
+		if !built[k] {
+			t.Errorf("Open makes %s and BuildAt doesn't. Add its track of migrations to Versions in baseline.go", k)
+		}
+	}
+	for k := range built {
+		if !opened[k] {
+			t.Errorf("BuildAt makes %s and Open doesn't", k)
+		}
 	}
 }

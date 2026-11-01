@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 )
 
 // Where library files may be read from, and how they are written. Everything
@@ -156,13 +158,22 @@ func artRef(ref, dir string) string {
 	case ref == "":
 		return ""
 	case webURL(ref) != "":
-		return ref
+		if u, ok := metafolder.URL(ref); ok {
+			return u
+		}
+		return ""
 	case strings.Contains(ref, ":") || strings.HasPrefix(ref, `\`) || strings.HasPrefix(ref, "/") || filepath.IsAbs(ref):
 		return ""
 	}
 	p := filepath.Join(dir, filepath.FromSlash(ref))
 	if !inRoots(p, []string{dir}) {
 		return ""
+	}
+	// A link can lead out of the folder with a name that looks harmless.
+	if real, err := filepath.EvalSymlinks(p); err == nil {
+		if realDir, err := filepath.EvalSymlinks(dir); err != nil || !inRoots(real, []string{realDir}) {
+			return ""
+		}
 	}
 	return p
 }

@@ -75,6 +75,10 @@ type Server struct {
 	Logs    *logging.Logger
 	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
 	logMods logModules          // how each module is logged
+	// metaFolder is the editable metadata folder's export, running or last run.
+	metaFolder metaFolderJob
+	repair     repairState // Settings, Repair
+	backup     backupState // Settings, Backup
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -523,6 +527,9 @@ func (s *Server) Handler() http.Handler {
 	s.couchRoutes(m)
 	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
+	s.metaFolderRoutes(m)
+	s.repairRoutes(m)
+	s.backupRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

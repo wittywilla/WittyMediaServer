@@ -27,6 +27,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
             <button type="button" className="btn primary" onClick={() => window.location.reload()}>Reload</button>
             <button type="button" className="btn ghost" onClick={() => window.location.assign('/')}>Go to Home</button>
           </div>
+          <p style={{ marginTop: 'var(--sp-3)' }}>Looking after this server, and it keeps happening? <a href="/settings/logs?tab=bundle">Download the logs</a>, sanitized for sharing, for whoever is helping you.</p>
         </div>
       </main>
     )

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fmtDateTime, api, setToken } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast } from '../../state'
+import { LinkButton, Notice } from '../../ui'
 import { PageHead, Section } from './ui'
 
 // Reset: back to a new install, or back to a copy an earlier reset kept. The server
@@ -119,6 +120,9 @@ export default function ResetSettings() {
           A reset is waiting: it happens the next time this server starts. <button className="btn sm" onClick={cancel}>Cancel it</button>
         </div>
       )}
+      <Notice tone="info" title="Make a backup first" action={<LinkButton to="/settings/backup">Go to Backup</LinkButton>}>
+        A backup is a ZIP you can keep anywhere, and bring back from first-time setup after a reset. Backups already on this server stay through a reset that keeps a copy; deleting everything deletes them too.
+      </Notice>
       <Section title="What a reset does" desc="Read this first. It applies to everyone who uses this server, not only you.">
         <div className="set-prose">
           <p><b>These go away:</b></p>
@@ -145,7 +149,7 @@ export default function ResetSettings() {
             <fieldset className="set-fieldset">
               <legend>What happens to what’s there now</legend>
               <label className="set-radio"><input type="radio" name="reset-mode" checked={!deleting} onChange={() => setMode('keep')} /> <span><b>Keep a copy</b> (recommended). It’s all moved into a folder inside the data folder, and you can bring it back from this page. It still takes up disk space.</span></label>
-              <label className="set-radio"><input type="radio" name="reset-mode" checked={deleting} onChange={() => setMode('delete')} /> <span><b>Delete everything for good</b>, including copies from earlier resets. This can’t be undone.</span></label>
+              <label className="set-radio"><input type="radio" name="reset-mode" checked={deleting} onChange={() => setMode('delete')} /> <span><b>Delete everything for good</b>, including copies from earlier resets and backups kept on this server. This can’t be undone.</span></label>
             </fieldset>
             {deleting && <div className="set-note bad" role="alert">Nothing is kept, and this can’t be undone: game saves, watch progress and any recordings in the data folder are gone for good.</div>}
             <Secrets twoFactor={view.twoFactor} password={password} code={code} setPassword={setPassword} setCode={setCode} />

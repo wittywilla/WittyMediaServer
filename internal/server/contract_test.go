@@ -570,7 +570,11 @@ var otherServers = map[string]bool{
 func TestDocsNameNoOtherServers(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	word := regexp.MustCompile(`[A-Za-z]+`)
-	for _, p := range []string{openapiPath, clientDoc} {
+	docs, err := filepath.Glob("../../docs/*.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range append(docs, openapiPath, "../../README.md", "../../CHANGELOG.md", "../../CONTRIBUTING.md", "../../SECURITY.md") {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			t.Fatal(err)

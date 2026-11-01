@@ -37,7 +37,7 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
     <div className="center">
       <form className="auth-card" onSubmit={connect}>
         <div className="brand"><BrandMark /><Brand name="" /></div>
-        <p>Enter your server's address.</p>
+        <p>Enter your server's address. <a href="/help/apps">Where to find it</a></p>
         <div className="form">
           <label>Server address
             <input className="input" autoFocus inputMode="url" autoCapitalize="none" spellCheck={false} placeholder="https://media.example.com" value={addr} onChange={(e) => setAddr(e.target.value)} />

@@ -163,7 +163,7 @@ function Welcome({ admin, name, onAdded }: { admin: boolean; name: string; onAdd
         <h1>Welcome{name ? `, ${name}` : ''}! Let’s fill your server.</h1>
         <p className="muted">{admin
           ? 'Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.'
-          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'}</p>
+          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'} <Link to="/help/getting-started">Getting started</Link></p>
       </div>
       {admin && <AddLibrary onAdded={onAdded} />}
     </div>

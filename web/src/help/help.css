@@ -80,11 +80,6 @@
 .help-next b { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .help-next .help-row:hover { background: none; text-decoration: underline; }
 
-/* The small way into a guide from the page it's about. */
-.help-link { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); min-height: 32px; }
-.help-link:hover { color: var(--fg); text-decoration: underline; }
-.set-help { display: flex; justify-content: flex-end; min-height: 0; margin-bottom: calc(var(--sp-2) * -1); }
-
 @media (max-width: 900px) {
   .help { display: block; margin-top: 0; }
   .help-side { display: none; }

@@ -3,11 +3,10 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { SettingsHelp } from '../components/HelpLink'
-import '../help/help.css'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
-import { IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -140,6 +139,7 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+        <div className="set-nav-group"><NavLink to="/help" className="set-nav-link" title="Guides to everything here, built in"><span className="set-nav-icon"><IconHelp /></span><span className="set-nav-text"><span>Help</span><small className="set-nav-hint">Guides to everything here, built in</small></span></NavLink></div>
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>

@@ -475,6 +475,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this kind of item isn't played: books open with GET /api/items/{id}/book")
 		return
 	}
+	s.streams.note(r, it, out.Decision, out.Reasons, out.StreamID)
 	writeJSON(w, 200, out)
 }
 

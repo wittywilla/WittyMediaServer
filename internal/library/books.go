@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ebook"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
@@ -196,6 +198,7 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 	if metas, _ := filepath.Glob(filepath.Join(dir, "*_meta.xml")); len(metas) == 1 {
 		applyArchiveMeta(it, metas[0], number == "")
 	}
+	cleanBook(it)
 	it.SortTitle = SortTitle(it.Title)
 	if it.Poster == "" {
 		h := sha1.Sum([]byte(c.path))
@@ -603,17 +606,19 @@ func applyArchiveMeta(it *Item, p string, title bool) {
 		Date        string   `xml:"date"`
 		Subject     []string `xml:"subject"`
 	}
-	if xml.Unmarshal(b, &m) != nil {
+	if line, msg := metafolder.DecodeXML(b, &m); msg != "" {
+		slog.Default().Warn("could not read a metadata file; ignoring it", "cat", "library", "file", p, "line", line, "err", msg)
 		return
 	}
-	if title && m.Title != "" && it.Album == "" {
+	if m.Title = metafolder.Line(m.Title, 300); title && m.Title != "" && it.Album == "" {
 		it.Title = strings.TrimSpace(parenRe.ReplaceAllString(m.Title, ""))
 	}
 	if it.Artist == "" && len(m.Creator) > 0 {
-		it.Artist, it.AlbumArtist = m.Creator[0], m.Creator[0]
+		c := metafolder.Line(m.Creator[0], 300)
+		it.Artist, it.AlbumArtist = c, c
 	}
 	if it.Overview == "" && m.Description != "" {
-		it.Overview = plain(m.Description)
+		it.Overview = metafolder.Text(plain(m.Description), 20000)
 	}
 	if it.Year == nil {
 		it.Year = yearOf(m.Date)

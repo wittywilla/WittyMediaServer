@@ -1,9 +1,15 @@
 # Troubleshooting
 
+**Start with Repair.** *Settings → Repair* checks the database, metadata, modules and this install, says what it found in
+plain words, and fixes what can be fixed, with a safety copy first. If the server won't start, the same thing is on the
+command line: `wms doctor` looks and changes nothing, and `wms doctor --fix` fixes. See [Repair](REPAIR.md).
+
 Quick answers to the problems people run into most. Still stuck? Open *Settings → WittyLog*: the viewer
-explains common failures in plain words. Reproduce the problem, then attach a **support bundle** to an issue (it
-never contains passwords or tokens, shows you what's inside first, and can hide titles and file paths). For anything
-to do with discs or drives, run *Settings → WittyDiagnoser*.
+explains common failures in plain words. Reproduce the problem, then press **Download logs as ZIP**, on any tab of that
+page, and attach the file to an issue. It's sanitized for sharing unless you turn that off: names, addresses, paths and
+titles become placeholders, and you can see what it holds first. Passwords and tokens are never in it. Server won't
+start? `wms logs zip` makes the same file without one. For anything to do with discs or drives, run
+*Settings → WittyDiagnoser*.
 
 | Problem | What to do |
 |---|---|
@@ -18,9 +24,14 @@ to do with discs or drives, run *Settings → WittyDiagnoser*.
 | **A DVD or Blu-ray menu shows no buttons** | Run a check of the disc in *Settings → [WittyDiagnoser](DIAGNOSER.md)* with *Press every menu button* on, and attach its report to an issue (never the disc image). On the command line, `wms dvd walk disc.iso` or `wms bluray walk disc.iso` shows the same steps. |
 | **A disc won't play, stutters or stops partway** | *Settings → [WittyDiagnoser](DIAGNOSER.md)* says what's wrong with a copy: scrambled, incomplete, or with sectors that can't be read. |
 | **Video stalls, or a folder or drive misbehaves** | *Settings → [WittyDiagnoser](DIAGNOSER.md) → Storage* checks free space, permissions, read speed and known trouble such as a database on a network drive. |
+| **The server won't start** | Run `wms doctor` on the server. It works when nothing else does, and says why: a damaged database, a mistake in `wms.json`, FFmpeg missing, the port taken. `wms doctor --fix` repairs what can be repaired. |
+| **You moved a drive and everything's gone from the library** | *Settings → Repair → Moved a drive?*, or `wms doctor remap --from <old> --to <new> --fix`. Watch progress, matches and your edits stay. |
+| **A module won't load after an update** | *Settings → Repair*, or `wms doctor --only modules`. It goes back to the version before or the built-in copy, and `wms doctor reinstall <module>` downloads it again. |
+| **You want a copy of everything before something risky** | *Settings → [Backup](BACKUP.md)* makes one ZIP of your data and metadata, and first-time setup can bring it back. On the command line: `wms backup create` and `wms backup restore`. |
 | **You want to start again from a new install** | *Settings → Reset* puts the server back as it was first installed, with warnings first, and asks for your password. It keeps a copy you can bring back, unless you choose to delete everything. Your media files are never touched. Locked out, or the server won't start? Run `wms reset` on the server, then start it. `wms reset -list` and `-restore` work with the copies, and `-cancel` takes back a reset that's waiting. |
 | **Seeking in a DVD title lands slightly off** | DVD video is seeked by estimated bit-rate, then FFmpeg decodes forward to the exact point; on very high-bitrate discs this can take a second. |
 | **A title is named strangely** | Rename the file (`Title (Year).ext`), or use **Edit** on its page. Titles named by an earlier faulty parse are corrected on the next scan. |
+| **Lots of titles have wrong details, or an NFO is broken** | *Settings → Repair → Metadata files* lets you fix them in a text editor, with what would change shown first, and problems named by file and line. It works from the command line too, with the server stopped: `wms metadata check`. See [Fixing metadata by hand](FIXING-METADATA.md). |
 | **Everything from one drive is still listed while it is away** | That's on purpose: a library folder that can't be reached, or is empty (an unmounted drive looks like that), keeps its items until it is back. Files really deleted from a folder that is there disappear at the next scan. |
 | **A video waits and the log says the server is busy** | As many transcodes run as *maxTranscodes* allows, all with someone watching. Raise it in [wms.json](CONFIG.md) if the machine can take it. |
 | **Posters are missing** | Add a free TMDB key, or a custom agent, in *Settings → Metadata agents*, then **Refresh** the title. |

@@ -16,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Matching: searching every source at once, saying how sure it is and why, showing
@@ -1497,8 +1498,10 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	suggestState.cancel = cancel
 	suggestState.job = SuggestJob{Running: true}
+	t := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: "Finding suggested matches", Unit: "titles", LibraryID: libraryID, Cancel: cancel, Pausable: true})
 	logging.Go("match suggestions", func() {
 		defer func() {
+			t.Finish(ctx.Err())
 			cancel()
 			suggestState.Lock()
 			suggestState.job.Running = false
@@ -1508,6 +1511,7 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 		q, err := s.MatchQueue(ctx, libraryID, "review", "", 500, 0)
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not list what needs a look", "err", err)
+			t.Finish(err)
 			return
 		}
 		todo := make([]QueueRow, 0, len(q.Rows))
@@ -1520,12 +1524,14 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 		suggestState.job.Total = len(todo)
 		suggestState.Unlock()
 		for i, r := range todo {
-			if ctx.Err() != nil {
+			if t.Wait(ctx) != nil {
 				return
 			}
 			suggestState.Lock()
 			suggestState.job.Done, suggestState.job.Current = i, r.Title
 			suggestState.Unlock()
+			t.Progress(int64(i), int64(len(todo)))
+			t.Item(r.Title, "")
 			t, err := s.Store.LoadTitle(ctx, r.Target, r.ID)
 			if err != nil {
 				continue

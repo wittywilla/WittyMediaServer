@@ -218,6 +218,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
+		s.streams.note(r, it, "direct", nil, "")
 		writeJSON(w, 200, info)
 		return
 	}
@@ -268,6 +269,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "session", hid, "item", it.ID, "title", it.Title, "mode", "transcode", "why", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
+	s.streams.note(r, it, "transcode", []string{reason}, hid)
 	writeJSON(w, 200, info)
 }
 
@@ -340,7 +342,9 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Del("Content-Security-Policy") // the browser's own viewer may show it in a tab; PDFs can't run scripts on this site
 	}
 	w.Header().Set("Accept-Ranges", "bytes")
-	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
+	counted, done := s.streams.served(s.capWriter(w, r), r, it.ID, "")
+	defer done()
+	http.ServeContent(counted, r, "", st.ModTime(), f)
 }
 
 // mediaType is the Content-Type a library file is sent with, from the registry. A file
@@ -448,7 +452,9 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "video/mp2t")
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	http.ServeFile(s.capWriter(w, r), r, p)
+	counted, done := s.streams.served(s.capWriter(w, r), r, 0, id)
+	defer done()
+	http.ServeFile(counted, r, p)
 }
 
 // DELETE /api/hls/{id}: this viewer is done (another device may still watch).

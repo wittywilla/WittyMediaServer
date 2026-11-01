@@ -27,6 +27,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 	ad := s.requireAdmin
 	if s.TV == nil && s.DB != nil {
 		s.TV = livetv.New(s.DB, s.Tools, s.Log)
+		s.TV.Tasks = s.Tasks
 		s.TV.Folder = func() string {
 			if f := s.tvSetting(context.Background(), "dvrFolder"); f != "" {
 				return f
@@ -543,6 +544,10 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 			g := broadcast(list[0])
 			info.Next = &g
 		}
+	}
+	if err := s.addLiveTicket(r, &info); err != nil {
+		writeErr(w, 500, err.Error())
+		return
 	}
 	writeJSON(w, 200, info)
 }

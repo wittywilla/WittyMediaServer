@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fmtDateTime, api } from '../../api'
 import DownloadButton from '../../components/DownloadButton'
 import { Spinner } from '../../components/common'
 import { IconDisc, IconDrive, IconFile, IconFolder, IconUp } from '../../icons'
 import { toast } from '../../state'
+import FindingCard, { SEVERITY_WORDS as WORDS, type Finding, type Severity } from './FindingCard'
 import { PageHead, Row, Section, Switch } from './ui'
 import './diagnoser.css'
 import { Tabs } from '../../ui/Choice'
@@ -13,8 +15,6 @@ import { Tabs } from '../../ui/Choice'
 // server does the work, so this page can be left and come back to. Discs are
 // picked with the page's own browser, which shows only what the server allows.
 
-type Severity = 'ok' | 'info' | 'warn' | 'problem'
-type Finding = { severity: Severity; title: string; what?: string; fix?: string; details?: string[]; names?: string[]; more?: number; target?: string }
 type Job = {
   id: string; kind: 'disc' | 'storage'; state: 'queued' | 'running' | 'done' | 'cancelled'
   subject: string; label?: string; queued: number; started?: number; finished?: number
@@ -27,7 +27,6 @@ type Entry = { name: string; path: string; dir: boolean; disc?: string; kind?: s
 type Listing = { path: string; parent: string | null; roots?: { name: string; path: string; kind: string }[]; entries: Entry[]; truncated?: boolean }
 
 const POLL_MS = 1500
-const WORDS: Record<Severity, string> = { problem: 'Problem', warn: 'Warning', info: 'Note', ok: 'Fine' }
 const active = (j?: Job | null) => !!j && (j.state === 'queued' || j.state === 'running')
 const gb = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.max(1, Math.round(n / (1 << 20)))} MB`)
 const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() || p
@@ -54,7 +53,7 @@ export default function Diagnoser() {
 
   return (
     <>
-      <PageHead title="WittyDiagnoser" desc="The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never repairs anything, and never gets around copy protection." />
+      <PageHead title="WittyDiagnoser" desc={<>The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never gets around copy protection. To fix the server’s own data, use <Link to="/settings/repair">Repair</Link>.</>} />
       <Tabs label="What to check" value={tab} onChange={setTab} panelId="dgn-panel" items={[{ value: 'disc', label: 'A disc' }, { value: 'storage', label: 'Storage' }]} />
       <div id="dgn-panel" role="tabpanel" aria-label={tab === 'disc' ? 'A disc' : 'Storage'}>
         {tab === 'disc' ? <DiscChoice onStarted={started} /> : <StorageChoice onStarted={started} />}
@@ -279,33 +278,11 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
   )
 }
 
-function FindingCard({ f }: { f: Finding }) {
-  const lines = [...(f.details || []), ...(f.names || [])]
-  return (
-    <article className={'dgn-card sev-' + f.severity}>
-      <div className="dgn-card-head">
-        <span className="dgn-sev">{WORDS[f.severity]}</span>
-        {f.target && <span className="dgn-target">{f.target}</span>}
-      </div>
-      <h3>{f.title}</h3>
-      {f.what && <p>{f.what}</p>}
-      {f.fix && <p><b>What to do:</b> {f.fix}</p>}
-      {lines.length > 0 && (
-        <details>
-          <summary>Details</summary>
-          <ul>{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
-          {!!f.more && <p className="set-row-desc">…and {f.more.toLocaleString()} more.</p>}
-        </details>
-      )}
-    </article>
-  )
-}
-
 // ---------------------------------------------------------------- past reports
 
 function PastReports({ jobs, err, current, onOpen, onRetry }: { jobs: Job[] | null; err: string; current: string; onOpen: (id: string) => void; onRetry: () => void }) {
   return (
-    <Section title="Past reports" desc="The last 20 are kept on the server, and the newest few go in the support bundle with names hidden.">
+    <Section title="Past reports" desc="The last 20 are kept on the server, and the newest few go in the log download with names hidden.">
       {err && <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>Try again</button></div>}
       {!err && !jobs && <div className="dgn-browser-empty"><Spinner /></div>}
       {jobs && jobs.length === 0 && <div className="set-empty"><IconDisc size={34} /><b>No reports yet</b><p>When a check finishes, its report stays here.</p></div>}

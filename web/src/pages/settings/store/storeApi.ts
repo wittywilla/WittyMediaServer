@@ -21,9 +21,12 @@ export type StoreItem = {
 }
 export type RunItem = { id: string; name: string; from?: string; to?: string; state: 'queued' | 'working' | 'done' | 'failed' | 'skipped' | 'undone'; why?: string; phase?: string; done?: number; total?: number; failure?: Failure }
 export type Run = { id: string; kind: string; by?: string; started: number; finished?: number; items: RunItem[]; updated: number; failed: number; skipped: number; canUndo?: boolean; undone?: boolean }
+// How well a module's helper is boxed in on this system, in words when it isn't fully.
+export type SandboxInfo = { level: 'full' | 'partial' | 'limited' | 'unconfined'; title?: string; words?: string }
+
 export type StoreView = {
   server: string; api: number; minApi: number; policy: string; minServer: string; platform: string; checkedAt?: number; checkError?: string
-  stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string
+  stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string; sandbox?: SandboxInfo
 }
 export type ItemDetail = { item: StoreItem; versions: VersionInfo[]; plan: RunItem[]; permissions: { name: string; words: string }[]; builtOn: { id: string; name: string; installed: boolean }[]; forkWarning?: string; fingerprint?: string; policy: string; server: string }
 export type LogLine = { at: number; level: string; text: string }

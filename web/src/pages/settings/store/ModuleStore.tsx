@@ -5,7 +5,7 @@ import { toast } from '../../../state'
 import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spinner } from '../../../ui'
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
-import { FailureDialog, FailureNotice, UpdateAllPanel, useStoreView } from './parts'
+import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
 import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
 // The store: find a module by searching or by what it's for, and see at a glance what's installed
@@ -86,6 +86,7 @@ export default function ModuleStore() {
   return (
     <div className="ms-page st-page">
       {head}
+      <SandboxNote sandbox={view.sandbox} />
 
       <section className="st-search" role="search" aria-label="Find a module">
         <div className="st-search-box">

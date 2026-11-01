@@ -1,4 +1,4 @@
-//go:build !windows && !linux
+//go:build !windows && !linux && !freebsd && !darwin
 
 package modules
 
@@ -12,6 +12,9 @@ func hideWindow(cmd *exec.Cmd) {}
 // sandboxAvailable: this system has no way to limit a helper here.
 const sandboxAvailable = false
 
+// launcherMayFail: there is no launcher here.
+const launcherMayFail = false
+
 // On other systems a helper has its small environment and soft memory limit.
 func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool { return false }
 
@@ -23,5 +26,9 @@ func launchWith(launcher, program string, memoryMB int64, mode int, args []strin
 	return program, args
 }
 
-// RunSandboxed is only used on Linux.
+// RunSandboxed is only used on systems with a launcher.
 func RunSandboxed(args []string) int { return 2 }
+
+func ProtectServer() {}
+
+func confinement(launcher string) SandboxInfo { return unconfined() }

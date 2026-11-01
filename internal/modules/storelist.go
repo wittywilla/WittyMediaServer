@@ -103,6 +103,7 @@ type StoreView struct {
 	Updates     int         `json:"updates"`
 	Run         *Run        `json:"run,omitempty"`
 	RepairRoute string      `json:"repairRoute"`
+	Sandbox     SandboxInfo `json:"sandbox"`
 }
 
 // RepairRoute is where the repair tools are, in Settings.
@@ -230,7 +231,7 @@ func (s *Stores) View() StoreView {
 	rep := s.m.Report()
 	cat, _ := s.m.listedCatalog()
 	v := StoreView{Server: rep.Server, API: rep.API, MinAPI: rep.MinAPI, Policy: PolicyWords, MinServer: MinModuleServer, Platform: thisPlatform(), CheckedAt: rep.CheckedAt, CheckError: rep.CheckError,
-		Stores: []StoreInfo{}, Items: []StoreItem{}, RepairRoute: RepairRoute, Run: s.CurrentRun(), Updates: s.UpdateCount()}
+		Stores: []StoreInfo{}, Items: []StoreItem{}, RepairRoute: RepairRoute, Run: s.CurrentRun(), Updates: s.UpdateCount(), Sandbox: rep.Sandbox}
 	official := StoreInfo{ID: OfficialStore, Name: "WittyMediaServer modules", Host: hostOf(s.m.cfg.CatalogURL), URL: s.m.cfg.CatalogURL, Official: true, Enabled: true}
 	if cat != nil {
 		official.Name, official.Serial, official.Generated, official.Modules = cleanText(cat.Name), cat.Serial, cat.Generated, len(cat.Modules)

@@ -136,6 +136,7 @@ $svc = Get-CimInstance Win32_Service -Filter "Name='WittyMediaServer'"
 Check ($svc) "the service is registered"
 if ($svc) { Write-Host "  $($svc.PathName), as $($svc.StartName), $($svc.State)" }
 Check ($svc.StartName -match 'LocalService') "under its limited account"
+Check ($svc.State -eq 'Running' -or (Up)) "the service is running"
 Check (Up) "the service answers"
 Check (Test-Path "C:\ProgramData\WittyMediaServer\wms.db") "the library is in ProgramData"
 Check (@(Get-NetFirewallRule -DisplayName WittyMediaServer -ErrorAction SilentlyContinue).Count -ge 2) "the firewall rules are there"

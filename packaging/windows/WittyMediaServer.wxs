@@ -133,7 +133,7 @@
         <ServiceInstall Id="Service" Name="WittyMediaServer" DisplayName="WittyMediaServer"
                         Description="Your media server, running in the background."
                         Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService"
-                        Arguments="--windows-service serve -data &quot;[ServiceDataFolder]&quot; -listen :[PORT]">
+                        Arguments="--windows-service serve -data &quot;[CommonAppDataFolder]WittyMediaServer&quot; -listen :[PORT]">
           <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
         </ServiceInstall>
         <!-- Stopping is waited for, as its files can't be replaced until it has. Starting isn't: a

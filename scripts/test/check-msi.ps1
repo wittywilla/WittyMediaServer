@@ -75,6 +75,8 @@ $svc = Query $db 'SELECT ServiceInstall, Name, StartName, Arguments, Component_ 
 $svc | ForEach-Object { Write-Host "Service: $($_.name) as $($_.account), arguments [$($_.args)], in $($_.comp)" }
 if ($svc.account -notmatch 'LocalService') { Fail "the service isn't under the limited account" } else { Ok "the service runs under LocalService" }
 if ($svc.comp -ne 'ServerAsService') { Fail "the service is in the wrong component" }
+# A folder property ends in a backslash, which would escape the closing quote.
+if ($svc.args -match '\[ServiceDataFolder\]"') { Fail "the service's data folder argument ends in a backslash before its quote" } else { Ok "the service's arguments are quoted safely" }
 $tables = (Query $db 'SELECT Name FROM _Tables' @('n')).n
 $fwTable = $tables | Where-Object { $_ -match 'FirewallException' } | Select-Object -First 1
 if (-not $fwTable) {

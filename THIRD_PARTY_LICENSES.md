@@ -33,12 +33,10 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 
 Run `go version -m wms` on a binary for the exact module list and versions.
 
-## The game runner (`wittyplay-host`, a separate program)
+## Modules
 
-| Module | Licence |
-|---|---|
-| github.com/ebitengine/purego | Apache-2.0 |
-| golang.org/x/sys | BSD-3-Clause |
+No module's code is in the server. Each one is passed on by itself, and carries the licenses of the libraries in its
+programs in `THIRD-PARTY-NOTICES.txt`, which the server shows at `GET /api/modules/{id}/notices`.
 
 ## Game PCs
 

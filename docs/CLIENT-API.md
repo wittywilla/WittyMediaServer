@@ -859,8 +859,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
 | `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |
 | `POST /modules/{id}/install` | admin | Download, verify and install a version, with no restart: the newest the last check found, or `{"version": "0.2.0", "confirm": true}`. A choice with a warning (older, withdrawn as broken, taken out of use before) is answered 409 with `"code": "confirm"` and the `warning` until the body says confirm. 202; follow it with `GET /modules`. |
-| `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one or the built-in copy. |
-| `POST /modules/{id}/builtin` | admin | Use the built-in copy, without blaming the version in use. |
+| `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one. |
+| `POST /modules/{id}/add` | admin | Install the newest version that fits, and what it's built on. Answers 202, and progress shows in `phase`, `done` and `total`. |
+| `POST /modules/{id}/enable`, `/disable` | admin | Turn it on or off, with no restart. Turning off is refused, with names, while libraries need it. |
+| `GET /modules/{id}/icon` | user | Its picture, kept by the server and checked against the signed catalogue. |
+| `GET /modules/{id}/notices` | user | The licenses of the libraries in its programs, as plain text. |
 | `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |
 | `PUT /modules/{id}/autoupdate` | admin | Whether this module may update by itself while the server's setting is on: `{"on": false}`. It still looks for updates and offers them. Not for modules that update with the server. |
@@ -1253,7 +1256,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 **WittyCouch** plays the games on any PC running Sunshine, through this server. Each account has its own list of PCs, and its own pairing with each.
 A client can show the player in a web view (`/couch/{id}/play/{app}`), or start a stream and connect with `POST /couch/sessions/{sid}/webrtc`:
-H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `modules/wittycouchhost/PROTOCOL.md`.
+H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `PROTOCOL.md` in WittyCouchHost.
 [GAME-RIGS.md](GAME-RIGS.md) is the design.
 
 | Route | Sign-in | What it does |

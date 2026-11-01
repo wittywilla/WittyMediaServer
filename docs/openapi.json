@@ -18164,7 +18164,10 @@
           }
         ],
         "responses": {
-          "200": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
@@ -18173,9 +18176,6 @@
               }
             },
             "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
           }
         },
         "security": [
@@ -18183,7 +18183,7 @@
             "bearer": []
           }
         ],
-        "summary": "Put a module on this server. Works straight away, offline.",
+        "summary": "Put a module on this server: the newest version that fits, and what it's built on.",
         "tags": [
           "Server"
         ],
@@ -18245,9 +18245,9 @@
         "x-wms-auth": "admin"
       }
     },
-    "/modules/{id}/builtin": {
+    "/modules/{id}/disable": {
       "post": {
-        "operationId": "postModulesIdBuiltin",
+        "operationId": "postModulesIdDisable",
         "parameters": [
           {
             "in": "path",
@@ -18278,7 +18278,47 @@
             "bearer": []
           }
         ],
-        "summary": "Use the built-in copy, without blaming the version in use.",
+        "summary": "Turn a module off, with no restart. Refused while libraries need it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/enable": {
+      "post": {
+        "operationId": "postModulesIdEnable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn a module back on, with no restart.",
         "tags": [
           "Server"
         ],
@@ -18330,6 +18370,46 @@
           }
         ],
         "summary": "A browser saying a bundle wouldn't load or crashed. Three within a day, at most one a minute, take that version out of use. 204.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/{id}/icon": {
+      "get": {
+        "operationId": "getModulesIdIcon",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There is none."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A module's picture, kept by the server and checked against the signed catalogue.",
         "tags": [
           "Server"
         ],
@@ -18432,6 +18512,46 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/notices": {
+      "get": {
+        "operationId": "getModulesIdNotices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There is none."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The licenses of the libraries in a module's programs.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/modules/{id}/pin": {

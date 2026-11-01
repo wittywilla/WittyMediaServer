@@ -366,6 +366,26 @@ func TestOutOfRangeIsNotOfferedOrInstallable(t *testing.T) {
 	usesBuiltin(t, m)
 }
 
+// Modules start with this release: one built for less is refused, and the words say so.
+func TestOlderAPIIsRefused(t *testing.T) {
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.MinAPI-1))
+	m := w.manager()
+	defer m.Close()
+	s := check(t, m)
+	if s.Latest != nil {
+		t.Fatalf("offered: %+v", s.Latest)
+	}
+	err := m.Install("wittyphotos")
+	if err == nil {
+		t.Fatal("installed anyway")
+	}
+	if !strings.Contains(err.Error(), "too old") && !strings.Contains(err.Error(), "no version") {
+		t.Fatalf("no plain reason: %v", err)
+	}
+	usesBuiltin(t, m)
+}
+
 func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))

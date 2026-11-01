@@ -3,7 +3,7 @@
 Games sit in libraries next to films and music. You open one in a browser, on any device, and
 play it straight away with whatever controller you have. Saves follow your account. Games run
 on the server and stream to the browser with low latency, through **WittyPlay**
-(`modules/wittyplay`).
+(**WittyPlay**).
 
 This page explains how it is built and why. It is the reference for anyone changing it.
 [GAMING-API.md](GAMING-API.md) is the API a client uses, including the Apple TV and Android TV apps.
@@ -28,7 +28,7 @@ items with `console: rig`, and `POST /games/{id}/play` sends them there.
 ## The architecture
 
 ```
- Browser                     wms (the server)                 wittyplay-host (one per game)
+ Browser                     wms (the server)                 wittyplay-game-runner (one per game)
 ┌─────────────┐  WebRTC   ┌───────────────────────┐  pipes   ┌──────────────────────────┐
 │ <video>     │◄──────────│ stream.Session        │◄─────────│ libretro frontend        │
 │ gamepad,    │  H.264 or │  ├ pion WebRTC        │  raw     │  ├ loads one core        │
@@ -44,7 +44,7 @@ items with `console: rig`, and `POST /games/{id}/play` sends them there.
 
 Three kinds of process, each doing one job:
 
-1. **`wittyplay-host`**: our own small libretro frontend, written in Go with no cgo. It loads a
+1. **`wittyplay-game-runner`**: our own small libretro frontend, written in Go with no cgo. It loads a
    core, runs it one frame at a time and writes raw frames and audio to its stdout. It reads
    input and commands on stdin. It holds no network connection and no database. A crash or an
    exploited core takes down one game, not the server. Cores print to stdout too, so the runner
@@ -56,9 +56,9 @@ Three kinds of process, each doing one job:
 ### Two runners, one protocol
 
 "The process that runs a game" is called a **runner**, and it's defined by a protocol rather than by a
-program: length-prefixed messages over a pipe (`modules/wittyplay/ipc`). Two programs can fill that role.
+program: length-prefixed messages over a pipe (`ipc` in WittyPlay). Two programs can fill that role.
 
-| | `wittyplay-host` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
+| | `wittyplay-game-runner` (built in, works today) | WittyRetroArch (a GPL fork, not built yet) |
 |---|---|---|
 | What it is | Our own small libretro frontend | RetroArch with a mode that speaks the protocol |
 | Licence | Apache-2.0 | GPLv3, a separate program |
@@ -84,7 +84,7 @@ Cores are the same files RetroArch uses, and a RetroArch install's cores are fou
 
 A cgo frontend would need a C toolchain for every platform in the release matrix. We use
 [purego](https://github.com/ebitengine/purego) (Apache-2.0) to open the core and to receive its
-callbacks. It is linked **only** into `wittyplay-host`, because on Linux it changes how the
+callbacks. It is linked **only** into `wittyplay-game-runner`, because on Linux it changes how the
 runtime starts threads and makes the binary depend on the system's libc. The server stays the
 static binary it has always been.
 
@@ -117,7 +117,7 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
   Only a frame that needs doubling goes through FFmpeg's scaler.
 - **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on
   Nintendo 64, PlayStation, PlayStation 2, PSP and Dreamcast, and native on 3DS. The per-core options are in
-  `modules/wittyplay/traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+  `traits.go` in WittyPlay. A choice a core doesn't offer is ignored, so an updated core can't break.
 - **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is
   full. Software-rendered games don't count.
 - **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU
@@ -156,7 +156,7 @@ as "use the discrete card". No system setting changes and nothing needs clicking
 which card was chosen.
 
 That variable is NVIDIA's. On a laptop with an AMD discrete card and integrated graphics, Windows may pick the
-integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-host.exe`,
+integrated one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-game-runner.exe`,
 choose Options, then High performance.
 
 ### What the sandbox opens for a graphics driver
@@ -374,7 +374,7 @@ won't load leaves the game as it was and says so, and Undo load is always there.
 
 ## Settings
 
-Settings are described once, as data, in `modules/wittyplay/settings.go`: a key, a kind, a range, a default, a label
+Settings are described once, as data, in `settings.go` in WittyPlay: a key, a kind, a range, a default, a label
 and any caution. The server checks values against that, and every client draws its controls from it
 (`GET /api/games/settings/schema`). A new setting is a line in that table, plus whatever uses it.
 
@@ -672,12 +672,12 @@ What's left for a TV app to write is listed at the end of [GAMING-API.md](GAMING
 
 Everything becomes one thing: a **RetroPad state** per player, which is 16 buttons, two sticks and how far
 two triggers are held. The libretro API speaks RetroPad, so each console needs only labels. These, and all the
-default layouts, are data from the server (`modules/wittyplay/controls.go`).
+default layouts, are data from the server (`controls.go` in WittyPlay).
 
 - **Gamepads:** standard mapping by position (bottom button is RetroPad B, right is A, and so on),
   which is how libretro's cores expect pads to be laid out.
 - **Pads without standard mapping:** a browser that can't put a pad in order reports raw numbers. Our own table
-  of common models by vendor and product (`modules/wittyplay/layouts.go`) puts them in order. A D-pad reported as one axis, or as two,
+  of common models by vendor and product (`layouts.go` in WittyPlay) puts them in order. A D-pad reported as one axis, or as two,
   is found by looking at it, and a trigger reported as an axis that rests at one end counts from there. An unknown pad gets a
   first-to-last guess, and the screen says to check it.
 - **Sticks and triggers:** the dead zone is a circle and the travel is rescaled from its edge, so sticks reach full speed and small movements
@@ -824,7 +824,7 @@ sandboxed.
 | pion/webrtc and its family | MIT | Linked into `wms` |
 | coder/websocket | ISC | Linked into `wms` |
 | bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see THIRD_PARTY_LICENSES.md | Linked into `wms`. No GPL code |
-| ebitengine/purego | Apache-2.0 | Linked into `wittyplay-host` only |
+| ebitengine/purego | Apache-2.0 | Linked into `wittyplay-game-runner` only |
 | libretro API definitions | MIT | The constants and struct layouts only; no libretro code is copied |
 | RetroArch | GPLv3 | Not shipped. Its core folder is read if present. The fork would be a separate program ([WITTYRETROARCH.md](WITTYRETROARCH.md)) |
 | Libretro cores | Each core's own | **Never bundled.** A separate file, installed on an admin's request, loaded by a separate process |
@@ -900,13 +900,13 @@ on 2026-10-31. LRPS2 and PPSSPP also need support files, which the install fetch
 
 ## Testing with real games
 
-`cmd/wittyplay-check` in `modules/wittyplay` plays real games with no browser. It starts the real runner
+`cmd/wittyplay-check` in **WittyPlay** plays real games with no browser. It starts the real runner
 with its sandbox on, exactly as a game session does (`stream.StartRunner`), loads each game on a real core,
 and records what happened.
 
 ```
-cd modules/wittyplay
-go build -o /some/folder/ ./cmd/wittyplay-check ./cmd/wittyplay-host
+cd WittyPlay
+go build -o /some/folder/ ./cmd/wittyplay-check ./cmd/wittyplay-game-runner
 /some/folder/wittyplay-check -console nes -cores-dir /some/cores -install -out /some/report -jobs 8 /path/to/nes/games
 ```
 

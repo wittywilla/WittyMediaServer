@@ -108,9 +108,9 @@ flowchart LR
   end
   W & D & M -->|/api| S[internal/server<br/>REST, streaming, security]
   S --> L[internal/library<br/>scanner, metadata, agents]
-  S --> DS[internal/dvdsession] --> DVD[modules/wittydvd]
-  S --> BS[internal/bdsession] --> BD[modules/wittybluray]
-  DVD & BD --> DISC[modules/wittydisc<br/>ISO 9660 + UDF]
+  S --> DS[internal/dvdsession] --> DVD[WittyDVD, a helper]
+  S --> BS[internal/bdsession] --> BD[WittyBluray, a helper]
+  DVD & BD --> DISC[WittyDisc<br/>ISO 9660 + UDF]
   S --> H[internal/hls] --> F[FFmpeg]
   L --> DB[(SQLite)]
 ```
@@ -125,10 +125,10 @@ flowchart LR
 | `internal/hls`, `internal/ffmpeg` | on-demand HLS with instant seeking; FFmpeg discovery, probing and encoders |
 | `internal/playback` | how a file plays on each kind of client: direct, remux or transcode, and which tracks |
 | `internal/auth`, `internal/db`, `internal/config`, `internal/logging`, `internal/themes` | accounts, storage, configuration, logs, themes |
-| `modules/wittydisc`, `modules/wittydvd`, `modules/wittybluray` | the disc engines, each its own Go module and repository |
+| **WittyDisc**, **WittyDVD**, **WittyBluray** | the disc engines, each its own Go module and repository |
 | `web/` | the web app; `web/src/modules/*` holds the reader plugins (WittyInk, WittyEbook, WittyPDF, WittyComics) |
-| `apps/wittyreader` | WittyReader, the standalone reading app |
-| `apps/wittymediaplayer` | WittyMediaPlayer, the standalone desktop player (Qt 6, FFmpeg and a Go helper for the disc engines) |
+| **WittyReader** | WittyReader, the standalone reading app |
+| **WittyMediaPlayer** | WittyMediaPlayer, the standalone desktop player (Qt 6, FFmpeg and a Go helper for the disc engines) |
 | `clients/` | desktop and mobile shells |
 | `deploy/`, `scripts/` | Docker, Kubernetes, release packaging, installers |
 

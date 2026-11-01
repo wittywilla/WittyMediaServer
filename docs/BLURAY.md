@@ -3,7 +3,7 @@
 WittyMediaServer plays Blu-ray images (`.iso`, `.img`) and BDMV folders **with their real
 menus**, in a browser. The part that does this is **WittyBluray**: an original implementation of
 the Blu-ray Disc navigation model, the same logic a player runs. It is its own Go module,
-`modules/wittybluray` here and
+**WittyBluray** here and
 [github.com/wittywilla/WittyBluray](https://github.com/wittywilla/WittyBluray) on its own.
 
 - [Adding discs](#adding-discs)

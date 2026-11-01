@@ -28,7 +28,7 @@ input reaching Sunshine. See [What has been tested](#what-has-been-tested). A re
                                                                                                   Apache-2.0
 ```
 
-- **`wms` talks to the PC's client API directly**, in its own Go code (`modules/wittycouch/gamestream`): identifying it, pairing, its games and art, and asking it to start one.
+- **`wms` talks to the PC's client API directly**, in its own Go code (`gamestream` in WittyCouch): identifying it, pairing, its games and art, and asking it to start one.
 - **The stream itself** goes through Moonlight's real streaming core, in a program of its own. Moonlight's core is "too powerful a tool to make in house": RTSP, ENet control, encrypted video with error correction, and every Sunshine feature as it arrives.
 - **The relay is thin.** It reads whole frames and Opus packets from a pipe and writes them to a WebRTC track. Frames are never decoded or re-encoded, so a low-end server can carry a 4K stream.
 
@@ -57,7 +57,7 @@ published on its own terms. The App Store and GPL-3.0 are widely held to conflic
 ## Design decisions
 
 **Moonlight's real code, in a program of its own.** It's the owner's call, and the right one: this protocol has years of quirks in it, and Sunshine changes. So the part that speaks the stream is
-Moonlight's. The boundary is a documented protocol over pipes (`modules/wittycouchhost/PROTOCOL.md`), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
+Moonlight's. The boundary is a documented protocol over pipes (`PROTOCOL.md` in WittyCouchHost), the same way WittyPlay's runner and FFmpeg stay separate. The relay and client lose nothing by it:
 frames arrive whole, in order, ready to send on.
 
 **Why this and not the existing web bridge.** [moonlight-web-stream](https://github.com/MrCreativ3001/moonlight-web-stream) already bridges Moonlight to WebRTC, and an earlier version of this design used it, but never
@@ -154,13 +154,13 @@ Read from LizardByte/Sunshine at v2026.914.233613, and run against that same ver
 
 | What | Where | License | Why |
 |---|---|---|---|
-| **WittyCouch Host** | `modules/wittycouchhost/` | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
+| **WittyCouch Host** | **WittyCouchHost** | **GPL-3.0** | It links moonlight-common-c, so as a whole it has to be. Its own `main.c` is what's new |
 | moonlight-common-c | Fetched at a pinned commit, into that program | GPL-3.0 | Moonlight's streaming core, unchanged |
 | ENet, nanors | Inside moonlight-common-c | MIT | |
 | Mbed TLS | Linked into that program, under the Apache-2.0 it offers | Apache-2.0 | Compatible with GPL-3.0 |
-| **WittyCouch** relay, client protocol, player | `modules/wittycouch/` (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
+| **WittyCouch** relay, client protocol, player | **WittyCouch** (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0** | Written here from the protocol and browser APIs. No Moonlight code, ported or otherwise. They exchange only the messages in `PROTOCOL.md` with a separate program |
 | The API and pages in the server | `internal/server/api_moonlight.go`, `web/src/pages/Moonlight.tsx` | **Apache-2.0**, with the server | Same |
-| **WittyRigs** | `modules/wittyrigs/` | **Apache-2.0** | It only looks for a program and talks to it over the network |
+| **WittyRigs** | **WittyRigs** | **Apache-2.0** | It only looks for a program and talks to it over the network |
 | WittyMediaServer, WittyMediaClient, WittyPlay and everything else | | **Unchanged** | They contain nothing of the above |
 | Sunshine | On someone's PC, or this server if an admin installs it | GPL-3.0 | Installed separately by whoever owns that computer |
 | Moonlight's own apps | On someone's device | GPL-3.0 | Installed separately. Only started, where a device allows |
@@ -206,7 +206,7 @@ The page people use is still called **Game PCs**. WittyRigs is named for the rig
 ### A checklist for the first real test
 
 1. On the gaming PC, install Sunshine and set its password (the steps are in **Game PCs**, under How to install Sunshine).
-2. Put `wittycouch-host` beside the server (`sh scripts/build.sh` in `modules/wittycouchhost` builds it).
+2. Put `wittycouch-host` beside the server (`sh scripts/build.sh` in **WittyCouchHost** builds it).
 3. In **Game PCs**, press **Find PCs on the network**. Does it appear? If not, does typing its address work?
 4. Press **Pair this PC**, and type the PIN into Sunshine's PIN page. Do its games appear, with their pictures?
 5. Press Play on a real game, with a real controller. Is it smooth? Does the controller work? Does sound come through? Does rumble?

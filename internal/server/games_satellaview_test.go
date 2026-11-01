@@ -19,7 +19,7 @@ func TestSatellaviewGameSaysWhatIsMissing(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
-	runner := filepath.Join(t.TempDir(), "wittyplay-host")
+	runner := filepath.Join(t.TempDir(), "wittyplay-game-runner")
 	if err := os.WriteFile(runner, nil, 0o755); err != nil {
 		t.Fatal(err)
 	}

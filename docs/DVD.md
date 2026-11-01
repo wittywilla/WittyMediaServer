@@ -107,7 +107,7 @@ disc image ──► ISO 9660 / UDF reader ──► IFO parser ──► naviga
                                                          └─ NAV packs, sub-pictures (buttons, subtitles)
 ```
 
-WittyDVD is its own Go module, `modules/wittydvd` here and
+WittyDVD is its own Go module, **WittyDVD** here and
 [github.com/wittywilla/WittyDVD](https://github.com/wittywilla/WittyDVD) on its own, so other
 players can use it too. The steps below name its files.
 

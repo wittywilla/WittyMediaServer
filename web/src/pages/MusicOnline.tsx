@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PageHelp } from '../components/HelpLink'
 import { useLocation } from 'react-router-dom'
 import { api } from '../api'
 import { IconCheck } from '../icons'
@@ -21,7 +22,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
   const useOnline = on('lyricsOnline', '0')
   return (
     <div ref={box} id="lyrics">
-      <Section title="Lyrics and music information" desc="A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don't have.">
+      <Section title="Lyrics and music information" desc="A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don't have." actions={<PageHelp to="lyrics-karaoke#finding-lyrics-online" />}>
         <Row label="Find lyrics online" badge="No API key needed" desc={<>Timed lyrics from <a href="https://lrclib.net" target="_blank" rel="noreferrer">LRCLIB</a>, a free and open database. Only when someone opens the lyrics of a song with none of its own, your server sends LRCLIB that song's artist, title, album and length. Never a file name, or who's listening. Answers are kept in the cache on this server, aren't shared, and don't go into backups. The words belong to their writers.</>}>
           <Switch label="Find lyrics online" checked={useOnline} onChange={(v) => set('lyricsOnline', v ? '1' : '0')} />
         </Row>

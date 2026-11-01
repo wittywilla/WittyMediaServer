@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { HelpLink } from './HelpLink'
 import { Link } from 'react-router-dom'
 import { api, ApiError, type Library } from '../api'
 import { IconCheck, IconFolder, IconPlus, libIcon } from '../icons'
@@ -255,6 +256,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       </div>}
       {FOLDER_HINT[t.type] && <p className="muted oobe-hint">{FOLDER_HINT[t.type]}</p>}
       {(refusedShare || (!pickerLocal && allPaths.some(onAnotherMachine))) && <OtherMachineHelp />}
+      <p className="muted oobe-hint"><HelpLink to="libraries" newTab>How to lay out and name your files</HelpLink></p>
       {err && <div className="error" role="alert">{err}</div>}
       {addErr && missing.length > 0 && <div className="error" role="alert">{addErr}</div>}
       {missing.length > 0 && (

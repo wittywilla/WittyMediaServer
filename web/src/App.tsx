@@ -23,6 +23,8 @@ import { useMedia, useNavPrefs } from './shell/useNav'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
+const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const CouchMode = lazy(() => import('./pages/games/Couch'))
@@ -79,6 +81,9 @@ function Shell() {
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   // The Legal page, for anyone: a shared link, the setup wizard and the sign-in screen lead here.
   if (loc.pathname === '/legal') return <Suspense fallback={<Spinner />}><LegalPublicPage /></Suspense>
+  // Help, for anyone: stuck at the sign-in page or partway through setup is when it's needed most.
+  const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
+  if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
@@ -159,6 +164,8 @@ function AppFrame() {
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
+            <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
+            <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
             <Route path="/design" element={<DesignPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

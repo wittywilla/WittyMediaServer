@@ -83,6 +83,7 @@ function NoLyrics({ p, online, canEdit, tried, failed }: { p: PlayerView; online
       {canEdit
         ? <p>Or find them online for free, if you agree: <button type="button" className="np-link" onClick={() => p.goTowards('/settings/metadata#lyrics')}>turn on online lyrics</button> in Settings. Your server sends only the artist, title, album and length.</p>
         : <p>Whoever runs this server can also turn on finding them online.</p>}
+      <p><button type="button" className="np-link" onClick={() => p.goTowards('/help/lyrics-karaoke#if-lyrics-are-missing-or-wrong')}>How lyrics work</button></p>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { HelpLink } from '../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, type User, type UserView } from '../api'
 import { useApp } from '../state'
@@ -133,6 +134,7 @@ export default function PairPage() {
           </div>
         </div>
       )}
+      <p className="muted"><HelpLink to="apps#sign-in-with-a-code">How signing in with a code works</HelpLink></p>
       {print && <p className="pair-print muted">This server’s fingerprint is <b>{print}</b>. If the app shows one, the two should match.</p>}
     </>
   )

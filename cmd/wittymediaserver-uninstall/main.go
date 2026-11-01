@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/uninstall"
 )
@@ -34,10 +35,25 @@ func main() {
 	if a.ProgramFolder != "" {
 		e.SelfRoot = a.ProgramFolder
 	}
+	if a.DryRun {
+		os.Exit(dryRun(a))
+	}
 	if a.Worker {
 		os.Exit(work(e, a))
 	}
 	os.Exit(ask(e, a))
+}
+
+// dryRun says what would go and changes nothing, as the command line's --dry-run does.
+func dryRun(a uninstall.Args) int {
+	var out strings.Builder
+	code := uninstall.RunCLI(os.Args[1:], strings.NewReader(""), &out)
+	if a.Yes || a.JSON {
+		fmt.Print(out.String())
+	} else {
+		show(title, shorten(out.String(), 30))
+	}
+	return code
 }
 
 // ask is the part a person sees first.

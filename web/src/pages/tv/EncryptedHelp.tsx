@@ -17,6 +17,7 @@ export default function EncryptedHelp() {
     <div className="ctv ctv-page ctv-list-page ctv-help-page" data-skin={look.colours} data-layout={look.layout}>
       <header className="ctv-list-head">
         <h1>{help?.title || 'Encrypted channels'}</h1>
+        <Link className="ctv-btn sm" to="/help/channels">Help with TV</Link>
         <Link className="ctv-btn sm" to="/tv">Back to the guide</Link>
       </header>
       {err && <div className="ctv-err" role="alert">{err}</div>}

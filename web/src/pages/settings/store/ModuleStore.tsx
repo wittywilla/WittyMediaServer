@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { HelpLink } from '../../../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconRefresh, IconSearch, IconShield } from '../../../icons'
 import { toast } from '../../../state'
@@ -140,7 +141,7 @@ export default function ModuleStore() {
         {others.length > 0 && (
           <section className="st-shelf st-others" aria-labelledby="st-others-h">
             <h2 id="st-others-h"><IconShield /> From other stores</h2>
-            <p className="ms-note">Nobody at this project has reviewed these. Each is labelled with the store it comes from. <Link to="/settings/modules/stores">Manage stores</Link></p>
+            <p className="ms-note">Nobody at this project has reviewed these. Each is labelled with the store it comes from. <Link to="/settings/modules/stores">Manage stores</Link> · <HelpLink to="module-store#other-stores">What to know first</HelpLink></p>
             {cards(others)}
           </section>
         )}

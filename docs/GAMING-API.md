@@ -1,11 +1,13 @@
 # Games: the API for clients
 
-Everything a client needs to play a game: the Apple TV and Android TV apps, and anything else. The web
-player uses exactly these routes and has no private ones. Conventions (sign-in, errors, versions) are those of
-the client API, `docs/CLIENT-API.md`. Paths below are written without `/api`.
+For developers writing a client: everything needed to play a game, on a TV app or anything else. To play games, see [Games](GAMES.md).
+
+The web player uses exactly these routes and has no private ones. Conventions (sign-in, errors, versions) are those of
+[the client API](CLIENT-API.md), which also lists these routes under `/api/v1`, with the game's details and matching. Paths below are written without `/api`.
 
 The server runs the game. A client shows a video stream, plays an audio stream and sends controller
-states, so there is no emulator or game logic to write.
+states, so there is no emulator or game logic to write. The routes are in `internal/server/api_games*.go`,
+`api_game_options.go` and `api_game_profiles.go`. What runs behind them is the WittyPlay module: [the design](GAMING.md) explains it.
 
 ## Playing a game
 
@@ -52,20 +54,20 @@ trip through the app switcher loses nothing.
 | `GET /game-controllers` | user | Controllers known by vendor and product. Browsers need it; an app usually doesn't |
 | `GET`, `PUT`, `DELETE /game-background`; `GET`, `PUT /game-background/image` | user | The account's own picture behind the controller screen |
 | `POST /games/{id}/play` | user | Starts a game. Body: `{"resume": bool, "client": "native"}` |
-| `GET /games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb}]` |
+| `GET /games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb, core}]` |
 | `GET /games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
 | `DELETE /games/{id}/saves/{slot}` | user | Deletes a state |
 | `GET /play/{sid}` | owner | The session |
 | `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
-| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1 |
-| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "device", "port": n, "device": id}` |
+| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
-| `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}` | admin | Server setup. An app can leave this to the web interface |
-| `/gaming/custom/...`, `/gaming/consoles/{console}/core`, `/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [CLIENT-API.md](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
+| `/gaming/custom/...`, `/gaming/consoles/{console}/core`, `/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [the client API](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
 
-A session belongs to the account that started it; to anyone else its routes answer 404.
+A session belongs to the account that started it; to anyone else its routes answer 404. One game takes at most 8 viewers and 4 connecting at once: past that the oldest goes, and a connection may answer 429 with `Retry-After`.
+
+Games in a shared PC's library (`console: rig`) go another way: see [the client API](CLIENT-API.md#shared-pcs-and-wittyrigs).
 
 Starting a game can answer:
 
@@ -73,12 +75,12 @@ Starting a game can answer:
 |---|---|
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
-| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. Otherwise `error` says why, such as this server having no graphics card for this game |
-| 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so |
+| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. `rig: true` means this game plays on a PC. Otherwise `error` says why, such as this server having no graphics card for this game |
+| 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so. Nothing here decrypts a file |
 | 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
 
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
-`POST /games/{id}/play` simply takes that long, which is fine as long as your HTTP client's timeout allows it. To show
+`POST /games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show
 progress, call `POST /games/{id}/prepare` about once a second until `state` is `ready`, and then call play:
 
 | `state` | Meaning |
@@ -90,9 +92,7 @@ progress, call `POST /games/{id}/prepare` about once a second until `state` is `
 It can answer 404, 409 and 422 the way play does. An unpack nobody has asked about for two minutes is stopped, so leaving
 the screen needs nothing else.
 
-**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes}`.
-**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, renderer, modes}`. `renderer` names the graphics card, for a game drawn on one.
-**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, modes, devices}`.
+**The session** is `{id, itemId, title, console, core, width, height, aspect, fps, sampleRate, resumed, encoder, turns, disc, discs, renderer, modes, devices, safeMode, maxSpeed, notices}`. `renderer` names the graphics card, for a game drawn on one. `turns` is quarter turns to draw the picture by. `disc` and `discs` are which disc is in the drive, from 0, and how many the game has.
 Show the picture at `aspect` (width over height), not at the video's own shape: the video is often
 doubled, and consoles' pixels often aren't square.
 
@@ -101,14 +101,14 @@ doubled, and consoles' pixels often aren't square.
 best choice is already plugged in, so a PlayStation game starts with sticks and rumble where its emulator has them. To let
 someone change it, send a `device` action. Anything the emulator didn't offer answers 422.
 
-**Save slots:** 0 is the automatic one, written when a game stops, and can only be loaded. 1 to 9 are manual.
+**Save slots:** 0 is the automatic one, written when a game stops, and can only be loaded. 1 to 99 are manual. 100 is the game from before the last load, and 101 the automatic save from before starting over: both can only be loaded.
 
 ## Modes
 
-`GET /games/modes?client=native` and the session's `modes` list what you can use, best first. Use the first one
+`GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one
 you support, and move to the next if it doesn't show a picture within about 12 seconds. Ignore ids you don't
 know, because more may appear. A mode with `browserOnly` set is never listed for a native client, and leaving
-out `client` counts as native.
+out `client` counts as native. No such mode exists today.
 
 | `id` | Video | Audio | Input | Needs |
 |---|---|---|---|---|
@@ -133,7 +133,7 @@ frame then goes to your decoder as soon as it's whole. If your stack doesn't hon
 (`jitterBufferTarget` or the same on your platform). Latency is the point. Sound and video are separate streams, so as not to
 hold one back for the other.
 
-A connection that fails or stalls should simply be made again with a new offer: the game waits, paused, for a minute. The old picture
+A connection that fails or stalls should be made again with a new offer: the game waits, paused, for a minute. The old picture
 can stay up meanwhile.
 
 Out of your home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores.
@@ -142,7 +142,7 @@ If it fails, the WebSocket modes work anywhere HTTP does.
 ### WebSocket
 
 Connect to `GET /play/{sid}/ws?video=h264` or `video=jpeg` with your sign-in in the `Authorization` header.
-Browsers can't set that header and use `?token=`. The first message is text: `{"type":"hello","video":"h264"}`. It
+Browsers can't set that header, and use the sign-in cookie or `?token=`. The first message is text: `{"type":"hello","video":"h264"}`. It
 says what you'll get, which may be `jpeg` if H.264 isn't available. After that:
 
 Binary messages, whose first byte says what they are:
@@ -177,7 +177,7 @@ number ties it to its record. `web/latency.ts` in WittyPlay is the browser's ver
 ## Controller states
 
 A 13-byte binary message, little-endian, on the `input` data channel or the WebSocket. The last two bytes may be left
-off if you can't tell how far triggers are held. Four more may follow, a u32 you choose that names this state, which comes back in
+off if you can't tell how far triggers are held, which makes it 11. Four more may follow a 13-byte state, making it 17: a u32 you choose that names this state, which comes back in
 the `0xF4` record of the first frame that saw it, so that a press can be followed to the screen:
 
 | Bytes | Field | Meaning |
@@ -232,6 +232,7 @@ JSON text on the `events` data channel or the WebSocket. Ignore types you don't 
 | `shutdown` | | The game ended itself: leave the player |
 | `ended` | `text` | The game stopped: it crashed, stopped responding, or was stopped from elsewhere. `text` says which, for showing to a person |
 | `disc` | `index`, `count` | The disc in the drive changed |
+| `frame` | `width`, `height` | What the core really draws changed. See [While a game is running](#while-a-game-is-running) |
 
 ## The controller as data
 
@@ -348,6 +349,7 @@ solid backing under any text on top.
 and 24 megapixels. The server decodes it and stores a new JPEG of up to 2560 pixels, so nothing but the picture survives, and
 answers the setting. A file that isn't one of those answers 400. `DELETE /game-background` removes it. All of these are for
 the signed-in account only, as they take no account number.
+
 ## Settings
 
 Everything in the game menu is on the server, so an app doesn't have to invent any of it.
@@ -388,8 +390,7 @@ app to act on when opening a game.
 | `undo` | | Go back to before the last load. Pressing it again goes forward |
 | `option` | `key`, `text` | Set one core option now, without saving it |
 
-Save and load take slots 1 to 99, and load also takes 0 (automatic), 100 (from before the last load) and 101 (the
-automatic save from before starting over). `GET /games/{id}/saves` lists what exists, with the `core` that made each.
+Save and load take slots 1 to 99, and load also takes 0, 100 and 101, as under [Routes](#routes). `GET /games/{id}/saves` lists what exists, with the `core` that made each.
 
 Events also bring `frame`, with the `width` and `height` of what the core really draws, whenever that changes. `GET
 /play/{id}` says the same once a picture exists. What a client draws on top needs this, because the video may be
@@ -409,13 +410,15 @@ while showing them. `GET /play/{id}/screenshot` gives a PNG with no effects on i
 
 All of these are private to the person. Files go as the request body. A loader that can't add a header, such as an image
 tag or a download link, can put the sign-in in the address as `?token=` on these reading routes only: a save's `thumb` and
-`file`, `battery`, one image from `game-bezels`, and `play/{id}/screenshot`.
+`file`, `battery`, one image from `game-bezels`, `game-background/image`, and `play/{id}/screenshot`.
+
+A Guest profile gets 403 from every route that uploads here. A Kids profile can put its own saves and pictures, but gets 403 for a patch.
 
 | Route | Limits |
 |---|---|
 | `GET`, `PUT /games/{id}/saves/{slot}/file` | 256 MB. Slots 1 to 99 to put. A file with our header is checked, a plain one gets a `warning` |
 | `GET`, `PUT /games/{id}/battery` | 64 MB. Refused with 409 while that person is playing it |
-| `GET`, `POST /games/{id}/patches?name=`, `PUT`, `DELETE /games/{id}/patches/{patch}` | IPS or BPS, 64 MB, 16 to a game. They take effect when the game next starts |
+| `GET`, `POST /games/{id}/patches?name=`, `PUT`, `DELETE /games/{id}/patches/{patch}` | IPS or BPS, 64 MB, 16 to a game. They take effect when the game next starts. Adult profiles only |
 | `GET`, `PUT /games/{id}/cheats`, `POST /games/{id}/cheats/import` | 500 codes. Import reads a file and says what's in it, and only `PUT` keeps anything |
 | `GET`, `POST /game-bezels?name=`, `GET`, `DELETE /game-bezels/{bezel}` | PNG, JPEG, WebP, 16 MB, 16 MP, 16 images. Decoded and made again |
 | `GET`, `PUT /games/{id}/meta`, `GET /games/recent` | `favourite`, `note` (8 KB). `recent` takes `limit` and `favourites=1`, and gives `item`, `plays`, `lastPlayed`, `favourite` |
@@ -434,6 +437,8 @@ for its buttons, default layouts, saved layouts, controller profiles and which a
 Nothing about a game lives only in the web player, except this device's own choices: which connection mode to force,
 whether to show touch controls, and which controller is on which player.
 
-**To be added when the shared contract lands:** these routes under `/api/v1`, entries in `docs/openapi.json` and
-`docs/CLIENT-API.md`, a `games` feature in `/capabilities`, and a `game` case in `/items/{id}/playback` that points to
-`POST /games/{id}/play`.
+**With the rest of the API:** these routes are under `/api/v1` as well. `GET /capabilities` lists `games` in `libraryTypes`, and `game-metadata`, `game-settings`, `game-controller-profiles`, `custom-game-cores` and `game-rigs` in `features`. `POST /items/{id}/playback` is for videos and answers 400 for a game: start one with `POST /games/{id}/play`.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

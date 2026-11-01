@@ -133,7 +133,7 @@ function CustomAgents() {
         <div className="set-empty">
           <IconPlug size={28} />
           <b>No custom agents yet</b>
-          <p>An agent is an address like <code>https://my-catalogue.local/lookup?title={'{title}'}&amp;year={'{year}'}</code> that answers with JSON. The format is in the <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/METADATA.md#custom-agents" target="_blank" rel="noreferrer">metadata guide</a>.</p>
+          <p>An agent is an address like <code>https://my-catalogue.local/lookup?title={'{title}'}&amp;year={'{year}'}</code> that answers with JSON. The format is in the <Link to="/help/metadata#custom-agents">metadata guide</Link>.</p>
         </div>
       ) : (
         <ol className="set-list">

@@ -1,14 +1,15 @@
-# WittyChannels
+# Creator videos, music videos and concerts
 
-Your archive of creators' videos, laid out the way people know from video sites: a home of
-recommendations, subscriptions, a page per channel, and a watch page with comments and what's next.
+Use this guide to lay out your archive of creators' videos the way people know from video sites, with subscriptions, a page per channel, comments and what's next. It also covers music video and concert libraries, which use the same screens.
 
-WittyChannels shows video collections you already have on disk. It doesn't download anything and never
-contacts a video site.
+These libraries, also called WittyChannels, show video collections you already have on disk. They don't download anything and never contact a video site.
+
+The Android and Apple apps can't open these libraries yet, so use a browser or the desktop app.
 
 ## Setting it up
 
-Add a library of the kind **Creator videos**. One folder per channel, with subfolders as playlists:
+1. Go to **Settings → Libraries**, or use first-time setup, and choose **Creator videos**.
+2. Choose its folder, with one folder per channel and subfolders as playlists:
 
 ```
 Creator videos/
@@ -23,43 +24,73 @@ Creator videos/
     a one-off.mp4
 ```
 
-The same sidecar files as [WittyShorts](SHORTS.md) apply, and the same `channel.json`:
+The same sidecar files as [vertical videos](SHORTS.md#adding-details-with-sidecar-files) apply, and the same `channel.json`:
 
 ```json
-{ "name": "Workshop Weekly", "handle": "@workshop", "description": "…", "platform": "…", "url": "https://…" }
+{ "name": "Workshop Weekly", "handle": "@workshop", "description": "A workshop channel", "platform": "Where it came from", "url": "https://example.com/workshop" }
 ```
 
-Sidecars that hold saved comments have them imported, at most 500 per video, marked as *from the archive*,
-below comments made here. A subfolder or a sidecar's `playlist_title` makes a playlist. Vertical videos
-appear on a shelf of their own, and on a channel's *Vertical* tab.
+- **Saved comments** in a sidecar are imported, at most 500 per video and the most liked first, marked *from the archive*. They can't be replied to.
+- **A playlist** comes from a subfolder or a sidecar's `playlist_title`.
+- **A thumbnail** comes from a picture with the video's name beside it.
+- **Vertical videos** appear on a shelf of their own on **Home**, and on a channel's **Vertical** tab.
 
 ## The screens
 
-- **Home:** For You, from this profile's own record on this server ([how](SHORTS.md#for-you)).
-- **Latest**, **Subscriptions**, **Channels**, **History** and **Liked**, plus search and topics.
-  History is per profile; **Clear my history** on Your year empties it.
-- **A channel:** its banner and details, with its videos, vertical videos, playlists and About.
-- **Watching:** the full player with speed, chapters, audio and subtitle tracks; likes, Share and Save;
-  the description and source; comments; and *Up next*, which goes on by itself unless you switch off
-  Autoplay. A video picks up where you stopped.
+| Tab | What it shows |
+|---|---|
+| **Home** | A feed from this profile's own record on this server. See [how it works](SHORTS.md#how-for-you-works) |
+| **Latest** | The newest videos |
+| **Subscriptions** | Videos from the channels you subscribe to |
+| **Channels** | Every channel |
+| **History** | What you've watched. Only you can see it |
+| **Liked** | What you liked |
 
-Views on a card add what the source said when archived to plays on this server, so an archive reads
-as it did.
+Search and topics sit at the top of the page. **Clear my history** on [Your year](COLLECTIONS.md#your-year) empties your history.
 
-Administrators can change a channel's details on its page, and a video's on the watch page. These stay in
-the database, and your files aren't touched.
+**A channel's page** has its banner and details, with **Videos**, **Vertical**, **Playlists** and **About** tabs. Videos sort by **Newest**, **Popular**, **Oldest** or **By title**.
 
-## Profiles and apps
+**A video's page** has:
 
-Limits work as in [WittyShorts](SHORTS.md#profiles), and the routes are [the same](SHORTS.md#for-apps).
-A channel with nothing a profile may see doesn't exist for that profile.
+- The full player with speed, audio and subtitle tracks, and **Wide view**. A video picks up where you stopped.
+- **Like**, and ✕ to see less like it.
+- **Share**, for [links](PHOTOS.md#sharing), and **Save**, for [collections](COLLECTIONS.md#collections-and-smart-playlists).
+- The description, tags, source and any fields of your own.
+- **Chapters** you can press to jump to.
+- Comments. Those made here come first, with replies. Each can be up to 2,000 characters.
+- **Up next**, which goes on by itself unless you switch off **Autoplay**.
 
-# Music videos and concerts
+**Views** on a card add what the source said when archived to plays on this server, so an archive reads as it did.
 
-A library of the kind **Music videos & concerts** uses the same screens, in its own words: an artist is a
-channel, an album a playlist, and **recordings of 20 minutes or more are listed under Concerts**. Their
-chapters show as a **setlist** on the watch page.
+**Editing:** admins can change a channel's details with **Edit** on its page, and a video's with **Edit** on its page. These stay in the database, and your files aren't touched.
 
-Name files `Artist - Title.mp4`, or keep a folder per artist. An `.nfo` beside a file is read
-(`title`, `artist`, `album`, `year`, `genre`, `tag`, `plot`), and so are the sidecars above, with `artist`
-and `album` fields. To list concerts only: `GET /api/videos?library=&length=long`.
+## Profiles
+
+Limits work as they do for [vertical videos](SHORTS.md#profiles). A channel with nothing a profile may see doesn't exist for that profile. Kids can like and subscribe, but not comment or share. A Guest can only watch.
+
+## Music videos and concerts
+
+A library of the kind **Music videos & concerts** uses the same screens, in its own words: an artist is a channel, and an album is a playlist.
+
+| Tab | What it shows |
+|---|---|
+| **Home** | A feed of what you might like |
+| **Videos** | The newest videos |
+| **Concerts** | Recordings of 20 minutes or more |
+| **Following** | Videos from artists you subscribe to |
+| **Artists** | Every artist |
+| **History** and **Liked** | The same as in creator videos |
+
+A recording of 20 minutes or more shows its chapters as a **Setlist** on its page.
+
+**Naming:** name files `Artist - Title.mp4`, or keep a folder per artist.
+
+**Details:** an `.nfo` beside a file is read for `title`, `artist`, `album`, `year`, `genre`, `tag` and `plot`. The sidecars above are read too, with `artist` and `album` fields.
+
+## For developers
+
+The routes are the same as for [vertical videos](SHORTS.md#for-developers). To list concerts only: `GET /api/videos?library=&length=long`.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

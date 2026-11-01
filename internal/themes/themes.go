@@ -23,6 +23,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/wittywilla/wittymediaserver/internal/zipsafe"
 )
 
 // Meta is theme.json.
@@ -250,6 +252,9 @@ func (m *Manager) ZipPath(id string) (string, error) { return m.zipPath(id) }
 func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
 	if len(data) > maxZipBytes {
 		return nil, fmt.Errorf("theme ZIP is larger than %d MB", maxZipBytes>>20)
+	}
+	if err := zipsafe.Check(bytes.NewReader(data), int64(len(data)), zipsafe.Limits{MaxEntries: 1000, MaxDirectory: 1 << 20}); err != nil {
+		return nil, errors.New("not a ZIP file: themes must be packed as .zip")
 	}
 	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {

@@ -30,6 +30,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/nwaples/rardecode/v2"
 	"github.com/ulikunitz/xz"
+	"github.com/wittywilla/wittymediaserver/internal/zipsafe"
 )
 
 const (
@@ -428,22 +429,14 @@ func checkZipDirectory(p string) error {
 	if err != nil {
 		return err
 	}
-	tail := min(st.Size(), 65557)
-	buf := make([]byte, tail)
-	if _, err := f.ReadAt(buf, st.Size()-tail); err != nil {
-		return err
-	}
-	i := bytes.LastIndex(buf, []byte("PK\x05\x06"))
-	if i < 0 || i+22 > len(buf) {
+	err = zipsafe.Check(f, st.Size(), zipsafe.Limits{MaxEntries: MaxEntries, MaxDirectory: MaxEntries * (46 + maxNameLen + 1024)})
+	switch {
+	case errors.Is(err, zipsafe.ErrDamaged):
 		return ErrDamaged
-	}
-	if n := binary.LittleEndian.Uint16(buf[i+10:]); n != 0xffff && int(n) > MaxEntries {
+	case errors.Is(err, zipsafe.ErrTooLarge):
 		return ErrTooMany
 	}
-	if size := binary.LittleEndian.Uint32(buf[i+12:]); size != 0xffffffff && int64(size) > MaxEntries*(46+maxNameLen+1024) {
-		return ErrTooMany
-	}
-	return nil
+	return err
 }
 
 func openZip(p string) (*zip.ReadCloser, error) {

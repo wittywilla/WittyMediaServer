@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/zipsafe"
 )
 
 // Books, comics and manga. Files that share a name in a folder are one
@@ -600,9 +601,19 @@ type zipFile struct {
 
 func (z *zipFile) Close() error { return z.f.Close() }
 
+// bookZip is more than a book or comic ever holds: well over 100,000 pages.
+var bookZip = zipsafe.Limits{MaxEntries: 200000, MaxDirectory: 16 << 20, MaxName: 4 << 10, MaxFolders: 1 << 20}
+
 // newZipFile takes over f.
 func newZipFile(f *os.File, st fs.FileInfo) (*zipFile, error) {
-	zr, err := zip.NewReader(f, st.Size())
+	err := zipsafe.Check(f, st.Size(), bookZip)
+	var zr *zip.Reader
+	if err == nil {
+		zr, err = zip.NewReader(f, st.Size())
+	}
+	if err == nil {
+		err = zipsafe.CheckNames(zr, bookZip)
+	}
 	if err != nil {
 		f.Close()
 		return nil, err

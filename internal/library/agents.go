@@ -109,11 +109,14 @@ type AgentResult struct {
 	Backdrop       string   `json:"backdrop"`
 }
 
-// The agents are the owner's own services, often on the local network, so
-// they are reached directly (unlike feeds and catalogues); only http(s),
-// short timeouts and small answers.
+// The agents are the owner's own services, often on the local network, so the
+// address the owner typed is reached directly (unlike feeds and catalogues).
+// Anywhere it then redirects to is the internet only: being trusted with one
+// address on the home network says nothing about the rest. Only http(s), short
+// timeouts and small answers.
 var agentClient = &http.Client{
-	Timeout: 15 * time.Second,
+	Timeout:   15 * time.Second,
+	Transport: agentTransport{},
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 4 || (req.URL.Scheme != "http" && req.URL.Scheme != "https") {
 			return errors.New("too many or unsafe redirects")
@@ -128,6 +131,28 @@ var agentClient = &http.Client{
 		}
 		return nil
 	},
+}
+
+type agentHostKey struct{}
+
+// agentTransport reaches the host in the request's context directly, and anything else the way
+// everything from the internet is reached.
+type agentTransport struct{}
+
+func (agentTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if host, _ := r.Context().Value(agentHostKey{}).(string); host != "" && strings.EqualFold(host, r.URL.Host) {
+		return http.DefaultTransport.RoundTrip(r)
+	}
+	return SafeClient.Transport.RoundTrip(r)
+}
+
+// forAgent marks a request's context with the host the owner gave.
+func forAgent(ctx context.Context, a *Agent) context.Context {
+	u, err := url.Parse(strings.NewReplacer("{title}", "x", "{year}", "", "{type}", "movie").Replace(a.URL))
+	if err != nil {
+		return ctx
+	}
+	return context.WithValue(ctx, agentHostKey{}, u.Host)
 }
 
 func agentType(libType string) string {
@@ -149,7 +174,7 @@ func (a *Agent) Lookup(ctx context.Context, title string, year *int, libType str
 		y = strconv.Itoa(*year)
 	}
 	u := strings.NewReplacer("{title}", url.QueryEscape(title), "{year}", y, "{type}", agentType(libType)).Replace(a.URL)
-	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	req, err := http.NewRequestWithContext(forAgent(ctx, a), "GET", u, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +306,7 @@ func (s *Scanner) agentImage(ctx context.Context, a *Agent, ref string) (string,
 	}
 	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(cctx, "GET", ref, nil)
+	req, err := http.NewRequestWithContext(forAgent(cctx, a), "GET", ref, nil)
 	if err != nil {
 		return "", err
 	}

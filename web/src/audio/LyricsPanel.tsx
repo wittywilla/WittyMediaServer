@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { api, fmtTime } from '../api'
 import { IconClose, IconEdit, IconRefresh } from '../icons'
 import { toast } from '../state'
@@ -42,7 +41,7 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
       {loading && <p className="np-hint">Looking for the words…</p>}
       {failed && <p className="np-note" role="alert">{failed}</p>}
       {lyrics?.instrumental && <p className="np-empty">This one has no words.</p>}
-      {lyrics && !loading && !lyrics.instrumental && !lyrics.plain && <NoLyrics online={lyrics.online} canEdit={lyrics.canEdit} tried={lyrics.tried} failed={lyrics.failed} />}
+      {lyrics && !loading && !lyrics.instrumental && !lyrics.plain && <NoLyrics p={p} online={lyrics.online} canEdit={lyrics.canEdit} tried={lyrics.tried} failed={lyrics.failed} />}
       {lines.length > 0 ? (
         <ol className="np-lines" ref={box} onWheel={hold} onTouchMove={hold}>
           {lines.map((l, i) => (
@@ -73,7 +72,7 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
   )
 }
 
-function NoLyrics({ online, canEdit, tried, failed }: { online: boolean; canEdit: boolean; tried: boolean; failed?: string }) {
+function NoLyrics({ p, online, canEdit, tried, failed }: { p: PlayerView; online: boolean; canEdit: boolean; tried: boolean; failed?: string }) {
   if (failed) return <p className="np-empty">The lyrics source couldn't be reached just now. It'll be tried again next time.</p>
   if (tried) return <p className="np-empty">No words found for this song online. {canEdit ? 'Fix lets you search under another name, or add them yourself.' : ''}</p>
   if (online) return <p className="np-empty">No words found for this song.</p>
@@ -81,7 +80,7 @@ function NoLyrics({ online, canEdit, tried, failed }: { online: boolean; canEdit
     <div className="np-empty">
       <p>No words here. A <code>.lrc</code> file with the same name as the song, beside it, is used first.</p>
       {canEdit
-        ? <p>Or find them online for free, if you agree: <Link to="/settings/metadata#lyrics">turn on online lyrics</Link> in Settings. Your server sends only the artist, title, album and length.</p>
+        ? <p>Or find them online for free, if you agree: <button type="button" className="np-link" onClick={() => p.goTowards('/settings/metadata#lyrics')}>turn on online lyrics</button> in Settings. Your server sends only the artist, title, album and length.</p>
         : <p>Whoever runs this server can also turn on finding them online.</p>}
     </div>
   )

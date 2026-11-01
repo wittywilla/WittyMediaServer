@@ -109,7 +109,7 @@ test('settings from anywhere are made safe', () => {
   assert.equal(s.on, false)
   assert.equal(s.effect, null)
   assert.equal(s.random, true)
-  assert.equal(s.cycleSec, 30)
+  assert.equal(s.cycleSec, 0)
   assert.deepEqual(s.favourites, ['a', 'b'])
   assert.equal(s.intensity, 1.5)
   assert.equal(s.sensitivity, 0.25)

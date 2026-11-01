@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, type Album, type Item, type Library } from '../../api'
 import { useArtColour } from '../../audio/art'
 import { IconStation } from '../../audio/icons'
@@ -63,7 +63,7 @@ export default function ArtistPage() {
           </div>
           {info.bio && <p className="mh-bio">{info.bio}</p>}
           {info.bio && info.bioUrl && <p className="mh-credit">From <a href={info.bioUrl} target="_blank" rel="noreferrer">Wikipedia</a>, available under CC BY-SA 4.0. It's the article with this name, which may not always be the right person.</p>}
-          {!info.online && !info.bio && user?.isAdmin && <p className="mh-credit">Biographies and photos can come from Wikipedia, if you turn on <a href="/settings/metadata#lyrics">online music information</a>. An <code>artist.jpg</code> in their folder is used first.</p>}
+          {!info.online && !info.bio && user?.isAdmin && <p className="mh-credit">Biographies and photos can come from Wikipedia, if you turn on <Link to="/settings/metadata#lyrics">online music information</Link>. An <code>artist.jpg</code> in their folder is used first.</p>}
         </div>
       </header>
       {top.length > 0 && !books && <Shelf title={info.top.length ? 'Your most played' : 'Songs'}><TrackList items={top} showAlbum onPlay={(i) => audio.play(top, i, mode)} /></Shelf>}

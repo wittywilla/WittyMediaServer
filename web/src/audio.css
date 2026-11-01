@@ -88,7 +88,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   .audio-bar { bottom: calc(70px + env(safe-area-inset-bottom)); padding: 8px; grid-template-columns: 48px minmax(0, 1fr) auto auto; }
   .ab-art { width: 48px; height: 48px; }
   .ab-progress { left: 16px; right: 16px; top: -7px; }
-  .app:has(~ .audio-bar) .content, .audio-bar ~ .app .content { padding-bottom: 200px; }
+  .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 200px; }
 }
 @media (min-width: 900px) {
   .audio-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(1320px, calc(100% - 48px)); padding: 12px 12px 8px 12px; grid-template-columns: 64px minmax(120px, 1fr) auto auto auto; gap: 0 4px; }
@@ -98,8 +98,10 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   .audio-bar .wide { display: inline-grid; }
   .audio-bar .ab-side.wide { display: flex; }
   .audio-bar .phone-only { display: none; }
+  /* Over the page, not the menu beside it. */
+  .app.nav-open:not(.nav-top) ~ .audio-bar { left: calc(50% + var(--sidebar) / 2); width: min(1320px, calc(100% - var(--sidebar) - 48px)); }
   /* Room under the page for the bar, so the last row is never hidden. */
-  .app:has(~ .audio-bar) .content { padding-bottom: 128px; }
+  .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
 }
 @media (min-width: 900px) and (max-width: 1240px) {
   .ab-viz-pill span, .ab-time { display: none; }
@@ -118,8 +120,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .mp-ibtn:hover { background: var(--hover); }
 .mp-ibtn:active { transform: scale(.94); }
 .mp-pop { position: relative; display: inline-flex; }
-.mp-pop-body { position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 220px; max-height: min(60vh, 460px); overflow-y: auto; padding: 6px; border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-3); color: var(--fg); }
-.mp-pop.up .mp-pop-body { top: auto; bottom: calc(100% + 12px); }
+.mp-pop-body { position: fixed; z-index: 80; min-width: 220px; max-width: calc(100vw - 16px); max-height: min(60vh, 460px); overflow-y: auto; padding: 6px; border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-3); color: var(--fg); }
 .mp-menu { display: grid; gap: 1px; }
 .mp-menu button { display: flex; align-items: center; gap: 10px; min-height: 44px; width: 100%; padding: 0 12px; border: 0; border-radius: var(--r-md); background: none; color: inherit; font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; white-space: nowrap; }
 .mp-menu button:hover, .mp-menu button:focus-visible { background: var(--hover); }

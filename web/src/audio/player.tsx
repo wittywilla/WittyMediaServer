@@ -254,6 +254,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('popstate', pop)
       app?.removeAttribute('inert')
       document.documentElement.classList.remove('np-open')
+      // Back where the person came from: the bar, which has just returned.
+      requestAnimationFrame(() => {
+        for (const el of document.querySelectorAll<HTMLElement>('.ab-expand, .audio-bar .phone-only')) {
+          el.focus({ preventScroll: true })
+          if (document.activeElement === el) break
+        }
+      })
     }
   }, [full])
   const setCollapsed = (v: boolean) => {

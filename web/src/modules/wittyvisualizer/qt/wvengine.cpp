@@ -23,8 +23,8 @@ void Settings::load(QSettings &s)
     on = s.value(QStringLiteral("on"), false).toBool();
     effect = s.value(QStringLiteral("effect")).toString().left(40);
     random = s.value(QStringLiteral("random"), true).toBool();
-    const int c = s.value(QStringLiteral("cycleSec"), 30).toInt();
-    cycleSec = cycleChoices().contains(c) ? c : 30;
+    const int c = s.value(QStringLiteral("cycleSec"), 0).toInt();
+    cycleSec = cycleChoices().contains(c) ? c : 0;
     favourites = s.value(QStringLiteral("favourites")).toStringList().mid(0, 64);
     favouritesOnly = s.value(QStringLiteral("favouritesOnly"), false).toBool();
     intensity = std::clamp(s.value(QStringLiteral("intensity"), 1.0).toDouble(), 0.3, 1.5);

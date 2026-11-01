@@ -25,7 +25,7 @@ struct Settings {
     bool on = false;
     QString effect;
     bool random = true;
-    int cycleSec = 30;
+    int cycleSec = 0; // stays on one effect unless someone chooses otherwise
     QStringList favourites;
     bool favouritesOnly = false;
     double intensity = 1;

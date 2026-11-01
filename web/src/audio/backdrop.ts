@@ -32,6 +32,7 @@ export class Backdrop {
   // Paused music settles, and then nothing is drawn at all until it plays again.
   active = true
   private calm = false
+  private idle = false
   private sizer: ResizeObserver
 
   constructor(canvas: HTMLCanvasElement, media: () => HTMLMediaElement | null) {
@@ -106,6 +107,11 @@ export class Backdrop {
     this.last = now
     const heard = this.active && this.listener.read(this.freq)
     this.measure(heard, dt, now)
+    // Settled and paused: what's on screen is already right, so nothing is drawn.
+    if (!this.active && this.levels.every((v) => v < 0.004)) {
+      if (this.idle) return
+      this.idle = true
+    } else this.idle = false
     this.t += dt * (this.slow || this.calm ? 0.35 : 1)
     this.g.clearRect(0, 0, this.w, this.h)
     if (this.style === 'bars') this.drawBars()
@@ -126,7 +132,7 @@ export class Backdrop {
         let peak = 0
         for (let k = a; k < b && k < this.freq.length; k++) peak = Math.max(peak, this.freq[k])
         // The top of the range is quieter in nearly all music: lift it to match.
-        v = Math.pow((peak / 255) * (1 + (i / n) * 0.8), 1.5)
+        v = Math.pow((peak / 255) * (1 + (i / n) * 0.45), 3)
       } else if (this.active) {
         // Nothing to read here (another address, an iPhone): a slow swell, and not a pretence.
         v = 0.18 + 0.1 * Math.sin(now / 1400 + i * 0.5) + 0.05 * Math.sin(now / 700 + i)

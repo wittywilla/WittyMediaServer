@@ -4,7 +4,7 @@
 .mh { position: relative; min-width: 0; }
 .mh-toolbar { position: relative; z-index: 1; }
 .mh .grow { flex: 1; }
-.mh-bg { position: absolute; left: calc(var(--page-x, 0px) * -1); right: calc(var(--page-x, 0px) * -1); top: calc(var(--sp-6) * -1); height: min(720px, 90vh); pointer-events: none; z-index: 0;
+.mh-bg { position: absolute; left: calc(var(--gutter) * -1); right: calc(var(--gutter) * -1); top: -120px; height: min(720px, 90vh); pointer-events: none; z-index: 0;
   background: radial-gradient(70% 70% at 50% 0%, rgb(var(--art, 120 120 135) / .34), rgb(var(--art, 120 120 135) / .08) 60%, transparent 80%); transition: background var(--dur-3); }
 .album-page { position: relative; }
 .album-page > *:not(.mh-bg) { position: relative; z-index: 1; }
@@ -30,7 +30,7 @@
 .cf-art img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .cf-art .ph { position: absolute; inset: 0; }
 .cf-reflect { display: block; height: 18%; margin-top: 6px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); }
-.cf-reflect img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transform: scaleY(-1); margin-top: calc(var(--cf-size) * -1 + 100%); pointer-events: none; }
+.cf-reflect img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transform: scaleY(-1); pointer-events: none; }
 .cf-cover:focus-visible { outline: none; }
 .cf-cover:focus-visible .cf-art { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
 .cf-step { position: absolute; top: calc(var(--cf-size) / 2); transform: translateY(-50%); z-index: 20; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--scrim); color: var(--on-image, #fff); cursor: pointer; }
@@ -75,7 +75,7 @@
 .mh-artist:focus-visible { outline: none; }
 .mh-artist:focus-visible .mh-artist-photo { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
 .mh-artist-reflect { position: relative; display: block; width: 100%; height: 22px; margin-top: 2px; overflow: hidden; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); }
-.mh-artist-reflect img { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; transform: scaleY(-1); }
+.mh-artist-reflect img { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; transform: scaleY(-1); }
 .mh-artist-reflect .mh-initial { display: none; }
 .mh-artist-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); justify-items: center; }
 .mh-artist-grid .mh-artist { width: 100%; }

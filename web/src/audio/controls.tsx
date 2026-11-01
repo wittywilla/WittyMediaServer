@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { api, fmtTime, type Item } from '../api'
 import { IconMute, IconPlus, IconVolume } from '../icons'
 import { toast } from '../state'
@@ -8,13 +9,29 @@ import type { PlayerView } from './types'
 // Pieces the bar and the full player share.
 
 // A button with something that opens from it. Escape and a press elsewhere close it, and
-// Escape stops there: it shouldn't also close the player underneath.
+// Escape stops there: it shouldn't also close the player underneath. What opens is placed on
+// the page itself, as these buttons are often inside rows that scroll and would cut it off.
 export function Pop({ label, icon, children, className, on, up }: { label: string; icon: ReactNode; children: (close: () => void) => ReactNode; className?: string; on?: boolean; up?: boolean }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
+  const body = useRef<HTMLDivElement>(null)
+  const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
+  useLayoutEffect(() => {
+    if (!open) { setPlace(null); return }
+    const b = box.current?.getBoundingClientRect(), m = body.current?.getBoundingClientRect()
+    if (!b || !m) return
+    const room = 8
+    const left = Math.max(room, Math.min(innerWidth - m.width - room, b.right - m.width))
+    const below = b.bottom + room
+    const above = b.top - m.height - room
+    const fitsBelow = below + m.height <= innerHeight - room
+    const top = up ? (above >= room ? above : below) : fitsBelow ? below : Math.max(room, above)
+    setPlace({ left, top })
+    body.current?.querySelector<HTMLElement>('[autofocus], input, button, a')?.focus({ preventScroll: true })
+  }, [open, up])
   useEffect(() => {
     if (!open) return
-    const out = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const out = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node) && !body.current?.contains(e.target as Node)) setOpen(false) }
     const esc = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' && e.key !== 'GoBack' && e.key !== 'BrowserBack') return
       e.preventDefault()
@@ -27,9 +44,13 @@ export function Pop({ label, icon, children, className, on, up }: { label: strin
     return () => { window.removeEventListener('pointerdown', out); window.removeEventListener('keydown', esc, true) }
   }, [open])
   return (
-    <div className={'mp-pop' + (up ? ' up' : '')} ref={box}>
+    <div className="mp-pop" ref={box}>
       <button type="button" className={'mp-ibtn ' + (className || '') + (on ? ' on' : '')} aria-label={label} title={label} aria-haspopup="true" aria-expanded={open} onClick={() => setOpen(!open)}>{icon}</button>
-      {open && <div className="mp-pop-body" role="group" aria-label={label}>{children(() => setOpen(false))}</div>}
+      {open && createPortal(
+        <div className="mp-pop-body" ref={body} role="group" aria-label={label} style={place ? { left: place.left, top: place.top } : { left: 0, top: 0, visibility: 'hidden' }}
+          onBlur={(e) => { const to = e.relatedTarget as Node | null; if (to && !body.current?.contains(to) && !box.current?.contains(to)) setOpen(false) }}>
+          {children(() => { setOpen(false); box.current?.querySelector<HTMLElement>(':scope > button')?.focus({ preventScroll: true }) })}
+        </div>, box.current?.closest('.kar, .np') || document.body)}
     </div>
   )
 }

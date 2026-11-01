@@ -162,7 +162,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
   return (
-    <div className={'np audio-bar full' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {p.vizHere && prefsLoaded && prefs.viz && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}

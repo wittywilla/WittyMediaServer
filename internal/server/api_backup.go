@@ -348,8 +348,21 @@ func (s *Server) handleBackupCancel(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// DELETE /api/backup/files/{name}
+// DELETE /api/backup/files/{name} {password, code}: a backup is the way back from whatever a
+// stolen session does to everything else, so it takes more than the session to remove one.
 func (s *Server) handleBackupDelete(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.backupFolders().PathOf(r.PathValue("name")); err != nil {
+		writeErr(w, 404, "no such backup")
+		return
+	}
+	var body resetBody
+	if err := readJSON(r, &body); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.resetAllowed(w, r, body) {
+		return
+	}
 	if err := backup.Delete(s.backupFolders(), r.PathValue("name")); err != nil {
 		writeErr(w, 404, "no such backup")
 		return
@@ -439,6 +452,9 @@ func (s *Server) handleBackupSchedule(w http.ResponseWriter, r *http.Request) {
 		backupSchedule
 		Password      string `json:"password"`
 		ClearPassword bool   `json:"clearPassword"`
+		// Your own password and code, to keep fewer: that removes backups at the next run.
+		Current string `json:"current"`
+		Code    string `json:"code"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -464,6 +480,9 @@ func (s *Server) handleBackupSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	if b.Keep < s.loadBackupSchedule(ctx).Keep && !s.confirmOwner(w, r, b.Current, b.Code) {
+		return
+	}
 	sc := backupSchedule{Frequency: b.Frequency, Hour: b.Hour, Weekday: b.Weekday, Keep: b.Keep, Parts: parts}
 	js, err := json.Marshal(sc)
 	if err != nil {

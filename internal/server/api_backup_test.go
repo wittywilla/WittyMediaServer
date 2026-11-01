@@ -249,8 +249,12 @@ func TestBackupThroughTheRoutes(t *testing.T) {
 		t.Error("what was unpacked is still there")
 	}
 
-	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, nil); w.Code != 200 {
-		t.Fatalf("%d", w.Code)
+	// A stolen session can't take away the way back.
+	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, nil); w.Code != 403 {
+		t.Fatalf("deleted with no password: %d", w.Code)
+	}
+	if w := b.call("DELETE", "/api/backup/files/"+j.File, b.admin, map[string]any{"password": backupPassword}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	if w := b.call("GET", link.URL, "", nil); w.Code != 404 {
 		t.Errorf("a ticket outlived its file: %d", w.Code)
@@ -404,10 +408,14 @@ func TestScheduledBackupRuns(t *testing.T) {
 		at := time.Now().Add(-30 * 24 * time.Hour)
 		_ = os.Chtimes(filepath.Join(f.Dir(), name), at, at)
 	}
-	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": "short"}); w.Code != 400 {
+	// Keeping fewer removes backups, so it takes more than the session.
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}}); w.Code != 403 {
+		t.Fatalf("kept fewer with no password: %d", w.Code)
+	}
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "current": backupPassword, "password": "short"}); w.Code != 400 {
 		t.Fatalf("a short password: %d", w.Code)
 	}
-	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "password": backupPassword}); w.Code != 200 {
+	if w := b.call("PUT", "/api/backup/schedule", b.admin, map[string]any{"frequency": "daily", "hour": 3, "keep": 1, "parts": []string{"settings"}, "current": backupPassword, "password": backupPassword}); w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	// The key isn't the password, and neither is shown.

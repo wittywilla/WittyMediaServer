@@ -561,8 +561,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/backup/estimate` | Admin | Nothing further |
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
 | `POST /api/backup/cancel` | An admin, or before any account exists the home network or the setup code | Nothing: stops the job going |
-| `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it |
-| `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there |
+| `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
+| `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
 | `POST /api/backup/restore/upload` | An admin, or before any account exists the home network or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
@@ -584,7 +584,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/libtranscode/settings` | Admin | Nothing further |
 | `PUT /api/libtranscode/settings` | Admin | Numbers within their ranges |
 | `GET /api/libtranscode/libraries` | Admin | Nothing further |
-| `PUT /api/libtranscode/libraries/{id}` | Admin | A library that holds video. Every choice in a recipe is from a list or a range, and languages are checked by form. Known output |
+| `PUT /api/libtranscode/libraries/{id}` | Admin | A library that holds video. Every choice in a recipe is from a list or a range, and languages are checked by form. Known output. Starting to replace originals takes the account's password, and code with two-factor sign-in |
 | `GET /api/libtranscode/libraries/{id}/items` | Admin | A library that holds video. At most 100 answered |
 | `POST /api/libtranscode/libraries/{id}/preview` | Admin | A library that holds video. Item in that library. Recipe as for saving |
 | `POST /api/libtranscode/libraries/{id}/sample` | Admin | As a preview. Writes only to the cache |

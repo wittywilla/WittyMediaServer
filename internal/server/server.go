@@ -696,6 +696,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		} else {
 			h.Set("Content-Security-Policy", appCSP)
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
+			h.Set("Permissions-Policy", appPermissions)
 		}
 		if r.TLS != nil && r.TLS.ServerName != "" {
 			h.Set("Strict-Transport-Security", hsts)
@@ -710,9 +711,13 @@ const hsts = "max-age=604800"
 
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
-const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
+const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; " +
 	"media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// appPermissions: browser features the app has no use for. Whatever a bundle or a bug tried,
+// it can't ask for the camera. Gamepads, full screen and picture-in-picture stay.
+const appPermissions = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), display-capture=(), browsing-topics=()"
 
 // apiCSP: a sandbox with no scripts, for everything under /api/.
 const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"

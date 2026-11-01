@@ -152,6 +152,16 @@ func TestHeadersSetPolicyForAPI(t *testing.T) {
 	if strings.Contains(apiCSP, "script-src") || !strings.Contains(apiCSP, "default-src 'none'") {
 		t.Errorf("apiCSP allows scripts: %s", apiCSP)
 	}
+	// React's style props go through the DOM and need nothing. Only a <style> or a style
+	// attribute in markup does, which is also how injected markup would restyle a page.
+	if strings.Contains(appCSP, "unsafe-inline") || strings.Contains(appCSP, "unsafe-eval'") && !strings.Contains(appCSP, "wasm-unsafe-eval") {
+		t.Errorf("appCSP: %s", appCSP)
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if !strings.Contains(w.Header().Get("Permissions-Policy"), "camera=()") {
+		t.Errorf("permissions: %v", w.Header())
+	}
 }
 
 func TestWebFilesAndGzip(t *testing.T) {

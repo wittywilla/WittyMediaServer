@@ -11,7 +11,7 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: npm
-    directories: ["/web", "/apps/wittyreader", "/clients/desktop", "/clients/mobile"]
+    directories: ["/web", "/apps/wittyreader", "/clients/desktop", "/clients/mobile", "/clients/wittymediaclient/desktop", "/modules/*/web", "/web/src/modules/*"]
     schedule:
       interval: weekly
   - package-ecosystem: docker

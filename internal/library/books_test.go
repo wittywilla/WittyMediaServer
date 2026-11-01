@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseComicName(t *testing.T) {
@@ -127,5 +128,82 @@ func TestFeedEntitiesAreNotExpanded(t *testing.T) {
 	fd, err := parseFeed(strings.NewReader(doc))
 	if err == nil && strings.Contains(fd.Channel.Title, "SECRET") {
 		t.Fatalf("read a local file through an XML entity: %q", fd.Channel.Title)
+	}
+}
+
+// chapterZip is a book of one chapter.
+func chapterZip(t *testing.T, chapter string) *zip.Reader {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	f, err := w.Create("c.xhtml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte(chapter)); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return zr
+}
+
+// An opening tag with no closing one made every match look to the end of the text: a 488-byte
+// book pinned a core for a minute, and the largest chapter for days, per request.
+func TestChapterTextIsLinear(t *testing.T) {
+	for _, tag := range []string{"<script>", "<style>", "<head>", "<script x=1>", "<", "<a", "</", "<script"} {
+		zr := chapterZip(t, strings.Repeat(tag, (16<<20)/len(tag)))
+		budget := int64(bookBudget)
+		start := time.Now()
+		chapterText(zr, "c.xhtml", &budget)
+		if d := time.Since(start); d > 15*time.Second {
+			t.Errorf("%q: %v", tag, d)
+		}
+	}
+}
+
+func TestChapterTextOutput(t *testing.T) {
+	for in, want := range map[string]string{
+		"<p>One</p><p>Two</p>":                           "One Two",
+		"<head><title>No</title></head><body>Yes</body>": "Yes",
+		"a<script>var x = '<p>no</p>';</script>b":        "a b",
+		"a<style type='x'>p{}</style>b":                  "a b",
+		"a<style>p{}</script>b</style>c":                 "a b c",
+		"<script>never closed, and <b>this</b> stays":    "never closed, and this stays",
+		"one &amp; two":                                  "one & two",
+		"x < y and y > z":                                "x z",
+		"<a href='q'>link</a>":                           "link",
+		"<br/>after":                                     "after",
+		"<scripted>kept</scripted>":                      "kept",
+		"<header>kept</header>":                          "kept",
+		"unclosed <":                                     "unclosed <",
+		"a\n\n  b":                                       "a b",
+		"<head\n>h</head>body":                           "body",
+		"<><a>t":                                         "<> t",
+		"a<header>one</header><head>two</head>b":         "a one b",
+		"<script></script><script></script>t":            "t",
+	} {
+		budget := int64(bookBudget)
+		if got := chapterText(chapterZip(t, in), "c.xhtml", &budget); got != want {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+}
+
+// The search's place comes from lower-cased text, and its length has to as well: some characters
+// shrink when lowered. This panicked.
+func TestSearchWithACharacterThatShrinks(t *testing.T) {
+	zr := chapterZip(t, "<p>kk</p>")
+	if got := SearchBook(zr, []string{"c.xhtml"}, "\u212A\u212A"); len(got) != 1 {
+		t.Errorf("%+v", got)
+	}
+	zr = chapterZip(t, "<p>\u212A\u212A and more</p>")
+	if got := SearchBook(zr, []string{"c.xhtml"}, "kk"); len(got) != 1 {
+		t.Errorf("%+v", got)
 	}
 }

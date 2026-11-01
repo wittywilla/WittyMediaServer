@@ -187,6 +187,16 @@ root="$C/Program Files/WittyMediaServer"
 grep -aqi 'Services\\\\WittyMediaServer' "$WINEPREFIX/system.reg" || fail "the service wasn't registered"
 grep -a -A6 'Services\\\\WittyMediaServer\]' "$WINEPREFIX/system.reg" | head -12
 grep -aq 'serve -data' "$WINEPREFIX/system.reg" || fail "the service has no arguments"
+for _ in $(seq 1 20); do wine sc query WittyMediaServer | grep -q RUNNING && break; sleep 2; done
+wine sc query WittyMediaServer | grep -i state
+wine sc query WittyMediaServer | grep -q RUNNING || fail "the service isn't running"
+[ -f "$C/ProgramData/WittyMediaServer/wms.db" ] || fail "the service has no library"
+say "upgrade for everyone keeps the service"
+run_msi /i "$new" /qn ALLUSERS=1 || fail "machine upgrade exit $code"
+wine "$root/bin/wittymediaserver.exe" version | grep 9.9.9 || fail "still the old version"
+grep -aqi 'Services\\\\WittyMediaServer' "$WINEPREFIX/system.reg" || fail "the upgrade lost the service"
+wine sc stop WittyMediaServer >/dev/null; sleep 5
+wine sc query WittyMediaServer | grep -i state
 wine "$root/Uninstall WittyMediaServer.exe" /S /RemoveData
 wineserver -w; sleep 8; wineserver -w
 [ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the program stayed in Program Files"

@@ -133,10 +133,13 @@
         <ServiceInstall Id="Service" Name="WittyMediaServer" DisplayName="WittyMediaServer"
                         Description="Your media server, running in the background."
                         Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService"
-                        Arguments="serve -data &quot;[ServiceDataFolder]&quot; -listen :[PORT]">
+                        Arguments="--windows-service serve -data &quot;[ServiceDataFolder]&quot; -listen :[PORT]">
           <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
         </ServiceInstall>
-        <ServiceControl Id="ServiceControl" Name="WittyMediaServer" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+        <!-- Stopping is waited for, as its files can't be replaced until it has. Starting isn't: a
+             service that takes a while, or can't start yet, is no reason to undo the install. -->
+        <ServiceControl Id="ServiceStop" Name="WittyMediaServer" Stop="both" Remove="uninstall" Wait="yes" />
+        <ServiceControl Id="ServiceStart" Name="WittyMediaServer" Start="install" Wait="no" />
       </Component>
 
       <!-- Everything else: FFmpeg, licences, and modules that come with this package. -->

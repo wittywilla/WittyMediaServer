@@ -9,14 +9,17 @@ import (
 // serviceName is what the installer registers the server as.
 const serviceName = "WittyMediaServer"
 
-// runAsService runs the server under Windows' service manager when that's who started it,
+// serviceFlag is how the service is registered: its first argument says it's one, rather than
+// the program guessing from who started it.
+const serviceFlag = "--windows-service"
+
+// runAsService runs the server under Windows' service manager when it was registered that way,
 // and says so. Otherwise the caller carries on as a normal program.
 func runAsService(args []string) (int, bool) {
-	isService, err := svc.IsWindowsService()
-	if err != nil || !isService {
+	if len(args) == 0 || args[0] != serviceFlag {
 		return 0, false
 	}
-	h := &serviceHandler{args: args}
+	h := &serviceHandler{args: args[1:]}
 	if err := svc.Run(serviceName, h); err != nil {
 		return 1, true
 	}

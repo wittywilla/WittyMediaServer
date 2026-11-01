@@ -1,14 +1,20 @@
 # Code audit, October 2026
 
-*A record of one audit at 0.4.0-alpha, mainly of speed and reliability. For the security model and how it is checked today, see [SECURITY-REVIEW.md](SECURITY-REVIEW.md).*
+A record of one audit of speed and reliability at version 0.4.0-alpha (commit `4b1b1eb`), for people working on the project. For the security model and how it's checked today, see [Security model](SECURITY-REVIEW.md).
 
-A full audit of the server, the modules, the web client, the scripts and the CI workflows, at
-version 0.4.0-alpha (commit `4b1b1eb`). Every finding, what was done about it, and what was left and
-why.
+**Names here are today's, and the rest of this page is as it was at the time.**
+
+- `cmd/wittymediaserver` was called `cmd/wms`, and `cmd/wittymediaserver-tray` was `cmd/wms-tray`. The program `wittymediaserver` was `wms`.
+- The setup program, `wms-setup`, has gone: real installers replaced it.
+- The `wms.db` database keeps its name.
+- Modules and apps have since moved out of this repository. Paths like `modules/wittydisc`, `apps/wittyreader` and `clients/` are now repositories of their own: see [Repositories](REPOSITORIES.md).
+- The disc tools that were part of the server now come with their modules, as `wittydvd` and `wittybluray`.
+
+Every finding at that version, what was done about it, and what was left and why.
 
 ## How it was checked
 
-- **Read:** all of `internal/`, `cmd/wms`, `modules/wittydisc`, `modules/wittyintegratedfilebrowser`,
+- **Read:** all of `internal/`, `cmd/wittymediaserver`, `modules/wittydisc`, `modules/wittyintegratedfilebrowser`,
   the session and navigation layers of the disc engines, `web/src/api.ts`, the app shell, the
   player and library pages, the build scripts and workflows.
 - **Run against a real server** with the test media: sign-in and role checks on all 104 API routes;
@@ -17,7 +23,7 @@ why.
   Blu-ray; every page and reader in a browser, watching the console. The media folder was compared
   before and after: **nothing was written to it**.
 - **Tools:** `go vet`, `staticcheck`, `govulncheck`, `npm audit` (0 findings), a new fuzz target.
-- **Real discs after the changes:** `wms dvd crawl` on a test disc: 268 screens, 0 problems.
+- **Real discs after the changes:** `wittydvd crawl` on a test disc: 268 screens, 0 problems.
 
 ## Numbers
 
@@ -170,7 +176,7 @@ easily.
 | i | Bound the image cache | It grows with every picture ever seen | Needs a policy (what may go) |
 | j | Disc streams on leaving | The disc player closes its session, but its FFmpeg runs on up to 90 seconds | Streams are shared and the session doesn't own them; the idle stop covers it |
 | k | Per-day log size limit | One day of debug logging can grow without limit (files are capped, not their number) | Only with debug on, by the owner |
-| l | Update `golang.org/x/net` (0.60 to 0.62) and others. `staticcheck` style notes in `wittybluray` and `wms-setup` | No reachable vulnerability. Routine | Not an audit fix; the Blu-ray module is being worked on |
+| l | Update `golang.org/x/net` (0.60 to 0.62) and others. `staticcheck` style notes in `wittybluray` and the setup program | No reachable vulnerability. Routine | Not an audit fix; the Blu-ray module is being worked on |
 
 
 ## Not verified
@@ -183,14 +189,13 @@ easily.
   instead. The podcast proxy was tested against a local server.
 - **Hardware encoders**, Blu-ray menus (a Blu-ray title and a DVD were played), and audio in a real
   browser (its stream was fetched). Old browsers and TVs.
-- `clients/`, `apps/wittyreader`, `cmd/wms-tray` and `cmd/wms-setup` were skimmed for dangerous
+- `clients/`, `apps/wittyreader`, `cmd/wittymediaserver-tray` and the setup program were skimmed for dangerous
   calls only. The update engine and its tests were reviewed lightly: it was written days ago with
   an end-to-end test.
 
 ## For the Apple TV and Android TV apps
 
-The JSON APIs are a contract native apps will depend on (see `docs/CLIENT-API.md`, on the
-`client-contract` branch). Native decoders are stricter than a browser, so here is everything this
+The JSON APIs are a contract native apps will depend on: see the [client API](CLIENT-API.md). Native decoders are stricter than a browser, so here is everything this
 audit changed in what clients see.
 
 ### What changed in the API
@@ -225,7 +230,7 @@ sessions).
 
 ### Logic that lives only in the web client
 
-`docs/CLIENT-API.md` already lists what a TV app has to build itself, and moves the resume rule, how a
+The [client API](CLIENT-API.md) already lists what a TV app has to build itself, and moves the resume rule, how a
 disc starts, default tracks, language names and the direct/remux/transcode decision to the server.
 These are the ones left, which each app would otherwise write again. **None has been moved.**
 
@@ -250,28 +255,12 @@ These are the ones left, which each app would otherwise write again. **None has 
 | Low | **Library kinds** and their descriptions | `AddLibrary.tsx` | Add `/library-types` (web administration only) |
 
 The disc player's timers, clip-end watchdog and overlays are also client logic, but they depend on the
-picture on screen, so they can't move. `docs/CLIENT-API.md` describes that loop.
+picture on screen, so they can't move. The [client API](CLIENT-API.md) describes that loop.
 
-## Merging
+## Merging, at the time
 
-This branch merges into `master` without conflicts, and the merged code builds and passes its tests
-(checked at `3876761`). BD-J (`48250ea`) arrived after this audit. It runs Java code from disc images
-on the server, and has since had its own hostile testing, which found and closed real sandbox holes
-(see [BLURAY-QUIRKS.md](BLURAY-QUIRKS.md#bd-j)). The other sessions will likely touch `internal/db/db.go`
-too: if two branches add a migration, both go at the end of the list, each with its own number.
-`TestEveryRouteChecksWhoIsAsking` will fail for a new public route until it is added to
-`publicRoutes`, which is on purpose.
+This work merged into `master` without conflicts, and the merged code built and passed its tests (checked at `3876761`). BD-J (`48250ea`) arrived after this audit. It runs Java code from disc images on the server, and has since had its own hostile testing, which found and closed real sandbox holes: see [Blu-ray quirks](BLURAY-QUIRKS.md#bd-j). The client contract branch came later, with its own transcoder changes.
 
-**With `claude/client-contract-b743a1` there are conflicts** in `.github/workflows/ci.yml`,
-`CHANGELOG.md`, `internal/hls/hls.go`, `internal/hls/hls_test.go`, `internal/server/api_play.go`,
-`internal/server/server.go`, `web/src/App.tsx` and `web/src/player/PlayerPage.tsx`. Most keep both
-sides, but the transcoder needs thought, because that branch adds "growing" streams and fMP4 segments:
+---
 
-- Keep `sweepOnce`, and carry over its rule that a `Growing` stream isn't paused when idle.
-- Exempt `Growing` streams from resting and waking (`maxAheadSegs`, `wake`): as that branch says, they
-  can't continue where they were stopped. They are already paced.
-- `prune` and `wake` look for `.ts` names. fMP4 segments need their own names or an exemption, or old
-  segments stay on disk and wake never finds them.
-- `sessionDirRe` must match any new stream id prefix, or startup cleanup leaves those folders behind.
-- Its new pages in `App.tsx` should load the same way as the others (`lazy`).
-- In CI, keep the race detector and vulnerability report, and its `WMS_TEST_LAN=1`.
+<sub>WittyMediaServer documentation</sub>

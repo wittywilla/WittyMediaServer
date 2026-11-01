@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { IconDownload, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
@@ -17,7 +18,6 @@ import { tiltBlocked } from '../ui/tilt'
 import { getTenFoot, setTenFoot } from '../ui/tenFoot'
 import { useUserPref } from '../ui/userPrefs'
 
-const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
 
 const SCENE_VARS: Record<string, string> = { bg: '--bg', bg2: '--bg-2', bg3: '--bg-3', bg4: '--bg-4', fg: '--fg', fg2: '--fg-2', fg3: '--fg-3', accent: '--accent', accentHover: '--accent-2', accentFg: '--accent-fg', accentText: '--accent-text' }
 
@@ -182,7 +182,7 @@ export default function AppearanceSettings() {
             <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
             <Button variant="ghost" onClick={() => fileRef.current?.click()}>Install a theme ZIP…</Button>
           </>}
-          <a className="small-note" href={DOCS} target="_blank" rel="noreferrer">How themes work</a>
+          <Link className="small-note" to="/help/themes">How themes work</Link>
         </div>
         {making && <ThemeMaker start={custom || FRESH_MAKER} admin={admin} onClose={() => setMaking(false)} onDevice={madeForDevice} onServer={madeForServer} />}
       </div>

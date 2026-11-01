@@ -62,7 +62,7 @@ func checkConfigFile(_ context.Context, e *DoctorEnv) []Issue {
 			Fix:  "Correct the file, or rename it to use the defaults.",
 			Steps: []string{
 				"Open " + name + " in a text editor. It's JSON: names and text in double quotes, with a comma between entries and none after the last.",
-				"Only the names in docs/CONFIG.md are allowed, so a misspelled one stops the server. Correct it or remove it.",
+				"Only the names in Help, Config file and folders, are allowed, so a misspelled one stops the server. Correct it or remove it.",
 				"Or rename the file to wms.json.old, and the server starts with its defaults. wittymediaserver config init writes a new one.",
 			}})
 		return out
@@ -257,7 +257,7 @@ func checkDiskSpace(_ context.Context, e *DoctorEnv) []Issue {
 			Fix:  "Make room, or move a folder to a bigger drive.",
 			Steps: []string{
 				"Delete what you don't need from that drive. The safety copies in " + BackupsDir(e.Data) + " and copies under Settings, Reset can go.",
-				"To move folders that fill up to another drive, set transcodeDir and metadataDir in wms.json (see docs/CONFIG.md).",
+				"To move folders that fill up to another drive, set transcodeDir and metadataDir in wms.json (see Help, Config file and folders).",
 			}})
 	}
 	return out

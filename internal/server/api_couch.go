@@ -1186,7 +1186,7 @@ func writeCouchStartError(w http.ResponseWriter, u *auth.User, err error) {
 	var se *gamestream.StatusError
 	switch {
 	case errors.Is(err, relay.ErrNoProgram):
-		writeJSON(w, 503, map[string]any{"error": "This server doesn't have its Moonlight program yet. It's a separate download: see Settings, WittyCouch.", "needProgram": true})
+		writeJSON(w, 503, map[string]any{"error": "This server doesn't have its Moonlight program yet. It's a separate download: see Settings, Game PCs.", "needProgram": true})
 	case errors.Is(err, errCouchFull):
 		writeErr(w, 503, err.Error())
 	case errors.Is(err, errCouchStarting):

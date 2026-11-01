@@ -309,7 +309,7 @@ func Parse(args []string) (*Config, error) {
 	c := &Config{ConfigFile: path, Portable: portable}
 	fs := flag.NewFlagSet(layout.ServerCommand, flag.ContinueOnError)
 	var configFlag string
-	fs.StringVar(&configFlag, "config", "", "config file (WMS_CONFIG); see docs/CONFIG.md")
+	fs.StringVar(&configFlag, "config", "", "config file (WMS_CONFIG); see Help in the app, Config file and folders")
 	fs.StringVar(&c.DataDir, "data", env("WMS_DATA_DIR", or(rel(f.DataDir), dataDef)), "data directory (WMS_DATA_DIR)")
 	fs.StringVar(&c.Listen, "listen", env("WMS_LISTEN", or(f.Listen, ":"+strconv.Itoa(DefaultPort))), "listen address (WMS_LISTEN)")
 	fs.StringVar(&c.FFmpegPath, "ffmpeg", env("WMS_FFMPEG", rel(f.FFmpeg)), "path to ffmpeg (WMS_FFMPEG); default: bundled or PATH")

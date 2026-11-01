@@ -49,6 +49,8 @@ export default defineConfig({
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false, target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'] },
   server: {
     port: 5173,
+    // The guides and legal wording are outside web/.
+    fs: { allow: ['..'] },
     proxy: { '/api': { target: process.env.WMS_API || 'http://127.0.0.1:9797', changeOrigin: false } },
   },
 })

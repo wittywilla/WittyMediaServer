@@ -1,166 +1,216 @@
 # Backup and restore
 
-A backup is one ZIP file holding your server's data and metadata. Make one before a reset, before moving to another
-machine, or on a schedule, and bring it back when you need to. Your media files are never in it: they stay where they are.
+Keep a copy of your server's data and metadata in one ZIP file, and bring it back after a reset, a failed drive or a move to another machine. Your media files are never in a backup: they stay where they are.
+
+Backups are for administrators. They have not been run on a real Mac or on FreeBSD yet.
 
 - [Making a backup](#making-a-backup)
-- [What's in it, and what isn't](#whats-in-it-and-what-isnt)
-- [Passwords and secrets](#passwords-and-secrets)
-- [On a schedule](#on-a-schedule)
-- [Bringing one back](#bringing-one-back)
-- [Starting again from a reset](#starting-again-from-a-reset)
+- [What's in a backup](#whats-in-a-backup)
+- [What isn't in a backup](#what-isnt-in-a-backup)
+- [The password](#the-password)
+- [Backing up on a schedule](#backing-up-on-a-schedule)
+- [Restoring a backup](#restoring-a-backup)
+- [Undoing a restore](#undoing-a-restore)
+- [Restoring during first-time setup](#restoring-during-first-time-setup)
 - [What happens to sign-ins, keys and modules](#what-happens-to-sign-ins-keys-and-modules)
 - [Moving to another machine or drive](#moving-to-another-machine-or-drive)
 - [Why a backup might be refused](#why-a-backup-might-be-refused)
 - [From the command line](#from-the-command-line)
-- [How it stays safe](#how-it-stays-safe)
+- [For developers](#for-developers)
 
 ## Making a backup
 
-*Settings → Backup*, tick what to include, set a password, and press **Make a backup now**. The page says about how large it
-will be before you start. It runs in the background, so you can leave the page, and it shows in the activity panel. Nobody
-has to stop watching: the database is copied at one moment in time while the server keeps running.
+1. Open **Settings → Backup**, on the **Back up** tab.
+2. Under **What to include**, tick what you want. The page says about how large each part is.
+3. Leave **Protect with a password** on, and type a password of at least 8 characters.
+4. Press **Make a backup now**.
 
-Backups are kept in the `backups` folder inside the data folder. **Download** one to keep it somewhere else: a copy on the same
-drive doesn't help if that drive fails.
+It runs in the background, so you can leave the page. It also shows on the [activity button](TASKS.md), and **Stop** ends it. Nobody has to stop watching: the database is copied at one moment in time while the server keeps running.
 
-## What's in it, and what isn't
+The finished backup is listed under **Backups on this server**, in the `backups` folder inside the data folder. **Download** it to keep a copy somewhere else, because a copy on the same drive doesn't help if that drive fails. **Download** and **Delete** each ask for your own password, since a backup holds your accounts.
+
+## What's in a backup
 
 | Part | What it covers | Normally |
 |---|---|---|
 | **Libraries and metadata** | Your libraries and everything known about what's in them: titles, matches, edits, locks and history | Included |
-| **Settings** | Everything under Settings, your server's name and logo, your own themes | Included |
-| **Accounts and profiles** | Everyone's name, profile and password, as a hash | Included |
-| **Watch history and personal data** | Progress, what's been watched, favourites, ratings, playlists, collections, notes, share links | Included |
-| **Channels and TV** | WittyTV channels, tuners, the guide, scheduled recordings, bumpers, channel logos | Included |
+| **Settings** | Everything under Settings, your server's name and logo, and your own themes | Included |
+| **Accounts and profiles** | Everyone's name, profile and password, kept only as a hash | Included |
+| **Watch history and personal data** | Progress, what's been watched, favourites, ratings, playlists, collections, notes and share links | Included |
+| **Channels and TV** | WittyTV channels, tuners, the guide, scheduled recordings, bumpers and channel logos | Included |
 | **Artwork** | Posters, backdrops and logos the server saved. They can be fetched again, so leave this out if space is tight | Included |
 | **Game saves** | Saves, saved states, game settings, bezels and backgrounds, for every account | Included |
-| **Module settings** | Which modules are on, and how each updates | Included |
-| **Metadata files** | The [folder of text files](FIXING-METADATA.md) for fixing titles by hand, if you've made one | Included |
+| **Module settings** | Which modules are on, and how each one updates | Included |
+| **Metadata files** | The [metadata folder](METADATA-FOLDER.md), if you've made one | Included |
 | **Lyrics corrections** | Lyrics someone corrected on this server. Left out unless you ask, because they're the words of songs | Left out |
 | **TV recordings** | Recordings kept in the data folder. These can be very large | Left out |
 
-Some parts need others, because their numbers refer to each other: watch history and game saves need the library and the accounts,
-and channels need the library. The page ticks those for you.
+Some parts need others, because their numbers refer to each other. Watch history and game saves need the library and the accounts, channels need the library, and recordings need channels. The page ticks those for you.
 
-**Never in a backup, whatever you tick:** your media files; modules and their programs; game cores and BIOS files; logs and reports; every
-sign-in; HTTPS certificates and game PC pairings. Programs are left out so that a backup can never put code on your machine. They install
-again from their signed releases.
+## What isn't in a backup
 
-## Passwords and secrets
+These are never in a backup, whatever you tick:
 
-**With a password** (the page's default), everything inside the ZIP is sealed with AES-256-GCM, with the key made from your password by
-Argon2id. File names can't be read either. It also proves nobody has changed the backup, since that can't be done without the password. All of
-your secrets come along: API keys, two-factor sign-in, share links and this server's identity. **If you lose the password, nobody can open the
-backup, including us.** ZIP's own passwords aren't used: the old kind can be broken in minutes.
+- **Your media files.**
+- **Programs:** modules and their helpers, game cores and BIOS files. A backup can never put a program on your machine. After a restore, install modules again under **Settings → Modules**, and add cores and BIOS files again under **Settings → Consoles & cores**. Which modules were on and how they update does come back.
+- **Sign-ins.** Everyone signs in again after a restore.
+- **Game PC pairings and custom cores.** Pair and add them again.
+- **HTTPS certificates.**
+- **Logs, reports and measurements:** crash reports, statistics history and the list of finished background work.
 
-**Without a password**, the ZIP can be opened with anything, so secrets are left out: API keys, two-factor secrets, share links, this server's
-identity, and logins inside addresses (a TV source's, for instance). Account passwords are in it as bcrypt hashes, which can't be turned back into
-a password but can be guessed at, and titles and file names can be read. Keep it private.
+## The password
 
-## On a schedule
+**With a password,** which is the page's default, everything inside the ZIP is encrypted with AES-256, using a key made from your password. File names can't be read either, and nobody can change the backup without the password. All your secrets come along: API keys, two-factor sign-in, share links and this server's identity.
 
-*Settings → Backup → Schedule*: every day or every week, at a time you choose, keeping the newest few. If the server was off at that time, the backup is
-made soon after it next starts. Older scheduled backups are removed when a new one is made; ones you made yourself never are.
+**If you lose the password, nobody can open the backup.**
 
-To protect scheduled backups, set a password there. The server keeps a key made from it rather than the password, so it can make backups with nobody
-there. That key is a secret like your API keys: anyone with your server's database could open those backups, as they could read everything in them anyway.
+**Without a password,** the ZIP can be opened with any program, so a plain archive drops what shouldn't be left lying around:
 
-## Bringing one back
+- API keys
+- two-factor secrets
+- share links
+- this server's identity
+- logins inside addresses, such as a TV source's
 
-*Settings → Backup → Restore*. Choose a file, or one already on the server, and enter its password if it has one. Then:
+Account passwords are in it as hashes. A hash can't be turned back into a password, but it can be guessed at, and titles and file names can be read. Keep a plain archive private.
 
-1. **Every file is checked** before anything changes. See [what gets refused](#why-a-backup-might-be-refused).
-2. **It shows you what's in it:** each part, with sizes; who could sign in afterwards, and which of them are administrators; which folders the server would use;
-   any web addresses it would contact; and what's been left out and why. Untick what you don't want.
-3. **You agree**, with your password and the word RESTORE.
-4. **What's on the server now moves to a safety copy** in the `backups` folder, the backup goes in, and the server restarts. If anything goes wrong on the way, even a
-   power cut, what was there goes back by itself.
+Anyone could also have changed a file with no password, so restoring one leaves out a few more things:
 
-**Only some parts?** Anything you untick stays as it is on the server. The exception is what depends on something you're replacing: if you replace the library, watch history
-can't stay, because its numbers would point at other titles. The page says so.
+- settings that hold web addresses
+- libraries set to convert new files by themselves, which you turn on again if you want them
+- recordings kept outside the data folder (the files themselves aren't touched)
 
-**Changed your mind?** The page has **Undo the last restore**, and `wittymediaserver backup undo` does the same. The newest three safety copies are kept.
+The page lists whatever it left out before you agree.
 
-## Starting again from a reset
+## Backing up on a schedule
 
-Make a backup, then *Settings → Reset*. A reset that keeps a copy leaves the `backups` folder where it is; one that deletes everything deletes those too, so download first.
-First-time setup has **Restore from a backup** on its first page, so you never have to set anything up again. From another device it asks for the setup code on the
-server's console, just as making the first account does.
+On the **Schedule** tab:
+
+1. Under **How often**, choose **Every day** or **Every week**.
+2. Choose the time, and the day for a weekly backup.
+3. Under **Keep the newest**, say how many to keep, from 1 to 365. The default is 7.
+4. Choose what to include.
+5. Set a password if you want one. With no password, secrets are left out.
+6. Press **Save**.
+
+If the server was off at that time, the backup is made soon after it next starts. Older scheduled backups are removed when a new one is made, and ones you made yourself never are. Keeping fewer than before asks for your own password, because it removes backups.
+
+The server keeps a key made from the schedule's password, not the password itself, so it can make backups with nobody there. Anyone with this server's database could open those backups, as they could read everything in them anyway.
+
+If a scheduled backup fails, the tab says why.
+
+## Restoring a backup
+
+1. Open **Settings → Backup**, on the **Restore** tab.
+2. Press **Choose a backup file**, or pick one under **Or one already on this server**. You can also press **Restore** beside a backup on the first tab.
+3. If it's protected, type its password and press **Open it**. Every file is checked before anything changes.
+4. Read **What's in it**. It lists each part with its size, **Who can sign in afterwards**, **Folders the server will use**, **Addresses it would contact**, and what was **Left out, on purpose**. If you don't recognise an administrator, stop: whoever made this backup could sign in.
+5. Untick anything you don't want.
+6. Type your own password, and `RESTORE`, and press **Restore this backup**.
+
+What's on the server now moves to a safety copy in the `backups` folder, and the server restarts with the backup in place. Anything playing is interrupted. If something goes wrong on the way, even a power cut, what was there goes back by itself.
+
+If the server can't restart itself, the page says **A restore is waiting**. Stop the server and start it again, and it happens then. **Cancel it** takes the request back.
+
+**Restoring only some parts.** Anything you untick stays as it is on the server, unless it depends on something you're replacing. If you replace the library, watch history can't stay, because its numbers would point at other titles.
+
+## Undoing a restore
+
+On the **Restore** tab, under **The last restore**, press **Undo the last restore**, type your password, and press **Put it back**. The server restarts with what it had before. The command `wittymediaserver backup undo` does the same.
+
+The newest three safety copies are kept.
+
+## Restoring during first-time setup
+
+After a reset, or on a new machine, you don't have to set anything up again.
+
+1. On the first page of setup, press **Restore from a backup**.
+2. From another device, even on your own network, type the setup code: a backup brings its own accounts, so this asks what setting up asks. It's shown on the server's console, and is in `setup-code.txt` in the data folder.
+3. Choose the file and carry on as in [Restoring a backup](#restoring-a-backup). There's no account yet, so it doesn't ask for your own password.
+
+A reset that keeps a copy leaves the `backups` folder where it is. One that deletes everything deletes those backups too, so download one first. See [the Reset page](REPAIR.md#starting-again-the-reset-page).
 
 ## What happens to sign-ins, keys and modules
 
 | | After a restore |
 |---|---|
-| **Every sign-in, on every device** | Ended. Everyone signs in again with the name and password in the backup. If you restore accounts, your current password here no longer applies |
-| **Accounts** | Replaced by those in the backup, which the page lists first, administrators included. If you don't recognise one, stop: whoever made the backup could sign in with it |
-| **API keys, two-factor, share links** | Back as they were if the backup has a password. Otherwise gone: add the keys in Settings, set two-factor up again, and share links stop working |
-| **Apps on your devices** | Connect again. With a password this server keeps its identity, and without one it gets a new one, so an app may ask you to trust it again |
-| **Remote Access** | Off until you turn it on again from home. It's never turned on by a file |
-| **Settings naming a program or folder** | Such as a Java path or a log folder. Left out, since they name something on the old machine: set them again |
-| **Modules** | Their programs aren't in a backup. Install them again from *Settings → Modules*. Which were on and how they update comes back |
+| **Every sign-in, on every device** | Ended. Everyone signs in again with the name and password in the backup. If you restored accounts, your current password here no longer applies |
+| **Accounts** | Replaced by those in the backup, administrators included |
+| **API keys, two-factor, share links** | Back as they were if the backup has a password. Otherwise gone: add the keys in Settings, set two-factor up again, and make new share links |
+| **Apps on your devices** | Connect again. With a password this server keeps its identity. Without one it gets a new one, so an app may ask you to trust it again |
+| **Remote Access** | Off until you turn it on again from home. A file never turns it on |
+| **Settings naming a program or folder** | Left out, such as a Java path or a log folder, since they name something on the old machine. Set them again |
+| **Modules** | Install them again under **Settings → Modules** |
 | **Game PCs, custom cores, BIOS files** | Pair and add them again |
 
 ## Moving to another machine or drive
 
-Restore as usual, on the new machine. The library's folders are kept as they were, so if the drive letters or paths differ, the next step is *Settings → Repair → Moved a
-drive?*, or `wittymediaserver doctor remap --from <old> --to <new>`, which changes every path after checking the files are there. Watch history, matches and edits stay. A
-backup from an older version is brought up to date as it's restored. One from a newer version is refused: update this server first.
+1. Install the server on the new machine, and restore during first-time setup.
+2. The library's folders are kept as they were. If the drive letters or paths are different, open **Settings → Repair**, and use **Moved a drive?**. See [Moved a drive?](REPAIR.md#moved-a-drive).
+
+Watch history, matches and edits stay. A backup from an older version is brought up to date as it's restored. One from a newer version is refused, so update this server first.
 
 ## Why a backup might be refused
 
-Anyone can write a file and call it a backup, so each one is treated as hostile, even one you made. It's refused, with the file named and the reason in words, when:
+Anyone can write a file and call it a backup, so each one is treated with suspicion, even one you made. It's refused, with the file named and the reason in words, when:
 
-- it isn't a ZIP, has no manifest, or is from a newer version of the format or database;
-- a path tries to leave its folder, or has a name that means something else on Windows or anywhere else (`..`, a drive letter, `CON`, a colon, a hidden character);
+- it isn't a ZIP, has no list of its contents, or comes from a newer version;
+- a path tries to leave its folder, or has a name that means something else on some system (`..`, a drive letter, `CON`, a colon, a hidden character);
 - it holds a link or a special file, or the same name twice;
-- it would unpack to far more than it's holding, which is how a ZIP bomb works, or has an impossible number of files;
-- a file isn't what its folder says: artwork that isn't a real picture, a theme that isn't valid, a program or web page anywhere at all;
-- a file isn't listed in the manifest, or isn't the size or hash it lists (metadata files are the exception, [see below](#how-it-stays-safe));
-- the database has been tampered with: views, triggers it shouldn't have, computed columns, or damage.
+- it would unpack to far more than it's holding, or has an impossible number of files;
+- a file isn't what its folder says: artwork that isn't a real picture, an invalid theme, or a program or web page anywhere at all;
+- a file isn't listed, or isn't the size or hash it should be;
+- the database has been tampered with or damaged.
 
-A file refused for damage may be saved by an earlier backup. If you're sure it's yours and it's refused, a support bundle from *Settings → WittyLog* says what was seen.
+Nothing changes when a backup is refused. If it's refused for damage, an earlier backup may still be good. If you're sure it's yours, press **Download logs as ZIP** under **Settings → WittyLog** and pass that on to whoever is helping you.
+
+A changed file in the [metadata folder](METADATA-FOLDER.md) is the one exception. In a backup with no password, those files may be edited by hand on purpose. A changed one isn't refused: it's listed under **Metadata files changed by hand**, and read through the same checks as the folder.
+
+Two things no check can do. A backup with no password can be rewritten by anyone, with a new administrator who has a known password, which is why the page shows who could sign in before you agree. And a saved game state goes straight to a game core, like any file you load, so leave out saves from someone you don't trust.
 
 ## From the command line
 
-Everything works with no server running, which is the point of it. `wittymediaserver backup help` lists it all.
+These work with no server running, which is the point of them.
 
-```bash
-wittymediaserver backup create -o /mnt/usb/server.zip --ask-password      # everything normally included, with a password
-wittymediaserver backup parts                                             # what can be included, and how large each is
-wittymediaserver backup create --parts library,settings,users,history     # only these, with secrets left out
+```
+wittymediaserver backup create -o /mnt/usb/server.zip --ask-password
+wittymediaserver backup parts
+wittymediaserver backup create --parts library,settings,users,history
 wittymediaserver backup list
-wittymediaserver backup inspect server.zip --ask-password                 # check it, and say what's in it; nothing changes
-wittymediaserver backup restore server.zip --ask-password                 # with a server running, it happens as that server restarts
-wittymediaserver backup undo                                              # put back what the last restore replaced
+wittymediaserver backup inspect server.zip --ask-password
+wittymediaserver backup restore server.zip --ask-password
+wittymediaserver backup undo
+wittymediaserver backup cancel
+wittymediaserver backup help
 ```
 
-A password can't be given on the command line, where other programs could see it. Use `--ask-password`, `--password-file <file>`, `--password-stdin`, or the
-`WMS_BACKUP_PASSWORD` environment variable. Add `-data <folder>` to work on a data folder other than the usual one.
+| Command | What it does |
+|---|---|
+| `create` | Makes a backup. With no password, secrets are left out. `--parts` chooses what goes in |
+| `parts` | Says what can be included, and how large each part is |
+| `list` | Lists the backups in the `backups` folder |
+| `inspect` | Checks a backup from end to end and says what's in it. Nothing changes |
+| `restore` | Brings one back, after you type `RESTORE` (`--yes` skips that). With a server running, it happens as that server restarts |
+| `undo` | Puts back what the last restore replaced. You can name an older safety copy |
+| `cancel` | Takes back a restore waiting for the next start |
 
-## How it stays safe
+The part names are `library`, `settings`, `users`, `history`, `channels`, `artwork`, `saves`, `modules`, `metadatafiles`, `lyrics` and `recordings`.
 
-For anyone who wants to check. The code is `internal/backup`.
+A password can't be given on the command line, where other programs could see it. Use `--ask-password`, `--password-file <file>`, `--password-stdin`, or the `WMS_BACKUP_PASSWORD` environment variable. Add `-data <folder>` to work on a data folder other than the usual one.
 
-- **Nothing is unpacked until everything has been read.** Names and modes are checked from the ZIP's directory first, then each file is read once, by a reader that stops
-  at the size the archive claims, with a hash from the manifest and a check of what it really is.
-- **Names are judged as text, for every platform,** whichever the server runs on, then again when the path is built with `filepath.IsLocal`. Files are created with `O_EXCL`, so nothing
-  can already be there, least of all a link.
-- **The database in a backup is never opened as your database.** It's opened read-only with `immutable=1` and `trusted_schema=OFF`, its `integrity_check` is run, and a clean database is
-  built from this program's own migrations at the version the file says it has. Only the rows are copied, as values, by column name. So a trigger, a view, a check or an odd index has nowhere
-  to go, and an older database then comes forward by the usual migrations.
-- **The rows are judged too.** An item outside every library folder is dropped, as it would let a row serve any file. A library pointed at a system folder or the data folder is dropped.
-  Artwork references must be a cached picture, an `http(s)` address, or a file inside a library. Stored passwords must look like a bcrypt hash. Text has any markup and hidden characters taken
-  out, the same as [metadata files](FIXING-METADATA.md). Sign-ins are never copied.
-- **Settings that start programs or write files aren't taken from a file**, password or not. Web addresses are taken only from a backup with a password, since nobody can have changed one of those
-  without it. Module settings are reduced to on or off and who chooses updates, so a file can't name a place to install a module from.
-- **Metadata files may be edited by hand** inside a ZIP with no password, which is what they're for: a changed one isn't refused, it's listed, and read through the same checks as the folder.
-- **The password protects against the file being changed.** Chunks can't be reordered, dropped or cut off. Its cost settings are limited before any work is done, so a file can't ask for a terabyte
-  of memory.
-- **Admin only**, and restoring asks for the password and any second step again. Downloads use a ticket good for one file for ten minutes, so no sign-in goes in an address.
+## For developers
 
-One thing no check can do: a backup with no password can be rewritten by anyone, with a new administrator who has a known password. That's why the page shows who could sign in before you agree. A saved
-game state also goes straight to a game core, like any file you'd load; a save from someone you don't trust is worth leaving out.
+The code is `internal/backup`, the routes are `/api/backup/...` ([API](CLIENT-API.md#backup)), and the page is `web/src/pages/settings/Backup.tsx`.
+
+- **Nothing is unpacked until everything has been read.** Names and modes are checked from the ZIP's directory first. Then each file is read once, by a reader that stops at the size the archive claims, with a hash from the manifest and a check of what it really is.
+- **Names are judged as text, for every platform,** whichever the server runs on, then again when the path is built with `filepath.IsLocal`. Files are created with `O_EXCL`, so nothing can already be there, least of all a link.
+- **The database in a backup is never opened as your database.** It's opened read-only with `immutable=1` and `trusted_schema=OFF`, and `integrity_check` is run. A clean database is built from this program's own migrations at the version the file says it has, and only the rows are copied, as values, by column name. So a trigger, a view, a check or an odd index has nowhere to go, and an older database then comes forward by the usual migrations.
+- **The rows are judged too.** An item outside every library folder is dropped, as it would let a row serve any file. A library pointed at a system folder or the data folder is dropped. Artwork references must be a cached picture, an `http(s)` address, or a file inside a library. Stored passwords must look like a bcrypt hash. Text has markup and hidden characters taken out, the same as [metadata files](METADATA-FOLDER.md#how-its-kept-safe). Sign-ins are never copied.
+- **Settings that start programs or write files aren't taken from a file**, password or not. Web addresses are taken only from a backup with a password. Module settings are reduced to on or off and who chooses updates, so a file can't name a place to install a module from.
+- **Encryption.** AES-256-GCM in 1 MB chunks, with the key from Argon2id. Chunks can't be reordered, dropped or cut off, and the cost settings in a file are limited before any work is done.
+- **Access.** Admin only, except during first-time setup, when from another device it takes the setup code, as setting up does. Restoring asks for the password and any second step again. Downloads use a ticket good for one file for ten minutes, so no sign-in goes in an address.
+- **New tables** must be listed in `tableParts` or `neverTables` in `internal/backup/backup.go`. A test fails until they are.
 
 ---
-<sub>WittyMediaServer documentation · [Back to the README](../README.md)</sub>
+
+<sub>WittyMediaServer documentation</sub>

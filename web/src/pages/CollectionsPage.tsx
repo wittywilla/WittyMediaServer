@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, posterUrl, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
@@ -29,6 +30,7 @@ export default function CollectionsPage() {
       <div className="toolbar">
         <h1>Collections</h1>
         <div style={{ flex: 1 }} />
+        <PageHelp to="collections" />
         {canPost(user) && <button className="btn sm primary" onClick={() => setMaking(true)}><IconPlus /> New</button>}
       </div>
       {list.length === 0 ? (

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { HelpLink } from '../components/HelpLink'
 import { api, type GameConsole, type GameDetailsInfo, type GameImport, type GameReview, type GameReviewItem, type GameVersions, type Item } from '../api'
 import { IconCheck, IconClose, IconRefresh } from '../icons'
 import { Button, Dialog, EmptyState, Notice, Progress, Spinner, Tabs, toast } from '../ui'
@@ -158,6 +159,7 @@ function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { 
       <div ref={box}>
         <Tabs value={tab} onChange={setTab} items={tabs} label="Which files" panelId={panel} />
         <p className="gr-live" role="status">{said}</p>
+        <p className="muted"><HelpLink to="games#needs-a-look">How games are recognised, and what to do here</HelpLink></p>
         <div id={panel} role="tabpanel" aria-label={tabs.find((t) => t.value === tab)?.label}>
           {data === null ? <Spinner /> : data.items.length === 0 ? <EmptyState title={tab === 'needs' ? 'Nothing needs a look' : 'Nothing here'} /> : (
             <>

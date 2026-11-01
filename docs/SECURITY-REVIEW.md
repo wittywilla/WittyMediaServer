@@ -32,7 +32,7 @@ chooses to trust, such as a reverse proxy listed as trusted, a fork of a module,
 - **Encrypted is refused, never decrypted.** Protected discs, broadcasts and game files are detected and refused, and no
   extension point exists to change that. For HLS, a key is refused before FFmpeg sees the playlist.
 - **Things that can't be undone ask for the password again.** So do downloading, deleting or keeping fewer backups, starting to
-  replace a library's originals, adding or removing an administrator, reset, moving a module to a fork or an older version, and
+  replace a library's originals, adding or removing an administrator, reset, adding a module store, moving a module to a fork or an older version, and
   having this server talk to an address on its own network for the first time, as what comes back says what's listening there.
 - **What a web account can set can't name a program.** Paths to programs live in the config file or the environment.
 - **A file's name, a feed's answer and a stream's address are data.** None is ever handed to a shell, read as an FFmpeg
@@ -77,6 +77,10 @@ A module's helper is someone's code handling a hostile file. How much the system
 | Choosing how to reach a server safely | [REMOTE.md](REMOTE.md) |
 | Signing, keys and taking back a release | [PUBLISHING.md](PUBLISHING.md) |
 | What FFmpeg is allowed to do | [TRANSCODING.md](TRANSCODING.md#expert) |
-| Modules, their sandbox and forks | [MODULES.md](MODULES.md) |
+| Modules, their sandbox and forks | [What limits a module](MODULE-STORE.md#what-limits-a-module) |
 | Custom game cores | [GAMING.md](GAMING.md) |
 | Encrypted channels | [CHANNELS.md](CHANNELS.md) |
+
+---
+
+<sub>WittyMediaServer documentation</sub>

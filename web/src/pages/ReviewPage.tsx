@@ -7,7 +7,7 @@ import '../gallery.css'
 import { ask } from '../ui/Overlay'
 
 // Year in review: this profile's year, added up on this server from its own
-// record. Nobody else sees it, and nothing is sent anywhere (docs/REVIEW.md).
+// record. Nobody else sees it, and nothing is sent anywhere (docs/COLLECTIONS.md).
 
 type Entry = { id?: number; showId?: number; name: string; sub?: string; seconds: number }
 type Review = {

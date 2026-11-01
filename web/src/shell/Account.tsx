@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconGamepad, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
@@ -16,6 +16,7 @@ function useAccount() {
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>Settings<UpdateDot /></>, text: 'Settings', icon: <IconSettings />, to: '/settings' },
+    { key: 'help', label: 'Help', icon: <IconHelp />, to: '/help' },
     ...(user?.kind === 'adult' || user?.isAdmin ? [{ key: 'pair', label: 'Sign in a TV', icon: <IconTv />, to: '/pair' }] : []),
     { kind: 'separator', key: 'sep' },
     { key: 'switch', label: 'Switch profile', icon: <IconUsers />, onSelect: signOut },

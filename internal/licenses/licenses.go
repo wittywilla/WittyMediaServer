@@ -37,7 +37,7 @@ var Groups = []Group{
 	{GroupServer, "Built into the server", "Libraries compiled into WittyMediaServer and its helper programs."},
 	{GroupWeb, "Built into this web app", "Libraries your browser runs as part of this interface."},
 	{GroupPrograms, "Separate programs", "Programs the server starts and talks to, but which aren't part of it, so their licenses don't reach it."},
-	{GroupCores, "Game cores", "Never bundled. Each is a separate file that an admin chooses to install, and a separate program runs it. This is who wrote them and what they're under; Settings, Gaming shows which are installed."},
+	{GroupCores, "Game cores", "Never bundled. Each is a separate file that an admin chooses to install, and a separate program runs it. This is who wrote them and what they're under; Settings, Consoles & cores shows which are installed."},
 	{GroupData, "Bundled data", "Files that come with the server."},
 	{GroupServices, "Online services", "Where information comes from, and the terms it comes with. Each is only asked if it's turned on, or has a key."},
 }

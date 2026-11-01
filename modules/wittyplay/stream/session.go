@@ -121,7 +121,7 @@ type Info struct {
 // Errors a caller shows to people.
 var (
 	ErrBusy    = errors.New("this server is already running as many games as it allows; stop one first")
-	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Gaming")
+	ErrGPUBusy = errors.New("The graphics card is already running as many games as this server allows; stop one first, or raise the limit in Settings, Consoles & cores")
 	ErrStopped = errors.New("the game has stopped")
 	// ErrRunnerDied is behind the plain words for a runner that ended by itself.
 	ErrRunnerDied = errors.New("the game runner ended by itself")
@@ -365,7 +365,7 @@ func (m *Manager) sweep() {
 				go s.Stop()
 			} else if s.stuck() {
 				s.log.Warn("the game has stopped making frames; ending it")
-				s.exitErr.CompareAndSwap(nil, "The emulator stopped responding while running this game. Another core may work; you can choose one in Settings, Gaming.")
+				s.exitErr.CompareAndSwap(nil, "The emulator stopped responding while running this game. Another core may work; you can choose one in Settings, Consoles & cores.")
 				s.kill()
 			}
 		}
@@ -606,9 +606,9 @@ func describeExit(stderr string) string {
 	case strings.Contains(stderr, "out of memory"), strings.Contains(stderr, "cannot allocate memory"):
 		return "The emulator ran out of memory running this game."
 	case strings.Contains(stderr, "Exception 0xc000001d"), strings.Contains(stderr, "SIGILL"):
-		return "The emulator crashed: it needs something this processor doesn't have. Another core may work; you can choose one in Settings, Gaming."
+		return "The emulator crashed: it needs something this processor doesn't have. Another core may work; you can choose one in Settings, Consoles & cores."
 	}
-	return "The emulator crashed while running this game. Another core may work; you can choose one in Settings, Gaming."
+	return "The emulator crashed while running this game. Another core may work; you can choose one in Settings, Consoles & cores."
 }
 
 // readRunner handles everything the runner sends. Nothing here may block for

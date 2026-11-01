@@ -378,7 +378,7 @@
       ],
       "gets": "Which core is wanted and for which system.",
       "when": "Only when an administrator installs a core.",
-      "control": "Settings, Gaming",
+      "control": "Settings, Consoles & cores",
       "setting": "/settings/gaming"
     },
     {
@@ -404,7 +404,7 @@
       "hosts": [],
       "gets": "A standard connection request to the servers an administrator set, from this server.",
       "when": "None by default. While a game streams, if set.",
-      "control": "Settings, Gaming",
+      "control": "Settings, Consoles & cores",
       "setting": "/settings/gaming"
     },
     {

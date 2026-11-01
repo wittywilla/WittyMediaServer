@@ -120,7 +120,7 @@ or bottom edge hands the arrows back to the picture. A signed-in TV app is appro
 ## Adding games
 
 Add a Games library in Settings and choose your games folder, one per console or one holding a folder per console.
-Your own files only: nothing is bundled or downloaded. Install a core for each console in Settings, Gaming, and
+Your own files only: nothing is bundled or downloaded. Install a core for each console in Settings, Consoles & cores, and
 consoles that draw with a graphics card (Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS) need one in the server.
 
 **BIOS files:** PlayStation 2 needs one from a console you own, and some other consoles use one. Put them in a

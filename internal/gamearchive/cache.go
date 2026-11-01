@@ -349,7 +349,7 @@ func (c *Cache) build(ctx context.Context, j *job) error {
 	}
 	limit := c.Limit()
 	if plan.Size > limit {
-		return fmt.Errorf("this game needs %.1f GB unpacked, and the space for unpacked games is %.1f GB. An admin can raise that in Settings, Gaming", gib(plan.Size), gib(limit))
+		return fmt.Errorf("this game needs %.1f GB unpacked, and the space for unpacked games is %.1f GB. An admin can raise that in Settings, Consoles & cores", gib(plan.Size), gib(limit))
 	}
 	c.makeRoom(plan.Size, j.key)
 	if free := freeBytes(c.Dir); free >= 0 && free-freeReserve < plan.Size {

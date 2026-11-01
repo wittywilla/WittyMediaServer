@@ -68,7 +68,7 @@ program: length-prefixed messages over a pipe (`modules/wittyplay/ipc`). Two pro
 | Size and upkeep | A few thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
 
 The server uses WittyRetroArch when it finds one, and the built-in runner otherwise. An admin can choose
-in Settings, Gaming.
+in Settings, Consoles & cores.
 
 Unmodified RetroArch can't fill this role: its only way to hand frames to another program is its
 recording feature, which muxes and adds several frames of delay, and it needs a display or careful
@@ -115,13 +115,13 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
   transcoder's setting says, because its frames are large and its card is awake. NVENC takes the frame as it
   is and converts its colours on the card, and it's told not to keep a queue of finished frames (`-delay 0`).
   Only a frame that needs doubling goes through FFmpeg's scaler.
-- **Internal resolution** is a setting in Settings, Gaming: Automatic, or 1x to 4x. Automatic is 2x on
+- **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on
   Nintendo 64, PlayStation, PlayStation 2, PSP and Dreamcast, and native on 3DS. The per-core options are in
   `modules/wittyplay/traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
-- **How many at once:** two by default, set in Settings, Gaming. Past that, starting another says the card is
+- **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is
   full. Software-rendered games don't count.
 - **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU
-  (`llvmpipe`, Microsoft's GDI renderer) doesn't count: it works, far too slowly to play. Settings, Gaming names
+  (`llvmpipe`, Microsoft's GDI renderer) doesn't count: it works, far too slowly to play. Settings, Consoles & cores names
   the card in use, or says why there is none.
 
 ### What it costs
@@ -152,7 +152,7 @@ core, it has no option to turn it off, and nothing in this server asks for it or
 
 On a laptop with Intel and NVIDIA, Windows hands OpenGL to the card driving the display, usually the slow one.
 The runner sets `SHIM_MCCOMPAT=0x800000001` in its own process before OpenGL loads, which NVIDIA's driver reads
-as "use the discrete card". No system setting changes and nothing needs clicking. Settings, Gaming shows
+as "use the discrete card". No system setting changes and nothing needs clicking. Settings, Consoles & cores shows
 which card was chosen.
 
 That variable is NVIDIA's. On a laptop with an AMD discrete card and integrated graphics, Windows may pick the
@@ -180,7 +180,7 @@ surface a game can. That's unavoidable for hardware rendering and is why these g
 stay opt-in by core. Treat a server with a GPU as a machine where a hostile ROM has more to work with.
 
 **Running as a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there.
-Settings, Gaming will say there's no usable card. Run the server in a signed-in session to play these consoles.
+Settings, Consoles & cores will say there's no usable card. Run the server in a signed-in session to play these consoles.
 
 **Containers:** pass the card in, with `--device /dev/dri` for Intel and AMD, or `--gpus all` for NVIDIA.
 
@@ -313,7 +313,7 @@ differs only in case, or carries a path from the computer it was made on, is cor
 fail on Linux. A name that matches nothing gives a clear error, which also means a list can't point a core at anything
 outside the game's folder.
 
-**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Gaming (16 GB by default). Nothing is
+**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Consoles & cores (16 GB by default). Nothing is
 ever written beside the original.
 
 - A game is reused on the next play, and the longest unplayed is evicted when room is needed, except a game being played.
@@ -324,7 +324,7 @@ ever written beside the original.
 - Everyone asking for the same game shares one unpack. At most two run at a time, and the rest wait. One that nobody has
   asked about for two minutes is stopped.
 - Disk space comes first: a game that won't fit, leaving 512 MB free, gets a clear error.
-- Settings, Gaming shows how much it's using and can empty it. A game being played stays.
+- Settings, Consoles & cores shows how much it's using and can empty it. A game being played stays.
 
 **Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the
 archive's path in the library. A one-file game is always opened as `game.<ext>`, the name `.zip` games have always had, in
@@ -502,7 +502,7 @@ game button is using.
 ## Adding your own core
 
 A **core** is the program that emulates a console. This server offers a list of them with their licences checked, under
-Settings, Gaming, Consoles and cores. If you want one that isn't on the list, such as a newer build, or a core for a
+Settings, Consoles & cores. If you want one that isn't on the list, such as a newer build, or a core for a
 system we don't have, you can add it yourself. This is the guide for doing that. It assumes you've never done it before.
 
 ### Before you start
@@ -520,7 +520,7 @@ You'll need:
 
 ### 1. Turn it on
 
-Custom cores are **off on every server until an administrator turns them on**. Go to Settings, Gaming, Custom cores, and
+Custom cores are **off on every server until an administrator turns them on**. Go to Settings, Consoles & cores, Custom cores, and
 turn on **Allow custom cores**. It asks for your password.
 
 Why off by default: most people never need this, and a server shared with others shouldn't be one setting away from running
@@ -573,7 +573,7 @@ Tick the consoles, which are sorted so that the ones its file types fit come fir
 
 - **Use by default** makes it what that console plays with. Without it, the core is available but only used if nothing from our list is
   installed for that console.
-- Other cores stay available. Change a console's core on its card in Settings, Gaming.
+- Other cores stay available. Change a console's core on its card in Settings, Consoles & cores.
 - **For one game:** on the game's own page, administrators see a Core setting. That page also shows how each core has gone on that game,
   and marks the one that has gone best, once there's been enough real play to say.
 
@@ -856,7 +856,7 @@ Games/
 ```
 
 The folder is never listed as games. When someone presses Play, the server looks in a `BIOS` folder beside the
-game and one level up, and copies what the core wants to its own system folder (shown in Settings, Gaming),
+game and one level up, and copies what the core wants to its own system folder (shown in Settings, Consoles & cores),
 leaving your copies alone. You can also put files straight in the system folder: a PlayStation 2 BIOS goes in
 `pcsx2/bios` inside it.
 
@@ -1016,7 +1016,7 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
   not been tested end to end yet.
 - **A blank picture isn't noticed.** If a core won't load a game, the next is tried. If it loads and draws one colour, it
   stays there. 4 NES games on fceumm and 7 SNES games on Supafaust do this and play on another core, which an admin can
-  pick in Settings, Gaming.
+  pick in Settings, Consoles & cores.
 - **Few games on some consoles.** Only NES, SNES, PlayStation, DS and PSP have been tried with real games, and only NES
   and SNES with many. See "What has been tried".
 - **Container image:** about 800 MB, up from about 150 MB, as cores from the build server need Debian's C library rather
@@ -1029,7 +1029,7 @@ Nintendo DS needs a pointer input for its touch screen, which comes after the fi
 - **Plain http on a home network:** browsers limit some features to secure pages. Firefox hides
   gamepads, and WebCodecs is unavailable, which leaves WebRTC or JPEG. Reaching the server over
   https or `localhost` removes both limits.
-- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Gaming, and fill in the public
+- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Consoles & cores, and fill in the public
   address, or use host networking.
 
 ## Phases

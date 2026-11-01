@@ -665,7 +665,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		if _, err := os.Stat(filepath.Join(systemDir, wittyplay.SatellaviewBIOS)); err != nil {
 			problem = "This is a Satellaview broadcast game, which needs the receiver's cartridge. Put a copy of yours named " + wittyplay.SatellaviewBIOS + " in a folder named " + wittyplay.BIOSFolderName + " beside your " + console.Name + " games, and it will be found when you play. BIOS files are never downloaded for you."
 		} else if len(core) == 0 || core[0].ID != wittyplay.SatellaviewCore {
-			problem = "This is a Satellaview broadcast game, which only plays on Mesen-S. An admin can install that core in Settings, Gaming."
+			problem = "This is a Satellaview broadcast game, which only plays on Mesen-S. An admin can install that core in Settings, Consoles & cores."
 		}
 		if problem != "" {
 			if cleanup != nil {

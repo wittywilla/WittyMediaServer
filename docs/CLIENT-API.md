@@ -1501,7 +1501,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /libtranscode/settings` | admin | How conversions run on this server |
 | `PUT /libtranscode/settings` | admin | Changes that. Turning it on needs the warning accepted |
 | `GET /libtranscode/libraries` | admin | Libraries that hold video files, each with its recipe and anything stopping it |
-| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only |
+| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only. Starting to replace originals also takes `{current, code}`: the account's own password, and its two-factor code if it has one |
 | `GET /libtranscode/libraries/{id}/items` | admin | Finds files to try a recipe on |
 | `POST /libtranscode/libraries/{id}/preview` | admin | What a recipe would do to one file, track by track. Changes nothing |
 | `POST /libtranscode/libraries/{id}/sample` | admin | Really converts 20 seconds into the server's cache, and measures it |
@@ -1586,8 +1586,8 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `GET /backup/estimate` | About how large each part of a backup is, before compression. |
 | `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
 | `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
-| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
-| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. Keeping fewer than before also takes `{current, code}`: the account's own password, and its two-factor code if it has one. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `POST /backup/files/{name}/link` | A short-lived address to download a backup. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
 | `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |

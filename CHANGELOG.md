@@ -42,7 +42,14 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Fixed:** a crafted lyrics file could run the server out of memory. Lyrics, booklets and artist pictures beside a song are read the same safe way as other library files, and an artist picture must be a picture.
 - **Limits:** liked songs, logo credits and a title's extras keep to what an account may see, and logo and listing totals are for administrators.
 - **Lyrics:** your own lyrics server stays the only place that connection goes: redirects stay on its host. A logo's preview waits until logo downloads are agreed to. Guide searches take turns. Bumper uploads leave room on the disk.
-- **Docs:** `docs/SECURITY-ROUTES.md` lists every route, who may call it and what it validates.
+- **Backups:** downloading a backup, deleting one, keeping fewer of them, and starting to replace a library's originals each ask for your password, so a stolen session can't take the way back. A backup with no password can't bring keys, this server's identity or a share on another machine when restored, and libraries that convert by themselves come back off. Backups can't turn on custom cores. Uploads and checks leave room on the disk.
+- **Removing a recording** only ever removes a file in the recordings folder.
+- **Conversions:** a split film's parts, and files being converted, are held to the same list of formats as anything else played from a library. Tdarr's key goes only to the address it was saved for, and changing the address asks for it again. Repair won't look at a share on another machine unless you allow those.
+- **Books and lyrics:** timed lyrics can't use up the processor or the memory, and book pages draw two at a time. Files inside an EPUB are never sent as scripts.
+- **Themes:** can no longer load anything from other sites. A stylesheet that names an outside address, even in a comment, is refused, and one already installed stops being served. Put images and fonts in the theme's ZIP. A theme's files opened on their own are sandboxed.
+- **Web:** the redirect to HTTPS only ever keeps the path and query. Files sent to a signed-in account are marked private for caches in front of the server. HTTPS stays on (HSTS) behind a trusted proxy that says the connection is encrypted. Links from metadata, stations and modules only ever go to web addresses.
+- **FFmpeg:** which one a server runs is shown only to administrators.
+- **Docs:** `docs/SECURITY-ROUTES.md` lists every route, who may call it and what it validates, including every route that came with this release.
 - **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. The same older browsers and TVs are still reached.
 - **Library transcoding.** Convert a library's files ahead of time, under **Settings, Library transcoding**. Three plain presets (play on any
   device, save space, keep the best quality), with every detail open to change: sound tracks and subtitles by language, commentary, audio description, a

@@ -1108,7 +1108,7 @@ func (e *Engine) swapUnit(ctx context.Context, u *unit, q RunRequest, lib *libra
 			after = st.Size()
 		}
 		// A subtitle file made along the way, and an embedded one, go last, once all is safe.
-		e.finishSidecars(ctx, f, q.Output)
+		made := e.finishSidecars(ctx, f, q.Output)
 		for _, c := range f.covers {
 			_ = os.Remove(c)
 		}
@@ -1118,7 +1118,7 @@ func (e *Engine) swapUnit(ctx context.Context, u *unit, q RunRequest, lib *libra
 			_ = os.Remove(filepath.Dir(f.kept))
 			f.kept = ""
 		}
-		e.updateFile(ctx, f.row, map[string]any{"state": FileDone, "message": "", "temp_path": "", "swap": "", "size_after": after, "final_path": f.final, "kept_path": f.kept, "finished_at": db.Now()})
+		e.updateFile(ctx, f.row, map[string]any{"state": FileDone, "message": "", "temp_path": "", "swap": "", "size_after": after, "final_path": f.final, "kept_path": f.kept, "finished_at": db.Now(), "sidecars": made.encode()})
 	}
 	removeEmpty(u)
 	return nil
@@ -1224,9 +1224,24 @@ func (e *Engine) unswap(ctx context.Context, f *part, output string) {
 	e.updateFile(ctx, f.row, map[string]any{"swap": "", "kept_path": "", "final_path": ""})
 }
 
+// sidecarRecord says what a conversion did to the files around a video, for undoing it.
+type sidecarRecord struct {
+	Made  []string    `json:"made,omitempty"`  // subtitle files it wrote
+	Moved [][2]string `json:"moved,omitempty"` // subtitle files it moved aside: from, to
+}
+
+func (r sidecarRecord) encode() string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
 // finishSidecars puts exported subtitle files beside the video, and looks after the files
-// that were embedded.
-func (e *Engine) finishSidecars(ctx context.Context, f *part, output string) {
+// that were embedded. It says what it did.
+func (e *Engine) finishSidecars(ctx context.Context, f *part, output string) sidecarRecord {
+	var rec sidecarRecord
 	base := filepath.Base(f.final)
 	stem := strings.TrimSuffix(base, filepath.Ext(base))
 	dir := filepath.Dir(f.final)
@@ -1235,12 +1250,14 @@ func (e *Engine) finishSidecars(ctx context.Context, f *part, output string) {
 			name := uniqueName(filepath.Join(dir, stem+"."+f.plan.exports[i].path+".sup"))
 			if err := os.Rename(sup, name); err != nil {
 				e.Log.WarnContext(ctx, "could not put a subtitle file beside its video", "file", name, "err", err)
+			} else {
+				rec.Made = append(rec.Made, name)
 			}
 		}
 	}
 	f.sups = nil
 	if output == OutputBeside {
-		return
+		return rec
 	}
 	for _, em := range f.plan.embeds {
 		if output == OutputReplace {
@@ -1248,7 +1265,35 @@ func (e *Engine) finishSidecars(ctx context.Context, f *part, output string) {
 			continue
 		}
 		folder := filepath.Join(dir, library.OriginalsFolder)
-		_ = os.Rename(em.path, uniqueName(filepath.Join(folder, filepath.Base(em.path))))
+		to := uniqueName(filepath.Join(folder, filepath.Base(em.path)))
+		if os.Rename(em.path, to) == nil {
+			rec.Moved = append(rec.Moved, [2]string{em.path, to})
+		}
+	}
+	return rec
+}
+
+// undoSidecars puts the files around a video back as they were. Everything it touches is
+// named in the record the conversion wrote, and it stays inside the video's own folder.
+func (e *Engine) undoSidecars(ctx context.Context, row *FileRow) {
+	var raw string
+	if err := e.DB.QueryRowContext(ctx, `SELECT sidecars FROM ltc_files WHERE id = ?`, row.ID).Scan(&raw); err != nil {
+		return
+	}
+	var rec sidecarRecord
+	if json.Unmarshal([]byte(raw), &rec) != nil {
+		return
+	}
+	dir := filepath.Dir(row.Path)
+	for _, made := range rec.Made {
+		if filepath.Dir(made) == dir {
+			_ = os.Remove(made)
+		}
+	}
+	for _, mv := range rec.Moved {
+		if filepath.Dir(mv[0]) == dir && isOriginalsPath(mv[1]) {
+			_ = os.Rename(mv[1], mv[0])
+		}
 	}
 }
 
@@ -1620,11 +1665,12 @@ func (e *Engine) Undo(ctx context.Context, fileID int64) error {
 		if err := os.Rename(r.KeptPath, r.Path); err != nil {
 			return errors.New("the original couldn't be moved back. It may be in use")
 		}
+		e.undoSidecars(ctx, r)
 		_ = os.Remove(filepath.Dir(r.KeptPath))
 		if r.Part == 0 {
 			first = r.Path
 		}
-		e.updateFile(ctx, r.ID, map[string]any{"state": FileUndone, "kept_path": "", "final_path": "", "size_after": 0})
+		e.updateFile(ctx, r.ID, map[string]any{"state": FileUndone, "kept_path": "", "final_path": "", "size_after": 0, "sidecars": "{}"})
 	}
 	if first == "" {
 		return errors.New("there's no kept original to put back")

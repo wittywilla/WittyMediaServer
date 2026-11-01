@@ -24,8 +24,11 @@ const TdarrTaskType = "tdarr"
 
 const (
 	tdarrKey       = "libtranscode.tdarr"
-	tdarrSecretKey = "libtranscode.tdarrKey"
+	tdarrSecretKey = TdarrKeySetting
 )
+
+// TdarrKeySetting is where the API key is kept.
+const TdarrKeySetting = "libtranscode.tdarrKey"
 
 // TdarrMapping says which of Tdarr's libraries one of this server's libraries goes to.
 type TdarrMapping struct {

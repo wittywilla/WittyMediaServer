@@ -13,6 +13,12 @@ func estimate(src *Source, pl *Plan) {
 	if pl.Verdict == VerdictSkip || pl.Verdict == VerdictRefuse || src.Duration <= 0 {
 		return
 	}
+	// A file can claim to last for days: one stray subtitle will do it. Nothing with a picture
+	// runs at a tiny fraction of an audio track's bitrate, so its size is a limit on its length.
+	duration := src.Duration
+	if src.Size > 0 {
+		duration = min(duration, float64(src.Size)/2000)
+	}
 	var kbpsOut float64
 	var seconds float64
 	cores := float64(max(runtime.NumCPU(), 1))
@@ -55,7 +61,7 @@ func estimate(src *Source, pl *Plan) {
 				kbps = math.Min(kbps, known*1.05) // an already small file doesn't grow much
 			}
 			kbpsOut += kbps
-			seconds += src.Duration * fps / encodeFPS(st.encoder, w*h, cores)
+			seconds += duration * fps / encodeFPS(st.encoder, w*h, cores)
 		case "audio":
 			if st.encoder == "" {
 				kbpsOut += float64(knownAudioKbps(src, st.index))
@@ -66,7 +72,7 @@ func estimate(src *Source, pl *Plan) {
 			kbpsOut += 8
 		}
 	}
-	pl.EstBytes = int64(kbpsOut * 1000 / 8 * src.Duration)
+	pl.EstBytes = int64(kbpsOut * 1000 / 8 * duration)
 	// Copying takes as long as reading the file.
 	seconds = math.Max(seconds, float64(src.Size)/(60*1024*1024))
 	pl.EstSec = seconds

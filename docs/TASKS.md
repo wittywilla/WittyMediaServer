@@ -77,7 +77,7 @@ s.Tasks.OnRetry(tasks.TypeBackup, func(old tasks.Task, by tasks.By) error {
 
 **After a restart.** A task that was going when the server stopped shows in the history as failed, saying so.
 
-**Kinds of task.** `scan`, `analysis`, `metadata`, `thumbnails`, `intros`, `games`, `module`, `backup`, `transcode`,
+**Kinds of task.** `scan`, `analysis`, `metadata`, `thumbnails`, `intros`, `games`, `module`, `backup`, `transcode`, `convert` (library transcoding), `tdarr`,
 `update`, `guide`, `recording`, `diagnose`, `other`. A new kind needs nothing but its name.
 
 ## Reporting a task from a module

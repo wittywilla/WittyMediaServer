@@ -19,6 +19,11 @@ import (
 // with live playback conversion, which leaves files alone. docs/LIBRARY-TRANSCODING.md
 // explains it. Everything here is for admins.
 
+func init() {
+	// Kept out of a backup with no password, like every other key.
+	secretSettings = append(secretSettings, libtranscode.TdarrKeySetting)
+}
+
 func (s *Server) libTranscodeRoutes(m *http.ServeMux) {
 	s.wireLibTranscode()
 	ad := s.requireAdmin

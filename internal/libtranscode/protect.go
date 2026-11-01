@@ -20,7 +20,7 @@ const ProtectedReason = "This file is copy-protected, so it can't be converted. 
 
 // How much of a file is looked at. A file may be hostile, or very large.
 const (
-	protectScanHead = 8 << 20
+	protectScanHead = 2 << 20
 	protectMoovMax  = 32 << 20
 	tsSamplePackets = 3000
 )

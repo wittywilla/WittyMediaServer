@@ -338,10 +338,14 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 		st.filters = append(st.filters, flattenFilterFor(v))
 	}
 	if wantTone {
-		st.filters = append(st.filters, toneChain(env.ToneMap, v))
+		// The frames are told what they are first: a file may only say so in its container,
+		// and the filter stops with no way to tell what it's converting from.
+		st.filters = append(st.filters, hdrColorParams(v), env.ToneMap, "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709")
 		st.args = append(st.args, "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709")
 	} else if isHDR {
 		st.args = append(st.args, hdrColorArgs(v)...)
+		// Said to the frames too: not every encoder and FFmpeg takes it from options alone.
+		st.filters = append(st.filters, hdrColorParams(v))
 	}
 	h := v.Height
 	if p.Video.MaxHeight > 0 && v.Height > p.Video.MaxHeight {
@@ -387,17 +391,6 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 	return st, ""
 }
 
-// toneChain says outright what the source is: a file that leaves its colours unmarked in the
-// stream (it may say so only in its container) otherwise stops the filter with no way to
-// tell what it's converting from.
-func toneChain(chain string, v VideoStream) string {
-	trc := "smpte2084"
-	if v.Range == "hlg" {
-		trc = "arib-std-b67"
-	}
-	return strings.Replace(chain, "zscale=t=linear", "zscale=pin=bt2020:tin="+trc+":min=bt2020nc:t=linear", 1)
-}
-
 func joinReasons(r []string) string {
 	switch len(r) {
 	case 0:
@@ -421,6 +414,14 @@ func hdrColorArgs(v VideoStream) []string {
 		trc = "arib-std-b67"
 	}
 	return []string{"-color_primaries", "bt2020", "-color_trc", trc, "-colorspace", "bt2020nc"}
+}
+
+func hdrColorParams(v VideoStream) string {
+	trc := "smpte2084"
+	if v.Range == "hlg" {
+		trc = "arib-std-b67"
+	}
+	return "setparams=color_primaries=bt2020:color_trc=" + trc + ":colorspace=bt2020nc"
 }
 
 func flattenFilterFor(v VideoStream) string {

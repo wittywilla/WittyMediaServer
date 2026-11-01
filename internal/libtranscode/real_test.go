@@ -664,6 +664,7 @@ func writeSUP(t *testing.T, path string) {
 }
 
 func TestRealSubtitles(t *testing.T) {
+	newLab(t) // finds FFmpeg
 	work := t.TempDir()
 	srt := filepath.Join(work, "a.srt")
 	os.WriteFile(srt, []byte("1\n00:00:00,100 --> 00:00:01,500\nHello there\n"), 0o644)
@@ -710,6 +711,9 @@ func TestRealSubtitles(t *testing.T) {
 		if !exists(filepath.Join(l.root, "Device.de.sup")) {
 			entries, _ := os.ReadDir(l.root)
 			t.Fatalf("no exported subtitle file: %v", entries)
+		}
+		if got := library.FindSubtitles(out); len(got) != 1 || got[0].Language != "de" || got[0].Codec != "hdmv_pgs_subtitle" {
+			t.Fatalf("the server doesn't read the exported file back: %+v", got)
 		}
 		plan := l.row(r, "Device.mkv").Plan
 		burned, styled := false, false
@@ -766,6 +770,37 @@ func TestRealSubtitles(t *testing.T) {
 		got := subCodecs(l.probe(filepath.Join(l.root, "Stays Mkv.mkv")))
 		if !slices.Equal(got, []string{"subrip", "subrip", "ass", "hdmv_pgs_subtitle", "hdmv_pgs_subtitle"}) {
 			t.Fatal(got)
+		}
+	})
+	t.Run("DVD subtitles", func(t *testing.T) {
+		l := newLab(t)
+		// FFmpeg turns one kind of picture subtitle into the other.
+		src := l.gen("Vobsub.mkv", join(pic(2, "640x360"), tone(2, 300, "stereo"), []string{"-i", sup, "-map", "0", "-map", "1", "-map", "2", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-c:s", "dvdsub", "-metadata:s:s:0", "language=eng"})...)
+		if got := subCodecs(l.probe(src)); !slices.Equal(got, []string{"dvd_subtitle"}) {
+			t.Fatal(got)
+		}
+		l.scan()
+		pv, err := l.engine.PreviewItem(context.Background(), l.lib, l.item(src).ID, preset(t, PresetCompatible))
+		if err != nil {
+			t.Fatal(err)
+		}
+		lost := false
+		for _, w := range pv.Parts[0].Plan.Warnings {
+			if strings.Contains(w, "will be lost") && strings.Contains(w, "DVD") {
+				lost = true
+			}
+		}
+		if !lost {
+			t.Fatalf("no word about the DVD subtitle: %+v", pv.Parts[0].Plan)
+		}
+		p := preset(t, PresetSaveSpace)
+		p.Video.Codec, p.Video.Accept, p.Video.SkipBelowKbps, p.Video.MinSavingPercent = "h264", nil, 0, 0
+		p.Video.MaxHeight = 240
+		if r := l.run(p, OutputReplace); r.Summary.Done != 1 {
+			t.Fatalf("%+v %+v", r.Summary, l.files(r))
+		}
+		if got := subCodecs(l.probe(src)); !slices.Equal(got, []string{"dvd_subtitle"}) {
+			t.Fatalf("an MKV keeps them: %v", got)
 		}
 	})
 	t.Run("languages SDH and images", func(t *testing.T) {
@@ -877,6 +912,13 @@ func TestRealSubtitles(t *testing.T) {
 		if !exists(filepath.Join(l.root, library.OriginalsFolder, "Embed.en.srt")) {
 			t.Fatal("the file went with the original, or should have")
 		}
+		// Undoing it puts the file back too.
+		if err := l.engine.Undo(context.Background(), l.row(r, "Embed.mkv").ID); err != nil {
+			t.Fatal(err)
+		}
+		if !exists(side) || len(l.probe(src).Subtitles()) != 0 {
+			t.Fatalf("undo left the subtitle out: %v %v", exists(side), subCodecs(l.probe(src)))
+		}
 	})
 }
 
@@ -921,9 +963,10 @@ func TestRealMultipleVideo(t *testing.T) {
 }
 
 func TestRealCoverArt(t *testing.T) {
+	newLab(t) // finds FFmpeg
 	work := t.TempDir()
 	cover := filepath.Join(work, "cover.jpg")
-	if out, err := exec.Command("ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=red:s=64x64", "-frames:v", "1", cover).CombinedOutput(); err != nil {
+	if out, err := exec.Command(realTools.FFmpeg, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=red:s=64x64", "-frames:v", "1", cover).CombinedOutput(); err != nil {
 		t.Skipf("can't make a picture: %v %s", err, out)
 	}
 	attached := []string{"-c:v", "mpeg4", "-c:a", "aac", "-attach", cover, "-metadata:s:t:0", "mimetype=image/jpeg", "-metadata:s:t:0", "filename=cover.jpg"}
@@ -1018,6 +1061,31 @@ func TestRealHDR(t *testing.T) {
 			if err := l.engine.DeleteLeftover(context.Background(), f.ID); err != nil {
 				t.Fatal(err)
 			}
+		}
+	})
+	t.Run("kept as HDR in AV1", func(t *testing.T) {
+		if !has("libsvtav1") {
+			t.Skip("no AV1 encoder")
+		}
+		p := preset(t, PresetSaveSpace)
+		p.Preset = PresetCustom
+		p.Video.Codec, p.Video.Accept = "av1", nil
+		p.Video.SkipBelowKbps, p.Video.MinSavingPercent = 0, 0
+		r := l.run(p, OutputBeside)
+		if r.Summary.Done != 2 {
+			t.Fatalf("%+v %+v", r.Summary, l.files(r))
+		}
+		o := l.probe(filepath.Join(l.root, "Hdr10.wms-converted.mkv")).Video()
+		if o.CodecName != "av1" || o.ColorTransfer != "smpte2084" || o.Depth() != 10 {
+			t.Fatalf("%+v", o)
+		}
+		o = l.probe(filepath.Join(l.root, "Hlg.wms-converted.mkv")).Video()
+		if o.ColorTransfer != "arib-std-b67" {
+			t.Fatalf("%+v", o)
+		}
+		left, _, _ := l.engine.Leftovers(context.Background(), l.lib.ID, 10)
+		for _, f := range left {
+			l.engine.DeleteLeftover(context.Background(), f.ID)
 		}
 	})
 	t.Run("made an ordinary picture", func(t *testing.T) {
@@ -1379,6 +1447,22 @@ func TestRealBrokenFiles(t *testing.T) {
 			t.Fatal("the old file changed")
 		}
 		l.noneLeftBehind()
+		// The activity panel has it in its list of problems, and it can be tried again.
+		recent := l.tasks.Recent()
+		if len(recent) == 0 || recent[0].ProblemCount != 1 || !strings.Contains(recent[0].Problems[0].Message, "old one stays") {
+			t.Fatalf("%+v", recent)
+		}
+		l.engine.Tools = realTools
+		id, err := l.engine.Retry(context.Background(), r.ID, tasks.By{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if again := l.wait(id); again.Summary.Done != 1 {
+			t.Fatalf("%+v", again.Summary)
+		}
+		if _, err := l.engine.Retry(context.Background(), id, tasks.By{}); err == nil {
+			t.Fatal("retried a run with nothing left to do")
+		}
 	})
 	t.Run("output comes out short", func(t *testing.T) {
 		l := newLab(t)
@@ -1434,7 +1518,7 @@ func TestRealSplitFilm(t *testing.T) {
 	}
 	id := items[0].ID
 	r := l.run(preset(t, PresetCompatible), OutputKeep)
-	if r.Summary.Done != 1 || r.Summary.Convert != 2 {
+	if r.Summary.Done != 2 || r.Summary.Convert != 2 {
 		t.Fatalf("%+v %+v", r.Summary, l.files(r))
 	}
 	na := strings.TrimSuffix(a, ".avi") + ".mp4"
@@ -1482,7 +1566,7 @@ func TestRealSplitFilm(t *testing.T) {
 		l.gen("Mixed (2001) CD2.mp4", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-c:v", "mpeg4", "-c:a", "aac"})...)
 		l.scan()
 		r := l.run(preset(t, PresetCompatible), OutputKeep)
-		if r.Summary.Done != 1 || r.Summary.Convert != 2 {
+		if r.Summary.Done != 2 || r.Summary.Convert != 2 {
 			t.Fatalf("%+v %+v", r.Summary, l.files(r))
 		}
 	})
@@ -2077,10 +2161,11 @@ func TestRealHardwareEncoder(t *testing.T) {
 		t.Skip("no working NVIDIA encoder here")
 	}
 	src := l.gen("Hardware.mkv", join(pic(3, "1280x720"), tone(3, 300, "stereo"), []string{"-c:v", "mpeg2video", "-q:v", "2", "-c:a", "aac"})...)
-	hdr := l.gen("Hardware HDR.mkv", join(pic(3, "1280x720"), tone(3, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-c:a", "aac"})...)
+	hdr := l.gen("Hardware HDR.mkv", join(pic(3, "1280x720"), tone(3, 300, "stereo"), []string{"-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-x265-params", "log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc", "-c:a", "aac"})...)
 	l.scan()
 	p := preset(t, PresetSaveSpace)
 	p.Video.Accept, p.Video.SkipBelowKbps, p.Video.MinSavingPercent = nil, 0, 0
+	p.Video.MaxHeight = 480
 	r := l.run(p, OutputReplace)
 	if r.Summary.Done != 2 {
 		t.Fatalf("%+v %+v", r.Summary, l.files(r))
@@ -2094,7 +2179,7 @@ func TestRealHardwareEncoder(t *testing.T) {
 	if v := l.probe(src).Video(); v.CodecName != "hevc" {
 		t.Fatalf("%+v", v)
 	}
-	if v := l.probe(hdr).Video(); v.CodecName != "hevc" || v.ColorTransfer != "smpte2084" {
+	if v := l.probe(hdr).Video(); v.CodecName != "hevc" || v.ColorTransfer != "smpte2084" || v.Height != 480 {
 		t.Fatalf("%+v", v)
 	}
 }

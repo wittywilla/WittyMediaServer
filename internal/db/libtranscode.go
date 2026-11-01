@@ -30,7 +30,7 @@ var libTranscodeMigrations = []string{
 	   size_before INTEGER NOT NULL DEFAULT 0, mtime_before INTEGER NOT NULL DEFAULT 0, size_after INTEGER NOT NULL DEFAULT 0,
 	   est_bytes INTEGER NOT NULL DEFAULT 0, est_sec REAL NOT NULL DEFAULT 0, duration REAL NOT NULL DEFAULT 0,
 	   temp_path TEXT NOT NULL DEFAULT '', final_path TEXT NOT NULL DEFAULT '', kept_path TEXT NOT NULL DEFAULT '',
-	   swap TEXT NOT NULL DEFAULT '', finished_at INTEGER);
+	   swap TEXT NOT NULL DEFAULT '', finished_at INTEGER, sidecars TEXT NOT NULL DEFAULT '{}');
 	 CREATE INDEX IF NOT EXISTS ltc_files_run ON ltc_files(run_id, id);
 	 CREATE INDEX IF NOT EXISTS ltc_files_item ON ltc_files(item_id);
 	 CREATE INDEX IF NOT EXISTS ltc_files_swap ON ltc_files(swap) WHERE swap <> '';

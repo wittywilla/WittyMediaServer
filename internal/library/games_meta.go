@@ -463,6 +463,10 @@ func (s *Store) enqueueGame(ctx context.Context, it *Item, local, earlier []stri
 	}
 	if locked == 0 {
 		for _, f := range earlier {
+			// Saved beside the file because someone typed it. It's theirs, not an old answer.
+			if edited[f] && !done[f] {
+				continue
+			}
 			delete(edited, f)
 			done[f] = true
 		}
@@ -505,6 +509,14 @@ func (s *Store) noteDetection(ctx context.Context, it *Item, v gameVerdict) erro
 func (s *Store) gameFieldEdited(ctx context.Context, id int64, field string) bool {
 	r, err := s.gameRow(ctx, id)
 	return err == nil && r.Edited[field]
+}
+
+// gameFieldTyped says this field is someone's own: it's marked as edited, and no source
+// gave it. A source's answer goes in Applied, and typing takes a field out of it. A field
+// that's in both is an old answer that an earlier version read back from an NFO it wrote.
+func (s *Store) gameFieldTyped(ctx context.Context, id int64, field string) bool {
+	r, err := s.gameRow(ctx, id)
+	return err == nil && r.Edited[field] && !r.Applied[field]
 }
 
 // MarkGameEdited: someone changed these fields by hand, so sources leave them alone.

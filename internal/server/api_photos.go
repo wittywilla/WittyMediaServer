@@ -640,6 +640,10 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this library has no folder to save to")
 		return
 	}
+	if lib.ReadOnly {
+		writeErr(w, 403, library.ErrReadOnly.Error())
+		return
+	}
 	folder := library.SafeFileName(u.Name)
 	if folder == "" {
 		folder = fmt.Sprintf("profile-%d", u.ID)

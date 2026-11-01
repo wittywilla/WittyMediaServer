@@ -41,7 +41,7 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
     try {
       await api.post(`/modules/${id}/add`)
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'That module could not be added.')
+      setErr(e instanceof ApiError ? e.message : 'That module couldn’t be installed.')
     } finally { setAdding(false) }
   }
 
@@ -50,16 +50,16 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
   const noBuild = mods?.find((m) => m.unavailable)
   return (
     <div className="module-missing">
-      <h2>{what || `This needs ${name}`}</h2>
+      <h1>{what || `This needs ${name}`}</h1>
       <p>{name} isn't on this server, so this can't open yet. Everything else works as usual.</p>
       {mods?.map((m) => m.summary ? <p key={m.id}><strong>{m.name}</strong>: {m.summary}</p> : null)}
-      {!admin && <p>An admin of this server can add it in Settings, Modules.</p>}
+      {!admin && <p>An admin of this server can install it in Settings, Modules.</p>}
       <p><HelpLink to="module-store">What modules are</HelpLink></p>
       {noBuild && <p>{noBuild.unavailable}</p>}
       {admin && !busy && !noBuild && (mods || ids.map((id) => ({ id, name: id }))).map((m) => (
-        <button key={m.id} type="button" className="btn primary" disabled={adding} onClick={() => add(m.id)}>Add {m.name}</button>
+        <button key={m.id} type="button" className="btn primary" disabled={adding} onClick={() => add(m.id)}>Install {m.name}</button>
       ))}
-      {busy && <p>Adding {busy.name}{busy.total ? `: ${Math.round((busy.done || 0) * 100 / busy.total)}%` : '…'} There's no need to restart anything.</p>}
+      {busy && <p>Installing {busy.name}{busy.total ? `: ${Math.round((busy.done || 0) * 100 / busy.total)}%` : '…'} There's no need to restart anything.</p>}
       {err && <p className="module-missing-error">{err}</p>}
     </div>
   )

@@ -74,9 +74,7 @@ Under **Customise**, press **Reset to stock**, then **Reset to stock** again to 
 
 ## Who may see it
 
-Administrators always see everything. Who else may see it is the `statsViewers` setting: `admins` (the default), `adults` or `everyone`.
-
-There's no switch for this in Settings yet. An administrator can change it through the API, with `PUT /api/settings` and `{"statsViewers": "adults"}`.
+Administrators always see everything. An administrator chooses who else may, with **Who else can see statistics** under **Settings → Activity**: only administrators, which is the default, adult profiles too, or everyone. It's the `statsViewers` setting in the API, with `admins`, `adults` or `everyone`.
 
 Anyone it lets in sees only part of it:
 

@@ -91,6 +91,23 @@ func planHomeUnix(e *Env, pl *Plan, h string) {
 	if conf := filepath.Join(h, ".config", unixName); !other || staysInHome(h, conf) {
 		planConfigFile(e, pl, filepath.Join(conf, "wms.json"), other)
 	}
+	if other {
+		return // someone else's choice of these folders is in their own environment, out of reach
+	}
+	// Your own account may keep them somewhere else, as the system's rules allow. They only
+	// count when they're full paths: the same rules say anything else is to be ignored.
+	if d := e.Getenv("XDG_DATA_HOME"); filepath.IsAbs(d) {
+		planDataFolder(e, pl, filepath.Join(d, unixName), true, false)
+		if p := filepath.Join(d, "applications", "wittymediaserver.desktop"); exists(p) {
+			pl.add(fileItem("menu entry", p, GroupProgram, false))
+		}
+	}
+	if d := e.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(d) {
+		planConfigFile(e, pl, filepath.Join(d, unixName, "wms.json"), false)
+		if p := filepath.Join(d, "autostart", "wittymediaserver.desktop"); exists(p) {
+			pl.add(fileItem("start at sign-in", p, GroupProgram, false))
+		}
+	}
 }
 
 // packageTool asks the package manager about this machine: which of them installed it.
@@ -139,13 +156,20 @@ func planUnix(e *Env, pl *Plan) {
 			}})
 	}
 
-	dropIn := e.p("/etc/systemd/system/" + unit + ".d/upgraded-from-install-sh.conf")
-	if b, err := os.ReadFile(dropIn); err == nil {
-		if d := dataDirFromCommand(string(b)); d != "" {
-			planDataFolder(e, pl, e.Prefix+d, false, true)
+	// Settings beside the service: what an upgrade wrote, and what `systemctl edit` wrote. Each
+	// is listed by name, so nothing goes unsaid, and only .conf files, which are all systemd
+	// reads here. A folder with anything else in it stays.
+	dropIns := e.p("/etc/systemd/system/" + unit + ".d")
+	if confs, _ := filepath.Glob(filepath.Join(dropIns, "*.conf")); len(confs) > 0 {
+		for _, conf := range confs {
+			if b, err := os.ReadFile(conf); err == nil {
+				if d := dataDirFromCommand(string(b)); d != "" {
+					planDataFolder(e, pl, e.Prefix+d, false, true)
+				}
+			}
+			pl.add(fileItem("service setting", conf, GroupProgram, true))
 		}
-		pl.add(fileItem("service setting", dropIn, GroupProgram, true))
-		pl.add(emptyFolderItem(filepath.Dir(dropIn), GroupProgram, true))
+		pl.add(emptyFolderItem(dropIns, GroupProgram, true))
 	}
 	if systemd && exists(etcUnit) {
 		if b, err := os.ReadFile(etcUnit); err == nil {

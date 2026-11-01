@@ -107,7 +107,7 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 		"apiRevision":       apiRevision,
 		"apiVersions":       []int{apiVersion},
 		"apiBase":           strings.TrimSuffix(apiPrefix, "/"),
-		"setupRequired":     s.Auth.UserCount(ctx) == 0,
+		"setupRequired":     s.Auth.NoAccounts(ctx),
 		"features":          serverFeatures,
 		"minClientVersions": minClientVersions,
 		"auth": map[string]any{

@@ -48,8 +48,8 @@ export default function PlaybackSettings() {
             <label>Subtitles<input className="input" value={s.subtitleLanguage || ''} onChange={(e) => set('subtitleLanguage', e.target.value)} placeholder="none" maxLength={3} /></label>
           </div>
         </Row>
-        <Row label="Low-power mode for DVDs" desc="Easier on small computers such as a Raspberry Pi: DVD menus and titles are converted faster, at a small cost in quality.">
-          <Switch label="Low-power mode for DVDs" checked={s.lowPower === '1'} onChange={(v) => set('lowPower', v ? '1' : '0')} />
+        <Row label="Low-power mode for discs" desc="Easier on small computers such as a Raspberry Pi: the menus and titles of DVDs and Blu-rays are converted faster, at a small cost in quality.">
+          <Switch label="Low-power mode for discs" checked={s.lowPower === '1'} onChange={(v) => set('lowPower', v ? '1' : '0')} />
         </Row>
         <BDJRows s={s} set={set} dirty={st.dirty} />
         <Row label="DVD region" desc="1 to 8. Empty plays each disc as its own region.">

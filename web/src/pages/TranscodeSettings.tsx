@@ -54,8 +54,8 @@ export default function TranscodeSettings() {
         <Row label="Allow direct play" desc="Files a device can play as they are get sent untouched: full quality, no processor work, instant seeking. Off sends every file through conversion, which is mainly useful for testing.">
           <Switch label="Allow direct play" checked={on('directPlay')} onChange={(v) => set('directPlay', v ? '1' : '0')} />
         </Row>
-        <Row label="Maximum resolution" desc="Taller videos are converted down to this while playing, even ones that could otherwise play as they are. 720p is about half the work of 1080p, which helps on weak machines and slow connections.">
-          <Select value={s.maxHeight || '0'} onChange={(e) => set('maxHeight', e.target.value)} options={[{ value: '0', label: 'Source' }, { value: '480', label: '480p' }, { value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '1440', label: '1440p' }]} />
+        <Row label="Maximum resolution" desc="Taller videos are converted down to this while playing, even ones that could otherwise play as they are. 720p is about half the work of 1080p, which helps on weak machines and slow connections. Source sends 4K Blu-ray discs as 1080p, since converting 4K is beyond most machines: choose 2160p to send them as 4K.">
+          <Select value={s.maxHeight || '0'} onChange={(e) => set('maxHeight', e.target.value)} options={[{ value: '0', label: 'Source' }, { value: '480', label: '480p' }, { value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '1440', label: '1440p' }, { value: '2160', label: '2160p (4K)' }]} />
         </Row>
         <Row label="Sound format while converting" desc="AAC works nearly everywhere. Choose MP3 only for a browser that can’t play AAC, such as some Linux builds of Chromium.">
           <Select value={s.audioCodec || 'aac'} onChange={(e) => set('audioCodec', e.target.value)} options={[{ value: 'aac', label: 'AAC' }, { value: 'mp3', label: 'MP3' }]} />

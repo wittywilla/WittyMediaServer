@@ -242,6 +242,18 @@ func TestMusixmatch(t *testing.T) {
 	if err != nil || !f.HasSynced {
 		t.Fatalf("%+v %v", f, err)
 	}
+	// A result under Other versions can be chosen again by its id.
+	found, err := m.Search(context.Background(), Query{Title: "T & co", Artist: "A", DurationSec: 201.4}, "")
+	if err != nil || len(found) != 1 || found[0].ID == "" {
+		t.Fatalf("%+v %v", found, err)
+	}
+	again, err := m.ByID(context.Background(), found[0].ID)
+	if err != nil || !again.HasSynced || again.Provider != m.Provider() || again.Title != "T & co" || again.ID != found[0].ID || again.DurationSec != 201 {
+		t.Fatalf("%+v %v", again, err)
+	}
+	if _, err := m.ByID(context.Background(), "made-up"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("an id that was never given out: %v", err)
+	}
 	refused = true
 	if _, err := m.Get(context.Background(), Query{Title: "T"}); !errors.Is(err, ErrNeedsPlan) {
 		t.Fatalf("got %v", err)

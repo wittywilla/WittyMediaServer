@@ -50,6 +50,7 @@
 .sh-tabs button { background: none; border: 0; padding: 6px 14px; color: var(--fg-2); font-weight: 600; font-size: var(--text-md); border-radius: var(--r-full); }
 .sh-tabs button:hover { color: var(--fg); background: var(--bg-3); }
 .sh-tabs button.on { color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+.sh-upload { display: flex; justify-content: center; flex: none; padding-bottom: 6px; }
 .sh-scroll { flex: 1; overflow-y: auto; padding: 8px 20px 30px; }
 .sh-feed { flex: 1; min-height: 0; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; outline: none; }
 .sh-feed::-webkit-scrollbar { display: none; }

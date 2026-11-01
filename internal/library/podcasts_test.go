@@ -3,9 +3,11 @@ package library
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -64,6 +66,28 @@ func TestPublicIP(t *testing.T) {
 	}
 	if internetAddr(nil) {
 		t.Error("an unreadable address counts as public")
+	}
+}
+
+// A read-only library keeps nothing in its folder, whether someone asks or it's automatic, and
+// says so before anything is fetched.
+func TestReadOnlyLibraryKeepsNoEpisodes(t *testing.T) {
+	root := t.TempDir()
+	s := testScanner(t, root)
+	ctx := context.Background()
+	libs, err := s.Store.Libraries(ctx)
+	if err != nil || len(libs) == 0 {
+		t.Fatalf("%v %v", libs, err)
+	}
+	if err := s.Store.SetLibraryReadOnly(ctx, libs[0].ID, true); err != nil {
+		t.Fatal(err)
+	}
+	it := &Item{LibraryID: libs[0].ID, Kind: "audio", Album: "A Show", Title: "One", Path: "https://example.invalid/one.mp3"}
+	if err := s.Download(ctx, it); !errors.Is(err, ErrReadOnly) {
+		t.Fatalf("got %v", err)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Fatalf("something was written: %v", entries)
 	}
 }
 

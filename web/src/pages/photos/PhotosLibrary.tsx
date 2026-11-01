@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
-import { canPost, dayKey, fmtSize, monthName, photoThumb, takenDate, uploadFile, type Photo, type PhotoAlbum, type PhotoFolder, type PhotoMonth, type UploadResult } from '../../gallery'
+import { canPost, dayKey, monthName, photoThumb, takenDate, type Photo, type PhotoAlbum, type PhotoFolder, type PhotoMonth } from '../../gallery'
 import { IconCheck, IconClose, IconImage, IconPlay, IconPlus, IconRefresh, IconTag } from '../../icons'
 import ShareDialog from '../../components/ShareDialog'
 import { toast, useApp } from '../../state'
 import PhotoMap from './PhotoMap'
 import PhotoViewer from './PhotoViewer'
 import '../../gallery.css'
-import { ACCEPT_GALLERY } from '../../mediaTypes.generated'
+import { UploadButton } from '../../components/UploadButton'
 import { ask, Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
 
@@ -343,47 +343,6 @@ function PeoplePlaces() {
 }
 
 // ---------------------------------------------------------------- uploads and scans
-
-function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void }) {
-  const input = useRef<HTMLInputElement | null>(null)
-  const [state, setState] = useState<{ name: string; n: number; of: number; pct: number } | null>(null)
-  const [errors, setErrors] = useState<UploadResult[]>([])
-  const run = async (files: File[]) => {
-    const failed: UploadResult[] = []
-    let total = 0
-    for (let i = 0; i < files.length; i++) {
-      total += files[i].size
-      setState({ name: files[i].name, n: i + 1, of: files.length, pct: 0 })
-      const r = await uploadFile(lib, files[i], (d) => setState({ name: files[i].name, n: i + 1, of: files.length, pct: d }))
-      if (r.error) failed.push(r)
-    }
-    setState(null); setErrors(failed)
-    if (!failed.length) toast(`${files.length} ${files.length === 1 ? 'file' : 'files'} added (${fmtSize(total)})`)
-    onDone()
-  }
-  // Dropping files anywhere on the gallery works too.
-  useEffect(() => {
-    const over = (e: DragEvent) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault() }
-    const drop = (e: DragEvent) => { if (e.dataTransfer?.files.length) { e.preventDefault(); run([...e.dataTransfer.files]) } }
-    window.addEventListener('dragover', over)
-    window.addEventListener('drop', drop)
-    return () => { window.removeEventListener('dragover', over); window.removeEventListener('drop', drop) }
-  })
-  if (!lib.paths.length) return null
-  return (
-    <>
-      <input ref={input} type="file" multiple hidden accept={"image/*,video/*," + ACCEPT_GALLERY}
-        onChange={(e) => { const f = [...(e.target.files || [])]; e.target.value = ''; if (f.length) run(f) }} />
-      <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? `Uploading ${state.n}/${state.of} (${Math.round(state.pct * 100)}%)` : 'Upload'}</button>
-      {state && <span className="sr-only" role="status">Uploading {state.name}</span>}
-      {errors.length > 0 && (
-        <Dialog title={<>{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</>} onClose={() => setErrors([])} actions={<><button className="btn primary" onClick={() => setErrors([])}>Close</button></>}>
-            <ul className="gal-errs">{errors.map((x, i) => <li key={i}><b>{x.name}</b>: {x.error}</li>)}</ul>
-        </Dialog>
-      )}
-    </>
-  )
-}
 
 function ScanButton({ lib, onDone }: { lib: Library; onDone: () => void }) {
   const [scan, setScan] = useState<{ done?: number; found?: number } | null>(null)

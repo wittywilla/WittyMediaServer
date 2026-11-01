@@ -100,14 +100,16 @@ An administrator can change this under **Settings → Profiles → Signing in**:
 | **Show profiles outside your home** | Off by default. Passwords are always required away from home |
 | **Let apps find this server** | Apps on your home network can see this server's name, version and a random ID. They still need a code or a password to connect |
 
-**A profile with no password works only at home,** and only with the **Profiles** sign-in screen. With **Classic**, it can't sign in at all. To use a profile away from home, it needs a password, chosen when it's made.
+**A profile with no password works only at home,** and only with the **Profiles** sign-in screen. With **Classic**, it can't sign in at all. To use a profile away from home, it needs a password. See [Passwords](#passwords).
 
 **Too many wrong tries** makes the server wait before it will let you try again, and the message says how long.
 
 ## Passwords
 
 - **Adults:** at least 8 characters, and no more than 72 bytes. Change yours under **Settings → Profiles → Your account**: type your **Current password** and **New password**, then press **Change password**. Your other devices are signed out.
-- **Kids and Guests:** a password or PIN of at least 4 characters, chosen when the profile is made. Whoever manages them can tick **Remove the password** under **Limits**, so that it goes back to a tap on your home network.
+- **Kids and Guests:** a password or PIN of at least 4 characters. They can't change their own.
+- **Someone else's:** whoever manages them presses **Password** or **Password or PIN** beside them under **Settings → Profiles**. Type it twice and press **Save**. Their old one stops working, they're signed out on every device, and their two-factor sign-in stays on. For another administrator, it asks for your own password as well, and your code if you use one.
+- **Back to a tap:** for a Kids or Guest profile, **Remove it** in that same box, or **Remove the password** under **Limits**, puts it back to a tap on your home network.
 
 Long passwords are worth it if you use the server away from home. See [Remote access](REMOTE.md).
 
@@ -164,17 +166,45 @@ The page also shows this server's fingerprint. If the app shows one, the two sho
 
 There's no reset by email, because the server doesn't have your email address, and your password can't be read back.
 
-- **A Kids or Guest profile:** an adult who manages it can tick **Remove the password** under **Limits**. It then works with a tap at home. The app has no way yet to give an existing profile a new PIN, other than removing it and adding it again.
-- **An adult:** the app has no button yet for setting someone else's password. An administrator can remove the profile and add it again with the same username, but [removing it](#remove-a-profile) deletes that person's watch history.
-- **The only administrator:** the way back is to reset the server. On the computer running it, run:
+Nothing is lost either way below: watch history, game saves, settings and libraries all stay.
+
+- **A Kids or Guest profile:** an adult who manages it gives it a new one, as under [Passwords](#passwords).
+- **An adult:** an administrator gives them a new one the same way.
+- **An administrator, when there's another one:** the other administrator does it the same way, which also asks for their own password.
+- **The only administrator:** do it on the machine the server runs on, as below.
+
+### On the server itself
+
+This works for any account, with the server running or stopped. Open a terminal on the machine that runs the server, as the account that runs it, and run:
 
 ```bash
-wittymediaserver reset
+wittymediaserver reset-password <username>
 ```
 
-Then restart the server and go through first-time setup. A reset removes **every account, the list of libraries, watch progress, settings and game saves**. Your media files and what's saved beside them stay. It keeps a copy unless you add `-delete`, and `wittymediaserver reset -list`, `-restore <copy>` and `-cancel` work with those. Bringing a copy back, or restoring a backup with its accounts, also brings back the old password. See [Backup and restore](BACKUP.md).
+It asks for the new password twice, without showing it. The old one stops working, and that account is signed out on every device.
 
-**With a second administrator,** there's no need for that. They can remove your profile and add it again, which deletes only your watch history and game saves. This is a good reason to have one.
+- **Forgotten the username too?** `wittymediaserver reset-password --list` shows every account.
+- **Rather not choose one now?** Add `--generate`. It makes a long random password and shows it once. Sign in with it, then change it.
+- **In a script?** Add `--password-stdin` to read it from one line of input. A password can't be given on the command line, because other programs and your shell's history could keep it.
+- **Not the usual data folder?** Add `-data <folder>`. `wittymediaserver config path` shows which is in use, and for a service [Folders the server uses](CONFIG.md#folders-the-server-uses) has its folder.
+- **Two-factor sign-in stays on.** If your phone and recovery codes are gone too, run `wittymediaserver reset-2fa <username>` as well.
+- **"Too many wrong tries"** can still show for a while afterwards. Wait for the time it gives, or restart the server.
+
+`wittymediaserver doctor reset-password <username>` is the same command, for anyone already in [Repair](REPAIR.md).
+
+| Where the server runs | How to run it |
+|---|---|
+| Your own account, on Windows, Mac or Linux | As written above |
+| The Windows service | In a terminal opened with **Run as administrator**, add `-data C:\ProgramData\WittyMediaServer` |
+| A Linux service | `sudo -u wms wittymediaserver reset-password -data /var/lib/wittymediaserver <username>`. Plain `sudo` is refused, because the files it would leave behind would stop the server opening its database |
+| A FreeBSD service | The same, with `-data /var/db/wittymediaserver` |
+| Docker | `docker exec -it wittymediaserver wittymediaserver reset-password <username>` |
+
+**Why this is safe:** it only works for someone who can already change the server's own files, who could replace the whole database anyway. The server has no address for it, and **Settings → Repair** doesn't offer it, so nobody can do it from another device, whatever they know. Each use is written in the server's log, where [WittyLog](LOGGING.md) shows it, with the account's name and nothing of the password. Anyone who can reach the machine or its data folder can get into every account here, which is why [the data folder's permissions](CONFIG.md#folders-the-server-uses) matter, and why backups with accounts in them deserve a password.
+
+### Starting again instead
+
+If you'd rather start from nothing, `wittymediaserver reset` puts the server back to a new install at its next start. It removes **every account, the list of libraries, watch progress, settings and game saves**. Your media files and what's saved beside them stay. It keeps a copy unless you add `-delete`, and `wittymediaserver reset -list`, `-restore <copy>` and `-cancel` work with those. Bringing a copy back, or restoring a backup with its accounts, also brings back the old password. See [Starting again](REPAIR.md#starting-again-the-reset-page) and [Backup and restore](BACKUP.md).
 
 ## Setting up from another device
 

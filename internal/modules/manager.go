@@ -118,8 +118,9 @@ type Status struct {
 	Icon        string                 `json:"icon,omitempty"`
 	Enabled     bool                   `json:"enabled"`
 	Installed   bool                   `json:"installed"`
-	Core        bool                   `json:"core,omitempty"`      // other modules are built on it, so it stays
-	Libraries   []string               `json:"libraries,omitempty"` // the kinds of library it makes possible
+	Core        bool                   `json:"core,omitempty"`        // other modules are built on it, so it stays
+	ComesInside bool                   `json:"comesInside,omitempty"` // a library: it reaches this server inside what's built on it
+	Libraries   []string               `json:"libraries,omitempty"`   // the kinds of library it makes possible
 	Requires    []string               `json:"requires,omitempty"`
 	RequiredBy  []string               `json:"requiredBy,omitempty"`
 
@@ -311,6 +312,9 @@ func New(cfg Config) *Manager {
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
 		m.resolve(id, m.mods[id])
+		// The kept catalogue was judged before anyone knew what's on disk, which made every
+		// installed module look as if its own version were an update.
+		m.computeOffers(m.mods[id])
 		m.prune(id, m.mods[id])
 	}
 	return m
@@ -587,7 +591,7 @@ func (e *entry) status(id string) Status {
 		Notice: e.notice, Latest: e.latest, TooNew: e.tooNew, Phase: e.phase, Done: e.done, Total: e.total, Error: e.lastError, Previous: e.state.Previous,
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
 		Installed: e.onDisk(), Enabled: e.on(), Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
-		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: cmp.Or(noFork[id], ForkRefusal())}
+		ComesInside: e.comesInside(), StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: cmp.Or(noFork[id], ForkRefusal())}
 	if e.absent {
 		st.BuiltinVersion = ""
 		if e.dir == "" {

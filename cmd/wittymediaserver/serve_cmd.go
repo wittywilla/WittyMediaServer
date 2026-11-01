@@ -301,7 +301,7 @@ func cmdServe(args []string) int {
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
 		log.Warn("session tokens", "err", err)
 	}
-	if srv.Auth.UserCount(context.Background()) == 0 {
+	if srv.Auth.NoAccounts(context.Background()) {
 		// On the console only, on purpose: the person at the server is meant to see
 		// it, and the log files and viewer never hold it.
 		logging.AddSecret(srv.SetupCode())
@@ -314,7 +314,7 @@ func cmdServe(args []string) int {
 	// Remote access: nothing opens unless the owner turned it on.
 	srv.StartRemote(context.Background(), handler)
 	// First start on a desktop: open the setup wizard in the browser.
-	if cfg.OpenBrowser && srv.Auth.UserCount(context.Background()) == 0 && !desktop.Headless() {
+	if cfg.OpenBrowser && srv.Auth.NoAccounts(context.Background()) && !desktop.Headless() {
 		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {
 			log.Info("open the setup page in your browser", "url", listenURL(cfg.Listen))
 		}

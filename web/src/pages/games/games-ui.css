@@ -219,7 +219,7 @@ html.gm-couch, html.gm-couch body { background: var(--bg); }
 .gm-couch-main { flex: 1 1 auto; padding-bottom: var(--sp-16); outline: none; }
 .gm-couch-foot { position: sticky; bottom: 0; z-index: var(--z-sticky); padding: var(--sp-2) var(--gutter); background: var(--bg); border-top: 1px solid var(--border); }
 .gm-couch-main .detail-hero.gm-ambient, .gm-couch-main .gm-detail-backdrop { top: 0; }
-@media (max-width: 720px) { .gm-couch-name { display: none; } .gm-couch-tab span { display: none; } .gm-couch-foot { display: none; } }
+@media (max-width: 720px) { .gm-couch-name, .gm-couch-clock { display: none; } .gm-couch-tab span { display: none; } .gm-couch-tab { min-width: 44px; padding: 0 var(--sp-2); justify-content: center; } .gm-couch-leave span { display: none; } .gm-couch-leave { min-width: 44px; padding-inline: var(--sp-2); } .gm-couch-foot { display: none; } }
 
 .gm-osk-wrap { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: var(--sp-8); align-items: start; }
 .gm-osk-side { display: grid; gap: var(--sp-4); position: sticky; top: 6rem; }

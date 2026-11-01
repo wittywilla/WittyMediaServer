@@ -90,7 +90,7 @@ The page is called **Playback & discs**. It sets how videos, shows and discs pla
 - **When a disc is inserted** starts with the disc's menu, or skips to the movie.
 - **Disc insert animation** and **Drive sounds** are the tray effect.
 - **Preferred languages** take two-letter codes such as `en` or `fr`, for menus, audio and subtitles on discs that offer them.
-- **Low-power mode for DVDs** helps small computers such as a Raspberry Pi, at a small cost in quality.
+- **Low-power mode for discs** helps small computers such as a Raspberry Pi, at a small cost in quality.
 - **Run Blu-ray Java menus (BD-J)** shows menus written in Java. It needs Java 8 or newer installed on the server, and runs code from the disc in a boxed-in process, so it starts off. With it off, these discs play their main feature directly.
 - **DVD region** and **Blu-ray region** are for discs that check where they're being played. A Blu-ray from another region shows its own message instead of the movie, so pick the region your discs are from.
 - **Parental limits** are the disc's own checks, used to choose a version of the film. They aren't a lock on the server: use [Profiles](#profiles) for that.
@@ -180,6 +180,7 @@ Everyone who uses this server, with their passwords and what they may watch.
 
 - **Your account** has your **Profile name**, your **Username** (what you sign in with) and **Change password**. Changing your password signs out your other devices. Kids and Guest profiles can't rename themselves or change a password: an adult does that.
 - **Everyone on this server** (administrators) or **Kids profiles you manage** (adults) lists people, with **Names**, **Limits** and a remove button. Removing a profile deletes its watch history too, and can't be undone.
+- **Password** or **Password or PIN** beside someone gives them a new one, for a forgotten password. See [If you forget your password](ACCOUNTS.md#if-you-forget-your-password).
 - **Add profile** makes an **Adult**, **Kids** or **Guest** profile. Other adults may add Kids profiles only, unless an administrator keeps that to themselves. A Kids or Guest profile with no password signs in with a tap, and only on your home network.
 - **Limits** sets an age level, which libraries are allowed, genres to hide, titles always or never allowed, and Live TV.
 - **Signing in** (administrators) chooses **Profiles** or **Classic**, whether to **Show profiles outside your home**, **Let apps find this server**, and **Who may manage Kids profiles**.
@@ -207,7 +208,7 @@ More: [Games](GAMES.md).
 The button in the top bar that shows library scans and other background work.
 
 - **Show the activity button** only changes what you see. The work carries on either way.
-- **On this server** (administrators) turns the button off for everyone, and sets **Who else can see it**. Anyone but an administrator gets a read-only view with no file names and no controls.
+- **On this server** (administrators) turns the button off for everyone, and sets **Who else can see it**. Anyone but an administrator gets a read-only view with no file names and no controls. **Who else can see statistics** does the same for [statistics](STATS.md#who-may-see-it).
 - **History** (administrators) keeps at most 500 tasks for 30 days unless you change it, and **Clear history** empties it.
 
 More: [Background tasks](TASKS.md), [Watching and listening](PLAYING.md#the-activity-button).

@@ -133,6 +133,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
         </label>
         {err && <div className="error" role="alert">{err}</div>}
         <button className="btn primary" disabled={busy || !name || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <small className="muted"><Link to="/help/accounts#if-you-forget-your-password">Forgot your password?</Link></small>
       </div>
     </form>
   )

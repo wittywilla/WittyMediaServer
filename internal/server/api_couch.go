@@ -270,7 +270,7 @@ func (s *Server) couchIdentity(u int64) (*gamestream.Identity, error) {
 }
 
 // couchProgram finds the host program: named by the environment, in this server's data
-// folder, or beside the server. It's a separate GPL-3.0 program, so a server works without it.
+// folder, or from its module. It's a separate GPL-3.0 program, so a server works without it.
 func (s *Server) couchProgram() string {
 	if p := os.Getenv("WMS_WITTYCOUCH_HOST"); p != "" {
 		return p

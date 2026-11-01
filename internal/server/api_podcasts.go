@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -149,7 +150,11 @@ func (s *Server) handleDownloadEpisode(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Minute)
 	defer cancel()
 	if err := s.Scanner.Download(ctx, it); err != nil {
-		writeErr(w, 502, err.Error())
+		code := 502
+		if errors.Is(err, library.ErrReadOnly) {
+			code = 403
+		}
+		writeErr(w, code, err.Error())
 		return
 	}
 	writeJSON(w, 200, it)

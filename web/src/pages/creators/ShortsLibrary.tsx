@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, getPrefs, type Library, type PlayInfo } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
 import ShareDialog from '../../components/ShareDialog'
-import { canReact, fmtCount, videoThumb, type Creator, type VideoCard, type VideoDetail } from '../../gallery'
+import { UploadButton } from '../../components/UploadButton'
+import { canPost, canReact, fmtCount, videoThumb, type Creator, type VideoCard, type VideoDetail } from '../../gallery'
 import { IconClose, IconEdit, IconMute, IconPause, IconPlay, IconRefresh, IconVolume } from '../../icons'
 import { setSpeed, SPEEDS } from '../../player/Controls'
 import { useSource } from '../../player/hooks'
@@ -24,6 +25,8 @@ type Tab = 'foryou' | 'following' | 'liked' | 'creators'
 const TABS: [Tab, string][] = [['foryou', 'For You'], ['following', 'Following'], ['liked', 'Liked'], ['creators', 'Creators']]
 
 export default function ShortsLibrary({ lib }: { lib: Library }) {
+  const { user } = useApp()
+  const [added, setAdded] = useState(0) // what's uploaded here shows in a fresh feed
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') || 'foryou') as Tab
   const startId = params.get('v') ? Number(params.get('v')) : null
@@ -39,7 +42,8 @@ export default function ShortsLibrary({ lib }: { lib: Library }) {
       <div className="sh-tabs" role="tablist" aria-label={lib.name}>
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !creator} className={tab === k && !creator ? 'on' : ''} onClick={() => set({ tab: k === 'foryou' ? null : k, v: null, creator: null })}>{l}</button>)}
       </div>
-      {tab === 'foryou' && !creator && <Feed key={lib.id} lib={lib} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} />}
+      {canPost(user) && <div className="sh-upload"><UploadButton lib={lib} onDone={() => setAdded((n) => n + 1)} /></div>}
+      {tab === 'foryou' && !creator && <Feed key={`${lib.id}-${added}`} lib={lib} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} />}
       {creator && <CreatorFeed lib={lib} id={creator} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} />}
       {tab === 'following' && !creator && <FollowingFeed lib={lib} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} onCreators={() => set({ tab: 'creators' })} />}
       {tab === 'liked' && !creator && <GridOf lib={lib} query={`library=${lib.id}&liked=1&sort=latest`} empty="Videos you like appear here." />}
@@ -198,8 +202,11 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
   // On a remote, focus on the slide means Up and Down change video; Right
   // reaches the buttons. The app's own focus movement handles them from there.
   const onKey = (e: React.KeyboardEvent) => {
+    if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return // words being typed
     const onSlide = e.target === root.current
-    if (e.key === 'ArrowDown' && onSlide) { e.preventDefault(); onNext() }
+    // Focus is on the slide, so a key there has to be passed down to the video inside it.
+    if (e.key === 'k' || e.key === 'K' || (onSlide && (e.key === ' ' || e.key === 'Enter'))) { e.preventDefault(); root.current?.querySelector<HTMLElement>('.sh-play')?.click() }
+    else if (e.key === 'ArrowDown' && onSlide) { e.preventDefault(); onNext() }
     else if (e.key === 'ArrowUp' && onSlide) { e.preventDefault(); onPrev() }
     else if (e.key === 'ArrowRight' && onSlide) { e.preventDefault(); root.current?.querySelector<HTMLElement>('.sh-rail button, .sh-rail a')?.focus() }
     else if (e.key === 'ArrowLeft' && !onSlide && (e.target as HTMLElement).closest('.sh-rail')) { e.preventDefault(); root.current?.focus() }
@@ -336,10 +343,9 @@ function ActiveVideo({ v, muted, toggleMute, rate, onDone }: { v: VideoCard; mut
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [v.id, info])
   const toggle = () => { const el = video.current; if (el) { setBlocked(false); el.paused ? el.play().catch(() => {}) : el.pause() } }
-  const onKey = (e: React.KeyboardEvent) => { if (e.key === ' ' || e.key === 'k' || e.key === 'Enter') { e.preventDefault(); toggle() } }
   const dur = info?.durationSec || v.durationSec
   return (
-    <div className="sh-video" onClick={toggle} onKeyDown={onKey}>
+    <div className="sh-video" onClick={toggle}>{/* design-ok: a click on the picture is the mouse's shortcut for the keys and the button beside it */}
       <video ref={video} playsInline loop={false} muted={muted} poster={videoThumb(v.id, 640, v.updatedAt)}
         onPlay={() => setPaused(false)} onPause={() => setPaused(true)}
         onEnded={() => {

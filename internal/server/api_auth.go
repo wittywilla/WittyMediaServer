@@ -32,7 +32,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 			onboarding = len(libs) == 0
 		}
 	}
-	setupRequired := s.Auth.UserCount(r.Context()) == 0
+	setupRequired := s.Auth.NoAccounts(r.Context())
 	// Admins see a notice when a newer version was found.
 	newer := ""
 	if u != nil && u.IsAdmin && s.Update != nil {
@@ -110,7 +110,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	setupMu.Lock()
 	defer setupMu.Unlock()
-	if s.Auth.UserCount(r.Context()) > 0 {
+	if !s.Auth.NoAccounts(r.Context()) {
 		writeErr(w, 409, "already set up")
 		return
 	}
@@ -619,6 +619,7 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.WarnContext(r.Context(), "a password was changed", "cat", "auth", "account", id, "by", u.Name, "from", clientFrom(r).IP.String())
 	// Every other session of that account ends (this one stays signed in).
 	keep := ""
 	if id == u.ID {

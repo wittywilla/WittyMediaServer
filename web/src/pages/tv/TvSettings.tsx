@@ -4,6 +4,7 @@ import { fmtDateTime, api, fmtRuntime, mediaUrl } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
 import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
+import { ask } from '../../ui'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
 import TunerLogo from './TunerLogo'
@@ -74,7 +75,7 @@ function LibraryChannels() {
     } catch (e: any) { toast(e.message) } finally { setBusy('') }
   }
   const remove = async (c: Channel) => {
-    if (!confirm(`Delete the channel “${c.name}”? Your files are not touched.`)) return
+    if (!await ask({ title: `Delete the channel “${c.name}”?`, body: 'Your files aren’t touched.', confirm: 'Delete channel', danger: true })) return
     try { await api.del(`/channels/${c.id}`); forgetLineup(); load() } catch (e: any) { toast(e.message) }
   }
   const setOn = async (c: Channel, enabled: boolean) => {
@@ -161,7 +162,7 @@ function Tuners() {
     try { setFound(await api.get<Found[]>('/tuners/discover')) } catch (e: any) { toast(e.message) } finally { setSearching(false) }
   }
   const remove = async (t: Tuner) => {
-    if (!confirm(`Remove “${t.name}” and its ${t.channels} channels from this server?`)) return
+    if (!await ask({ title: `Remove “${t.name}” from this server?`, body: t.channels === 1 ? 'Its channel goes with it.' : `Its ${t.channels} channels go with it.`, confirm: 'Remove tuner', danger: true })) return
     try { await api.del(`/tuners/${t.id}`); forgetLineup(); void load() } catch (e: any) { toast(e.message) }
   }
   return (

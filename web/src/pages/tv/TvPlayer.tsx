@@ -236,7 +236,7 @@ export default function TvPlayer() {
   const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
 
   return (
-    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>
+    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
       <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}

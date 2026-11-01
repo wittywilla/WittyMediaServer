@@ -19,7 +19,7 @@ export type Access = {
 export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
-  lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean
+  lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean; readOnly?: boolean
 }
 // A commercials library stays out of the menus and Home unless switched on.
 export const inMainMenus = (l: Library) => l.type !== 'commercials' || !!l.showMain
@@ -177,8 +177,11 @@ export function normalizeServer(input: string): string {
 // A date and time for people, the same everywhere: Oct 31, 2026, 8:00 PM.
 export const fmtDateTime = (t: number | string | Date) => new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
+// Servers say things in lower case without a full stop, which is fine for a log. On a page it's a sentence.
+const sentence = (s: string) => { const t = s.trim(); return !t ? t : t[0].toUpperCase() + t.slice(1) + (/[\w)”']$/.test(t) ? '.' : '') }
+
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: any) { super(message) }
+  constructor(public status: number, message: string, public data?: any) { super(sentence(message)) }
 }
 
 // The module a request has just found missing. A page that then can't load says that, rather than

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api } from '../../api'
-import { Spinner } from '../../components/common'
+import { api, ApiError } from '../../api'
+import { LoadError, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
@@ -20,12 +20,15 @@ export default function WittyRigsSettings() {
   const [busy, setBusy] = useState(false)
   const [sure, setSure] = useState(false)
   const { refreshLibraries } = useApp()
-  const load = () => api.get<Status>('/wittyrigs').then(setSt).catch((e) => toast(e.message))
+  const [failed, setFailed] = useState(false)
+  // With the module missing this says so and offers it; LoadError knows which module it was.
+  const load = () => { setFailed(false); return api.get<Status>('/wittyrigs').then(setSt).catch((e) => { if (e instanceof ApiError) setFailed(true); else toast(e.message) }) }
   useEffect(() => { load() }, [])
   const set = async (enabled: boolean) => {
     setBusy(true); setSure(false)
     try { setSt(await api.put<Status>('/wittyrigs', { enabled })); void refreshLibraries() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
+  if (failed) return <LoadError what="WittyRigs" onRetry={load} />
   if (!st) return <Spinner />
   return (
     <>

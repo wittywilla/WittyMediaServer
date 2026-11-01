@@ -328,7 +328,7 @@ function Shelf({ lib, shelves, listing, isAdmin }: { lib: Library; shelves: Shel
         <LazyShelf key={c.key} title={c.name} query={q(`genre=${encodeURIComponent(c.name)}&sort=rating&desc=1`)} seeAll={`${here}?genre=${encodeURIComponent(c.name)}`} count={c.count} />
       ))}
       {isAdmin && shelves.categories.length === 0 && (
-        <p className="muted lib-empty-note"><IconPlus size={16} /> Categories come from genres, which come from matching titles. <Link to={`/fix-matches?library=${lib.id}`}>Fix matches</Link> to fill them in.</p>
+        <p className="muted lib-empty-note"><IconPlus size={16} /> <span>Categories come from genres, which come from matching titles. <Link to={`/fix-matches?library=${lib.id}`}>Fix matches</Link> to fill them in.</span></p>
       )}
     </>
   )

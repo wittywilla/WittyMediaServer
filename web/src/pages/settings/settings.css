@@ -52,9 +52,9 @@
 .set-row.stack { flex-direction: column; align-items: stretch; gap: 12px; }
 .set-row.stack .set-row-ctl { display: block; }
 .set-row.dim .set-row-text { opacity: .5; }
-.set-badge { padding: 1px var(--sp-2); border-radius: var(--r-full); font-size: var(--text-2xs); font-weight: 700; color: var(--ok); background: var(--ok-soft); }
+.set-badge { padding: 1px var(--sp-2); border-radius: var(--r-full); font-size: var(--text-2xs); font-weight: 700; color: color-mix(in srgb, var(--ok) 70%, var(--fg)); background: var(--ok-soft); }
 .set-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-full); font-size: var(--text-xs); font-weight: 600; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; }
-.set-pill.live { color: var(--accent-text); background: var(--accent-soft); }
+.set-pill.live { color: var(--fg); background: var(--accent-soft); }
 .set-pill.live::before { content: ''; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: currentColor; animation: set-pulse 1.2s ease-in-out infinite; }
 @keyframes set-pulse { 50% { opacity: .3; } }
 
@@ -188,12 +188,18 @@
 .mod-row { display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: var(--r-md); color: var(--fg); }
 a.mod-row:hover { background: var(--hover); }
 .mod-row.mod-self { background: var(--accent-soft); margin-bottom: 6px; }
+.mod-self .muted { color: var(--fg-2); }
 .mod-name { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .mod-name .muted { font-size: var(--text-xs); }
 .mod-ver { display: flex; align-items: center; gap: var(--sp-2); font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-2); flex: none; }
 .mod-local { font-family: var(--font); font-size: var(--text-2xs); padding: 1px var(--sp-2); border-radius: var(--r-full); background: var(--bg-4); color: var(--fg-2); }
 .mod-group { padding: var(--sp-3) var(--sp-3) var(--sp-1); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
 .set-nav-version { display: grid; gap: var(--sp-1); margin-top: var(--sp-1); padding: 10px var(--sp-3); border-radius: var(--r-md); color: var(--fg-3); font-size: var(--text-xs); }
+.set-main:has(.st-page > .back-link) > .set-back { display: none; }
+@media (max-width: 600px) {
+  .set-main .list-item { flex-wrap: wrap; }
+  .set-main .list-item > .grow { flex: 1 1 calc(100% - 64px); min-width: 0; }
+}
 .set-nav-version:hover { background: var(--hover); color: var(--fg-2); }
 /* The menu is its own page where it would otherwise squeeze the page beside it. */
 .set-nav-text { display: grid; min-width: 0; }

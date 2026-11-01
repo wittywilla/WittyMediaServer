@@ -14,13 +14,13 @@
 .gaming-core { display: flex; flex-direction: column; min-width: 0; }
 .gaming-core small { font-size: var(--text-xs); }
 .gaming-rec { margin-left: var(--sp-2); }
-.game-bios-hint { margin: 8px 0 0; font-size: .875rem; overflow-wrap: anywhere; }
+.game-bios-hint { margin: 8px 0 0; font-size: var(--text-md); overflow-wrap: anywhere; }
 .gaming-bios { margin-top: 8px !important; overflow-wrap: anywhere; }
 .gaming-extra { list-style: none; margin: 0; padding: 0; }
 .gaming-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px; }
 .gaming-form label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .gaming-form .select { width: 100%; }
-.gaming-form small { font-size: 12px; }
+.gaming-form small { font-size: var(--text-xs); }
 
 .gm-card-score { display: inline-flex; align-items: center; gap: 2px; margin-right: var(--sp-1); color: var(--fg); font-weight: 600; }
 .gm-card-score svg { width: 12px; height: 12px; color: var(--warn); }

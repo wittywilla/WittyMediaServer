@@ -120,7 +120,7 @@ func (s *Server) viewerError(r *http.Request, err error) string {
 		return msg
 	}
 	var pe *fs.PathError
-	if errors.As(err, &pe) || strings.Contains(msg, s.Cfg.DataDir) {
+	if errors.As(err, &pe) || (s.Cfg.DataDir != "" && strings.Contains(msg, s.Cfg.DataDir)) {
 		s.Log.WarnContext(r.Context(), "a file couldn't be read", "cat", "library", "err", err)
 		return fileFailed
 	}

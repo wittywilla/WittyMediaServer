@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"io/fs"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -168,7 +168,9 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 }
 
 // Recording is one recording.
-func (m *Manager) Recording(ctx context.Context, id int64) (*Recording, error) { return m.recording(ctx, id) }
+func (m *Manager) Recording(ctx context.Context, id int64) (*Recording, error) {
+	return m.recording(ctx, id)
+}
 
 // PendingRecordings is how many recordings of an account are yet to finish.
 func (m *Manager) PendingRecordings(ctx context.Context, userID int64) (int, error) {

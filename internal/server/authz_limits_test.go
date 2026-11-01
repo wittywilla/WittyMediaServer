@@ -157,4 +157,3 @@ func TestConsoleListKeepsCustomCoresToAdministrators(t *testing.T) {
 		t.Errorf("%+v", v[0].Installed)
 	}
 }
-

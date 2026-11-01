@@ -743,7 +743,8 @@ func sanitizeRecordings(ctx context.Context, d *sql.DB, in *Inspection, f Folder
 				return err
 			}
 		case in.man.Protected:
-			// Their own folder, and nobody without the password can have planted this.
+			// Their own folder, perhaps, and it's set again here. The server only touches a
+			// recording's file inside the recordings folder, so this names nothing it will use.
 		default:
 			dropped++
 			if _, err := d.ExecContext(ctx, `DELETE FROM recordings WHERE id = ?`, r.id); err != nil {

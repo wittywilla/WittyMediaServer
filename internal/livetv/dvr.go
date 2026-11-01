@@ -77,7 +77,7 @@ var (
 
 const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id`
 
-func scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
+func (m *Manager) scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
 	var r Recording
 	var rule sql.NullInt64
 	if err := sc.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Number, &r.Title, &r.Sub, &r.Start, &r.Stop, &r.Status, &r.Error, &r.Path, &rule); err != nil {
@@ -86,12 +86,26 @@ func scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
 	if rule.Valid {
 		r.RuleID = &rule.Int64
 	}
-	if r.Path != "" {
+	if m.inRecordingsFolder(r.Path) {
 		if st, err := os.Stat(r.Path); err == nil {
 			r.SizeBytes = st.Size()
 		}
 	}
 	return &r, nil
+}
+
+// inRecordingsFolder says a path is a file this server would have recorded to. A row's path can
+// have come from a backup, whoever made that, so nothing outside the folder is looked at or removed.
+func (m *Manager) inRecordingsFolder(p string) bool {
+	if p == "" || m.Folder == nil {
+		return false
+	}
+	folder := m.Folder()
+	if folder == "" {
+		return false
+	}
+	rel, err := filepath.Rel(folder, p)
+	return err == nil && rel != "." && filepath.IsLocal(rel)
 }
 
 // Recordings lists every recording, newest first.
@@ -103,7 +117,7 @@ func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
 	defer rows.Close()
 	out := []*Recording{}
 	for rows.Next() {
-		r, err := scanRec(rows)
+		r, err := m.scanRec(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +207,7 @@ func (m *Manager) ForgetUser(ctx context.Context, userID int64) error {
 }
 
 func (m *Manager) recording(ctx context.Context, id int64) (*Recording, error) {
-	r, err := scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.id = ?`, id))
+	r, err := m.scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.id = ?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -212,7 +226,7 @@ func (m *Manager) CancelRecording(ctx context.Context, id int64, deleteFile bool
 	if cancel != nil {
 		cancel()
 	}
-	if deleteFile && r.Path != "" {
+	if deleteFile && m.inRecordingsFolder(r.Path) {
 		if err := os.Remove(r.Path); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("the file could not be deleted: %w", err)
 		}
@@ -372,7 +386,7 @@ func (m *Manager) startDue(ctx context.Context) {
 	}
 	var due []*Recording
 	for rows.Next() {
-		if r, err := scanRec(rows); err == nil {
+		if r, err := m.scanRec(rows); err == nil {
 			due = append(due, r)
 		}
 	}

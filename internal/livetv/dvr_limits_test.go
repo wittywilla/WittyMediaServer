@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"math"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +28,65 @@ func TestPublicErrorKeepsAddressesAndFoldersOut(t *testing.T) {
 	}
 	if got := PublicError(errors.New("no tuner was free when the recording started")); !strings.Contains(got, "no tuner") {
 		t.Errorf("a plain reason was lost: %q", got)
+	}
+}
+
+// A row can come from a backup, and a backup's password only says who made it. Removing a recording
+// removes a file in the recordings folder and nothing else.
+func TestARecordingRowCantNameAnyOtherFile(t *testing.T) {
+	m := testManager(t)
+	c := liveChannel(t, m, newLiveFake(t, nil))
+	base := t.TempDir()
+	folder := filepath.Join(base, "recordings")
+	if err := os.MkdirAll(filepath.Join(folder, "News"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	m.Folder = func() string { return folder }
+	ctx := context.Background()
+	write := func(p string) string {
+		if err := os.WriteFile(p, []byte("keep me"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	outside := write(filepath.Join(base, "wms.json"))
+	mine := write(filepath.Join(folder, "News", "News.ts"))
+	row := func(path string) int64 {
+		now := time.Now().Unix()
+		rec, err := m.Schedule(ctx, c.ID, 1, "News", "", now+3600, now+7200)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := m.DB.ExecContext(ctx, `UPDATE recordings SET path = ?, status = 'done' WHERE id = ?`, path, rec.ID); err != nil {
+			t.Fatal(err)
+		}
+		return rec.ID
+	}
+	for _, p := range []string{outside, filepath.Join(folder, "..", "wms.json"), folder + string(filepath.Separator) + ".." + string(filepath.Separator) + "wms.json"} {
+		id := row(p)
+		got, err := m.Recording(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.SizeBytes != 0 {
+			t.Errorf("%s: its size was read: %d", p, got.SizeBytes)
+		}
+		if err := m.CancelRecording(ctx, id, true); err != nil {
+			t.Fatalf("%s: %v", p, err)
+		}
+		if _, err := os.Stat(outside); err != nil {
+			t.Fatalf("removing a recording named %s deleted a file outside the folder: %v", p, err)
+		}
+	}
+	id := row(mine)
+	if got, err := m.Recording(ctx, id); err != nil || got.SizeBytes == 0 {
+		t.Errorf("a real recording's size: %+v, %v", got, err)
+	}
+	if err := m.CancelRecording(ctx, id, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(mine); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("a real recording stayed: %v", err)
 	}
 }
 

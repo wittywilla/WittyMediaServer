@@ -152,11 +152,16 @@ func (s *Server) unpackLimit() int64 {
 }
 
 // findProgram looks beside the server, in bin/ and in the development build folder.
-func findProgram(name string) string {
+func (s *Server) findProgram(name string) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	dirs := []string{config.ProgramDir(), filepath.Join(config.ProgramDir(), "bin"), ".build"}
+	dirs := []string{config.ProgramDir(), filepath.Join(config.ProgramDir(), "bin")}
+	// Relative to wherever it was started, so never for a real install: that can be a
+	// folder other people can write to.
+	if s.Cfg != nil && s.Cfg.Dev {
+		dirs = append(dirs, ".build")
+	}
 	for _, d := range dirs {
 		p := filepath.Join(d, name)
 		if st, err := os.Stat(p); err == nil && !st.IsDir() {
@@ -186,7 +191,7 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string, ve
 	}
 	choice := s.DB.GetSetting(ctx, "gamingRunner", "auto")
 	if choice == "auto" || choice == "retroarch" {
-		if p := findProgram("wittyretroarch"); p != "" {
+		if p := s.findProgram("wittyretroarch"); p != "" {
 			return p, []string{"--wittyplay"}, ""
 		}
 	}
@@ -195,7 +200,7 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string, ve
 			return p, a, ver
 		}
 	}
-	return findProgram("wittyplay-host"), nil, ""
+	return s.findProgram("wittyplay-host"), nil, ""
 }
 
 // awaitHardwareProbe finds out which hardware encoders work, the first time a game

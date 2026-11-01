@@ -25,7 +25,7 @@ func TestRealStream(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	if err := CheckProgram(ctx, program); err != nil {
+	if err := CheckProgram(ctx, program, nil); err != nil {
 		t.Fatal(err)
 	}
 	id, err := gamestream.NewIdentity()

@@ -322,7 +322,7 @@ func (s *Server) handleUploadBumper(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	f, path, err := createUnique(s.bumperDir(), name)
+	f, path, err := library.CreateInLibrary(s.bumperDir(), s.bumperDir(), name)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

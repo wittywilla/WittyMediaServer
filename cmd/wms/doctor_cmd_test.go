@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,23 +84,25 @@ func TestDoctorRepairsAFileThatIsDamaged(t *testing.T) {
 		t.Fatal(err)
 	}
 	d.Close()
+	// One page of that table, and not the database's own list of tables, which only a
+	// backup can save.
 	p := filepath.Join(data, "wms.db")
-	st, err := os.Stat(p)
+	b, err := os.ReadFile(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fh, err := os.OpenFile(p, os.O_RDWR, 0)
-	if err != nil {
+	const pageSize = 4096
+	at := bytes.LastIndex(b, []byte("words words"))
+	if at < 0 {
+		t.Fatal("the rows aren't in the file")
+	}
+	page := at / pageSize
+	for i := 0; i < pageSize; i++ {
+		b[page*pageSize+i] = 0xCD
+	}
+	if err := os.WriteFile(p, b, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	bad := make([]byte, 4096*3)
-	for i := range bad {
-		bad[i] = 0xCD
-	}
-	if _, err := fh.WriteAt(bad, (st.Size()/2)/4096*4096); err != nil {
-		t.Fatal(err)
-	}
-	fh.Close()
 	if got := cmdDoctor([]string{"-data", data, "--only", "data"}); got != doctorProblems {
 		t.Fatalf("looking: exit %d", got)
 	}

@@ -34,7 +34,10 @@ type Recovered struct {
 	Unread   int              `json:"unread"`   // tables that couldn't be read at all
 }
 
-const recoverBatch = 500
+const (
+	recoverBatch    = 500
+	recoverRowByRow = 2048 // about as many rows as a very full page holds
+)
 
 // RecoverInto writes a new wms.db in dst from what can be read of the one in src. dst must
 // be a new, empty folder of the caller's. A panic in the driver is turned into an error:
@@ -165,11 +168,11 @@ func recoverTable(ctx context.Context, old, fresh *DB, conn *sql.Conn, table str
 	}
 	q := `SELECT rowid, ` + list + ` FROM ` + QuoteIdent(table) + ` WHERE rowid > ? ORDER BY rowid LIMIT ?`
 	const start = int64(-1 << 62)
-	last, step := start, int64(0)
+	last, step, tries := start, int64(0), 0
 	for ctx.Err() == nil {
 		n, next, rerr := readBatch(ctx, old, q, last, len(cols), store)
 		if n > 0 {
-			last, step = next, 0
+			last, step, tries = next, 0, 0
 		}
 		if rerr == nil {
 			if n < recoverBatch {
@@ -180,15 +183,16 @@ func recoverTable(ctx context.Context, old, fresh *DB, conn *sql.Conn, table str
 		if n > 0 {
 			continue // the good rows before the damage are in; ask again from there
 		}
-		// Reading from here fails, so a stretch of the table can't be read. Jump ahead in
-		// growing steps until reading works again.
+		// Reading from here fails, so a stretch of the table can't be read. Row by row at
+		// first: one bad page holds few rows, and a big jump would skip good ones after it.
+		// Then in growing steps, as a damaged upper page can hide millions.
 		if last == start {
 			last = 0 // the damage is at the very start: row numbers begin at 1
 		}
-		if step == 0 {
+		if tries++; tries <= recoverRowByRow {
 			step = 1
 		} else {
-			step *= 8
+			step *= 2
 		}
 		if step > 1<<40 {
 			rt.Failed = rt.Copied == 0

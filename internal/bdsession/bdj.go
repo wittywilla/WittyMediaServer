@@ -2,27 +2,66 @@ package bdsession
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittybluray/bdj"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
-// BD-J titles: the disc's applications run in a Java process (package bdj),
+// BD-J titles: the disc's applications run in a Java process that the helper starts,
 // drawing into a picture the player lays over the video and asking for
 // playlists, which play here like any other. The navigator's registers are the
 // truth; the applications keep a copy.
+
+// Frame size of the graphics plane.
+const (
+	bdjWidth  = 1920
+	bdjHeight = 1080
+)
+
+// JavaEvent is something the applications asked for: play, stop, pause, resume, seek, rate,
+// video, sound, psr, gpr, title, appstarted, appfailed and so on.
+type JavaEvent struct {
+	Kind string
+	Args []string
+}
+
+// JavaOptions start Java for a disc.
+type JavaOptions struct {
+	Java    string // the program to use; "" finds it
+	Session string // names this session's working folder
+	OnEvent func(JavaEvent)
+	Log     func(string)
+	// OnExit hears how the process ended, once it has. stopped means Close asked it to go.
+	OnExit func(err error, stopped bool)
+}
+
+// JavaHost is one running Java process with one disc's applications.
+type JavaHost interface {
+	Version() int
+	Kick()
+	WaitChange(ctx context.Context, since int, max time.Duration) int
+	PNG() ([]byte, int)
+	Send(format string, args ...any)
+	Sync(r *bluray.Registers)
+	StartTitle(title int, o *bluray.BDJObject)
+	Done() <-chan struct{}
+	Close()
+}
+
+// JavaEngine starts Java for an open disc.
+type JavaEngine interface {
+	StartJava(o JavaOptions) (JavaHost, error)
+}
+
+// JavaProbe says whether this machine's Java can run a disc's programs. The server sets it as
+// it starts; without it, it can't.
+var JavaProbe func(path string) (version, where string, err error)
 
 // BDJConfig says whether BD-J is turned on, and which Java to use ("" = find it).
 type BDJConfig func() (enabled bool, javaPath string)
@@ -41,9 +80,9 @@ type BDJPoll struct {
 
 // bdjState is a session's BD-J side.
 type bdjState struct {
-	host   *bdj.Host
-	obj    *wittybluray.BDJObject
-	events chan bdj.Event
+	host   JavaHost
+	obj    *bluray.BDJObject
+	events chan JavaEvent
 	failed int
 	// One-shot messages for the next poll.
 	sounds []int
@@ -88,60 +127,28 @@ func (s *Session) idleTooLong() bool {
 	return idle > 30*time.Minute || (running && idle > bdjIdle)
 }
 
-// storageKey names a disc's storage: the same however the disc is reached and from
-// one server start to the next, and different for a different disc. Scores and
-// bookmarks belong to the disc's program, so that is what it is worked out from.
-func storageKey(d *wittybluray.Disc) string {
-	h := sha256.New()
-	_, _ = io.WriteString(h, d.Label)
-	for _, f := range []string{"index.bdmv", "MovieObject.bdmv"} {
-		if b, err := d.ReadProgramFile(f, 4<<20); err == nil {
-			_, _ = h.Write(b)
-		}
-	}
-	add := func(o wittybluray.IndexObject) {
-		if o.Kind == wittybluray.ObjectBDJ {
-			if b, err := d.BDJObject(o.BDJName); err == nil {
-				_, _ = fmt.Fprintf(h, "%s %v %+v;", b.Name, b.Playlists, b.Apps)
-			}
-		}
-	}
-	add(d.Index.FirstPlay)
-	add(d.Index.TopMenu)
-	for _, t := range d.Index.Titles {
-		add(t.Object)
-	}
-	return hex.EncodeToString(h.Sum(nil)[:12])
-}
-
 // ensureHost starts Java for this session, once. nil means BD-J is off or
 // cannot run, and the disc plays from its playlists instead.
-func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
+func (s *Session) ensureHost(ctx context.Context) JavaHost {
 	if s.bd != nil {
 		return s.bd.host
 	}
-	if s.m.BDJ == nil || s.disc.builtin == nil { // a helper has the disc: it plays from its playlists
+	if s.m.BDJ == nil {
 		return nil
 	}
 	enabled, path := s.m.BDJ()
-	if !enabled {
+	j, ok := s.disc.DiscEngine.(JavaEngine)
+	if !enabled || !ok {
 		return nil
 	}
-	java, err := bdj.Find(path)
-	if err != nil {
-		s.warn("BD-J can't run: no Java", err)
-		return nil
-	}
-	st := &bdjState{events: make(chan bdj.Event, 4096), pending: newPending()}
+	st := &bdjState{events: make(chan JavaEvent, 4096), pending: newPending()}
 	// Everything Java and the disc's applications say: only debug lines while it
 	// runs, and the first and last of it when it ends badly.
 	said := &logging.Tail{}
 	started := time.Now()
-	host, err := bdj.Start(ctx, s.disc.builtin, bdj.Options{
-		Java:       java,
-		CacheDir:   filepath.Join(s.m.CacheDir, "bdj"),
-		WorkDir:    filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID),
-		PersistDir: filepath.Join(s.m.CacheDir, "bdj", "discs", storageKey(s.disc.builtin)),
+	host, err := j.StartJava(JavaOptions{
+		Java:    path,
+		Session: s.ID,
 		Log: func(l string) {
 			_, _ = said.Write([]byte(l + "\n"))
 			s.log.Debug("bd-j said", "topic", "bdj", "output", l)
@@ -149,7 +156,7 @@ func (s *Session) ensureHost(ctx context.Context) *bdj.Host {
 		OnExit: func(err error, stopped bool) {
 			logging.ChildExit(s.log, "java", err, stopped, said, started, "topic", "bdj")
 		},
-		OnEvent: func(e bdj.Event) {
+		OnEvent: func(e JavaEvent) {
 			if e.Kind == "exit" {
 				st.events <- e // never lost: the loop below is waiting for it to end
 				return
@@ -201,7 +208,7 @@ func (s *Session) bdjLoop(st *bdjState) {
 
 // bdjHandle takes one event. What's in it came from a disc: a panic on one is
 // reported, and the disc carries on with the next.
-func (s *Session) bdjHandle(st *bdjState, e bdj.Event) {
+func (s *Session) bdjHandle(st *bdjState, e JavaEvent) {
 	defer logging.Recover("bd-j event", "cat", "discs", "module", "wittybluray", "session", s.ID, "event", e.Kind)
 	s.log.Debug("bd-j event", "topic", "bdj", "event", e.Kind, "values", e.Args)
 	s.mu.Lock()
@@ -232,7 +239,7 @@ func argFloat(a []string, i int) float64 {
 
 // bdjEvent carries out what an application asked for. Everything here came
 // from disc code: numbers are checked like any other disc data.
-func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
+func (s *Session) bdjEvent(st *bdjState, e JavaEvent) {
 	ctx := context.Background()
 	r := s.nav.Registers()
 	switch e.Kind {
@@ -252,7 +259,7 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 	case "video":
 		if len(e.Args) == 4 {
 			x, y, w, h := argInt(e.Args, 0), argInt(e.Args, 1), argInt(e.Args, 2), argInt(e.Args, 3)
-			if x >= 0 && y >= 0 && w > 0 && h > 0 && x+w <= bdj.Width && y+h <= bdj.Height {
+			if x >= 0 && y >= 0 && w > 0 && h > 0 && x+w <= bdjWidth && y+h <= bdjHeight {
 				st.video = []int{x, y, w, h}
 				if s.current != nil && s.current.BDJ != nil {
 					p, v := *s.current, *s.current.BDJ
@@ -280,7 +287,7 @@ func (s *Session) bdjEvent(st *bdjState, e bdj.Event) {
 			if v, err := strconv.ParseUint(e.Args[1], 10, 32); err == nil {
 				changed := r.PSR[n] != uint32(v)
 				r.PSR[n] = uint32(v)
-				if changed && (n == wittybluray.PSRAudio || n == wittybluray.PSRAngle) && s.step != nil && s.current != nil && s.current.Kind == "title" {
+				if changed && (n == bluray.PSRAudio || n == bluray.PSRAngle) && s.step != nil && s.current != nil && s.current.Kind == "title" {
 					s.current = s.bdjOver(s.present(ctx, s.step, true), st)
 					st.host.Kick()
 				}
@@ -391,7 +398,7 @@ func (s *Session) bdjView(media *Media) *Presentation {
 	if media == nil {
 		media = &Media{Type: "none"}
 	}
-	p := &Presentation{Kind: "menu", Serial: s.serial, Media: media, Menu: &Menu{Width: bdj.Width, Height: bdj.Height, Aspect: "16:9", Buttons: []ButtonView{}}}
+	p := &Presentation{Kind: "menu", Serial: s.serial, Media: media, Menu: &Menu{Width: bdjWidth, Height: bdjHeight, Aspect: "16:9", Buttons: []ButtonView{}}}
 	return s.bdjOver(p, s.bd)
 }
 
@@ -406,7 +413,7 @@ func (s *Session) bdjOver(p *Presentation, st *bdjState) *Presentation {
 
 // startBDJTitle starts a BD-J object's applications; ok is false when they
 // cannot run here, and the caller falls back.
-func (s *Session) startBDJTitle(ctx context.Context, st *wittybluray.Step) (*Presentation, bool) {
+func (s *Session) startBDJTitle(ctx context.Context, st *bluray.Step) (*Presentation, bool) {
 	host := s.ensureHost(ctx)
 	if host == nil {
 		return nil, false
@@ -572,15 +579,12 @@ func (s *Session) closeBDJ() {
 	if st != nil {
 		st.host.Close()
 	}
-	_ = os.RemoveAll(filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID))
 }
 
 // JavaStatus reports whether this machine can run BD-J, for the settings page.
-func JavaStatus(ctx context.Context, cacheDir, path string) (version, where string, err error) {
-	j, err := bdj.Find(path)
-	if err != nil {
-		return "", "", err
+func JavaStatus(_ context.Context, _, path string) (version, where string, err error) {
+	if JavaProbe == nil {
+		return "", "", ErrNoEngine
 	}
-	v, err := j.Probe(ctx, filepath.Join(cacheDir, "bdj"))
-	return v, j.Path, err
+	return JavaProbe(path)
 }

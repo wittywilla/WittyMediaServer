@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittycd"
+	wittycd "github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )

@@ -1,5 +1,5 @@
-// Package bdremote runs a Blu-ray session's engine in a helper process when a
-// downloaded WittyBluray is in use. To the session it looks like the built-in engine.
+// Package bdremote runs a Blu-ray session's engine in a helper process, of the WittyBluray
+// version in use.
 //
 // A helper may be someone's fork, so nothing it says is taken on trust: where files
 // are, how large things are and what its structures hold are all checked here before
@@ -7,10 +7,8 @@
 // (bdsession.openEngine). Video never passes through a helper, and FFmpeg reads only
 // the disc the viewer opened.
 //
-// A helper that fails, or that sends something those checks refuse, is replaced by
-// the built-in copy for the rest of the session, which goes back to the disc's first
-// play. The session doesn't know: a call in progress is simply answered by the
-// built-in copy.
+// A helper that fails, or that sends something those checks refuse, ends the disc: the viewer
+// sees why, and opening it again starts a new helper.
 package bdremote
 
 import (
@@ -28,9 +26,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittybluray/helper"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymodule"
 )
@@ -47,19 +44,26 @@ const (
 	maxReason     = 500
 )
 
-// restarted is what the viewer is told when the helper stops working.
-const restarted = "The downloaded WittyBluray stopped working, so this disc started again on the built-in copy."
-
 // Use makes Blu-ray sessions use the version of WittyBluray the manager has in use.
 func Use(m *modules.Manager) {
-	bdsession.RemoteEngine = func(path string, o wittybluray.NavOptions, log *slog.Logger) *bdsession.Remote {
+	bdsession.RemoteEngine = func(path string, o bluray.NavOptions, log *slog.Logger) (*bdsession.Remote, error) {
 		a := m.Attach(moduleID, callLimit)
 		if a == nil {
-			return nil
+			return nil, m.Missing(moduleID)
 		}
 		return open(a, path, o, log, func(reason string) { _ = m.ReportFailure(moduleID, a.Version(), reason) })
 	}
+	bdsession.JavaProbe = func(path string) (version, where string, err error) {
+		a := m.Attach(moduleID, javaProbeLimit)
+		if a == nil {
+			return "", "", m.Missing(moduleID)
+		}
+		return probe(a, path)
+	}
 }
+
+// javaProbeLimit is how long Java may take to say whether it can run a disc's programs.
+const javaProbeLimit = 30 * time.Second
 
 // process is the helper as this package uses it: modules.Attached, or a test's.
 type process interface {
@@ -71,34 +75,29 @@ type process interface {
 // call, and the protocol has one call at a time anyway.
 type engine struct {
 	mu     sync.Mutex
-	h      process // nil once the built-in copy has taken over
+	h      process // nil once the helper has gone
 	path   string
 	image  bool   // an image file; otherwise a folder
 	root   string // the folder extents must lie in
 	real   string // the same with its links followed
-	opts   wittybluray.NavOptions
+	opts   bluray.NavOptions
 	log    *slog.Logger
 	report func(reason string) // a failure the helper's own calls can't have counted
 	angle  int
 
 	// What the session reads as often as it likes. The registers stay the same object:
 	// a session may hold them across a call that changes them.
-	regs     *wittybluray.Registers
-	timer    *wittybluray.NavTimer
+	regs     *bluray.Registers
+	timer    *bluray.NavTimer
 	timerSeq uint64
 
 	// Each structure is fetched once. A playlist is the same pointer every time.
-	playlists map[int]*wittybluray.Playlist
-	clips     map[string]*wittybluray.Clip
-	extents   map[string][]wittybluray.FileExtent
+	playlists map[int]*bluray.Playlist
+	clips     map[string]*bluray.Clip
+	extents   map[string][]bluray.FileExtent
 	main      *int
-	sounds    *wittybluray.Sounds
+	sounds    *bluray.Sounds
 	hasSounds bool
-
-	// The built-in copy, once it has taken over. restart: its first step is first play.
-	disc    *wittybluray.Disc
-	nav     *wittybluray.Nav
-	restart bool
 }
 
 // badAnswer is a helper saying something that can't be right. The protocol can't have
@@ -107,26 +106,31 @@ type badAnswer struct{ err error }
 
 func (b *badAnswer) Error() string { return "it sent a bad answer: " + b.err.Error() }
 
-// open asks a helper to open a disc. nil means the built-in copy will have it: a
-// helper that can't read the disc may be limited by its sandbox, or just be broken.
-func open(h process, path string, o wittybluray.NavOptions, log *slog.Logger, report func(string)) *bdsession.Remote {
+// open asks a helper to open a disc.
+func open(h process, path string, o bluray.NavOptions, log *slog.Logger, report func(string)) (*bdsession.Remote, error) {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
 	e, err := newEngine(h, path, o, log, report)
 	if err == nil {
-		var info helper.Opened
-		if _, err = h.Call("open", helper.Params{Path: e.path, Options: o}, &info); err == nil {
+		var info bluray.Opened
+		if _, err = h.Call("open", bluray.Params{Path: e.path, Options: o}, &info); err == nil {
 			e.regs.PSR = info.PSR
-			return &bdsession.Remote{Disc: e, Nav: e, Encrypted: info.Encrypted, Stereo3D: info.Stereo3D}
+			return &bdsession.Remote{Disc: e, Nav: e, Encrypted: info.Encrypted, Stereo3D: info.Stereo3D, Label: clipText(info.Label), Index: info.Index, BDJ: info.BDJ, Playlists: info.Playlists}, nil
 		}
 	}
-	log.Info("WittyBluray: using the built-in copy for this disc", "cat", "dvd", "err", err)
 	h.Close()
-	return nil
+	return nil, err
 }
 
-func newEngine(h process, path string, o wittybluray.NavOptions, log *slog.Logger, report func(string)) (*engine, error) {
+func clipText(s string) string {
+	if len(s) > 256 {
+		return s[:256]
+	}
+	return s
+}
+
+func newEngine(h process, path string, o bluray.NavOptions, log *slog.Logger, report func(string)) (*engine, error) {
 	abs, err := filepath.Abs(path) // the helper runs in a folder of its own
 	if err != nil {
 		return nil, err
@@ -135,8 +139,8 @@ func newEngine(h process, path string, o wittybluray.NavOptions, log *slog.Logge
 	if err != nil {
 		return nil, err
 	}
-	e := &engine{h: h, path: abs, image: !st.IsDir(), opts: o, log: log, report: report, regs: wittybluray.NewRegisters(o.Registers),
-		playlists: map[int]*wittybluray.Playlist{}, clips: map[string]*wittybluray.Clip{}, extents: map[string][]wittybluray.FileExtent{}}
+	e := &engine{h: h, path: abs, image: !st.IsDir(), opts: o, log: log, report: report, regs: bluray.NewRegisters(o.Registers),
+		playlists: map[int]*bluray.Playlist{}, clips: map[string]*bluray.Clip{}, extents: map[string][]bluray.FileExtent{}}
 	if st.IsDir() {
 		e.root = abs
 		if b := filepath.Base(abs); strings.EqualFold(b, "BDMV") || strings.EqualFold(b, "BDAV") {
@@ -151,9 +155,9 @@ func newEngine(h process, path string, o wittybluray.NavOptions, log *slog.Logge
 
 // ---------------------------------------------------------------- failure
 
-// fail hands the disc to the built-in copy. Call with e.mu held and a helper in use.
+// fail ends the disc. Call with e.mu held and a helper in use.
 func (e *engine) fail(err error) {
-	e.log.Warn("WittyBluray: the helper failed; the built-in copy takes over this disc", "cat", "dvd", "err", err)
+	e.log.Warn("WittyBluray: the helper failed; this disc has stopped", "cat", "dvd", "err", err)
 	var bad *badAnswer
 	var ce *wittymodule.CallError
 	switch {
@@ -163,51 +167,19 @@ func (e *engine) fail(err error) {
 		e.report(ce.Error())
 	}
 	e.h.Close()
-	e.h, e.restart = nil, true
+	e.h = nil
 	e.playlists, e.clips, e.extents, e.sounds = nil, nil, nil, nil
-	d, oerr := wittybluray.Open(e.path)
-	if oerr == nil && d.Encrypted {
-		_ = d.Close()
-		oerr = errors.New("this disc is encrypted")
-	}
-	if oerr != nil {
-		e.log.Warn("WittyBluray: the built-in copy can't open this disc", "cat", "dvd", "err", oerr)
-		return
-	}
-	e.disc, e.nav = d, wittybluray.NewNav(d, e.opts)
-	if e.angle > 0 {
-		e.nav.SetAngle(e.angle)
-	}
 }
 
-// local is a step from the built-in copy, which has first play to do first.
-func (e *engine) local(do func(n *wittybluray.Nav) *wittybluray.Step) *wittybluray.Step {
-	if e.nav == nil {
-		return &wittybluray.Step{Kind: wittybluray.StepStop, Reason: "the disc can't be read any more", Object: -1}
-	}
-	if e.restart {
-		e.restart = false
-		st := e.nav.Start()
-		if st.Reason == "" {
-			st.Reason = restarted
-		}
-		return st
-	}
-	return do(e.nav)
+// errGone: the helper has gone, and with it the disc.
+var errGone = errors.New("WittyBluray stopped working on this disc. Open it again to start over")
+
+// stopped is the step that says so.
+func stopped() *bluray.Step {
+	return &bluray.Step{Kind: bluray.StepStop, Reason: errGone.Error(), Object: -1}
 }
 
-// builtinPlaylist finds, in the built-in copy, a playlist the helper handed out earlier.
-func (e *engine) builtinPlaylist(pl *wittybluray.Playlist) *wittybluray.Playlist {
-	if e.disc != nil && pl != nil {
-		if same := e.disc.Playlist(pl.Number); same != nil {
-			return same
-		}
-	}
-	return pl
-}
-
-// answeredNo: a helper in good order, saying this one thing can't be done, as the
-// built-in copy would by returning an error.
+// answeredNo: a helper in good order, saying this one thing can't be done.
 func answeredNo(err error) bool {
 	var ce *wittymodule.CallError
 	return errors.As(err, &ce) && ce.Code == ""
@@ -217,7 +189,7 @@ func answeredNo(err error) bool {
 // hardened against a stranger's bytes: a playlist of empty play items grows 1500 times
 // as it decodes, which the protocol's own limit doesn't come close to stopping. They are
 // far above what real discs need (the largest playlist measured is 6 KB, the largest clip
-// 75 KB and its extents 88 KB); beyond them the built-in copy takes over. Menus, sounds and
+// 75 KB and its extents 88 KB); beyond them the helper is at fault. Menus, sounds and
 // subtitles hold pictures and samples, so they keep the protocol's limit.
 var answerLimits = map[string]int{
 	"playlist":  512 << 10,
@@ -240,7 +212,7 @@ func decode(blob []byte, v any) (err error) {
 }
 
 // fetch asks for a structure. nil with no error means the helper says there is none.
-func fetch[T any](e *engine, method string, p helper.Params, check func(*T) error) (*T, error) {
+func fetch[T any](e *engine, method string, p bluray.Params, check func(*T) error) (*T, error) {
 	blob, err := e.h.Call(method, p, nil)
 	if err != nil {
 		return nil, err
@@ -266,126 +238,110 @@ func fetch[T any](e *engine, method string, p helper.Params, check func(*T) erro
 // maxClipLead is more than any disc stores sound ahead of its picture.
 const maxClipLead = 30
 
-// must is fetch for what a helper must answer: a refusal is passed on as the built-in
-// copy's own error would be, and anything else goes to the built-in copy. Call with
-// e.mu held.
-func must[T any](e *engine, method string, p helper.Params, check func(*T) error, builtin func(d *wittybluray.Disc) (*T, error)) (*T, error) {
-	if e.h != nil {
-		v, err := fetch(e, method, p, check)
-		if err == nil && v != nil {
-			return v, nil
-		}
-		if err == nil {
-			err = &badAnswer{fmt.Errorf("%s came back empty", method)}
-		}
-		if answeredNo(err) {
-			return nil, err
-		}
-		e.fail(err)
+// must is fetch for what a helper must answer: a refusal is passed on as an error, and
+// anything else ends the disc. Call with e.mu held.
+func must[T any](e *engine, method string, p bluray.Params, check func(*T) error) (*T, error) {
+	if e.h == nil {
+		return nil, errGone
 	}
-	if e.disc == nil {
-		return nil, errors.New("the disc can't be read any more")
+	v, err := fetch(e, method, p, check)
+	if err == nil && v != nil {
+		return v, nil
 	}
-	return builtin(e.disc)
+	if err == nil {
+		err = &badAnswer{fmt.Errorf("%s came back empty", method)}
+	}
+	if answeredNo(err) {
+		return nil, err
+	}
+	e.fail(err)
+	return nil, errGone
 }
 
 // ---------------------------------------------------------------- the disc
 
-func (e *engine) Playlist(n int) *wittybluray.Playlist {
+func (e *engine) Playlist(n int) *bluray.Playlist {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.playlist(n)
 }
 
-func (e *engine) playlist(n int) *wittybluray.Playlist {
-	if e.h != nil {
-		if pl, ok := e.playlists[n]; ok {
-			return pl
-		}
-		pl, err := fetch(e, "playlist", helper.Params{N: n}, func(pl *wittybluray.Playlist) error { return checkPlaylist(pl, n) })
-		if err == nil {
-			if pl != nil {
-				e.playlists[n] = pl
-			}
-			return pl
-		}
-		e.fail(err)
-	}
-	if e.disc == nil {
+func (e *engine) playlist(n int) *bluray.Playlist {
+	if e.h == nil {
 		return nil
 	}
-	return e.disc.Playlist(n)
+	if pl, ok := e.playlists[n]; ok {
+		return pl
+	}
+	pl, err := fetch(e, "playlist", bluray.Params{N: n}, func(pl *bluray.Playlist) error { return checkPlaylist(pl, n) })
+	if err != nil {
+		e.fail(err)
+		return nil
+	}
+	if pl != nil {
+		e.playlists[n] = pl
+	}
+	return pl
 }
 
-func (e *engine) MainPlaylist() *wittybluray.Playlist {
+func (e *engine) MainPlaylist() *bluray.Playlist {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		if e.main == nil {
-			var m helper.Main
-			if _, err := e.h.Call("main", helper.Params{}, &m); err != nil {
-				e.fail(err)
-				return e.builtinMain()
-			}
-			if !m.OK {
-				m.N = -1
-			}
-			e.main = &m.N
-		}
-		if *e.main < 0 {
-			return nil
-		}
-		pl := e.playlist(*e.main)
-		if pl == nil && e.h != nil {
-			e.fail(&badAnswer{fmt.Errorf("its main playlist %d doesn't exist", *e.main)})
-		}
-		if e.h != nil {
-			return pl
-		}
-	}
-	return e.builtinMain()
-}
-
-func (e *engine) builtinMain() *wittybluray.Playlist {
-	if e.disc == nil {
+	if e.h == nil {
 		return nil
 	}
-	return e.disc.MainPlaylist()
+	if e.main == nil {
+		var m bluray.Main
+		if _, err := e.h.Call("main", bluray.Params{}, &m); err != nil {
+			e.fail(err)
+			return nil
+		}
+		if !m.OK {
+			m.N = -1
+		}
+		e.main = &m.N
+	}
+	if *e.main < 0 {
+		return nil
+	}
+	pl := e.playlist(*e.main)
+	if pl == nil && e.h != nil {
+		e.fail(&badAnswer{fmt.Errorf("its main playlist %d doesn't exist", *e.main)})
+	}
+	return pl
 }
 
 // PlaylistDuration is arithmetic on the playlist, which needs no disc.
-func (e *engine) PlaylistDuration(pl *wittybluray.Playlist) float64 {
-	return (&wittybluray.Disc{}).PlaylistDuration(pl)
+func (e *engine) PlaylistDuration(pl *bluray.Playlist) float64 {
+	return bluray.PlaylistDuration(pl)
 }
 
-func (e *engine) Clip(name string) *wittybluray.Clip {
+func (e *engine) Clip(name string) *bluray.Clip {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		if c, ok := e.clips[name]; ok {
-			return c
-		}
-		c, err := fetch(e, "clip", helper.Params{Name: name}, func(c *wittybluray.Clip) error {
-			if c.Name != name {
-				return fmt.Errorf("asked for clip %q, it sent %q", name, c.Name)
-			}
-			return nil
-		})
-		if err == nil {
-			if c != nil {
-				e.clips[name] = c
-			}
-			return c
-		}
-		e.fail(err)
-	}
-	if e.disc == nil {
+	if e.h == nil {
 		return nil
 	}
-	return e.disc.Clip(name)
+	if c, ok := e.clips[name]; ok {
+		return c
+	}
+	c, err := fetch(e, "clip", bluray.Params{Name: name}, func(c *bluray.Clip) error {
+		if c.Name != name {
+			return fmt.Errorf("asked for clip %q, it sent %q", name, c.Name)
+		}
+		return nil
+	})
+	if err != nil {
+		e.fail(err)
+		return nil
+	}
+	if c != nil {
+		e.clips[name] = c
+	}
+	return c
 }
 
-func (e *engine) ClipExtents(name string) ([]wittybluray.FileExtent, error) {
+func (e *engine) ClipExtents(name string) ([]bluray.FileExtent, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.h != nil {
@@ -393,126 +349,97 @@ func (e *engine) ClipExtents(name string) ([]wittybluray.FileExtent, error) {
 			return out, nil
 		}
 	}
-	got, err := must(e, "extents", helper.Params{Name: name}, func(ext *[]wittybluray.FileExtent) error {
+	got, err := must(e, "extents", bluray.Params{Name: name}, func(ext *[]bluray.FileExtent) error {
 		checked, err := e.checkExtents(*ext)
 		*ext = checked
 		return err
-	}, func(d *wittybluray.Disc) (*[]wittybluray.FileExtent, error) {
-		out, err := d.ClipExtents(name)
-		return &out, err
 	})
 	if err != nil {
 		return nil, err
 	}
-	if e.h != nil {
-		e.extents[name] = *got
-	}
+	e.extents[name] = *got
 	return *got, nil
 }
 
 // ClipLead says how far ahead of a clip's first picture its first packet is. Zero is
-// always safe: the join is only as exact as it was before, so a helper from before this
-// question doesn't lose the disc over it.
+// always safe: the join is only as exact as it was before.
 func (e *engine) ClipLead(clip string, video uint16, from uint32, only ...uint16) float64 {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		got, err := fetch(e, "cliplead", helper.Params{Name: clip, PID: video, From: from, Only: only}, func(l *helper.Lead) error {
-			if !(l.Seconds >= 0 && l.Seconds <= maxClipLead) {
-				return fmt.Errorf("a clip's lead of %v seconds", l.Seconds)
-			}
-			return nil
-		})
-		if err == nil && got != nil {
-			return got.Seconds
-		}
-		var ce *wittymodule.CallError
-		if errors.As(err, &ce) && ce.Code == "unknown-method" {
-			return 0
-		}
-		if err == nil {
-			err = &badAnswer{errors.New("cliplead came back empty")}
-		}
-		if answeredNo(err) {
-			return 0
-		}
-		e.fail(err)
-	}
-	if e.disc == nil {
+	if e.h == nil {
 		return 0
 	}
-	return e.disc.ClipLead(clip, video, from, only...)
-}
-
-func (e *engine) Sounds() *wittybluray.Sounds {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.h != nil {
-		if e.hasSounds {
-			return e.sounds
+	got, err := fetch(e, "cliplead", bluray.Params{Name: clip, PID: video, From: from, Only: only}, func(l *bluray.Lead) error {
+		if !(l.Seconds >= 0 && l.Seconds <= maxClipLead) {
+			return fmt.Errorf("a clip's lead of %v seconds", l.Seconds)
 		}
-		s, err := fetch[wittybluray.Sounds](e, "sounds", helper.Params{}, nil)
-		if err == nil {
-			e.sounds, e.hasSounds = s, true
-			return s
-		}
+		return nil
+	})
+	if err == nil && got != nil {
+		return got.Seconds
+	}
+	if err == nil {
+		err = &badAnswer{errors.New("cliplead came back empty")}
+	}
+	if !answeredNo(err) {
 		e.fail(err)
 	}
-	if e.disc == nil {
+	return 0
+}
+
+func (e *engine) Sounds() *bluray.Sounds {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.h == nil {
 		return nil
 	}
-	return e.disc.Sounds()
+	if e.hasSounds {
+		return e.sounds
+	}
+	s, err := fetch[bluray.Sounds](e, "sounds", bluray.Params{}, nil)
+	if err != nil {
+		e.fail(err)
+		return nil
+	}
+	e.sounds, e.hasSounds = s, true
+	return s
 }
 
-func (e *engine) LoadMenu(clip string, pid uint16, limit uint32) (*wittybluray.Menu, error) {
+func (e *engine) LoadMenu(clip string, pid uint16, limit uint32) (*bluray.Menu, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return must(e, "menu", helper.Params{Name: clip, PID: pid, Limit: limit}, nil, func(d *wittybluray.Disc) (*wittybluray.Menu, error) {
-		return d.LoadMenu(clip, pid, limit)
-	})
+	return must[bluray.Menu](e, "menu", bluray.Params{Name: clip, PID: pid, Limit: limit}, nil)
 }
 
-func (e *engine) BDJObject(name string) (*wittybluray.BDJObject, error) {
+func (e *engine) BDJObject(name string) (*bluray.BDJObject, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return must(e, "bdjobject", helper.Params{Name: name}, nil, func(d *wittybluray.Disc) (*wittybluray.BDJObject, error) {
-		return d.BDJObject(name)
-	})
+	return must[bluray.BDJObject](e, "bdjobject", bluray.Params{Name: name}, nil)
 }
 
-func (e *engine) SubtitlesIn(clip string, pid uint16, stc int, from, to uint32) (*wittybluray.SubtitleWindow, error) {
+func (e *engine) SubtitlesIn(clip string, pid uint16, stc int, from, to uint32) (*bluray.SubtitleWindow, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return must(e, "subtitles", helper.Params{Name: clip, PID: pid, STC: stc, From: from, To: to}, checkSubtitles, func(d *wittybluray.Disc) (*wittybluray.SubtitleWindow, error) {
-		return d.SubtitlesIn(clip, pid, stc, from, to)
-	})
+	return must(e, "subtitles", bluray.Params{Name: clip, PID: pid, STC: stc, From: from, To: to}, checkSubtitles)
 }
 
-func (e *engine) TextSubtitles(clip string, pid uint16, charCode int) ([]wittybluray.TextCue, error) {
+func (e *engine) TextSubtitles(clip string, pid uint16, charCode int) ([]bluray.TextCue, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	got, err := must(e, "text", helper.Params{Name: clip, PID: pid, CharCode: charCode}, nil, func(d *wittybluray.Disc) (*[]wittybluray.TextCue, error) {
-		out, err := d.TextSubtitles(clip, pid, charCode)
-		return &out, err
-	})
+	got, err := must[[]bluray.TextCue](e, "text", bluray.Params{Name: clip, PID: pid, CharCode: charCode}, nil)
 	if err != nil {
 		return nil, err
 	}
 	return *got, nil
 }
 
-// Close stops the helper, or the built-in copy.
+// Close stops the helper.
 func (e *engine) Close() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.h != nil {
 		e.h.Close()
 		e.h = nil
-	}
-	if e.disc != nil {
-		err := e.disc.Close()
-		e.disc, e.nav = nil, nil
-		return err
 	}
 	return nil
 }
@@ -521,12 +448,12 @@ func (e *engine) Close() error {
 
 // ask makes one navigator call and brings the copy of its state up to date. Call with
 // e.mu held and a helper in use.
-func (e *engine) ask(method string, p helper.Params) (*helper.Answer, error) {
+func (e *engine) ask(method string, p bluray.Params) (*bluray.Answer, error) {
 	blob, err := e.h.Call(method, p, nil)
 	if err != nil {
 		return nil, err
 	}
-	a := new(helper.Answer)
+	a := new(bluray.Answer)
 	if err := json.Unmarshal(blob, a); err != nil {
 		return nil, &badAnswer{err}
 	}
@@ -538,13 +465,13 @@ func (e *engine) ask(method string, p helper.Params) (*helper.Answer, error) {
 }
 
 // checkedStep is an answer's step with its playlist filled in. Call with e.mu held.
-func (e *engine) checkedStep(a *helper.Answer) (*wittybluray.Step, error) {
+func (e *engine) checkedStep(a *bluray.Answer) (*bluray.Step, error) {
 	st := a.Step
 	if st == nil {
 		return nil, &badAnswer{errors.New("no step")}
 	}
 	switch st.Kind {
-	case wittybluray.StepPlay, wittybluray.StepStop, wittybluray.StepUnsupported, wittybluray.StepStay:
+	case bluray.StepPlay, bluray.StepStop, bluray.StepUnsupported, bluray.StepStay:
 	default:
 		return nil, &badAnswer{fmt.Errorf("a step of kind %q", st.Kind)}
 	}
@@ -565,215 +492,167 @@ func (e *engine) checkedStep(a *helper.Answer) (*wittybluray.Step, error) {
 			return nil, &badAnswer{fmt.Errorf("it asked to play playlist %d, which it doesn't have", n)}
 		}
 	}
-	if st.Kind == wittybluray.StepPlay && st.Playlist == nil && e.h != nil {
+	if st.Kind == bluray.StepPlay && st.Playlist == nil && e.h != nil {
 		return nil, &badAnswer{errors.New("nothing to play in a step to play")}
 	}
 	return st, nil
 }
 
-// step asks for the next step, from the helper or the built-in copy.
-func (e *engine) step(method string, p helper.Params, builtin func(n *wittybluray.Nav) *wittybluray.Step) *wittybluray.Step {
+// step asks for the next step. With the helper gone, it's the stop that says why.
+func (e *engine) step(method string, p bluray.Params) *bluray.Step {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		a, err := e.ask(method, p)
-		var st *wittybluray.Step
-		if err == nil {
-			st, err = e.checkedStep(a)
-		}
-		if err == nil && e.h != nil {
-			return st
-		}
-		if e.h != nil { // fetching the step's playlist may have failed and handed over already
-			e.fail(err)
-		}
+	if e.h == nil {
+		return stopped()
 	}
-	return e.local(builtin)
+	a, err := e.ask(method, p)
+	var st *bluray.Step
+	if err == nil {
+		st, err = e.checkedStep(a)
+	}
+	if err == nil && e.h != nil {
+		return st
+	}
+	if e.h != nil { // fetching the step's playlist may have ended it already
+		e.fail(err)
+	}
+	return stopped()
 }
 
 // tell tells the navigator something.
-func (e *engine) tell(method string, p helper.Params, builtin func(n *wittybluray.Nav)) {
+func (e *engine) tell(method string, p bluray.Params) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		_, err := e.ask(method, p)
-		if err == nil {
-			return
-		}
+	if e.h == nil {
+		return
+	}
+	if _, err := e.ask(method, p); err != nil {
 		e.fail(err)
 	}
-	if e.nav != nil {
-		builtin(e.nav)
-	}
 }
 
-func (e *engine) Registers() *wittybluray.Registers {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.nav != nil {
-		return e.nav.Registers()
-	}
-	return e.regs
-}
+func (e *engine) Registers() *bluray.Registers { return e.regs }
 
-func (e *engine) Timer() *wittybluray.NavTimer {
+func (e *engine) Timer() *bluray.NavTimer {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.nav != nil {
-		return e.nav.Timer()
-	}
 	if e.h == nil {
 		return nil
 	}
 	return e.timer
 }
 
-func (e *engine) Start() *wittybluray.Step {
-	return e.step("start", helper.Params{}, func(n *wittybluray.Nav) *wittybluray.Step { return n.Start() })
+func (e *engine) Start() *bluray.Step { return e.step("start", bluray.Params{}) }
+
+func (e *engine) Resume() *bluray.Step { return e.step("resume", bluray.Params{}) }
+
+func (e *engine) MenuCall() *bluray.Step { return e.step("menucall", bluray.Params{}) }
+
+func (e *engine) PlaylistEnded() *bluray.Step { return e.step("playlistended", bluray.Params{}) }
+
+func (e *engine) NavTimerFired() *bluray.Step { return e.step("navtimerfired", bluray.Params{}) }
+
+func (e *engine) PlayTitle(t int) *bluray.Step { return e.step("playtitle", bluray.Params{N: t}) }
+
+func (e *engine) PressButton(cmds []bluray.Command) *bluray.Step {
+	return e.step("pressbutton", bluray.Params{Commands: cmds})
 }
 
-func (e *engine) Resume() *wittybluray.Step {
-	return e.step("resume", helper.Params{}, func(n *wittybluray.Nav) *wittybluray.Step { return n.Resume() })
+func (e *engine) PlayPlaylist(pl *bluray.Playlist, item int, t uint32) *bluray.Step {
+	return e.step("playplaylist", bluray.Params{N: pl.Number, Item: item, Time: t})
 }
 
-func (e *engine) MenuCall() *wittybluray.Step {
-	return e.step("menucall", helper.Params{}, func(n *wittybluray.Nav) *wittybluray.Step { return n.MenuCall() })
-}
-
-func (e *engine) PlaylistEnded() *wittybluray.Step {
-	return e.step("playlistended", helper.Params{}, func(n *wittybluray.Nav) *wittybluray.Step { return n.PlaylistEnded() })
-}
-
-func (e *engine) NavTimerFired() *wittybluray.Step {
-	return e.step("navtimerfired", helper.Params{}, func(n *wittybluray.Nav) *wittybluray.Step { return n.NavTimerFired() })
-}
-
-func (e *engine) PlayTitle(t int) *wittybluray.Step {
-	return e.step("playtitle", helper.Params{N: t}, func(n *wittybluray.Nav) *wittybluray.Step { return n.PlayTitle(t) })
-}
-
-func (e *engine) PressButton(cmds []wittybluray.Command) *wittybluray.Step {
-	return e.step("pressbutton", helper.Params{Commands: cmds}, func(n *wittybluray.Nav) *wittybluray.Step { return n.PressButton(cmds) })
-}
-
-func (e *engine) PlayPlaylist(pl *wittybluray.Playlist, item int, t uint32) *wittybluray.Step {
-	return e.step("playplaylist", helper.Params{N: pl.Number, Item: item, Time: t}, func(n *wittybluray.Nav) *wittybluray.Step {
-		return n.PlayPlaylist(e.builtinPlaylist(pl), item, t)
-	})
-}
-
-func (e *engine) SkipItem(delta int) (*wittybluray.Step, bool) {
-	ok := false
-	st := func() *wittybluray.Step {
-		e.mu.Lock()
-		defer e.mu.Unlock()
-		builtin := func(n *wittybluray.Nav) *wittybluray.Step {
-			st, can := n.SkipItem(delta)
-			ok = can
-			return st
-		}
-		if e.h != nil {
-			a, err := e.ask("skipitem", helper.Params{N: delta})
-			if err == nil && !a.OK {
-				return nil
-			}
-			var st *wittybluray.Step
-			if err == nil {
-				st, err = e.checkedStep(a)
-			}
-			if err == nil && e.h != nil {
-				ok = true
-				return st
-			}
-			if e.h != nil {
-				e.fail(err)
-			}
-		}
-		if e.restart || e.nav == nil {
-			ok = true // first play comes next instead, or the stop that says why it can't
-		}
-		return e.local(builtin)
-	}()
-	return st, ok
+func (e *engine) SkipItem(delta int) (*bluray.Step, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.h == nil {
+		return stopped(), true
+	}
+	a, err := e.ask("skipitem", bluray.Params{N: delta})
+	if err == nil && !a.OK {
+		return nil, false
+	}
+	var st *bluray.Step
+	if err == nil {
+		st, err = e.checkedStep(a)
+	}
+	if err == nil && e.h != nil {
+		return st, true
+	}
+	if e.h != nil {
+		e.fail(err)
+	}
+	return stopped(), true
 }
 
 func (e *engine) SetSubtitle(s int, shown bool) {
-	e.tell("setsubtitle", helper.Params{N: s, Shown: shown}, func(n *wittybluray.Nav) { n.SetSubtitle(s, shown) })
+	e.tell("setsubtitle", bluray.Params{N: s, Shown: shown})
 }
 
-func (e *engine) SetAudio(s int) {
-	e.tell("setaudio", helper.Params{N: s}, func(n *wittybluray.Nav) { n.SetAudio(s) })
-}
+func (e *engine) SetAudio(s int) { e.tell("setaudio", bluray.Params{N: s}) }
 
 func (e *engine) SetAngle(a int) {
 	e.mu.Lock()
 	e.angle = a
 	e.mu.Unlock()
-	e.tell("setangle", helper.Params{N: a}, func(n *wittybluray.Nav) { n.SetAngle(a) })
+	e.tell("setangle", bluray.Params{N: a})
 }
 
-func (e *engine) SetTime(item int, t uint32) {
-	e.tell("settime", helper.Params{Item: item, Time: t}, func(n *wittybluray.Nav) { n.SetTime(item, t) })
-}
+func (e *engine) SetTime(item int, t uint32) { e.tell("settime", bluray.Params{Item: item, Time: t}) }
 
-func (e *engine) SetChapter(c int) {
-	e.tell("setchapter", helper.Params{N: c}, func(n *wittybluray.Nav) { n.SetChapter(c) })
-}
+func (e *engine) SetChapter(c int) { e.tell("setchapter", bluray.Params{N: c}) }
 
 // SetMenuState runs on every action a viewer takes, and usually changes nothing.
 func (e *engine) SetMenuState(page, button int) {
 	e.mu.Lock()
-	unchanged := e.h != nil && e.regs.PSR[wittybluray.PSRPage] == uint32(page) && e.regs.PSR[wittybluray.PSRButton] == uint32(button)
+	unchanged := e.h != nil && e.regs.PSR[bluray.PSRPage] == uint32(page) && e.regs.PSR[bluray.PSRButton] == uint32(button)
 	e.mu.Unlock()
 	if unchanged {
 		return
 	}
-	e.tell("setmenustate", helper.Params{Page: page, Button: button}, func(n *wittybluray.Nav) { n.SetMenuState(page, button) })
+	e.tell("setmenustate", bluray.Params{Page: page, Button: button})
 }
 
-func (e *engine) LoopsAtEnd(st *wittybluray.Step) bool {
+func (e *engine) LoopsAtEnd(st *bluray.Step) bool {
 	if st == nil || st.Playlist == nil {
 		return false
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		a, err := e.ask("loopsatend", helper.Params{N: st.Playlist.Number, Item: st.Item, Time: st.Time, ItemOnly: st.ItemOnly})
-		if err == nil {
-			return a.OK
-		}
-		e.fail(err)
-	}
-	if e.nav == nil {
+	if e.h == nil {
 		return false
 	}
-	c := *st
-	c.Playlist = e.builtinPlaylist(st.Playlist)
-	return e.nav.LoopsAtEnd(&c)
+	a, err := e.ask("loopsatend", bluray.Params{N: st.Playlist.Number, Item: st.Item, Time: st.Time, ItemOnly: st.ItemOnly})
+	if err != nil {
+		e.fail(err)
+		return false
+	}
+	return a.OK
 }
 
 func (e *engine) Forbids(uo uint64) bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.h != nil {
-		a, err := e.ask("forbids", helper.Params{UO: uo})
-		if err == nil {
-			return a.OK
-		}
-		e.fail(err)
+	if e.h == nil {
+		return false
 	}
-	return e.nav != nil && e.nav.Forbids(uo)
+	a, err := e.ask("forbids", bluray.Params{UO: uo})
+	if err != nil {
+		e.fail(err)
+		return false
+	}
+	return a.OK
 }
 
 // ---------------------------------------------------------------- checks
 
 // checkExtents makes sure FFmpeg will only be pointed at the disc that was opened,
 // and at no more of it than is there. The paths in the result are the server's own.
-func (e *engine) checkExtents(in []wittybluray.FileExtent) ([]wittybluray.FileExtent, error) {
+func (e *engine) checkExtents(in []bluray.FileExtent) ([]bluray.FileExtent, error) {
 	if len(in) > maxExtents {
 		return nil, fmt.Errorf("%d extents", len(in))
 	}
-	out := make([]wittybluray.FileExtent, 0, len(in))
+	out := make([]bluray.FileExtent, 0, len(in))
 	sizes := map[string]int64{}
 	for _, x := range in {
 		if x.Offset < 0 || x.Length < 0 || x.Length > math.MaxInt64-x.Offset {
@@ -803,7 +682,7 @@ func (e *engine) checkExtents(in []wittybluray.FileExtent) ([]wittybluray.FileEx
 		if x.Length > size-x.Offset {
 			x.Length = size - x.Offset
 		}
-		out = append(out, wittybluray.FileExtent{Path: path, Offset: x.Offset, Length: x.Length})
+		out = append(out, bluray.FileExtent{Path: path, Offset: x.Offset, Length: x.Length})
 	}
 	return out, nil
 }
@@ -852,7 +731,7 @@ func safeName(s string) bool {
 }
 
 // checkPlaylist checks what the session indexes by or uses as a name without looking.
-func checkPlaylist(pl *wittybluray.Playlist, n int) error {
+func checkPlaylist(pl *bluray.Playlist, n int) error {
 	if pl.Number != n {
 		return fmt.Errorf("asked for playlist %d, it sent %d", n, pl.Number)
 	}
@@ -866,7 +745,7 @@ func checkPlaylist(pl *wittybluray.Playlist, n int) error {
 				return fmt.Errorf("an angle names the clip %q", a.Clip)
 			}
 		}
-		for _, list := range [][]wittybluray.Stream{it.Video, it.Audio, it.PG, it.IG, it.SecAudio, it.SecVideo, it.PiPPG, it.DV} {
+		for _, list := range [][]bluray.Stream{it.Video, it.Audio, it.PG, it.IG, it.SecAudio, it.SecVideo, it.PiPPG, it.DV} {
 			for j := range list {
 				if list[j].SubPath < 0 || list[j].SubClip < 0 {
 					return errors.New("a stream names a sub-path that can't exist")
@@ -891,7 +770,7 @@ func checkPlaylist(pl *wittybluray.Playlist, n int) error {
 }
 
 // checkSubtitles checks the pictures, which are encoded here.
-func checkSubtitles(w *wittybluray.SubtitleWindow) error {
+func checkSubtitles(w *bluray.SubtitleWindow) error {
 	for i := range w.Subtitles {
 		m := w.Subtitles[i].Image
 		if m == nil {

@@ -1,7 +1,7 @@
 package library
 
 import (
-	"github.com/wittywilla/wittycd/lookup"
+	"github.com/wittywilla/wittymediaserver/internal/cdlookup"
 )
 
 // MusicBrainz identifies audio CDs by their table of contents, and the Cover Art
@@ -9,17 +9,17 @@ import (
 // can use it; this is the server's way of calling it.
 
 // MusicBrainzAttribution is what is shown wherever their data is used.
-const MusicBrainzAttribution = lookup.Attribution
+const MusicBrainzAttribution = cdlookup.Attribution
 
 const mbUA = "WittyMediaServer/0.5 ( https://github.com/wittywilla/WittyMediaServer )"
 
 type (
 	// CDMatch is one release a disc could be.
-	CDMatch = lookup.Match
+	CDMatch = cdlookup.Match
 	// CDTrackName is a track's name from any source.
-	CDTrackName = lookup.TrackName
+	CDTrackName = cdlookup.TrackName
 )
 
-func (s *Scanner) mbClient() *lookup.Client {
-	return &lookup.Client{HTTP: SafeClient, UserAgent: mbUA, Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}
+func (s *Scanner) mbClient() *cdlookup.Client {
+	return &cdlookup.Client{HTTP: SafeClient, UserAgent: mbUA, Base: s.MusicBrainzBase, CoverBase: s.CoverArtBase}
 }

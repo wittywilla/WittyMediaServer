@@ -14,7 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -65,7 +66,7 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 	defer o.Close()
 	labels := s.Store.DiscLabels(r.Context(), it.ID)
 	d := o.Disc
-	view := func(ts *wittydvd.TitleSummary) discTitle {
+	view := func(ts *dvd.TitleSummary) discTitle {
 		t := discTitle{TTN: ts.Number, Label: labels.Titles[strconv.Itoa(ts.Number)], DurationSec: ts.Duration, Angles: ts.Angles, Wide: ts.Video.Wide,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
 		names := labels.Chapters[strconv.Itoa(ts.Number)]
@@ -103,7 +104,7 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 	}
 	// Menus a viewer can jump straight into.
 	var menus []discMenu
-	has := func(lus []wittydvd.LangUnit, typ int) bool {
+	has := func(lus []dvd.LangUnit, typ int) bool {
 		for _, lu := range lus {
 			for _, e := range lu.PGCs {
 				if e.Entry && e.MenuType == typ && e.PGC != nil && len(e.PGC.Cells)+len(e.PGC.Pre) > 0 {
@@ -116,13 +117,13 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 	if main != nil {
 		if v := d.VTS[main.VTS]; v != nil {
 			for _, kind := range []string{"root", "chapter", "audio", "subpicture", "angle"} {
-				if has(v.Menus, wittydvd.MenuTypes[kind]) {
+				if has(v.Menus, dvd.MenuTypes[kind]) {
 					menus = append(menus, discMenu{Kind: kind, VTS: main.VTS, Label: menuLabels[kind]})
 				}
 			}
 		}
 	}
-	if has(d.VMG.Menus, wittydvd.MenuTypes["title"]) {
+	if has(d.VMG.Menus, dvd.MenuTypes["title"]) {
 		menus = append(menus, discMenu{Kind: "title", Label: menuLabels["title"]})
 	}
 	if menus != nil {
@@ -131,7 +132,7 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, out)
 }
 
-func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item, *wittydvd.Opened, bool) {
+func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item, *dvdsession.Engine, bool) {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
@@ -142,7 +143,10 @@ func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item
 		writeErr(w, 404, "disc not found")
 		return nil, nil, false
 	}
-	o, err := wittydvd.Open(it.Path)
+	o, err := dvdsession.Open(it.Path)
+	if writeModuleMissing(w, err) {
+		return nil, nil, false
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return nil, nil, false
@@ -222,7 +226,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	if isBluray(it) {
 		return s.makeBlurayThumb(ctx, it, ttn, n, out)
 	}
-	o, err := wittydvd.Open(it.Path)
+	o, err := dvdsession.Open(it.Path)
 	if err != nil {
 		return err
 	}
@@ -253,7 +257,7 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 			cell = c
 		}
 	}
-	sp := wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: ts.VTS}
+	sp := dvd.Space{Domain: dvd.DomainVTS, VTS: ts.VTS}
 	ext, err := o.CellExtents(sp, cell.Cell)
 	if err != nil || len(ext) == 0 {
 		return fmt.Errorf("cannot read the chapter")

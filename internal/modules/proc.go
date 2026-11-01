@@ -57,10 +57,26 @@ type proc struct {
 	stderr  *logging.Tail
 	started time.Time
 	closed  bool
+
+	notify    func(method string, params json.RawMessage) // hears what the helper says unasked
+	listening bool
 }
 
 func newProc(man *wittymodule.Manifest, dir string, verify func() error, log *slog.Logger) *proc {
 	return &proc{man: man, dir: dir, verify: verify, log: log.With("cat", "modules", "module", man.ID)}
+}
+
+// setNotify says who hears what a helper says unasked. The helper already running keeps
+// reading from the same pipe, so this works for a process in use as well.
+func (p *proc) setNotify(fn func(method string, params json.RawMessage)) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.notify = fn
+	if p.conn != nil && !p.listening {
+		p.conn.OnNotify = fn
+		p.conn.Listen()
+		p.listening = true
+	}
 }
 
 func (p *proc) path() string { return filepath.Join(p.dir, p.man.EntryFile(runtime.GOOS)) }
@@ -191,6 +207,7 @@ func (p *proc) start() error {
 		o.flush()
 	}, "cat", "modules")
 	conn := wittymodule.NewConn(stdout, stdin)
+	p.listening = false
 
 	// Closing our end too: killing a helper doesn't end a child of its that still holds
 	// the pipe, and a read on it would never return.
@@ -215,6 +232,11 @@ func (p *proc) start() error {
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.started = cmd, stdin, stdout, conn, release, t, started
+	if p.notify != nil {
+		conn.OnNotify = p.notify
+		conn.Listen()
+		p.listening = true
+	}
 	p.log.Debug("helper started", "topic", "lifecycle", "version", p.man.Version, "sandboxed", sandboxed)
 	return nil
 }

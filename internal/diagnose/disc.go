@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/wittywilla/wittycd"
-	"github.com/wittywilla/wittydisc/isofs"
+	"github.com/wittywilla/wittymediaserver/internal/cd"
+	"github.com/wittywilla/wittymediaserver/internal/isofs"
 )
 
 // DiscOptions choose the long parts of a disc check.
@@ -198,7 +198,7 @@ func barSpans(o DiscOptions) (crawlFrom, crawlTo, damageFrom float64) {
 // checkDisc is the whole of a disc check.
 func checkDisc(ctx context.Context, j *Job, path string, o DiscOptions) {
 	j.Step("Looking at what this is", 0.02)
-	if wittycd.IsImageName(path) && checkCD(ctx, j, path) {
+	if cd.IsImageName(path) && checkCD(ctx, j, path) {
 		return
 	}
 	var src *discSource
@@ -207,7 +207,7 @@ func checkDisc(ctx context.Context, j *Job, path string, o DiscOptions) {
 		return
 	}
 	if err != nil {
-		if wittycd.MayBeRaw(path) && checkCD(ctx, j, path) {
+		if cd.MayBeRaw(path) && checkCD(ctx, j, path) {
 			return
 		}
 		reportUnreadable(j, path, err)

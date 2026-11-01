@@ -6,10 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	bdcli "github.com/wittywilla/wittybluray/cli"
-	cdcli "github.com/wittywilla/wittycd/cli"
-	"github.com/wittywilla/wittydvd/cli"
-
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
@@ -18,14 +14,10 @@ func main() {
 		switch os.Args[1] {
 		case modules.SandboxFlag:
 			os.Exit(modules.RunSandboxed(os.Args[2:]))
-		case "disc":
-			os.Exit(cli.Disc(os.Args[2:]))
-		case "dvd":
-			os.Exit(cli.DVD(os.Args[2:]))
-		case "bluray":
-			os.Exit(bdcli.Bluray(os.Args[2:]))
-		case "cd":
-			os.Exit(cdcli.CD(os.Args[2:]))
+		case "disc", "dvd", "bluray", "cd":
+			fmt.Fprintf(os.Stderr, "%s is now a tool of its own, which comes with its module: wittydvd, wittybluray or wittycd.
+", os.Args[1])
+			os.Exit(2)
 		case "config":
 			os.Exit(cmdConfig(os.Args[2:]))
 		case "serve":

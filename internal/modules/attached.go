@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"runtime"
@@ -38,6 +39,13 @@ func (m *Manager) Attach(id string, callTimeout time.Duration) *Attached {
 	a := &Attached{m: m, id: id, e: e, p: p, version: e.man.Version}
 	m.attached[a] = true
 	return a
+}
+
+// OnNotify hears what the helper says unasked. It takes effect from the helper's next start,
+// and it also keeps the pipe read between calls, so this is one thing per process: a job that
+// streams can't use it. What's heard is untrusted, and fn must not block or call the helper.
+func (a *Attached) OnNotify(fn func(method string, params json.RawMessage)) {
+	a.p.setNotify(fn)
 }
 
 // Version is the version this job runs.

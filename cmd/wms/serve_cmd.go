@@ -214,6 +214,8 @@ func cmdServe(args []string) int {
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
 	livetv.SetEngine(modules.Tuners{M: modMgr})
+	cd.Open = modules.CDs{M: modMgr}.Open
+	library.EngineThere = modMgr.Installed
 	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	bdremote.Use(modMgr)
 

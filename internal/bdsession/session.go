@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
@@ -112,16 +112,16 @@ type Session struct {
 	last      time.Time
 	current   *Presentation
 	serial    int
-	step      *wittybluray.Step
+	step      *bluray.Step
 	playlist  *playing // what a title presentation streams
 	menu      *menuState
 	menus     map[int]*menuArt
 	artSeq    int
-	menuCache map[string]*wittybluray.Menu
+	menuCache map[string]*bluray.Menu
 	subPics   map[string]*subPic
-	textCues  map[string][]wittybluray.TextCue
+	textCues  map[string][]bluray.TextCue
 	seekTo    float64 // seconds into the playlist: continue here after a stream change
-	timer     *wittybluray.NavTimer
+	timer     *bluray.NavTimer
 	timerAt   time.Time
 	// The viewer's subtitle language is applied once, to the first title.
 	subsApplied bool
@@ -130,7 +130,7 @@ type Session struct {
 
 // playing is a playlist laid out on one timeline.
 type playing struct {
-	pl       *wittybluray.Playlist
+	pl       *bluray.Playlist
 	only     int // the one item this presents, or -1 for all
 	items    []playedItem
 	duration float64
@@ -169,17 +169,17 @@ const (
 )
 
 type menuState struct {
-	menu              *wittybluray.Menu
-	page              *wittybluray.Page
+	menu              *bluray.Menu
+	page              *bluray.Page
 	selected          int
 	enabled, disabled map[int]bool
 	skipEffect        bool // the disc changed page with its transition off
 }
 
 type menuArt struct {
-	menu       *wittybluray.Menu
-	page       *wittybluray.Page
-	buttons    []*wittybluray.Button
+	menu       *bluray.Menu
+	page       *bluray.Page
+	buttons    []*bluray.Button
 	overlay    []byte
 	highlights map[int][]byte
 }
@@ -215,7 +215,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		return nil, err
 	}
 	s := &Session{ID: randomID(), ItemID: itemID, m: m, key: hls.Key(path), prefs: prefs, disc: d, nav: nav, last: time.Now(),
-		menus: map[int]*menuArt{}, menuCache: map[string]*wittybluray.Menu{}, subPics: map[string]*subPic{}}
+		menus: map[int]*menuArt{}, menuCache: map[string]*bluray.Menu{}, subPics: map[string]*subPic{}}
 	base := m.Log
 	if base == nil {
 		base = slog.Default()
@@ -428,7 +428,7 @@ func (s *Session) syncTimer() {
 	}
 }
 
-func (s *Session) tickTimer() *wittybluray.Step {
+func (s *Session) tickTimer() *bluray.Step {
 	s.syncTimer()
 	if s.timer == nil || time.Now().Before(s.timerAt) {
 		return nil
@@ -462,7 +462,7 @@ func (s *Session) press(ctx context.Context, n int) (out *Presentation) {
 	s.touchMenuState()
 	st := s.nav.PressButton(b.Commands)
 	s.syncTimer()
-	if st.Kind != wittybluray.StepStay {
+	if st.Kind != bluray.StepStay {
 		return s.show(ctx, st)
 	}
 	fx := st.Effects
@@ -503,7 +503,7 @@ func (s *Session) press(ctx context.Context, n int) (out *Presentation) {
 
 // applyEffects applies a button's SET_SYSTEM effects to the menu state and
 // says whether the screen must be rebuilt.
-func (s *Session) applyEffects(fx *wittybluray.Effects) bool {
+func (s *Session) applyEffects(fx *bluray.Effects) bool {
 	ms := s.menu
 	if fx == nil || ms == nil {
 		return false
@@ -602,7 +602,7 @@ func (s *Session) keyPress(ctx context.Context, key string) *Presentation {
 			return cur
 		}
 	}
-	next := wittybluray.NoButton
+	next := bluray.NoButton
 	switch key {
 	case "up":
 		next = sel.Up
@@ -617,7 +617,7 @@ func (s *Session) keyPress(ctx context.Context, key string) *Presentation {
 	default:
 		return cur
 	}
-	if next == wittybluray.NoButton || ms.page.Button(next) == nil {
+	if next == bluray.NoButton || ms.page.Button(next) == nil {
 		return cur
 	}
 	// A hidden or disabled neighbour cannot take the selection.
@@ -661,24 +661,24 @@ func (s *Session) logStop(reason string, scrambled bool) {
 	s.log.Warn(msg, "reason", reason)
 }
 
-func (s *Session) show(ctx context.Context, st *wittybluray.Step) *Presentation {
+func (s *Session) show(ctx context.Context, st *bluray.Step) *Presentation {
 	return s.present(ctx, st, false)
 }
 
 // present turns a step into a presentation; rebuild makes a new screen even
 // for the same step (stream change, menu page change).
-func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild bool) *Presentation {
+func (s *Session) present(ctx context.Context, st *bluray.Step, rebuild bool) *Presentation {
 	if st == nil {
 		return s.current
 	}
 	s.log.Debug("bluray step", "topic", "nav", "step", st.Kind, "note", st.Reason, "menu", st.Menu, "ttn", st.Title)
 	switch st.Kind {
-	case wittybluray.StepStay:
+	case bluray.StepStay:
 		return s.current
-	case wittybluray.StepStop:
+	case bluray.StepStop:
 		s.leaveBDJ()
 		return s.stop(st.Reason, false)
-	case wittybluray.StepUnsupported:
+	case bluray.StepUnsupported:
 		return s.presentBDJ(ctx, st, rebuild)
 	}
 	s.leaveBDJ()
@@ -693,7 +693,7 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 	// the player's Menu key. Playlists that are not a numbered title
 	// (first-play intros, menu transitions) present like menus without
 	// buttons: they play through, and no viewing progress is recorded.
-	var popup *wittybluray.Menu
+	var popup *bluray.Menu
 	if st.Menu {
 		switch menu := s.loadMenu(st); {
 		case menu == nil:
@@ -736,11 +736,11 @@ func (s *Session) present(ctx context.Context, st *wittybluray.Step, rebuild boo
 
 // presentBDJ runs a BD-J title when the server can. Otherwise it plays what
 // the title's own object says it plays, else the main feature.
-func (s *Session) presentBDJ(ctx context.Context, st *wittybluray.Step, rebuild bool) *Presentation {
+func (s *Session) presentBDJ(ctx context.Context, st *bluray.Step, rebuild bool) *Presentation {
 	if p, ok := s.startBDJTitle(ctx, st); ok {
 		return p
 	}
-	var pl *wittybluray.Playlist
+	var pl *bluray.Playlist
 	if st.Title >= 1 && st.Title != 0xffff {
 		if o, err := s.disc.BDJObject(st.BDJ); err == nil && len(o.Playlists) > 0 {
 			pl = s.disc.Playlist(o.Playlists[0])
@@ -762,9 +762,9 @@ func (s *Session) presentBDJ(ctx context.Context, st *wittybluray.Step, rebuild 
 // time. only picks one item (-1 = all). What they need read around those times to
 // show them is cut off by holes in the input: see segments. Items without video,
 // and stills, are read from the entry point at or before their IN time instead.
-func (s *Session) layout(pl *wittybluray.Playlist, only int) *playing {
+func (s *Session) layout(pl *bluray.Playlist, only int) *playing {
 	out := &playing{pl: pl, only: only}
-	angle := int(s.nav.Registers().PSR[wittybluray.PSRAngle])
+	angle := int(s.nav.Registers().PSR[bluray.PSRAngle])
 	var t float64
 	for i := range pl.Items {
 		if only >= 0 && i != only {
@@ -833,8 +833,8 @@ func (s *Session) layout(pl *wittybluray.Playlist, only int) *playing {
 	return out
 }
 
-func chapterMarks(pl *wittybluray.Playlist) []wittybluray.Mark {
-	var out []wittybluray.Mark
+func chapterMarks(pl *bluray.Playlist) []bluray.Mark {
+	var out []bluray.Mark
 	for _, m := range pl.Marks {
 		if m.Type == 1 {
 			out = append(out, m)
@@ -916,7 +916,7 @@ func (s *Session) clipSegment(clip string, fromSPN, toSPN uint32, duration float
 		return ffmpeg.Segment{}, err
 	}
 	from, to := int64(fromSPN)*192, int64(toSPN)*192
-	var cut []wittydvd.FileExtent
+	var cut []dvd.FileExtent
 	var off int64
 	for _, e := range ext {
 		a, b := off, off+e.Length
@@ -925,7 +925,7 @@ func (s *Session) clipSegment(clip string, fromSPN, toSPN uint32, duration float
 		if hi <= lo {
 			continue
 		}
-		cut = append(cut, wittydvd.FileExtent{File: e.Path, Offset: e.Offset + (lo - a), Length: hi - lo})
+		cut = append(cut, dvd.FileExtent{File: e.Path, Offset: e.Offset + (lo - a), Length: hi - lo})
 	}
 	if len(cut) == 0 {
 		return ffmpeg.Segment{}, fmt.Errorf("clip %s is missing from the disc", clip)
@@ -935,7 +935,7 @@ func (s *Session) clipSegment(clip string, fromSPN, toSPN uint32, duration float
 
 // subPathSegments are the clips of a sub-path as FFmpeg inputs, for a stream
 // kept outside the main path (browsable slideshow music, for one).
-func (s *Session) subPathSegments(pl *wittybluray.Playlist, st *wittybluray.Stream) ([]ffmpeg.Segment, bool, error) {
+func (s *Session) subPathSegments(pl *bluray.Playlist, st *bluray.Stream) ([]ffmpeg.Segment, bool, error) {
 	if st.SubPath >= len(pl.SubPaths) {
 		return nil, false, errors.New("the stream's sub-path is missing")
 	}
@@ -985,7 +985,7 @@ func (s *Session) listDir() string { return filepath.Join(s.m.CacheDir, "lists",
 // videoFilter deinterlaces interlaced discs (480i, 576i, 1080i) and
 // tone-maps HDR (UHD discs: HDR10, HDR10+, Dolby Vision's HDR10 base layer)
 // to SDR, since browsers and the H.264 streams they play are SDR.
-func (s *Session) videoFilter(it *wittybluray.PlayItem) string {
+func (s *Session) videoFilter(it *bluray.PlayItem) string {
 	var chain []string
 	if len(it.Video) > 0 {
 		v := it.Video[0]
@@ -1008,14 +1008,14 @@ func (s *Session) videoFilter(it *wittybluray.PlayItem) string {
 
 // isHDR says whether a video stream is high dynamic range: UHD discs flag
 // HDR10 and Dolby Vision, and BT.2020 colour means HDR in practice.
-func isHDR(v wittybluray.Stream) bool {
+func isHDR(v bluray.Stream) bool {
 	return v.Coding == 0x24 && (v.DynamicRange >= 1 || v.ColorSpace == 2)
 }
 
 // maxHeight caps the stream: 2160p sources are sent as 1080p unless the
 // settings ask for a height of 2160 or more, since encoding 4K in software
 // is beyond most machines and most screens that play it are 1080p.
-func (s *Session) maxHeight(it *wittybluray.PlayItem) int {
+func (s *Session) maxHeight(it *bluray.PlayItem) int {
 	if s.prefs.MaxHeight == 0 && len(it.Video) > 0 && it.Video[0].Format == 8 {
 		return 1080
 	}
@@ -1042,8 +1042,8 @@ func (s *Session) codecTag() string {
 // audioFor picks the audio stream for the first item: the register's
 // choice when it is in the clip, else the preferred language, else the
 // first. Returns the index (0-based) and the stream (nil = no audio).
-func (s *Session) audioFor(it *wittybluray.PlayItem) (int, *wittybluray.Stream) {
-	n := int(s.nav.Registers().PSR[wittybluray.PSRAudio])
+func (s *Session) audioFor(it *bluray.PlayItem) (int, *bluray.Stream) {
+	n := int(s.nav.Registers().PSR[bluray.PSRAudio])
 	if n >= 1 && n <= len(it.Audio) {
 		return n - 1, &it.Audio[n-1]
 	}
@@ -1056,7 +1056,7 @@ func (s *Session) audioFor(it *wittybluray.PlayItem) (int, *wittybluray.Stream) 
 
 // aspectOf is a play item's picture shape, from its clip: standard-definition
 // material on a Blu-ray can be either.
-func (s *Session) aspectOf(it *wittybluray.PlayItem) string {
+func (s *Session) aspectOf(it *bluray.PlayItem) string {
 	if len(it.Video) > 0 {
 		if c := s.disc.Clip(it.Clip); c != nil {
 			if cs := c.Stream(it.Video[0].PID); cs != nil && cs.Aspect == 2 {
@@ -1085,7 +1085,7 @@ func (s *Session) hlsID(name string) string { return fmt.Sprintf("bd-%s-%s", s.k
 
 // ensureHLS starts (or finds) the stream of a laid-out playlist. hold keeps
 // the last picture to the end of the stream's time.
-func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittybluray.Stream, menu, hold bool) (string, int, error) {
+func (s *Session) ensureHLS(pl *playing, it *bluray.PlayItem, audio *bluray.Stream, menu, hold bool) (string, int, error) {
 	audioIdx := -1
 	ids := []int{}
 	hasVideo := len(it.Video) > 0
@@ -1106,7 +1106,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 	if !hasVideo && audio == nil {
 		return "", -1, errors.New("the playlist has neither picture nor sound")
 	}
-	angle := s.nav.Registers().PSR[wittybluray.PSRAngle]
+	angle := s.nav.Registers().PSR[bluray.PSRAngle]
 	name := fmt.Sprintf("p%05d-a%x-g%d%s", pl.pl.Number, idsKey(ids), angle, s.codecTag())
 	if pl.only >= 0 {
 		name += fmt.Sprintf("-i%d", pl.only)
@@ -1178,7 +1178,7 @@ func idsKey(ids []int) int {
 
 // loadMenu reads (and caches) the step's menu graphics; nil when there are
 // none or they cannot be read.
-func (s *Session) loadMenu(st *wittybluray.Step) *wittybluray.Menu {
+func (s *Session) loadMenu(st *bluray.Step) *bluray.Menu {
 	if !st.Menu || st.Item >= len(st.Playlist.Items) {
 		return nil
 	}
@@ -1204,13 +1204,13 @@ func (s *Session) loadMenu(st *wittybluray.Step) *wittybluray.Menu {
 	return m
 }
 
-func (s *Session) buildMenu(ctx context.Context, st *wittybluray.Step, p *Presentation) error {
+func (s *Session) buildMenu(ctx context.Context, st *bluray.Step, p *Presentation) error {
 	pl := st.Playlist
 	if st.Item >= len(pl.Items) {
 		return errors.New("the menu's playlist is empty")
 	}
 	it := &pl.Items[st.Item]
-	var menu *wittybluray.Menu
+	var menu *bluray.Menu
 	if st.Menu {
 		if menu = s.loadMenu(st); menu == nil {
 			return errors.New("the menu graphics could not be read")
@@ -1255,7 +1255,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittybluray.Step, p *Presen
 	return nil
 }
 
-func onlyItem(st *wittybluray.Step) int {
+func onlyItem(st *bluray.Step) int {
 	if st.ItemOnly {
 		return st.Item
 	}
@@ -1267,7 +1267,7 @@ func onlyItem(st *wittybluray.Step) int {
 // a menu the player shows only on its Menu key. Each view gets its own
 // artwork key, so a page change under the same serial still refreshes the
 // pictures.
-func (s *Session) menuView(p *Presentation, menu *wittybluray.Menu, popup bool, rate int) error {
+func (s *Session) menuView(p *Presentation, menu *bluray.Menu, popup bool, rate int) error {
 	if s.menu == nil || s.menu.menu != menu {
 		s.menu = &menuState{menu: menu, page: &menu.Pages[0], selected: menu.Pages[0].DefaultSelected, enabled: map[int]bool{}, disabled: map[int]bool{}}
 	}
@@ -1275,14 +1275,14 @@ func (s *Session) menuView(p *Presentation, menu *wittybluray.Menu, popup bool, 
 	buttons := ms.page.Visible(ms.enabled, ms.disabled)
 	if ms.page.Button(ms.selected) == nil {
 		// A page may name no default: the disc's last selection, if it is here.
-		psr := int(s.nav.Registers().PSR[wittybluray.PSRButton])
-		ms.selected = wittybluray.NoButton
+		psr := int(s.nav.Registers().PSR[bluray.PSRButton])
+		ms.selected = bluray.NoButton
 		for _, b := range buttons {
 			if b.ID == psr {
 				ms.selected = psr
 			}
 		}
-		if ms.selected == wittybluray.NoButton && len(buttons) > 0 {
+		if ms.selected == bluray.NoButton && len(buttons) > 0 {
 			ms.selected = buttons[0].ID
 		}
 	}
@@ -1320,17 +1320,17 @@ func (s *Session) menuView(p *Presentation, menu *wittybluray.Menu, popup bool, 
 		r := menu.Rect(b)
 		cmd := ""
 		if len(b.Commands) > 0 {
-			cmd = wittybluray.Decode(b.Commands[0]).String()
+			cmd = fmt.Sprintf("%x", b.Commands[0])
 		}
 		bv := ButtonView{N: b.ID + 1, X1: r.Min.X, Y1: r.Min.Y, X2: r.Max.X, Y2: r.Max.Y,
-			Up: ref(b.Up), Down: ref(b.Down), Left: ref(b.Left), Right: ref(b.Right), Auto: b.AutoAction, Lit: b.Selected.Start != wittybluray.NoButton, Cmd: cmd}
-		if b.NumericSelect != wittybluray.NoButton && b.NumericSelect > 0 {
+			Up: ref(b.Up), Down: ref(b.Down), Left: ref(b.Left), Right: ref(b.Right), Auto: b.AutoAction, Lit: b.Selected.Start != bluray.NoButton, Cmd: cmd}
+		if b.NumericSelect != bluray.NoButton && b.NumericSelect > 0 {
 			bv.Num = b.NumericSelect
 		}
-		if b.SelectedSound != wittybluray.NoSound {
+		if b.SelectedSound != bluray.NoSound {
 			bv.SoundSelect = b.SelectedSound + 1
 		}
-		if b.ActivatedSound != wittybluray.NoSound {
+		if b.ActivatedSound != bluray.NoSound {
 			bv.SoundPress = b.ActivatedSound + 1
 		}
 		if n := b.Selected.Frames(); n > 1 && fps > 0 {
@@ -1346,7 +1346,7 @@ func (s *Session) menuView(p *Presentation, menu *wittybluray.Menu, popup bool, 
 
 // animationFPS is how fast a page's button animations run: the video frame
 // rate divided by the page's animation rate code (0 = no animation).
-func animationFPS(page *wittybluray.Page, rate, indexRate int) float64 {
+func animationFPS(page *bluray.Page, rate, indexRate int) float64 {
 	if page.AnimationRate <= 0 {
 		return 0
 	}
@@ -1362,7 +1362,7 @@ func animationFPS(page *wittybluray.Page, rate, indexRate int) float64 {
 }
 
 // videoRate is the frame rate code of the step's video stream.
-func (s *Session) videoRate(st *wittybluray.Step) int {
+func (s *Session) videoRate(st *bluray.Step) int {
 	if st != nil && st.Playlist != nil && st.Item < len(st.Playlist.Items) && len(st.Playlist.Items[st.Item].Video) > 0 {
 		return st.Playlist.Items[st.Item].Video[0].Rate
 	}
@@ -1370,13 +1370,13 @@ func (s *Session) videoRate(st *wittybluray.Step) int {
 }
 
 func ref(id int) int {
-	if id == wittybluray.NoButton {
+	if id == bluray.NoButton {
 		return 0
 	}
 	return id + 1
 }
 
-func (s *Session) buildTitle(ctx context.Context, st *wittybluray.Step, p *Presentation) error {
+func (s *Session) buildTitle(ctx context.Context, st *bluray.Step, p *Presentation) error {
 	pl := st.Playlist
 	if st.Item >= len(pl.Items) {
 		return errors.New("the playlist is empty")
@@ -1413,7 +1413,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittybluray.Step, p *Prese
 	}
 	s.subsApplied = true
 	subN := -1
-	pg := regs.PSR[wittybluray.PSRPG]
+	pg := regs.PSR[bluray.PSRPG]
 	if g := int(pg & 0xfff); pg>>31 == 1 && g >= 1 && g <= len(it.PG) {
 		subN = g - 1
 	}
@@ -1448,7 +1448,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittybluray.Step, p *Prese
 	aspect := s.aspectOf(it)
 	tv := &TitleView{TTN: pl.Number, Chapter: chapter, DurationSec: laid.duration, StartSec: start, Chapters: laid.chapters, AudioStream: audioN, SubStream: subN,
 		Wide: aspect != "4:3", Audio: []Track{}, Subtitles: []Track{}, FrameW: fw, FrameH: fh, Aspect: aspect,
-		SubtitlesURL: s.url("subs") + fmt.Sprintf("?ttn=%d", pl.Number), ForcedStream: forced, Angle: int(regs.PSR[wittybluray.PSRAngle]), Angles: len(it.Angles), Locks: s.locks(pl)}
+		SubtitlesURL: s.url("subs") + fmt.Sprintf("?ttn=%d", pl.Number), ForcedStream: forced, Angle: int(regs.PSR[bluray.PSRAngle]), Angles: len(it.Angles), Locks: s.locks(pl)}
 	if tv.Chapters == nil {
 		tv.Chapters = []float64{}
 	}
@@ -1470,23 +1470,23 @@ func (s *Session) buildTitle(ctx context.Context, st *wittybluray.Step, p *Prese
 }
 
 // locks names what the disc forbids in this playlist and play item.
-func (s *Session) locks(pl *wittybluray.Playlist) []string {
+func (s *Session) locks(pl *bluray.Playlist) []string {
 	var out []string
 	add := func(name string, uo uint64) {
 		if s.nav.Forbids(uo) {
 			out = append(out, name)
 		}
 	}
-	add("seek", wittybluray.UOTimeSearch)
+	add("seek", bluray.UOTimeSearch)
 	if !pl.RandomAccess && (len(out) == 0 || out[len(out)-1] != "seek") {
 		out = append(out, "seek")
 	}
-	add("chapter", wittybluray.UOChapterSearch)
-	add("skip", wittybluray.UOSkipToNext)
-	add("pause", wittybluray.UOPauseOn)
-	add("audio", wittybluray.UOPrimaryAudio)
-	add("subtitle", wittybluray.UOPGChange)
-	add("angle", wittybluray.UOAngle)
+	add("chapter", bluray.UOChapterSearch)
+	add("skip", bluray.UOSkipToNext)
+	add("pause", bluray.UOPauseOn)
+	add("audio", bluray.UOPrimaryAudio)
+	add("subtitle", bluray.UOPGChange)
+	add("angle", bluray.UOAngle)
 	return out
 }
 
@@ -1529,7 +1529,7 @@ func (s *Session) OverlayPNG(serial int) ([]byte, bool) {
 		return nil, false
 	}
 	if art.overlay == nil {
-		art.overlay = encode(art.menu.Render(art.page, art.buttons, wittybluray.NoButton))
+		art.overlay = encode(art.menu.Render(art.page, art.buttons, bluray.NoButton))
 	}
 	return art.overlay, true
 }
@@ -1554,7 +1554,7 @@ func (s *Session) HighlightFramePNG(serial, n, frame int) ([]byte, bool) {
 	for _, b := range art.buttons {
 		if b.ID == n-1 {
 			img := image.NewNRGBA(image.Rect(0, 0, art.menu.Width, art.menu.Height))
-			art.menu.DrawFrame(img, art.page, b, wittybluray.ButtonSelected, frame)
+			art.menu.DrawFrame(img, art.page, b, bluray.ButtonSelected, frame)
 			out := encode(img)
 			art.highlights[k] = out
 			return out, true

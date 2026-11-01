@@ -74,8 +74,8 @@ Most of these come from a security review. [Config file and folders](docs/CONFIG
 This is an alpha, so here's what has and hasn't been tried.
 
 - **Windows:** the `.msi` was built and tested under Wine, not on a real Windows machine. ARM64 wasn't checked.
-- **macOS:** never built or run here. That covers the `.pkg`, the uninstaller and modules. Module helpers have no sandbox there or on FreeBSD.
-- **FreeBSD:** the amd64 package and service passed in virtual machines. No real hardware and no arm64.
+- **macOS:** never built or run here. That covers the `.pkg`, the uninstaller, modules and the sandbox written for a helper.
+- **FreeBSD:** the amd64 package and service passed in virtual machines, and a helper's limits were tried from inside one. No real hardware and no arm64.
 - **Apps:** Android ran on emulators only, including Android TV. iOS and tvOS have never been built.
 - **Game delay figures** were measured with the server and browser on one machine, not from a real screen. Firefox, Safari, phones, TVs and real networks weren't run.
 - **Tdarr** itself has never been run against this, because downloading it binds you to its licence.

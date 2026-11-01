@@ -9,6 +9,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 - **Fixed:** a panic during a Blu-ray title action could take the whole server down, and a button's pause or resume never reached the player.
 - **Encrypted media stays refused:** a scrambled DVD title asked for directly and any action on an encrypted Blu-ray's refusal screen now get the refusal. IPTV checks every HLS variant, and only calls a stream clear when all of them were read.
+- **Encryption that starts later:** an IPTV HLS stream's playlists are read again while it plays or records. A key that appears stops the stream, marks the channel as encrypted and shows the usual refusal; a recording keeps what was clear and stops for the same reason, and a network failure ends nothing.
+- **One wording:** encrypted discs are refused in the same words everywhere a viewer sees them.
 - **Crafted files:** menu, subtitle and picture sizes are limited on every path, a helper's answers are limited before decoding, a station can't make the server build a huge playlist, and a CD sheet can't leave its folder through a linked folder.
 - **Older helpers:** a WittyDVD helper from before chapter runs keeps the disc instead of being blamed, and a cut-short disc image no longer counts against an honest helper.
 - **Fixed:** a stopped stream's clean-up could delete a new stream's files, AIFF files are now checked to be CD audio, and a playlist from elsewhere can't reach this machine by a name or a redirect.

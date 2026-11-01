@@ -62,6 +62,10 @@ type Stream struct {
 	Guard *mpegts.Guard
 	// Verified: an Input stream was inspected on opening and found clear.
 	Verified bool
+	// Recheck looks again at an Input stream that can change while it plays. It says
+	// why the stream is now encrypted, or "", and how long until it's worth asking again.
+	// An error is a failure to find out, which says nothing about the stream.
+	Recheck func(ctx context.Context) (why string, next time.Duration, err error)
 }
 
 // Close releases what the stream holds.

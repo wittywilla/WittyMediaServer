@@ -722,6 +722,7 @@ func (s *Server) tunerInput(ctx context.Context, o *livetv.Opened, copyOK bool) 
 		return in
 	}
 	in.InputArgs = o.Stream.Input
+	in.Refused, in.Refusal = o.Refused(), o.Refusal
 	// Addresses can be probed first: H.264 that needs no work passes through.
 	if copyOK && !hasCaptureInput(o.Stream.Input) {
 		pctx, cancel := context.WithTimeout(ctx, 12*time.Second)

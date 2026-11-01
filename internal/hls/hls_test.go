@@ -436,6 +436,39 @@ func TestLiveFailureIsLoggedAndHeard(t *testing.T) {
 	logLine(t, out, "level=WARN", `msg="process ended"`, "cat=transcode", "session=tun-7", "stderr=")
 }
 
+// A live input found to be encrypted while it plays ends the session for good, with its
+// reason, and FFmpeg goes with it.
+func TestLiveInputRefusedWhilePlaying(t *testing.T) {
+	bin := realFFmpeg(t)
+	tools := &ffmpeg.Tools{FFmpeg: bin, Encoders: map[string]bool{"libx264": true}}
+	m := NewManager(tools, t.TempDir(), 2, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	refused := make(chan struct{})
+	why := errors.New("encrypted")
+	feeds := 0
+	s, err := m.EnsureLive(LiveSpec{ID: "tun-1", SegmentSec: 1, Feed: func(context.Context, time.Time) (*LiveInput, error) {
+		feeds++
+		return &LiveInput{InputArgs: []string{"-re", "-f", "lavfi", "-i", "testsrc=s=64x64:r=5"}, AudioIndex: -1, Realtime: true,
+			Refused: refused, Refusal: func() error { return why }}, nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	close(refused)
+	select {
+	case <-s.failed:
+	case <-ctx.Done():
+		t.Fatal("it went on playing")
+	}
+	if !errors.Is(s.Err(), why) || feeds != 1 {
+		t.Errorf("%v, after %d runs", s.Err(), feeds)
+	}
+}
+
 // With a real FFmpeg (skipped where there is none): a remux in each kind of
 // segment gives a playlist and segments a player can use, and leaves nothing
 // outside the stream's folder.

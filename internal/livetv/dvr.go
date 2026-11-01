@@ -386,6 +386,18 @@ func (m *Manager) record(r *Recording) {
 	}
 	_, _ = m.DB.Exec(`UPDATE recordings SET path = ? WHERE id = ?`, path, r.ID)
 	err = m.write(ctx, log, opened, path)
+	if refused := opened.Refusal(); refused != nil {
+		// All of it was clear until then, and stays. It stops here, for the same reason
+		// as anyone trying to watch.
+		if st, serr := os.Stat(path); serr != nil || st.Size() == 0 {
+			_ = os.Remove(path)
+			m.finish(r.ID, "failed", refused.Error(), "")
+			return
+		}
+		m.finish(r.ID, "failed", refused.Error(), path)
+		done = path
+		return
+	}
 	if err != nil && wittytuner.IsEncrypted(err) {
 		_ = os.Remove(path)
 		m.finish(r.ID, "failed", wittytuner.RefusalMessage(opened.Channel.Name, err).Error(), "")
@@ -446,13 +458,31 @@ func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path s
 	}
 	args := append([]string{"-hide_banner", "-loglevel", "error", "-nostdin"}, o.Stream.Input...)
 	args = append(args, "-map", "0", "-c", "copy", "-f", "mpegts", "pipe:1")
-	cmd := ffmpeg.Command(ctx, m.Tools.FFmpeg, args...)
+	run, cancel := context.WithCancel(ctx)
+	defer cancel()
+	logging.Go("recording re-check", func() {
+		select {
+		case <-o.Refused():
+			cancel()
+		case <-run.Done():
+		}
+	}, "cat", "tv")
+	cmd := ffmpeg.Command(run, m.Tools.FFmpeg, args...)
 	cmd.Stdout = f
 	var stderr logging.Tail
 	cmd.Stderr = &stderr
 	started := time.Now()
 	err = cmd.Run()
-	logging.ChildExit(log, "ffmpeg", err, ctx.Err() != nil, &stderr, started)
+	logging.ChildExit(log, "ffmpeg", err, run.Err() != nil, &stderr, started)
+	if err != nil && ctx.Err() == nil {
+		// FFmpeg may have stopped at the key by itself, before the next look.
+		if refused := o.CheckNow(ctx); refused != nil {
+			return refused
+		}
+	}
+	if refused := o.Refusal(); refused != nil {
+		return refused
+	}
 	return err
 }
 

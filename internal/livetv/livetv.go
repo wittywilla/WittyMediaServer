@@ -761,11 +761,76 @@ type Opened struct {
 	release func()
 	note    func(encryptedWhy string)
 	once    sync.Once
+	// A stream that was clear on opening can turn out not to be: see watch.
+	stopWatch  context.CancelFunc
+	refused    chan struct{}
+	refuseOnce sync.Once
+	refusal    error
+}
+
+// Refused is closed when a stream that was playing was found to be encrypted. Whatever
+// is using it stops, and Refusal says why. nil for a stream that can't be looked at again.
+func (o *Opened) Refused() <-chan struct{} { return o.refused }
+
+// Refusal is why the stream was refused, or nil.
+func (o *Opened) Refusal() error {
+	select {
+	case <-o.refused:
+		return o.refusal
+	default:
+		return nil
+	}
+}
+
+func (o *Opened) refuse(why string) {
+	o.refuseOnce.Do(func() {
+		o.refusal = &wittytuner.EncryptedError{Channel: o.Channel.Name, Why: why}
+		o.note(why)
+		close(o.refused)
+	})
+}
+
+// CheckNow looks at the stream again straight away, for when it has just stopped by
+// itself, and says if it was refused.
+func (o *Opened) CheckNow(ctx context.Context) error {
+	if o.Stream.Recheck != nil && o.refused != nil {
+		if why, _, err := o.Stream.Recheck(ctx); err == nil && why != "" {
+			o.refuse(why)
+		}
+	}
+	return o.Refusal()
+}
+
+// watch looks at a playing stream again for as long as it plays. Encrypted is final; not
+// being able to find out says nothing, so a clear stream goes on through a network failure.
+func (o *Opened) watch(ctx context.Context, log *slog.Logger) {
+	for {
+		why, next, err := o.Stream.Recheck(ctx)
+		if ctx.Err() != nil {
+			return
+		}
+		if why != "" {
+			log.WarnContext(ctx, "a playing stream turned out to be encrypted; stopping it", "why", why)
+			o.refuse(why)
+			return
+		}
+		if err != nil {
+			log.DebugContext(ctx, "could not look at a stream's playlist again", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(max(next, time.Millisecond)):
+		}
+	}
 }
 
 // Release frees the tuner, and remembers what the stream showed about itself.
 func (o *Opened) Release() {
 	o.once.Do(func() {
+		if o.stopWatch != nil {
+			o.stopWatch()
+		}
 		if g := o.Stream.Guard; g != nil {
 			switch {
 			case g.Fatal() != nil:
@@ -816,6 +881,10 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	if err != nil {
 		release()
 		m.noteOpenFailure(ctx, c, err)
+		var enc *wittytuner.EncryptedError
+		if errors.As(err, &enc) && enc.Why != "" {
+			m.noteStream(c.ID, enc.Why)
+		}
 		return nil, err
 	}
 	if st.Guard != nil {
@@ -826,7 +895,14 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	if st.Verified {
 		note("")
 	}
-	return &Opened{Stream: st, Channel: c, release: release, note: note}, nil
+	o := &Opened{Stream: st, Channel: c, release: release, note: note}
+	if st.Recheck != nil {
+		wctx, cancel := context.WithCancel(ctx)
+		o.stopWatch, o.refused = cancel, make(chan struct{})
+		log := m.tunerLog().With("topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
+		logging.Go("stream re-check", func() { o.watch(wctx, log) }, "cat", "tv")
+	}
+	return o, nil
 }
 
 // noteOpenFailure leaves a record of a tuner that wouldn't give a channel.

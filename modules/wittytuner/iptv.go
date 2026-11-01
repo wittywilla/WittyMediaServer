@@ -440,8 +440,11 @@ func (s *iptv) Open(ctx context.Context, ch Channel) (*Stream, error) {
 	}
 }
 
-// httpInput builds FFmpeg's options for an HTTP(S) address, leaving out the
-// crypto protocol so encrypted HLS segments cannot be read.
+// httpInput builds FFmpeg's options for an HTTP(S) address, leaving out the crypto
+// protocol. That isn't enough by itself: with these options the FFmpeg builds we ship
+// and Ubuntu's still ask for the key of AES-128 and SAMPLE-AES playlists, and no option
+// of their HLS demuxer turns that off. What keeps encrypted HLS out is reading the
+// playlists ourselves, on opening and again while the stream runs (hlsRecheck).
 func httpInput(addr, ua string, headers http.Header) []string {
 	in := []string{"-protocol_whitelist", "http,https,tcp,tls", "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"}
 	if ua != "" {
@@ -533,7 +536,7 @@ func openHTTPStream(ctx context.Context, env Env, ch Channel, ua string, headers
 			}
 			whole = whole && read
 		}
-		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: whole}, nil
+		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: whole, Recheck: hlsRecheck(env, ch.Locator, ua, headers)}, nil
 	}
 	if n >= 188 && head[0] == 0x47 && (n < 376 || head[188] == 0x47) {
 		// Raw MPEG-TS: read on, starting with what was already read.
@@ -606,20 +609,12 @@ func hlsVariants(b []byte) []string {
 
 var hlsMediaURI = regexp.MustCompile(`URI="([^"]+)"`)
 
-// checkVariant says why one variant can't be played, or "", and whether it was read:
-// one that wasn't has said nothing either way.
-func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http.Header) (why string, read bool) {
-	bu, err := url.Parse(base)
+// readPlaylist fetches a playlist. What arrived comes back even with an error: a key in
+// a playlist that was cut short, or came with a bad status, is still a key.
+func readPlaylist(ctx context.Context, env Env, addr, ua string, headers http.Header) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", addr, nil)
 	if err != nil {
-		return "", false
-	}
-	ru, err := bu.Parse(v)
-	if err != nil || (ru.Scheme != "http" && ru.Scheme != "https") {
-		return "", false
-	}
-	req, err := http.NewRequestWithContext(ctx, "GET", ru.String(), nil)
-	if err != nil {
-		return "", false
+		return nil, err
 	}
 	for k, vs := range headers {
 		req.Header[k] = vs
@@ -629,14 +624,119 @@ func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http
 	}
 	res, err := env.http().Do(req)
 	if err != nil {
-		return "", false
+		return nil, err
 	}
 	defer res.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(res.Body, 2<<20))
+	b, err := io.ReadAll(io.LimitReader(res.Body, maxPlaylistRead))
+	switch {
+	case err != nil:
+		return b, err
+	case res.StatusCode != http.StatusOK:
+		return b, fmt.Errorf("the playlist answered %s", res.Status)
+	case len(b) >= maxPlaylistRead:
+		return b, errors.New("the playlist is too long to read")
+	}
+	return b, nil
+}
+
+const maxPlaylistRead = 2 << 20
+
+// variantURL resolves a variant against its master, for HTTP(S) only.
+func variantURL(base, v string) (string, bool) {
+	bu, err := url.Parse(base)
+	if err != nil {
+		return "", false
+	}
+	ru, err := bu.Parse(v)
+	if err != nil || (ru.Scheme != "http" && ru.Scheme != "https") {
+		return "", false
+	}
+	return ru.String(), true
+}
+
+// checkVariant says why one variant can't be played, or "", and whether it was read:
+// one that wasn't has said nothing either way.
+func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http.Header) (why string, read bool) {
+	addr, ok := variantURL(base, v)
+	if !ok {
+		return "", false
+	}
+	b, err := readPlaylist(ctx, env, addr, ua, headers)
 	if why := hlsProtection(b); why != "" {
 		return why, true
 	}
-	return "", err == nil && res.StatusCode == http.StatusOK && len(b) < 2<<20
+	return "", err == nil
+}
+
+// How often a live playlist is read again: as often as it changes, which its target
+// duration says, within these. A small request, and at most a few per check.
+const (
+	hlsRecheckMax       = 30 * time.Second
+	hlsVariantsPerCheck = 4
+)
+
+var hlsRecheckMin = 5 * time.Second
+
+var hlsTarget = regexp.MustCompile(`(?m)^#EXT-X-TARGETDURATION:\s*(\d+)`)
+
+// hlsRecheck reads a stream's playlists again, as a key can first appear long after
+// opening. A master with many variants has a few read each time, in turn.
+func hlsRecheck(env Env, locator, ua string, headers http.Header) func(context.Context) (string, time.Duration, error) {
+	var mu sync.Mutex
+	turn := 0
+	wait := hlsRecheckMin
+	learn := func(b []byte) {
+		if m := hlsTarget.FindSubmatch(b); m != nil {
+			if sec, err := strconv.Atoi(string(m[1])); err == nil && sec >= 0 && sec < 3600 {
+				wait = min(max(time.Duration(sec)*time.Second, hlsRecheckMin), hlsRecheckMax)
+			}
+		}
+	}
+	return func(ctx context.Context) (string, time.Duration, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		b, err := readPlaylist(ctx, env, locator, ua, headers)
+		if why := hlsProtection(b); why != "" {
+			return why, 0, nil
+		}
+		if err != nil {
+			return "", wait, err
+		}
+		learn(b)
+		variants := hlsVariants(b)
+		var failed error
+		for i := range min(len(variants), hlsVariantsPerCheck) {
+			addr, ok := variantURL(locator, variants[(turn+i)%len(variants)])
+			if !ok {
+				continue
+			}
+			// The master was checked on opening, and a new one may name somewhere new.
+			if env.refuseHere {
+				if u, e := url.Parse(addr); e != nil || !sameHost(u, locator) {
+					if e := checkOpening(addr, false); e != nil {
+						failed = e
+						continue
+					}
+				}
+			}
+			b, err := readPlaylist(ctx, env, addr, ua, headers)
+			if why := hlsProtection(b); why != "" {
+				return why, 0, nil
+			}
+			if err != nil {
+				failed = err
+				continue
+			}
+			learn(b)
+		}
+		turn += hlsVariantsPerCheck
+		return "", wait, failed
+	}
+}
+
+func sameHost(u *url.URL, other string) bool {
+	o, err := url.Parse(other)
+	return err == nil && strings.EqualFold(u.Host, o.Host)
 }
 
 // relay runs FFmpeg to bring a stream to MPEG-TS without converting anything.

@@ -84,3 +84,11 @@ func TestLogoFactsKeepToWhatAnAccountMaySee(t *testing.T) {
 		t.Errorf("an administrator's settings need them: %v", st)
 	}
 }
+
+// Fetching a chooser's picture contacts Wikimedia, so it waits for the agreement the rest does.
+func TestLogoPreviewNeedsAgreement(t *testing.T) {
+	f := newMusicFixture(t)
+	if w := f.do(t, "GET", "/api/logos/preview?src=https%3A%2F%2Fupload.wikimedia.org%2Fx%2Fnone.png", f.admin, nil); w.Code != 409 {
+		t.Errorf("before agreeing: %d %s", w.Code, w.Body)
+	}
+}

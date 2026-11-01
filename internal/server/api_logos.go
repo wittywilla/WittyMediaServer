@@ -164,6 +164,10 @@ func (s *Server) handleLogoPreview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "not a logo address")
 		return
 	}
+	if s.Store.LogoConsent(r.Context()) != "yes" {
+		writeErr(w, 409, library.ErrLogosNotAgreed.Error())
+		return
+	}
 	s.serveArtSrc(w, r, src)
 }
 

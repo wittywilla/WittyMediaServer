@@ -10,6 +10,18 @@ permissions:
   contents: read
 
 jobs:
+  # What a pull request adds to the dependencies: known vulnerabilities at a high level or above.
+  dependencies:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -50,9 +62,16 @@ jobs:
       # Transcodes, disc sessions and scans run concurrently; only this finds data races.
       - name: Race detector
         run: CGO_ENABLED=1 go test -race -count=1 -timeout 25m ./internal/...
-      - name: Known vulnerabilities (reported, does not stop the build)
+      # Fails only on a vulnerability this code can reach. A release goes out with none.
+      - name: Known vulnerabilities in Go code
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./internal/... ./cmd/...
+      - name: Known vulnerabilities in web packages
+        run: cd web && npm audit --audit-level=high
+      - name: Downloaded modules are what go.sum says
+        run: go mod verify
+      - name: Static analysis (reported, does not stop the build)
         continue-on-error: true
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+        run: go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./internal/... ./cmd/...
       # go.work builds the modules against each other's local source.
       - name: Modules (their own go.mod)
         env:

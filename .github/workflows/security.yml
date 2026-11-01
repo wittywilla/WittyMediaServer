@@ -32,6 +32,13 @@ jobs:
       - name: web placeholder (the server embeds web/dist)
         run: mkdir -p web/dist && touch web/dist/.gitkeep
       - name: govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./internal/... ./cmd/...
       - name: npm audit
-        run: cd web && npm audit --omit=dev
+        run: cd web && npm audit --audit-level=high
+      - name: Downloaded modules are what go.sum says
+        run: go mod verify
+      # Not a failure: a nudge. Dependabot proposes these too.
+      - name: What has a newer version
+        run: |
+          go list -m -u -f '{{if and .Update (not .Indirect)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' all | sed '/^$/d' || true
+          (cd web && npm outdated) || true

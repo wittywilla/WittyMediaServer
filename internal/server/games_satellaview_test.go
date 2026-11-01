@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +16,7 @@ import (
 // A .bs file loads on one core and only with the receiver's cartridge, so pressing
 // Play has to say what's missing rather than "this game could not start".
 func TestSatellaviewGameSaysWhatIsMissing(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	runner := filepath.Join(t.TempDir(), "wittyplay-host")

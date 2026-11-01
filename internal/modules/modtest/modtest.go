@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/modules"
-	"github.com/wittywilla/wittymodule"
 )
 
 // EnvCatalog names the folder.
@@ -46,11 +45,6 @@ func start(catalog string) (*modules.Manager, error) {
 	if dir, err = os.MkdirTemp("", "wms-modtest-*"); err != nil {
 		return nil, err
 	}
-	exe, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	_ = exe
 	abs, err := filepath.Abs(catalog)
 	if err != nil {
 		return nil, err
@@ -122,5 +116,3 @@ func Runner(t testing.TB) string {
 	}
 	return p
 }
-
-var _ = wittymodule.API

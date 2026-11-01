@@ -33,6 +33,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
@@ -222,7 +223,7 @@ func cmdServe(args []string) int {
 		AutoInstall: func() bool { return database.GetSetting(context.Background(), "moduleAutoInstall", "0") == "1" },
 	})
 	defer modMgr.Close()
-	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
+	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
 	livetv.SetEngine(modules.Tuners{M: modMgr})
 	cd.Open = modules.CDs{M: modMgr}.Open
 	library.EngineThere = modMgr.Installed

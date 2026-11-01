@@ -7,10 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +68,7 @@ func addArchiveGame(t *testing.T, g *gameServer, file string, data []byte) *libr
 }
 
 func TestPreparingAGameInAnArchive(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	it := addArchiveGame(t, g, "Mega Game (USA).tar.gz", tarGz(t, "Mega Game (USA).wittytest", []byte("game")))
@@ -124,6 +125,7 @@ func TestPreparingAGameInAnArchive(t *testing.T) {
 }
 
 func TestPreparingAGameNotInAnArchiveIsInstant(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	it := addArchiveGame(t, g, "Plain.wittytest", []byte("game"))
@@ -139,6 +141,7 @@ func TestPreparingAGameNotInAnArchiveIsInstant(t *testing.T) {
 }
 
 func TestPreparingAnArchiveWithNoCoreSaysSo(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	it := addArchiveGame(t, g, "Game.tar.gz", tarGz(t, "Game.wittytest", []byte("game")))
@@ -154,19 +157,12 @@ func TestPreparingAnArchiveWithNoCoreSaysSo(t *testing.T) {
 // The whole way: a game in an archive, started with a real runner, over the same routes
 // any client uses, and started again from what's already unpacked.
 func TestPlayingAGameFromAnArchive(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ffmpegPath, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		t.Skip("no FFmpeg on PATH")
 	}
-	runner := filepath.Join(t.TempDir(), "wittyplay-host")
-	if runtime.GOOS == "windows" {
-		runner += ".exe"
-	}
-	build := exec.Command("go", "build", "-o", runner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
-	build.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if b, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, b)
-	}
+	runner := modtest.Runner(t)
 	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
 	g := newGameServer(t)
 	defer g.s.StopGames()

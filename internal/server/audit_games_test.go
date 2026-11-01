@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,13 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittycouch/gamestream/fake"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay/testcore/fakecore"
 )
 
 // A PC chooses its apps' numbers, so pictures of ones it no longer lists have to go.
 func TestCouchArtDoesntPileUp(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -74,6 +76,7 @@ func userID(t *testing.T, ts *testServer, token string) int64 {
 
 // The next account can be given the same number, so nothing of the last one's may stay.
 func TestADeletedAccountLeavesNothingBehind(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -125,6 +128,7 @@ func TestADeletedAccountLeavesNothingBehind(t *testing.T) {
 
 // What someone started stops being theirs when it ends.
 func TestRigStarterEndsWithTheGame(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -162,6 +166,7 @@ func TestRigStarterEndsWithTheGame(t *testing.T) {
 
 // The limit holds for streams on their way too, which take up to a minute.
 func TestCouchLimitCountsStreamsStarting(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -194,6 +199,7 @@ func TestCouchLimitCountsStreamsStarting(t *testing.T) {
 }
 
 func TestCouchPlayCountsAsAnAttempt(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -214,6 +220,7 @@ func TestCouchPlayCountsAsAnAttempt(t *testing.T) {
 }
 
 func TestRadioRelayHasALimit(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	var l radioLive
 	for i := 0; i < radioStreamsPerUser; i++ {
 		if !l.takeStream(1) {
@@ -240,6 +247,7 @@ func TestRadioRelayHasALimit(t *testing.T) {
 }
 
 func TestRadioRelayAnswersWhenFull(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts, lib, st := radioFixture(t, func(http.ResponseWriter, *http.Request) {})
 	it := addStation(t, ts, lib, "Live", st.URL+"/a")
 	u := userFromToken(t, ts, ts.adult)
@@ -265,6 +273,7 @@ func userFromToken(t *testing.T, ts *galleryServer, token string) int64 {
 
 // Waiting behind another patched game gives up with whoever was waiting.
 func TestPatchingOneAtATime(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	item := runnerGameItem(t, g)
 	gs := g.s.games()
@@ -291,6 +300,7 @@ func TestPatchingOneAtATime(t *testing.T) {
 
 // Asking a core what it offers loads it, so a changed file is refused here as for a game.
 func TestCoreOptionsCheckACustomCore(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -320,6 +330,7 @@ func TestCoreOptionsCheckACustomCore(t *testing.T) {
 }
 
 func TestSilentCoresArentAskedAgain(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	gs := g.s.games()
 	gs.silentCores.Store("test", time.Now())
@@ -332,6 +343,7 @@ func TestSilentCoresArentAskedAgain(t *testing.T) {
 }
 
 func TestModuleReportsAreLimited(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	ts.Modules = installedBundle(t, `export default 1`, `a{}`)
 	_, tok := ts.user(t, "reader", "adult", false, "")

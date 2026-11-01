@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
-	"github.com/wittywilla/wittycouch/gamestream/fake"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -60,6 +61,7 @@ func testAllowLoopback(t *testing.T) {
 }
 
 func TestCouchWhoMayUseIt(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult1", "adult", false, "")
@@ -109,6 +111,7 @@ func TestCouchWhoMayUseIt(t *testing.T) {
 }
 
 func TestCouchAddressRules(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult1", "adult", false, "")
@@ -163,6 +166,7 @@ func TestCouchAddressRules(t *testing.T) {
 }
 
 func TestCouchAnswersGiveNothingAway(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_, adult := ts.user(t, "adult1", "adult", false, "")
@@ -183,6 +187,7 @@ func TestCouchAnswersGiveNothingAway(t *testing.T) {
 }
 
 func TestCouchRateLimit(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_, adult := ts.user(t, "adult1", "adult", false, "")
@@ -211,6 +216,7 @@ func TestCouchRateLimit(t *testing.T) {
 }
 
 func TestCouchEachPersonsOwn(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -285,6 +291,7 @@ func TestCouchEachPersonsOwn(t *testing.T) {
 }
 
 func TestCouchNoProgramSaysSo(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -304,6 +311,7 @@ func TestCouchNoProgramSaysSo(t *testing.T) {
 }
 
 func TestCouchStreamsThroughTheProgram(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
 	ts := newTestServer(t)
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -376,6 +384,7 @@ func TestCouchStreamsThroughTheProgram(t *testing.T) {
 }
 
 func TestSessionAddressIsRebuilt(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	good, err := cleanSessionURL("rtspenc://10.0.0.9:48010", "192.168.1.2")
 	if err != nil || good != "rtspenc://192.168.1.2:48010" {
 		t.Errorf("%q %v", good, err)
@@ -401,6 +410,7 @@ func TestSessionAddressIsRebuilt(t *testing.T) {
 }
 
 func TestSunshineIsOffUntilAsked(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult1", "adult", false, "")

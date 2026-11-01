@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -24,19 +24,12 @@ import (
 // A native app, as docs/GAMING-API.md describes one: everything over the documented
 // routes with a bearer token, a WebRTC stack of its own, and no browser anywhere.
 func TestNativeClientPlaysAGame(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ffmpegPath, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		t.Skip("no FFmpeg on PATH")
 	}
-	runner := filepath.Join(t.TempDir(), "wittyplay-host")
-	if runtime.GOOS == "windows" {
-		runner += ".exe"
-	}
-	build := exec.Command("go", "build", "-o", runner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
-	build.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if b, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, b)
-	}
+	runner := modtest.Runner(t)
 	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
 
 	g := newGameServer(t)

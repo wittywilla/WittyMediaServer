@@ -23,6 +23,10 @@ const (
 	maxCDWarnings = 64
 )
 
+type pathParams struct {
+	Path string `json:"path"`
+}
+
 // CDs reaches WittyCD: a helper for each open image, which an idle image lets go of.
 type CDs struct{ M *Manager }
 

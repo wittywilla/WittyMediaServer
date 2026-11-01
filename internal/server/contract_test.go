@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -27,13 +28,13 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
-	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
-	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 )
 
 // The client contract stays in step with the code: docs/openapi.json and
@@ -227,6 +228,7 @@ func openAPIStub(r apiRoute) string {
 // Every route has to be in the OpenAPI file and in CLIENT-API.md, and nothing
 // may be documented that doesn't exist.
 func TestEveryRouteIsDocumented(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	doc, err := os.ReadFile(clientDoc)
 	if err != nil {
 		t.Fatal(err)
@@ -256,6 +258,7 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 
 // What the docs say about sign-in must be what the code does.
 func TestDocumentedSignInMatchesTheCode(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	documented := map[string]documentedRoute{}
 	for _, r := range documentedRoutes(t) {
 		documented[r.method+" "+r.path] = r
@@ -273,6 +276,7 @@ func TestDocumentedSignInMatchesTheCode(t *testing.T) {
 
 // ...and the running server must refuse what the docs say it refuses.
 func TestSignInIsEnforced(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newContractServer(t)
 	_, adult := ts.account(t, "Alex", "adult", false)
 	id := ts.item(t, "video", tempMedia(t, "a.mp4", "AAAA"))
@@ -297,6 +301,7 @@ func TestSignInIsEnforced(t *testing.T) {
 
 // The docs flag exactly the routes a stream token opens.
 func TestStreamTokenRoutesAreFlagged(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	var s Server
 	n := 0
 	for _, r := range documentedRoutes(t) {
@@ -315,6 +320,7 @@ func TestStreamTokenRoutesAreFlagged(t *testing.T) {
 
 // A basic check that the file is well-formed OpenAPI, for the tools reading it.
 func TestOpenAPIIsWellFormed(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	d := readOpenAPI(t)
 	if !strings.HasPrefix(d.OpenAPI, "3.1") {
 		t.Errorf("openapi version %q", d.OpenAPI)
@@ -487,6 +493,7 @@ func canonical(t *testing.T, v any) string {
 }
 
 func TestSchemasMatchGoTypes(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	types := schemaTypes()
 	g := &schemaGen{names: map[reflect.Type]string{}, t: t}
 	for name, ty := range types {
@@ -550,6 +557,7 @@ var otherServers = map[string]bool{
 }
 
 func TestDocsNameNoOtherServers(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	word := regexp.MustCompile(`[A-Za-z]+`)
 	for _, p := range []string{openapiPath, clientDoc} {
 		b, err := os.ReadFile(p)

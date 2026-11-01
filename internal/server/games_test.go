@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -74,6 +74,7 @@ func (g *gameServer) do(method, path, tok string, body any) *httptest.ResponseRe
 }
 
 func TestGamesAPIAccess(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	cases := []struct {
@@ -104,6 +105,7 @@ func TestGamesAPIAccess(t *testing.T) {
 }
 
 func TestLibraryConsoleValidation(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	dir := t.TempDir()
 	mk := func(console string) int {
@@ -130,19 +132,12 @@ func TestLibraryConsoleValidation(t *testing.T) {
 // Someone else's game, save or session stays out of reach, and a save slot can
 // only be named by its number.
 func TestGameSessionsBelongToTheirOwner(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ffmpegPath, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		t.Skip("no FFmpeg on PATH")
 	}
-	runner := filepath.Join(t.TempDir(), "wittyplay-host")
-	if runtime.GOOS == "windows" {
-		runner += ".exe"
-	}
-	build := exec.Command("go", "build", "-o", runner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
-	build.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if b, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, b)
-	}
+	runner := modtest.Runner(t)
 	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
 
 	g := newGameServer(t)
@@ -226,4 +221,30 @@ func TestGameSessionsBelongToTheirOwner(t *testing.T) {
 func itoa64(n int64) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+func runnerGameItem(t *testing.T, g *gameServer) int64 {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "Game.wittytest"), []byte("game"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := g.do("POST", "/api/libraries", g.admin, map[string]any{"name": "Test", "type": "games", "console": "wittytest", "paths": []string{dir}})
+	if w.Code != 201 {
+		t.Fatal(w.Body.String())
+	}
+	var lib library.Library
+	_ = json.Unmarshal(w.Body.Bytes(), &lib)
+	for range 200 {
+		items, _, err := g.s.Store.Items(context.Background(), library.ItemQuery{LibraryID: lib.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(items) > 0 {
+			return items[0].ID
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatal("the scan did not finish in time")
+	return 0
 }

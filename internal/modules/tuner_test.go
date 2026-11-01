@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymodule"
 	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
+	"github.com/wittywilla/wittymodule"
 )
 
 func tunerManifest(ver string) []byte {
@@ -71,7 +71,7 @@ func streamSource(t *testing.T, tn Tuners, addr, behave string, more ...string) 
 	for i := 0; i+1 < len(more); i += 2 {
 		opts[more[i]] = more[i+1]
 	}
-	s, err := tn.New("stream", wittytuner.Config{Name: "Test", Options: opts}, wittytuner.Env{})
+	s, err := tn.New(context.Background(), "stream", wittytuner.Config{Name: "Test", Options: opts}, wittytuner.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,19 +162,20 @@ func TestTunerUnsafeInputIsRefused(t *testing.T) {
 	}
 }
 
-func TestPlainInputURL(t *testing.T) {
-	for _, in := range [][]string{{"-i", "http://a.test/x"}, {"-i", "https://a.test/x?y=1"}, {"-i", "udp://239.0.0.1:1234"}, {"-i", "rtp://239.0.0.1:1234"}} {
-		if _, err := plainInputURL(in); err != nil {
+func TestCheckInput(t *testing.T) {
+	for _, in := range [][]string{{"-i", "http://a.test/x"}, {"-i", "https://a.test/x?y=1"}, {"-i", "udp://239.0.0.1:1234"}, {"-i", "rtp://239.0.0.1:1234"},
+		{"-i", "rtsp://a.test/x"}, {"-user_agent", "a", "-i", "http://a.test/x"}, {"-f", "v4l2", "-i", "/dev/video0"}, {"-f", "dshow", "-i", "video=Card"}} {
+		if err := checkInput(in); err != nil {
 			t.Errorf("%v: %v", in, err)
 		}
 	}
-	for _, in := range [][]string{nil, {}, {"-i"}, {"http://a.test/x"}, {"-i", ""}, {"-f", "http://a.test/x"},
+	for _, in := range [][]string{nil, {}, {"-i"}, {"http://a.test/x"}, {"-i", ""},
 		{"-f", "lavfi", "-i", "http://a.test/x"}, {"-i", "http://a.test/x", "-i", "file:///etc/passwd"},
-		{"-i", "file:///etc/passwd"}, {"-i", "/etc/passwd"}, {"-i", "concat:http://a/1|file:///x"}, {"-i", "http://a.test/x|file:///etc/passwd"},
-		{"-i", "crypto+http://a.test/x"}, {"-i", "hls+http://a.test/x"}, {"-i", "subfile,,start,0,end,0,,:/etc/passwd"}, {"-i", "rtsp://a.test/x"},
-		{"-i", "tcp://a.test:1"}, {"-i", "http://user:pass@a.test/x"}, {"-i", "http://a.test/x y"}, {"-i", "data:text/plain,x"}, {"-i", "pipe:0"}} {
-		if u, err := plainInputURL(in); err == nil {
-			t.Errorf("%v passed as %q", in, u)
+		{"-i", "file:///etc/passwd"}, {"-i", "/etc/passwd"}, {"-i", "concat:http://a/1|file:///x"},
+		{"-i", "crypto+http://a.test/x"}, {"-i", "hls+http://a.test/x"}, {"-i", "subfile,,start,0,end,0,,:/etc/passwd"},
+		{"-i", "tcp://a.test:1"}, {"-protocol_whitelist", "file,http", "-i", "http://a.test/x"}, {"-y", "/tmp/x", "-i", "http://a.test/x"}, {"-i", "http://a.test/x", "/tmp/out"}} {
+		if err := checkInput(in); err == nil {
+			t.Errorf("%v passed", in)
 		}
 	}
 }
@@ -388,7 +389,7 @@ func TestTunerGuideAddress(t *testing.T) {
 	tn, _ := fakeTuners(t)
 	site := streamSite(t)
 	mk := func(guide string) wittytuner.Info {
-		s, err := tn.New("iptv", wittytuner.Config{Name: "Test", Options: map[string]string{"playlist": site.URL + "/list", "url": site.URL + "/ts", "guideFromHelper": guide}}, wittytuner.Env{})
+		s, err := tn.New(context.Background(), "iptv", wittytuner.Config{Name: "Test", Options: map[string]string{"playlist": site.URL + "/list", "url": site.URL + "/ts", "guideFromHelper": guide}}, wittytuner.Env{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -468,7 +469,7 @@ func TestTunerWhatStaysBuiltin(t *testing.T) {
 		"satip":   {"server": "192.168.1.60"},
 		"command": {"command": "prog"},
 	} {
-		s, err := tn.New(driver, wittytuner.Config{Name: "X", Options: opts}, wittytuner.Env{AllowCommands: true})
+		s, err := tn.New(context.Background(), driver, wittytuner.Config{Name: "X", Options: opts}, wittytuner.Env{AllowCommands: true})
 		if err != nil {
 			t.Fatalf("%s: %v", driver, err)
 		}
@@ -485,7 +486,7 @@ func TestTunerWhatStaysBuiltin(t *testing.T) {
 		t.Fatal("the helper was asked")
 	}
 	// Settings are checked by the built-in copy, not by what a helper would allow.
-	if _, err := tn.New("stream", wittytuner.Config{Options: map[string]string{"url": "file:///etc/passwd"}}, wittytuner.Env{}); err == nil {
+	if _, err := tn.New(context.Background(), "stream", wittytuner.Config{Options: map[string]string{"url": "file:///etc/passwd"}}, wittytuner.Env{}); err == nil {
 		t.Fatal("a file as a stream")
 	}
 }
@@ -494,7 +495,10 @@ func TestTunerWhatStaysBuiltin(t *testing.T) {
 // suggest the kinds of tuner that are on a network.
 func TestTunerDiscover(t *testing.T) {
 	tn, _ := fakeTuners(t)
-	found := tn.Discover(context.Background(), wittytuner.Env{})
+	found, err := tn.Discover(context.Background(), wittytuner.Env{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	names := map[string]bool{}
 	for _, f := range found {
 		names[f.Name] = true
@@ -550,7 +554,7 @@ func TestRealTunerHelper(t *testing.T) {
 	defer srv.Close()
 
 	tn := Tuners{m}
-	s, err := tn.New("network", wittytuner.Config{Name: "Box", Options: map[string]string{"address": srv.URL}}, wittytuner.Env{})
+	s, err := tn.New(context.Background(), "network", wittytuner.Config{Name: "Box", Options: map[string]string{"address": srv.URL}}, wittytuner.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -606,7 +610,7 @@ func TestRealTunerHelper(t *testing.T) {
 	}
 
 	// HLS is opened by the server, on the real helper's suggestion.
-	one, err := tn.New("stream", wittytuner.Config{Name: "One", Options: map[string]string{"url": srv.URL + "/hls"}}, wittytuner.Env{})
+	one, err := tn.New(context.Background(), "stream", wittytuner.Config{Name: "One", Options: map[string]string{"url": srv.URL + "/hls"}}, wittytuner.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}

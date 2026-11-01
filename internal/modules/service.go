@@ -250,3 +250,13 @@ func (m *Manager) UseServices() {
 		return m.services[id] != nil
 	}
 }
+
+// Capability is a fact from the manifest of the version in use.
+func (m *Manager) Capability(id, name string) []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.mods[id]; e != nil {
+		return e.man.Capabilities[name]
+	}
+	return nil
+}

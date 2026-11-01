@@ -31,7 +31,7 @@ func TestModuleRoutes(t *testing.T) {
 		}
 	}
 
-	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: modmgr.GoManifests()})
+	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: modmgr.ServerManifests()})
 	defer m.Close()
 	s := &Server{Modules: m, Log: slog.New(slog.DiscardHandler)}
 	w := call(s, list, "")

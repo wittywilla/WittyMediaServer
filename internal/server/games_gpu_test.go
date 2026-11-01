@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/binary"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -75,6 +76,7 @@ func play(t *testing.T, g *gameServer, id int64) (int, playAnswer) {
 }
 
 func TestPS2SaysWhichBIOSIsMissingAndFindsOne(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
 	placeCores(t, g, "pcsx2")
@@ -124,6 +126,7 @@ func encryptedCCI() []byte {
 }
 
 func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
 	placeCores(t, g, "azahar")

@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"image"
 	"image/color"
 	"image/gif"
@@ -34,6 +35,7 @@ func decodeProfile(t *testing.T, w *httptest.ResponseRecorder) wittyplay.Profile
 }
 
 func TestGameProfilesLifecycle(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	w := g.do("POST", "/api/game-profiles", g.admin, newProfile("Mine"))
 	if w.Code != 201 {
@@ -116,6 +118,7 @@ func TestGameProfilesLifecycle(t *testing.T) {
 }
 
 func TestGameProfilesBelongToTheirOwner(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	p := decodeProfile(t, g.do("POST", "/api/game-profiles", g.admin, newProfile("Mine")))
 	path := "/api/game-profiles/" + itoa64(p.ID)
@@ -156,6 +159,7 @@ func TestGameProfilesBelongToTheirOwner(t *testing.T) {
 }
 
 func TestGameProfileGameMustBeVisible(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	body := newProfile("One game")
 	body["game"] = 999999
@@ -168,6 +172,7 @@ func TestGameProfileGameMustBeVisible(t *testing.T) {
 }
 
 func TestGameProfileLimit(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	ctx := t.Context()
 	for i := 0; i < wittyplay.MaxProfiles; i++ {
@@ -184,6 +189,7 @@ func TestGameProfileLimit(t *testing.T) {
 }
 
 func TestGameProfileExportImport(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	p := decodeProfile(t, g.do("POST", "/api/game-profiles", g.admin, newProfile("Exported")))
 	w := g.do("GET", "/api/game-profiles/export", g.admin, nil)
@@ -314,6 +320,7 @@ func (g *gameServer) upload(tok string, body []byte, ctype string) *httptest.Res
 }
 
 func TestGameBackgroundUploadRefusals(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	var gifBuf bytes.Buffer
 	pal := image.NewPaletted(image.Rect(0, 0, 32, 32), color.Palette{color.Black, color.White})
@@ -368,6 +375,7 @@ func pngBomb(t *testing.T, w, h int) []byte {
 }
 
 func TestGameBackgroundIsCleanedAndPrivate(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	// A sideways photo with something private in it, and something after its end.
 	upload := append(jpegWithExif(t, 80, 40, 6), []byte("<script>alert(1)</script>")...)
@@ -467,6 +475,7 @@ func TestGameBackgroundIsCleanedAndPrivate(t *testing.T) {
 }
 
 func TestGameBackgroundIsShrunkAndFlattened(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	// Big pictures are kept small, and transparency doesn't reach the JPEG as junk.
 	m := image.NewNRGBA(image.Rect(0, 0, 3000, 1500))
 	var b bytes.Buffer
@@ -490,6 +499,7 @@ func TestGameBackgroundIsShrunkAndFlattened(t *testing.T) {
 }
 
 func TestRemovingAnAccountRemovesItsBackground(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	if w := g.upload(g.other, pngBytes(t, 32, 32), "image/png"); w.Code != 200 {
 		t.Fatalf("%d", w.Code)

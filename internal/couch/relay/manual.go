@@ -83,4 +83,3 @@ func (s *Session) Ended() <-chan struct{} { return s.ended }
 func CheckProgram(ctx context.Context, program string, _ func(*exec.Cmd)) error {
 	return service.Call(ctx, module, "relay.CheckProgram", nil, nil, []any{program}, nil)
 }
-

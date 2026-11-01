@@ -2,6 +2,7 @@ package gamearchive
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,6 +15,7 @@ import (
 // console, to see it unpack. It only reads the archive, unpacks to a temporary folder
 // that's removed afterwards, and prints sizes and times, never a name.
 func TestRealArchive(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p, id := os.Getenv("WMS_GAME_ARCHIVE"), os.Getenv("WMS_GAME_CONSOLE")
 	if p == "" {
 		t.Skip("set WMS_GAME_ARCHIVE and WMS_GAME_CONSOLE to run this")

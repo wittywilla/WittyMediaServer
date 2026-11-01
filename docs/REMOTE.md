@@ -1,9 +1,9 @@
 # Remote access: a security guide
 
-This guide explains how to reach your server when you're away from home, and what can go wrong when you do.
-It's written the way a security researcher would look at your setup: **assume someone is trying to get in, and
-choose what still holds up when they do.** You don't need any IT experience. Every term is explained, and every
-step is spelled out.
+Use this guide to reach your server safely when you're away from home. You don't need any IT experience: it
+explains every term and walks you through every step.
+
+**Assume someone will try to get in, and choose a setup that still protects you if they do.**
 
 > [!CAUTION]
 > **READ THIS BEFORE YOU TURN ANYTHING ON**

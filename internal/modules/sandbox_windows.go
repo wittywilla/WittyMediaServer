@@ -14,6 +14,18 @@ const createNoWindow = 0x08000000
 // sandboxAvailable: this system can limit a helper, so a fork never runs without them.
 const sandboxAvailable = true
 
+// launcherMayFail: there's no launcher here. Helpers are limited as they start.
+const launcherMayFail = false
+
+// ProtectServer has nothing to do here: a low-integrity process can't open this one.
+func ProtectServer() {}
+
+// confinement says what a helper gets here.
+func confinement(launcher string) SandboxInfo {
+	return SandboxInfo{Level: SandboxPartial, Title: "Modules keep their network on Windows",
+		Words: "A module's helper can't change this server's files or start other programs unless it needs to, but it keeps its network access, so it could send what it reads over the internet. A helper that needs to start programs or use a device runs without the low-integrity limit, inside a job that ends with this server. Windows can only take a network away from one program with an administrator's help."}
+}
+
 func hideWindow(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | windows.BELOW_NORMAL_PRIORITY_CLASS}
 }

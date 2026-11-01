@@ -103,7 +103,8 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 			admin.ServeHTTP(w, r)
 			return
 		}
-		if !onLocalNetwork(r) {
+		// A restore brings its own administrators, so it asks what setting up asks.
+		if s.setupNeedsCode(r) {
 			if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
 				w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 				writeErr(w, 429, "Too many wrong setup codes. Try again later.")

@@ -22,6 +22,10 @@ func planHomeMac(e *Env, pl *Plan, h string) {
 				return os.Remove(agent)
 			}})
 	}
+	if other && !staysInHome(h, filepath.Join(h, "Library", "Application Support", "WittyMediaServer")) {
+		pl.keep(h, "something in it leads out of it, so nothing was removed from it as an administrator")
+		return
+	}
 	support := filepath.Join(h, "Library", "Application Support", "WittyMediaServer")
 	planConfigFile(e, pl, filepath.Join(support, "wms.json"), other)
 	planDataFolder(e, pl, support, true, other)
@@ -33,7 +37,7 @@ func planHomeMac(e *Env, pl *Plan, h string) {
 		"Library/HTTPStorages/" + macLabel,
 		"Library/WebKit/" + macLabel,
 	} {
-		if p := filepath.Join(h, filepath.FromSlash(rel)); exists(p) {
+		if p := filepath.Join(h, filepath.FromSlash(rel)); exists(p) && (!other || staysInHome(h, p)) {
 			pl.add(fileItem("app cache or preference", p, GroupData, other))
 		}
 	}

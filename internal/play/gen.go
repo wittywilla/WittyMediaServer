@@ -556,6 +556,12 @@ type CoreTraits struct {
 	// memory cards. A running core can't write to the system folder, which everyone
 	// shares, so this core gets a system folder of its own in the player's save folder.
 	SavesIn string
+	// SharedMemory is set when the core can't run without making files in /dev/shm, as a
+	// core that maps its recompiled code twice can't.
+	SharedMemory bool
+	// CacheIn is a folder under the system folder where the core keeps what it has worked out,
+	// such as compiled shaders, kept between games for a core with a system folder of its own.
+	CacheIn string
 	// Options are always passed. Each one makes the core use what this runner has.
 	Options map[string]string
 	// Threaded are options for a machine with threads to spare, of four or more.

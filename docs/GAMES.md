@@ -421,8 +421,7 @@ For anything else, the server's log has the core's own words: see [Logging](LOGG
 - **Networks:** no real network has been run. Every delay figure is from one machine, as above.
 - **3DS:** not tested, as above.
 - **Mesen on NES** aborts on Linux. FCEUmm is the first choice and isn't affected.
-- **PlayStation 2 on Linux:** the shader cache can't be written under the sandbox, so it's rebuilt each run.
-- **macOS and FreeBSD:** games haven't been run on a real Mac or on FreeBSD. On FreeBSD, a running core has resource limits and no sandbox.
+- **macOS and FreeBSD:** games haven't been run on a real Mac or on FreeBSD. On FreeBSD, a running core has limits rather than a sandbox: it can't start programs, and with no graphics card can't open a network connection.
 
 ## For developers
 

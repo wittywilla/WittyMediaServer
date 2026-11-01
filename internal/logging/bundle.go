@@ -382,6 +382,18 @@ func eachBundleLine(p string, scrub *Sanitizer, limit int, emit func(line, befor
 	return sc.Err()
 }
 
+// CopyRedacted writes a log file with secrets taken out again, as a bundle does.
+func CopyRedacted(w io.Writer, p string) error {
+	bw := bufio.NewWriter(w)
+	if err := eachBundleLine(p, nil, 0, func(line, _ []byte) error {
+		_, err := bw.Write(line)
+		return err
+	}); err != nil {
+		return err
+	}
+	return bw.Flush()
+}
+
 // A crash report is free text, with its log lines at the end.
 func scrubCrash(s *Sanitizer, text string) string {
 	lines := strings.Split(text, "\n")

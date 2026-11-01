@@ -1,6 +1,8 @@
 package uninstall
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -50,17 +52,45 @@ func homes(e *Env, base string) []string {
 	return out
 }
 
+// staysInHome says a path in someone else's folder is really in it. They can make anything there a
+// link, so as an administrator nothing is cleared by following what they left: their link to /var
+// would take /var/cache with it. A path that isn't there can't be followed anywhere.
+func staysInHome(home, p string) bool {
+	realHome, err := filepath.EvalSymlinks(home)
+	if err != nil {
+		return false
+	}
+	real, err := filepath.EvalSymlinks(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		if _, lerr := os.Lstat(p); lerr == nil {
+			return false // a link to nothing, that could lead anywhere by the time it's used
+		}
+		return filepath.Dir(p) == p || staysInHome(home, filepath.Dir(p))
+	}
+	return err == nil && inside(real, realHome)
+}
+
 // planHomeUnix is what a person's own account holds on Linux and BSD.
 func planHomeUnix(e *Env, pl *Plan, h string) {
 	other := h != e.Home
+	if other && !staysInHome(h, filepath.Join(h, ".config")) || other && !staysInHome(h, filepath.Join(h, ".local", "share")) {
+		pl.keep(h, "something in it leads out of it, so nothing was removed from it as an administrator")
+		return
+	}
 	if p := filepath.Join(h, ".config", "autostart", "wittymediaserver.desktop"); exists(p) {
 		pl.add(fileItem("start at sign-in", p, GroupProgram, other))
 	}
 	if p := filepath.Join(h, ".local", "share", "applications", "wittymediaserver.desktop"); exists(p) {
 		pl.add(fileItem("menu entry", p, GroupProgram, other))
 	}
-	planDataFolder(e, pl, filepath.Join(h, ".local", "share", unixName), true, other)
-	planConfigFile(e, pl, filepath.Join(h, ".config", unixName, "wms.json"), other)
+	if data := filepath.Join(h, ".local", "share", unixName); !other || staysInHome(h, data) {
+		planDataFolder(e, pl, data, true, other)
+	} else {
+		pl.keep(data, "it leads out of this person's folder, so it wasn't removed as an administrator")
+	}
+	if conf := filepath.Join(h, ".config", unixName); !other || staysInHome(h, conf) {
+		planConfigFile(e, pl, filepath.Join(conf, "wms.json"), other)
+	}
 }
 
 // packageTool asks the package manager about this machine: which of them installed it.

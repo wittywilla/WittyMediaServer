@@ -219,17 +219,22 @@ A module is code running on your server, so it's worth knowing what stops it and
 
 The server starts each module's program with these limits:
 
-| Limit | Linux | Windows | macOS, FreeBSD |
-|---|---|---|---|
-| Small environment and a soft memory limit | Yes | Yes | Yes |
-| Hard memory limit | Yes | Yes | No |
-| Can't write to or create files | Yes | Yes | No |
-| No network | Yes, on 64-bit | No | No |
-| Can't start other programs | No | Yes | No |
-| Can't change who may use a file, or reach into another process | Yes, on 64-bit | Yes | No |
-| Stops when the server stops | Yes | Yes | Yes, when its pipe closes |
+| Limit | Linux | Windows | macOS | FreeBSD |
+|---|---|---|---|---|
+| Small environment and a soft memory limit | Yes | Yes | Yes | Yes |
+| Hard memory limit | Yes | Yes | No | Yes |
+| Can't write to or create files | Yes | Yes | Yes | Can't write into a file. **Can still delete and rename them** |
+| No network | Yes, on 64-bit | No | Yes | Yes |
+| Can't start other programs | No | Yes | Yes | Yes |
+| Can't change who may use a file, or reach into another process | Yes, on 64-bit | Yes | Mostly | **No** |
+| Can't signal your other programs | Where the system allows | Yes | Yes | **No** |
+| Stops when the server stops | Yes | Yes | When its pipe closes | When its pipe closes |
 
-**On macOS and FreeBSD a module's program has no sandbox.** It has its small environment and soft memory limit and nothing else, so it could change your files, start other programs and use the network. This has not been run on a real Mac or on FreeBSD yet.
+Settings, Modules and the store say what your system does, wherever it's short of a full sandbox.
+
+**On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if a helper won't start in it, it starts without it and the page says so. This hasn't been run on a real Mac yet.
+
+**On FreeBSD these are limits, not a sandbox.** FreeBSD can only really box a program in with an administrator's help. They were tried from inside a helper in a FreeBSD 15.1 virtual machine. If the server runs as root, a helper also goes in a jail, with no network and no sight of other programs, but being root it can change any file, so run it as an ordinary account if you can.
 
 On Linux some of this depends on the system. The limit on writing needs a kernel with Landlock (5.13 or newer, with it turned on), and emptying a file is only blocked from kernel 6.2. Containers often refuse the separate network and process view, and an official module then runs without those, keeping its other limits. On 32-bit Linux there's no filter on system calls, so the "64-bit" rows above don't apply.
 
@@ -270,7 +275,7 @@ You can add a store run by someone else, and see the modules it offers beside th
 1. Open **Settings → Modules → Browse the store → Other stores**.
 2. Under **Add a store**, enter the **Address** of its `catalog.json`, which starts with `https://`. Get this from whoever runs the store.
 3. Paste **The store's public key** if the owner gave you one. This is better, because then even the first answer doesn't have to be taken on trust. Otherwise the server shows the key the store itself offers, for you to check. A store that offers none needs its owner's key.
-4. Tick **Allow an address on my own network** only for a store you run yourself. Without the tick, an address on this machine or your own network is refused. With it, this one store may also use plain `http`.
+4. Tick **Allow an address on my own network** only for a store you run yourself. It asks for your password, as what comes back says what's listening there. Without the tick, an address on this machine or your own network is refused. With it, this one store may also use plain `http`.
 5. Press **Look at this store**. Nothing is kept yet. You'll see the warning, what it offers and the key's fingerprint.
 6. Compare the fingerprint with the store's owner, somewhere other than the store itself.
 7. Tick **I understand, and I trust whoever runs this store**, press **Add this store**, and enter your password, with your code if you use two-factor sign-in. The change is written down, with your name.
@@ -302,7 +307,7 @@ To use a store's version of a module, open it in the store and press **Use this 
 
 ### Turning a store off or removing it
 
-On **Other stores**, the switch on a store's card turns it off. It isn't fetched or listed any more, and what's installed from it stays until you remove it. **Remove store** forgets the store and its key, and first puts anything using it back to the official version. **Check now** looks at that one store.
+On **Other stores**, the switch on a store's card turns it off. It isn't fetched or listed any more, nothing new can be installed from it, and what's installed from it stays until you remove it. **Remove store** forgets the store and its key, and first puts anything using it back to the official version. **Check now** looks at that one store.
 
 ### If a store's key changes
 
@@ -334,7 +339,7 @@ What the server holds a fork to:
 | Permissions | Those it may have | None |
 | Linux | The limits above | No network at all and no changing files. If the system can't apply those, it doesn't run (kernel 6.2 or newer, 64-bit) |
 | Windows | The limits above | Can't change the server's files or start programs. **It keeps its network**, so it could send what it reads over the internet |
-| macOS, FreeBSD | No limits | Refused under **Advanced**. See below |
+| macOS, FreeBSD | The limits above | Refused, from **Advanced** and from any store. See below |
 | Encrypted media | Refused | Refused: the server checks for itself |
 
 **WittyTuner can't be replaced.** It's what refuses encrypted channels, and it handles live streams with network access, so the server couldn't tell whether a fork still did.

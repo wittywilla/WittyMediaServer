@@ -28,9 +28,17 @@ if [ -z "$DATA" ]; then
     DATA="$HOME_DIR/Library/Application Support/WittyMediaServer"
   fi
 fi
+# As root, on a place the person it's for can write to: a link there would hand them what it points at.
+if [ -L "$DATA" ]; then
+  echo "$DATA is a link. Remove it, or choose a real folder, and install again." >&2
+  exit 1
+fi
 mkdir -p "$DATA"
-chown "$RUN_AS" "$DATA"
-chmod 700 "$DATA"
+chown -h "$RUN_AS" "$DATA"
+chmod -h 700 "$DATA"
+
+# What goes in a property list as text.
+xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -42,11 +50,11 @@ cat > "$PLIST" <<EOF
     <string>serve</string>
   </array>
   <key>EnvironmentVariables</key><dict>
-    <key>WMS_DATA_DIR</key><string>$DATA</string>
-    <key>WMS_LISTEN</key><string>:$PORT</string>
+    <key>WMS_DATA_DIR</key><string>$(xml "$DATA")</string>
+    <key>WMS_LISTEN</key><string>:$(xml "$PORT")</string>
     <key>WMS_NO_BROWSER</key><string>1</string>
   </dict>
-  <key>UserName</key><string>$RUN_AS</string>
+  <key>UserName</key><string>$(xml "$RUN_AS")</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ProcessType</key><string>Background</string>

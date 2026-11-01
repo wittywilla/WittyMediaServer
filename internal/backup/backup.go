@@ -160,6 +160,18 @@ var tableParts = map[string]string{
 	"wittyplay_game_meta": PartSaves, "wittyplay_patches": PartSaves, "wittyplay_profiles": PartSaves, "wittyplay_settings": PartSaves,
 }
 
+// isCoreCache: what a core worked out for itself beside a save, such as compiled shaders. It's made
+// again for nothing, can run to gigabytes, and is only worth having on the machine that made it.
+func isCoreCache(rel string) bool {
+	parts := strings.Split(rel, "/")
+	for i := 0; i+2 < len(parts); i++ {
+		if parts[i] == "system" && parts[i+2] == "cache" {
+			return true
+		}
+	}
+	return false
+}
+
 // neverTables stay out of every backup, for a reason:
 //   - sign-ins: a backup must not let anyone in, and nobody expects a sign-in to come back.
 //   - custom cores: their programs aren't kept, so the rows would point at nothing.
@@ -340,7 +352,7 @@ func sources() []fileSource {
 		{Part: PartSettings, Prefix: "branding/", Root: data("branding"), Check: mustBePicture},
 		{Part: PartChannels, Prefix: "channel-logos/", Root: data("channel-logos"), Check: mustBePicture},
 		{Part: PartChannels, Prefix: "bumpers/", Root: data("bumpers"), Check: notAProgram},
-		{Part: PartSaves, Prefix: "saves/", Root: data("gaming", "saves"), Check: notAProgram},
+		{Part: PartSaves, Prefix: "saves/", Root: data("gaming", "saves"), Check: notAProgram, Skip: isCoreCache},
 		{Part: PartSaves, Prefix: "bezels/", Root: data("gaming", "bezels"), Check: mustBePicture},
 		{Part: PartSaves, Prefix: "backgrounds/", Root: data("gaming", "backgrounds"), Check: mustBePicture},
 		{Part: PartMetaFiles, Prefix: "metadata/", Root: data("metadata"), Check: metadataFile},

@@ -146,6 +146,8 @@ type Stores struct {
 	// shows. It runs on the run's own goroutine, and must not block.
 	Watch func(r *Run)
 
+	mediaMu sync.Mutex // keeping and removing pictures
+
 	runMu   sync.Mutex
 	current *Run
 	last    *Run
@@ -302,6 +304,9 @@ func (s *Stores) kindOf(id string, known map[string]bool) (string, string) {
 		return KindRefused, why
 	}
 	if known[id] {
+		if why := ForkRefusal(); why != "" {
+			return KindRefused, why
+		}
 		return KindFork, ""
 	}
 	return KindDev, "New kinds of module are still in development, so this server can't install one yet. It's shown so you can see what the store offers."
@@ -462,6 +467,10 @@ func (s *Stores) Refresh(ctx context.Context, id string) error {
 		s.mu.Unlock()
 		return ErrUnknownStore
 	}
+	if !e.Enabled {
+		s.mu.Unlock()
+		return errors.New("that store is turned off")
+	}
 	rec := e.storeRecord
 	s.mu.Unlock()
 
@@ -481,6 +490,7 @@ func (s *Stores) Refresh(ctx context.Context, id string) error {
 			e.Problem = problem
 		} else {
 			e.cat, e.Serial, e.Hash = c, c.Serial, sum(cat)
+			s.pruneMedia(e)
 		}
 	}
 	if err := s.save(); err != nil {
@@ -588,17 +598,20 @@ func (s *Stores) Run(ctx context.Context) {
 // removed or put back to the official version.
 func (s *Stores) SetEnabled(id string, on bool, by string) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	e := s.find(id)
 	if e == nil {
+		s.mu.Unlock()
 		return ErrUnknownStore
 	}
 	old := e.Enabled
 	e.Enabled = on
 	if err := s.save(); err != nil {
 		e.Enabled = old
+		s.mu.Unlock()
 		return err
 	}
+	s.mu.Unlock()
+	s.applyFork(id)
 	s.log.Warn("modules: a store was turned on or off", "store", id, "on", on, "by", by)
 	return nil
 }

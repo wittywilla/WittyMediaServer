@@ -2,13 +2,17 @@ import { useCallback, useEffect, useState } from 'react'
 import { PageHelp } from '../../components/HelpLink'
 import { api } from '../../api'
 import { Button, Field, Input, LoadError, Notice, Select, Spinner, toast } from '../../ui'
+import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { Section, Switch } from './ui'
 import type { Library, TdarrMapping, TdarrReport, TdarrSettings } from './libraryTranscodingTypes'
 
 // Connecting someone's own Tdarr server. Tdarr is a separate program under its own licence:
 // nothing of it is included here, and they install it and agree to its terms themselves.
 
+type Secrets = { password: string; code: string }
+
 export default function TdarrSection({ libs }: { libs: Library[] }) {
+  const [ask, setAsk] = useState<OwnerAsk | null>(null)
   const [saved, setSaved] = useState<TdarrSettings | null>(null)
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
@@ -26,16 +30,22 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
   if (failed) return <Section title="Tdarr"><LoadError what="This section" onRetry={load} /></Section>
   if (!saved) return <Section title="Tdarr"><Spinner /></Section>
 
-  const test = async () => {
+  // Talking to a new address asks for the password. The dialog says what was wrong with one.
+  const newAddress = !!url.trim() && url !== saved.url
+  const test = async (secrets?: Secrets) => {
     setBusy('test')
-    try { setReport(await api.post<TdarrReport>('/libtranscode/tdarr/test', { url, apiKey: key })) } catch (e) { toast((e as Error).message) } finally { setBusy('') }
+    try { setReport(await api.post<TdarrReport>('/libtranscode/tdarr/test', { url, apiKey: key, ...secrets })) } catch (e) { if (secrets) throw e; toast((e as Error).message) } finally { setBusy('') }
   }
-  const save = async (next: { enabled?: boolean; clearKey?: boolean } = {}) => {
+  const save = async (next: { enabled?: boolean; clearKey?: boolean } = {}, secrets?: Secrets) => {
     setBusy('save')
     try {
-      adopt(await api.put<TdarrSettings>('/libtranscode/tdarr', { enabled: next.enabled ?? enabled, url, apiKey: key, clearKey: !!next.clearKey, mappings }))
+      adopt(await api.put<TdarrSettings>('/libtranscode/tdarr', { enabled: next.enabled ?? enabled, url, apiKey: key, clearKey: !!next.clearKey, mappings, ...secrets }))
       toast('Saved')
-    } catch (e) { toast((e as Error).message) } finally { setBusy('') }
+    } catch (e) { if (secrets) throw e; toast((e as Error).message) } finally { setBusy('') }
+  }
+  const askThen = (title: string, action: string, run: (secrets?: Secrets) => Promise<void>) => {
+    if (!newAddress) { void run(); return }
+    setAsk({ title, action, body: <p>This server will talk to an address it hasn’t been talking to, so this asks for your password.</p>, run: (password, code) => run({ password, code }) })
   }
   const send = async (libraryId: number) => {
     setBusy('send' + libraryId)
@@ -61,8 +71,8 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
         </Field>
       </div>
       <p className="ltc-actions">
-        <Button disabled={!url && !saved.url} busy={busy === 'test'} onClick={test}>Test the connection</Button>
-        {saved.keySet && <Button variant="ghost" size="sm" disabled={!!busy} onClick={() => save({ clearKey: true })}>Forget the saved key</Button>}
+        <Button disabled={!url && !saved.url} busy={busy === 'test'} onClick={() => askThen('Try this address?', 'Test the connection', test)}>Test the connection</Button>
+        {saved.keySet && <Button variant="ghost" size="sm" disabled={!!busy} onClick={() => askThen('Save this address?', 'Forget the saved key', (s) => save({ clearKey: true }, s))}>Forget the saved key</Button>}
       </p>
       <div aria-live="polite">
         {report && !report.ok && <Notice tone="danger" title="That didn’t work">{report.error}</Notice>}
@@ -111,7 +121,8 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
           })}
         </div>
       )}
-      <p className="ltc-actions"><Button variant="primary" disabled={!dirty} busy={busy === 'save'} onClick={() => save()}>Save the connection</Button></p>
+      <p className="ltc-actions"><Button variant="primary" disabled={!dirty} busy={busy === 'save'} onClick={() => askThen('Save this address?', 'Save the connection', (s) => save({}, s))}>Save the connection</Button></p>
+      {ask && <ConfirmOwner ask={ask} onClose={() => setAsk(null)} />}
     </Section>
   )
 }

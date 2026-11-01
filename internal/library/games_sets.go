@@ -157,7 +157,11 @@ func sizeOf(p string) int64 {
 	return 0
 }
 
+// crcOfFile reads only an ordinary file: a pipe would hold a scan up for good, and a device has no end.
 func crcOfFile(p string) uint32 {
+	if st, err := os.Stat(p); err != nil || !st.Mode().IsRegular() {
+		return 0
+	}
 	f, err := os.Open(p)
 	if err != nil {
 		return 0

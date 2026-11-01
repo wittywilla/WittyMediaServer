@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -538,13 +539,13 @@ var artistRefreshOnce sync.Once
 
 func (s *Server) queueArtistLookup(name string) {
 	artistRefreshOnce.Do(func() {
-		go func() {
+		logging.Loop("artist lookups", func() {
 			for n := range artistRefresh {
 				ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 				s.lookUpArtist(ctx, n)
 				cancel()
 			}
-		}()
+		})
 	})
 	select {
 	case artistRefresh <- name:

@@ -305,7 +305,7 @@ focus restoration.
   Rows, the top bar, the side menu and the phone bars already are groups.
 - `data-focus-key="..."` on a control with no `href` lets Back return to it.
 - `data-tv-first` on a page's main action (Play on an item) is where focus lands when someone arrives with a
-  remote. Without one, it's the first control in the page, passing over the links in the headings of rows.
+  remote. Without one, it's a primary button on screen, and otherwise the first control in the page, passing over text fields and the links in the headings of rows.
 - If you handle arrows yourself, call `preventDefault`, and leave them alone at the ends, so a remote
   can move on. `Segmented`, `Tabs` and `Menu` show how.
 - Text fields give up the arrows at the ends of the text. Selects open on OK. Sliders keep only the

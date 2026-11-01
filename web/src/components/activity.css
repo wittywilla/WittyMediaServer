@@ -1,7 +1,7 @@
 /* The activity button and its panel. */
 .act-btn { position: relative; color: var(--fg-3); }
 .act-btn.on { color: var(--fg); }
-.act-ring { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; }
+.act-ring { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .act-count {
   position: absolute; top: 0; right: 0; min-width: 1.05rem; height: 1.05rem; padding: 0 var(--sp-1); border-radius: var(--r-full);
   display: grid; place-items: center; background: var(--accent); color: var(--accent-fg); font-size: var(--text-2xs); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;

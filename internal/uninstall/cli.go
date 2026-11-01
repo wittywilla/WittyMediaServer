@@ -102,6 +102,10 @@ func (a Args) Flags() []string {
 	return f
 }
 
+// commandFlags is the worker's command line when the program is the server, which would
+// otherwise take flags it doesn't know for flags to serve with.
+func (a Args) commandFlags() []string { return append([]string{"--uninstall"}, a.Flags()...) }
+
 // ReportPath is a place for the list of what was removed that outlives everything removed.
 func ReportPath() string {
 	return filepath.Join(os.TempDir(), "WittyMediaServer-uninstall-"+time.Now().Format("20060102-150405")+".txt")
@@ -197,7 +201,7 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 		if a.Report == "" {
 			a.Report = ReportPath()
 		}
-		if err := StartWorker(a.Flags(), false); err != nil {
+		if err := StartWorker(a.commandFlags(), false); err != nil {
 			fmt.Fprintln(out, "Could not start:", err)
 			return 1
 		}
@@ -212,6 +216,9 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 		fmt.Fprint(out, res.Report())
 	}
 	WriteReport(a.Report, res)
+	if a.Worker {
+		RemoveSelfLater()
+	}
 	if !res.OK() {
 		return 1
 	}

@@ -131,6 +131,16 @@ wineserver -w; sleep 8; wineserver -w
 reg_has 'Uninstall\\\\\\\\WittyMediaServer' && fail "the Installed apps entry stayed"
 rm -f "$root/my-own-file.txt"; rmdir "$root" 2>/dev/null
 
+say "install again: the command line, for when the installer has gone missing"
+run_msi /i "$msi" /qn "$JUST_ME" || fail "reinstall exit $code"
+root=$(dirname "$(find "$C" -type f -name WittyMediaServer.exe | head -1)")
+wine "$root/bin/wittymediaserver.exe" --uninstall --yes --keep-data --report 'C:\report.txt'
+wineserver -w; sleep 8; wineserver -w
+cat "$C/report.txt" || fail "no report from the command line"
+[ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the command line left the program"
+[ -f "$data/cache/images/a.jpg" ] || fail "--keep-data took the cache"
+rm -f "$C/report.txt"
+
 say "install again, for full removal"
 run_msi /i "$msi" /qn "$JUST_ME" || fail "reinstall exit $code"
 root=$(dirname "$(find "$C" -type f -name WittyMediaServer.exe | head -1)")

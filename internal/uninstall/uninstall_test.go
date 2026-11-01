@@ -562,6 +562,19 @@ func TestNeedsAdmin(t *testing.T) {
 	}
 }
 
+// The Windows command line hands over to a copy of the server: it has to say what for, or the
+// copy starts serving.
+func TestTheCommandLineWorkerIsAskedToUninstall(t *testing.T) {
+	flags := Args{Yes: true, Options: Options{RemoveData: true}}.commandFlags()
+	if flags[0] != "--uninstall" {
+		t.Fatalf("starts with %q", flags[0])
+	}
+	a, err := ParseArgs(flags)
+	if err != nil || !a.Worker || !a.RemoveData {
+		t.Fatalf("%+v %v", a, err)
+	}
+}
+
 func TestParseArgs(t *testing.T) {
 	a, err := ParseArgs([]string{"/S", "/RemoveData", "--program-folder", `C:\x y`, "--report", "r.txt"})
 	if err != nil || !a.Yes || !a.RemoveData || a.ProgramFolder != `C:\x y` || a.Report != "r.txt" {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type Item } from '../api'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
+import { ask, Dialog } from '../ui/Overlay'
 
 // Podcasts: following a show (search Apple's free directory or paste its RSS
 // feed), and the controls on a podcast's page.
@@ -89,14 +90,10 @@ export function PodcastWays() {
 
 export function AddPodcast({ libraryId, onClose, onAdded }: { libraryId: number; onClose: () => void; onAdded: () => void }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide" role="dialog" aria-label="Follow a podcast" onClick={(e) => e.stopPropagation()}>
-        <h2>Follow a podcast</h2>
+    <Dialog title="Follow a podcast" onClose={onClose} size="wide" actions={<><button className="btn primary" onClick={onClose}>Done</button></>}>
         <PodcastFinder libraryId={libraryId} onAdded={onAdded} />
         <p className="muted pod-note" style={{ marginTop: 12 }}>To keep episodes, open a show and choose <b>Keep downloaded</b>: its newest episodes are saved to this library’s folder each time the feed updates.</p>
-        <div className="actions"><button className="btn primary" onClick={onClose}>Done</button></div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -109,7 +106,7 @@ export function PodcastAdmin({ libraryId, title, onChanged }: { libraryId: numbe
   const refresh = async () => { try { await api.post(`/podcasts/${p.id}/refresh`); toast('Checked for new episodes'); onChanged() } catch (e: any) { toast(e.message) } }
   const auto = async (n: number) => { try { setP(await api.put<Podcast>(`/podcasts/${p.id}`, { autoDownload: n })) } catch (e: any) { toast(e.message) } }
   const remove = async () => {
-    if (!confirm(`Stop following “${p.title}”? Downloaded episodes stay in the library.`)) return
+    if (!await ask({ title: `Stop following “${p.title}”?`, body: 'Downloaded episodes stay in the library.', confirm: 'Stop following', danger: true })) return
     try { await api.del(`/podcasts/${p.id}`); toast('Unfollowed'); history.back() } catch (e: any) { toast(e.message) }
   }
   return (

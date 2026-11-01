@@ -4,16 +4,20 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	wittycd "github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/midi"
 )
 
 // Music, audiobooks and podcasts: audio files are indexed from their tags
@@ -21,17 +25,13 @@ import (
 // or the picture embedded in the file. Audiobooks use the album tag (or the
 // folder) as the book and the artist as the author.
 
-var audioExts = map[string]bool{
-	".mp3": true, ".flac": true, ".m4a": true, ".m4b": true, ".aac": true, ".ogg": true, ".oga": true, ".opus": true,
-	".wav": true, ".wma": true, ".aiff": true, ".aif": true, ".alac": true, ".ape": true, ".wv": true, ".mka": true, ".dsf": true,
-}
-
 // IsAudioLibrary reports whether a library type holds audio files.
 func IsAudioLibrary(t string) bool { return t == "music" || t == "audiobooks" || t == "podcasts" }
 
 func discoverAudio(root string) ([]candidate, error) {
 	var out, sheets, raw []candidate
 	var bad unreadable
+	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			bad.note(err)
@@ -56,14 +56,26 @@ func discoverAudio(root string) ([]candidate, error) {
 			}
 			return nil
 		}
-		if !audioExts[strings.ToLower(filepath.Ext(name))] || strings.HasPrefix(name, "._") {
+		if strings.HasPrefix(name, "._") {
 			return nil
 		}
 		st, err := d.Info()
 		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
-		out = append(out, candidate{path: p, kind: "audio", size: st.Size(), mtime: st.ModTime().Unix()})
+		if mediatypes.IsPlaylist(name) {
+			out = append(out, candidate{path: p, kind: playlistKind, size: st.Size(), mtime: st.ModTime().Unix()})
+			return nil
+		}
+		format := ""
+		if !mediatypes.IsAudio(name) || !nameHolds(p, name, mediatypes.Audio) {
+			f := unnamed.sniff(p, name, st.Size(), mediatypes.Audio)
+			if f == nil {
+				return nil
+			}
+			format = f.ID
+		}
+		out = append(out, candidate{path: p, kind: "audio", size: st.Size(), mtime: st.ModTime().Unix(), format: format})
 		return nil
 	})
 	// CD images, and what their sheets take out of the list of songs.
@@ -117,12 +129,31 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 	dir := filepath.Dir(c.path)
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 
+	if isMIDI(c) {
+		// FFmpeg doesn't read MIDI: its length and names come from the notes themselves.
+		if info, err := midi.ReadFile(c.path); err == nil {
+			it.RuntimeSec, it.Title = info.Seconds, info.Title
+		} else {
+			s.minorFailure(ctx, "could not read a file's details", err, "file", c.path)
+		}
+		it.Container, it.VideoCodec = "midi", "midi"
+	}
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	p, perr := s.Tools.ProbeFile(pctx, c.path)
+	var p *ffmpeg.Probe
+	perr := errNoProbe
+	if !isMIDI(c) {
+		p, perr = s.Tools.ProbeFile(pctx, c.path)
+	}
 	cancel()
 	embeddedArt := false
 	if perr == nil {
 		it.RuntimeSec = p.Duration()
+		if it.RuntimeSec <= 0 {
+			// A bare stream, or a song that only says how long once it's been played.
+			mctx, done := context.WithTimeout(ctx, 2*time.Minute)
+			it.RuntimeSec = s.Tools.MeasureDuration(mctx, c.path)
+			done()
+		}
 		it.Container = strings.Split(p.Format.FormatName, ",")[0]
 		tags := []map[string]string{p.Format.Tags}
 		for _, st := range p.Streams {
@@ -207,6 +238,16 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 	return s.Store.upsertItem(ctx, it)
 }
 
+var errNoProbe = errors.New("not read by FFmpeg")
+
+func isMIDI(c candidate) bool {
+	if c.format != "" {
+		return c.format == "midi"
+	}
+	f := mediatypes.Find(c.path, mediatypes.Audio)
+	return f != nil && f.ID == "midi"
+}
+
 func samePath(p string, roots ...string) bool {
 	for _, r := range roots {
 		if strings.EqualFold(filepath.Clean(p), filepath.Clean(r)) {
@@ -216,7 +257,7 @@ func samePath(p string, roots ...string) bool {
 	return false
 }
 
-var coverNameRe = regexp.MustCompile(`(?i)^(cover|folder|front|album|albumart.*|poster)\.(jpe?g|png|webp)$`)
+var coverNameRe = regexp.MustCompile(`(?i)^(cover|folder|front|album|albumart.*|poster|artwork)\.(jpe?g|jfif|png|webp|gif|avif|bmp|tbn)$`)
 
 // albumCover picks the largest cover image in an album folder: some players
 // leave a 200 px Folder.jpg next to a bigger
@@ -237,3 +278,54 @@ func albumCover(dir string) string {
 	}
 	return best
 }
+
+// MIDIAudio makes the sound of a MIDI file, once, and keeps it as FLAC in the cache:
+// a browser plays that as it is, and can seek in it.
+func (s *Scanner) MIDIAudio(ctx context.Context, it *Item) (string, error) {
+	h := sha1.Sum([]byte(it.Path + "|" + strconv.FormatInt(it.MTime, 10) + "|" + strconv.FormatInt(it.SizeBytes, 10)))
+	dir := filepath.Join(s.CacheDir, "midi")
+	out := filepath.Join(dir, hex.EncodeToString(h[:12])+".flac")
+	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
+		return out, nil
+	}
+	midiRender.Lock()
+	defer midiRender.Unlock()
+	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
+		return out, nil
+	}
+	song, err := midi.ReadFile(it.Path)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	tmp := out + ".tmp.flac"
+	defer os.Remove(tmp)
+	rctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+	cmd := ffmpeg.Command(rctx, s.Tools.FFmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-f", "s16le", "-ar", strconv.Itoa(midi.SampleRate), "-ac", "2",
+		"-protocol_whitelist", "pipe", "-i", "pipe:0", "-c:a", "flac", tmp)
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		return "", err
+	}
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
+	rerr := song.Render(in)
+	in.Close()
+	if err := cmd.Wait(); err != nil {
+		return "", err
+	}
+	if rerr != nil {
+		return "", rerr
+	}
+	if err := os.Rename(tmp, out); err != nil {
+		return "", err
+	}
+	trimCache(dir, maxConvertedCache)
+	return out, nil
+}
+
+var midiRender sync.Mutex

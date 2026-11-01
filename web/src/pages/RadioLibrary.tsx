@@ -7,6 +7,7 @@ import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconS
 import { toast, useApp } from '../state'
 import '../radio.css'
 import LegalNote from '../components/LegalNote'
+import { ask, Dialog } from '../ui/Overlay'
 
 // Internet radio: stations from a free community directory or by address, played
 // through the server. docs/COLLECTIONS.md has what contacts what.
@@ -170,9 +171,7 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
 function AddStations({ lib, onClose, onChanged }: { lib: Library; onClose: () => void; onChanged: () => void }) {
   const [mode, setMode] = useState<'search' | 'address' | 'playlist'>('search')
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide rd-add" onClick={(e) => e.stopPropagation()}>
-        <h2>Add stations</h2>
+    <Dialog title="Add stations" onClose={onClose} size="wide" className="rd-add" actions={<><button className="btn ghost" onClick={onClose}>Done</button></>}>
         <div className="seg rd-modes" role="tablist" aria-label="How to add a station">
           <button role="tab" aria-selected={mode === 'search'} className={mode === 'search' ? 'active' : ''} onClick={() => setMode('search')}>Search</button>
           <button role="tab" aria-selected={mode === 'address'} className={mode === 'address' ? 'active' : ''} onClick={() => setMode('address')}>Stream address</button>
@@ -181,9 +180,7 @@ function AddStations({ lib, onClose, onChanged }: { lib: Library; onClose: () =>
         {mode === 'search' && <DirectoryFinder lib={lib} onChanged={onChanged} />}
         {mode === 'address' && <AddressForm lib={lib} onDone={() => { onChanged(); onClose() }} />}
         {mode === 'playlist' && <PlaylistForm lib={lib} onDone={() => { onChanged(); onClose() }} />}
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Done</button></div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -381,7 +378,7 @@ export function RadioStationPage() {
   })
   const lookup = () => act('lookup', async () => { setS(await api.post<Station>(`/radio/${s.id}/lookup`)); toast('Details filled in from the directory') })
   const remove = () => act('remove', async () => {
-    if (!confirm(`Remove ${s.title}?`)) return
+    if (!await ask({ title: `Remove ${s.title}?`, confirm: 'Remove', danger: true })) return
     await api.del(`/radio/${s.id}`); nav(`/library/${s.libraryId}`, { replace: true })
   })
   const facts = [m.country, m.language, quality(m.codec, m.bitrate), m.hls ? 'HLS' : ''].filter(Boolean)

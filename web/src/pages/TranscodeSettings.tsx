@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, getPrefs } from '../api'
 import Tip from '../components/Tip'
 import { Row, Switch } from './settings/ui'
+import { Segmented } from '../ui/Choice'
 
 type HW = { name: string; label: string; vendor: string; compiled: boolean; tested: boolean; working: boolean; error?: string }
 type Mode = 'easy' | 'advanced' | 'expert'
@@ -80,8 +81,8 @@ export default function TranscodeSettings() {
         </div>
 
         <h2 className="section-title">Transcode quality</h2>
-        <div className="seg big">
-          {(['easy', 'advanced', 'expert'] as Mode[]).map((m) => <button key={m} className={mode === m ? 'active' : ''} onClick={() => set('qualityMode', m)}>{m[0].toUpperCase() + m.slice(1)}</button>)}
+        <div className="seg-row">
+          <Segmented big label="How much to choose yourself" value={mode} onChange={(m) => set('qualityMode', m)} options={(['easy', 'advanced', 'expert'] as Mode[]).map((m) => ({ value: m, label: m[0].toUpperCase() + m.slice(1) }))} />
           <Tip wide><b>Easy</b>: pick one of three tested profiles.<br /><b>Advanced</b>: choose the encoder speed, quality level, bitrate cap and audio bitrate yourself.<br /><b>Expert</b>: Advanced plus raw FFmpeg options. Settings apply to new streams; restart playback to hear/see a change.</Tip>
         </div>
 
@@ -106,7 +107,7 @@ export default function TranscodeSettings() {
               </label>
               <label>Quality level: {crf} {crf <= 18 ? '(visually lossless)' : crf <= 21 ? '(high)' : crf <= 24 ? '(good)' : '(small files)'}
                 <Tip>Constant quality (x264 CRF). Lower is better and bigger: 18 ≈ visually lossless, 21 default, 23–26 for mobile or slow links. Hardware encoders get the equivalent setting (NVENC -cq, Quick Sync -global_quality, VAAPI/AMF -qp, VideoToolbox -q:v).</Tip>
-                <input className="range" style={{ '--pct': ((Number(crf) - 16) / 14) * 100 + '%' } as React.CSSProperties} type="range" min={16} max={30} value={crf} onChange={(e) => set('crf', e.target.value)} />
+                <input className="range" aria-label="Quality level" style={{ '--pct': ((Number(crf) - 16) / 14) * 100 + '%' } as React.CSSProperties} type="range" min={16} max={30} value={crf} onChange={(e) => set('crf', e.target.value)} />
               </label>
             </div>
             <div className="row2">
@@ -128,11 +129,11 @@ export default function TranscodeSettings() {
           <>
             <label>Encoder options <span className="muted">(replace everything after <code>-c:v &lt;encoder&gt;</code>)</span>
               <Tip wide>Leave empty to keep the options generated from the controls above. Example for libx264: <code>-preset slow -crf 20 -tune film -x264-params aq-mode=3</code>. Example for NVENC: <code>-preset p6 -tune hq -rc vbr -cq 22 -b:v 0 -spatial-aq 1</code>. Keyframes are still forced on segment boundaries, so seeking keeps working. Quotes group words.</Tip>
-              <input className="input mono" value={s.ffmpegVideoArgs || ''} onChange={(e) => set('ffmpegVideoArgs', e.target.value)} placeholder="-preset slow -crf 20 -tune film" />
+              <input className="input mono" aria-label="Extra FFmpeg video options" value={s.ffmpegVideoArgs || ''} onChange={(e) => set('ffmpegVideoArgs', e.target.value)} placeholder="-preset slow -crf 20 -tune film" />
             </label>
             <label>Extra output options <span className="muted">(added before the HLS muxer options)</span>
               <Tip wide>For anything else FFmpeg supports, e.g. <code>-threads 4</code> to leave cores free, or <code>-max_muxing_queue_size 4096</code> for files with sparse streams. Wrong options make transcodes fail: check the server log (<code>-log debug</code> prints every FFmpeg command line).</Tip>
-              <input className="input mono" value={s.ffmpegOutputArgs || ''} onChange={(e) => set('ffmpegOutputArgs', e.target.value)} placeholder="-threads 4" />
+              <input className="input mono" aria-label="Extra FFmpeg output options" value={s.ffmpegOutputArgs || ''} onChange={(e) => set('ffmpegOutputArgs', e.target.value)} placeholder="-threads 4" />
             </label>
           </>
         )}

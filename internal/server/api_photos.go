@@ -14,6 +14,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // WittyPhotos: the gallery's JSON API and its pictures. See docs/PHOTOS.md.
@@ -205,6 +206,10 @@ func (s *Server) handleItemImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	width := qInt(r, "w", 0)
+	if it.Kind == "photo" && strings.HasPrefix(mediatypes.Ext(it.Path), ".svg") {
+		s.serveSVG(w, r, it)
+		return
+	}
 	if width <= 0 && it.Kind == "photo" && library.WebSafeImage(it.Path) {
 		s.serveOriginal(w, r, it, false)
 		return
@@ -241,38 +246,24 @@ func (s *Server) serveThumb(w http.ResponseWriter, r *http.Request, it *library.
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 
-// originalType is the type a photo or clip is served with, by its name only,
-// from a fixed list: a file never gets to say it is a web page.
-func originalType(name string) string {
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".jpg", ".jpeg", ".jpe":
-		return "image/jpeg"
-	case ".png":
-		return "image/png"
-	case ".gif":
-		return "image/gif"
-	case ".webp":
-		return "image/webp"
-	case ".avif":
-		return "image/avif"
-	case ".heic", ".heif", ".hif":
-		return "image/heif"
-	case ".tif", ".tiff":
-		return "image/tiff"
-	case ".bmp":
-		return "image/bmp"
-	case ".jxl":
-		return "image/jxl"
-	case ".mp4", ".m4v":
-		return "video/mp4"
-	case ".mov":
-		return "video/quicktime"
-	case ".webm":
-		return "video/webm"
-	case ".mkv":
-		return "video/x-matroska"
+// originalType is the type a photo or clip is served with, by its name only, from the
+// registry: a file never gets to say it is a web page.
+func originalType(name string) string { return mediatypes.MIME(name) }
+
+// serveSVG sends a picture that can hold a program: sanitised, and sandboxed besides.
+// A vector picture needs no smaller copies.
+func (s *Server) serveSVG(w http.ResponseWriter, r *http.Request, it *library.Item) {
+	b, err := library.SVGFile(it.Path)
+	if err != nil {
+		writeErr(w, 415, "this picture could not be read")
+		return
 	}
-	return "application/octet-stream"
+	h := w.Header()
+	h.Set("Content-Type", "image/svg+xml")
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	h.Set("Cache-Control", "private, max-age=3600")
+	_, _ = w.Write(b)
 }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
@@ -325,6 +316,10 @@ func (s *Server) handleMotion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := s.Store.PhotoMotion(r.Context(), it.ID)
+	if strings.HasPrefix(p, library.EmbeddedMotion) {
+		s.serveEmbeddedMotion(w, r, it, p)
+		return
+	}
 	if p == "" || !s.inLibraries(r.Context(), p) {
 		writeErr(w, 404, "no motion")
 		return
@@ -332,6 +327,31 @@ func (s *Server) handleMotion(w http.ResponseWriter, r *http.Request) {
 	clip := *it
 	clip.Path = p
 	s.serveOriginal(w, r, &clip, false)
+}
+
+// serveEmbeddedMotion sends the clip stored after a picture, in the picture's own file.
+func (s *Server) serveEmbeddedMotion(w http.ResponseWriter, r *http.Request, it *library.Item, motion string) {
+	off, length, ok := library.ParseEmbeddedMotion(motion)
+	if !ok || !s.inLibraries(r.Context(), it.Path) {
+		writeErr(w, 404, "no motion")
+		return
+	}
+	f, err := os.Open(it.Path)
+	if err != nil {
+		writeErr(w, 404, "file missing")
+		return
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil || off+length > st.Size() {
+		writeErr(w, 404, "no motion")
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", "video/mp4")
+	h.Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	h.Set("Cache-Control", "private, max-age=3600")
+	http.ServeContent(w, r, "", st.ModTime(), io.NewSectionReader(f, off, length))
 }
 
 // ---------------------------------------------------------------------------

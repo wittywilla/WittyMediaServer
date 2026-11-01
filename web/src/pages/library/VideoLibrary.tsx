@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import BrandLogo from '../../components/BrandLogo'
-import { CardRow, EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Spinner, artHue } from '../../components/common'
+import { EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Spinner, artHue } from '../../components/common'
+import { Button, LinkButton, Notice, Shelf as ShelfRow } from '../../ui'
 import LegalNote from '../../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
 import { IconCheck, IconEdit, IconFilm, IconPlus, IconRefresh, IconTune } from '../../icons'
@@ -43,7 +44,7 @@ export function RowCard({ row }: { row: BrowseRow }) {
 // A row that asks for its titles when it comes near the screen, not before.
 function LazyShelf({ title, query, seeAll, count }: { title: string; query: string; seeAll: string; count?: number }) {
   const [rows, setRows] = useState<BrowseRow[] | null>(null)
-  const el = useRef<HTMLElement | null>(null)
+  const el = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const node = el.current
     if (!node) return
@@ -57,13 +58,9 @@ function LazyShelf({ title, query, seeAll, count }: { title: string; query: stri
   }, [query])
   if (rows && rows.length === 0) return null
   return (
-    <section ref={el} className="lib-shelf" aria-label={title}>
-      <div className="lib-shelf-head">
-        <h2>{title}</h2>
-        <Link to={seeAll}>See all{count != null && count > 20 ? ` ${count}` : ''}</Link>
-      </div>
-      {rows ? <CardRow>{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</CardRow> : <div className="lib-shelf-wait" />}
-    </section>
+    <div ref={el} className="lib-lazy">
+      {rows ? <ShelfRow title={title} to={seeAll} toLabel={`See all${count != null && count > 20 ? ` ${count}` : ''}`}>{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</ShelfRow> : <div className="lib-shelf-wait" />}
+    </div>
   )
 }
 
@@ -213,19 +210,19 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
         desc={desc}
         onSort={chooseSort}
         onDirection={sort && sort !== 'shuffle' && sort !== 'newest' && sort !== 'oldest' ? (d) => setParam('desc', d ? '1' : '') : undefined}
+        end={<Button variant="ghost" icon={<IconTune />} onClick={() => setFilters(true)} aria-haspopup="dialog">Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Button>}
         actions={<>
-          {grid && !noShelves && <button type="button" className="btn ghost" onClick={clearAll}>Back to shelves</button>}
-          {!grid && <Link className="btn ghost" to={`${here}?view=all`}>{allName}</Link>}
-          <button type="button" className="btn ghost" onClick={() => setFilters(true)} aria-haspopup="dialog"><IconTune /> Filters{activeCount > 0 ? ` (${activeCount})` : ''}</button>
-          {user?.isAdmin && queueCount > 0 && <Link className="btn ghost" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queueCount}</span></Link>}
-          {user?.isAdmin && grid && <button type="button" className={'btn ghost' + (selecting ? ' active' : '')} aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected(new Map()) }}><IconCheck /> Select</button>}
-          {user?.isAdmin && !grid && <button type="button" className="btn ghost" onClick={() => setArranging(true)}><IconEdit /> Categories</button>}
+          {grid && !noShelves && <Button variant="ghost" onClick={clearAll}>Back to shelves</Button>}
+          {!grid && <LinkButton variant="ghost" to={`${here}?view=all`}>{allName}</LinkButton>}
+          {user?.isAdmin && queueCount > 0 && <LinkButton variant="ghost" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queueCount}</span></LinkButton>}
+          {user?.isAdmin && grid && <Button variant="ghost" icon={<IconCheck />} className={selecting ? 'active' : undefined} aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected(new Map()) }}>Select</Button>}
+          {user?.isAdmin && !grid && <Button variant="ghost" icon={<IconEdit />} onClick={() => setArranging(true)}>Categories</Button>}
           {scanning
-            ? <button type="button" className="btn ghost" disabled><IconRefresh /> Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</button>
+            ? <Button variant="ghost" icon={<IconRefresh />} disabled>Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</Button>
             : <ScanButton lib={lib} onStarted={() => setScanning({})} />}
         </>}
       >
-        <ActiveFilters params={params} setParam={setParam} onSave={() => setSaving(true)} onClear={clearAll} />
+        <ActiveFilters params={params} setParam={setParam} onSave={() => setSaving(true)} onClear={clearAll} platforms={shelves?.platforms} />
         {views.length > 0 && !activeCount && (
           <div className="chips lib-views" role="group" aria-label="Saved views">
             {views.map((v) => <Link key={v.id} className="chip" to={`${here}?${v.query}`}>{v.name}</Link>)}
@@ -247,8 +244,8 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
       {selecting && selected.size > 0 && (
         <div className="lib-bulk" role="region" aria-label="Selected titles">
           <span>{selected.size} selected</span>
-          <button type="button" className="btn primary" onClick={() => setBulk(true)}>Edit together</button>
-          <button type="button" className="btn ghost" onClick={() => setSelected(new Map())}>Clear</button>
+          <Button variant="primary" onClick={() => setBulk(true)}>Edit together</Button>
+          <Button variant="ghost" onClick={() => setSelected(new Map())}>Clear</Button>
         </div>
       )}
       {filters && <FilterPanel library={lib.id} params={params} setParam={setParam} onClear={clearAll} onSave={() => { setFilters(false); setSaving(true) }} onClose={() => setFilters(false)} />}
@@ -279,7 +276,6 @@ function GridBody({ rows, failed, onRetry, scanning, filtered, lib, isAdmin, sel
         return (
           <label key={k} className={'lib-pick' + (on ? ' on' : '')}>
             <input type="checkbox" checked={on} onChange={() => toggle(r)} aria-label={`Choose ${name}`} />
-            <span className="lib-pick-mark" aria-hidden="true"><IconCheck size={18} /></span>
             <span className="lib-pick-card" inert><RowCard row={r} /></span>
           </label>
         )
@@ -290,9 +286,10 @@ function GridBody({ rows, failed, onRetry, scanning, filtered, lib, isAdmin, sel
 
 export function ListingNote({ s }: { s: ListingStatus }) {
   return (
-    <div className="lib-listing-note" role="note">
-      <p><b>Nothing streams from these services.</b> This only sorts the media already on your server by which titles they currently list, for region {s.region}{s.newest ? `, as of ${new Date(s.newest * 1000).toLocaleDateString()}` : ''}. There's no connection with any of them, and you may have no account with them at all.</p>
-      <p className="muted">{s.attribution}</p>
+    <div className="lib-listing-note">
+      <Notice tone="warn" title="Nothing streams from these services.">
+        This only sorts the media already on your server by which titles they currently list, for region {s.region}{s.newest ? `, as of ${new Date(s.newest * 1000).toLocaleDateString()}` : ''}. There's no connection with any of them, and you may have no account with them at all. <span className="muted">{s.attribution}</span>
+      </Notice>
     </div>
   )
 }
@@ -304,41 +301,28 @@ function Shelf({ lib, shelves, listing, isAdmin }: { lib: Library; shelves: Shel
   return (
     <>
       {shelves.categories.length > 0 && (
-        <section className="lib-shelf" aria-label="Categories">
-          <div className="lib-shelf-head"><h2>Categories</h2></div>
-          <CardRow>
-            {shelves.categories.map((c) => <CategoryCard key={c.key} c={c} to={`${here}?genre=${encodeURIComponent(c.name)}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
-          </CardRow>
-        </section>
+        <ShelfRow title="Categories">
+          {shelves.categories.map((c) => <CategoryCard key={c.key} c={c} to={`${here}?genre=${encodeURIComponent(c.name)}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
+        </ShelfRow>
       )}
-      <LazyShelf title="Recently added" query={q('sort=added&desc=1')} seeAll={`${here}?sort=added&desc=1`} />
       {shelves.collections.length > 0 && (
-        <section className="lib-shelf" aria-label="Collections">
-          <div className="lib-shelf-head"><h2>Collections</h2><Link to="/collections">See all</Link></div>
-          <CardRow>
-            {shelves.collections.map((c) => <CategoryCard key={c.id} c={c} to={`/collections/${c.id}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
-          </CardRow>
-        </section>
+        <ShelfRow title="Collections" to={shelves.collections.some((c) => !c.key) ? '/collections' : undefined}>
+          {shelves.collections.map((c) => <CategoryCard key={c.key || c.id} c={c} to={c.key ? `${here}?series=${encodeURIComponent(c.name)}` : `/collections/${c.id}`} name={c.name} sub={`${c.count} ${c.count === 1 ? 'title' : 'titles'}`} />)}
+        </ShelfRow>
       )}
       {shelves.studios.length > 0 && (
-        <section className="lib-shelf" aria-label="Studios">
-          <div className="lib-shelf-head"><h2>Studios</h2></div>
-          <CardRow>{shelves.studios.slice(0, 40).map((b) => <LogoCard key={b.key} kind="studio" name={b.name} to={brandTo('studio', b.name)} count={b.count} />)}</CardRow>
-        </section>
+        <ShelfRow title="Studios">{shelves.studios.slice(0, 40).map((b) => <LogoCard key={b.key} kind="studio" name={b.name} to={brandTo('studio', b.name)} count={b.count} />)}</ShelfRow>
       )}
       {shelves.networks.length > 0 && (
-        <section className="lib-shelf" aria-label="Networks">
-          <div className="lib-shelf-head"><h2>Networks</h2></div>
-          <CardRow>{shelves.networks.slice(0, 40).map((b) => <LogoCard key={b.key} kind="network" name={b.name} to={brandTo('network', b.name)} count={b.count} />)}</CardRow>
-        </section>
+        <ShelfRow title="Networks">{shelves.networks.slice(0, 40).map((b) => <LogoCard key={b.key} kind="network" name={b.name} to={brandTo('network', b.name)} count={b.count} />)}</ShelfRow>
       )}
       {listing?.enabled && shelves.platforms.length > 0 && (
-        <section className="lib-shelf" aria-label="Also listed on streaming services">
-          <div className="lib-shelf-head"><h2>Also listed on</h2></div>
-          <CardRow>{shelves.platforms.map((p) => <LogoCard key={p.key} kind="platform" name={p.name} to={`${here}?platform=${encodeURIComponent(p.key)}`} count={p.count} />)}</CardRow>
+        <>
+          <ShelfRow title="Also listed on">{shelves.platforms.map((p) => <LogoCard key={p.key} kind="platform" name={p.name} to={`${here}?platform=${encodeURIComponent(p.key)}`} count={p.count} />)}</ShelfRow>
           <ListingNote s={listing} />
-        </section>
+        </>
       )}
+      <LazyShelf title="Recently added" query={q('sort=added&desc=1')} seeAll={`${here}?sort=added&desc=1`} />
       <LazyShelf title="Highest rated" query={q('sort=rating&desc=1&minRating=6')} seeAll={`${here}?sort=rating&desc=1`} />
       {shelves.categories.slice(0, 12).map((c) => (
         <LazyShelf key={c.key} title={c.name} query={q(`genre=${encodeURIComponent(c.name)}&sort=rating&desc=1`)} seeAll={`${here}?genre=${encodeURIComponent(c.name)}`} count={c.count} />

@@ -13,7 +13,7 @@ import { BundledReaderView, useBundledReader } from '../moduleBundles'
 
 const READER_MODULE = { pdf: 'wittypdf', cbz: 'wittycomics', epub: 'wittyebook' }
 
-type BookInfo = Partial<EpubInfo> & { format: string; reading: string; title: string; pages?: number }
+type BookInfo = Partial<EpubInfo> & { format: string; reader?: string; reading: string; title: string; pages?: number }
 // Bumped when the server's book headers change, so cached chapters refresh.
 const READER_V = 2
 
@@ -35,7 +35,7 @@ export default function ReaderPage() {
     return {
       key: String(it.id),
       book: { title: it.title, author: it.artist, year: it.year },
-      format: info.format === 'pdf' ? 'pdf' : info.format === 'cbz' ? 'cbz' : 'epub',
+      format: info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub',
       reading: info.reading,
       start: it.progress && !it.progress.watched ? it.progress.positionSec : 0,
       saveProgress: (positionSec, durationSec) => { api.post(`${base}/progress`, { positionSec, durationSec }).catch(() => {}) },

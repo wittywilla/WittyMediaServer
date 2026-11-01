@@ -21,7 +21,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
+	"github.com/wittywilla/wittymediaserver/internal/subtitle"
 )
 
 // One door for playing anything: POST /api/items/{id}/playback. The app says
@@ -43,6 +45,19 @@ type playbackRequest struct {
 	MaxBitrateKbps int      `json:"maxBitrateKbps"`
 	ForceTranscode bool     `json:"forceTranscode"`
 	BurnSubtitle   bool     `json:"burnSubtitle"`
+	// Video: which video stream of a file with several (see videos in the answer).
+	Video *int `json:"video"`
+	// Flatten3D shows one eye of a 3D picture, for a screen that isn't 3D.
+	Flatten3D bool `json:"flatten3d"`
+}
+
+// playbackVideoStream is one picture of a file with several.
+type playbackVideoStream struct {
+	Index  int    `json:"index"`
+	Codec  string `json:"codec"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+	Title  string `json:"title,omitempty"`
 }
 
 type playbackAudio struct {
@@ -131,34 +146,58 @@ type playbackResponse struct {
 	// the stream in URL.
 	CDURL       string `json:"cdUrl,omitempty"`
 	ProgressURL string `json:"progressUrl"`
+	// Chapters are named points in a video, from the file.
+	Chapters []chapter `json:"chapters,omitempty"`
+	// Explain says in words how it plays and why, for the player's information.
+	Explain *playback.Explanation `json:"explain,omitempty"`
+	// Videos: a file that holds several pictures lists them; VideoIndex is the one playing.
+	Videos     []playbackVideoStream `json:"videos,omitempty"`
+	VideoIndex int                   `json:"videoIndex,omitempty"`
+	// Stereo says a 3D picture is stored in the frame (sbs | tab), so that the player can
+	// offer to show it in 2D.
+	Stereo    string `json:"stereo,omitempty"`
+	Flattened bool   `json:"flattened,omitempty"`
 }
 
-// probeSource turns a probe into what the decision needs.
+// probeSource turns a probe into what the decision needs. The container comes from what
+// the file really is, not what it's called. Subtitle files beside it follow its own
+// subtitle tracks in one list, and their place in that list is their number.
 func probeSource(it *library.Item, pr *ffmpeg.Probe) playback.Source {
-	src := playback.Source{Container: strings.TrimPrefix(strings.ToLower(filepath.Ext(it.Path)), ".")}
+	src := playback.Source{}
+	vcodec, acodec := "", ""
 	if v := pr.Video(); v != nil {
+		vcodec = v.CodecName
 		src.HasVideo = true
 		src.VideoCodec = v.CodecName
 		src.VideoTag = v.CodecTag
 		src.Height = v.Height
 		src.BitDepth = bitDepth(v)
 		src.Range = videoRange(v)
+		src.Dynamic = dynamicRange(v)
 		src.Interlaced = interlaced(v)
+		src.Stereo = stereoMode(v, it.Path)
 		src.BitrateKbps = kbps(v.BitRate)
 		if src.BitrateKbps == 0 {
 			src.BitrateKbps = kbps(pr.Format.BitRate)
 		}
 	}
 	for _, a := range pr.Audio() {
+		if acodec == "" {
+			acodec = a.CodecName
+		}
 		title := strings.ToLower(a.Tags["title"])
 		src.Audio = append(src.Audio, playback.Audio{Codec: a.CodecName, Channels: a.Channels, Language: a.Tags["language"], Title: a.Tags["title"],
 			Default: a.Disposition["default"] == 1, Comment: a.Disposition["comment"] == 1 || strings.Contains(title, "commentary")})
 	}
+	src.Container = mediatypes.Canonical(pr.Format.FormatName, it.Path, vcodec, acodec)
 	for _, st := range pr.Subtitles() {
 		title := strings.ToLower(st.Tags["title"])
 		src.Subtitles = append(src.Subtitles, playback.Subtitle{Codec: st.CodecName, Language: st.Tags["language"], Title: st.Tags["title"],
 			Default: st.Disposition["default"] == 1, Forced: st.Disposition["forced"] == 1 || strings.Contains(title, "forced"),
 			SDH: st.Disposition["hearing_impaired"] == 1 || strings.Contains(title, "sdh")})
+	}
+	for _, f := range library.FindSubtitles(it.Path) {
+		src.Subtitles = append(src.Subtitles, playback.Subtitle{Codec: f.Codec, Language: f.Language, Title: f.Title, Default: f.Default, Forced: f.Forced, SDH: f.SDH, File: f.Path, Format: f.Format})
 	}
 	return src
 }
@@ -185,9 +224,9 @@ func bitDepth(v *ffmpeg.Stream) int {
 	return 8
 }
 
-// videoRange classes the picture: sdr, hdr10 (PQ), hlg or dv5. Dolby Vision
-// with a base layer other players can show counts as that base layer; profile
-// 5 has none (its colours come out wrong without a Dolby Vision decoder).
+// videoRange classes the picture: sdr, hdr10 (PQ), hlg or dv5. Dolby Vision with a base
+// layer other players can show counts as that base layer; profile 5 has none (its
+// colours come out wrong without a Dolby Vision decoder).
 func videoRange(v *ffmpeg.Stream) string {
 	for _, sd := range v.SideData {
 		if t, _ := sd["side_data_type"].(string); t != "DOVI configuration record" {
@@ -195,6 +234,15 @@ func videoRange(v *ffmpeg.Stream) string {
 		}
 		if p, _ := sd["dv_profile"].(float64); p == 5 {
 			return "dv5"
+		}
+		// The base layer's kind, by the record itself when the stream tags don't say.
+		switch c, _ := sd["dv_bl_signal_compatibility_id"].(float64); c {
+		case 1, 6:
+			return "hdr10"
+		case 2:
+			return "sdr"
+		case 4:
+			return "hlg"
 		}
 	}
 	switch v.ColorTransfer {
@@ -204,6 +252,71 @@ func videoRange(v *ffmpeg.Stream) string {
 		return "hlg"
 	}
 	return "sdr"
+}
+
+// dynamicRange names what the range alone doesn't say, for the player's information.
+func dynamicRange(v *ffmpeg.Stream) string {
+	for _, sd := range v.SideData {
+		switch t, _ := sd["side_data_type"].(string); t {
+		case "DOVI configuration record":
+			p, _ := sd["dv_profile"].(float64)
+			c, _ := sd["dv_bl_signal_compatibility_id"].(float64)
+			return fmt.Sprintf("Dolby Vision profile %d.%d", int(p), int(c))
+		case "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)":
+			return "HDR10+"
+		}
+	}
+	return ""
+}
+
+// stereoMode finds a 3D picture stored in one frame, from what the file says or the
+// way such files are named.
+func stereoMode(v *ffmpeg.Stream, path string) string {
+	mode := strings.ToLower(v.Tags["stereo_mode"])
+	for _, sd := range v.SideData {
+		if t, _ := sd["side_data_type"].(string); t == "Stereo 3D" {
+			if k, ok := sd["type"].(string); ok {
+				mode = strings.ToLower(k)
+			}
+		}
+	}
+	switch {
+	case strings.Contains(mode, "side") && !strings.Contains(mode, "mono"):
+		return "sbs"
+	case strings.Contains(mode, "top") || strings.Contains(mode, "bottom"):
+		return "tab"
+	}
+	name := strings.ToLower(filepath.Base(path))
+	switch {
+	case stereoNameSBS.MatchString(name):
+		return "sbs"
+	case stereoNameTAB.MatchString(name):
+		return "tab"
+	}
+	return ""
+}
+
+var (
+	stereoNameSBS = regexp.MustCompile(`(?:^|[\s._\-\[(])(?:half-?)?(?:h-?)?sbs(?:$|[\s._\-\])])|3d[\s._-]*(?:h-?)?sbs`)
+	stereoNameTAB = regexp.MustCompile(`(?:^|[\s._\-\[(])(?:half-?)?(?:h-?)?(?:tab|ou)(?:$|[\s._\-\])])`)
+)
+
+// flattenFilter keeps the left eye of a 3D picture. A half-width pair is stretched
+// back to its proper shape; a full-width one is simply cut in two.
+func flattenFilter(mode string, width, height int) string {
+	wide := height > 0 && float64(width)/float64(height) >= 2.8
+	tall := height > 0 && float64(width)/float64(height) <= 1.1
+	switch {
+	case mode == "sbs" && wide:
+		return "crop=iw/2:ih:0:0"
+	case mode == "sbs":
+		return "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1"
+	case mode == "tab" && tall:
+		return "crop=iw:ih/2:0:0"
+	case mode == "tab":
+		return "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1"
+	}
+	return ""
 }
 
 // variantInfo fills in the master playlist's description of a stream.
@@ -410,8 +523,19 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 		b.StartSec = &out.ResumeSec
 	}
 	u := fmt.Sprintf("/api/items/%d/stream", it.ID)
-	// VideoCodec holds the sound's codec for audio items.
-	if !slices.Contains(p.AudioCodecs, it.VideoCodec) || !library.DirectAudio[it.VideoCodec] || b.ForceTranscode {
+	container := mediatypes.Canonical(it.Container, it.Path, "", it.VideoCodec)
+	// VideoCodec holds the sound's codec for audio items. A client that doesn't list a
+	// container is judged by the codec alone, as apps that open anything do.
+	direct := library.PlaysDirect(it) && slices.Contains(p.AudioCodecs, it.VideoCodec)
+	switch {
+	case it.VideoCodec == "midi":
+		// Made once on the server, and then a plain FLAC file: seeking just works.
+		out.Decision = "audio-transcode"
+		out.Reasons = append(out.Reasons, playback.ReasonAudioCodec)
+		if b.StartSec != nil {
+			out.StartAtSec = *b.StartSec
+		}
+	case !direct || b.ForceTranscode:
 		u += "?transcode=1"
 		out.Decision, out.Protocol, out.Seek = "audio-transcode", "adts", "restart"
 		out.Reasons = append(out.Reasons, playback.ReasonAudioCodec)
@@ -419,10 +543,14 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 			u += "&start=" + strconv.FormatFloat(*b.StartSec, 'f', 3, 64)
 			out.TimeOffsetSec = *b.StartSec
 		}
-	} else if b.StartSec != nil {
-		out.StartAtSec = *b.StartSec
+	default:
+		if b.StartSec != nil {
+			out.StartAtSec = *b.StartSec
+		}
 	}
 	out.URL = withStream(u, out.StreamToken)
+	ex := playback.ExplainAudio(out.Decision == "audio-direct", container, it.VideoCodec)
+	out.Explain = &ex
 	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "profile", p.ID, "mode", out.Decision, "codec", it.VideoCodec)
 }
 
@@ -431,11 +559,13 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	ctx := r.Context()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	pr, err := s.Tools.ProbeFile(pctx, it.Path)
+	pr, err := s.probeOnce(pctx, it.Path)
 	if err != nil {
 		return err
 	}
 	src := probeSource(it, pr)
+	parts := library.StackedParts(it.Path)
+	src.Parts = len(parts)
 	chosen := playback.ChooseTracks(src, firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(ctx, "audioLanguage", "")), firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(ctx, "subtitleLanguage", "")))
 	if b.Audio != nil {
 		chosen.Audio = *b.Audio
@@ -449,14 +579,48 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	if chosen.Subtitle < -1 || chosen.Subtitle >= len(src.Subtitles) {
 		return errBadTrack{"no such subtitle track"}
 	}
+	pictures := pr.VideoStreams()
+	videoPick := 0
+	if b.Video != nil {
+		if *b.Video < 0 || *b.Video >= max(len(pictures), 1) {
+			return errBadTrack{"no such video stream"}
+		}
+		videoPick = *b.Video
+	}
 	q, serverMax := s.quality(r)
 	req := playback.Request{AudioIndex: chosen.Audio, SubtitleIndex: chosen.Subtitle, MaxBitrateKbps: b.MaxBitrateKbps, BurnSubtitle: b.BurnSubtitle,
-		AllowDirect: s.DB.GetSetting(ctx, "directPlay", "1") == "1", ForceTranscode: b.ForceTranscode, MaxHeight: playback.Smallest(b.MaxHeight, serverMax)}
+		AllowDirect: s.DB.GetSetting(ctx, "directPlay", "1") == "1", ForceTranscode: b.ForceTranscode, MaxHeight: playback.Smallest(b.MaxHeight, serverMax),
+		VideoIndex: videoPick, Flatten3D: b.Flatten3D, OverLimit: !s.fitsCap(r, it.SizeBytes, pr.Duration())}
 	d := playback.Decide(p, src, req)
 
 	out.DurationSec = pr.Duration()
+	if len(parts) > 1 || out.DurationSec <= 0 {
+		out.DurationSec = it.RuntimeSec // the scan worked it out, from every part
+	}
 	out.Decision, out.Reasons, out.SubtitleDelivery = d.Mode, d.Reasons, d.Subtitle
 	out.AudioIndex, out.SubtitleIndex = chosen.Audio, chosen.Subtitle
+	out.VideoIndex, out.Stereo = videoPick, src.Stereo
+	out.Flattened = b.Flatten3D && src.Stereo != ""
+	ex := playback.Explain(d, src, req)
+	// The web app follows the sound format chosen in Settings. Apps ask by what they play.
+	audioCodec := "aac"
+	if p.ID == "web" {
+		audioCodec = s.audioCodec(r)
+		if audioCodec == "mp3" {
+			ex.Sound = strings.Replace(ex.Sound, "AAC", "MP3", 1)
+		}
+	}
+	out.Explain = &ex
+	if len(pictures) > 1 {
+		for i, v := range pictures {
+			out.Videos = append(out.Videos, playbackVideoStream{Index: i, Codec: v.CodecName, Width: v.Width, Height: v.Height, Title: v.Tags["title"]})
+		}
+	}
+	for _, c := range pr.Chapters {
+		if at, err := strconv.ParseFloat(c.Start, 64); err == nil {
+			out.Chapters = append(out.Chapters, chapter{Start: at, Title: c.Tags["title"]})
+		}
+	}
 	for i, a := range src.Audio {
 		out.Audio = append(out.Audio, playbackAudio{Index: i, Language: a.Language, LanguageName: playback.LanguageName(a.Language), Title: a.Title, Codec: a.Codec, Channels: a.Channels, Default: a.Default, Commentary: a.Comment})
 	}
@@ -485,7 +649,11 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 
 	token := out.StreamToken
 	subURL := func(i int) string {
-		return withStream(fmt.Sprintf("/api/items/%d/subtitles/%d.vtt", it.ID, i), token)
+		u := fmt.Sprintf("/api/items/%d/subtitles/%d.vtt", it.ID, i)
+		if out.TimeOffsetSec > 0 { // the player's clock starts this far into the film
+			u += "?offset=" + strconv.FormatFloat(out.TimeOffsetSec, 'f', 3, 64)
+		}
+		return withStream(u, token)
 	}
 	if d.Mode == playback.Direct {
 		logStarted("") // nothing runs here, so only the request ties to it
@@ -494,7 +662,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		out.URL = withStream(fmt.Sprintf("/api/items/%d/file", it.ID), token)
 		fillSubtitles(out, src, p, true, subURL)
 		if d.Subtitle == playback.SubSidecar {
-			s.warmSubtitle("", it.Path, chosen.Subtitle)
+			s.warmSubtitle("", it.Path, chosen.Subtitle, src)
 		}
 		return nil
 	}
@@ -504,6 +672,11 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	if src.HasVideo && !d.CopyVideo {
 		if src.Interlaced {
 			vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
+		}
+		if out.Flattened {
+			if v := pr.Video(); v != nil {
+				vf = strings.Trim(vf+","+flattenFilter(src.Stereo, v.Width, v.Height), ",")
+			}
 		}
 		if d.ToneMap {
 			if tm := s.Tools.ToneMapFilter(); tm != "" {
@@ -527,15 +700,45 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	if abs, err := filepath.Abs(input); err == nil {
 		input = abs // fMP4 streams run FFmpeg in another folder
 	}
+	inputArgs := ffmpeg.FileInput(input)
+	if len(parts) > 1 {
+		h := sha1.Sum([]byte(it.Path))
+		if inputArgs, err = ffmpeg.PartsInput(filepath.Join(s.Cfg.CacheDir, "lists"), "parts-"+hex.EncodeToString(h[:8]), parts); err != nil {
+			return err
+		}
+	}
 	spec := hls.Spec{
-		SubtitleText: s.textBurn(burn, pr), InputArgs: ffmpeg.FileInput(input), Source: input, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
-		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: "aac",
+		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
+		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: audioCodec, VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
+	}
+	if burn >= 0 {
+		if st := src.Subtitles[burn]; st.File != "" {
+			file, err := s.subtitleForBurning(ctx, st)
+			if err != nil {
+				return err
+			}
+			spec.SubtitleFile, spec.SubtitleText = file, playback.IsTextSubtitle(st.Codec)
+			if spec.SubtitleText && !s.Tools.HasFilter("subtitles") {
+				spec.SubtitleText = false
+			}
+		} else {
+			spec.SubtitleText = s.textBurn(burn, pr)
+		}
 	}
 	spec.MaxHeight = playback.Smallest(spec.MaxHeight, p.MaxHeight)
 	if d.CopyVideo {
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true
 		if d.FMP4 && src.VideoCodec == "hevc" {
 			spec.VideoTag = "hvc1"
+		}
+		if start > 0 && len(parts) == 1 {
+			// A copy can only start at a keyframe. Starting at exactly that one means
+			// the player's clock is right, whatever the distance between keyframes.
+			kctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			if k, ok := s.Tools.KeyframeNear(kctx, input, spec.VideoIndex, start); ok {
+				start = k
+			}
+			cancel()
 		}
 		spec.StartSec = start
 		out.TimeOffsetSec = start
@@ -550,12 +753,12 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 				continue
 			}
 			name := firstNonEmpty(st.Title, playback.LanguageName(st.Language), st.Language, "Subtitles")
-			v.Subtitles = append(v.Subtitles, hls.Rendition{Stream: i, Name: name, Language: playback.NormalizeLanguage(st.Language),
+			v.Subtitles = append(v.Subtitles, hls.Rendition{Stream: i, File: st.File, Format: st.Format, Name: name, Language: playback.NormalizeLanguage(st.Language),
 				Default: i == chosen.Subtitle && d.Subtitle == playback.SubHLS, Forced: st.Forced})
 		}
 	}
 	spec.Variant = v
-	sum := sha1.Sum([]byte(fmt.Sprint(p.ID, d, chosen, spec.MaxHeight, q, start*boolFloat(spec.Growing), vf, len(v.Subtitles), v.Codecs)))
+	sum := sha1.Sum([]byte(fmt.Sprint(p.ID, d, chosen, spec.MaxHeight, q, start*boolFloat(spec.Growing), vf, len(v.Subtitles), v.Codecs, spec.VideoIndex, spec.SubtitleFile)))
 	spec.ID = fmt.Sprintf("v-%s-n%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
 	s.HLS.Ensure(spec)
 	logStarted(spec.ID)
@@ -568,7 +771,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {
-		s.warmSubtitle(spec.ID, it.Path, chosen.Subtitle)
+		s.warmSubtitle(spec.ID, it.Path, chosen.Subtitle, src)
 	}
 	return nil
 }
@@ -690,17 +893,153 @@ func (s *Server) convertSubtitle(session, path string, n int, out string) error 
 	return os.Rename(tmp, out)
 }
 
-// warmSubtitle starts converting the chosen track, so it is ready soon after
-// the picture starts.
-func (s *Server) warmSubtitle(session, path string, n int) {
-	if n < 0 || s.Cfg == nil {
+// warmSubtitle starts converting the chosen track, so it is ready soon after the
+// picture starts.
+func (s *Server) warmSubtitle(session, path string, n int, src playback.Source) {
+	if n < 0 || s.Cfg == nil || n >= len(src.Subtitles) {
 		return
 	}
+	st := src.Subtitles[n]
 	logging.Go("subtitle warm-up", func() {
 		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 15*time.Minute)
 		defer cancel()
+		if st.File != "" {
+			_, _ = s.subtitleFileVTT(ctx, st.File, st.Format)
+			return
+		}
 		_, _ = s.subtitleVTT(ctx, path, n) // nobody is waiting yet; subtitleVTT logs a failure
 	}, "cat", "transcode", "session", session)
+}
+
+// subtitleFileVTT makes WebVTT of a subtitle file beside a video, once. What it can read
+// itself it does; the rest goes through FFmpeg, after its encoding is straightened out,
+// which an old file from anywhere but America usually needs.
+func (s *Server) subtitleFileVTT(ctx context.Context, file, format string) (string, error) {
+	st, err := os.Stat(file)
+	if err != nil || !st.Mode().IsRegular() {
+		return "", errors.New("the subtitle file is missing")
+	}
+	if st.Size() > subtitle.MaxInput {
+		return "", errors.New("this subtitle file is too large")
+	}
+	h := sha1.Sum([]byte(fmt.Sprint(file, "|", st.Size(), "|", st.ModTime().UnixNano())))
+	dir := filepath.Join(s.Cfg.CacheDir, "subtitles")
+	out := filepath.Join(dir, hex.EncodeToString(h[:10])+"-file.vtt")
+	if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+		return out, nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	// Each file once: the warm-up and the player can ask at the same moment.
+	sf := &s.subtitles
+	sf.mu.Lock()
+	if sf.running == nil {
+		sf.running = map[string]chan struct{}{}
+	}
+	done, busy := sf.running[out]
+	if busy {
+		sf.mu.Unlock()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+		if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+			return out, nil
+		}
+		return "", errors.New("this subtitle file can't be converted")
+	}
+	done = make(chan struct{})
+	sf.running[out] = done
+	sf.mu.Unlock()
+	defer func() {
+		sf.mu.Lock()
+		delete(sf.running, out)
+		sf.mu.Unlock()
+		close(done)
+	}()
+	select {
+	case subtitleSlots <- struct{}{}:
+		defer func() { <-subtitleSlots }()
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+	if subtitle.ReadsItself(format) {
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		vtt, err := subtitle.Convert(format, raw)
+		if err != nil {
+			return "", err
+		}
+		return out, writeAtomic(out, vtt)
+	}
+	input := file
+	if format != "mks" { // a Matroska file isn't text
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		tmp := out + ".src" + filepath.Ext(file)
+		if err := os.WriteFile(tmp, subtitle.Normalize(raw), 0o644); err != nil {
+			return "", err
+		}
+		defer os.Remove(tmp)
+		input = tmp
+	}
+	cctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	tmp := out + ".tmp"
+	args := append([]string{"-hide_banner", "-loglevel", "error", "-nostdin", "-y"}, ffmpeg.FileInput(input)...)
+	args = append(args, "-map", "0:s:0", "-vn", "-an", "-c:s", "webvtt", "-f", "webvtt", tmp)
+	if _, stderr, err := ffmpeg.Run(cctx, s.Tools.FFmpeg, args, "file", file); err != nil {
+		_ = os.Remove(tmp)
+		return "", fmt.Errorf("%w: %s", err, stderr.Last(400))
+	}
+	return out, os.Rename(tmp, out)
+}
+
+// writeAtomic puts a file in place whole, so a reader never sees half of one.
+func writeAtomic(path string, b []byte) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// subtitleForBurning is the file FFmpeg should draw into the picture. Pictures are read
+// as they are. ASS keeps its styling, in clean UTF-8; other text goes as WebVTT, which
+// is also how formats FFmpeg can't read get drawn at all.
+func (s *Server) subtitleForBurning(ctx context.Context, st playback.Subtitle) (string, error) {
+	if !playback.IsTextSubtitle(st.Codec) {
+		return st.File, nil
+	}
+	if st.Format != "ass" && st.Format != "ssa" {
+		return s.subtitleFileVTT(ctx, st.File, st.Format)
+	}
+	info, err := os.Stat(st.File)
+	if err != nil {
+		return "", err
+	}
+	if info.Size() > subtitle.MaxInput {
+		return "", errors.New("this subtitle file is too large")
+	}
+	h := sha1.Sum([]byte(fmt.Sprint(st.File, "|", info.Size(), "|", info.ModTime().UnixNano())))
+	out := filepath.Join(s.Cfg.CacheDir, "subtitles", hex.EncodeToString(h[:10])+filepath.Ext(st.File))
+	if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+		return out, nil
+	}
+	raw, err := os.ReadFile(st.File)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return "", err
+	}
+	return out, writeAtomic(out, subtitle.Normalize(raw))
 }
 
 var vttFile = regexp.MustCompile(`^([0-9]{1,3})\.vtt$`)
@@ -724,28 +1063,40 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n, _ := strconv.Atoi(m[1])
-	if st, err := os.Stat(s.subtitlePath(it.Path, n)); err != nil || st.Size() == 0 {
-		// Not converted yet: only text tracks that exist are worth reading the file for.
-		pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-		defer cancel()
-		pr, err := s.Tools.ProbeFile(pctx, it.Path)
-		if err != nil {
-			writeErr(w, 500, err.Error())
-			return
-		}
-		subs := pr.Subtitles()
-		if n >= len(subs) || !playback.IsTextSubtitle(subs[n].CodecName) {
-			writeErr(w, 404, "no such text subtitle")
-			return
-		}
+	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	pr, err := s.probeOnce(pctx, it.Path)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
 	}
-	p, err := s.subtitleVTT(r.Context(), it.Path, n)
+	src := probeSource(it, pr)
+	if n >= len(src.Subtitles) || !playback.IsTextSubtitle(src.Subtitles[n].Codec) {
+		writeErr(w, 404, "no such text subtitle")
+		return
+	}
+	var p string
+	if st := src.Subtitles[n]; st.File != "" {
+		p, err = s.subtitleFileVTT(r.Context(), st.File, st.Format)
+	} else {
+		p, err = s.subtitleVTT(r.Context(), it.Path, n)
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
+	// A player whose clock doesn't start at the film's start needs the cues moved.
+	if off, _ := strconv.ParseFloat(r.URL.Query().Get("offset"), 64); off > 0 && !math.IsInf(off, 0) {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		_, _ = w.Write(subtitle.Shift(b, off))
+		return
+	}
 	http.ServeFile(w, r, p)
 }
 
@@ -791,7 +1142,14 @@ func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(sess.SubtitlePlaylist(withStream(fmt.Sprintf("%d.vtt", n), r.URL.Query().Get("st"))))
 		return
 	}
-	p, err := s.subtitleVTT(logging.WithSession(r.Context(), sess.LogSession()), sess.Spec.Source, sess.Spec.Variant.Subtitles[n].Stream)
+	rendition := sess.Spec.Variant.Subtitles[n]
+	var p string
+	var err error
+	if rendition.File != "" {
+		p, err = s.subtitleFileVTT(logging.WithSession(r.Context(), sess.LogSession()), rendition.File, rendition.Format)
+	} else {
+		p, err = s.subtitleVTT(logging.WithSession(r.Context(), sess.LogSession()), sess.Spec.Source, rendition.Stream)
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

@@ -1,9 +1,9 @@
 {
   "id": "light",
   "name": "Light",
-  "description": "Clean light grey with a violet accent.",
+  "description": "Clean, bright grey with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "5",
+  "version": "6",
   "scheme": "light",
   "builtin": true,
   "preview": {

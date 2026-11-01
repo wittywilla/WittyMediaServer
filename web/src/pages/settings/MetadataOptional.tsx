@@ -4,6 +4,7 @@ import { forgetLogos, type LogoInfo } from '../../components/BrandLogo'
 import LegalNote from '../../components/LegalNote'
 import type { ListingStatus } from '../../metadata'
 import { toast } from '../../state'
+import { Button, Notice } from '../../ui'
 import { Row, Section, Switch } from './ui'
 import './metadataoptional.css'
 
@@ -48,7 +49,7 @@ export function LogoSettings() {
             <Switch label="Download logos" checked onChange={() => answer(false)} />
           </Row>
           <Row label="Remove what was downloaded" desc="Turns downloads off and deletes the pictures. Logos you uploaded stay.">
-            <button type="button" className="btn sm" onClick={() => answer(false, true)}>Remove them</button>
+            <Button size="sm" onClick={() => answer(false, true)}>Remove them</Button>
           </Row>
           <Row label="Where each logo came from" desc="The source, licence and author of each one, as their licences ask. Each was recoloured here to white and to dark." stack>
             {credits ? (
@@ -57,15 +58,15 @@ export function LogoSettings() {
                   {credits.map((c) => <li key={c.id}><b>{c.name}</b>: {c.source === 'you' ? 'uploaded by you' : <><a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.license}</a>{c.credit ? `, by ${c.credit}` : ''}</>}</li>)}
                 </ul>
               )
-            ) : <button type="button" className="btn sm" onClick={() => api.get<{ logos: LogoInfo[] }>('/logos/credits').then((r) => setCredits(r.logos)).catch((e) => toast(e.message))}>Show the list</button>}
+            ) : <Button size="sm" onClick={() => api.get<{ logos: LogoInfo[] }>('/logos/credits').then((r) => setCredits(r.logos)).catch((e) => toast(e.message))}>Show the list</Button>}
           </Row>
         </>
       ) : (
         <div className="set-consent-box">
           <LogoConsentWords />
           <div className="set-consent-btns">
-            <button type="button" className="btn primary" onClick={() => answer(true)}>I understand: download logos</button>
-            {s.consent === '' && <button type="button" className="btn ghost" onClick={() => answer(false)}>No thanks: use plain names</button>}
+            <Button variant="primary" onClick={() => answer(true)}>I understand: download logos</Button>
+            {s.consent === '' && <Button variant="ghost" onClick={() => answer(false)}>No thanks: use plain names</Button>}
           </div>
         </div>
       )}
@@ -116,7 +117,7 @@ export function ListingSettings() {
           </Row>
           <Row label="Region" desc="Listings differ by country.">{regionSelect}</Row>
           <Row label="Check again" desc="Each title is checked about once every two weeks by itself.">
-            <button type="button" className="btn sm" onClick={() => api.post<ListingStatus>('/listings/refresh').then(setS).catch((e) => toast(e.message))}>Check now</button>
+            <Button size="sm" onClick={() => api.post<ListingStatus>('/listings/refresh').then(setS).catch((e) => toast(e.message))}>Check now</Button>
           </Row>
         </>
       ) : (
@@ -133,9 +134,9 @@ export function ListingSettings() {
           </fieldset>
           <div className="set-consent-btns">
             <label className="set-consent-region">Region {regionSelect}</label>
-            <button type="button" className="btn primary" disabled={ticked.size !== LISTING_STATEMENTS.length || !s.hasKey} onClick={() => send(true)}>Turn on listings</button>
+            <Button variant="primary" disabled={ticked.size !== LISTING_STATEMENTS.length || !s.hasKey} onClick={() => send(true)}>Turn on listings</Button>
           </div>
-          {!s.hasKey && <p className="set-note bad">Listings need a free TMDB key: add one under Built-in agents and save first. Without a key, this stays off.</p>}
+          {!s.hasKey && <Notice tone="warn">Listings need a free TMDB key: add one under Built-in agents and save first. Without a key, this stays off.</Notice>}
         </div>
       )}
       {err && <div className="error" role="alert">{err}</div>}

@@ -72,8 +72,10 @@ channel's programmes. Each library has a switch, off by default, for whether it 
 menus, on Home and in search (*Settings → Libraries*). Channels can use it either way.
 
 Each channel chooses which commercials libraries it uses, and from each either all the videos or only
-the ones ticked. They play after each programme (0 to 5 of them) and fill the gaps to the time grid,
-and never count as watched. They come under a profile's limits like anything else: unrated commercials
+the ones ticked. They play after each programme (0 to 5 of them), in **breaks inside a programme** if the channel
+asks for them (a break every so many minutes, of 1 to 5 commercials), and fill the gaps to the time grid. They never
+count as watched. No break comes so near the end that the viewer would just wait for the programme to finish. The guide
+shows one programme with its breaks inside it, and its times are when it really starts and ends. They come under a profile's limits like anything else: unrated commercials
 hide a channel from a Kids profile, since viewers share one stream.
 
 ### Bumpers
@@ -105,9 +107,13 @@ that is left, and gives way in this order:
 
 | What | Choices |
 |---|---|
-| Commercials, the last one first | **Cut them short** (the default; one with too little left is left out), **leave out whole ones**, or **always play them** |
+| Commercials, the last one first: those after the programme, then the last break inside it and back | **Cut them short** (the default; one with too little left is left out), **leave out whole ones**, or **always play them** |
 | Bumpers that aren't mandatory | **Leave them out** (the default), **cut them short**, or **always play them** |
 | The end of a programme | **Never** (the default), or up to 5 minutes. Only used when a programme is just over its slot, and it then starts the next one on time rather than leaving nearly a whole slot empty |
+
+A break with nothing left in it doesn't interrupt the programme at all. So a film that all but fills its slots has
+little or no room for commercials, however many were asked for: to have them all, choose **always play them**, and the
+next programme starts at the next time on the grid after they finish.
 
 Mandatory bumpers are never touched. A gap that is left is filled with commercials, the last cut to fit exactly, and
 then a card. If something set to always play makes a programme late, the schedule says so: the next one starts at the
@@ -458,7 +464,17 @@ row are drawn as one saying how many; the top of the page names the one on now, 
 collections, decades, TV networks and marathons. Each group has *Add all*, for a whole line-up at once. A channel takes
 at least three titles, or it would be the same thing again and again.
 
-Logos come from the owner's own uploads. Without a logo a channel shows its name as a clean text mark.
+### Logos and title art
+
+A channel's picture is, in order: the owner's own upload; the logo chosen in the editor; or the logo of the one network
+or studio it plays, which is what one-click network and studio channels get with nothing to set. Those two come from the
+[logo service](METADATA.md#the-logo-service), so they appear once the owner has agreed to the optional download or
+uploaded one, in the version that can be read on the guide's colours, and the rights notice appears beside them. With no
+logo a channel shows its name as a clean text mark. Tuner channels use what their source gives: a playlist can name
+thousands of stations, and each would be a lookup on the internet.
+
+In the modern look, a title with its own logo artwork shows that at the top of the guide in place of its name, which screen
+readers still get. The classic box stays all type, as such boxes were.
 
 ## For the TV apps
 
@@ -541,8 +557,6 @@ of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and pr
 - Windows BDA digital tuning; DiSEqC dish switches on Linux DVB.
 - ATSC 3.0 sound: AC-4 needs a decoder FFmpeg doesn't have.
 - ATSC huffman-compressed guide text (those events are skipped).
-- Commercials inside a programme's breaks: a break every N minutes plays the rule's bumpers. Commercials play after a
-  programme.
 - A viewer and a recording sharing one tuner on the same channel.
 - Recording disk-space checks and automatic clean-up of old recordings.
 - Guide data read over the air reaches only the channel being watched, not the others on its multiplex.

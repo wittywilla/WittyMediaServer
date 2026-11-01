@@ -3,12 +3,13 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { fmtDateTime, api, ApiError } from '../../api'
 import { LIB_TYPES } from '../../components/AddLibrary'
 import { Spinner } from '../../components/common'
-import { IconCheck, IconClose, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
+import { IconCheck, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
 import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type ModuleStatus, type VersionInfo, type VersionList } from '../../moduleStore'
 import { toast } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
+import { Dialog } from '../../ui/Overlay'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
@@ -65,16 +66,10 @@ function Confirm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
   const [working, setWorking] = useState(false)
   const yes = async () => { setWorking(true); try { await ask.run() } finally { setWorking(false); onClose() } }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal set-modal" role="alertdialog" onClick={(e) => e.stopPropagation()}>
-        <h2>{ask.title}</h2>
+    <Dialog title={ask.title} onClose={onClose} className="set-modal" actions={<><button className="btn ghost" autoFocus onClick={onClose}>Cancel</button>
+          <button className={'btn ' + (ask.danger ? 'danger' : 'primary')} disabled={working} onClick={yes}>{ask.action}</button></>}>
         <div className="ms-ask">{ask.body}</div>
-        <div className="actions">
-          <button className="btn ghost" autoFocus onClick={onClose}>Cancel</button>
-          <button className={'btn ' + (ask.danger ? 'danger' : 'primary')} disabled={working} onClick={yes}>{ask.action}</button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -578,9 +573,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const onlyBuiltin = !!list && list.versions.every((v) => v.builtin)
   return (
     <>
-      <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal set-modal wide ms-versions" role="dialog" aria-label={`${m.name} versions`} onClick={(e) => e.stopPropagation()}>
-          <div className="add-lib-modal-head"><h2>{m.name} versions</h2><button type="button" className="btn sm ghost square" onClick={onClose} aria-label="Close"><IconClose /></button></div>
+      <Dialog title={`${m.name} versions`} size="wide" className="set-modal ms-versions" onClose={onClose}>
 
           <div className="ms-vers-top">
             <span>{pin
@@ -604,8 +597,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
               {list.versions.map((v) => <VersionRow key={v.version} v={v} working={busy(m)} onChoose={() => choose(v)} />)}
             </ul>
           )}
-        </div>
-      </div>
+      </Dialog>
       {pending && <Confirm ask={{ title: `Use ${m.name} ${pending.v.version}?`, body: <p>{pending.warning}</p>, action: 'Install anyway', run: () => run(pending.v, true) }}
         onClose={() => { setPending(null); backToButton(pending.v.version) }} />}
     </>

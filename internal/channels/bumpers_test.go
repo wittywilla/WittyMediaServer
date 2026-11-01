@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -238,6 +239,75 @@ func TestBreaksInsideAProgrammeAreOneInTheGuide(t *testing.T) {
 	}
 }
 
+// Commercials inside a programme: a break every so often, one programme in the
+// guide, and with trimming on they give way like the ones after it.
+func TestCommercialsInBreaks(t *testing.T) {
+	def := Definition{Mode: "simple", Order: Order{Mode: "sequential"}, Filler: Filler{BreakEveryMin: 10, BreakAds: 2, Rules: &Rules{Libraries: []int64{50}}}}
+	progs := dayOf(t, &def)
+	if progs[0].Kind != KindShow || progs[0].End-progs[0].Start != 600 || progs[0].Trimmed != 0 {
+		t.Fatalf("the first stretch should run 10 minutes: %+v", progs[0])
+	}
+	if progs[1].Role != RoleAd || progs[2].Role != RoleAd || progs[3].Offset != 600 {
+		t.Fatalf("expected two commercials, then the programme carrying on: %+v / %+v / %+v", progs[1], progs[2], progs[3])
+	}
+	// None so near the end that the viewer would just wait: 25 minutes has one, at 10.
+	if progs[3].ItemID != progs[0].ItemID || progs[3].End-progs[3].Start != 900 || progs[4].ItemID == progs[0].ItemID {
+		t.Fatalf("the same programme to its end, then the next: %+v / %+v", progs[3], progs[4])
+	}
+	cells := GuideCells(progs)
+	if cells[0].ItemID != progs[0].ItemID || cells[1].ItemID == cells[0].ItemID || cells[0].End != cells[1].Start {
+		t.Fatalf("the guide should show one programme, with no hole: %+v / %+v", cells[0], cells[1])
+	}
+
+	// A 25-minute show on a half-hour grid has room for five minutes of commercials,
+	// so with a break of two, and three more after it, some may have to give way.
+	def = Definition{Mode: "simple", Order: Order{Mode: "sequential"}, AlignMin: 30, Filler: Filler{Between: 3, BreakEveryMin: 10, BreakAds: 2, Rules: &Rules{Libraries: []int64{50}}},
+		Bumpers: BumperPlan{Trim: Trim{On: true, Ads: TrimCut}}}
+	progs = dayOf(t, &def)
+	start := DayStart(20000, time.UTC).Unix()
+	breaks, after := 0, 0
+	for i := 1; i < len(progs); i++ {
+		if progs[i].Start != progs[i-1].End {
+			t.Fatalf("a gap: %+v then %+v", progs[i-1], progs[i])
+		}
+		if progs[i].Kind == KindShow && progs[i].Offset == 0 && (progs[i].Start-start)%1800 != 0 {
+			t.Fatalf("a programme off the grid: %+v", progs[i])
+		}
+	}
+	for i, p := range progs[:40] {
+		if p.Role != RoleAd {
+			continue
+		}
+		if next := progs[i+1]; next.Kind == KindShow && next.Offset > 0 {
+			breaks++
+		} else {
+			after++
+		}
+	}
+	if breaks == 0 {
+		t.Errorf("no commercials stayed in the breaks: %d after", after)
+	}
+
+	// Cut right down: a programme that fills its slot has no room for any, and a
+	// break with nothing left in it doesn't interrupt anything.
+	full := func(Rules, int64) ([]Entry, error) {
+		return []Entry{{ID: 1, Dur: 1800, Title: "Fills The Slot"}, {ID: 2, Dur: 1800, Title: "Also"}}, nil
+	}
+	ads := func(r Rules, m int64) ([]Entry, error) {
+		if len(r.Libraries) == 1 {
+			return []Entry{{ID: 950, Dur: 60, Title: "Ad"}}, nil
+		}
+		return full(r, m)
+	}
+	progs, _, err := GenerateDay(&def, 1, 20000, time.UTC, State{}, ads, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if progs[0].End-progs[0].Start != 1800 || progs[1].Start != progs[0].End || progs[1].Title != "Also" {
+		t.Fatalf("no room, so no break: %+v / %+v", progs[0], progs[1])
+	}
+}
+
 func TestLeadInStartsTheSlotInTheGuide(t *testing.T) {
 	def := Definition{Mode: "simple", Order: Order{Mode: "sequential"}, AlignMin: 30, Bumpers: BumperPlan{Rules: []BumperRule{rule(WhenBefore, 901)}}}
 	progs := dayOf(t, &def)
@@ -279,6 +349,12 @@ func TestBumperValidation(t *testing.T) {
 		def := Definition{Rules: Rules{Clips: []DiscClip{c}}}
 		if def.Validate() == nil {
 			t.Errorf("clip %+v should be refused", c)
+		}
+	}
+	for _, f := range []Filler{{BreakEveryMin: 2}, {BreakEveryMin: 999}, {BreakAds: 9}, {BreakAds: -1}} {
+		def := Definition{Filler: f}
+		if def.Validate() == nil {
+			t.Errorf("commercial breaks %+v should be refused", f)
 		}
 	}
 	for _, b := range []Block{{Start: "00:00", End: "01:00", FromDate: "12-01"}, {Start: "00:00", End: "01:00", FromDate: "13-01", ToDate: "12-31"}} {
@@ -455,6 +531,76 @@ func TestClipsFromDiscs(t *testing.T) {
 	}
 	if err := (&Channel{Name: "x", Look: Look{Accent: "red;"}}).Check(); err == nil {
 		t.Error("a colour that isn't one should be refused")
+	}
+	for _, l := range []Look{{LogoKind: "bad", LogoName: "x"}, {LogoKind: "studio"}, {LogoName: "x"}} {
+		if err := (&Channel{Name: "x", Look: l}).Check(); err == nil {
+			t.Errorf("logo %+v should be refused", l)
+		}
+	}
+	// Whose logo a channel wears: the owner's choice, else the one name it plays.
+	brand := func(c Channel) string { k, n := c.Brand(); return k + "|" + n }
+	one := Definition{Rules: Rules{Studios: []string{"A Studio"}}}
+	if got := brand(Channel{Definition: one}); got != "studio|A Studio" {
+		t.Errorf("one studio: %s", got)
+	}
+	if got := brand(Channel{Definition: Definition{Rules: Rules{Networks: []string{"A Net"}}}}); got != "network|A Net" {
+		t.Errorf("one network: %s", got)
+	}
+	if got := brand(Channel{Definition: Definition{Rules: Rules{Networks: []string{"A", "B"}}}}); got != "|" {
+		t.Errorf("two networks: %s", got)
+	}
+	if got := brand(Channel{Definition: one, Look: Look{LogoKind: "none"}}); got != "|" {
+		t.Errorf("no logo, by choice: %s", got)
+	}
+	if got := brand(Channel{Definition: one, Look: Look{LogoKind: "network", LogoName: "Another"}}); got != "network|Another" {
+		t.Errorf("chosen by the owner: %s", got)
+	}
+}
+
+// Studios: a channel for each, wearing its logo, and a title can have several.
+func TestStudioChannels(t *testing.T) {
+	s, ls := testStore(t)
+	ctx := context.Background()
+	lib, err := ls.CreateLibrary(ctx, "Films", "movies", []string{"/f"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 3; i++ {
+		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, runtime_sec, studio, added_at, updated_at) VALUES(?, 'video', ?, ?, ?, 5400, 'First Studio', 1, 1)`,
+			lib.ID, "/f/"+string(rune('a'+i)), "A Made Up Film", "A Made Up Film")
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, _ := res.LastInsertId()
+		if _, err := s.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, item_id) VALUES('studio', 'second studio', 'Second Studio', ?, ?)`, lib.ID, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := s.LoadPool(ctx, Rules{Studios: []string{"second studio"}}, 30)
+	if err != nil || len(got) != 3 {
+		t.Fatalf("a title's second studio should count: %d %v", len(got), err)
+	}
+	list, err := s.Suggest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, x := range list {
+		if x.Group == "studio" {
+			c := Channel{Name: x.Name, Definition: x.Definition}
+			kind, name := c.Brand()
+			if kind != "studio" || name != x.Name {
+				t.Errorf("%s should wear its studio's logo: %s %s", x.Name, kind, name)
+			}
+			names = append(names, x.Name)
+		}
+	}
+	if !reflect.DeepEqual(names, []string{"First Studio", "Second Studio"}) {
+		t.Errorf("studio channels: %v", names)
+	}
+	o, err := s.EditorOptions(ctx)
+	if err != nil || !slices.Contains(o.Studios, "First Studio") || !slices.Contains(o.Studios, "Second Studio") {
+		t.Errorf("studios offered: %v %v", o.Studios, err)
 	}
 }
 

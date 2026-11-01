@@ -89,7 +89,8 @@ def tokens():
             'weight': {'body': 400, 'medium': 500, 'strong': 600, 'heading': int(t['weight-heading'])},
         },
         'space': {k.removeprefix('sp-'): px(v) for k, v in t.items() if k.startswith('sp-')},
-        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar'])},
+        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar']), 'rail': px(t['rail']), 'tabBar': px(t['tabbar-h'])},
+        'layers': {k.removeprefix('z-'): int(v) for k, v in t.items() if k.startswith('z-')},
         'shape': {
             'radiusMultiple': {k.removeprefix('r-'): float(re.search(r'\*\s*([\d.]+)', v).group(1)) if '*' in v else 1 for k, v in t.items() if k in ('r-xs', 'r-sm', 'r-md', 'r-lg', 'r-xl')},
             'pill': px(t['r-full']),
@@ -106,6 +107,7 @@ def tokens():
         },
         'card': {'width': px(t['card-w']), 'wideWidth': px(t['card-wide-w']), 'posterRatio': [2, 3], 'wideRatio': [16, 9], 'albumRatio': [1, 1]},
         'focus': {'width': px(t['focus-width']), 'offset': px(t['focus-offset']), 'scale': float(t['focus-scale'])},
+        'posterTilt': {'maxDegrees': float(t['tilt-max']), 'scale': float(t['tilt-scale'])},
         'tenFoot': {
             'textScale': round(float(root_scale.group(1)) / 100, 4),
             'focus': {'width': px(ten['focus-width']), 'offset': px(ten['focus-offset']), 'scale': float(ten['focus-scale'])},

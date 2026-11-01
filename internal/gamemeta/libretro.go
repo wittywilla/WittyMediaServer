@@ -300,8 +300,18 @@ func (s *Libretro) Prepare(ctx context.Context, console string, qs []Query) erro
 	return err
 }
 
+// company reads a developer or publisher. The list says "Unknown" for some, which isn't a name
+// to show as who made a game or look a logo up for.
+func company(s string) string {
+	s = Line(s)
+	if strings.EqualFold(s, "unknown") {
+		return ""
+	}
+	return s
+}
+
 // best picks among records of one game: the region the file says it's from if there's
-// a match, otherwise whichever is most useful to an English speaker.
+// a match, otherwise whichever the owner's order of regions likes best.
 func (d *libDB) best(ids []int32, tags string) int32 {
 	want := strings.ToLower(tags)
 	best, bestRank := ids[0], 99
@@ -434,7 +444,7 @@ func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, in
 
 func (d *libDB) info(i int32) *Info {
 	r := &d.recs[i]
-	in := &Info{ID: r.Name, Title: Line(r.Name), Developer: Line(r.Developer), Publisher: Line(r.Publisher), Franchise: Line(r.Franchise)}
+	in := &Info{ID: r.Name, Title: Line(r.Name), Developer: company(r.Developer), Publisher: company(r.Publisher), Franchise: Line(r.Franchise)}
 	in.Genres = lines(strings.Split(r.Genre, ","), 8)
 	if r.Users > 0 && r.Users <= 64 {
 		in.Players = r.Users
@@ -464,10 +474,10 @@ func (d *libDB) info(i int32) *Info {
 			continue
 		}
 		if in.Developer == "" {
-			in.Developer = Line(o.Developer)
+			in.Developer = company(o.Developer)
 		}
 		if in.Publisher == "" {
-			in.Publisher = Line(o.Publisher)
+			in.Publisher = company(o.Publisher)
 		}
 		if len(in.Genres) == 0 {
 			in.Genres = lines(strings.Split(o.Genre, ","), 8)

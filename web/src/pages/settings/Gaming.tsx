@@ -7,6 +7,7 @@ import { toast } from '../../state'
 import { Dialog } from '../../ui'
 import { getConsoles } from '../Games'
 import CustomCoresSection, { ConsoleCoreSelect, licenseText } from './GamingCustom'
+import RegionOrder from './RegionOrder'
 import { PageHead, Section } from './ui'
 import LegalNote from '../../components/LegalNote'
 import '../games/games-ui.css'
@@ -194,6 +195,8 @@ export default function GamingSettings() {
         </ol>
         <p className="muted gm-long-path">You can also put files straight into <code>{st.systemDir}</code>. A PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it.</p>
       </Section>
+
+      {settings && <RegionOrder saved={settings.gamingRegionOrder} onSave={(order) => put({ gamingRegionOrder: order })} />}
 
       {settings && (
         <Section title="How games play" desc="The defaults suit most homes. Someone’s own picture, sound and controls are in My game settings, and a game’s own page can change anything for just that game.">

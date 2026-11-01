@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 )
 
 // Working out what a file name means, and how alike two names are.
@@ -246,19 +248,8 @@ func Best(want string, names []string) (index, score int) {
 	return index, score
 }
 
-// regionRank orders a game's regions for someone with no other preference.
-func regionRank(tags string) int {
-	t := strings.ToLower(tags)
-	for i, r := range []string{"usa", "world", "europe", "australia", "uk", "canada"} {
-		if strings.Contains(t, r) {
-			return i
-		}
-	}
-	if strings.Contains(t, "japan") {
-		return 7
-	}
-	return 6
-}
+// regionRank orders a game's regions, by the owner's order.
+func regionRank(tags string) int { return gameregion.Rank(tags) }
 
 // firstYear reads the year from a date in any of the forms sources use.
 func firstYear(date string) int {

@@ -181,6 +181,36 @@ func scanResult(files, problems int, took time.Duration) string {
 	return s + ", with " + plural(problems, "problem", "problems") + "."
 }
 
+// gameScanResult says what came of a scan of games: what someone comes to the activity
+// panel to find out is how many there are, and whether any of them want their attention.
+func (s *Store) gameScanResult(ctx context.Context, lib *Library, problems int, took time.Duration) string {
+	games := 0
+	if counts, err := s.GameCounts(ctx, lib.ID, nil); err == nil {
+		for _, n := range counts {
+			games += n
+		}
+	}
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	out := fmt.Sprintf("Found %s in %s.", plural(games, "game", "games"), took.Round(time.Second))
+	if review, err := s.GameReviewList(ctx, lib, "none", 1, 0); err == nil {
+		if n := review.Counts["needs"]; n > 0 {
+			out += " " + plural(n, "file needs", "files need") + " a look."
+		}
+		if n := review.Counts["blocked"]; n > 0 {
+			out += " " + plural(n, "game", "games") + " can't play."
+		}
+	}
+	if problems > 0 {
+		out += " " + plural(problems, "problem", "problems") + " along the way."
+	}
+	return out
+}
+
 type taskKey struct{}
 
 // scanTask is the activity entry of the scan this context belongs to. May be nil, and
@@ -464,7 +494,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		defer archives.close()
 	}
-	task.Phase("Finding files")
+	if lib.Type == "games" {
+		task.Phase("Working out what each file is")
+	} else {
+		task.Phase("Finding files")
+	}
 	for _, root := range lib.Paths {
 		if err := pausePoint(); err != nil {
 			return err
@@ -545,7 +579,12 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
-	task.Phase("Looking at each file")
+	if lib.Type == "games" {
+		task.Phase("Listing the games")
+		task.Unit("games")
+	} else {
+		task.Phase("Looking at each file")
+	}
 	task.Progress(0, int64(len(all)))
 	keep := map[string]bool{}
 	tv := newTVScan()
@@ -624,9 +663,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
 	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
 	if lib.Type == "games" {
+		task.Phase("Putting versions of a game together")
 		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
 			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
 		}
+		task.Result(s.Store.gameScanResult(ctx, lib, failed+problems, time.Since(started)))
 		s.Store.ensureGameLogos(ctx, lib)
 		if s.OnGamesScanned != nil {
 			s.OnGamesScanned()

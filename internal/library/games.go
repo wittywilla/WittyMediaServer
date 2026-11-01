@@ -318,9 +318,14 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 		it.Provider, it.ProviderID = existing.Provider, existing.ProviderID
 	}
 	if existing != nil {
-		// Scans never take away what someone chose or a source already found.
-		if (existing.Provider != "" || s.Store.gameFieldEdited(ctx, existing.ID, "title")) && !slices.Contains(local, "title") && judged {
+		// Scans never take away what someone typed, whatever else this scan believes, or what
+		// a source already found.
+		kept := existing.Provider != "" || s.Store.gameFieldEdited(ctx, existing.ID, "title")
+		if s.Store.gameFieldTyped(ctx, existing.ID, "title") || (kept && !slices.Contains(local, "title") && judged) {
 			it.Title, it.SortTitle = existing.Title, existing.SortTitle
+		}
+		if s.Store.gameFieldTyped(ctx, existing.ID, "tagline") {
+			it.Tagline = existing.Tagline
 		}
 		if it.Poster == "" {
 			it.Poster = existing.Poster

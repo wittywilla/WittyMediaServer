@@ -15,6 +15,7 @@ import (
 	"log/slog"
 	"maps"
 	"math"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -383,7 +384,7 @@ func (s *Session) PlayTitle(ctx context.Context, ttn, chapter int) *Presentation
 	st := s.nav.PlayTitle(ttn, chapter)
 	// Started directly (not through the disc's menus): the viewer's
 	// remembered angle wins over the one the title's own commands picked.
-	if a := s.prefs.Angle; a > 1 && st.Kind == wittydvd.StepTitle && st.Title != nil &&
+	if a := s.prefs.Angle; a > 1 && st != nil && st.Kind == wittydvd.StepTitle && st.Title != nil &&
 		st.Title.TTN >= 1 && st.Title.TTN <= len(s.opened.Disc.VMG.Titles) && a <= s.opened.Disc.VMG.Titles[st.Title.TTN-1].Angles {
 		s.nav.SetAngle(a)
 	}
@@ -596,7 +597,7 @@ func (s *Session) ended(ctx context.Context) *Presentation {
 		st := s.nav.CellEnded()
 		for i := pl.idx + 1; i < len(pl.ts.Cells); i++ {
 			c := pl.ts.Cells[i]
-			if st.Kind != wittydvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != cur.Title.TTN {
+			if st == nil || st.Kind != wittydvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != cur.Title.TTN {
 				break
 			}
 			st = s.nav.CellEnded()
@@ -811,6 +812,59 @@ func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
 	return &playingTitle{ts: ts, idx: idx}
 }
 
+// ErrScrambled is what a viewer of a CSS-scrambled disc is told.
+var ErrScrambled = errors.New("this disc is CSS-scrambled, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection")
+
+// scrambleSectors is how much of a place is read to decide, as the library scan does.
+const scrambleSectors = 64
+
+// runsScrambled looks at what FFmpeg would read for a title, at the start of its first,
+// middle and last runs, in the middle too as some discs begin with a clear picture.
+// Every title stream comes through here, whichever way the title was asked for.
+func runsScrambled(runs []wittydvd.TitleRun) bool {
+	if len(runs) == 0 {
+		return false
+	}
+	for _, r := range []wittydvd.TitleRun{runs[0], runs[len(runs)/2], runs[len(runs)-1]} {
+		if len(r.Extents) == 0 {
+			continue
+		}
+		for _, e := range []wittydvd.FileExtent{r.Extents[0], r.Extents[len(r.Extents)/2]} {
+			at := []int64{e.Offset}
+			if e.Length > 2*scrambleSectors*wittydvd.Sector {
+				at = append(at, e.Offset+(e.Length/2)/wittydvd.Sector*wittydvd.Sector)
+			}
+			for _, off := range at {
+				if extentScrambled(e.File, off, min(e.Length, scrambleSectors*wittydvd.Sector)) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// extentScrambled reads packs from a file. One that can't be read has nothing to say:
+// FFmpeg will meet the same trouble.
+func extentScrambled(file string, off, n int64) bool {
+	f, err := os.Open(file)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	buf := make([]byte, n)
+	got, err := f.ReadAt(buf, off)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false
+	}
+	for p := 0; p+wittydvd.Sector <= got; p += wittydvd.Sector {
+		if wittydvd.PackScrambled(buf[p : p+wittydvd.Sector]) {
+			return true
+		}
+	}
+	return false
+}
+
 func interactive(pic *wittydvd.MenuPicture) bool {
 	for _, b := range pic.Buttons {
 		if !b.Inert {
@@ -897,7 +951,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	s.log.Debug("menu read", "topic", "menus", "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "buttons", len(pic.Buttons))
 	if pic.Scrambled {
 		p.Scrambled = true
-		return errors.New("this disc is CSS-scrambled, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection")
+		return ErrScrambled
 	}
 	s.menus[st.Serial] = &menuArt{pic: pic, highlights: map[int][]byte{}}
 	for k := range s.menus {
@@ -1155,6 +1209,10 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 		channels = 6
 	}
 	runs, err := s.opened.TitleRuns(sp, ts.Cells)
+	if errors.Is(err, ErrScrambled) || (err == nil && runsScrambled(runs)) {
+		p.Scrambled = true
+		return ErrScrambled
+	}
 	if err != nil {
 		return err
 	}

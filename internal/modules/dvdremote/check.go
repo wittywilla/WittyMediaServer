@@ -1,7 +1,6 @@
 package dvdremote
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 )
 
 // The most a disc can have. A DVD's own tables can't go past most of these, and those
@@ -283,4 +283,4 @@ func (b *bounds) check(ext []wittydvd.FileExtent) error {
 	return nil
 }
 
-var errScrambled = errors.New("this disc is CSS-scrambled, and encrypted media isn't supported")
+var errScrambled = dvdsession.ErrScrambled

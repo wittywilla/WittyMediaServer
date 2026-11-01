@@ -26,7 +26,8 @@ EOF
 docker rm -f wms-inst-wine >/dev/null 2>&1
 docker run -i --rm --name wms-inst-wine -e SHOTS="$SHOTS" -v "$PKGS:/pkgs" "$tag" bash -s >>"$log" 2>&1 <<'SCRIPT'
 set -u
-export WINEPREFIX=/root/wine WINEARCH=win64 WINEDEBUG=-all DISPLAY=:99
+# winemenubuilder copies shortcuts into Linux's menus, which is Wine's doing and not the installer's.
+export WINEPREFIX=/root/wine WINEARCH=win64 WINEDEBUG=-all DISPLAY=:99 WINEDLLOVERRIDES=winemenubuilder.exe=d
 Xvfb :99 -screen 0 1024x768x24 >/dev/null 2>&1 &
 sleep 1
 fail() { echo "FAIL: $*"; exit 1; }
@@ -46,10 +47,12 @@ snapshot() {
   wineserver -w
   # Wine's own bookkeeping isn't the installer's doing.
   (cd "$C" && find . -path ./windows/Installer -prune -o -path ./windows/logs -prune -o -path ./windows/temp -prune \
+      -o -path ./users/root/AppData/Roaming/Microsoft/Installer -prune \
       -o -path ./users/root/Temp -prune -o -path ./users/root/AppData/Local/Temp -prune -o -print | sort)
   echo "--- registry"
   for f in system.reg user.reg; do
-    sed -E 's/^(\[[^]]*\]).*/\1/' "$WINEPREFIX/$f" | grep -Eai 'witty|^"[^"]*witty' | sort
+    # Wine doesn't take a PATH entry back out, which real Windows does: the sandbox test checks that.
+    sed -E 's/^(\[[^]]*\]).*/\1/' "$WINEPREFIX/$f" | grep -Eai 'witty|^"[^"]*witty' | grep -av '^"PATH"=' | sort
   done
 }
 reg_has() { grep -aqi "$1" "$WINEPREFIX/system.reg" "$WINEPREFIX/user.reg"; }

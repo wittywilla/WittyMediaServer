@@ -160,6 +160,8 @@ func (w *winMachine) fill(t *testing.T) {
 	w.sys.reg[`HKLM\`+UninstallKey+`\ProductCode`] = "{11111111-2222-3333-4444-555555555555}"
 	w.sys.reg[`HKCU\`+UninstallKey] = ""
 	w.sys.reg[`HKCU\`+runKey+`\`+winName] = "x"
+	w.sys.reg[`HKLM\`+settingsKey] = ""
+	w.sys.reg[`HKLM\`+settingsKey+`\Service`] = "1"
 }
 
 func TestWindowsFullCleanLeavesNothing(t *testing.T) {

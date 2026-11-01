@@ -46,7 +46,8 @@ function Snapshot {
   $rules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'witty' } | ForEach-Object { "firewall: $($_.DisplayName)" }
   $svc = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'witty' } | ForEach-Object { "service: $($_.Name)" }
   $task = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match 'witty' } | ForEach-Object { "task: $($_.TaskName)" }
-  @($files) + @($keys) + @($run) + @($rules) + @($svc) + @($task) | Sort-Object -Unique
+  $path = foreach ($scope in "User", "Machine") { ([Environment]::GetEnvironmentVariable("PATH", $scope) -split ';') | Where-Object { $_ -match 'witty' } | ForEach-Object { "PATH ($scope): $_" } }
+  @($files) + @($keys) + @($run) + @($rules) + @($svc) + @($task) + @($path) | Sort-Object -Unique
 }
 function Same($before, $what) {
   $after = Snapshot

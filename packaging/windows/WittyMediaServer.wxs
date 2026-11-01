@@ -195,7 +195,7 @@
       <Component Id="ServiceSettings" Guid="1a7d3e80-5f62-49b4-9c28-f0e6b1d4a735" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="string" Value="1" KeyPath="yes" />
       </Component>
-      <Component Id="ServiceData" Guid="c8e15d24-7a90-4b6f-83d1-2f7c9e0a6b58" Directory="ServiceDataFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" Permanent="yes">
+      <Component Id="ServiceData" Guid="c8e15d24-7a90-4b6f-83d1-2f7c9e0a6b58" Directory="ServiceDataFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
         <CreateFolder>
           <util:PermissionEx User="LocalService" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />
           <util:PermissionEx User="SYSTEM" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />

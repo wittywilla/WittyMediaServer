@@ -15,6 +15,8 @@ const (
 	// it in HKCU; the MSI writes it in HKCU or HKLM, with ProductCode in it.
 	UninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\WittyMediaServer`
 	runKey       = `Software\Microsoft\Windows\CurrentVersion\Run`
+	settingsKey  = `Software\WittyWilla\WittyMediaServer`
+	makerKey     = `Software\WittyWilla`
 )
 
 // programEntries is what a program folder holds, and what goes from it. A data folder or
@@ -145,6 +147,22 @@ func planWindows(e *Env, pl *Plan) {
 			pl.add(Item{Kind: "Installed apps entry", Name: hive + `\` + UninstallKey, Group: GroupProgram, Admin: hive == "HKLM", step: stepFiles,
 				remove: func() error { return e.Sys.RegDeleteKey(hive, UninstallKey) },
 				gone:   func() bool { return !e.Sys.RegKeyExists(hive, UninstallKey) }})
+		}
+	}
+
+	// Where the installer remembers its answers. The maker's key goes only once it's empty:
+	// another of our products may be using it.
+	for _, hive := range []string{"HKCU", "HKLM"} {
+		if e.Sys.RegKeyExists(hive, settingsKey) {
+			pl.add(Item{Kind: "installer's choices", Name: hive + `\` + settingsKey, Group: GroupProgram, Admin: hive == "HKLM", step: stepEmptyFolders,
+				remove: func() error {
+					if err := e.Sys.RegDeleteKey(hive, settingsKey); err != nil {
+						return err
+					}
+					_ = e.Sys.RegDeleteKey(hive, makerKey)
+					return nil
+				},
+				gone: func() bool { return !e.Sys.RegKeyExists(hive, settingsKey) }})
 		}
 	}
 

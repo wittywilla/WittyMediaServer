@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, fmtRuntime, mediaUrl, mediaUrlQ } from '../../api'
-import { IconClose, IconDisc, IconDown, IconPlay, IconPlus, IconTrash, IconUp } from '../../icons'
+import { IconDisc, IconDown, IconPlay, IconPlus, IconTrash, IconUp } from '../../icons'
 import { useSource } from '../../player/hooks'
 import { toast } from '../../state'
+import { Button, Dialog, IconButton } from '../../ui'
 import { Section } from '../settings/ui'
 import { fmtTimecode, parseTimecode, type DiscClip, type DiscOption, type DiscPage, type DiscTitle, type Rules } from './tvApi'
 import './tveditor.css'
@@ -77,8 +78,8 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
                 <span>{[d.year, fmtRuntime(d.runtimeSec)].filter(Boolean).join(' · ')}</span>
                 {d.scrambled ? <p className="tve-refused">{refusal}</p> : (
                   <div className="tve-disc-actions">
-                    <button type="button" className={'btn sm' + (main ? ' primary' : '')} aria-pressed={main} onClick={() => toggleMain(d)}>{main ? '✓ Main feature' : 'Main feature'}</button>
-                    <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setPicking(d)}>{n ? `Scenes (${n})` : 'Choose scenes'}</button>
+                    <Button size="sm" variant={main ? 'primary' : 'default'} aria-pressed={main} onClick={() => toggleMain(d)}>{main ? '✓ Main feature' : 'Main feature'}</Button>
+                    <Button size="sm" aria-haspopup="dialog" onClick={() => setPicking(d)}>{n ? `Scenes (${n})` : 'Choose scenes'}</Button>
                   </div>
                 )}
               </div>
@@ -99,9 +100,9 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
                   <span>{c.end ? `${fmtTimecode(c.start || 0)} to ${fmtTimecode(c.end)} · ${fmtRuntime(c.end - (c.start || 0))}` : c.start ? `From ${fmtTimecode(c.start)} to the end` : 'The whole title'}</span>
                 </div>
                 <div className="tve-picked-actions">
-                  <button type="button" className="btn sm ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${clipLabel(c)} earlier`}><IconUp size={16} /></button>
-                  <button type="button" className="btn sm ghost" disabled={i === clips.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${clipLabel(c)} later`}><IconDown size={16} /></button>
-                  <button type="button" className="btn sm ghost" onClick={() => setClips(clips.filter((x) => x !== c))} aria-label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></button>
+                  <IconButton size="sm" disabled={i === 0} onClick={() => move(i, -1)} label={`Move ${clipLabel(c)} earlier`}><IconUp size={16} /></IconButton>
+                  <IconButton size="sm" disabled={i === clips.length - 1} onClick={() => move(i, 1)} label={`Move ${clipLabel(c)} later`}><IconDown size={16} /></IconButton>
+                  <IconButton size="sm" onClick={() => setClips(clips.filter((x) => x !== c))} label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></IconButton>
                 </div>
               </li>
             ))}
@@ -156,23 +157,18 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
   const here = clips.filter((c) => c.title === ttn)
   const titleName = (t: DiscTitle, i: number) => t.label || (i === 0 && page?.main ? 'Main feature' : `Title ${t.ttn}`)
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal tve-picker" role="dialog" aria-modal="true" aria-labelledby="tve-p-h" onClick={(e) => e.stopPropagation()}>
-        <div className="tve-picker-head">
-          <h2 id="tve-p-h">Scenes from {disc.title}</h2>
-          <button type="button" className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
-        </div>
+    <Dialog size="wide" className="tve-picker" title={`Scenes from ${disc.title}`} onClose={onClose}>
         {err && <p className="tvs-error" role="alert">{err}</p>}
         {!page && !err && <div className="center"><div className="spinner" /></div>}
         {titles.length > 0 && (
           <>
-            <div className="tve-tabs" role="group" aria-label="Which title on the disc">
+            <div className="tve-tabs" role="group" aria-label="Which title on the disc" data-nav-group>
               {titles.map((t, i) => <button key={t.ttn} type="button" className={'tve-tab' + (t.ttn === ttn ? ' on' : '')} aria-pressed={t.ttn === ttn} onClick={() => setTtn(t.ttn)}><b>{titleName(t, i)}</b><span>{fmtRuntime(t.durationSec)}</span></button>)}
             </div>
             {cur && (
               <>
                 <p className="muted tve-how">{cur.chapters.length > 1 ? 'Press a chapter to start from it, and another to end with it.' : 'This title has one chapter. Press it, then set the times below.'}</p>
-                <div className="tve-chapters" role="group" aria-label="Chapters">
+                <div className="tve-chapters" role="group" aria-label="Chapters" data-nav-group>
                   {cur.chapters.map((c) => {
                     const inRange = chosen && c.n >= first! && c.n <= last!
                     return (
@@ -190,8 +186,8 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
                     <TimeField label="Ends" value={end} min={start + 3} max={cur.durationSec} onChange={setEnd} />
                     <label className="tve-range-name">Name (optional)<input className="input" value={label} maxLength={200} placeholder={first === last ? `Chapter ${first}` : `Chapters ${first} to ${last}`} onChange={(e) => setLabel(e.target.value)} /></label>
                     <span className="tve-range-len">{fmtRuntime(end - start)}</span>
-                    <button type="button" className="btn" onClick={() => setPreviewing((v) => !v)} aria-expanded={previewing}><IconPlay /> {previewing ? 'Stop trying it' : 'Try it'}</button>
-                    <button type="button" className="btn primary" onClick={add}><IconPlus /> Add this scene</button>
+                    <Button icon={<IconPlay />} onClick={() => setPreviewing((v) => !v)} aria-expanded={previewing}>{previewing ? 'Stop trying it' : 'Try it'}</Button>
+                    <Button variant="primary" icon={<IconPlus />} onClick={add}>Add this scene</Button>
                   </div>
                 )}
                 {chosen && previewing && <ClipTry item={disc.id} ttn={cur.ttn} start={start} end={end} />}
@@ -201,22 +197,21 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
                     <ul className="tve-chosen">
                       {here.map((c) => (
                         <li key={c.id}><span><b>{clipLabel(c)}</b> {fmtTimecode(c.start || 0)} to {c.end ? fmtTimecode(c.end) : 'the end'}</span>
-                          <button type="button" className="btn sm ghost" onClick={() => onRemove(c)} aria-label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></button></li>
+                          <IconButton size="sm" onClick={() => onRemove(c)} label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></IconButton></li>
                       ))}
                     </ul>
                   </>
                 )}
                 <div className="actions">
-                  {cur.chapters.length > 1 && <button type="button" className="btn ghost" onClick={addEach}>Add every chapter as a scene of its own</button>}
-                  <button type="button" className="btn primary" onClick={onClose}>Done</button>
+                  {cur.chapters.length > 1 && <Button variant="ghost" onClick={addEach}>Add every chapter as a scene of its own</Button>}
+                  <Button variant="primary" onClick={onClose}>Done</Button>
                 </div>
               </>
             )}
           </>
         )}
-        {page && titles.length === 0 && <><p className="muted"><IconDisc /> This disc has no titles that can be played.</p><div className="actions"><button className="btn" onClick={onClose}>Close</button></div></>}
-      </div>
-    </div>
+        {page && titles.length === 0 && <><p className="muted"><IconDisc /> This disc has no titles that can be played.</p><div className="actions"><Button onClick={onClose}>Close</Button></div></>}
+    </Dialog>
   )
 }
 
@@ -247,10 +242,10 @@ function TimeField({ label, value, min = 0, max, onChange }: { label: string; va
     <div className="tve-time" role="group" aria-label={label}>
       <label>{label}<input className="input" value={text} inputMode="numeric" onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } }} /></label>
       <div className="tve-nudge">
-        <button type="button" className="btn sm ghost" onClick={() => put(value - 5)} aria-label={`${label} 5 seconds earlier`}>−5</button>
-        <button type="button" className="btn sm ghost" onClick={() => put(value - 1)} aria-label={`${label} 1 second earlier`}>−1</button>
-        <button type="button" className="btn sm ghost" onClick={() => put(value + 1)} aria-label={`${label} 1 second later`}>+1</button>
-        <button type="button" className="btn sm ghost" onClick={() => put(value + 5)} aria-label={`${label} 5 seconds later`}>+5</button>
+        <Button size="sm" variant="ghost" onClick={() => put(value - 5)} aria-label={`${label} 5 seconds earlier`}>−5</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value - 1)} aria-label={`${label} 1 second earlier`}>−1</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value + 1)} aria-label={`${label} 1 second later`}>+1</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value + 5)} aria-label={`${label} 5 seconds later`}>+5</Button>
       </div>
     </div>
   )

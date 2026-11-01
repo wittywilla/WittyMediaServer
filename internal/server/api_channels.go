@@ -143,6 +143,7 @@ func (s *Server) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
+	s.noteChannelLogo(r.Context(), &c)
 	writeJSON(w, 200, c)
 }
 
@@ -202,6 +203,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
+	s.noteChannelLogo(r.Context(), c)
 	c, err = s.Channels.Get(r.Context(), id)
 	if err != nil {
 		channelError(w, err)
@@ -614,6 +616,8 @@ type guideChannel struct {
 	Categories  []string `json:"categories,omitempty"`
 	Accent      string   `json:"accent,omitempty"`
 	Favourite   bool     `json:"favourite,omitempty"`
+	// Brand names its logo in the logo service, for a channel with none of its own.
+	Brand *channelBrand `json:"brand,omitempty"`
 	HD          bool     `json:"hd,omitempty"`
 	Radio       bool     `json:"radio,omitempty"`
 	Encrypted   string   `json:"encrypted,omitempty"` // why it cannot be tuned
@@ -626,6 +630,33 @@ type guideChannel struct {
 	Alternative *livetv.Alternative `json:"alternative,omitempty"` // the same station, clear
 	Notices     []string            `json:"notices,omitempty"`
 	Programmes  []guideProgramme    `json:"programmes"`
+}
+
+// channelBrand is a name to look up in the logo service.
+type channelBrand struct {
+	Kind string `json:"kind"`
+	Name string `json:"name"`
+}
+
+func brandOf(c *channels.Channel) *channelBrand {
+	if kind, name := c.Brand(); name != "" {
+		return &channelBrand{kind, name}
+	}
+	return nil
+}
+
+// noteChannelLogo tells the logo service about a channel's name, so that it's
+// looked for once the owner has agreed to downloads. Nothing is fetched until then.
+func (s *Server) noteChannelLogo(ctx context.Context, c *channels.Channel) {
+	kind, name := c.Brand()
+	if name == "" {
+		return
+	}
+	if _, err := s.Store.EnsureLogo(ctx, kind, name); err != nil {
+		s.Log.WarnContext(ctx, "could not note a channel's logo", "cat", "tv", "channel", c.Name, "err", err)
+		return
+	}
+	s.logos().Kick()
 }
 
 // securityInfo is whether a channel is encrypted, in words.
@@ -661,7 +692,7 @@ func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChanne
 			continue
 		}
 		row := guideChannel{Key: "lib-" + strconv.FormatInt(c.ID, 10), Kind: "library", ID: c.ID, Number: c.Number, Name: c.Name,
-			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent}
+			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent, Brand: brandOf(c)}
 		if c.Logo != "" {
 			row.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 		}
@@ -812,6 +843,7 @@ type tuneInfo struct {
 	Playing     *guideProgramme `json:"playing,omitempty"`
 	Description string          `json:"description,omitempty"`
 	Accent      string          `json:"accent,omitempty"`
+	Brand       *channelBrand   `json:"brand,omitempty"`
 	// PositionSec is how far into the title it is at ServerTime.
 	PositionSec   float64       `json:"positionSec"`
 	ServerTime    int64         `json:"serverTime"`
@@ -888,7 +920,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	}
 	ls.Viewer(viewerName(r))
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
-		Description: c.Description, Accent: c.Look.Accent,
+		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
 		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
 	if c.Logo != "" {
 		info.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)

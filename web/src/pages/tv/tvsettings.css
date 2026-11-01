@@ -79,3 +79,6 @@
   .tvs-two { grid-template-columns: 1fr; }
 }
 .tvs-sug-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tvs-sug-name { display: flex; align-items: center; gap: var(--sp-2); }
+.tvs-sug-logo { flex: none; width: 3.5rem; height: 1.75rem; object-fit: contain; }
+.tvs-sug-logo.brand-logo-text { display: none; }

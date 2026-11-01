@@ -326,7 +326,7 @@ selector the page sets, so the list has one home: `OWN_BACK` in `tv.ts`. An app 
 Back has nothing left to go back through, the page goes to that address, for the app to catch. It's how a controller's B leaves a web view.
 
 `data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
-highlighted one, so it's one stop however many cells are drawn.
+highlighted one, so it's one stop however many cells are drawn. Moving up or down the page never jumps over a `role=grid`.
 
 From outside a scrolling list, only what can be seen in that list can be landed on. When the focused
 control goes away, such as a button that removes its own row, the next arrow lands on what's closest

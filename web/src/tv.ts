@@ -157,6 +157,14 @@ function move(dir: Dir): boolean {
   const col = cur.closest(COLUMNS)
   const onward = dir === 'left' || dir === 'right' ? others : others.filter((el) => { const c = el.closest(COLUMNS); return c === col || (col?.matches('.set-nav') && el.closest('.topbar')) })
   let best = ranked(boxes.get(cur)!, onward, (el) => boxes.get(el)!, dir).find(can)
+  // A programme grid is never jumped over on the way up or down the page, however far to the side it starts
+  // and however close what's beyond it. It's the reason for the page.
+  const grid = best && (dir === 'up' || dir === 'down') ? scope.querySelector('[role=grid]') : null
+  if (best && grid) {
+    const a = boxes.get(cur)!, b = boxes.get(best)!
+    const between = (s: DOMRect) => (dir === 'down' ? s.top >= a.bottom && s.bottom <= b.top : s.bottom <= a.top && s.top >= b.bottom)
+    best = others.find((el) => grid.contains(el) && can(el) && between(boxes.get(el)!)) || best
+  }
   // Past the end of a row: on to its See all if it has one. What's off to the side on some other row isn't
   // where someone going along this one means to go.
   const row = cur.closest('.row, [data-nav-group]')

@@ -191,14 +191,14 @@ This gives you logos for studios, networks, consoles, game studios and streaming
 
 ### Agreeing to logos
 
-Open **Settings → Metadata agents**, and find **Logos**. Press **I understand: download logos**, or **No thanks: use plain names**. Here's what you're agreeing to:
+Open **Settings → Metadata agents**, and find **Logos**. Everywhere a logo can be set, it explains this and links here until you've answered. Press **I understand: download logos**, or **No thanks: use plain names**. Here's what you're agreeing to:
 
 - Logos aren't part of this software. They're downloaded to your server, one at a time, from [Wikimedia Commons](https://commons.wikimedia.org/wiki/Commons:Licensing).
-- Your server tells Wikidata and Wikimedia Commons the name of each studio, network or console it finds, and nothing else.
+- Your server tells Wikidata and Wikimedia Commons the name of each studio, network, TV channel or console it finds, and nothing else.
 - Only files whose own page says they're free to reuse are taken.
 - Logos are still trademarks of their owners. They're shown only to name who made something, for your own use on your own server. If you share your server, that's for you to judge.
 
-Afterwards, **Download logos** turns it off, **Remove them** also deletes the pictures, and **Show the list** gives where each came from. Logos you uploaded stay. Uploading your own works without agreeing, since nothing is downloaded.
+Afterwards, **Download logos** turns it off, **Remove them** also deletes the pictures, and **Show the list** gives where each came from. Everyone signed in can see the same list under **Legal**, along with any channel wearing a picture from its channel list or its owner, which has no licence to state. Logos you uploaded stay. Uploading your own works without agreeing, since nothing is downloaded.
 
 ### Where logos come from, and the terms
 
@@ -210,7 +210,7 @@ Afterwards, **Download logos** turns it off, **Remove them** also deletes the pi
 | **Sent** | The name, and nothing else, at about one request a second |
 | **TMDB's logos** | Not used. TMDB's API terms don't allow derivatives, and logos have to be recoloured to read on any background |
 
-A logo is used without asking only if the name on Wikidata, or one of its other names, is the name in your library. Anything close but not exact is only offered under **Change**, where a person chooses. See [Logos](FIXING-METADATA.md#logos).
+A logo is used without asking only if the name on Wikidata, or one of its other names, is the name in your library or, for a tuner or playlist channel, [its name with the quality and country taken off](CHANNELS.md#logos-and-title-art). Anything close but not exact is only offered under **Change**, where a person chooses. See [Logos](FIXING-METADATA.md#logos).
 
 ### What happens to a picture
 

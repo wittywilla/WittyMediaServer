@@ -161,3 +161,6 @@
   .ed-undo, .ed-err { padding-inline: var(--sp-4); }
   .ed-logo-plate.big { width: 100%; }
 }
+.ed-logo-option { display: grid; align-content: start; gap: var(--sp-1); min-width: 0; }
+.ed-logo-source { color: var(--fg-2); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.ed-logo-source a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:music": "node scripts/test-music.mjs",
     "test:pads": "node scripts/test-pads.mjs",
-    "test:setup": "node scripts/test-setup.mjs"
+    "test:setup": "node scripts/test-setup.mjs",
+    "test:tv": "node scripts/test-tv-themes.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

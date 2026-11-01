@@ -107,7 +107,17 @@ The **Organise** section:
 
 ## Logos
 
-The **Logos** section lists each studio or network on a title, with **Change**, which opens a list of what's available, **Upload your own** and **Use the name alone**. A change applies everywhere that name appears on your server. Downloading logos needs your agreement first: see [The logo service](METADATA.md#the-logo-service).
+Anywhere a logo is needed, **Change** opens the same place. Search by name, and choose among what's found, with its source and licence beside it and a link to its page. Or use **Upload your own**, which a search won't replace unless you choose one, or **No logo: just the name**. A change applies everywhere that name appears on your server.
+
+| To change the logo of | Go to |
+|---|---|
+| A studio or network on a title | **Edit**, then **Logos**, or **Change logo** on its own page |
+| A channel from your library | Its editor, under **Logo**. You can also give it another name to go by |
+| A tuner or playlist channel | **Settings → Channels & tuners**, the tuner, then **Change** beside the channel. See [Logos and title art](CHANNELS.md#logos-and-title-art) |
+| A console or a game studio | A game's page, under **Logos** |
+| Any of these, or a streaming service | **Settings → Metadata agents**, under **Logos**, then **Find or set a logo**. A name nothing has yet can be started from there |
+
+Downloading logos needs your agreement first, and these places explain that and link to it. Uploading and choosing none work without it. See [The logo service](METADATA.md#the-logo-service).
 
 ## Refreshing a title
 

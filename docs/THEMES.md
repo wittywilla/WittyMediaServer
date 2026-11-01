@@ -95,16 +95,17 @@ To change a theme that's nearly right, press the download button on its card in 
 
 ## TV looks
 
-A theme can suggest how the TV guide looks, with two more settings in `:root`:
+WittyTV has themes of its own, and an app theme can suggest one, with one more setting in `:root`:
 
 ```css
 :root {
-  --tv-layout: classic;     /* classic (the cable box) or streaming (the modern look) */
-  --tv-colours: satellite;  /* cable, satellite, midnight or theme */
+  --tv-theme: modern;  /* modern, classic, satellite, teletext, listings, bigpicture, outline or compact */
 }
 ```
 
-It's only a suggestion. What a viewer picks under **Look** on the guide wins, then the theme's suggestion, then what the server's owner chose, and the guide tells people what the theme suggests. The built-in Midnight theme suggests its colours this way. See [Channels and live TV](CHANNELS.md#the-look).
+Modern, Big picture, Outline and Compact take their colours from your theme's tokens, so they look like part of it. The others have their own.
+
+It's only a suggestion. What a viewer picks comes first, then the app theme's suggestion, then what the server's owner chose for new viewers, and **Look** on the guide says which is showing. Custom can't be suggested, because it's each viewer's own. The built-in Midnight theme suggests Modern this way. A theme from before there were TV themes may set `--tv-layout` and `--tv-colours` instead, and those still work. See [Channels and live TV](CHANNELS.md#the-look).
 
 ## Packing it as a ZIP
 
@@ -253,7 +254,7 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `--sidebar` | `240px` | Side menu width |
 | `--card-w` | `148px` | Poster card width |
 | `--font` | `"Inter", "Segoe UI Variable Text", system-ui, …` | Every piece of text |
-| `--tv-layout`, `--tv-colours` | not set | See [TV looks](#tv-looks) |
+| `--tv-theme` | not set | See [TV looks](#tv-looks) |
 
 `color-scheme` (`dark` or `light`) in `:root` tells the browser how to draw its own controls.
 

@@ -10,6 +10,7 @@ import { BackLink, EmptyState, SeenBadge, Spinner } from '../components/common'
 import { IconCheck, IconEdit, IconImage, IconInfo, IconPlay, IconRefresh } from '../icons'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
+import LogoNotice from '../components/LogoNotice'
 
 export default function ShowPage() {
   const { id } = useParams()
@@ -103,6 +104,7 @@ export default function ShowPage() {
           {show.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
           {show.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
           <LegalNote kind="metadata" />
+          {show.network && <LogoNotice logos={[{ kind: 'network', name: show.network }]} />}
         </div>
       </div>
       {edit && <EditDetails target="show" id={show.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}

@@ -6,6 +6,8 @@ import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Section } from '../settings/ui'
 import BrandLogo from '../../components/BrandLogo'
+import { ChangeLogoButton, LogoConsentHint } from '../../components/edit/LogoChooser'
+import LegalNote from '../../components/LegalNote'
 import { BumperSection } from './BumperEditor'
 import DiscScenes from './DiscScenes'
 import './tveditor.css'
@@ -214,6 +216,7 @@ export default function ChannelEditor() {
             <button className="btn sm ghost" onClick={() => void reshuffle()}>Make a new schedule</button>
           </div>
           <p className="muted" style={{ fontSize: 13 }}>No logos come with the server. Use only pictures you have the right to use.</p>
+          <LegalNote kind="logos" className="set-legal" />
           {history.length > 0 && (
             <details className="tvs-details">
               <summary>Earlier versions ({history.length})</summary>
@@ -247,6 +250,9 @@ export default function ChannelEditor() {
 function LogoChoice({ look, def, opts, ownLogo, set }: { look: ChannelLook; def: Definition; opts: EditorOptions; ownLogo: boolean; set: (l: ChannelLook) => void }) {
   const value = look.logoKind === 'none' ? 'none' : look.logoName ? `${look.logoKind}|${look.logoName}` : ''
   const brand = brandOf(def, look)
+  // A name of someone's own, not one in this library's lists.
+  const other = !!look.logoName && !opts.networks.some((n) => n.name === look.logoName) && !opts.studios.includes(look.logoName)
+  const [typing, setTyping] = useState('')
   return (
     <div className="tve-logo">
       <label>Logo
@@ -258,12 +264,19 @@ function LogoChoice({ look, def, opts, ownLogo, set }: { look: ChannelLook; def:
         }}>
           <option value="">Worked out from what it plays</option>
           <option value="none">Just its name</option>
+          {other && <option value={value}>{look.logoName}</option>}
           {opts.networks.length > 0 && <optgroup label="Networks">{opts.networks.map((n) => <option key={n.name} value={`network|${n.name}`}>{n.name}</option>)}</optgroup>}
           {opts.studios.length > 0 && <optgroup label="Studios">{opts.studios.map((n) => <option key={n} value={`studio|${n}`}>{n}</option>)}</optgroup>}
         </select>
-        <small className="tvs-help">{ownLogo ? 'Your own uploaded logo comes first, while you have one. ' : ''}Logos are an optional download: <Link to="/settings/metadata">Settings, Metadata agents</Link>. Without one the guide uses the channel's name.</small>
+        <small className="tvs-help">{ownLogo ? 'Your own uploaded logo comes first, while you have one. ' : ''}Without one the guide uses the channel's name.</small>
       </label>
+      <form className="tve-logo-name" onSubmit={(e) => { e.preventDefault(); if (typing.trim()) { set({ logoKind: 'network', logoName: typing.trim().slice(0, 120) }); setTyping('') } }}>
+        <label>Or another name<input className="input" value={typing} maxLength={120} placeholder="Any network or studio" onChange={(e) => setTyping(e.target.value)} /></label>
+        <button className="btn sm" disabled={!typing.trim()}>Use it</button>
+      </form>
       {brand && <span className="tve-logo-show"><BrandLogo kind={brand.kind} name={brand.name} /></span>}
+      {brand && <ChangeLogoButton kind={brand.kind} name={brand.name} label="Search, upload or choose none" />}
+      <LogoConsentHint compact />
     </div>
   )
 }

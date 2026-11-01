@@ -1,3 +1,4 @@
+import type { LogoKind } from '../../components/BrandLogo'
 import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
@@ -29,7 +30,7 @@ export type EncryptedHelpPage = {
   title: string; sections: { heading: string; paragraphs?: string[]; bullets?: string[] }[]
   devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
 }
-export type GuidePage = { now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming' }
+export type GuidePage = { now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming'; theme?: string }
 export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
@@ -78,7 +79,7 @@ export type Reminder = { id: number; channel: string; title: string; sub?: strin
 export type DriverField = { key: string; label: string; kind: 'text' | 'url' | 'path' | 'password' | 'select' | 'number' | 'textarea' | 'toggle'; help?: string; default?: string; required?: boolean; options?: string[] }
 export type Driver = { id: string; name: string; description: string; status: 'tested' | 'mock' | 'untested' | 'planned'; platforms?: string[]; fields: DriverField[]; scans: boolean; planned?: boolean; available: boolean; note?: string }
 export type Tuner = { id: number; driver: string; name: string; options: Record<string, string>; enabled: boolean; maxStreams: number; lastScan: number | null; lastError: string; detail: string; channels: number; encrypted: number; clear: number; inUse: number }
-export type TunerChannel = { id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
+export type TunerChannel = { logoSet?: string; logoUrl?: string; brand?: { kind: LogoKind; name: string }; id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
 export type ScanState = { running: boolean; percent: number; found: number; message?: string; error?: string; added: number; clear: number; encrypted: number; unknown: number }
 export type Found = { driver: string; name: string; detail?: string; options: Record<string, string> }
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }

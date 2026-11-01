@@ -356,3 +356,72 @@ func TestOwnLogoStaysAfterDeclining(t *testing.T) {
 		t.Error("the owner's own logo was removed")
 	}
 }
+
+func TestChannelBrandName(t *testing.T) {
+	for in, want := range map[string]string{
+		"PBS":                  "PBS",
+		"NBC HD":               "NBC",
+		"BBC One HD":           "BBC One",
+		"BBC One FHD":          "BBC One",
+		"Discovery Channel":    "Discovery Channel",
+		"Discovery (US)":       "Discovery",
+		"HBO [UK] 1080p":       "HBO",
+		"US: Cartoon Network":  "Cartoon Network",
+		"UK | Sky Atlantic HD": "Sky Atlantic",
+		"[FR] Arte":            "Arte",
+		"ESPN.us":              "ESPN",
+		"Comedy Central +1":    "Comedy Central",
+		"Fox (East)":           "Fox",
+		"Comedy Central":       "Comedy Central",
+		"WABC-TV 7":            "WABC-TV",
+		"KQED 9.1":             "KQED",
+		"Channel 4":            "",
+		"Channel 12 HD":        "",
+		"News":                 "",
+		"Movies":               "",
+		"Movies HD":            "",
+		"Movies 24/7 (US)":     "",
+		"Local TV":             "",
+		"Community Access":     "",
+		"12":                   "",
+		"":                     "",
+		"http://evil.example/": "",
+		"a":                    "",
+	} {
+		if got := ChannelBrandName(in); got != want {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+	if got := ChannelBrandName(strings.Repeat("Very Long Name ", 20)); got != "" {
+		t.Errorf("something that long isn't a station's name: %q", got)
+	}
+}
+
+func TestListLogos(t *testing.T) {
+	s := logoStore(t)
+	ctx := context.Background()
+	for _, n := range []string{"Open Network", "Open_Studio", "Other", "100% Pictures"} {
+		if _, err := s.EnsureLogo(ctx, LogoNetwork, n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.EnsureLogo(ctx, LogoStudio, "Open Pictures"); err != nil {
+		t.Fatal(err)
+	}
+	all, total, err := s.ListLogos(ctx, "", "", 0, 0)
+	if err != nil || total != 5 || len(all) != 5 {
+		t.Fatalf("all: %d %d %v", total, len(all), err)
+	}
+	if l, total, _ := s.ListLogos(ctx, LogoNetwork, "open", 100, 0); total != 2 || len(l) != 2 {
+		t.Errorf("by kind and name: %d", total)
+	}
+	if l, total, _ := s.ListLogos(ctx, "", "open", 1, 1); total != 3 || len(l) != 1 {
+		t.Errorf("a page: %d %d", total, len(l))
+	}
+	if _, total, _ := s.ListLogos(ctx, "", "%", 100, 0); total != 5 {
+		t.Errorf("a name with nothing to search on is everything: %d", total)
+	}
+	if _, total, _ := s.ListLogos(ctx, "", "' OR 1=1 --", 100, 0); total != 0 {
+		t.Errorf("that's only words: %d", total)
+	}
+}

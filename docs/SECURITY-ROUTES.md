@@ -65,7 +65,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/logos/status` | Signed-in | Whether downloads are agreed to, and the source. Counts for admins only |
 | `PUT /api/logos/consent` | Admin | Body says yes or no |
 | `POST /api/logos/lookup` | Signed-in | Up to 200 names. Only an admin's request can add a name or ask a source |
-| `GET /api/logos/credits` | Signed-in | limits, on studios and networks: those of titles the account may see |
+| `GET /api/logos` | Admin | Kind known. Bounded page |
+| `GET /api/logos/credits` | Signed-in | limits, on studios and networks: those of titles and channels the account may see |
 | `GET /api/logos/preview` | Admin | Downloads agreed to. An address on the source's own host. Internet-only client, pictures only |
 | `GET /api/logos/{id}/image` | Signed-in | Numeric id. One of three variants, from the server's own files. Pictures only |
 | `GET /api/logos/{id}/candidates` | Admin | Logo exists. Downloads agreed to |

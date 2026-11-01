@@ -45,5 +45,5 @@
   --sidebar: 240px;
   --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  --tv-colours: midnight;  /* the TV guide's suggested colours */
+  --tv-theme: modern;  /* the WittyTV theme it suggests: Modern, which takes these colours */
 }

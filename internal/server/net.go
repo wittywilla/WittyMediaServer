@@ -79,7 +79,13 @@ func (s *Server) gate(next http.Handler) http.Handler {
 		if c.Where == remote.Internet && !c.Secure && !(c.Unverified && remote.SecureHint(r)) {
 			s.outside.notePlain()
 			if (r.Method == http.MethodGet || r.Method == http.MethodHead) && strings.HasPrefix(st.publicURL, "https://") {
-				http.Redirect(w, r, st.publicURL+r.URL.RequestURI(), http.StatusPermanentRedirect)
+				// Not RequestURI: for a request line without a leading slash that gives
+				// the text as it came, and "https://here" + "@elsewhere/" is elsewhere.
+				to := st.publicURL + r.URL.EscapedPath()
+				if r.URL.RawQuery != "" {
+					to += "?" + r.URL.RawQuery
+				}
+				http.Redirect(w, r, to, http.StatusPermanentRedirect)
 				return
 			}
 			s.refuse(w, r, "This server only accepts encrypted connections from outside its home network.")

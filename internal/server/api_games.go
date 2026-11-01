@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"

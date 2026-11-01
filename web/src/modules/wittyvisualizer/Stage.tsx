@@ -11,8 +11,16 @@ import './visualizer.css'
 // and the whole screen without starting over.
 
 let session: Session | null = null
+let sessionOwner: StageProps['owner']
 let mounted = 0
-const getSession = (host: VisualizerHost) => (session ??= new Session(host))
+const getSession = (host: VisualizerHost, owner: StageProps['owner']) => {
+  if (session && owner !== sessionOwner) {
+    session.discard()
+    session = null
+  }
+  sessionOwner = owner
+  return (session ??= new Session(host))
+}
 export const currentSession = () => session
 
 const Svg = ({ d }: { d: string }) => <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d={d} /></svg>
@@ -33,6 +41,9 @@ function IconButton({ icon, label, onClick, pressed }: { icon: string; label: st
 
 export type StageProps = {
   host: VisualizerHost
+  // Who this is for, on an app with several people. Settings, and having read the flashing
+  // notice, are each person's own, and the page can outlive a change of person.
+  owner?: string | number
   // Where the sound comes from: the media element that's playing.
   media: () => HTMLMediaElement | null
   place: Place
@@ -40,8 +51,8 @@ export type StageProps = {
   onClose: () => void
 }
 
-export function VisualizerStage({ host, media, place, onPlace, onClose }: StageProps) {
-  const s = getSession(host)
+export function VisualizerStage({ host, owner, media, place, onPlace, onClose }: StageProps) {
+  const s = getSession(host, owner)
   const [, force] = useState(0)
   const rerender = useCallback(() => force((n) => n + 1), [])
   useSyncExternalStore(s.subscribe, () => s.status)

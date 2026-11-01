@@ -75,6 +75,7 @@ export class Session {
   private observer: IntersectionObserver | null = null
   private sizer: ResizeObserver | null = null
   private slowFrames = 0
+  private discarded = false
 
   constructor(host: VisualizerHost) {
     this.host = host
@@ -209,6 +210,8 @@ export class Session {
 
   // Stops everything and lets go of the graphics card.
   stop() {
+    if (this.discarded) return
+    clearTimeout(this.saveTimer) // saved just below
     this.wanted = false
     this.pauseLoop()
     // A context told to let go can't be used again, so the next time gets a new canvas.
@@ -224,6 +227,24 @@ export class Session {
     this.host.saveSettings(this.settings)
     this.status = { ...this.status, running: false, tap: 'closed' }
     this.emit()
+  }
+
+  // For a change of person: stops as stop does, but saves nothing, as what would be saved
+  // is the last person's and whoever is signed in now is someone else.
+  discard() {
+    if (this.discarded) return
+    this.discarded = true
+    clearTimeout(this.saveTimer)
+    this.wanted = false
+    this.pauseLoop()
+    this.observer?.disconnect()
+    this.sizer?.disconnect()
+    this.observer = this.sizer = null
+    this.renderer?.dispose()
+    this.renderer = null
+    this.canvas.remove()
+    this.listeners.clear()
+    document.removeEventListener('visibilitychange', this.onVisibility)
   }
 
   // Moves the canvas to where it's being shown.

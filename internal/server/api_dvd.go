@@ -63,7 +63,8 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	q, maxHeight := s.quality(r)
 	prefs := dvdsession.Prefs{
-		Wide: true, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r), LowPower: s.DB.GetSetting(r.Context(), "lowPower", "0") == "1",
+		Owner: userFrom(r).ID,
+		Wide:  true, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r), LowPower: s.DB.GetSetting(r.Context(), "lowPower", "0") == "1",
 		MenuLanguage:     firstNonEmpty(b.MenuLanguage, s.DB.GetSetting(r.Context(), "menuLanguage", "en")),
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),

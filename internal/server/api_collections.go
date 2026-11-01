@@ -47,6 +47,9 @@ func (s *Server) handleCreateCollection(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 403, "this profile can't make collections")
 		return
 	}
+	if !s.underLimit(w, r, u, `SELECT COUNT(*) FROM collections WHERE owner_id = ?`, maxCollectionsPerAccount, "collections") {
+		return
+	}
 	var b collectionBody
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())

@@ -6,7 +6,8 @@ import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
-import { forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
+import BrandLogo from '../../components/BrandLogo'
+import { brandOf, forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
 
@@ -35,6 +36,7 @@ function Overview() {
       <GuideSources />
       <Options />
       <LegalNote kind="tv" className="set-legal" />
+      <LegalNote kind="logos" className="set-legal" />
     </>
   )
 }
@@ -95,7 +97,7 @@ function LibraryChannels() {
           {list.map((c) => (
             <li key={c.id} className="tvs-item">
               <span className="tvs-num">{c.number}</span>
-              {c.logo ? <img className="tvs-logo" src={mediaUrl(`/api/channels/${c.id}/logo?v=${c.logo}`)} alt="" /> : null}
+              {c.logo ? <img className="tvs-logo" src={mediaUrl(`/api/channels/${c.id}/logo?v=${c.logo}`)} alt="" /> : brandOf(c.definition, c.look) ? <span className="tvs-logo"><BrandLogo kind={brandOf(c.definition, c.look)!.kind} name={brandOf(c.definition, c.look)!.name} label={false} /></span> : null}
               <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: 'Simple', rules: 'Rules', timetable: 'Timetable' } as const)[c.definition.mode]}</span></div>
               <Switch checked={c.enabled} label={`${c.name} is on the air`} onChange={(v) => void setOn(c, v)} />
               <Link className="btn sm ghost" to={`edit/${c.id}`}><IconEdit /> Edit</Link>
@@ -111,7 +113,7 @@ function LibraryChannels() {
           <div className="tvs-sugs">
             {items.map((s) => (
               <div key={s.key} className="tvs-sug">
-                <b>{s.name}</b>
+                {brandOf(s.definition) ? <b className="tvs-sug-name"><BrandLogo kind={brandOf(s.definition)!.kind} name={brandOf(s.definition)!.name} label={false} className="tvs-sug-logo" /><span>{s.name}</span></b> : <b>{s.name}</b>}
                 <span>{s.description}</span>
                 <span className="tvs-dim">{s.stats.titles} titles · {fmtRuntime(s.stats.seconds)}</span>
                 <div className="tvs-sug-actions">

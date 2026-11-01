@@ -509,7 +509,8 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
-	rule, hasRule := ctx.Value(rulesKey{}).(*ruleSet).test(c.path)
+	rules, _ := ctx.Value(rulesKey{}).(*ruleSet)
+	rule, hasRule := rules.test(c.path)
 	if hasRule {
 		if rule.Title != "" {
 			it.Title = rule.Title

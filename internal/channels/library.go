@@ -63,6 +63,27 @@ func (s *Store) AddBumper(ctx context.Context, itemID int64, uploaded bool) erro
 // ErrBundledBumper: it belongs to a commercials library, so it is managed there.
 var ErrBundledBumper = errors.New("this video comes from a commercials library: remove it there")
 
+// MoveBumperFolder points the uploads' library, and the videos in it, at a new
+// folder. It returns how many videos moved: none, usually.
+func (s *Store) MoveBumperFolder(ctx context.Context, libraryID int64, dir string) (int64, error) {
+	var old string
+	err := s.DB.QueryRowContext(ctx, `SELECT path FROM library_paths WHERE library_id = ? LIMIT 1`, libraryID).Scan(&old)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil || old == dir {
+		return 0, err
+	}
+	if _, err := s.DB.ExecContext(ctx, `UPDATE library_paths SET path = ? WHERE library_id = ? AND path = ?`, dir, libraryID, old); err != nil {
+		return 0, err
+	}
+	res, err := s.DB.ExecContext(ctx, `UPDATE items SET path = ? || substr(path, ?) WHERE library_id = ? AND substr(path, 1, ?) = ?`, dir, len(old)+1, libraryID, len(old), old)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 // RemoveBumper takes a video off the list. For an upload it says so, and the
 // caller removes the file and the item too.
 func (s *Store) RemoveBumper(ctx context.Context, itemID int64) (uploaded bool, err error) {

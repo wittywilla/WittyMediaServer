@@ -221,6 +221,10 @@ Touch makes every control taller automatically. [Ten feet](#native-apps-and-ten-
 Check a new page at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in one dark and one
 light theme.
 
+
+**Things with arrows of their own.** `data-nav-group` on a set of controls: coming back to it lands where you left it.
+`data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
+highlighted one, so it's one stop however many cells are drawn, and cells scrolled out of sight can't be jumped to.
 ## Adding a page
 
 1. **Start from the page's job.** What is the one main action? That gets the `.primary` button.

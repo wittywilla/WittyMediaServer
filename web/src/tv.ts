@@ -119,7 +119,9 @@ function focusGoneFrom(scope: Node): DOMRect | null {
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
-  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)))
+  // data-nav-skip: part of something with its own arrows, such as a programme grid,
+  // which is one stop from outside however many cells are drawn.
+  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)) && !el.hasAttribute('data-nav-skip'))
   if (!all.length) return false
   // Read every position first, in one go, then look closer only at the likeliest few:
   // a library can have thousands of cards, and this runs on every key press.

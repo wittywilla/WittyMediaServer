@@ -35,6 +35,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/server"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -247,6 +248,8 @@ func cmdServe(args []string) int {
 		log.Error("listen", "addr", cfg.Listen, "err", err)
 		return 1
 	}
+	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
+	ln = srv.Conns.Wrap(ln)
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
 	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {

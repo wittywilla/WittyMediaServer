@@ -213,6 +213,7 @@ func (s *Server) reloadNet(ctx context.Context) *netState {
 // port serves.
 func (s *Server) StartRemote(ctx context.Context, handler http.Handler) {
 	s.HTTPS = remote.NewHTTPS(handler, s.Cfg.DataDir, s.Log)
+	s.HTTPS.Conns = s.Conns
 	s.Mapper = &portmap.Keeper{Log: s.Log.With("cat", "remote")}
 	if err := s.applyNet(ctx); err != nil {
 		s.Log.WarnContext(ctx, "could not set up remote access", "cat", "remote", "err", err)

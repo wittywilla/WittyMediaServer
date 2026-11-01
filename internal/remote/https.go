@@ -60,6 +60,8 @@ type HTTPS struct {
 	handler  http.Handler
 	cacheDir string // Let's Encrypt account and certificates
 	log      *slog.Logger
+	// Conns counts this port's connections with the home port's; set before Apply.
+	Conns *ConnLimit
 
 	mu        sync.Mutex
 	cfg       HTTPSConfig
@@ -128,6 +130,9 @@ func (h *HTTPS) Apply(cfg HTTPSConfig) error {
 	ln, err := net.Listen("tcp", net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)))
 	if err != nil {
 		return h.failed(fmt.Errorf("port %d can't be opened: %w", cfg.Port, err))
+	}
+	if h.Conns != nil {
+		ln = h.Conns.Wrap(ln)
 	}
 	srv := &http.Server{
 		Handler:           h.handler,

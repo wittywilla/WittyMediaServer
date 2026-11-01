@@ -29,6 +29,9 @@ type netState struct {
 	capTag     string // names those limits in stream IDs
 }
 
+// NetPolicy is the owner's current choices about networks.
+func (s *Server) NetPolicy() *remote.Policy { return s.state().policy }
+
 func (s *Server) state() *netState {
 	if st := s.netState.Load(); st != nil {
 		return st

@@ -26,6 +26,13 @@ import (
 	"strings"
 )
 
+// How many connections can be open at once. A household is nowhere near this: a browser opens
+// 6 per server at most, plus a socket per tab, and that many is the fewest that makes sense.
+const (
+	DefaultConnections = 2048
+	minConnections     = 16
+)
+
 type Config struct {
 	DataDir      string
 	Listen       string
@@ -39,13 +46,15 @@ type Config struct {
 	PublicURL    string // optional external URL used in generated links
 	// RemoteAccess turns remote access on regardless of Settings, for servers
 	// nobody can reach from a home network first (a rented server).
-	RemoteAccess   bool
+	RemoteAccess bool
 	// SetupFromHome lets the first account be made from the home network without the
 	// setup code. Off, only the server's own desktop goes without it.
-	SetupFromHome bool
+	SetupFromHome  bool
 	TrustedProxies string // reverse proxies whose forwarded headers are believed, added to those in Settings
 	Dev            bool   // serve the web UI from web/dist on disk instead of the embedded copy
 	MaxTranscode   int
+	// MaxConnections is how many connections can be open at once, on both ports together.
+	MaxConnections int
 	WatchStdin     bool // exit when stdin closes (used by the tray launcher)
 	OpenBrowser    bool // open the setup page on first start (desktops only)
 
@@ -66,6 +75,7 @@ type File struct {
 	FFmpeg         string `json:"ffmpeg,omitempty"`
 	FFprobe        string `json:"ffprobe,omitempty"`
 	MaxTranscodes  int    `json:"maxTranscodes,omitempty"`
+	MaxConnections int    `json:"maxConnections,omitempty"`
 	PublicURL      string `json:"publicUrl,omitempty"`
 	RemoteAccess   bool   `json:"remoteAccess,omitempty"`
 	SetupFromHome  bool   `json:"setupFromHome,omitempty"`
@@ -251,6 +261,13 @@ func Parse(args []string) (*Config, error) {
 	if v, err := strconv.Atoi(os.Getenv("WMS_MAX_TRANSCODES")); err == nil && v > 0 {
 		maxDef = v
 	}
+	connDef := DefaultConnections
+	if f.MaxConnections != 0 {
+		connDef = f.MaxConnections
+	}
+	if v, err := strconv.Atoi(os.Getenv("WMS_MAX_CONNECTIONS")); err == nil && v != 0 {
+		connDef = v
+	}
 	openDef := f.OpenBrowser == nil || *f.OpenBrowser
 
 	c := &Config{ConfigFile: path, Portable: portable}
@@ -271,11 +288,15 @@ func Parse(args []string) (*Config, error) {
 	fs.BoolVar(&c.WatchStdin, "watch-stdin", os.Getenv("WMS_WATCH_STDIN") == "1", "shut down when stdin closes (parent process control)")
 	fs.BoolVar(&c.OpenBrowser, "open-browser", openDef && os.Getenv("WMS_NO_BROWSER") != "1", "open the setup page in the browser on first start")
 	fs.IntVar(&c.MaxTranscode, "max-transcodes", maxDef, "maximum concurrent transcodes")
+	fs.IntVar(&c.MaxConnections, "max-connections", connDef, "maximum connections open at once, for the whole server (WMS_MAX_CONNECTIONS)")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 	if c.MaxTranscode < 1 {
 		return nil, errors.New("max-transcodes must be at least 1")
+	}
+	if c.MaxConnections < minConnections {
+		return nil, fmt.Errorf("max-connections must be at least %d: a single browser can use that many", minConnections)
 	}
 	c.TranscodeDir = env("WMS_TRANSCODE_DIR", or(rel(f.TranscodeDir), filepath.Join(c.DataDir, "transcode")))
 	c.CacheDir = env("WMS_CACHE_DIR", or(rel(f.CacheDir), filepath.Join(c.DataDir, "cache")))

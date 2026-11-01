@@ -64,8 +64,9 @@ type Server struct {
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }
-	HTTPS     *remote.HTTPS   // the HTTPS port; nil until StartRemote
-	Mapper    *portmap.Keeper // automatic port mapping; nil until StartRemote
+	HTTPS     *remote.HTTPS     // the HTTPS port; nil until StartRemote
+	Conns     *remote.ConnLimit // open connections on both ports; nil for none
+	Mapper    *portmap.Keeper   // automatic port mapping; nil until StartRemote
 	// Channels and Live TV (see api_channels.go, api_tuners.go).
 	Channels   *channels.Store
 	TV         *livetv.Manager
@@ -428,7 +429,9 @@ func (s *Server) limits(next http.Handler) http.Handler {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			limitBody(w, r)
 		}
-		next.ServeHTTP(w, r)
+		g := newWriteGuard(w, r.URL.Path)
+		defer g.finish()
+		next.ServeHTTP(g, r)
 	})
 }
 

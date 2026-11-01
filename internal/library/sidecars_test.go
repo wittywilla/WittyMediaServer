@@ -1,8 +1,11 @@
 package library
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -190,5 +193,45 @@ func TestALargeInfoJSONCostsLittle(t *testing.T) {
 	v, _ := readSidecar(p)
 	if v == nil || v.Title != "Made Up" || len(v.Tags) != 2 || len(v.Comments) != 1 || v.Comments[0].Text != "hi" || string(v.Custom) != `{"k":1}` {
 		t.Errorf("%+v", v)
+	}
+}
+
+type zeros struct{}
+
+func (zeros) Read(b []byte) (int, error) { clear(b); return len(b), nil }
+
+// A feed chooses how big an episode is, and a full disk stops the database too.
+func TestDownloadLeavesRoomOnTheDisk(t *testing.T) {
+	var buf bytes.Buffer
+	src := bytes.NewReader(make([]byte, 3<<20))
+	free := int64(1 << 40)
+	n, err := copyLeavingRoom(&buf, src, func() int64 { return free })
+	if err != nil || n != 3<<20 {
+		t.Fatalf("plenty of room: %d %v", n, err)
+	}
+	buf.Reset()
+	calls := 0
+	n, err = copyLeavingRoom(io.Discard, io.LimitReader(zeros{}, 4<<30), func() int64 {
+		calls++
+		if calls > 1 {
+			return keepFree - 1
+		}
+		return keepFree + 1
+	})
+	if !errors.Is(err, ErrNoRoom) {
+		t.Errorf("it filled up: %v", err)
+	}
+	if n > roomCheckEvery {
+		t.Errorf("wrote %d after running out", n)
+	}
+	src = bytes.NewReader([]byte("x"))
+	if _, err := copyLeavingRoom(&buf, src, func() int64 { return 1 }); !errors.Is(err, ErrNoRoom) {
+		t.Errorf("no room at the start: %v", err)
+	}
+	// Unknown room isn't a reason to stop.
+	buf.Reset()
+	src = bytes.NewReader([]byte("x"))
+	if n, err := copyLeavingRoom(&buf, src, func() int64 { return -1 }); err != nil || n != 1 {
+		t.Errorf("unknown: %d %v", n, err)
 	}
 }

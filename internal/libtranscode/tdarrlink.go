@@ -83,6 +83,10 @@ func (e *Engine) SaveTdarr(ctx context.Context, s TdarrSettings, key string, cle
 	if len(key) > 512 {
 		return errors.New("that API key is too long")
 	}
+	// A key belongs to the address it was typed for: at a new address, it's asked for again.
+	if key == "" && s.URL != e.LoadTdarr(ctx).URL {
+		clear = true
+	}
 	s.KeySet = false
 	b, err := json.Marshal(s)
 	if err != nil {
@@ -110,8 +114,12 @@ func (e *Engine) tdarrClient(ctx context.Context, address, key string) (*tdarr.C
 	if address == "" {
 		address = s.URL
 	}
+	// The saved key goes to the saved address and no other, whatever is typed. It's a secret of
+	// someone else's program, and this page never shows it.
 	if key == "" {
-		key = e.DB.GetSetting(ctx, tdarrSecretKey, "")
+		if base, err := tdarr.CleanAddress(address); err == nil && base == s.URL {
+			key = e.DB.GetSetting(ctx, tdarrSecretKey, "")
+		}
 	}
 	return tdarr.New(address, key)
 }

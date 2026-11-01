@@ -108,10 +108,18 @@ func checkLibraryRoots(ctx context.Context, e *DoctorEnv) []Issue {
 			Fix:  "If a drive is unplugged, plug it back in. If the folder moved, tell this program where it went.",
 			Steps: []string{
 				"If it's on a drive that's away, connect the drive. Nothing else is needed.",
-				"If it moved: wms doctor remap --from \"" + r.path + "\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair.",
+				remapStep(e, r.path),
 			}})
 	}
 	return out
+}
+
+// remapStep says how to tell it, in the terms of whoever is asking.
+func remapStep(e *DoctorEnv, path string) string {
+	if e.InServer {
+		return "If it moved, say where it went, with the button below."
+	}
+	return "If it moved: wms doctor remap --from \"" + path + "\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair."
 }
 
 func hashOf(s string) string {

@@ -2,6 +2,7 @@
    push the page wider than a phone. */
 
 .rp-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.rp-note { margin-bottom: var(--sp-4); min-width: 0; overflow-wrap: anywhere; }
 .rp-start, .rp-allsafe, .rp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .rp-start { padding: var(--sp-3) 0 var(--sp-1); }
 .rp-allsafe { padding: var(--sp-2) 0 var(--sp-3); }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -154,6 +155,9 @@ func recoverDatabase(ctx context.Context, e *DoctorEnv, f *FixContext) (string, 
 	}
 	if len(lost) > 0 {
 		said += " Affected: " + strings.Join(lost, ", ") + "."
+		if slices.Contains(lost, "items") {
+			said += " A scan of your libraries finds titles whose files are still there again, without what was known about them."
+		}
 	}
 	rel, err := filepath.Rel(e.Data, f.copyDir)
 	if err != nil {
@@ -442,7 +446,7 @@ func checkResetState(_ context.Context, e *DoctorEnv) []Issue {
 				Fix:  "Moves the file to the safety copy. Nothing else changes."})
 		case now.Sub(b.ModTime()) > staleRequest:
 			out = append(out, Issue{Key: "reset-state:stale", Severity: SevWarn, Title: "A reset is still waiting from " + b.ModTime().Format("2 Jan 2006 15:04"), Safety: SafetyCareful, data: "reset",
-				What: "Someone asked for this server to be reset (" + r.Mode + "), and it will happen the next time the server starts, which would clear every account and setting unless a copy is kept.",
+				What: "Someone asked for this server to be reset, and it will happen the next time the server starts. Every account and setting would go" + resetKeeps(r.Mode) + ".",
 				Fix:  "Takes the request back, so the next start is an ordinary one. If you do want the reset, leave this and restart the server."})
 		}
 	}
@@ -478,6 +482,16 @@ func checkResetState(_ context.Context, e *DoctorEnv) []Issue {
 		}
 	}
 	return out
+}
+
+func resetKeeps(mode string) string {
+	switch mode {
+	case reset.ModeDelete:
+		return " for good, along with copies from earlier resets"
+	case reset.ModeRestore:
+		return ", replaced by a copy from an earlier reset"
+	}
+	return ", with a copy kept"
 }
 
 func fixResetState(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) (string, error) {

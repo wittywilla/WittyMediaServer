@@ -127,11 +127,16 @@ export default function Repair() {
     <>
       <PageHead title="Repair" desc="Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first." />
       {TABS.length > 1 && <Tabs value="check" items={TABS} label="Repair" />}
-      {view.lastRepair && !view.lastRepair.ok && <Notice tone="danger" title="The repaired database couldn’t take over">{view.lastRepair.error} The old database is still in use. Run the check again.</Notice>}
-      {view.lastRepair?.ok && <Notice tone="ok" title="The repaired database is in use">It took over on {fmtDateTime(new Date(view.lastRepair.at).getTime())}. The old file is kept in <code>{view.lastRepair.kept}</code>.</Notice>}
+      {view.lastRepair && (
+        <div className="rp-note">
+          {view.lastRepair.ok
+            ? <Notice tone="ok" title="The repaired database is in use">It took over on {fmtDateTime(new Date(view.lastRepair.at).getTime())}. The old file is kept in <code>{view.lastRepair.kept}</code>.</Notice>
+            : <Notice tone="danger" title="The repaired database couldn’t take over">{view.lastRepair.error} The old database is still in use. Run the check again.</Notice>}
+        </div>
+      )}
       <Section title="Check this server" desc={<>Your media files are never changed or removed. To check a disc or a drive’s speed and health, use <Link to="/settings/diagnoser">WittyDiagnoser</Link>.</>}>
         <div className="rp-start">
-          <button type="button" className="btn primary big" onClick={start} disabled={running}>{view.running === 'check' ? 'Checking…' : rep ? 'Check again' : 'Check this server'}</button>
+          <button type="button" className={'btn big' + (safeCount > 0 ? '' : ' primary')} onClick={start} disabled={running}>{view.running === 'check' ? 'Checking…' : rep ? 'Check again' : 'Check this server'}</button>
           {rep && !running && <span className="rp-when">Last checked {fmtDateTime(rep.at)}</span>}
         </div>
         {running && <progress className="dgn-bar" max={1} value={view.fraction} aria-label="How far along it is" />}
@@ -151,9 +156,11 @@ export default function Repair() {
         )}
       </Section>
       {view.restart && (
-        <Notice tone="warn" title="A restart finishes the repair" action={<button type="button" className="btn" onClick={restart}>Restart now</button>}>
-          The new database takes over when the server next starts, and anyone watching is interrupted. {view.canRestart ? '' : 'This server can’t restart itself: stop it and start it again.'}
-        </Notice>
+        <div className="rp-note">
+          <Notice tone="warn" title="A restart finishes the repair" action={<button type="button" className="btn" onClick={restart}>Restart now</button>}>
+            The new database takes over when the server next starts, and anyone watching is interrupted. {view.canRestart ? '' : 'This server can’t restart itself: stop it and start it again.'}
+          </Notice>
+        </div>
       )}
       {view.results.length > 0 && <Results results={view.results} copy={copy} />}
       {rep && AREAS.map((a) => {
@@ -168,7 +175,7 @@ export default function Repair() {
         )
       })}
       {rep && rep.issues.length === 0 && !running && <div className="set-card set-empty"><b>Nothing to report</b><p>{rep.checks.length} checks looked at this server and found nothing wrong.</p></div>}
-      <div ref={remapBox} className="rp-anchor"><Remap from={remapFrom} setFrom={setRemapFrom} twoFactor={view.twoFactor} onDone={load} /></div>
+      <div ref={remapBox} className="rp-anchor"><Remap from={remapFrom} setFrom={setRemapFrom} twoFactor={view.twoFactor} onDone={() => void start()} /></div>
       {view.copies.length > 0 && (
         <Section title="Safety copies" desc="Made before a repair. The newest five are kept, in the backups folder inside the data folder. What a repair removed is in each one’s removed folder.">
           <ul className="rp-copies">{view.copies.map((c) => <li key={c} className="mono">{c}</li>)}</ul>

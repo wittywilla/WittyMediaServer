@@ -127,7 +127,7 @@ func (s *Server) handleMusicSongs(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/music/likes?library=: the ids of this person's liked songs.
 func (s *Server) handleMusicLikes(w http.ResponseWriter, r *http.Request) {
-	ids, err := s.Store.LikedTracks(r.Context(), userFrom(r).ID, int64(qInt(r, "library", 0)))
+	ids, err := s.Store.LikedTracks(r.Context(), userFrom(r).ID, int64(qInt(r, "library", 0)), s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

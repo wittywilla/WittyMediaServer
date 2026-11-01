@@ -50,8 +50,8 @@ export default function ModulePage() {
     request,
     user: { admin },
     store: {
-      get: (key) => api.get(`/modules/${module}/store/${encodeURIComponent(key)}`),
-      set: async (key, value) => { await api.put(`/modules/${module}/store/${encodeURIComponent(key)}`, value) },
+      get: (key) => api.get(`/module-store/${module}/${encodeURIComponent(key)}`),
+      set: async (key, value) => { await api.put(`/module-store/${module}/${encodeURIComponent(key)}`, value) },
     },
     token: getToken,
     base: () => '',

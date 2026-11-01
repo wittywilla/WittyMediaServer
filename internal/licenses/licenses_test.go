@@ -85,6 +85,7 @@ func TestWhatMustBeSaidIsSaid(t *testing.T) {
 	}
 	if cores == 0 && os.Getenv(modtest.EnvCatalog) != "" {
 		modtest.Need(t, "wittyplay")
+		Reload()
 		for _, c := range All() {
 			if c.Group == GroupCores {
 				cores++
@@ -142,4 +143,3 @@ func TestEveryWebPackageIsListed(t *testing.T) {
 		}
 	}
 }
-

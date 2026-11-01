@@ -21551,9 +21551,9 @@
         "x-wms-auth": "admin"
       }
     },
-    "/modules/{id}/store/{key}": {
+    "/module-store/{id}/{key}": {
       "get": {
-        "operationId": "getModulesIdStoreKey",
+        "operationId": "getModuleStoreIdKey",
         "parameters": [
           {
             "in": "path",
@@ -21597,7 +21597,7 @@
         "x-wms-auth": "user"
       },
       "put": {
-        "operationId": "putModulesIdStoreKey",
+        "operationId": "putModuleStoreIdKey",
         "parameters": [
           {
             "in": "path",

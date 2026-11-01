@@ -535,7 +535,7 @@ func (s *Server) moduleStoreTarget(w http.ResponseWriter, r *http.Request) (stri
 	return moduleStoreName(userFrom(r).ID, id, key), true
 }
 
-// GET /api/modules/{id}/store/{key}: what this person's page saved, or null.
+// GET /api/module-store/{id}/{key}: what this person's page saved, or null.
 func (s *Server) handleModuleStoreGet(w http.ResponseWriter, r *http.Request) {
 	name, ok := s.moduleStoreTarget(w, r)
 	if !ok {
@@ -546,7 +546,7 @@ func (s *Server) handleModuleStoreGet(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, v)
 }
 
-// PUT /api/modules/{id}/store/{key}: saves any JSON, up to a limit.
+// PUT /api/module-store/{id}/{key}: saves any JSON, up to a limit.
 func (s *Server) handleModuleStorePut(w http.ResponseWriter, r *http.Request) {
 	name, ok := s.moduleStoreTarget(w, r)
 	if !ok {

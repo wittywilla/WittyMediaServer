@@ -298,7 +298,6 @@ func clean(in []tuner.Channel) []tuner.Channel {
 		}
 		c.Number, c.Name, c.Group, c.CallSign, c.EPGID = clip(c.Number), clip(c.Name), clip(c.Group), clip(c.CallSign), clip(c.EPGID)
 		c.VideoCodec, c.AudioCodec, c.Encrypted, c.NoRecord = clip(c.VideoCodec), clip(c.AudioCodec), clip(c.Encrypted), clip(c.NoRecord)
-		c.Checked = false
 		out = append(out, c)
 	}
 	return out

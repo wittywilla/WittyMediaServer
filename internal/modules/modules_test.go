@@ -376,12 +376,11 @@ func TestOlderAPIIsRefused(t *testing.T) {
 	if s.Latest != nil {
 		t.Fatalf("offered: %+v", s.Latest)
 	}
-	err := m.Install("wittyphotos")
-	if err == nil {
-		t.Fatal("installed anyway")
+	if s.TooNew == nil || !strings.Contains(s.TooNew.Reason, "too old") {
+		t.Fatalf("no plain reason: %+v", s.TooNew)
 	}
-	if !strings.Contains(err.Error(), "too old") && !strings.Contains(err.Error(), "no version") {
-		t.Fatalf("no plain reason: %v", err)
+	if err := m.Install("wittyphotos"); err == nil {
+		t.Fatal("installed anyway")
 	}
 	usesBuiltin(t, m)
 }

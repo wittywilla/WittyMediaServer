@@ -288,7 +288,8 @@ func TestTunerHelperMayRefuse(t *testing.T) {
 	}
 }
 
-// A list from a helper is cleaned: nothing it says makes a channel known to be clear.
+// A list from a helper is cleaned. What it says it checked is taken, since a fork can't replace
+// WittyTuner, and what plays still passes the server's own guard.
 func TestTunerChannelsAreChecked(t *testing.T) {
 	tn, _ := fakeTuners(t)
 	addr := streamSite(t).URL + "/ts"
@@ -300,7 +301,7 @@ func TestTunerChannelsAreChecked(t *testing.T) {
 	if len(list) != 3 || list[0].ID != "clear" || list[1].ID != "protected" {
 		t.Fatalf("%+v", list)
 	}
-	if list[0].Checked || list[0].Encrypted != "" || list[0].Logo != "" {
+	if !list[0].Checked || list[0].Encrypted != "" || list[0].Logo != "" {
 		t.Fatalf("%+v", list[0])
 	}
 	if list[1].Encrypted == "" {

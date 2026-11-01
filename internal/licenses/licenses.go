@@ -114,14 +114,26 @@ var written = []Component{
 }
 
 var (
-	once  sync.Once
+	mu    sync.Mutex
 	list  []Component
 	texts []string
 	which []int
 )
 
+// Reload forgets the list, as a module has arrived or gone.
+func Reload() {
+	mu.Lock()
+	defer mu.Unlock()
+	list, texts, which = nil, nil, nil
+}
+
 func load() {
-	once.Do(func() {
+	mu.Lock()
+	defer mu.Unlock()
+	if list != nil {
+		return
+	}
+	func() {
 		var f File
 		z, err := gzip.NewReader(bytes.NewReader(librariesGz))
 		if err == nil {
@@ -155,7 +167,7 @@ func load() {
 			sorted[to].ID = to
 		}
 		list, which = sorted, sortedWhich
-	})
+	}()
 }
 
 // coreComponents lists the cores this server offers, from the same table that offers
@@ -180,12 +192,16 @@ func coreComponents() []Component {
 // All is every component, grouped, in the order Groups lists. Callers mustn't change it.
 func All() []Component {
 	load()
+	mu.Lock()
+	defer mu.Unlock()
 	return list
 }
 
 // Text is a component's full license text, if it has one here.
 func Text(id int) (string, bool) {
 	load()
+	mu.Lock()
+	defer mu.Unlock()
 	if id < 0 || id >= len(list) || which[id] < 0 {
 		return "", false
 	}

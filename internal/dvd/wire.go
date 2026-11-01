@@ -8,7 +8,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"slices"
 )
 
 // The calls.
@@ -147,15 +146,6 @@ type NavAnswer struct {
 // PGCAnswer is the program chain a step plays; nil when there is none.
 type PGCAnswer struct{ PGC *PGC }
 
-// Encode is the wire form of a structured answer.
-func Encode(v any) ([]byte, error) {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(v); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
 func decode(b []byte, limit int, what string, v any) (err error) {
 	if len(b) > limit {
 		return fmt.Errorf("the helper's %s is too large: %d bytes", what, len(b))
@@ -211,14 +201,6 @@ func DecodeExtents(b []byte) ([]FileExtent, error) {
 // this value, which no disc can hold: the parser's stream numbers are 0 to 31.
 var absentStream = SubpControl{Narrow: -1, Wide: -1, Letterbox: -1, PanScan: -1}
 
-func markAbsent(p *PGC) {
-	for i, c := range p.SubpControl {
-		if c == nil {
-			p.SubpControl[i] = &absentStream
-		}
-	}
-}
-
 func unmarkAbsent(p *PGC) {
 	for i, c := range p.SubpControl {
 		if c != nil && *c == absentStream {
@@ -256,14 +238,6 @@ func eachPGC(d *Disc, f func(*PGC)) {
 	}
 }
 
-// EncodeDisc is the wire form of a disc's structure. The disc is back as it was
-// afterwards; a helper answers one call at a time, so nothing sees it marked.
-func EncodeDisc(d *Disc) ([]byte, error) {
-	eachPGC(d, markAbsent)
-	defer eachPGC(d, unmarkAbsent)
-	return Encode(d)
-}
-
 // DecodeDisc reads a disc's structure.
 func DecodeDisc(b []byte) (*Disc, error) {
 	var d Disc
@@ -272,15 +246,6 @@ func DecodeDisc(b []byte) (*Disc, error) {
 	}
 	eachPGC(&d, unmarkAbsent)
 	return &d, nil
-}
-
-// EncodePGC is the wire form of the answer to MethodStepPGC.
-func EncodePGC(p *PGC) ([]byte, error) {
-	if p != nil {
-		markAbsent(p)
-		defer unmarkAbsent(p)
-	}
-	return Encode(PGCAnswer{p})
 }
 
 // DecodePGC reads the answer to MethodStepPGC.
@@ -293,49 +258,6 @@ func DecodePGC(b []byte) (*PGC, error) {
 		unmarkAbsent(a.PGC)
 	}
 	return a.PGC, nil
-}
-
-// EncodeMenu is the wire form of a menu picture: the length of a header, the header,
-// and then the pixels of each picture in turn.
-func EncodeMenu(p *MenuPicture) ([]byte, error) {
-	c := *p
-	c.Buttons = slices.Clone(p.Buttons)
-	var pix [][]byte
-	var bad error
-	strip := func(r **RGBA) {
-		if *r == nil {
-			return
-		}
-		x := **r
-		if x.Width < 0 || x.Height < 0 || len(x.Pix) != x.Width*x.Height*4 {
-			bad = errors.New("a picture's size doesn't match its pixels")
-		}
-		pix = append(pix, x.Pix)
-		x.Pix = nil
-		*r = &x
-	}
-	strip(&c.Normal)
-	for i := range c.Buttons {
-		strip(&c.Buttons[i].Select)
-		strip(&c.Buttons[i].Action)
-	}
-	if bad != nil {
-		return nil, bad
-	}
-	head, err := Encode(&c)
-	if err != nil {
-		return nil, err
-	}
-	total := 4 + len(head)
-	for _, b := range pix {
-		total += len(b)
-	}
-	out := binary.BigEndian.AppendUint32(make([]byte, 0, total), uint32(len(head)))
-	out = append(out, head...)
-	for _, b := range pix {
-		out = append(out, b...)
-	}
-	return out, nil
 }
 
 // DecodeMenu reads a menu picture. Its pixels are slices of b, each exactly the size
@@ -391,27 +313,6 @@ const (
 	subsHead = 8
 	subsUnit = 20
 )
-
-// EncodeSubs is the wire form of a cell's sub-pictures.
-func EncodeSubs(c *CellSubs) []byte {
-	total := subsHead + len(c.Units)*subsUnit
-	for _, u := range c.Units {
-		total += len(u.Bytes)
-	}
-	out := make([]byte, 0, total)
-	out = binary.BigEndian.AppendUint32(out, c.BasePTM)
-	out = binary.BigEndian.AppendUint32(out, uint32(len(c.Units)))
-	for _, u := range c.Units {
-		out = binary.BigEndian.AppendUint32(out, uint32(u.Stream))
-		out = binary.BigEndian.AppendUint32(out, u.Sector)
-		out = binary.BigEndian.AppendUint64(out, uint64(u.PTS))
-		out = binary.BigEndian.AppendUint32(out, uint32(len(u.Bytes)))
-	}
-	for _, u := range c.Units {
-		out = append(out, u.Bytes...)
-	}
-	return out
-}
 
 // DecodeSubs reads a cell's sub-pictures. Their bytes are slices of b.
 func DecodeSubs(b []byte) (*CellSubs, error) {

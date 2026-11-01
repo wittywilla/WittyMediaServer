@@ -28,7 +28,6 @@ type gameServer struct {
 	admin, kid  string // session tokens
 	other       string
 	s           *Server
-	lib, itemID int64
 }
 
 func newGameServer(t *testing.T) *gameServer {

@@ -227,7 +227,7 @@ func (s *Store) ReviewOfYear(ctx context.Context, userID int64, year int, access
 	}
 	type row struct {
 		id, show        int64
-		title, typ, sub string
+		title, typ      string
 		artist, studio  string
 		genres, sTitle  string
 		secs            float64

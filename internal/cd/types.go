@@ -112,8 +112,6 @@ const (
 	maxIndexes = 100
 	// maxSheet bounds any text or chunk read whole from a sheet or footer.
 	maxSheet = 4 << 20
-	// sessionGap is the lead-out and lead-in between a CD-Extra's two sessions.
-	sessionGap = 11400
 )
 
 // Errors a caller may want to tell apart. Each reads as a sentence.

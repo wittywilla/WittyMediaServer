@@ -412,12 +412,6 @@ func TestDiagnoseEnginePanicBecomesFinding(t *testing.T) {
 
 // ---------------------------------------------------------------- scrambling
 
-// sampleDisc is a VOB space in memory: a run of packs, some flagged scrambled.
-type sampleDisc struct {
-	sectors   int
-	scrambled func(sector int) bool
-}
-
 func videoPack(scrambled bool) []byte {
 	p := make([]byte, wittydvd.Sector)
 	binary.BigEndian.PutUint32(p, 0x000001ba)
@@ -429,26 +423,6 @@ func videoPack(scrambled bool) []byte {
 	}
 	copy(p[64:], contentMark)
 	return p
-}
-
-func navPack() []byte {
-	p := make([]byte, wittydvd.Sector)
-	binary.BigEndian.PutUint32(p, 0x000001ba)
-	p[4] = 0x44
-	copy(p[14:], []byte{0, 0, 1, 0xbf, 0x03, 0xd4})
-	return p
-}
-
-func (d sampleDisc) ReadSectors(first uint32, count int) ([]byte, error) {
-	out := []byte{}
-	for s := int(first); s < int(first)+count && s < d.sectors; s++ {
-		if s%16 == 0 {
-			out = append(out, navPack()...) // never scrambled, never counted
-			continue
-		}
-		out = append(out, videoPack(d.scrambled(s))...)
-	}
-	return out, nil
 }
 
 // ---------------------------------------------------------------- damage

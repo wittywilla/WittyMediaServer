@@ -2,10 +2,6 @@ package library
 
 import "github.com/wittywilla/wittymediaserver/internal/mediatypes"
 
-func isImageName(name string) bool {
-	return mediatypes.IsPhoto(name) || photos().IsRaw(name)
-}
-
 // FileKind says what a file is to the server, from its name: video, audio, book,
 // disc (an image of a DVD or Blu-ray), subtitle, image, playlist or other.
 func FileKind(name string) string {

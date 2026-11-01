@@ -856,15 +856,6 @@ type NavOptions struct {
 	Registers RegisterOptions
 }
 
-// frame is the one thing a disc can suspend: a movie object to come back to.
-// playing says it was suspended inside a PLAY_PL (a menu call during the
-// film), so coming back continues the playlist rather than the next command.
-type frame struct {
-	object  int
-	pc      int
-	playing bool
-}
-
 // FileExtent is a byte range of a stream file: inside the image, or a file
 // on disk when the disc is a folder.
 type FileExtent struct {
@@ -1123,28 +1114,6 @@ type Instr struct {
 	ImmDst   bool
 	ImmSrc   bool
 	Dst, Src uint32
-}
-
-// Decode decodes a command.
-func Decode(c Command) Instr {
-	w := c.Op
-	in := Instr{Raw: c, Operands: int(w >> 29), Group: Group((w >> 27) & 3), Sub: int((w >> 24) & 7), ImmDst: w&(1<<23) != 0, ImmSrc: w&(1<<22) != 0, Dst: c.Dst, Src: c.Src}
-	switch in.Group {
-	case GroupBranch:
-		in.Opt = int((w >> 16) & 15)
-	case GroupCompare:
-		in.Opt = int((w >> 8) & 15)
-	case GroupSet:
-		in.Opt = int(w & 31)
-	}
-	return in
-}
-
-func pick(i int, names ...string) string {
-	if i >= 0 && i < len(names) {
-		return names[i]
-	}
-	return fmt.Sprintf("?%d", i)
 }
 
 // Effects collects what SET_SYSTEM commands asked for during a run; the

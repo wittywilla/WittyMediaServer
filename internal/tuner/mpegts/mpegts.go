@@ -175,23 +175,6 @@ type Program struct {
 	PMTPID int
 }
 
-// ParsePAT reads a Program Association Table section.
-func ParsePAT(s []byte) []Program {
-	if len(s) < 12 || s[0] != 0 {
-		return nil
-	}
-	end := 3 + (int(s[1]&0x0f)<<8 | int(s[2])) - 4
-	var out []Program
-	for i := 8; i+4 <= end && i+4 <= len(s); i += 4 {
-		n := int(s[i])<<8 | int(s[i+1])
-		pid := int(s[i+2]&0x1f)<<8 | int(s[i+3])
-		if n != 0 {
-			out = append(out, Program{n, pid})
-		}
-	}
-	return out
-}
-
 // ES is an elementary stream in a PMT.
 type ES struct {
 	Type int
@@ -208,76 +191,6 @@ type PMT struct {
 
 const caDescriptor = 0x09
 
-// ParsePMT reads a Program Map Table section.
-func ParsePMT(s []byte) (PMT, bool) {
-	var p PMT
-	if len(s) < 16 || s[0] != 2 {
-		return p, false
-	}
-	end := 3 + (int(s[1]&0x0f)<<8 | int(s[2])) - 4
-	if end > len(s) {
-		return p, false
-	}
-	p.Program = int(s[3])<<8 | int(s[4])
-	p.PCR = int(s[8]&0x1f)<<8 | int(s[9])
-	info := int(s[10]&0x0f)<<8 | int(s[11])
-	i := 12
-	if i+info > end {
-		return p, false
-	}
-	p.CA = hasDescriptor(s[i:i+info], caDescriptor)
-	i += info
-	for i+5 <= end {
-		es := ES{Type: int(s[i]), PID: int(s[i+1]&0x1f)<<8 | int(s[i+2])}
-		n := int(s[i+3]&0x0f)<<8 | int(s[i+4])
-		i += 5
-		if i+n > end {
-			return p, false
-		}
-		if hasDescriptor(s[i:i+n], caDescriptor) {
-			p.CA = true
-		}
-		i += n
-		p.Streams = append(p.Streams, es)
-	}
-	return p, true
-}
-
-func hasDescriptor(b []byte, tag byte) bool {
-	for len(b) >= 2 {
-		n := int(b[1])
-		if b[0] == tag {
-			return true
-		}
-		if 2+n > len(b) {
-			return false
-		}
-		b = b[2+n:]
-	}
-	return false
-}
-
-// HasVideo says whether a programme has a picture (radio services do not).
-func (p PMT) HasVideo() bool {
-	for _, e := range p.Streams {
-		switch e.Type {
-		case 0x01, 0x02, 0x10, 0x1b, 0x24, 0x80, 0xea:
-			return true
-		}
-	}
-	return false
-}
-
-// HD guesses from the codec: only MPEG-4 and later usually mean HD here.
-func (p PMT) HD() bool {
-	for _, e := range p.Streams {
-		if e.Type == 0x1b || e.Type == 0x24 {
-			return true
-		}
-	}
-	return false
-}
-
 // Service is an entry of DVB's SDT.
 type Service struct {
 	ID       int
@@ -285,43 +198,6 @@ type Service struct {
 	Provider string
 	Type     int
 	FreeCA   bool // conditional access: encrypted
-}
-
-// ParseSDT reads a Service Description Table section.
-func ParseSDT(s []byte) []Service {
-	if len(s) < 15 || (s[0] != 0x42 && s[0] != 0x46) {
-		return nil
-	}
-	end := 3 + (int(s[1]&0x0f)<<8 | int(s[2])) - 4
-	if end > len(s) {
-		return nil
-	}
-	var out []Service
-	for i := 11; i+5 <= end; {
-		sv := Service{ID: int(s[i])<<8 | int(s[i+1])}
-		sv.FreeCA = s[i+3]&0x10 != 0
-		n := int(s[i+3]&0x0f)<<8 | int(s[i+4])
-		i += 5
-		if i+n > end {
-			break
-		}
-		forDescriptors(s[i:i+n], func(tag byte, d []byte) {
-			if tag == 0x48 && len(d) >= 3 {
-				sv.Type = int(d[0])
-				pl := int(d[1])
-				if 2+pl+1 <= len(d) {
-					sv.Provider = DVBText(d[2 : 2+pl])
-					nl := int(d[2+pl])
-					if 3+pl+nl <= len(d) {
-						sv.Name = DVBText(d[3+pl : 3+pl+nl])
-					}
-				}
-			}
-		})
-		i += n
-		out = append(out, sv)
-	}
-	return out
 }
 
 func forDescriptors(b []byte, f func(tag byte, d []byte)) {
@@ -479,41 +355,6 @@ type VirtualChannel struct {
 	Encrypted bool // access_controlled
 	Hidden    bool
 	Type      int
-}
-
-// ParseVCT reads a terrestrial or cable Virtual Channel Table section.
-func ParseVCT(s []byte) []VirtualChannel {
-	if len(s) < 16 || (s[0] != 0xc8 && s[0] != 0xc9) {
-		return nil
-	}
-	end := 3 + (int(s[1]&0x0f)<<8 | int(s[2])) - 4
-	if end > len(s) {
-		return nil
-	}
-	n := int(s[9])
-	var out []VirtualChannel
-	i := 10
-	for k := 0; k < n && i+32 <= end; k++ {
-		u := make([]uint16, 0, 7)
-		for j := 0; j < 7; j++ {
-			if v := binary.BigEndian.Uint16(s[i+2*j:]); v != 0 {
-				u = append(u, v)
-			}
-		}
-		v := VirtualChannel{Name: string(utf16.Decode(u))}
-		w := binary.BigEndian.Uint32(s[i+14:])
-		v.Major = int(w >> 18 & 0x3ff)
-		v.Minor = int(w >> 8 & 0x3ff)
-		v.Program = int(s[i+24])<<8 | int(s[i+25])
-		v.Encrypted = s[i+26]&0x20 != 0
-		v.Hidden = s[i+26]&0x10 != 0
-		v.Type = int(s[i+27] & 0x3f)
-		v.SourceID = int(s[i+28])<<8 | int(s[i+29])
-		dl := int(s[i+30]&0x03)<<8 | int(s[i+31])
-		i += 32 + dl
-		out = append(out, v)
-	}
-	return out
 }
 
 // ParseMGT lists the PIDs of the ATSC event tables (EIT-0, EIT-1…).
@@ -770,118 +611,4 @@ type ProgramFilter struct {
 	carry   []byte
 	out     []byte
 	cc      byte
-}
-
-// NewProgramFilter keeps only this programme of r.
-func NewProgramFilter(r io.ReadCloser, program int) *ProgramFilter {
-	f := &ProgramFilter{r: r, program: program, keep: map[int]bool{PIDEIT: true, PIDPSIP: true, PIDSDT: true, 0x14: true}}
-	f.dem = NewDemux(PIDPAT)
-	f.dem.OnSec = func(pid int, s []byte) {
-		if pid == PIDPAT {
-			for _, p := range ParsePAT(s) {
-				if p.Number == program && p.PMTPID != f.pmt {
-					f.pmt = p.PMTPID
-					f.keep[f.pmt] = true
-					f.dem.Add(f.pmt)
-				}
-			}
-			return
-		}
-		if m, ok := ParsePMT(s); ok && m.Program == program {
-			f.keep[m.PCR] = true
-			for _, e := range m.Streams {
-				f.keep[e.PID] = true
-			}
-		}
-	}
-	return f
-}
-
-// patPacket builds the single-programme PAT.
-func (f *ProgramFilter) patPacket() []byte {
-	sec := []byte{0x00, 0xb0, 0x0d, 0x00, 0x01, 0xc1, 0x00, 0x00,
-		byte(f.program >> 8), byte(f.program), 0xe0 | byte(f.pmt>>8), byte(f.pmt)}
-	crc := CRC32(sec)
-	sec = append(sec, byte(crc>>24), byte(crc>>16), byte(crc>>8), byte(crc))
-	p := make([]byte, PacketSize)
-	for i := range p {
-		p[i] = 0xff
-	}
-	p[0], p[1], p[2], p[3], p[4] = 0x47, 0x40, 0x00, 0x10|f.cc&0x0f, 0x00
-	f.cc++
-	copy(p[5:], sec)
-	return p
-}
-
-// Read implements io.Reader.
-func (f *ProgramFilter) Read(p []byte) (int, error) {
-	buf := make([]byte, 64*PacketSize)
-	for len(f.out) == 0 {
-		n, err := f.r.Read(buf)
-		if n > 0 {
-			f.consume(buf[:n])
-		}
-		if err != nil && len(f.out) == 0 {
-			return 0, err
-		}
-	}
-	n := copy(p, f.out)
-	f.out = f.out[n:]
-	return n, nil
-}
-
-func (f *ProgramFilter) consume(b []byte) {
-	if len(f.carry) > 0 {
-		need := PacketSize - len(f.carry)
-		if len(b) < need {
-			f.carry = append(f.carry, b...)
-			return
-		}
-		f.carry = append(f.carry, b[:need]...)
-		f.packet(f.carry)
-		f.carry = f.carry[:0]
-		b = b[need:]
-	}
-	for len(b) >= PacketSize {
-		if b[0] != 0x47 {
-			i := 1
-			for i < len(b) && b[i] != 0x47 {
-				i++
-			}
-			b = b[i:]
-			continue
-		}
-		f.packet(b[:PacketSize])
-		b = b[PacketSize:]
-	}
-	if len(b) > 0 {
-		f.carry = append(f.carry[:0], b...)
-	}
-}
-
-func (f *ProgramFilter) packet(p []byte) {
-	h, ok := ParsePacket(p)
-	if !ok {
-		return
-	}
-	f.dem.Feed(h)
-	switch {
-	case h.PID == PIDPAT:
-		if f.pmt != 0 && h.Start {
-			f.out = append(f.out, f.patPacket()...)
-		}
-	case f.keep[h.PID]:
-		f.out = append(f.out, p...)
-	}
-}
-
-// Close closes the stream underneath.
-func (f *ProgramFilter) Close() error { return f.r.Close() }
-
-// Fatal passes on a guard's reason from underneath.
-func (f *ProgramFilter) Fatal() error {
-	if c, ok := f.r.(interface{ Fatal() error }); ok {
-		return c.Fatal()
-	}
-	return nil
 }

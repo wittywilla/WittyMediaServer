@@ -197,59 +197,9 @@ type Event struct {
 	Lost, Repeated int     // frames skipped over, or shown again
 }
 
-// Events lists every place in the stream where frames are left out or repeated,
-// chapter or no chapter. Adjacent ones add up.
-func Events(ref, out *Pictures) []Event {
-	m := Align(ref, out)
-	var ev []Event
-	for i := 1; i < len(m.Map); i++ {
-		step := m.Map[i] - m.Map[i-1]
-		if step == 1 {
-			continue
-		}
-		sec := float64(i) / out.FPS
-		if n := len(ev); n > 0 && sec-ev[n-1].Sec < 1 {
-			if step > 1 {
-				ev[n-1].Lost += step - 1
-			} else {
-				ev[n-1].Repeated += 1 - step
-			}
-			continue
-		}
-		e := Event{Sec: sec}
-		if step > 1 {
-			e.Lost = step - 1
-		} else {
-			e.Repeated = 1 - step
-		}
-		ev = append(ev, e)
-	}
-	return ev
-}
-
 // SoundJump is a place where the sound moves against the reference.
 type SoundJump struct {
 	Sec, FromMs, ToMs, Confidence float64
-}
-
-// SoundJumps walks the whole stream and lists where its sound moves against the
-// reference. Quiet or ambiguous stretches are passed over.
-func SoundJumps(ref, out []int16, every, atLeastMs float64) []SoundJump {
-	var jumps []SoundJump
-	have := false
-	last := 0.0
-	end := float64(len(out))/AudioRate - 1.5
-	for sec := 1.0; sec < end; sec += every {
-		ms, conf := soundLag(ref, out, sec, sec)
-		if conf < 0.8 {
-			continue
-		}
-		if have && math.Abs(ms-last) >= atLeastMs {
-			jumps = append(jumps, SoundJump{Sec: sec, FromMs: last, ToMs: ms, Confidence: conf})
-		}
-		last, have = ms, true
-	}
-	return jumps
 }
 
 func abs(a int) int {
@@ -523,29 +473,4 @@ func Join(ctx context.Context, h *hls.Session, to string, paced bool) error {
 		}
 	}
 	return nil
-}
-
-// Whole reports everything the stream does wrong, anywhere.
-func Whole(ref, out *Pictures, refSound, outSound []int16) string {
-	var b strings.Builder
-	ev := Events(ref, out)
-	lost, rep := 0, 0
-	for _, e := range ev {
-		lost += e.Lost
-		rep += e.Repeated
-		if e.Lost > 2 || e.Repeated > 2 {
-			fmt.Fprintf(&b, "picture at %9.2f: %3d lost, %3d repeated\n", e.Sec, e.Lost, e.Repeated)
-		}
-	}
-	fmt.Fprintf(&b, "whole stream: %d frames (of %d) lost, %d repeated, in %d places\n", lost, len(ref.Frames), rep, len(ev))
-	if refSound != nil && outSound != nil {
-		js := SoundJumps(refSound, outSound, 4, 5)
-		sum := 0.0
-		for _, j := range js {
-			fmt.Fprintf(&b, "sound at %9.2f: %+7.1f ms (%.1f -> %.1f, correlation %.2f)\n", j.Sec, j.ToMs-j.FromMs, j.FromMs, j.ToMs, j.Confidence)
-			sum += math.Abs(j.ToMs - j.FromMs)
-		}
-		fmt.Fprintf(&b, "whole stream: %d sound jumps of 5 ms or more, %.1f ms in all\n", len(js), sum)
-	}
-	return b.String()
 }

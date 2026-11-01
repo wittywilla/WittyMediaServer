@@ -58,8 +58,6 @@ type apiRoute struct {
 	auth         string // public | user | admin
 }
 
-func (r apiRoute) pattern() string { return r.method + " /api" + r.path }
-
 // wildcard {file...} is written {file} in OpenAPI.
 func docPath(p string) string { return strings.ReplaceAll(p, "...}", "}") }
 

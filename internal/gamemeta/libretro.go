@@ -105,7 +105,6 @@ func (s *Libretro) About() About {
 // libDB is one console's list, indexed.
 type libDB struct {
 	recs     []rdbRecord
-	system   []string // which file each record came from, by recSystem
 	recFile  []uint8
 	byCRC    map[uint32]int32
 	bySerial map[string]int32

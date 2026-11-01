@@ -2,7 +2,6 @@ package gameid
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -220,6 +219,3 @@ func short(list []string) []string {
 	}
 	return append(append([]string{}, list[:3]...), "and others")
 }
-
-// IsText says whether a sample is plain text.
-func IsText(b []byte) bool { return looksLikeText(bytes.TrimRight(b, "\x00")) }

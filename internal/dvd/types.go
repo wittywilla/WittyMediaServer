@@ -664,7 +664,6 @@ type Registers struct {
 	GPRM      [16]uint16
 	Counter   [16]bool // GPRM counter mode (increments once per second)
 	SPRM      [24]uint16
-	clockFrac float64
 	Rand      func() float64
 }
 

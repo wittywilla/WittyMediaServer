@@ -451,5 +451,3 @@ func (e *Engine) recall(ctx context.Context, path string, p Policy, size, mtime 
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
-
-func nowUnix() int64 { return time.Now().Unix() }

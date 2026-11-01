@@ -38,17 +38,6 @@ func HoldsGame(exts []string, c *wittyplay.Console) bool {
 	return false
 }
 
-// ConsoleOf sorts an archive that isn't in a console's folder by what's inside: the
-// first extension that only one console uses.
-func ConsoleOf(exts []string) string {
-	for _, x := range exts {
-		if c := wittyplay.ByExtension(x); c != "" {
-			return c
-		}
-	}
-	return ""
-}
-
 // cartridgeName is the name a one-file game is always given. It keeps a game's own
 // files (a core may name its saves after what it opened) from depending on what's
 // in the archive, and matches how .zip games have always been run.

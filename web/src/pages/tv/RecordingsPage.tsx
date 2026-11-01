@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { toast, useApp } from '../../state'
-import { useLook } from './look'
+import { themeRoot, useLook } from './look'
 import { fmtClock, fmtDay, type Recording, type RecordingRule } from './tvApi'
 import './tv.css'
+import './tvthemes.css'
 
 const STATUS: Record<Recording['status'], string> = { scheduled: 'Scheduled', recording: 'Recording now', done: 'Done', failed: 'Failed', cancelled: 'Cancelled' }
 
@@ -33,7 +34,7 @@ export default function RecordingsPage() {
     try { await api.del(`/recording-rules/${r.id}`); load() } catch (e: any) { toast(e.message) }
   }
   return (
-    <div className="ctv ctv-page ctv-list-page" data-skin={look.colours} data-layout={look.layout}>
+    <div className="ctv ctv-page ctv-list-page" {...themeRoot(look)}>
       <header className="ctv-list-head">
         <h1>Recordings</h1>
         <Link className="ctv-btn sm" to="/tv">Back to the guide</Link>

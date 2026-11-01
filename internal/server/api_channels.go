@@ -501,8 +501,9 @@ var tvSettings = map[string]string{
 	"tvTunerBufferMin":   "30",      // and a tuner channel
 	"tvCopyVideo":        "1",       // pass H.264 through instead of converting it
 	"tvMaxHeight":        "0",       // 0 = the server's general limit
-	"tvSkin":             "cable",   // cable | satellite | midnight | theme
-	"tvLayout":           "classic", // classic | streaming: what a new viewer starts with
+	"tvTheme":            "",        // what a new viewer starts with: a WittyTV theme, or "" to go by the two below
+	"tvSkin":             "cable",   // cable | satellite | midnight | theme: from before there were themes
+	"tvLayout":           "classic", // classic | streaming: the same
 	"dvrFolder":          "",        // "" = recordings in the data folder
 	"dvrLibrary":         "",        // a library to rescan after recording
 }
@@ -524,11 +525,35 @@ func (s *Server) handleTVSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, out)
 }
 
+// tvThemeLegacy is each WittyTV theme a new viewer can be started on, and what it comes to in
+// the two earlier choices, which the guide API still gives for older clients.
+var tvThemeLegacy = map[string][2]string{
+	"modern":     {"streaming", "theme"},
+	"classic":    {"classic", "cable"},
+	"satellite":  {"classic", "satellite"},
+	"teletext":   {"classic", "cable"},
+	"listings":   {"streaming", "theme"},
+	"bigpicture": {"streaming", "theme"},
+	"outline":    {"streaming", "theme"},
+	"compact":    {"streaming", "theme"},
+}
+
 func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 	var b map[string]string
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
+	}
+	// A theme carries the two older choices with it, so an older client sees the nearest thing;
+	// and choosing either of those the old way means the theme no longer says.
+	if v, ok := b["tvTheme"]; ok {
+		if l, known := tvThemeLegacy[strings.TrimSpace(v)]; known {
+			b["tvLayout"], b["tvSkin"] = l[0], l[1]
+		}
+	} else if _, layout := b["tvLayout"]; layout {
+		b["tvTheme"] = ""
+	} else if _, skin := b["tvSkin"]; skin {
+		b["tvTheme"] = ""
 	}
 	for k, v := range b {
 		if _, known := tvSettings[k]; !known {
@@ -545,6 +570,11 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 		case "tvMaxHeight":
 			if n, err := strconv.Atoi(v); err != nil || n < 0 || n > 4320 {
 				writeErr(w, 400, "bad picture height")
+				return
+			}
+		case "tvTheme":
+			if _, known := tvThemeLegacy[v]; v != "" && !known {
+				writeErr(w, 400, "unknown WittyTV theme")
 				return
 			}
 		case "tvSkin":
@@ -801,7 +831,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 		return names[i] < names[j]
 	})
 	writeJSON(w, 200, map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
-		"channels": rows, "groups": names, "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout")})
+		"channels": rows, "groups": names, "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout")})
 }
 
 func b2i(b bool) int {

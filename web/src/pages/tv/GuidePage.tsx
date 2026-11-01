@@ -7,7 +7,8 @@ import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from 
 import { toast, useApp } from '../../state'
 import { lookupLogo } from '../../components/BrandLogo'
 import LookPanel from './LookPanel'
-import { channelVars, customVars, lastChannel, previousChannel, setLook, surfaceOf, useLook, type Colours, type Layout, type Look } from './look'
+import { channelVars, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
+import { previewAuto, previewLimit, rowHeight, SHAPES } from './tvThemes'
 import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
 import Hero from './Hero'
@@ -15,13 +16,13 @@ import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
 import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
+import './tvthemes.css'
 import LegalNote from '../../components/LegalNote'
 
-// The programme guide. Two looks over one real ARIA grid: the classic box of the
-// early 2000s, and a clean modern one. At the top, the highlighted channel: its
-// programme, what's next, what can be done with it and a live preview. Below,
-// the rows. The look is each viewer's own (see look.ts). Only the rows on screen
-// are loaded and drawn, so a playlist of thousands of channels stays quick.
+// The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
+// top, the highlighted channel: its programme, what's next, what can be done with it and a
+// live preview. Below, the rows. The look is each viewer's own (see look.ts). Only the rows
+// on screen are loaded and drawn, so a playlist of thousands of channels stays quick.
 
 const SLOT = 1800
 const PAGE = 30
@@ -77,7 +78,6 @@ const useClock = (ms: number) => {
 }
 
 function slotsForWidth(w: number) { return w < 560 ? 3 : w < 1000 ? 4 : w < 1500 ? 5 : 6 }
-function baseRow(width: number, layout: Layout) { return width < 560 ? 56 : width >= 1800 ? 84 : layout === 'streaming' ? 68 : 56 }
 
 // "Tomorrow 8 PM" and "Tomorrow morning": times people actually jump to.
 function jumps(now: number): { label: string; at: number }[] {
@@ -97,8 +97,7 @@ export default function GuidePage() {
   const [rows, setRows] = useState<Record<number, GuideChannel>>({})
   const [total, setTotal] = useState<number | null>(null)
   const [groups, setGroups] = useState<string[]>([])
-  const [serverLook, setServerLook] = useState<{ layout?: Layout; colours?: Colours }>({})
-  const look = useLook(serverLook.layout, serverLook.colours)
+  const look = useLook()
   const [lookOpen, setLookOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [err, setErr] = useState('')
@@ -128,7 +127,7 @@ export default function GuidePage() {
   }
   const loaded = useRef(new Set<string>())
   const slots = look.hours ? look.hours * 2 : slotsForWidth(width)
-  const rowH = Math.round(baseRow(width, look.layout) * ({ compact: 0.8, normal: 1, large: 1.25 }[look.density]) * (look.layout === 'classic' ? 1.14 : 1))
+  const rowH = rowHeight(look.shape, width, look.density)
   const to = from + slots * SLOT
   const fetchFrom = Math.floor(from / FETCH_SPAN) * FETCH_SPAN
   const filterKey = filter.kind + '|' + filter.group + '|' + filter.favourites
@@ -167,8 +166,10 @@ export default function GuidePage() {
   // The rights notice goes with the logos: it's there only when one is on the screen.
   const [logosShown, setLogosShown] = useState(false)
   useEffect(() => {
-    const brands = lineup.flatMap((c) => (c.brand ? [c.brand] : []))
-    if (!look.logos || !brands.length) { setLogosShown(false); return }
+    const brands = lineup.flatMap((c) => (c.brand && !c.logo ? [c.brand] : []))
+    if (!look.logos) { setLogosShown(false); return }
+    if (lineup.some((c) => c.logo)) { setLogosShown(true); return }
+    if (!brands.length) { setLogosShown(false); return }
     let on = true
     Promise.all(brands.slice(0, 200).map((b) => lookupLogo(b.kind, b.name))).then((l) => { if (on) setLogosShown(l.some((x) => x.has)) })
     return () => { on = false }
@@ -184,7 +185,7 @@ export default function GuidePage() {
       const g = await api.get<Page>(`/guide?from=${fetchFrom}&hours=${FETCH_HOURS}&offset=${p * PAGE}&limit=${PAGE}&kind=${filter.kind}&group=${encodeURIComponent(filter.group)}${filter.favourites ? '&favourites=1' : ''}`)
       setTotal(g.total)
       setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...g.groups])] : g.groups))
-      setServerLook({ layout: g.layout, colours: g.skin })
+      setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })
       setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
     } catch (e) { loaded.current.delete(key); setErr((e as Error).message) }
@@ -374,14 +375,13 @@ export default function GuidePage() {
     return c ? `${c.number} ${c.name}` : ''
   }, [previewKey, cur, lineup])
 
-  // The most the preview may take: never so much that the words beside it or the
-  // guide below have no room. A phone gives it the whole width, on its own line.
+  // The most the preview may take, and what it starts at until someone chooses a size.
   const narrow = pageSize.w < 760
-  const previewMax = Math.round(Math.min(narrow ? pageSize.w - 32 : pageSize.w * 0.55, (pageSize.h * (narrow ? 0.3 : 0.5) - 40) * (16 / 9)))
+  const previewMax = previewLimit(pageSize.w, pageSize.h, narrow)
+  const previewStart = previewAuto(look.shape, pageSize.w, pageSize.h, narrow)
 
-  const vars = { ...customVars(look) }
   const shell = (children: React.ReactNode) => (
-    <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '')} data-skin={look.colours} data-layout={look.layout} style={vars}>{children}</div>
+    <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '')} {...themeRoot(look)}>{children}</div>
   )
   if (total === 0 && !filter.kind && !filter.group && !filter.favourites) {
     // Nothing to show yet, so the guide's own colours have nothing to dress up.
@@ -404,7 +404,7 @@ export default function GuidePage() {
   return shell(
     <>
       <h1 className="sr-only">TV guide</h1>
-      <Hero ch={cur} p={panel} next={nextShow} look={look} now={now} previewKey={previewKey} previewName={previewName} previewMax={previewMax}
+      <Hero ch={cur} p={panel} next={nextShow} look={look} now={now} previewKey={previewKey} previewName={previewName} previewMax={previewMax} previewStart={previewStart}
         onWatch={watch} onDetails={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) }} onDay={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }) }}
         onFav={() => { if (cur) void toggleFav(cur) }} onUp={() => moveRow(focus.row + 1)} onDown={() => moveRow(focus.row - 1)} onRecord={() => { if (cur && panel) void record(cur, panel) }} />
 
@@ -514,7 +514,7 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
   const pct = (u: number) => ((u - from) / span) * 100
   const cells = cellsFor(ch, from, to, pxPerSec)
   const focusedCell = focusAt == null ? null : cells.find((c) => c.start <= focusAt && c.end > focusAt) || cells[0]
-  const accent = ch?.accent ? channelVars(ch.accent) : undefined
+  const accent = ch?.accent ? channelVars(ch.accent, look.bg) : undefined
   // With a highlighted tile the logo needs the version that shows up on it.
   const on = surfaceOf(look, focusAt != null)
   return (
@@ -551,8 +551,8 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
               {tiny ? (p.kind === 'group' ? <span className="ctv-count" aria-hidden="true">{p.group?.length}</span> : null) : (
                 <span className="ctv-cell-text">
                   <b>{p.title}</b>
-                  {look.subtitles && look.layout === 'streaming' && details && <small>{details}</small>}
-                  {look.subtitles && look.layout !== 'streaming' && p.sub && <small>{p.sub}</small>}
+                  {look.subtitles && SHAPES[look.shape].details && details && <small>{details}</small>}
+                  {look.subtitles && !SHAPES[look.shape].details && p.sub && <small>{p.sub}</small>}
                 </span>
               )}
               {!tiny && p.end > to && <span className="ctv-more" aria-hidden="true">►</span>}

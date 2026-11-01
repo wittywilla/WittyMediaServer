@@ -1,20 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { useApp } from '../../state'
+import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, legacyOf, readableOn, SHAPES, themeById, themeTokens, upgradeSaved, type AppColours, type Colours, type Font, type OwnerLook, type Saved, type Shape, type Slot, type Suggestion, type ThemeId, type Tokens } from './tvThemes'
 
-// How the guide looks for this viewer. The server only sets what someone starts
-// with, and a theme can suggest a look; everything here is each viewer's own
-// choice, kept with their account so it follows them from device to device.
+// How WittyTV looks for this viewer, on every TV screen. It's their own, kept with their account
+// so it follows them from device to device. What they haven't chosen comes from the app theme's
+// suggestion and then the owner's starting look: chooseTheme in tvThemes.ts is what decides.
 
-export type Layout = 'classic' | 'streaming'
-export type Colours = 'cable' | 'satellite' | 'midnight' | 'theme' | 'custom'
+export { contrast, readableOn } from './tvThemes'
 export type PreviewMode = 'highlight' | 'last' | 'off'
 export type PreviewSide = 'right' | 'left'
 export type Look = {
-  layout: Layout
-  colours: Colours
-  customBg: string // for colours = custom
-  customAccent: string
+  theme: ThemeId
+  shape: Shape
+  font: Font
+  // Where the theme came from: what the viewer chose, what the app theme suggests, or what
+  // the server's owner set for new viewers.
+  source: 'you' | 'app' | 'owner'
+  colours: Colours // this theme's overrides
+  tokens: Tokens
+  bg: string // the background as a plain colour, for working things out from it
+  custom: { shape: Shape; font: Font }
   density: 'compact' | 'normal' | 'large'
   hours: 0 | 1.5 | 2 | 3 | 4 // 0 = what fits the screen
   nowLine: boolean
@@ -24,54 +30,75 @@ export type Look = {
   art: boolean // the programme's picture behind the top of the page
   preview: PreviewMode
   previewSide: PreviewSide
-  previewW: number // how wide the preview is asked to be, in pixels; the page holds it to what fits
+  // How wide the preview was asked to be. Left out, it's worked out from the window and the
+  // theme. The page holds either to what fits.
+  previewW?: number
   previewSound: boolean
+  surfaces: { bg: 'dark' | 'light'; hi: 'dark' | 'light' }
 }
 
-export const DEFAULT_LOOK: Look = {
-  layout: 'classic', colours: 'cable', customBg: '#10203a', customAccent: '#ffb300', density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true,
-  preview: 'highlight', previewSide: 'right', previewW: 320, previewSound: false,
+const SETTINGS: Required<Pick<Saved, 'density' | 'hours' | 'nowLine' | 'progress' | 'subtitles' | 'logos' | 'art' | 'preview' | 'previewSound'>> = {
+  density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true, preview: 'highlight', previewSound: false,
 }
 
 // The sizes the preview snaps to, and their names. Any size between works too.
-export const PREVIEW_SIZES = [{ w: 220, name: 'Small' }, { w: 320, name: 'Medium' }, { w: 460, name: 'Large' }, { w: 640, name: 'Extra large' }]
-export const PREVIEW_MIN = 180
+export const PREVIEW_SIZES = [{ w: 220, name: 'Small' }, { w: 320, name: 'Medium' }, { w: 460, name: 'Large' }, { w: 640, name: 'Extra large' }, { w: 880, name: 'Huge' }]
 export const previewSizeName = (w: number) => PREVIEW_SIZES.find((s) => Math.abs(s.w - w) < 8)?.name || `${Math.round(w)} pixels`
 
 const EVENT = 'wms-tv-look'
 const OLD_KEY = 'wms.tv.look'
+const OWNER_KEY = 'wms.tv.owner'
 let userKey = OLD_KEY
 
-// Reads what was saved, understanding what earlier versions saved.
-function read(): Partial<Look> {
-  let raw: Record<string, unknown> = {}
-  try { raw = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem(OLD_KEY) || '{}') } catch { /* nothing usable */ }
-  return upgrade(raw)
+// ------------------------------------------------------------ the owner's starting look
+
+function savedOwner(): OwnerLook {
+  try { return JSON.parse(localStorage.getItem(OWNER_KEY) || '{}') as OwnerLook } catch { return {} }
+}
+let owner: OwnerLook = savedOwner()
+let ownerAsked = false
+
+export function setOwnerLook(o: OwnerLook) {
+  if (owner.theme === o.theme && owner.layout === o.layout && owner.skin === o.skin) return
+  owner = o
+  try { localStorage.setItem(OWNER_KEY, JSON.stringify(o)) } catch { /* it's asked for again next time */ }
+  window.dispatchEvent(new Event(EVENT))
 }
 
-function upgrade(raw: Record<string, unknown>): Partial<Look> {
-  const out = { ...raw } as Partial<Look> & Record<string, unknown>
-  if (typeof raw.previewPos === 'string' && !raw.previewSide) out.previewSide = raw.previewPos === 'tl' || raw.previewPos === 'bl' ? 'left' : 'right'
-  if (typeof raw.previewSize === 'string' && !raw.previewW) out.previewW = ({ s: 220, m: 320, l: 460 } as Record<string, number>)[raw.previewSize] || 320
-  delete out.previewPos; delete out.previewSize; delete out.previewX; delete out.previewY
-  return out
+// Every screen follows it, not only the guide. One row of the channel list is the cheapest way to hear it.
+function askOwner() {
+  if (ownerAsked) return
+  ownerAsked = true
+  api.get<OwnerLook>('/guide?list=1&limit=1').then((g) => setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })).catch(() => { ownerAsked = false })
+}
+export const forgetOwnerLook = () => { ownerAsked = false; askOwner() }
+
+// ------------------------------------------------------------ what's saved
+
+function read(): Saved {
+  let raw: Record<string, unknown> = {}
+  try { raw = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem(OLD_KEY) || '{}') } catch { /* nothing usable */ }
+  return upgradeSaved(raw, owner)
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-function saveToAccount(saved: Partial<Look>) {
+function saveToAccount(saved: Saved) {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
+    // Beside the theme, what it comes to in the two looks an older app knows about.
+    const shape = saved.theme === 'custom' ? saved.custom?.shape || 'modern' : saved.theme ? themeById(saved.theme)!.shape : undefined
+    const full = saved.theme && shape ? { ...saved, ...legacyOf(saved.theme, shape) } : saved
     // The server keeps an account's interface choices whole, and others have some there too.
-    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: saved })).catch(() => { /* still saved on this device */ })
+    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: full })).catch(() => { /* still saved on this device */ })
   }, 800)
 }
 
-function store(next: Partial<Look>) {
+function store(next: Saved) {
   try { localStorage.setItem(userKey, JSON.stringify(next)) } catch { /* ignore */ }
   window.dispatchEvent(new Event(EVENT))
 }
 
-export function setLook(patch: Partial<Look>) {
+export function setLook(patch: Partial<Saved>) {
   const next = { ...read(), ...patch }
   store(next)
   saveToAccount(next)
@@ -82,23 +109,100 @@ export function resetLook() {
   saveToAccount({})
 }
 
-// What the current theme suggests, set in its CSS: --tv-layout and --tv-colours.
-export function themeSuggestion(): { layout?: Layout; colours?: Colours } {
-  const css = getComputedStyle(document.documentElement)
-  const layout = css.getPropertyValue('--tv-layout').trim(), colours = css.getPropertyValue('--tv-colours').trim()
-  const out: { layout?: Layout; colours?: Colours } = {}
-  if (layout === 'classic' || layout === 'streaming') out.layout = layout
-  if (colours === 'cable' || colours === 'satellite' || colours === 'midnight' || colours === 'theme') out.colours = colours
-  return out
+// Back to following the app theme's suggestion and the owner. The viewer's other choices stay.
+export function forgetTheme() {
+  const next = read()
+  delete next.theme
+  store(next)
+  saveToAccount(next)
 }
 
-// serverLayout and serverColours are what the owner chose as the starting look.
-export function useLook(serverLayout?: Layout, serverColours?: Colours): Look {
+// A size back to being worked out from the window.
+export function forgetPreviewSize() {
+  const next = read()
+  delete next.previewW
+  store(next)
+  saveToAccount(next)
+}
+
+export function pickTheme(id: ThemeId, from?: Look) {
+  const saved = read()
+  const patch: Partial<Saved> = { theme: id }
+  // Custom starts from what's on the screen, so there's nothing to set up to begin with.
+  if (id === 'custom' && !saved.custom && from) {
+    patch.custom = { shape: from.shape, font: from.font }
+    if (Object.keys(from.colours).length) patch.themeColours = { ...saved.themeColours, custom: from.colours }
+  }
+  setLook(patch)
+}
+
+// One colour of a theme, or undefined to go back to following.
+export function setThemeColour(id: ThemeId, slot: Slot, value: string | undefined) {
+  const saved = read()
+  const mine = { ...saved.themeColours?.[id] }
+  if (value) mine[slot] = value
+  else delete mine[slot]
+  setLook({ themeColours: { ...saved.themeColours, [id]: mine } })
+}
+
+export function clearThemeColours(id: ThemeId) {
+  const saved = read()
+  const rest = { ...saved.themeColours }
+  delete rest[id]
+  setLook({ themeColours: rest })
+}
+
+// ------------------------------------------------------------ reading the page
+
+// What the current app theme suggests, set in its CSS: --tv-theme, or the older pair.
+export function themeSuggestion(): Suggestion {
+  const css = getComputedStyle(document.documentElement)
+  const one = (name: string) => css.getPropertyValue(name).trim() || undefined
+  return { theme: one('--tv-theme'), layout: one('--tv-layout'), colours: one('--tv-colours') }
+}
+
+const toHex = (raw: string, fallback: string): string => {
+  const v = raw.trim()
+  if (isHex(v)) return v
+  const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(v)
+  if (short) return '#' + short[1] + short[1] + short[2] + short[2] + short[3] + short[3]
+  const m = /^rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(v)
+  if (m) return '#' + m.slice(1, 4).map((x) => Number(x).toString(16).padStart(2, '0')).join('')
+  return fallback
+}
+
+// The app theme's colours as plain colours, for what has to be worked out from them.
+export function appColours(): AppColours {
+  const css = getComputedStyle(document.documentElement)
+  const get = (name: string, fallback: string) => toHex(css.getPropertyValue(name), fallback)
+  const f = FALLBACK_APP
+  return { bg: get('--bg', f.bg), bg2: get('--bg-2', f.bg2), bg3: get('--bg-3', f.bg3), bg4: get('--bg-4', f.bg4), fg: get('--fg', f.fg), fg2: get('--fg-2', f.fg2), accent: get('--accent', f.accent), accentText: get('--accent-text', f.accentText), accentFg: get('--accent-fg', f.accentFg), border: get('--border-solid', f.border) }
+}
+
+function resolve(saved: Saved, suggestion: Suggestion, ownerLook: OwnerLook, app: AppColours): Look {
+  const chosen = chooseTheme(saved, suggestion, ownerLook)
+  const theme = chosen.theme
+  const custom = saved.custom || chosen.custom || { shape: 'modern' as Shape, font: '' as Font }
+  const shape = theme === 'custom' ? custom.shape : themeById(theme)!.shape
+  const colours = saved.themeColours?.[theme] || chosen.colours?.[theme] || {}
+  const tokens = themeTokens(theme, colours, app)
+  const plain = (name: string, followed: string) => { const v = tokens[name]; return isHex(v) ? v : followed }
+  const bg = plain('--ctv-bg', app.bg)
+  const hi = plain('--ctv-hi', theme === 'modern' || theme === 'bigpicture' ? app.fg : app.accent)
+  const dark = (c: string) => (readableOn(c) === '#ffffff' ? 'dark' : 'light') as 'dark' | 'light'
+  return {
+    ...SETTINGS, ...saved, theme, shape, font: theme === 'custom' ? custom.font : '', source: chosen.source, colours, tokens, bg, custom,
+    previewSide: saved.previewSide || SHAPES[shape].side, surfaces: { bg: dark(bg), hi: dark(hi) },
+  }
+}
+
+export function useLook(): Look {
   const { user } = useApp()
   userKey = user ? `${OLD_KEY}.${user.id}` : OLD_KEY
   const [saved, setSaved] = useState(read)
+  const [ownerLook, setOwner] = useState(owner)
   useEffect(() => {
-    const on = () => setSaved(read())
+    const on = () => { setSaved(read()); setOwner(owner) }
     on()
     window.addEventListener(EVENT, on)
     window.addEventListener('storage', on)
@@ -108,66 +212,45 @@ export function useLook(serverLayout?: Layout, serverColours?: Colours): Look {
   useEffect(() => {
     if (!user) return
     let on = true
-    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook) store(upgrade(u.tvLook)) }).catch(() => { /* this device's copy will do */ })
+    askOwner()
+    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook) store(upgradeSaved(u.tvLook, owner)) }).catch(() => { /* this device's copy will do */ })
     return () => { on = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  const theme = themeSuggestion()
-  return { ...DEFAULT_LOOK, ...(serverLayout ? { layout: serverLayout } : {}), ...(serverColours ? { colours: serverColours } : {}), ...theme, ...saved }
+  // Read on each drawing, and cheap: the look only changes identity when one of these really has.
+  const suggestion = themeSuggestion(), app = appColours()
+  const key = JSON.stringify([saved, suggestion, ownerLook, app])
+  return useMemo(() => resolve(saved, suggestion, ownerLook, app), [key]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-// ------------------------------------------------------------- custom colours
-
-const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
-const toHex = (c: number[]) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')
-const mix = (a: string, b: string, t: number) => { const x = rgb(a), y = rgb(b); return toHex(x.map((v, i) => v + (y[i] - v) * t)) }
-const lum = (hex: string) => { const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4 }; const [r, g, b] = rgb(hex); return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b) }
-export const contrast = (a: string, b: string) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }
-export const readableOn = (bg: string) => (contrast(bg, '#ffffff') >= contrast(bg, '#000000') ? '#ffffff' : '#000000')
+// What the guide's root element and the player's need, so every TV screen is dressed the same.
+export function themeRoot(look: Look): { 'data-shape': Shape; 'data-tvtheme': ThemeId; style: React.CSSProperties } {
+  const style = { ...look.tokens } as Record<string, string>
+  if (look.font) style['--ctv-font'] = FONT_STACKS[look.font]
+  return { 'data-shape': look.shape, 'data-tvtheme': look.theme, style: style as React.CSSProperties }
+}
 
 // An accent pushed far enough from the background to be seen, whatever was picked.
 function legibleAccent(accent: string, bg: string): string {
   const away = readableOn(bg)
+  const parts = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
   let a = accent
-  for (let i = 0; i < 10 && contrast(a, bg) < 4.5; i++) a = mix(a, away, 0.15)
+  for (let i = 0; i < 10 && contrast(a, bg) < 4.5; i++) {
+    const x = parts(a), y = parts(away)
+    a = '#' + x.map((v, n) => Math.round(v + (y[n] - v) * 0.15).toString(16).padStart(2, '0')).join('')
+  }
   return a
 }
 
-const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)
-
-// The guide's tokens worked out from two colours: every pairing has AA contrast,
-// because the text colour comes from the surface it is on.
-export function customVars(look: Look): React.CSSProperties {
-  if (look.colours !== 'custom' || !isHex(look.customBg) || !isHex(look.customAccent)) return {}
-  const bg = look.customBg
-  const text = readableOn(bg)
-  const lift = (t: number) => mix(bg, text, t)
-  const accent = legibleAccent(look.customAccent, bg)
-  return {
-    '--ctv-bg': bg, '--ctv-panel': lift(0.06), '--ctv-panel-2': lift(0.12), '--ctv-head': lift(0.14), '--ctv-cell': lift(0.14), '--ctv-cell-2': lift(0.1),
-    '--ctv-live': mix(lift(0.14), accent, 0.22), '--ctv-live-2': mix(lift(0.1), accent, 0.22), '--ctv-ch': lift(0.06), '--ctv-dim': lift(0.06), '--ctv-line': lift(0.34),
-    '--ctv-text': text, '--ctv-soft': mix(text, bg, 0.2), '--ctv-hi': accent, '--ctv-hi-text': readableOn(accent), '--ctv-accent': accent,
-    '--ctv-key-a': accent, '--ctv-key-b': accent, '--ctv-key-c': accent, '--ctv-key-text': readableOn(accent), '--ctv-err': accent,
-  } as React.CSSProperties
-}
-
-// What a logo sits on, so it comes in the version that can be read: a highlighted row
-// in the modern look is the highlight's colour, anything else the guide's background.
+// What a logo sits on, so it comes in the version that can be read: a highlighted row, in the
+// themes that colour one, is the highlight's colour; anything else the guide's background.
 export function surfaceOf(look: Look, selected = false): 'dark' | 'light' {
-  const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  let colour = ''
-  if (selected && look.layout === 'streaming') {
-    if (look.colours === 'theme') colour = token('--accent')
-    else if (look.colours === 'custom') colour = legibleAccent(look.customAccent, look.customBg)
-    else return 'light'
-  } else if (look.colours === 'theme') colour = token('--bg')
-  else if (look.colours === 'custom') colour = look.customBg
-  return isHex(colour) && readableOn(colour) === '#000000' ? 'light' : 'dark'
+  return selected && SHAPES[look.shape].rowHighlight ? look.surfaces.hi : look.surfaces.bg
 }
 
 // A channel's own colour, for what belongs to that channel.
 export function channelVars(accent: string | undefined, bg = '#000000'): React.CSSProperties {
   if (!isHex(accent)) return {}
-  const a = legibleAccent(accent, bg)
+  const a = legibleAccent(accent, isHex(bg) ? bg : '#000000')
   return { '--ctv-accent': a, '--ctv-channel': a, '--ctv-channel-text': readableOn(a) } as React.CSSProperties
 }
 

@@ -8,10 +8,11 @@ import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
 import { ChannelLogo } from './ChannelLogo'
-import { channelVars, customVars, previousChannel, rememberChannel, surfaceOf, useLook, type Look } from './look'
+import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
+import './tvthemes.css'
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
 // and the classic banner that drops in on every tune. Everyone on a channel
@@ -229,8 +230,11 @@ export default function TvPlayer() {
   const windowLen = Math.max(0, win.end - win.start)
   const isBehind = win.behind > 20
 
+  const root_ = themeRoot(look)
+  const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
+
   return (
-    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>
+    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
       <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}

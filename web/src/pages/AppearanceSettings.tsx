@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { IconDownload, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
@@ -18,6 +18,8 @@ import { tiltBlocked } from '../ui/tilt'
 import { getTenFoot, setTenFoot } from '../ui/tenFoot'
 import { useUserPref } from '../ui/userPrefs'
 
+
+const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
 
 const SCENE_VARS: Record<string, string> = { bg: '--bg', bg2: '--bg-2', bg3: '--bg-3', bg4: '--bg-4', fg: '--fg', fg2: '--fg-2', fg3: '--fg-3', accent: '--accent', accentHover: '--accent-2', accentFg: '--accent-fg', accentText: '--accent-text' }
 
@@ -188,6 +190,7 @@ export default function AppearanceSettings() {
       </div>
       <LayoutPanel />
       <MotionPanel />
+      <Suspense fallback={null}><TvLookSettings /></Suspense>
       {admin && (
         <div className="panel">
           <h2>Name and logo</h2>
